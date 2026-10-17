@@ -16,6 +16,13 @@ def tutorial() -> dict[str, Any]:
 
 
 @cache
+def dungeon() -> dict[str, Any]:
+    """Mapas, batalhas, Pandora e fim da masmorra Kurt İni, campanha 1001 (``tools/extract_dungeon.py``)."""
+    text = resources.files(__package__).joinpath("dungeon_1001.json").read_text(encoding="utf-8")
+    return json.loads(text)  # type: ignore[no-any-return]
+
+
+@cache
 def pet_island() -> dict[str, Any]:
     """Nós da ilha dos pets (mapa 20001) como o oficial mandou no 127 (``captures/peri_adasi_tp.json`` #8)."""
     text = resources.files(__package__).joinpath("petisland.json").read_text(encoding="utf-8")

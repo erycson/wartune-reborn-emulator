@@ -17,18 +17,21 @@ from typing import Any
 
 from google.protobuf.json_format import ParseDict
 
-from ..content import tutorial
+from ..content import dungeon, tutorial
 from ..protocol.messages import wartune_pb2 as pb
 
 FIRST_MAP, SECOND_MAP = 10001, 10002
+DUNGEON_FIRST, DUNGEON_SECOND = 1011, 1021  # masmorra Kurt İni (campanha 1001), em ordem
 PET_ISLANDS = range(20001, 25001)  # WorldBossHelper.checkPetLand: 20000 < mapa <= 25000
 SECOND_MAP_FROM = 15500  # noviceProcess a partir do qual o jogador já passou pelo portal
 ESCORT_FROM = 15300  # a Tina segue o jogador desde aqui (mapa 10001) até o fim
 FOG_ROWS, FOG_COLS = 18, 19
 
 NORMAL, FIGHTING, DONE = 1, 4, 8  # CampaignNodeMsg.state (2 = NPC parado, 16 = escondido)
-MONSTER, TRIGGER = 42, 53  # masterType
+HIDDEN = 16
+MONSTER, TRIGGER, PANDORA = 42, 53, 61  # masterType (61 também é o baú de ouro, sem buff em param3)
 AGGRESSIVE = 1  # attackTypes: persegue o jogador (8196 -> 4105)
+FLICKER_DELAY, DISAPPEAR_DELAY = 85, 35  # delay das PlayerMovieMsg de liberar/esconder um nó (replay #1595/#1597)
 
 # noviceProcess gravado -> estados dos nós que já tinham mudado (campDataId -> estado)
 RESUME: dict[int, list[tuple[int, dict[int, int]]]] = {
@@ -59,6 +62,11 @@ class CampaignMap:
     callbacks: Counter[int] = field(default_factory=Counter)  # 5032 recebidos por nó
     fighting: int = 0  # campDataId em combate
     talked: set[int] = field(default_factory=set)  # nós cujo diálogo de chegada já saiu
+    dungeon: bool = False  # masmorra 1001 (``dungeon_1001.json``): sem Tina, com 130 da captura
+    fog_data: dict[str, Any] | None = None  # 130 da captura (só masmorra)
+    card: int | None = None  # index do 5122 já virado (uma carta por mapa, depois do 135)
+    finished: bool = False  # mapa vencido: o fim (137 ... 134) já saiu
+    buffs: list[int] = field(default_factory=list)  # buffs da Pandora, zerados no fim
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:
@@ -71,6 +79,12 @@ class CampaignMap:
         escort = next((n["nodeId"] for n in nodes.values() if n["heroTempId"] > 0), 0)
         following = map_id == SECOND_MAP or novice >= ESCORT_FROM
         return cls(map_id, nodes, tuple(data["start"]), escort=escort if following else 0)
+
+    @classmethod
+    def enter_dungeon(cls, map_id: int) -> CampaignMap:
+        data = dungeon()["maps"][str(map_id)]
+        nodes = {n["campDataId"]: copy.deepcopy(n) for n in data["nodes"]}
+        return cls(map_id, nodes, tuple(data["start"]), dungeon=True, fog_data=data["fog"])
 
     def node(self, camp: int) -> dict[str, Any] | None:
         return self.nodes.get(camp)
@@ -85,7 +99,37 @@ class CampaignMap:
         return msg
 
     def fog(self) -> pb.CampaignFogMsg:
+        if self.fog_data is not None:  # masmorra: a névoa que o oficial mandou no 130 (24 x 19 no 1011)
+            rows = [bytes.fromhex(h) for h in self.fog_data["forArray"]]
+            return pb.CampaignFogMsg(
+                row=self.fog_data["row"], col=self.fog_data["col"], forArray=rows, mapTempId=self.map_id
+            )
         # tudo visível (0); o tutorial não usa névoa
         return pb.CampaignFogMsg(
             row=FOG_ROWS, col=FOG_COLS, forArray=[bytes(FOG_COLS)] * FOG_ROWS, mapTempId=self.map_id
         )
+
+    def locked(self, camp: int) -> bool:
+        """Nó que só aparece quando o grupo de lobos cai (``param4`` com ação 1); some ao cair o grupo."""
+        for n in self.nodes.values():
+            if any(target == camp and action == 1 for target, action in unlock_actions(n)):
+                return any(self.nodes[g]["state"] != DONE for g in group_of(n) if g in self.nodes)
+        return False
+
+
+def group_of(node: dict[str, Any]) -> list[int]:
+    """Grupo de lobos de um nó (``param3`` do 127, ids separados por ``|``); vazio para os demais."""
+    if node["masterType"] != MONSTER:
+        return []
+    return [int(x) for x in str(node.get("param3", "")).split("|") if x]
+
+
+def unlock_actions(node: dict[str, Any]) -> list[tuple[int, int]]:
+    """Ações ao cair o grupo (``param4`` do 127): ``campDataId,ação``. Ação 0 esconde, 1 mostra."""
+    return [(int(a), int(b)) for a, b in (x.split(",") for x in str(node.get("param4", "")).split("|") if x)]
+
+
+def battle_spec(camp: int) -> dict[str, Any] | None:
+    """Spec da luta de um nó: do tutorial (ids 1000xxx) ou da masmorra (ids 101xxx/102xxx)."""
+    spec: dict[str, Any] | None = tutorial()["battles"].get(str(camp)) or dungeon()["battles"].get(str(camp))
+    return spec

@@ -220,6 +220,9 @@ characters = Table(
     Column("box_counted_at", UTCDateTime),
     Column("offline_at", UTCDateTime),
     _int("offline_seconds"),
+    _int("multi_copy_count"),
+    _int("multi_copy_max"),
+    _str("multi_copy_day", 10),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )

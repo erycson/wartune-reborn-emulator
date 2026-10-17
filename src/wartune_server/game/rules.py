@@ -458,6 +458,11 @@ def config(templates: GameTemplates, name: str, default: str = "0") -> str:
     return row["ConfigValue"] if row else default
 
 
+def copies_base(templates: GameTemplates) -> int:
+    """Entradas de campanha em grupo por dia sem item (``ConfigInfos`` MultiCampaign_MaxCount = 1)."""
+    return int(config(templates, "MultiCampaign_MaxCount", "1"))
+
+
 def upgrade_row(templates: GameTemplates, types: str, grade: int) -> Row | None:
     """UpGradeTempInfo de ``Types`` no grau ``grade`` (tabelas de custo/EXP por nível)."""
     return next(templates.find("UpGradeTempInfos", Types=types, Grades=grade), None)

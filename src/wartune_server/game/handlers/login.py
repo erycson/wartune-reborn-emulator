@@ -78,7 +78,9 @@ def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     if snap.systems is not None:  # startFree certo mesmo para quem estava offline às 5h
         rules.refresh_star_day(snap.systems, s.ctx.clock.now())
     mine = s.ctx.guilds.of(snap.character.id or 0)
-    msg = b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap), mine[0] if mine else None)
+    now = s.ctx.clock.now()
+    copies = snap.character.multi_copies(rules.copies_base(s.ctx.templates), now)  # o oficial não manda 4240 no login
+    msg = b.player_msg(snap, fighting, now, rules.quest_bitmap(snap), copies, mine[0] if mine else None)
     events.fill_player(msg, snap, s.ctx.clock.now())
     return msg
 
