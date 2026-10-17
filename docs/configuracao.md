@@ -36,6 +36,7 @@ O portal tem a própria configuração em `D:\xampp\htdocs\wartune-reborn\portal
 ```
 uv run wartune-server run                          # sobe o servidor (Ctrl+C encerra com limpeza)
 uv run wartune-server db init                      # cria as tabelas
+uv run wartune-server character novice 2 0          # refaz o tutorial do personagem 2 (use com SKIP_TUTORIAL=false)
 ```
 
 ## Logs
