@@ -77,11 +77,17 @@ async def quest_add(s: GameSession, msg: pb.QuestAddedMsg) -> None:
 async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
+    # missões de estado (amigos, guilda, contribuição, nível): o cliente mostra cumprida quando o estado bate
+    mine = s.ctx.guilds.of(s.player_id)
+    synced = rules.social_state_quests(snap, s.ctx.templates, mine[0] if mine is not None else None)
     q = rules.quest(snap, msg.templateId)
     if q is None or q.completed or not rules.quest_done(snap, s.ctx.templates, q):
         s.log.info("5014 recusado", quest=msg.templateId)
+        if synced:
+            await s.ctx.characters.save(*synced)
+            s.send(S_QUESTS, quest_update(synced, rules.quest_bitmap(snap)))
         return
-    s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
+    s.send(S_QUESTS, quest_update(synced if q in synced else [*synced, q], rules.quest_bitmap(snap)))
     row, goods = rules.quest_rewards(snap, s.ctx.templates, q.template_id)
     gp, gold = int(row.get("RewardPlayGP", 0)), int(row.get("RewardGold", 0))
     q.completed, q.completed_at = True, s.ctx.clock.now()
@@ -90,7 +96,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     for item in goods:
         item.pos = rules.free_bag_pos(snap)
         snap.items.append(item)
-    await s.ctx.characters.save(snap.character, snap.leader, q, *goods)
+    await s.ctx.characters.save(snap.character, snap.leader, q, *goods, *synced)
 
     _player(s)
     s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))

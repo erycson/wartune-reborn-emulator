@@ -6,7 +6,18 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from ..domain.models import BagType, Character, Hero, Item, Pawn, PlayerSnapshot, PlayerSystems, Quest, StarBag
+from ..domain.models import (
+    BagType,
+    Character,
+    Consortia,
+    Hero,
+    Item,
+    Pawn,
+    PlayerSnapshot,
+    PlayerSystems,
+    Quest,
+    StarBag,
+)
 from ..templates.repository import GameTemplates, Row
 from .builders.login import QUEST_SITE_LEN, HeroStats
 
@@ -184,15 +195,22 @@ def battle_pawn(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[Row, in
 
 def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1: int, value: int) -> list[Quest]:
     """Avança missões abertas cuja condição é ``kind`` (QuestCondictionInfos.CondictionType) e cujo
-    Para1 casa (0 = qualquer). Tipos de contagem somam ``value``; os de nível (LEVEL_CONDITIONS) guardam o maior;
-    os de grau (17) casam quando ``para1`` (grau atingido) passa do Para1 e guardam ``value``."""
+    Para1 casa (0 = qualquer; em ``EXACT_PARA1`` tem que ser igual). Tipos de contagem somam ``value``;
+    os de nível (``LEVEL_CONDITIONS``) guardam o maior; os de grau (17) casam quando ``para1`` (grau atingido)
+    passa do Para1 e guardam ``value``."""
     changed = []
     for q in snap.quests:
         cond = templates.get("QuestCondictionInfos", q.template_id)
         if q.completed or cond is None or int(cond["CondictionType"]) != kind:
             continue
         need = int(cond["Para1"])
-        if not (para1 > need if kind in MIN_CONDITIONS else need in (0, para1)):
+        if kind in MIN_CONDITIONS:
+            ok = para1 > need
+        elif kind in EXACT_PARA1:
+            ok = need == para1
+        else:
+            ok = need in (0, para1)
+        if not ok:
             continue
         new = max(q.progress, value) if kind in LEVEL_CONDITIONS | MIN_CONDITIONS else q.progress + value
         if new != q.progress:
@@ -201,8 +219,43 @@ def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1
     return changed
 
 
-LEVEL_CONDITIONS = {10, 63}  # evoluir tropa até o nível Para2; Emek Oranı (total da atividade diária)
-MIN_CONDITIONS = {17}  # (visto) tempinfos: QuestConditionInfo 121, tipo 17, Para1 2; Detail "3 lv": grau > Para1
+# Missões sociais e de guilda (QuestCondictionInfos.CondictionType)
+# (cliente) TaskTemplate.as: os tipos 21, 22, 29 e 51 conferem o estado, não a contagem
+FRIEND_CONDITION = 21  # ter amigo: checkFriendsCount, tamanho da lista de amigos
+GUILD_JOIN_CONDITION = 22  # estar em guilda: checkJoinConsortia, consortiaID > 0
+OFFER_CONDITION = 29  # contribuição total: checkConsortiaOffer, consortiaTotalOffer >= Para2
+GUILD_LEVEL_CONDITION = 51  # nível da guilda: checkConsortuaGrade; Para1 = prédio (GUILD_LEVEL_ATTRS)
+# (visto) tempinfos QuestTemps 241 Detail: [Birlik İnşaatı] > [İbadethane] > [1 kez İbadet Et] = altar (5145)
+BLESS_CONDITION = 30  # bênção do altar, uma por dia (5145)
+# (visto) tempinfos QuestTemps 260 = própria (Para1 1); 22, 261 e 271 = de amigo (Para1 0)
+TREE_CONDITION = 20  # regar a árvore (15017); (visto) captura #5 de ciftlik.json é a própria
+# (visto) tempinfos QuestTemps 825 Detail: [Pazar] > ekipmanı [1 defa İhaleye Ver] = pôr à venda (8448)
+SELL_CONDITION = 56  # pôr item no leilão (8448), +1 por anúncio
+# (visto) tempinfos QuestTemps 857 Detail: [Akademi] > [Bereket Ruleti] > [Rulet Aç];
+# (cliente) SeminaryBlessFrame.as manda 8489 no confirmar
+SEMINARY_CONDITION = 57  # bênção do seminário (8489)
+# Os de nível guardam o maior valor: evoluir tropa até Para2 (10) e os que o cliente confere pelo estado
+# 63: Emek Oranı (total da atividade diária)
+LEVEL_CONDITIONS = {10, 63, FRIEND_CONDITION, GUILD_JOIN_CONDITION, OFFER_CONDITION, GUILD_LEVEL_CONDITION}
+# (visto) tempinfos: QuestConditionInfo 121, tipo 17, Para1 2; Detail "3 lv": grau > Para1
+MIN_CONDITIONS = {17}
+EXACT_PARA1 = {TREE_CONDITION}  # Para1 0 não é coringa aqui: regar a própria (1) não avança as de amigo (0)
+# Para1 de 51 -> Consortia: (cliente) TaskTemplate.as checkConsortuaGrade, Para1 1-5 = levels, shopLevel,
+# altarLevel, schoolLevel, storeLevel (mesma numeração de guild.LEVEL_TYPES; 6-12 são pesquisas, fora da 51)
+GUILD_LEVEL_ATTRS = {1: "levels", 2: "shop_level", 3: "altar_level", 4: "school_level", 5: "store_level"}
+
+
+def social_state_quests(snap: PlayerSnapshot, templates: GameTemplates, guild: Consortia | None) -> list[Quest]:
+    """Missões que o cliente confere pelo estado (amigos, guilda, contribuição, nível da guilda): sobe o
+    progresso até o valor atual. Chamado no 5014: o cliente mostra a missão cumprida quando o estado bate,
+    então o servidor precisa do mesmo progresso para concluir (e para quem agiu offline ou antes de aceitar)."""
+    changed = quest_event(snap, templates, FRIEND_CONDITION, 0, len(snap.relations))
+    changed += quest_event(snap, templates, GUILD_JOIN_CONDITION, 0, int(guild is not None))
+    changed += quest_event(snap, templates, OFFER_CONDITION, 0, snap.character.consortia_total_offer)
+    if guild is not None:
+        for kind, attr in GUILD_LEVEL_ATTRS.items():
+            changed += quest_event(snap, templates, GUILD_LEVEL_CONDITION, kind, getattr(guild, attr))
+    return changed
 
 
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:

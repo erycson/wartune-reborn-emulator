@@ -14,13 +14,13 @@ from .. import castle as cs
 from .. import farm, rules
 from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; comprados via bag.capacity
 from ..builders import login as b
-from ..builders.player import item_moved
+from ..builders.player import item_moved, quest_update
 from ..router import router
 from ..session import GameSession
 from .login import player_info
 from .player import CURRENCIES
 
-S_PLAYER, S_CHAT, S_ITEMS = 3, 83, 115
+S_PLAYER, S_CHAT, S_ITEMS, S_QUESTS = 3, 83, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
 REQ, PLANT, WORM, WEED, PICK, ACCELERATE, CLEAR = 0, 1, 2, 3, 4, 7, 8  # FarmOperateType
 OK, FAIL = 0, 1
@@ -203,11 +203,15 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     castle.tree_water, castle.tree_watered_at = castle.tree_water + 1, now
     farm.add_farm_gp(castle, c.grades, templates, 1)
     # ponytail: sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado)
-    await s.ctx.characters.save(c, castle)
+    # missão 20 da própria árvore (Para1 1, visto em tempinfos QuestTemps 260); as de amigo esperam o regar amigo
+    quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, 1, 1)
+    await s.ctx.characters.save(c, castle, *quests)
     cs.castle_yield(s)
     text = f"Doldurma başarılıAltın + {gold},Enerji + 1,Çiftlik EXP  + 1"  # sic, como no oficial
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5178)

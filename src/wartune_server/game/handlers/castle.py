@@ -312,6 +312,9 @@ async def seminary_bless(s: GameSession, _: object) -> None:
     c.crystals -= cost
     c.seminary_effect = min(top, c.seminary_effect + step)
     c.seminary_count, c.seminary_day = count + 1, now.date().isoformat()
-    await s.ctx.characters.save(c)
+    quests = rules.quest_event(s.snapshot, s.ctx.templates, rules.SEMINARY_CONDITION, 0, 1)  # missão 57 (8489)
+    await s.ctx.characters.save(c, *quests)
     s.send(S_BLESSING, b.complete(pb.BlessingMsg(increase=c.seminary_effect, usedCount=c.seminary_count)))
     castle_yield(s)  # 109: o contador de cristais do cliente
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(s.snapshot)))
