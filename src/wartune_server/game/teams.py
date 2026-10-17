@@ -73,22 +73,22 @@ class Teams:
         team.captain = player_id
         return True
 
-    def remove(self, team: Team, player_id: int) -> list[int]:
-        """Tira ``player_id`` do time. Com um só membro sobrando o time acaba; devolve quem saiu."""
+    def remove(self, team: Team, player_id: int) -> bool:
+        """Tira ``player_id`` do time. Com um só membro sobrando o time acaba. Devolve ``True`` se acabou."""
         team.members.remove(player_id)
         del self._of[player_id]
+        team.fight_pos.pop(player_id, None)
         if player_id == team.captain and team.members:
             team.captain = team.members[0]
         if len(team.members) >= 2:
-            return [player_id]
-        gone = [player_id, *team.members]
+            return False
         for p in team.members:
             self._of.pop(p, None)
         del self._teams[team.id]
-        return gone
+        return True
 
-    def leave(self, player_id: int) -> tuple[Team, list[int]] | None:
-        """Saída pela desconexão: mesma regra de ``remove``. ``None`` se não está em time.
+    def leave(self, player_id: int) -> tuple[Team, bool] | None:
+        """Sai do time (desconexão ou pedido). ``None`` se não estava em time; ``(time, acabou)`` senão.
 
         Convites pendentes nos dois sentidos somem: os que ele recebeu e os que mandou.
         """

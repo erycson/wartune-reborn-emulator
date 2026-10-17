@@ -92,10 +92,8 @@ class Rooms:
         """Abre ou fecha um lugar livre que não é o do dono; ``False`` se não dá."""
         if not 0 < index < MAX_SEATS:
             return False
-        if open_:  # só abre dentro da capacidade e só lugar que estava fechado
-            allowed = room.seats[index] == CLOSED and index < room.capacity
-        else:  # só fecha lugar livre
-            allowed = room.seats[index] == OPEN
+        # abrir: só lugar fechado dentro da capacidade; fechar: só lugar livre
+        allowed = (room.seats[index] == CLOSED and index < room.capacity) if open_ else room.seats[index] == OPEN
         if not allowed:
             return False
         room.seats[index] = OPEN if open_ else CLOSED
