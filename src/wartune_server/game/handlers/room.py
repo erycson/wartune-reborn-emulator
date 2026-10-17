@@ -218,8 +218,11 @@ async def multi_campaign(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     """Link de sala no chat (``sendSearchRoomState``, ``param1`` = roomId): responde 4913 com a sala.
 
     (cliente) BaseManager.__mulityCampaignRequestHandler: ``param1`` é o id, ``param2`` a campanha (0 = sem
-    campanha) e ``param7`` se quem pediu está numa campanha (troca o alerta de entrada). (dedução) ``param7``
-    vem de ``s.campaign``; sala inexistente fica sem resposta (sem captura desse caso).
+    campanha). ``param7`` vai para ``isInCampaign``, que troca o alerta de entrada (``EnterCampaignTips``, em
+    ``confirmBack``). (dedução) ``param7`` = quem pediu está numa campanha, lido de ``s.campaign``; o cliente
+    tem a mesma leitura em ``SwitchPageHelp.isInCampaign`` (cena do pedidor). ``WorldBossHelper.getCampaignTips``
+    não serve de fonte: só cobre mapas especiais. Leitura alternativa (sala iniciada -> False) não se separa
+    aqui, porque salas não iniciam no servidor. Sala inexistente fica sem resposta (dedução, sem captura).
     """
     room = s.ctx.rooms.get(msg.param1)
     if room is None:

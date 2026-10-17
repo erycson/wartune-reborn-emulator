@@ -71,7 +71,7 @@ Outros eventos:
 
 - Salas e times só em memória. Decisão: salas não persistem; times não persistem até haver captura de login com time; o contador de campanha multi (4240) deve persistir, mas falta o efeito do item "Büyük Sefer" e o reset (ver Persistência em salas-campanha.md).
 - Começar a campanha da sala (5039, visto no replay): responde 125, 140 e 21, mas precisa do mapa 1011 (exército inicial e nós). **depende de**: mapa de nós.
-- Confirmar/terminar campanha (5033, 5180), carta (5122), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
+- Confirmar/terminar campanha (5033, 5180; o 5033 manda `paraInt1` 879, que não é Id de `MapInfos`, então precisa de captura do mesmo clique em outro mapa), carta (5122), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
 - Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
 - Torre (8297/8300): limites vistos na captura; totalGp e itens **dependem de** progresso da torre.
 - Varredura (8528): falta captura do pedido C>S. Custos em `ConfigInfos` (campanha 5000 ouro e 300 s; labirinto 1000 e 30 s por andar). **depende de** progresso de campanha.

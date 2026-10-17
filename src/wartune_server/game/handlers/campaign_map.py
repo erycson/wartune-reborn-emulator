@@ -14,9 +14,13 @@ from ..session import GameSession
 S_SYSTEM_ARMY = 20
 # exército do sistema por mapa (SystemArmyMsg): só os mapas com resposta na captura; os demais ficam vazios
 SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplated, soldierTemplated)
-    1011: ([], [2011]),  # (visto) replay #924: 5038 com paraInt1=1011 -> 20 com soldierTemplated 2011
-    1021: ([1011], [2011]),  # (visto) replay #1321: 20 do mapa 1021 (o 5038 dele é o #1219)
-    2011: ([3011], [4012, 4011]),  # (visto) peri_uyanis #89-90: 5038 paraInt1=2011 -> 20
+    # (visto) replay #923: 5038 com paraInt1=1011; o 20 com soldierTemplated 2011 é o pacote #924
+    1011: ([], [2011]),
+    # (visto) replay #1321: 20 com heroTemplated 1011, depois do pedido #1219 e das entradas #1312/#1314;
+    # ligar esse 20 ao #1219 é dedução
+    1021: ([1011], [2011]),
+    # (visto) peri_uyanis #89-90: 5038 paraInt1=2011 -> 20
+    2011: ([3011], [4012, 4011]),
 }
 
 
@@ -28,10 +32,11 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
 @router.on(5038)
 async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    """Pré-carga de batalha do mapa (``PreLoadNextCampaign``, ``paraInt1`` = mapa): 20 a cada pedido.
+    """Pré-carga de batalha do mapa (``PreLoadNextCampaign``, ``paraInt1`` = mapa): responde 20 com a lista do mapa.
 
-    (cliente) o 20 só alimenta ``BattleResPreloadManager``; o oficial respondeu a cada 5038 do replay com a
-    mesma lista do mapa.
+    (cliente) o 20 só alimenta ``BattleResPreloadManager``. (visto) nem todo 5038 tem um 20 no pacote seguinte
+    do replay (o #1219 não tem). (dedução) responder logo a cada 5038; o cliente remove o listener do 20 depois
+    do primeiro (``PreLoadNextCampaign``, linhas 46 e 80).
     """
     heroes, soldiers = SYSTEM_ARMY.get(msg.paraInt1, ([], []))
     if msg.paraInt1 not in SYSTEM_ARMY:
