@@ -521,6 +521,17 @@ class ArenaRank:
 
 
 @dataclass(eq=False)
+class TreasureMap:
+    """Mapa do tesouro do personagem: mapas recebidos no dia (``join_tremap_count``) e escavações."""
+
+    character_id: int
+    id: int | None = None
+    day: str = ""  # AAAA-MM-DD da contagem de mapas recebidos; noutro dia zera
+    join_count: int = 0  # mapas recebidos hoje (8744 op 1)
+    reward_count: int = 0  # escavações concluídas hoje; o servidor não escava, então fica em 0
+
+
+@dataclass(eq=False)
 class ChallengeLog:
     """Uma luta no histórico de quem atacou e de quem foi atacado (``ChallengeLogMsg``)."""
 
@@ -664,6 +675,7 @@ class PlayerSnapshot:
     orders: list[BuildOrder] = field(default_factory=list)
     lands: list[FarmLand] = field(default_factory=list)
     events: list[EventState] = field(default_factory=list)
+    treasure: list[TreasureMap] = field(default_factory=list)  # zero ou um: mapa do tesouro (8744)
 
     @property
     def leader(self) -> Hero | None:

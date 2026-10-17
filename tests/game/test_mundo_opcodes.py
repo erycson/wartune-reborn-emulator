@@ -4,6 +4,8 @@ handler, corpo vazio não derruba a sessão, e as respostas que o cliente espera
 from pathlib import Path
 
 from tests.game.harness import logged_in
+from wartune_server.domain.models import TreasureMap
+from wartune_server.game import arena as A
 from wartune_server.game import handlers  # noqa: F401  (registra os handlers)
 from wartune_server.game.router import router
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -49,3 +51,28 @@ async def test_mapa_do_tesouro_responde_o_estado(tmp_path: Path) -> None:
         assert (state.userId, state.joinCount, state.rewardCount, list(state.templateIds)) == (g.user_id, 0, 0, [])
         g.client.send(8745, pb.GuildMsg(param1=1))  # reforço de mapa de guilda: não há mapa, só registra
         assert await g.idle() == []
+
+
+async def test_mapa_do_tesouro_entrega_ate_o_limite_do_dia(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        for _ in range(5):  # join_tremap_count = 5
+            g.client.send(8744, pb.PlayerTreasureMsg(opType=1))
+            got = await g.until(4633)
+        assert pb.PlayerTreasureMsg.FromString(got[-1].body).joinCount == 5
+        g.client.send(8744, pb.PlayerTreasureMsg(opType=1))  # sexto no dia: recusado, só o estado
+        assert [p.code for p in await g.until(4633)] == [4633]
+        saved = await g.server.services.characters.snapshot(g.user_id)  # a conta foi gravada junto com os itens
+        assert saved.treasure[0].join_count == 5
+        assert sum(i.template_id == 2190001 for i in saved.items) == 5
+
+
+async def test_contagem_do_mapa_zera_no_dia_seguinte(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        book = TreasureMap(g.user_id, day="2000-01-01", join_count=5)  # ontem já tinha dado os 5
+        session.snapshot.treasure.append(book)
+        await g.server.services.characters.save(book)
+        g.client.send(8744, pb.PlayerTreasureMsg(opType=1))
+        assert pb.PlayerTreasureMsg.FromString((await g.until(4633))[-1].body).joinCount == 1
+        assert (book.day, book.join_count) == (A.today(g.server.services.clock.now()), 1)

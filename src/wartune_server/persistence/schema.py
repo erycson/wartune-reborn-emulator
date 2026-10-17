@@ -60,6 +60,7 @@ from ..domain.models import (
     Relation,
     ShopBuy,
     SnsProfile,
+    TreasureMap,
 )
 
 NAMING = {
@@ -505,6 +506,16 @@ def _str(name: str, size: int) -> Column[str]:
     return Column(name, String(size), nullable=False, default="", server_default="")
 
 
+treasure_maps = Table(
+    "treasure_maps",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(unique=True),
+    _str("day", 10),
+    _int("join_count"),
+    _int("reward_count"),
+)
+
 arenas = Table(
     "arenas",
     metadata,
@@ -671,6 +682,7 @@ def map_entities() -> None:
         (MailAnnex, mail_annexes),
         (Marriage, marriages),
         (Arena, arenas),
+        (TreasureMap, treasure_maps),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
         (Consortia, consortias),

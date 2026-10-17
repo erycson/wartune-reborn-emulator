@@ -27,6 +27,7 @@ from ..domain.models import (
     MysteryShop,
     PlayerSnapshot,
     ShopBuy,
+    TreasureMap,
 )
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
@@ -170,6 +171,7 @@ class CharacterService:
             orders = await uow.orders.by_character(character_id)
             lands = await uow.lands.by_character(character_id)
             events = await uow.events.by_character(character_id)
+            treasure = await uow.by_character(TreasureMap, character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
         return PlayerSnapshot(
@@ -192,6 +194,7 @@ class CharacterService:
             orders,
             lands,
             events,
+            treasure,
         )
 
     async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:
