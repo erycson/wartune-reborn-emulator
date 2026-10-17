@@ -6,6 +6,7 @@
 - [x] Banco: contas, tickets, servidores, personagens (um por conta em cada servidor), heróis e castelos
 - [x] HTTP: loginselectlist, login (RSA), visualizeregister, updateplayernovice
 - [x] Portal PHP (contas, servidores, ticket, config.xml) e CDN no Apache
+- [x] Painel GM: edição, recarga, reset, banimento e históricos ([administracao.md](administracao.md))
 - [x] Socket: 20001 com troca de chave, 8224 com os 10 pacotes da carga inicial, LoginState
 - [x] Logs em arquivo (`server.log` e `packets.log`)
 - [x] Teste ponta a ponta com cliente falso
