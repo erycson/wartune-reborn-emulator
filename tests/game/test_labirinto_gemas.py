@@ -72,7 +72,10 @@ async def _ledger(g: Game) -> list[tuple[int, int, str]]:
 
 
 def _set_board(g: Game, game: gm.Game) -> None:
-    """Põe o tabuleiro no estado da sessão (a linha de ``EventState`` do labirinto)."""
+    """Põe o tabuleiro no estado da sessão (a linha de ``EventState`` do labirinto), já renovado hoje."""
+    session = g.server.online.get(g.user_id)
+    assert session is not None
+    game.day = game.day or session.ctx.clock.now().date().isoformat()
     ev.state(_snap(g), handler.KEY, NOW).text = game.dump()
 
 
@@ -98,7 +101,7 @@ def test_captured_moves_replay_on_the_official_board() -> None:
             found = gm.runs(board)
             assert sorted({m for run in found for m in run}) == dels
             assert sum(len(run) - 2 for run in found) == exp and 10 * exp == points
-            assert reward in gm.REWARDS
+            assert reward in {tid for tid, _ in gm.REWARDS}
             board = gm.fall(board, dels)
             for mark, color in adds:
                 board[mark] = color
@@ -110,7 +113,7 @@ def test_play_resolves_the_captured_first_move() -> None:
     assert result is not None and result.times == 19
     first = result.steps[0]
     assert (first.dels, first.points, first.exp) == ((1, 6, 11, 16), 20, 2)
-    assert first.reward in gm.REWARDS
+    assert (first.reward, first.count) in gm.REWARDS
     assert all(1 <= color <= gm.COLORS for _, color in first.adds)
 
 
@@ -145,7 +148,7 @@ def test_new_board_has_no_ready_match_and_at_least_one_move() -> None:
 
 
 def test_game_state_survives_the_json_row() -> None:
-    game = gm.Game(board=list(CAPTURED_BOARD), times=13, help=4, level=2, exp=7, max_exp=44, score=300, week=120)
+    game = gm.Game(list(CAPTURED_BOARD), 13, 4, 2, 7, 44, score=300, week=120, box=5, day="2026-01-01")
     assert gm.Game.load(game.dump()) == game
 
 
@@ -157,8 +160,9 @@ def test_maze_bag_stacks_up_to_its_48_spaces() -> None:
         item.pos = pos
         held.append(item)
     snap: Any = SimpleNamespace(items=held)  # só ``items`` é lido
-    assert _maze_fits(snap, templates, [2060008] * 49)  # 47 pilhas de 1 + 1 espaço novo com 2
-    assert not _maze_fits(snap, templates, [2060008] * 50)
+    assert _maze_fits(snap, templates, [(2060008, 1)] * 49)  # 47 pilhas de 1 + 1 espaço novo com 2
+    assert not _maze_fits(snap, templates, [(2060008, 1)] * 50)
+    assert _maze_fits(snap, templates, [(2060008, 49)]) and not _maze_fits(snap, templates, [(2060008, 50)])
 
 
 # --- pedidos no servidor ----------------------------------------------------------------------
@@ -204,11 +208,12 @@ async def test_move_plays_the_cascade_pays_the_maze_bag_and_unlocks_the_client(t
         assert any(p.code == 83 and b"Puan 20" in p.body for p in got)
         snap = _snap(g)
         maze = [i for i in snap.items if i.bag_type == BagType.MAZE]
-        assert sum(i.count for i in maze) == len(updates)  # um prêmio por passo
+        paid = sum(dict(gm.REWARDS)[u.rewardInfo[0].rewardId] for u in updates)  # 208014 vem 2 por passo
+        assert sum(i.count for i in maze) == paid
         saved = await g.server.services.characters.snapshot(g.user_id)
         state = gm.Game.load(ev.peek(saved, handler.KEY).text)
         assert state.times == 19 and state.exp >= 63 and state.score >= 20
-        assert sum(i.count for i in saved.items if i.bag_type == BagType.MAZE) == len(updates)
+        assert sum(i.count for i in saved.items if i.bag_type == BagType.MAZE) == paid
 
 
 async def test_refused_moves_only_unlock_the_client(tmp_path: Path) -> None:
@@ -249,10 +254,46 @@ async def test_receive_all_moves_the_maze_bag_into_the_main_bag(tmp_path: Path) 
         assert sum(i.count for i in snap.items if i.bag_type == BagType.BAG and i.template_id in rewards) >= 1
 
 
-async def test_box_and_friend_help_are_refused_without_leaving_the_client_stuck(tmp_path: Path) -> None:
+async def test_friend_help_is_refused_without_leaving_the_client_stuck(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        g.client.send(9513, pb.GetRewardBoxMsg(boxId=2131035))
-        box = pb.GetRewardBoxRspMsg.FromString(_body(await g.idle(), 4928))
-        assert box.boxGetMark == 0 and list(box.rewardInfo) == []
         g.client.send(9510, pb.GemMoveInviteMsg(playerIdInvited=1))
         assert [p.code for p in await g.idle()] == [4924]
+
+
+async def test_box_needs_its_score_and_pays_the_box_item_once(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        _set_board(g, gm.Game(board=list(CAPTURED_BOARD), score=1200))
+        g.client.send(9513, pb.GetRewardBoxMsg(boxId=4))  # caixa 3: 2000 pontos, ainda não
+        box = pb.GetRewardBoxRspMsg.FromString(_body(await g.idle(), 4928))
+        assert box.boxGetMark == 0 and list(box.rewardInfo) == []
+        g.client.send(9513, pb.GetRewardBoxMsg(boxId=2))  # caixa 2: 1000 pontos
+        got = await g.idle()
+        box = pb.GetRewardBoxRspMsg.FromString(_body(got, 4928))
+        assert box.boxGetMark == 2 and [r.rewardId for r in box.rewardInfo] == [handler.BOX_IDS[1]]
+        assert any(p.code == 115 for p in got)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert [(i.template_id, i.count) for i in saved.items if i.bag_type == BagType.MAZE] == [(2131036, 1)]
+        row = ev.peek(saved, handler.KEY)
+        assert row is not None and gm.Game.load(row.text).box == 2
+        g.client.send(9513, pb.GetRewardBoxMsg(boxId=2))  # de novo: recusa, sem segunda caixa
+        assert list(pb.GetRewardBoxRspMsg.FromString(_body(await g.idle(), 4928)).rewardInfo) == []
+        assert sum(i.count for i in _snap(g).items if i.bag_type == BagType.MAZE) == 1
+        g.client.send(9513, pb.GetRewardBoxMsg(boxId=3))  # não é um bit de caixa
+        assert pb.GetRewardBoxRspMsg.FromString(_body(await g.idle(), 4928)).boxGetMark == 2
+
+
+def test_refresh_renews_moves_score_and_boxes_on_a_new_day_and_keeps_the_level() -> None:
+    game = gm.Game(list(CAPTURED_BOARD), times=3, help=0, level=5, exp=61, score=700, week=900, box=1)
+    game.day = "2026-01-07"  # quarta
+    gm.refresh(game, datetime(2026, 1, 7, 23, tzinfo=UTC))  # mesmo dia: nada muda
+    assert (game.times, game.score, game.box) == (3, 700, 1)
+    gm.refresh(game, datetime(2026, 1, 8, tzinfo=UTC))  # dia seguinte, mesma semana
+    assert (game.times, game.help, game.score, game.box, game.week) == (20, 5, 0, 0, 900)
+    assert (game.level, game.exp, game.board) == (5, 61, CAPTURED_BOARD)
+    game.times = 45  # movimentos comprados não somem
+    gm.refresh(game, datetime(2026, 1, 12, tzinfo=UTC))  # segunda: semana nova
+    assert (game.times, game.week) == (45, 0)
+
+
+def test_reward_counts_follow_the_capture() -> None:
+    assert dict(gm.REWARDS) == {2060008: 1, 208027: 1, 208014: 2}

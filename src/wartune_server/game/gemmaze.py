@@ -15,6 +15,7 @@ import json
 import random
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import date, datetime
 
 SIZE = 5
 CELLS = SIZE * SIZE
@@ -22,9 +23,12 @@ COLORS = 5  # cores 1..5; 0 = casa vazia
 TIMES_START = 20  # (visto) movimentos do personagem novo
 HELP_START = 5  # (visto) ajudas de amigos do personagem novo
 MAX_EXP_START = 30  # (visto) EXP para o próximo nível no nível 0
-# (visto) prêmios que saíram nos 10 passos da captura. Nenhum template liga prêmio a cor ou tamanho
+# (visto) prêmios (item, quantidade) que saíram nos 10 passos da captura: 208014 vem sempre 2 por passo
+# (115 com count 2 e 4, "Şeytan Kristali x 2"), os outros 1. Nenhum template liga prêmio a cor ou tamanho
 # (a mesma cor 4 deu 208027 e 2060008), então o sorteio entre os três é dedução.
-REWARDS = (2060008, 208027, 208014)
+REWARDS = ((2060008, 1), (208027, 1), (208014, 2))
+BOX_SCORES = (500, 1000, 2000, 3500, 6000)  # (cliente) GemMazeBoxView.SORT_INDEX_ARRAY: pontos de cada caixa
+BOX_BITS = (1, 2, 4, 8, 16)  # (cliente) GemMazeBoxView.BOX_INDEX_ARR: o boxId do 9513 e o bit do boxMark
 LINES = [[r * SIZE + c for c in range(SIZE)] for r in range(SIZE)] + [
     [r * SIZE + c for r in range(SIZE)] for c in range(SIZE)
 ]  # linhas e colunas, na ordem em que a combinação é lida
@@ -40,6 +44,8 @@ class Game:
     max_exp: int = MAX_EXP_START
     score: int = 0
     week: int = 0
+    box: int = 0  # boxMark: bits das caixas já pegas
+    day: str = ""  # dia (ISO) da última renovação; ver ``refresh``
 
     def dump(self) -> str:
         return json.dumps(
@@ -52,6 +58,8 @@ class Game:
                 "max_exp": self.max_exp,
                 "score": self.score,
                 "week": self.week,
+                "box": self.box,
+                "day": self.day,
             },
             separators=(",", ":"),
         )
@@ -68,7 +76,26 @@ class Game:
             max_exp=int(d["max_exp"]),
             score=int(d["score"]),
             week=int(d["week"]),
+            box=int(d.get("box", 0)),
+            day=str(d.get("day", "")),
         )
+
+
+def refresh(game: Game, now: datetime) -> None:
+    """Renovação por dia: movimentos e ajudas voltam ao início, pontos e caixas zeram; o semanal zera na
+    semana nova. Tabuleiro, nível e EXP ficam.
+
+    *(dedução)*: na captura um personagem de nível 5 (61 EXP) abre com 20/20 movimentos, 5 ajudas e 0
+    pontos, então algo renova; ``score`` e ``weekScore`` são campos separados, então ``score`` é do dia.
+    ponytail: o período (dia, UTC) não foi capturado; os movimentos comprados não somem (fica o maior).
+    """
+    today = now.date()
+    if game.day == today.isoformat():
+        return
+    if not game.day or date.fromisoformat(game.day).isocalendar()[:2] != today.isocalendar()[:2]:
+        game.week = 0
+    game.times, game.help = max(game.times, TIMES_START), HELP_START
+    game.score, game.box, game.day = 0, 0, today.isoformat()
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +107,7 @@ class Step:
     points: int
     exp: int
     reward: int  # ``rewardInfo`` do passo: vai para a bolsa do labirinto
+    count: int = 1  # quantidade do prêmio (``REWARDS``)
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,7 +203,8 @@ def play(game: Game, begin: int, end: int, rng: random.Random) -> Play | None:
                 board[r * SIZE + c] = color
                 adds.append((r * SIZE + c, color))
         # ponytail: prêmio sorteado uniforme entre os três vistos; a tabela oficial (pesos) precisa de captura
-        steps.append(Step(tuple(dels), tuple(adds), 10 * units, units, rng.choice(REWARDS)))
+        reward, count = rng.choice(REWARDS)
+        steps.append(Step(tuple(dels), tuple(adds), 10 * units, units, reward, count))
     # ponytail: troca sem combinação é aceita e gasta movimento (o cliente troca na tela e não desfaz;
     # a captura não tem esse caso, então o oficial pode devolver a gema). Confirmar gravando uma troca errada.
     return Play(board=board, steps=tuple(steps), times=game.times - 1)
