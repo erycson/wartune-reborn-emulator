@@ -5,19 +5,35 @@ src/wartune_server/
   protocol/     bytes <-> Packet: cifra, cabeçalho, framing, registry opcode->protobuf
   net/          transporte (TCP, WebSocket), Connection (leitor/escritor), servidores
   game/         GameSession, router por opcode, handlers e builders de mensagens
-  http/         aiohttp: endpoints do Loading.swf, portal, launcher, estáticos
+  http/         aiohttp: endpoints dinâmicos do Loading.swf (REQUEST_PATH)
   services/     regras de negócio sem rede: contas, login, personagens, relógio
   domain/       entidades (dataclasses), protocolos de repositório, erros
   persistence/  SQLAlchemy async: schema, repositórios, UnitOfWork
   templates/    tempinfos.xml carregado em memória (heróis, itens, mapas...)
   security/     RSA do login (compatível com o Hurlant do Flash), scrypt
   app.py        raiz de composição (monta tudo e sobe os servidores)
-  cli.py        run | db init | account create
+  cli.py        run | db init
 ```
 
 As dependências apontam para dentro: `game` e `http` usam `services`, que usam `domain`.
 A persistência implementa os `Protocol` de `domain/repositories.py`, então os serviços
 não conhecem o SQLAlchemy e os testes trocam o banco por um SQLite temporário.
+
+## Divisão com o portal e o CDN
+
+```
+navegador / projector
+  ├─ portal PHP  (Apache :8090/wartune-reborn/portal)   contas, ticket, config.xml do servidor
+  ├─ CDN         (Apache :8090/wartune-reborn/cdn)      SWFs, imagens, xml/ (TEMPLATE_PATH)
+  └─ servidor do jogo (Python)
+       ├─ HTTP :8080  REQUEST_PATH: login, visualizeregister, updateplayernovice...
+       └─ socket :5000 (ou WebSocket :5001 pelo Ruffle)
+```
+
+O portal e o jogo conversam só pelo banco. O portal grava `accounts` e `play_tickets`. O jogo
+publica a própria linha em `game_servers` (host, portas e chave RSA), que o portal usa para listar
+os servidores e montar o `config.xml` de cada um. Tudo que mexe no estado do jogo (personagem,
+sessão do socket) fica no Python.
 
 ## Processos e servidores
 
@@ -26,7 +42,7 @@ Cada processo atende **um** servidor de jogo (`WARTUNE_SERVER_ID`). Vários proc
 
 | Porta | O quê |
 |---|---|
-| 8080 | HTTP: config.xml, login, registro, portal, launcher e assets |
+| 8080 | HTTP do jogo: login, criação de personagem, noviceProcess, crossdomain.xml |
 | 5000 | socket do jogo (Flash real); também responde ao `<policy-file-request/>` |
 | 5001 | ponte WebSocket para o Ruffle (`socketProxy`) |
 | 843 | policy server dedicado (opcional; se faltar permissão, ele só avisa) |

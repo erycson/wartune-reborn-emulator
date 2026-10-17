@@ -4,11 +4,12 @@
 
 - [x] Protocolo: cifra, cabeçalho, framing, 693 mensagens validadas contra a captura
 - [x] Banco: contas, tickets, servidores, personagens (um por conta em cada servidor), heróis e castelos
-- [x] HTTP: config.xml, loginselectlist, login (RSA), visualizeregister, updateplayernovice, portal e launcher
+- [x] HTTP: loginselectlist, login (RSA), visualizeregister, updateplayernovice
+- [x] Portal PHP (contas, servidores, ticket, config.xml) e CDN no Apache
 - [x] Socket: 20001 com troca de chave, 8224 com os 10 pacotes da carga inicial, LoginState
 - [x] Logs em arquivo (`server.log` e `packets.log`)
 - [x] Teste ponta a ponta com cliente falso
-- [ ] **Validar no Flash Player projector**. É o próximo passo: abrir pelo launcher e acompanhar `logs/packets.log`
+- [ ] **Validar no Flash Player projector**. É o próximo passo: abrir pelo portal e acompanhar `logs/packets.log`
 
 ## Próximos
 

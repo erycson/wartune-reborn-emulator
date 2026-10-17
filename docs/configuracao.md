@@ -8,35 +8,34 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_DATABASE_URL` | `sqlite+aiosqlite:///data/wartune.db` | veja [banco-de-dados.md](banco-de-dados.md) |
 | `WARTUNE_SERVER_ID` | `1` | qual linha de `game_servers` este processo atende |
 | `WARTUNE_SERVER_NAME` | `S1 - Local` | vai para o `PlayerMsg.serverName` |
-| `WARTUNE_SITE` | `local_0001` | flashvar `site` e `<NODE site>` do config.xml |
+| `WARTUNE_SITE` | `local_0001` | flashvar `site` e `<NODE site>` do config.xml (publicado em `game_servers`) |
 | `WARTUNE_BIND_HOST` | `0.0.0.0` | |
-| `WARTUNE_PUBLIC_HOST` | `127.0.0.1` | host que o cliente usa (config.xml e resposta do login) |
+| `WARTUNE_PUBLIC_HOST` | `127.0.0.1` | host que o cliente usa; o portal põe no config.xml (via `game_servers`) |
 | `WARTUNE_HTTP_PORT` | `8080` | |
 | `WARTUNE_SOCKET_PORT` | `5000` | |
 | `WARTUNE_WEBSOCKET_PORT` | `5001` | ponte para o Ruffle |
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
-| `WARTUNE_RESOURCE_URL` | vazio | CDN dos assets; vazio usa o próprio HTTP |
-| `WARTUNE_ASSET_DIRS` | `["data/overlay", "D:/wartune/server-relay/public", "D:/xampp/htdocs/wartune-cdn"]` | JSON; o primeiro que tiver o arquivo vence |
 | `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | |
-| `WARTUNE_CONFIG_TEMPLATE` | `data/overlay/client/config.xml` | |
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |
 | `WARTUNE_SKIP_TUTORIAL` | `true` | `noviceProcess` mínimo de 19000 (cena do castelo) |
-| `WARTUNE_LOGIN_TICKET_TTL_SECONDS` | `300` | |
 | `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |
 | `WARTUNE_IDLE_TIMEOUT_SECONDS` | `300` | desconecta um socket ocioso |
 | `WARTUNE_LOG_DIR` | `logs` | |
 | `WARTUNE_LOG_LEVEL` | `INFO` | |
 | `WARTUNE_LOG_PACKETS` | `true` | grava `logs/packets.log` |
 
-Para vários servidores, rode um processo por servidor, com `SERVER_ID`, `SITE` e portas
-diferentes e o mesmo `DATABASE_URL`.
+Para vários servidores, rode um processo por servidor, com `SERVER_ID`, `SITE`, `SERVER_NAME`
+e portas diferentes e o mesmo `DATABASE_URL`. Cada um se publica em `game_servers` e aparece
+sozinho na lista do portal.
+
+O portal tem a própria configuração em `D:\xampp\htdocs\wartune-reborn\portal\config.php`
+(DSN do mesmo banco, URL do portal, URL do CDN e validade do ticket).
 
 ## CLI
 
 ```
 uv run wartune-server run                          # sobe o servidor (Ctrl+C encerra com limpeza)
 uv run wartune-server db init                      # cria as tabelas
-uv run wartune-server account create <user> <senha>
 ```
 
 ## Logs

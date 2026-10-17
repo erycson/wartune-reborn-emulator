@@ -5,27 +5,24 @@ Fontes: `Loading.as`, `LoginQueue.as`, `MainFigureView.as` e `NewbieSPHelper.as`
 mais `LoginInitDataAccept` e `BaseManager` (m2). O teste `tests/test_end_to_end.py` percorre esse
 caminho inteiro.
 
-## 1. Portal (no lugar do site oficial)
+## 1. Portal (PHP)
 
-`POST /api/login {username, password}` autentica e grava um **ticket** em `play_tickets`, válido
-por 5 minutos e só para este servidor. A resposta traz as flashvars do `Loading.swf`:
+O jogador entra no portal e escolhe o servidor. O `play.php` grava um **ticket** em `play_tickets`,
+válido por 5 minutos e só para aquele servidor, e monta as flashvars do `Loading.swf`:
 
 | flashvar | valor |
 |---|---|
 | `user` | nome da conta |
 | `key` | o ticket (a "senha" que o Loading manda no login) |
-| `site` | `WARTUNE_SITE`; escolhe o `<NODE site=…>` do config.xml |
-| `config` | URL do `client/config.xml` |
-| `playfb`, `p2` | `0` / vazio |
+| `site` | `game_servers.site`; escolhe o `<NODE site=…>` do config.xml |
+| `config` | `portal/client-config.php?server=N` |
+| `playfb` | `0` |
 
 O relay antigo usava `username`, mas o nome correto é `user`.
 
-O ticket fica no banco, então qualquer portal (PHP, por exemplo) pode emitir tickets inserindo
-uma linha em `play_tickets`.
-
 ## 2. HTTP do Loading.swf
 
-1. `GET client/config.xml`: o Loading lê `REQUEST_PATH`, `ResourcePath`, `SocktPath` e o `RSAKey` do site.
+1. `GET config` (portal): o Loading lê `REQUEST_PATH`, `ResourcePath`, `SocktPath` e o `RSAKey` do site.
 2. `GET loginselectlist?username=&site=`: retorna `<Item ID Active>` do personagem neste servidor. Na primeira vez não há item.
 3. `POST login` com `p = RSA(urlescape(user) | ticket | tempPassword | userId)`:
    * o servidor valida o ticket, cria o personagem **inativo** se ainda não existir e responde `userId`, `Address` e `Port`;

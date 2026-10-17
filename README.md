@@ -6,16 +6,31 @@ Aqui cada pacote é montado a partir do banco de dados e dos templates do jogo.
 
 ## Rodando
 
+O jogo tem três partes:
+
+| Parte | Onde | Papel |
+|---|---|---|
+| **servidor do jogo** (este projeto) | Python, portas 8080/5000/5001/843 | socket do jogo e endpoints HTTP do `Loading.swf` |
+| **portal** | PHP em `D:\xampp\htdocs\wartune-reborn\portal` | contas, lista de servidores, ticket, `config.xml` |
+| **CDN** | Apache em `D:\xampp\htdocs\wartune-reborn\cdn` → `wartune-cdn` | SWFs, imagens, `tempinfos.xml` |
+
 ```powershell
 uv sync
-# uma vez (data/overlay já existe nesta máquina): config.xml, tempinfos.xml... das capturas do Fiddler
-uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw
-uv run wartune-server account create maga segredo1
-uv run wartune-server run
+uv run wartune-server run      # cria as tabelas e publica o servidor em game_servers
 ```
 
-Abra `http://127.0.0.1:8080/` e entre com a conta. O launcher mostra a URL do `Loading.swf`
-para colar no **Flash Player projector** (File → Open) e também tem um botão para jogar pelo Ruffle.
+Abra `http://127.0.0.1:8090/wartune-reborn/`, crie a conta e escolha o servidor. A página de jogar
+mostra a URL do `Loading.swf` para o **Flash Player projector** (File → Open) e tem um botão
+para jogar pelo Ruffle.
+
+Arquivos gerados (fora do git), para recriar depois de clonar:
+
+```powershell
+# data/overlay: respostas capturadas do oficial (config.xml modelo, tempinfos.xml...)
+uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw
+# pasta de sobreposição do CDN
+uv run python tools/build_cdn_overrides.py D:/xampp/htdocs/wartune-reborn/cdn
+```
 
 A configuração vem de variáveis `WARTUNE_*` ou do arquivo `.env`; veja [docs/configuracao.md](docs/configuracao.md).
 

@@ -31,6 +31,12 @@ para `data/overlay/` (586 arquivos). Esse diretório inclui o `client/config.xml
 modelo e o `xml/tempinfos.xml` (zlib). Fica fora do git, então rode o script depois de clonar:
 `uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw`.
 
+## `tools/build_cdn_overrides.py`
+
+Monta `D:\xampp\htdocs\wartune-reborn\cdn`: copia de `data/overlay` e do `public` do relay os
+arquivos que faltam no CDN completo ou que têm conteúdo diferente (os `.png` de código, por exemplo),
+e ignora o que não é asset (páginas, scripts, respostas de endpoints).
+
 ## Capturas de referência
 
 `tests/fixtures/pcap_samples.json` traz até 3 amostras por opcode de uma sessão oficial
