@@ -51,7 +51,7 @@ Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o própr
 | 8297 | TOWER_INFO | parcial | cliente (4205) | 4205 com `maxIndex=60` (visto no labirinto 8001) e entradas zeradas. Sem progresso. |
 | 8300 | TOWER_LIVE | parcial | sem captura | Sem efeito. Custo da torre não modelado. |
 | 8526 | OPRATE_REPLACEMENTS | parcial | cliente (4424/4423) | Sem efeito. Depende do chefe mundial ([boss-eventos.md](boss-eventos.md)). |
-| 8528 | CAMPAIGN_SWEEP | parcial | cliente (4425) | Sem efeito. Depende do progresso e do status do `MopupManager`. |
+| 8528 | CAMPAIGN_SWEEP | parcial | cliente (4425) | Sem efeito. Depende do progresso. A UI não espera resposta: o 4425 só abre a janela (status 1) ou mostra aviso (status 2, 3, 4); os textos dos avisos não foram identificados, então não há recusa a mandar. |
 | 8734 | APPLY_INVITE_TEAM | completo | cliente (4620, 4622, 4626) | `param1` é quem convidou, `param7` aceitou. Aceitar cria o time se preciso. |
 | 8736 | CHANGE_CAPTAIN | completo | cliente (4627) | Só o capitão troca. |
 | 8737 | EDIT_TEAM_FIGHT_POS | completo | dedução (quem pode) | Qualquer membro muda as posições do time (4628). |

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from google.protobuf.message import Message
 
 from tests.game.harness import logged_in
@@ -34,14 +35,17 @@ def test_os_29_opcodes_tem_handler_e_o_5025_tambem():
     assert router.get(5025) is not None
 
 
-async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path):
+async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path, capfd: pytest.CaptureFixture[str]):
     async with logged_in(tmp_path, novice=19000) as g:
+        capfd.readouterr()  # descarta o log do login
         for code in [*CODES, 5025]:
             g.client.send(code)  # sem corpo
         await g.idle(0.3)
         g.client.send(5026)  # a sessão ainda responde
         got = await g.idle()
         assert any(p.code == ROOM_LIST for p in got)
+        out = capfd.readouterr()
+        assert "erro tratando pacote" not in out.out + out.err  # handler que levanta derruba o pacote
 
 
 async def test_sala_criar_entrar_expulsar_sair(tmp_path: Path):
