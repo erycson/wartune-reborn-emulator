@@ -19,6 +19,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     lords,
     mail,
     marriage,
+    minigames,
     offer,
     outer_city,
     pets,

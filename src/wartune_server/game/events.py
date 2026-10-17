@@ -8,9 +8,11 @@ relógio que vai para o cliente no ``sysCurtime``).
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from ..domain.models import EventState, PlayerSnapshot
 from ..templates.repository import GameTemplates
@@ -77,6 +79,7 @@ class EventCatalog:
 
     data_stamp: int = 0
     actives: tuple[Active, ...] = ()
+    novice_fund: Mapping[str, Any] = field(default_factory=dict)  # fundo novato (8751): ver docs/eventos.md
 
     @classmethod
     def load(cls, path: Path) -> EventCatalog:
@@ -106,7 +109,7 @@ class EventCatalog:
             )
             for a in data.get("actives", [])
         )
-        return cls(int(data.get("dataStamp", 1)), actives)
+        return cls(int(data.get("dataStamp", 1)), actives, data.get("novice_fund", {}))
 
     def active(self, active_id: str) -> Active | None:
         return next((a for a in self.actives if a.active_id == active_id), None)

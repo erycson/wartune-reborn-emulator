@@ -13,7 +13,7 @@ código decompilado, *(dedução)* = nenhum dos dois mostra, escolha nossa.
   Chaves: `login`, `relogin`, `sign`, `leed:<id>`, `leedbox`, `serven`, `sum:<active>[:<pacote>]`,
   `vip` (value = vipGp, text = fim), `vipgift` (semana ISO), `king:<id>` (text = fim),
   `king:fetch`, `alchemy`, `soul`, `offer:list` (JSON das 4 vagas), `offer:task`, `offer:free`,
-  `offer:count`, `ring`.
+  `offer:count`, `ring`, `fund:novice`, `fund:novice:get:<times>`.
 - **`cash_ledger`** `(character_id, delta_point, delta_gift_token, balance_point,
   balance_gift_token, reason, ref, gm, created_at)`: todo gasto de diamante passa por
   `services/ledger.spend`, que devolve a linha para entrar na **mesma** `save` do que foi comprado.
@@ -109,3 +109,76 @@ captura virou -500).
 - ponytail: pesos da qualidade (40/30/15/10/5) e o prêmio do anel sem multiplicador são escolha nossa.
 - **Dependência (8291 sem passe, 8298, 8729):** as condições (`RewardCondictionInfos`: capturar
   NPC = batalha, missões, enviar mensagem...) precisam que os outros sistemas avisem o progresso.
+
+## Minigames (`handlers/minigames.py`)
+
+Todo C>S da lista tem handler. Os que o servidor não joga respondem o estado fechado que o cliente
+mostra (ícone escondido, tela vazia), sem travar. Só o **fundo novato** é real.
+
+**Fundo novato (8751, 4640)** — `data/events.json` > `novice_fund` (valores da captura login.json #94).
+- `opType` 0 = estado (4640); 1 = compra o nível `opParam` (1..3): nível 11+ do personagem, uma vez,
+  só diamante (`point`, como o `FundBuyItem` confere), `ledger.spend` com `reason` `fund_novice`.
+- 2 = resgata o tier `opParam` (= `times`, 1..5): `grades >= interval` (no ramo do fundo novato o
+  cliente usa o "intervalo" como nível), uma vez por tier. Diamante de volta entra no `cash_ledger`
+  (`record_cash`, entrada) na mesma gravação do prêmio.
+- Total mostrado (`itemInfos`) = soma dos tiers; **não é pago na compra** (conferido: nível 1 soma
+  -500:100 e -400:200, bate com `itemInfos`).
+- Janela: `endDate` 2099 (ponytail: a janela oficial não está na captura). Sem janela de compra.
+- Estado: `fund:novice` (value = nível, text = data da compra); `fund:novice:get:<times>` (marca de tier).
+- Login: 4640 (mesmo do login #94); recebe `login_push` de `events.login_push`.
+
+| Opcode | Comportamento / resposta | Fonte |
+|---|---|---|
+| 8751 | fundo novato, real (acima) | (visto) login #94 + (cliente) FundManager, FundBuyItem, FundRewardItem |
+| 8703 | 4612 `activeType` 0 (fundo normal fechado) | (cliente) sem captura |
+| 9503 | 4912 vazio sempre; resgate recusado. Fórmula de custo para quando houver contagem: `itemCost = num*ItemCount`, `goldCost = num*Gold`, `goldReward = itemReward*GoldPercent/ItemPercent` (conferida nos sonTypes 1, 2 e 4 da captura #54) | (visto) login #54 + (cliente) ExpBackManager |
+| 8534 | 4428 vazio (igual ao login #60) | (visto) |
+| 8574 | 4461 com `id` vazio (esconde; a captura de 2026-05-18..20 já terminou) | (visto) login #62 |
+| 8629, 8630, 8634, 8638, 8748 | sem resposta (nunca 4546 nem 4550) | (cliente) TimeStoryFrame, TopToolsBar, SinglePass, LotteryManager |
+| 8639 / 8640 | 4554 / 4553 vazios (corneta sem item) | (cliente) SinglePassManager |
+| 8722 / 8723 | 4543 vazio: botão só com `isIn360Agent` (plataforma 360) | (cliente) Bag360Manager |
+| 8750 | 4637 `isOpen` falso | (cliente) LotteryManager |
+| 8866 | 4745 zerado | (cliente) ExchargeRankManager |
+| 9602 | 345 zerado | (cliente) CrossCostController |
+| 8994 | 4811 lista vazia | (cliente) StoreSocketOutManager |
+| 9500 | 4901 `open` falso | (visto) login #95 |
+| 9501 | 4908 `sysState` 0 | (cliente) AnswerManager |
+| 9502 | 4914 `op` 1, `seekCount` 0, `seekNodeList` presente e vazio | (cliente) TreasureHuntControler |
+| 9507 | 4916 e 4918 vazios | (cliente) FishManager |
+| 9508 | 4922 vazio (sem tabuleiro) | (cliente) GemMazeManager |
+| 9509, 9510, 9513, 9515, 9516, 9517, 9521, 9522 | sem resposta | (cliente) |
+| 9520 | 300 (fecha o quadro; só o GoldRoadManager escuta) | (cliente) GoldRoadManager |
+| 9523 | 4936 `leadExtractTimes` 0 | (cliente) FunnyControler |
+| 9550 | 4980 lista vazia | (cliente) InfoTipsManager |
+| 9610 | 364 e depois 363 vazios (tabela da captura #96 expirou em 2026-05-17) | (visto) login #96 |
+| 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) login #127 |
+| 8604 | 295 `open` falso; 4526 `openView` falso (295 sem captura) | (cliente) BottleManager |
+| 9645 | 190 e 4590 fechados (o código não diz qual dos dois; os dois fechados é o estado certo) | (visto) login #125, #126 |
+
+**Dependências (sistema fechado, com o motivo):**
+- **Garrafa (8604):** `BottleItems` (58 sorteios) e `Bottle_Price` 20|200|1000 existem. Falta o
+  armazenamento (opType 1/2 e `UPDATE_BOTTLE_BAG`), o martelo (`_hammerNum`), as tabelas de caixa por
+  pontuação e por andar (`score`/`storey` de 295 não estão em lugar nenhum) e os pesos do sorteio.
+- **Quiz (9501):** `HeartTempInfos` (perguntas) e `Dati_Day`/`AnswerQuestionTime` existem, mas a
+  banca não traz a resposta certa.
+- **Pesca (9507):** `FishTemplateInfos` e `Fish_*` existem; faltam as regras de surgimento e captura
+  (sem captura de 9507, inventar seria chutar).
+- **Labirinto (9508..9517):** `av_askeri_ve_odul_toplama.json` #1/#5 (4922/4923) mostra um tabuleiro oficial, mas não as regras de
+  combinação, geração e pontuação. `Gem_Maze_BuyInfo` existe.
+- **Caça ao tesouro (9502):** `treasure_*` existe; faltam os nós (posição e nome).
+- **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` existe; sem tabela de células.
+- **Minério (9645):** `MineOfActiveTime`, `Mine_Level`, `FreshManDepositCost` existem; sem tabela de
+  recompensa da mineração (op 1/2). **Super assinatura** (9645): sem template.
+- **Corneta (8638..8640):** `SinglePass_Count` existe; sem item nem tabela do passe.
+- **Loteria (8748/8750), caça-níquel (9500), cadeiras (9638), recompensa de grupo (9523), caixa de
+  ano novo (8994), história (8629/8630):** sem template nem config no servidor.
+- **360 (8722/8723):** `PrivilegeDrops` existe, mas o cliente só mostra com `isIn360Agent`.
+- **Recuperação (9503):** lista vazia porque nenhum sistema conta as atividades perdidas (campanha,
+  arena, boss, imposto). Quando houver a contagem, a fórmula acima já confere.
+- **Troca da sorte (9610):** a captura #96 tinha a tabela, mas expirou; a sorte atual
+  (`currentLuckValue`) não é conhecida.
+- **Fundo normal (8703):** sem captura do 4612.
+
+**Alterações em arquivos compartilhados:** `data/events.json` (chave `novice_fund`),
+`game/events.py` (`EventCatalog.novice_fund`), `handlers/events.py` (`minigames.login_push` no login)
+e `handlers/__init__.py` (registro). Sem migração: o estado do fundo usa `event_states`.

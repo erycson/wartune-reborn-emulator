@@ -15,7 +15,7 @@ from .. import rewards
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
-from . import offer, vip
+from . import minigames, offer, vip
 from .login import army
 from .player import alert, granted
 
@@ -74,6 +74,7 @@ def login_push(s: GameSession) -> None:
     _send_leeds(s)
     _send_actives(s)
     _send_serven(s)
+    minigames.login_push(s)  # o 4640 vem logo depois do 4638, como no login do oficial (#93-94)
 
 
 async def leave(s: GameSession) -> None:
