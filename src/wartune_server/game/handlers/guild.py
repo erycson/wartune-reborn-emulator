@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 from ...domain.models import BagType, Character, Consortia, ConsortiaInvite, ConsortiaItem, ConsortiaMember, Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.characters import normalize_nickname
+from .. import bag, rules
 from .. import guild as gd
-from .. import rules
 from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from ..builders import login as b
 from ..builders.player import item_moved
@@ -787,12 +787,9 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
         return False
     snap, mine = s.snapshot, _mine(s)
     assert snap is not None
-    c, count = snap.character, buy.count
+    c, count, now = snap.character, buy.count, s.ctx.clock.now()
     item_row = s.ctx.templates.get("ItemTempInfos", int(row["ItemId"]))
     price = int(row.get("ConsortiaOffer") or 0) * count
-    stack = max(int(item_row.get("MaxCount") or 1), 1) if item_row else 1
-    slots = math.ceil(count / stack) if count > 0 else 0
-    used = sum(i.bag_type == BagType.BAG for i in snap.items)
     # o primeiro motivo que o cliente mostra (código 0 deixa a mensagem vazia)
     if mine is None or mine[0].shop_level < int(row.get("NeedConsortiaLevels") or 0):
         code = R_GUILD
@@ -804,7 +801,7 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
         code = R_NO_ITEM
     elif c.consortia_offer < price:
         code = R_NO_MONEY
-    elif used + slots > BAG_SIZE:
+    elif not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], now):  # espaços comprados contam
         code = R_FAIL
     else:
         code = R_OK
@@ -814,20 +811,10 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
         return True
     assert item_row is not None
     c.consortia_offer -= price
-    new: list[Item] = []
-    left = count
-    while left > 0:
-        item = Item(c.id or 0, int(row["ItemId"]), count=min(left, stack))
-        item.pos = rules.free_bag_pos(snap)
-        snap.items.append(item)
-        new.append(item)
-        left -= item.count
-    await s.ctx.characters.save(c, *new)
+    got = bag.add(snap, s.ctx.templates, int(row["ItemId"]), count, now)  # empilha onde dá, como a loja comum
+    await s.ctx.characters.save(c, *got)
     _player(s)
-    moved = pb.ItemMovedListMsg()
-    for item in new:
-        moved.MergeFrom(item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
-    s.send(S_ITEMS, moved)
+    s.send(S_ITEMS, bag.moved(got, s.player_id))
     text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} başarıyla alındı!"
     _alert(s, text)
     _buy_result(s, buy, 1)
