@@ -68,8 +68,10 @@ O cliente pede por grade de 50 tiles; a janela visível é de 3×2 células
 - 5004 `OutercityReqMsg{mapId, position:"43_38,…"}`.
 - 5181: sem resposta própria. A captura não tem S>C para ele; a grade chega no 169 do 8201.
 - 8201 → **4129** `PhysicListUpdateMsg{wildLand[], baseCastle[]}` e depois **169**
-  `OutercityArmyUpdatedGridMsg` (exércitos da grade). Hoje o 4129 leva só o próprio castelo
-  (`handlers/outer_city.py`). Detalhes e o restante dos opcodes em [cidade-externa.md](cidade-externa.md).
+  `OutercityArmyUpdatedGridMsg` (exércitos da grade). Hoje o 4129 leva o próprio castelo, os castelos de
+  outros jogadores do mesmo mapa nas grades pedidas e as minas da grade com o dono do ciclo atual; o 169 só
+  traz o próprio exército (`handlers/outer_city.py`). Detalhes e o restante dos opcodes em
+  [cidade-externa.md](cidade-externa.md).
 
 Atualizações vivas:
 
@@ -85,7 +87,7 @@ Clicar num castelo dá estas opções:
 
 | Opção | Pacote |
 |---|---|
-| Atacar | 5160 `MapPhysicAttackMsg{mapId,posX,posY}` |
+| Atacar | 5160 `MapPhysicAttackMsg{mapId,posX,posY}` (mina livre luta; o resto só para o exército) |
 | Mover castelo | 5176 ([cidade-externa.md](cidade-externa.md)) |
 | Amigo | — |
 | Correio | — |

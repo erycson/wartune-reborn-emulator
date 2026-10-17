@@ -13,7 +13,7 @@ import math
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 
-from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
+from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot, WildLand
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
 from . import outer_city, rules
@@ -114,6 +114,17 @@ def settle(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> Non
     if snap.castle is not None and mark is not None:
         snap.character.gold += gain
         snap.castle.produced_at = mark
+
+
+def expire_mines(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[WildLand]:
+    """Ocupação de mina do ciclo anterior sai do snapshot: no refresh de 12 h a mina volta livre. O ouro
+    até o refresh sai na taxa antiga (``settle`` no começo do ciclo). Quem chama grava com ``delete=``."""
+    start = outer_city.cycle_start(now)
+    stale = [w for w in snap.wild_lands if w.occupied_at < start]
+    if stale:
+        settle(snap, templates, start)
+        snap.wild_lands[:] = [w for w in snap.wild_lands if w.occupied_at >= start]
+    return stale
 
 
 def start_production(snap: PlayerSnapshot, now: datetime) -> None:

@@ -39,6 +39,7 @@ from .models import (
     Relation,
     SnsProfile,
     Star,
+    WildLand,
 )
 
 
@@ -76,6 +77,7 @@ class HeroRepository(Protocol):
 class CastleRepository(Protocol):
     async def add(self, castle: Castle) -> Castle: ...
     async def by_character(self, character_id: int) -> Castle | None: ...
+    async def on_map(self, map_id: int) -> list[Castle]: ...
 
 
 class BuildingRepository(Protocol):
@@ -165,6 +167,12 @@ class OwnedRepository[T](Protocol):
     async def by_character(self, character_id: int) -> list[T]: ...
 
 
+class WildLandRepository(Protocol):
+    """Minas ocupadas de qualquer jogador (o mapa compartilhado precisa ver as dos outros)."""
+
+    async def occupied(self, wild_ids: list[int], since: datetime) -> list[WildLand]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -223,6 +231,8 @@ class UnitOfWork(Protocol):
     def pets(self) -> OwnedRepository[Pet]: ...
     @property
     def systems(self) -> OwnedRepository[PlayerSystems]: ...
+    @property
+    def wild_lands(self) -> WildLandRepository: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""
