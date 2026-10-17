@@ -91,19 +91,18 @@ O cliente põe o equipamento na bancada (5005 para o bag 0, pos 0) e manda a ope
 | 5152 StoreReqMsg `{holePos, operate}` | true: abre o furo com 1 Elmas Delici (208004); o 4º só em item Profile 5. false: tira a pedra (Property3 em ouro) e devolve | abrir: 115, 115; tirar: 109, 115, 115, 111 "Başarıyla söküldü!", 83 "…Kazanılan:{pedra} x1!" | *(visto)*; abrir *(cliente)* |
 | 5153 StoreReqMsg `{composeId, composeNum}` | receita `ComposeTempInfos` (Material1–4 × Count × n, NeedGold × n, NeedMinLevel) | 115, 109, 115, 111 "Kazanılan:{nome} x{n}", 89 `{composeResult false, composeTemplateId −1}`, 83 | *(visto)* |
 | 8538 StoreReqMsg `{srcItemid, desItemid, count}` | troca pedras do mesmo nível (`TransformInfos`, CostGold × count) | 115, 109, 115, 111/83 "Dönüşüm başarılı" | *(visto)* |
-| 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm | 115, 4258 `{randomSkill[]}` | *(cliente)*; sorteio *(dedução)* |
+| 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm. Pool: `SkillTempInfos` 70000–77199 com `Grades` > 0 e `SkillPropertyTempInfos` (1584 de 2157) | 115, 4258 `{randomSkill[]}` | *(cliente)*; pool *(visto)*: os 42 atributos das capturas têm `Grades` 1–10, nenhum 0 (0 = placeholder: +0 com 500000, "Asker Miktarı"); peso *(dedução)* uniforme |
 | 8339 (vazio) | aplica o último sorteio | 4259 `{result}`, 115 | *(cliente)* |
 | 8464 RefreshPropertyReqMsg `{itemId}` | atributos sorteados do item (o pendente, se houver) | 4368 `{randomSkill[], lockPos[], result}` | *(dedução)* |
-| 8340 (vazio) | decomposição: a tabela de produtos não está nos templates | 4260 `{result false}` | *(cliente)* |
+| 8340 (vazio) | decomposição: sem chamador no cliente decompilado (`sendResolve`) e sem tabela de produtos nos templates; falta captura | 4260 `{result false}` | *(cliente)* |
 | 8644 PayTypeMsg | moldagem: os materiais 2120100–2120103 não existem nos templates; recusa sem resposta | — | *(cliente)* |
 
 Login: 4184 ItemSmithyMsg com todos os Ids de `ComposeTempInfos` *(visto)*.
 Atributos: o equipamento reforçado soma `int(base×g×0.1) + g×5` em cada atributo > 0
 (`GoodsHelp.getStrengthenAddition`), mais os 5 `randomSkill` (`SkillPropertyTempInfos`) e as pedras.
 
-Simplificações (`# ponytail:`): o refino sorteia uniforme entre os `SkillTempInfos` 70000–77199 que
-têm `SkillPropertyTempInfos` e os cadeados são de graça (tabela e custo não estão no cliente); o
-sorteio pendente fica na memória até o 8339; `autoBuy` na composição é recusado.
+Simplificações (`# ponytail:`): o refino sorteia uniforme entre os atributos com `Grades` > 0 e os cadeados são de graça (tabela e custo não estão no cliente); o sorteio pendente fica na memória até o 8339; `autoBuy` na composição é recusado.
+Falta para o peso: captura 8336 → 4258 com itens de `NeedGrades` baixo e alto. Nas capturas o valor sobe com o item (NG 1–8: +2 a +21; NG 40–48: +16 a +171), mas são 42 amostras: correlação, não tabela.
 
 ## Moda — `fashion.py`
 

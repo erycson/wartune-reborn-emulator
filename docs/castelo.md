@@ -53,8 +53,8 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 15044 op 7 | acelera (10 diamantes `Farm_Accelerate_Point`, `payType` 0 = vinculado primeiro): amadurece na hora, uma vez por plantio | 3, 4387 | cliente + dedução |
 | 15044 op 8 | limpa a terra | 4387 | cliente |
 | 15044 outros | roubar (5), reviver (6), ações em fazenda de amigo, upgrade de terra (9) e pets (10–16): recusados | 4387 `result` 1 na própria fazenda, nada na de amigo | — |
-| 15017 | rega a própria árvore a cada 10 min (sem fruto): ouro = nível × 20, energia +1, EXP da fazenda +1, `waterCount` +1 | 109, 83 "Doldurma başarılıAltın + N,Enerji + 1,Çiftlik EXP  + 1", 147 | visto (ciftlik) + dedução no ouro |
-| 5178 | colher a árvore: sem fruto nunca há o que colher | — | — |
+| 15017 | rega a própria árvore a cada 10 min (sem fruto): ouro = nível do dono × 20, energia +1, EXP da fazenda +1, `waterCount` +1. Árvore de amigo: recusada | 109, 83 "Doldurma başarılıAltın + N,Enerji + 1,Çiftlik EXP  + 1", 147 | visto (ciftlik, 2 capturas: 220 no nível 11 e 1.320 na árvore de amigo de nível 66) |
+| 5178 | colher a árvore: recusada (o servidor nunca tem fruto). Cliente: `TreeInfo.canPick` exige `fruitCount` > 0; a colheita soma 1 de EXP da fazenda (`FarmModel._expTreePick`). Resposta do oficial: 106 (`U_C_TREE_PICK`, sem handler no cliente) | — | cliente |
 | 8219 | árvores dos ids pedidos (o cliente pede a própria ao chegar no nível 11) | 4146 FriendTreeRsp | cliente |
 | 8231 | estado das fazendas: o próprio jogador primeiro (`isChargeEnergy` = pode regar a própria), amigos todos falsos | 4190 LoadFarmRsp.friendFarmState | visto (ciftlik) |
 | 8565 | invocar a árvore da terra secreta da guilda: sem guilda, nada | — | cliente |
@@ -74,9 +74,8 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
 - **Rendimento**: o oficial soma +30/h que não sabemos de onde vem (login.json: 8550 = 8220 dos
   prédios + 300 de tecnologia + 30); sem terras selvagens, guilda e efeitos.
 - **Fazenda de amigo** (roubar, reviver, praga, regar árvore de amigo, EXP diária de amigos):
-  depende da lista de amigos para validar.
-- **Árvore**: quando frutifica e o que a colheita (5178) dá não está nas capturas nem no cliente
-  decompilado; sem fruto, o 5178 é recusado.
+  depende da lista de amigos para validar. Regar a árvore de amigo (15017 com `userId` de outro) tem o que falta: ouro = nível do dono × 20 (visto, 1.320), EXP da fazenda = 1 × grau de amizade (+4 com grau 4; `FarmModel.expByOper`, caso 8; teto `Farm_TodayFromFriend_GP` = 200 por dia) e "Arkadaşlık + 1" (amizade, regra não achada). Sem energia. Falta: quem pode regar (cooldown do dono, limite por amigo), o que o 4158 (`FarmLogRsp`) quer dizer, e gravar o castelo do dono, online ou offline. Captura: `ciftlik.json` linhas 81–87.
+- **Árvore**: nenhuma captura tem `fruitCount` > 0 (147, 4190, 4146) nem 5178/106. **Precisa de captura**: regar a própria árvore até `fruitCount` > 0 (147), colher (5178 com `index`) e gravar a resposta (106, 115, 109), depois ver a árvore voltar a 0. Os itens 2160037–2160046 e 2160055 são sementes da fazenda (SonType 216), não o fruto.
 - **Upgrade de terra** (op 9) e terras extras: sem sender decompilado; ficam 3 terras.
 - **Aceleração da fazenda**: o texto do oficial não está decompilado; aqui amadurece na hora.
 - **Offline**: ×1,5 e ×2 custam diamante no oficial, preço desconhecido (recusados); EXP =
