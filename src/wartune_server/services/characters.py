@@ -10,6 +10,7 @@ from typing import Protocol
 
 from ..domain.errors import ConflictError, NotFoundError, ValidationError
 from ..domain.models import (
+    OUT_OF_SNAPSHOT,
     Arena,
     ArenaRank,
     Building,
@@ -158,7 +159,8 @@ class CharacterService:
             castle = await uow.castles.by_character(character_id)
             buildings = await uow.buildings.by_character(character_id)
             quests = await uow.quests.by_character(character_id)
-            items = await uow.items.by_character(character_id)
+            # correio e mercado: o item sai do snapshot até ser retirado (5022, cancelamento, compra)
+            items = [i for i in await uow.items.by_character(character_id) if i.bag_type not in OUT_OF_SNAPSHOT]
             relations = await uow.relations.by_character(character_id)
             groups = await uow.friend_groups.by_character(character_id)
             sns = await uow.sns.by_character(character_id)
