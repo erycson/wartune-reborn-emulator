@@ -7,6 +7,7 @@
 | [packets.md](packets.md) | Tabela de todos os opcodes, gerada a partir do cliente |
 | [sequencia-login.md](sequencia-login.md) | Do portal até a cena do castelo, passo a passo |
 | [tutorial.md](tutorial.md) | Campanha de treino: roteiro dos nós, retomada, missões, nível e atributos |
+| [heroi-exercito.md](heroi-exercito.md) | Tropas, skills, talento, runas, montaria, estrelas, destino, dragão, cartas e pets |
 | [batalha.md](batalha.md) | Batalha simulada no servidor: pacotes, relógio, turnos, dano |
 | [http.md](http.md) | Endpoints HTTP do jogo, portal PHP e CDN |
 | [banco-de-dados.md](banco-de-dados.md) | Modelo de dados, várias contas em vários servidores, SQLite/MySQL/Postgres |
