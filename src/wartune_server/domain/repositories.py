@@ -86,6 +86,9 @@ class UnitOfWork(Protocol):
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""
 
+    async def delete(self, entity: object) -> None:
+        """Apaga uma entidade já gravada."""
+
     async def __aenter__(self) -> Self: ...
     async def __aexit__(
         self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None

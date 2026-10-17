@@ -116,6 +116,7 @@ characters = Table(
     _int("gold"),
     _int("point"),
     _int("gift_token"),
+    _int("strategy"),
     _int("weary", 200),
     _int("weary_limit", 200),
     _int("novice_process"),

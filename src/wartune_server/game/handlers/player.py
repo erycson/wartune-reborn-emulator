@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
+from ...templates.repository import Row
 from .. import rules
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -14,6 +15,9 @@ from .login import army, player_info
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_CASTLE_YIELD, S_FAST_KEY, S_TIME = 83, 111, 109, 64, 4234
 GOLD_MAX, CRYSTALS = 10000, 1000  # ponytail: armazém e cristais fixos até existirem no banco
+BOX = "298"  # ItemTempInfo.SonType do pacote que abre um GradeDrop (Property1 = DropId)
+BAG_SIZE = 42  # PlayerInfo.bagDefaultCount; ponytail: sem espaços comprados (bagCount) ainda
+CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token"}  # TemplateId < 0
 
 
 def _player(s: GameSession) -> None:
@@ -123,3 +127,57 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     _army(s)
     s.send(S_ITEMS, item_moved(msg.beginBagType, msg.beginObjId, msg.beginPos, other, s.player_id))
     s.send(S_ITEMS, item_moved(msg.endBagType, msg.endObjId, msg.endPos, item, s.player_id))
+
+
+@router.on(5006)
+async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
+    """Abre um pacote (SonType 298): troca o item pelo GradeDrop dele, numa transação só."""
+    snap = s.snapshot
+    assert snap is not None
+    c, templates = snap.character, s.ctx.templates
+    box = next((i for i in snap.items if (i.bag_type, i.pos) == (BagType.BAG, msg.pos)), None)
+    row = templates.get("ItemTempInfos", box.template_id) if box is not None else None
+    drops = list(templates.find("GradeDrop", DropId=row.get("Property1"))) if row is not None else []
+    usable = box is not None and row is not None and row.get("SonType") == BOX and msg.bagType == BagType.BAG
+    ids = [int(d["TemplateId"]) for d in drops]
+    known = all(t in CURRENCIES or (t > 0 and templates.get("ItemTempInfos", t)) for t in ids)
+    goods = [d for d in drops if int(d["TemplateId"]) > 0]
+    fits = sum(i.bag_type == BagType.BAG for i in snap.items) - 1 + len(goods) <= BAG_SIZE
+    if not (usable and drops and known and fits) or c.grades < int(row.get("NeedGrades", 0)):  # type: ignore[union-attr]
+        s.log.info("5006 recusado", pedido=str(msg), item=box and box.template_id, drops=len(drops))
+        return
+    assert box is not None
+
+    snap.items.remove(box)  # antes de qualquer await: o próximo pacote já não acha a caixa
+    new: list[Item] = []
+    for d in goods:
+        tpl = templates.get("ItemTempInfos", int(d["TemplateId"])) or {}
+        # ponytail: o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela
+        # do sorteio não está nos templates, então vai o DefaultSkill (vazio = nenhum)
+        skill = int(tpl.get("DefaultSkill") or 0)
+        item = Item(c.id or 0, int(d["TemplateId"]), count=int(d["Data"]), random_skill=skill)
+        item.pos = rules.free_bag_pos(snap)
+        snap.items.append(item)
+        new.append(item)
+    for d in drops:
+        if (field := CURRENCIES.get(int(d["TemplateId"]))) is not None:
+            setattr(c, field, getattr(c, field) + int(d["Data"]))
+    await s.ctx.characters.save(c, *new, delete=(box,))
+
+    s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
+    _army(s)
+    if -100 in ids:
+        castle_yield(s)
+    moved = pb.ItemMovedListMsg()
+    for item in new:
+        moved.moved.extend(item_moved(BagType.BAG, 0, item.pos, item, s.player_id).moved)
+    s.send(S_ITEMS, moved)
+
+    def label(d: Row) -> str:
+        name = (templates.get("ItemTempInfos", int(d["TemplateId"])) or {}).get("TemplateName", d["TemplateId"])
+        return f"{name} {int(d['Data']):,}" if int(d["TemplateId"]) < 0 else f"{name} x{d['Data']}"
+
+    text = "Kazanılan:" + ", ".join(label(d) for d in reversed(drops))  # o oficial lista do fim para o começo
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    _player(s)

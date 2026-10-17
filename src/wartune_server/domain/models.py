@@ -98,6 +98,7 @@ class Character:
     gold: int = 0
     point: int = 0  # moeda premium
     gift_token: int = 0
+    strategy: int = 0  # "Ruh" (alma), moeda -300
     weary: int = 200
     weary_limit: int = 200
     novice_process: int = 0

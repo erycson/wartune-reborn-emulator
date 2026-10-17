@@ -141,6 +141,7 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         camp=c.camp,
         point=c.point,
         giftToken=c.gift_token,
+        strategy=c.strategy,
         state=7,
         questSiteLen=QUEST_SITE_LEN,
         questSite=quest_site,

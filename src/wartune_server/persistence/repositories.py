@@ -170,6 +170,9 @@ class SqlAlchemyUnitOfWork:
         else:
             await self._session.merge(entity)
 
+    async def delete(self, entity: object) -> None:
+        await self._session.delete(await self._session.merge(entity))
+
     async def commit(self) -> None:
         await self._session.commit()
 

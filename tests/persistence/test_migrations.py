@@ -1,10 +1,11 @@
 from pathlib import Path
 
+from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy import text
 
-from wartune_server.persistence.database import Database
+from wartune_server.persistence.database import BASELINE, Database, _alembic
 from wartune_server.persistence.schema import metadata
 
 
@@ -17,8 +18,9 @@ async def test_migrations_match_schema(database: Database) -> None:
 
 async def test_database_from_before_migrations_is_stamped(tmp_path: Path) -> None:
     db = Database(f"sqlite+aiosqlite:///{tmp_path / 'old.db'}")
-    async with db.engine.begin() as conn:  # como o create_all deixava
-        await conn.run_sync(metadata.create_all)
+    async with db.engine.begin() as conn:  # como o create_all deixava: o esquema da baseline, sem versão
+        await conn.run_sync(lambda c: command.upgrade(_alembic(c), BASELINE))
+        await conn.execute(text("drop table alembic_version"))
     await db.migrate()
     async with db.engine.connect() as conn:
         assert (await conn.execute(text("select version_num from alembic_version"))).scalar() is not None

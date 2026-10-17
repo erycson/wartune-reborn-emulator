@@ -54,7 +54,7 @@ validado no `POST login` para o servidor certo.
 | nickname | NULL até o `visualizeregister`; único por servidor |
 | active | falso até a criação na tela de registro |
 | sex, camp, job | `job` = ícone = template do herói (1–6) |
-| grades, gp, total_gp, gold, point, gift_token | progresso e moedas |
+| grades, gp, total_gp, gold, point, gift_token, strategy | progresso e moedas (`strategy` = Ruh) |
 | weary, weary_limit, novice_process, fighting_capacity, repute, geste, charm | |
 | created_at, last_login_at | |
 

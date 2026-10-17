@@ -33,6 +33,7 @@ Cada nó tem dois ids. O de execução (`nodeId`, 9544…) vai nos pacotes 127, 
 | 5017 `noviceProcess` | (112 se uma missão cumpriu a condição), 3, 1; no 14000 o portal aparece | `novice` |
 | 5012 / 5014 | aceitar / entregar missão (ver Missões) | `handlers/player.py` |
 | 5005 | equipar ou trocar item: 3, 150, 115 (origem), 115 (destino) | `bag_move` |
+| 5006 num pacote (SonType 298) | 115 (posição vazia), 150, (109), 115 com os itens novos, 111/83 "Kazanılan:…", 3. Troca o pacote pelo `GradeDrop` `DropId=Property1` numa transação; moedas negativas: -100 ouro, -300 Ruh (`strategy`), -400 elmas (`point`), -500 bağlı elmas (`gift_token`). Recusa se faltar nível (`NeedGrades`), espaço (42) ou se o drop tiver algo desconhecido | `use_item` |
 | 5035 `{state:4}` | 4382 com a EXP da última batalha | `client_state` |
 | 5015 / 20008 / 5167 | 109 / 4234 / 64 | `handlers/player.py` |
 

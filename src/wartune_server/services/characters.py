@@ -144,9 +144,12 @@ class CharacterService:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
         return PlayerSnapshot(account, server, character, heroes, castle, buildings, quests, items)
 
-    async def save(self, *entities: object) -> None:
-        """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens)."""
+    async def save(self, *entities: object, delete: tuple[object, ...] = ()) -> None:
+        """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens) e
+        apaga ``delete``, tudo numa transação: consumir um item e dar a recompensa é atômico."""
         async with self._uow() as uow:
+            for entity in delete:
+                await uow.delete(entity)
             for entity in entities:
                 await uow.save(entity)
             await uow.commit()
