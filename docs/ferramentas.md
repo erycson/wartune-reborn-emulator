@@ -24,6 +24,22 @@ Varre os listeners `"SLGSocketEvent" + N` (seguindo um nível de delegação) e 
 resolve o tipo protobuf de cada lado e dá nome aos opcodes com `ProtocolType.as` e
 `AcceptProtocolType.as`. Gera `protocol/data/opcodes.json` (1061 opcodes) e [packets.md](packets.md).
 
+## `tools/decode_pcap.py`
+
+Decifra as capturas do Wireshark do oficial (`D:\wartune\server-relayll pcaps\*.pcapng`, uma por
+sistema) para o formato do `replay_packets.json`, que o `dump_capture.py` lê. Remonta cada fluxo TCP
+da porta 5000 pela sequência. As capturas começam no meio da sessão, sem o 20001 com a chave, então
+a chave é recuperada pelo cabeçalho: cada byte dela só evolui com o texto cifrado, e o cabeçalho tem
+bytes conhecidos (magic, tamanho, `extend1` quase sempre 0). Uma chave só vale se o checksum de três
+pacotes seguidos bater; num segmento perdido, ressincroniza. Quase todas só têm o lado servidor→
+cliente; os pedidos do cliente saem do código decompilado. A saída fica em `captures/` (fora do git:
+tem dados do jogador da captura).
+
+```
+uv run python tools/decode_pcap.py "D:/wartune/server-relay/all pcaps/"*.pcapng -o captures
+uv run python tools/dump_capture.py captures/kader_sistemi.json
+```
+
 ## `tools/export_captures.py`
 
 Exporta as sessões HTTP capturadas no Fiddler (só status 200, sem chunked e sem Content-Encoding)

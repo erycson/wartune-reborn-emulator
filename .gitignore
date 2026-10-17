@@ -18,3 +18,4 @@ logs/
 .mypy_cache/
 .ruff_cache/
 data/
+captures/
