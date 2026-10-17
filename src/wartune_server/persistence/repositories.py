@@ -144,6 +144,9 @@ class SqlCastleRepository(_Repo):
     async def by_character(self, character_id: int) -> Castle | None:
         return await self._s.scalar(select(Castle).where(Castle.character_id == character_id))  # type: ignore[arg-type]
 
+    async def on_map(self, map_id: int) -> list[Castle]:
+        return list(await self._s.scalars(select(Castle).where(Castle.map_id == map_id)))  # type: ignore[arg-type]
+
 
 class SqlBuildingRepository(_Repo):
     async def add(self, building: Building) -> Building:

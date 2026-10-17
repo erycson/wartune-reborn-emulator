@@ -88,10 +88,16 @@ Outros eventos:
 
 ## Cidade externa e mapa do mundo ([cidade-externa.md](cidade-externa.md), [mundo-compartilhado.md](mundo-compartilhado.md))
 
-- Mapa do mundo compartilhado (terras, castelos de outros): **não existe**. Por isso:
-  8201 mostra só o próprio castelo e as 4 minas do mapa 100; 5160 só luta contra mina; 8488 (PvP no mapa) e 5004 só registram.
-- Minas de ouro: nível fixo e ocupação permanente. Faltam o refresh de 12 h (`RefreshTime`: nível sorteado de
-  novo, ocupação que vence), outro jogador tomar a mina e a perda de soldados na luta.
+- Mapa compartilhado: **parcial**. O mapa do castelo é uma instância de cada conta (minas e castelo só do
+  jogador). Nos mapas 1 a 5 o 4129 leva os castelos de outros jogadores nas grades. Não existem: exércitos
+  alheios andando (169, 4167, 4168; precisa de presença entre sessões), terras selvagens fora das 4 minas do
+  mapa 100, os 2 robôs da instância e os castelos NPC "Köy" (precisa da tabela de terras e robôs por mapa).
+  O 5160 luta só contra mina livre; castelo e exército alheio só param o exército. 8488 (PvP no mapa) e 5004
+  só registram. **precisa de captura**: resposta do 5160 e do 8488 contra castelo ou exército alheio.
+- Minas de ouro: refresh de 12 h feito, por jogador (`castles.mines_at`, `createDate` no fuso UTC+3; nível
+  sorteado de novo a cada ciclo, ocupação do ciclo anterior vence). **precisa de captura**: a perda de soldados
+  numa derrota contra a mina (nas vitórias nenhum morre), o refresh com o jogador online e um login mais de
+  12 h depois do último (para saber quando o ciclo abre).
 - "Emek oranınız ..." (83, taxa de trabalho): o sistema não existe.
 - Subida de nível: o oficial manda também 139, 100 e 4640 (replay #625-#628); aqui só o 150.
 - Presente da atividade de soma (8586 tipo 2, replay #678): recusado.

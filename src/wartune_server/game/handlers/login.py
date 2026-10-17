@@ -131,6 +131,9 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     s.connection.client_id = s.player_id
     s.ctx.online.bind(s.player_id, s)  # antes do primeiro await: o segundo 20001 junto já vê a sessão
     await s.ctx.characters.save(snap.character, *changed)
+    from . import outer_city as oh
+
+    await oh.refresh(s)  # mina do ciclo anterior vence antes do 109 e do 152
     s.log = s.log.bind(player=s.player_id)
     s.log.info("jogador entrou", nick=snap.character.nickname, novice=snap.character.novice_process)
     social.announce(s, online=True)

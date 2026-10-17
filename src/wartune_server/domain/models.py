@@ -218,6 +218,7 @@ class Castle:
     tree_fruit: int = 0
     tree_watered_at: datetime | None = None
     tree_picked_at: datetime | None = None
+    mines_at: datetime | None = None  # começo do ciclo de 12 h das minas do mapa 100 (outer_city.cycle_start)
 
 
 @dataclass(eq=False)

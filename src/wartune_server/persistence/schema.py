@@ -281,6 +281,7 @@ castles = Table(
     _int("tree_fruit"),
     Column("tree_watered_at", UTCDateTime),
     Column("tree_picked_at", UTCDateTime),
+    Column("mines_at", UTCDateTime),
 )
 
 farm_lands = Table(
