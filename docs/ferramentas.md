@@ -63,6 +63,24 @@ Depois ela ajusta os módulos de código (`N.png`, que começam com `road7` + md
   o módulo **sem erro** se não baterem. Os módulos que só existem no CDN completo (6, 7, 9, 12–14,
   17, 18) são de outro build, então a lista recebe o md5 embutido em cada arquivo.
 
+## `tools/fetch_missing.py`
+
+O `wartune-cdn` foi montado das capturas, então só tem o que o jogador capturado (job 6, mago,
+sexo 0) carregou: faltam os assets de outras classes e sexos (corpo padrão de batalha, efeitos de
+skill, figura de level-up...). O CDN oficial (`res114lortr.creaction-network.com:8080`) ainda está
+no ar e é o mesmo build (md5 idêntico nos arquivos em comum). A ferramenta lê os 404 do
+`access.log` do Apache e baixa os originais para o `wartune-cdn`, sem alterar nada. Rode depois de
+jogar com uma classe nova:
+
+```
+uv run python tools/fetch_missing.py                     # 404s do log
+uv run python tools/fetch_missing.py equip/x/1.swf ...   # caminhos avulsos
+```
+
+Um 403/404 no oficial quer dizer que o arquivo também não existe lá (as capas `*_default_body_cloak`
+do guerreiro, por exemplo) e o cliente funciona sem ele. Não gere nem altere assets: se falta algo,
+o arquivo certo está no oficial.
+
 ## Capturas de referência
 
 `tests/fixtures/pcap_samples.json` traz até 3 amostras por opcode de uma sessão oficial
