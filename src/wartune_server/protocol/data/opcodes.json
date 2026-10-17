@@ -475,9 +475,11 @@
    "U_C_CONSORTIA_RENAME"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "ConsortiaRenameRspMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "50": {
   "names": [
@@ -6826,9 +6828,11 @@
   "names": [
    "U_C_CONSORTIA_USERINVITE"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5137": {
@@ -6868,9 +6872,11 @@
   "names": [
    "U_C_CONSORTIA_INVITEDEL"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5142": {
@@ -6899,9 +6905,11 @@
   "names": [
    "U_C_CONSORTIA_OFF"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaUserOfferReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5145": {
@@ -6919,9 +6927,11 @@
   "names": [
    "U_C_CONSORTIA_QUIT"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaQuitReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5147": {
@@ -6939,9 +6949,11 @@
   "names": [
    "U_C_CONSORTIA_RENAME"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaRenameReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5149": {
@@ -7492,9 +7504,11 @@
   "names": [
    "U_C_CONSORTIA_SEARCH"
   ],
-  "c2s": [],
+  "c2s": [
+   "SearchConditionMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8214": {
@@ -8235,9 +8249,11 @@
   "names": [
    "C_CONSORTIA_SPEAK"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConditionSpeakMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8336": {
@@ -8609,9 +8625,11 @@
   "names": [
    "C_CONSORTIA_VOTING"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaVotingReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8482": {
@@ -8931,9 +8949,11 @@
   "names": [
    "C_OPEN_CONSORTIA__ALTAR"
   ],
-  "c2s": [],
+  "c2s": [
+   "ConsortiaAltarOpenReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8542": {

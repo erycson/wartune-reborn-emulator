@@ -2314,6 +2314,12 @@ class ComprehendMsg(_message.Message):
     templateId: int
     def __init__(self, templateId: _Optional[int] = ...) -> None: ...
 
+class ConditionSpeakMsg(_message.Message):
+    __slots__ = ("speak",)
+    SPEAK_FIELD_NUMBER: _ClassVar[int]
+    speak: str
+    def __init__(self, speak: _Optional[str] = ...) -> None: ...
+
 class ConsortiaAltarOpenReqMsg(_message.Message):
     __slots__ = ("altarType", "waveNum")
     ALTARTYPE_FIELD_NUMBER: _ClassVar[int]
@@ -2743,6 +2749,12 @@ class ConsortiaUserOfferReqMsg(_message.Message):
     offerPoint: int
     payType: int
     def __init__(self, offerGold: _Optional[int] = ..., offerPoint: _Optional[int] = ..., payType: _Optional[int] = ...) -> None: ...
+
+class ConsortiaVotingReqMsg(_message.Message):
+    __slots__ = ("votingUser",)
+    VOTINGUSER_FIELD_NUMBER: _ClassVar[int]
+    votingUser: int
+    def __init__(self, votingUser: _Optional[int] = ...) -> None: ...
 
 class ConsortiaVotingRspMsg(_message.Message):
     __slots__ = ("result",)

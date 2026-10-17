@@ -33,6 +33,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 41 | 0x0029 | U_C_CONSORTIA_INVITE |  | ConsortiaMsg |
 | 42 | 0x002A | U_C_CONSORTIA_OFF |  | ConsortiaMsg |
 | 45 | 0x002D | U_C_CONSORTIA_FRESHALTAR |  | ConsortiaMsg |
+| 49 | 0x0031 | U_C_CONSORTIA_RENAME |  | ConsortiaRenameRspMsg |
 | 50 | 0x0032 | U_C_CONSORTIA_DUTYUPDATE |  | ConsortiaMsg |
 | 52 | 0x0034 | U_C_QUEST_FINISH |  | QuestFinishedRspMsg |
 | 60 | 0x003C | U_C_HERO_SKILL_UPGRADE |  | UpdatedSkillMsg |
@@ -563,13 +564,18 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 5132 | 0x140C | U_C_CONSORTIA_DELUSER | ConsortiaMsg |  |
 | 5133 | 0x140D | U_C_CONSORTIA_LEVEL | ConsortiaMsg |  |
 | 5134 | 0x140E | U_C_CONSORTIA_PASS | ConsortiaMsg |  |
+| 5135 | 0x140F | U_C_CONSORTIA_USERINVITE | ConsortiaMsg |  |
 | 5137 | 0x1411 | U_C_CONSORTIA_DUTYUPDATE | ConsortiaMsg |  |
 | 5139 | 0x1413 | U_C_CONSORTIA_MODIFYBBS | ConsortiaMsg |  |
 | 5140 | 0x1414 | U_C_CONSORTIA_MODIFYDESC | ConsortiaMsg |  |
+| 5141 | 0x1415 | U_C_CONSORTIA_INVITEDEL | ConsortiaMsg |  |
 | 5142 | 0x1416 | U_C_CONSORTIA_INVITE | ConsortiaMsg |  |
 | 5143 | 0x1417 | U_C_CONSORTIA_USERPASS | ConsortiaMsg |  |
+| 5144 | 0x1418 | U_C_CONSORTIA_OFF | ConsortiaUserOfferReqMsg |  |
 | 5145 | 0x1419 | U_C_CONSORTIA_FRESHALTAR | SimplePropertyMsg |  |
+| 5146 | 0x141A | U_C_CONSORTIA_QUIT | ConsortiaQuitReqMsg |  |
 | 5147 | 0x141B | U_C_CONSORTIA_LEARN | ConsortiaMsg |  |
+| 5148 | 0x141C | U_C_CONSORTIA_RENAME | ConsortiaRenameReqMsg |  |
 | 5149 | 0x141D | U_C_CONSORTIA_OPENAPP | ConsortiaMsg |  |
 | 5150 | 0x141E | U_C_ITEM_STRENGTHEN | (sem corpo) |  |
 | 5151 | 0x141F | U_C_ITEM_INLAY | StoreReqMsg |  |
@@ -613,6 +619,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8210 | 0x2012 | U_C_EVENT_LIST | (vazio) |  |
 | 8211 | 0x2013 | U_C_DUTY_LIST | (vazio) |  |
 | 8212 | 0x2014 | U_C_CONSORTIA_INFO | ConsortiaMsg |  |
+| 8213 | 0x2015 | U_C_CONSORTIA_SEARCH | SearchConditionMsg |  |
 | 8214 | 0x2016 | U_C_CONSORTIA_INVITE_LIST | SearchConditionMsg |  |
 | 8215 | 0x2017 | U_C_CONSORTIA_ALTERINFO | (vazio) |  |
 | 8216 | 0x2018 | U_C_CONSORTIA_ADDFRESH | (vazio) |  |
@@ -679,6 +686,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8331 | 0x208B | C_STAR_COMPOSE | StarComposeReqMsg |  |
 | 8332 | 0x208C | C_ENTER_WARFIELD | WorldBossMsg |  |
 | 8334 | 0x208E | C_WARFIELD_ATTACK | WarFieldAttackMsg |  |
+| 8335 | 0x208F | C_CONSORTIA_SPEAK | ConditionSpeakMsg |  |
 | 8336 | 0x2090 | C_ITEM_REFRESHFORRANDOM | SmithFreshReqMsg |  |
 | 8337 | 0x2091 | C_WARORDER_REQUEST | (sem corpo) |  |
 | 8338 | 0x2092 | C_WAR_MAXHP | (sem corpo) |  |
@@ -711,6 +719,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8477 | 0x211D | C_REQUEST_GUILDLIST | (sem corpo) |  |
 | 8479 | 0x211F | C_ACTIVE_SECONDSKILL | PayTypeMsg |  |
 | 8480 | 0x2120 | C_CHANGE_SKILL | HeroSkillChangeMsg |  |
+| 8481 | 0x2121 | C_CONSORTIA_VOTING | ConsortiaVotingReqMsg |  |
 | 8482 | 0x2122 | C_SHOPITEM_BUY | ShopItemBuyMsg |  |
 | 8483 | 0x2123 | C_SHOPITEM_FRESH | ShopFreshReqMsg |  |
 | 8484 | 0x2124 | C_BAG_USESTORE | ItemUseStoreReqMsg |  |
@@ -735,6 +744,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8537 | 0x2159 | C_ENTER_CONSORTIA_FAM | (vazio) |  |
 | 8538 | 0x215A | C_ITEM_TRANSFORM | StoreReqMsg |  |
 | 8540 | 0x215C | C_KING_CONTRACT | KingContractBuyMsg |  |
+| 8541 | 0x215D | C_OPEN_CONSORTIA__ALTAR | ConsortiaAltarOpenReqMsg |  |
 | 8542 | 0x215E | C_ENTER_CONSORTIA_ALTAR | (vazio) |  |
 | 8544 | 0x2160 | U_C_CONSORTIA_GROUP_PLACARD | ConsortiaMsg |  |
 | 8545 | 0x2161 | C_CONSORTIA_QUICK | PayTypeMsg |  |
