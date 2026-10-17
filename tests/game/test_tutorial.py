@@ -78,6 +78,7 @@ async def test_first_map_battle_and_quest(tmp_path: Path) -> None:
         assert player.questSite[1] == 0x02  # bit da missão 10
         hero = pb.ArmyArmyMsg.FromString(got[4].body).simpleHeroInfo
         assert (hero.totalIntellect, hero.intellectPoint, hero.totalLive) == (8, 3, 230)
+        assert hero.grade == 2  # sem isso o cliente zera o nível e não aceita missões (NeedMinLevel)
 
 
 async def test_portal_chest_and_equip(tmp_path: Path) -> None:

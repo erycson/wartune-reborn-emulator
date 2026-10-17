@@ -74,6 +74,11 @@ ao relogar), e o baú não dá a arma de novo se ela já está na mochila.
 
 ## Missões
 
+Quem aceita as missões é o cliente (5012), sozinho, depois do 112 do login: ele checa
+`NeedMinLevel` contra o nível do herói, que vem do `SimpleHeroInfoMsg.grade` no 150. Esse campo
+precisa ir com o nível real: com `grade: 0` (o `complete()` preenchia) nenhuma missão fica
+disponível e o guia do `newbie.xml` trava no 12000 (o passo 12005 espera a missão 10).
+
 Tabela `quests`. As do tutorial têm condição tipo 23 (`QuestConditionInfo`): cumprida quando o
 `noviceProcess` passa de `Para1` (10: 11600, 30: 13000, 40: 17000, 45: 18000, 50: 19000). O 5014
 entrega a recompensa do `QuestTempInfo` (EXP, ouro) e os `QuestGoods` da classe, e manda 112, 3,

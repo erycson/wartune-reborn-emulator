@@ -120,6 +120,9 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfo
         captainPoint=hero.captain_point,
         physiquePoint=hero.physique_point,
         fightPos=hero.fight_pos,
+        # o oficial omite; o complete() mandaria 0 e o cliente zera o nível do herói (hasGrade),
+        # aí nenhuma missão com NeedMinLevel 1 fica disponível e o tutorial trava no 12000
+        grade=hero.grades,
     )
     for name, value in stats.base.items():
         setattr(msg, "base" + name, value)
