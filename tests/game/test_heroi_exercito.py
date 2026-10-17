@@ -8,7 +8,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import DATA
-from wartune_server.domain.models import Item, PlayerSnapshot
+from wartune_server.domain.models import Item, Pet, PlayerSnapshot
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
@@ -315,3 +315,34 @@ async def test_dragon_feed_and_powcard(tmp_path: Path) -> None:
         relogin.client.send(8224, pb.PlayerDataMsg(powcardInfo=True))
         suite = pb.PowCardSuiteListMsg.FromString((await relogin.until(4905))[-1].body).suites[0]
         assert (suite.suiteId, suite.cardInfos[0].grade) == (1000, 2)
+
+
+async def test_pets_points_fight_and_slots(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        a = Pet(g.user_id, 104103, "Pan", grade=3, power_apti=1686, pos=0)
+        b = Pet(g.user_id, 101103, "Amazon", pos=1, is_fight=True)
+        snap.pets.extend([a, b])
+        snap.character.point = 150
+        await g.server.services.characters.save(snap.character, a, b)
+
+        g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=2, attributes=[11, 0, 0, 0]))  # só 10 livres
+        assert await g.idle() == []
+        g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=2, attributes=[6, 4, 0, 0]))
+        info = pb.PlayerPetMsg.FromString((await g.until(4540))[-1].body).petInfo[0]
+        assert (info.power, info.intel, info.remainPoints) == (10 + 6 + 3 * 1686 // 100, 14, 0)
+
+        g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=9))  # só um na batalha
+        got = pb.PlayerPetMsg.FromString((await g.until(4540))[-1].body).petInfo
+        assert sorted((p.petName, p.isFight) for p in got) == [("Amazon", False), ("Pan", True)]
+
+        g.client.send(8621, pb.PlayerPetOpMsg(opType=12, payType=1))
+        got = await g.until(3)
+        assert pb.PlayerPetMsg.FromString(got[0].body).petCount == 4 and codes(got) == [4540, 3]
+        g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=3, payType=1))  # 100: só restam 50
+        assert await g.idle() == []
+
+        relogin = await g.connect()
+        relogin.client.send(8224, pb.PlayerDataMsg(army=True))
+        pets = pb.PlayerPetMsg.FromString((await relogin.until(4540))[-1].body)
+        assert [(p.petName, p.power) for p in pets.petInfo] == [("Pan", 66), ("Amazon", 10)]

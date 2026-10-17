@@ -140,6 +140,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+        if snap.pets:  # login #30; sem pet o oficial não manda
+            from .pets import S_PETS, pets_msg
+
+            s.send(S_PETS, pets_msg(snap, s.ctx.templates))
     if msg.star:
         from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
 
