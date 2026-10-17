@@ -1,7 +1,7 @@
 """progresso das condições extras da missão (condition_2..4): missões com mais de uma linha em QuestCondictionInfos
 
 Revision ID: 0022
-Revises: 0020
+Revises: 0021
 Create Date: 2026-10-17 20:00:00.000000
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0022"
-down_revision = "0020"
+down_revision = "0021"  # 0021_copias_de_campanha_em_grupo (milestone-1)
 branch_labels = None
 depends_on = None
 

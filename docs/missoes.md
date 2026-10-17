@@ -30,7 +30,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 - Verificado (cliente: `checkPlayerGrades`): `thane.grades >= Para2`. Não usa Para1 e não é "Ödül Al": esse título é só da missão 7. Os 30 tipos 1 são quase todos "Lv.N" (11 Lv.20, 12 Lv.30, 905 Lv.35, 752 e seguintes Lv.40 a Lv.80).
 - Servidor: `quest_done` compara `snap.character.grades >= Para2` na conclusão. Não grava progresso e não precisa de hook no `add_gp`, porque o nível do personagem é o estado real.
-- Missão 7 ("Yılbaşı Gecesi", Para2 = 1): concluível para quem aceitar, porque a condição é trivial no cliente (`grades >= 1`). Os `StartDate` e `EndDate` do template são 2000-01-01 (sem janela), e o servidor não confere `NeedMinLevel` no aceite (isso já era assim).
+- Missão 7 ("Yılbaşı Gecesi", Para2 = 1): concluível para quem aceitar, porque a condição é trivial no cliente (`grades >= 1`). Os `StartDate` e `EndDate` do template são 2000-01-01 (sem janela), e o servidor não confere `NeedMinLevel` nem `PreQuestId` no aceite (isso já era assim). A 7 é o evento de Ano Novo de 2012 (2012 de GP e ouro, uma vez): com o tipo 1 ligado, qualquer cliente que mande 5012 e 5014 da 7 ganha isso. Falta validar o aceite (`rules.accept_quest`: `NeedMinLevel`, `PreQuestId`, janela do evento).
 - Teste: `test_nivel_do_jogador_conclui_pelo_nivel_de_agora` (missão 11, nível 19 recusa, 20 conclui).
 
 ### Tipo 39: entrar no segundo dia
@@ -46,6 +46,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - Verificado (cliente): clicar num nó manda o 8692 (`SimplePropertyMsg`, `param1` = nó), exceto quando `MasterType == 1` (`SpaceArmyViewHelper.nodeTrigger` só dispara `SELECT_NODE`, sem pacote).
 - Para1 = 0 e Para4 = `"10000,nó"` (mapa e nó do NPC). Exemplo: missão 361 (Tina) = `10000,2`; missão 174 (Jesi) = `10000,9`.
 - Servidor: o 8692 perto do nó (`space.talk`) marca as missões abertas com esse alvo; o aceite (5012) perto do nó marca as recém aceitas. Perto = `_near` do 8692 (alcance do nó + 5).
+- Limite (cliente: `TaskManage.requestCanAcceptTask`, `SpaceDialogFrame.storyTaskNextStep`): as 10 missões de conversa têm `IsAuto = true`, então o cliente costuma aceitá-las sozinho logo depois da anterior, longe do NPC; o 5012 do último passo do diálogo só sai se a missão ainda não estava aceita. Para NPC de patrulha (MasterType 1: 174 e 191 Jesi, 175 Muhafız, 301 Rona) nenhum pacote chega ao servidor na conversa, então essas missões ficam travadas na conclusão (já eram antes). Falta decidir: confiar no 5014 para esses quatro ou achar outro sinal.
 - Ponytail: o servidor não vê o fim do diálogo. Conta o clique ou o aceite perto do nó, que são as ações reais que ele recebe.
 - Capturas: não há 8692 de conversa. O único 8692 visto é um teleporte (`peri_adasi_tp.json`, nó 5). A ordem 8692 e 5012 vem só do cliente (código, não captura).
 - Teste: `test_falar_com_npc_conta_no_aceite_perto_do_no` e `test_falar_com_npc_pelo_8692_so_perto_e_nao_com_quem_anda`.
@@ -66,7 +67,8 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - **Quem**: `eu` para os tipos deste trabalho, `outra equipe` para o resto. O integrador atualiza esta coluna no fim.
 
 | Tipo | Nome | Para1 / Para2 (mais comuns) | Missões | Cliente (`getProgress`) | Contado | Onde no código | O que falta | Quem |
-|---|---|---|---|---|---|---|---|---|| 1 | Seviyeyi Geliştir | 1 / 1; 1 / 20; 1 / 30 | 30 (7, 11, 12, 752, 772, 773, ...) | `checkPlayerGrades` | sim | rules.quest_done (PLAYER_LEVEL_CONDITION), nível lido na conclusão | nada: ligado. A missão 7 'Yılbaşı Gecesi' (P2=1) vira concluível para qualquer um com nível ≥1 (condição trivial no cliente; StartDate/EndDate do template são 2000). | eu |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Seviyeyi Geliştir | 1 / 1; 1 / 20; 1 / 30 | 30 (7, 11, 12, 752, 772, 773, ...) | `checkPlayerGrades` | sim | rules.quest_done (PLAYER_LEVEL_CONDITION), nível lido na conclusão | nada: ligado. A missão 7 'Yılbaşı Gecesi' (P2=1) vira concluível para qualquer um com nível ≥1 (condição trivial no cliente; StartDate/EndDate do template são 2000). | eu |
 | 2 | Meclisi Geliştir | 901 / 2; 402 / 2; 1201 / 3 | 38 (51, 81, 82, 181, 182, 225, ...) | `checkBuildingOrTecGrades` | sim | rules.update_building_quests (castle.py:115, accept_quest) | — | outra equipe |
 | 3 | Asker Çağır | 1 / 200; 2 / 100; 3 / 200 | 5 (52, 110, 764, 785, 786) | `checkCount` | sim | army.py:92 quest_event RECRUIT (soma) | — | outra equipe |
 | 7 | Altın Ocağını İşgal Et | 2006 / 2 | 2 (60, 282) | `checkWilanCount` | sim | outer_city.py:266 quest_event OCCUPY (soma) | — | outra equipe |
@@ -137,8 +139,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 ## Notas para o integrador
 
-- **Migração**: a `0022_progresso_das_condicoes_da_missao.py` tem `down_revision = '0020'`. Outra worktree (`wf_82adc168-ade-2`) tem uma `0021_copias_de_campanha_em_grupo.py` que também desce de `0020`. Ao mesclar, ajustar `0022.down_revision = '0021'`, senão ficam duas heads (hoje este branch tem uma só, a `0022`).
-- **Numeração automática**: `Database.new_revision` conta os arquivos + 1, então no branch com as duas migrações ela gera outra `0022`. Ajustar a numeração junto com a mescla.
+- **Migração**: o branch já mesclou o milestone-1; a `0022_progresso_das_condicoes_da_missao.py` desce da `0021_copias_de_campanha_em_grupo.py` (uma head só).
 - **Assinatura**: `rules.quest_done(snap, templates, q, now)` agora exige `now`. Chamador novo em outra equipe precisa passar o relógio.
 - **Mudança de comportamento intencional**: a missão 764 (recrutar 200 do tipo 3 e tropa do tipo 10 no nível 5) passou a exigir as duas linhas. Antes concluía só com o recrutamento.
 - **Junção no worktree**: `data\overlay` é uma junção para `D:\wartune\servidor\data\overlay`. Antes de apagar o worktree, desfazer só a junção pelo gerenciador de links do Windows, nunca por exclusão recursiva, que pode atravessar a junção e apagar a pasta real.
