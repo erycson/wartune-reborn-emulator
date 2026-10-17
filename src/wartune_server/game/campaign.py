@@ -21,6 +21,7 @@ from ..content import tutorial
 from ..protocol.messages import wartune_pb2 as pb
 
 FIRST_MAP, SECOND_MAP = 10001, 10002
+PET_ISLANDS = range(20001, 25001)  # WorldBossHelper.checkPetLand: 20000 < mapa <= 25000
 SECOND_MAP_FROM = 15500  # noviceProcess a partir do qual o jogador já passou pelo portal
 ESCORT_FROM = 15300  # a Tina segue o jogador desde aqui (mapa 10001) até o fim
 FOG_ROWS, FOG_COLS = 18, 19

@@ -151,7 +151,8 @@ async def _login_state(s: GameSession) -> None:
         for item in snap.items:
             bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
         s.send(S_ITEMS, bag)
-    vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
+    if snap.character.novice_process >= space.POST_TUTORIAL:  # a conta nova do replay não recebe
+        vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
     # ilha dos pets: sem invasão do chefe em andamento (login.json #39, todos os campos zerados)
     zero = dict.fromkeys(("leftTime", "mapId", "bossId", "peaceMiddle", "peaceHigh", "peaceBoss", "ragePoint"), 0)
     s.send(S_PET_ISLAND_BOSS, pb.PetIslandDefendStateMsg(**zero))

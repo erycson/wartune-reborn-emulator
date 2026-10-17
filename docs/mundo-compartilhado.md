@@ -191,8 +191,11 @@ Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/han
   3. 21, com o jogador em (141,171)
   4. 127 com os 121 nós, guardados em `content/petisland.json`
 - Enquanto está na ilha, o jogador some do space dos outros (4607).
-- Volta pelo portal de chegada (nó 2000101, masterType 62): o 5125 nele manda 4606 e o jogador reaparece
-  para os outros. O 8688 também traz de volta.
+- Quando a cena termina de carregar (5035 `state=4`), o servidor repete o 21, como a captura (#6-7).
+- Para sair, o cliente manda 5025 `RoomExitMsg` pelo botão de sair: no pet land o `MainToolBar` não pede
+  confirmação. O servidor responde 4606 e o jogador reaparece para os outros. O 8688 também traz de volta.
+  - ponytail: o 5025 só é tratado na ilha dos pets; o 5025 das salas em grupo é do sistema de salas (C).
+- O 8694 também confere a distância até o nó de teleporte.
 - No login vai 4686 `PetIslandDefendStateMsg` zerado, ou seja, sem invasão do chefe (`login.json` #39).
 - ponytail: mapa por sessão, sem outros jogadores. Pets selvagens (masterType 91), coleta (1003), loja
   (888) e o chefe dependem do sistema de pets/campanha.

@@ -26,7 +26,7 @@ da barra não abre a fila (`TopToolsBar.as`).
 
 | C>S | O que o servidor faz | Fonte |
 |---|---|---|
-| login | 4512 `matchState=false`, 4515 perfil, 4516 garagem, 4501 `param1=0` (tecnologia) | *(visto)* `login.json` #83, #110-112 |
+| login (depois do tutorial) | 4512 `matchState=false`, 4515 perfil, 4516 garagem, 4501 `param1=0` (tecnologia). A conta nova do replay não recebe esses pacotes. | *(visto)* `login.json` #83, #110-112 |
 | 8608 fila rápida | Registra no log e não responde. Sem a cena, não há sala para criar (o oficial responderia com 125 `campaignId=3001`). | *(cliente)* `RoomListSocketOutManager.as:80`, `BaseManager.as:1469` |
 | 8609 cancelar fila | Nada; o cliente não espera resposta | *(cliente)* `RoomListSocketOutManager.as:86` |
 | 8611 escolher veículo `paraInt1` | Só aceita veículo que o jogador já tem. Grava `vehicle_default` e responde 4515. | *(cliente)* `PlayerManager.as:1407`, `:1108` |
@@ -116,6 +116,11 @@ Comparação de `captures/login.json` (conta nível 56) e do início de `server-
 - Desta fatia, passamos a mandar: 4512, 4515, 4516, 4501 (veículos) e 4686 (chefe da ilha dos pets, tudo zerado).
 - 4173 já era mandado.
 
+O conjunto comparado são os pacotes que `socket_login`, `login_load`, `_login_state`, `space.enter` e
+`vehicle.login` mandam. Ficam fora:
+- as respostas a pedidos do cliente (por exemplo 109 do 5015);
+- o tutorial do replay (1, 21, 125, 127, 130, 140, 143), que vem dos handlers da campanha.
+
 Os pacotes abaixo continuam faltando. O cliente aguenta sem eles: cada um preenche o próprio painel quando chega.
 
 | Pacotes | Sistema | Dono provável |
@@ -137,4 +142,8 @@ Os pacotes abaixo continuam faltando. O cliente aguenta sem eles: cada um preenc
 | 85, 4232, 4497 | recomendação de amigos, estado do chat, garrafa | amigos / [chat.md](chat.md) |
 | 152, 110, 4438, 4434, 4529, 4662 | segurança do castelo, efeito, prosperidade, contrato, lordes, casamento | castelo / eventos |
 | 11 | lista de espera da campanha | [mundo-compartilhado.md](mundo-compartilhado.md) C |
+| 100 | `ArmyPawnUpdatedMsg` das tropas, sem pedido (#6, #29) | exército / tropas |
+| 109 | `CastleYieldMsg` empurrado no fim (#133); hoje só vai em resposta ao 5015 | castelo |
+| 83, 111 | mensagens de sistema e o alerta de recompensa do guia de tarefas (#2, #148, #150) | [chat.md](chat.md) / missões (leed) |
+| 4696 `opType=6` | bloco de recompensa da senha secundária (ver acima) | senha secundária (esta fatia), quando houver a recompensa |
 | 462 | sem nome no `opcodes.json` (corpo `3800`) | desconhecido |

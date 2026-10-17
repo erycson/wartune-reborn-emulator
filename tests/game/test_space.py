@@ -134,7 +134,12 @@ async def test_space_nodes_and_pet_island(tmp_path: Path) -> None:
         assert len(pb.CampaignNodeListMsg.FromString(got[3].body).node) == 121
         assert _of(await b.idle(), 4607) != []  # sumiu da cidade do céu dos outros
 
-        c.send(5125, pb.CampaignReqMsg(paraInt1=2000101, paraBool1=True))  # portal de chegada: volta
+        c.send(5035, pb.LoginStateMsg(state=4))  # cena carregada: o oficial repete o 21
+        assert [p.code for p in await a.idle()] == [21]
+        c.send(5125, pb.CampaignReqMsg(paraInt1=2000101, paraBool1=True))  # pisar no nó de chegada não sai
+        assert _of(await a.idle(), 4606) == []
+
+        c.send(5025, pb.RoomExitMsg(msg=""))  # botão de sair
         back = [pb.RoomEnterMsg.FromString(x) for x in _of(await a.idle(), 4606)]
         assert back and back[0].player[0].campaignId == 10000 and session.campaign is None
         assert _of(await b.idle(), 4597) != []

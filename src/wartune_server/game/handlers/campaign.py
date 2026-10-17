@@ -19,7 +19,18 @@ from .. import rules, space
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
-from ..campaign import AGGRESSIVE, DONE, FIGHTING, FIRST_MAP, MONSTER, NORMAL, SECOND_MAP, CampaignMap, map_for
+from ..campaign import (
+    AGGRESSIVE,
+    DONE,
+    FIGHTING,
+    FIRST_MAP,
+    MONSTER,
+    NORMAL,
+    PET_ISLANDS,
+    SECOND_MAP,
+    CampaignMap,
+    map_for,
+)
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
@@ -56,7 +67,6 @@ NOVICE_UNLOCKS = {14000: [1000108]}  # portal aparece quando o guia chega nesse 
 PORTAL = {1000108: SECOND_MAP}
 CHEST = 1000202  # param3: arma por job ("1011002|1012002|1013002|..."), índice job-1
 EXIT = 1000206
-RETURN_PORTAL = 62  # masterType do portal de chegada que leva de volta à cidade do céu
 BOSS = "8251"  # chave em tutorial.json["battles"]
 
 
@@ -230,10 +240,7 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if c is None or node is None or node["state"] != NORMAL or c.fighting:
         return
     camp = msg.paraInt1
-    if node["masterType"] == RETURN_PORTAL and c.map_id not in (FIRST_MAP, SECOND_MAP):
-        s.campaign = None  # portal de volta (ilha dos pets): cidade do céu com 4606
-        space.back(s)
-    elif camp in ARRIVE_PLOT:
+    if camp in ARRIVE_PLOT:
         if camp not in c.talked:  # o cliente repete o 5125 enquanto anda sobre o nó
             c.talked.add(camp)
             _plot(s, ARRIVE_PLOT[camp])
@@ -474,6 +481,8 @@ async def attack_mode(s: GameSession, msg: pb.AttackModeMsg) -> None:
 
 @router.on(5035)
 async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
+    if msg.state == BACK_TO_MAP and s.campaign is not None and s.campaign.map_id in PET_ISLANDS:
+        _send(s, S_ROOM_ENTER, _room_enter(s))  # o oficial repete o 21 quando a cena termina (peri_adasi_tp #7)
     if msg.state == BACK_TO_MAP and s.battle_gp:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0

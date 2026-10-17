@@ -9,7 +9,7 @@ from ...content import pet_island
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import Row
 from .. import space
-from ..campaign import CampaignMap
+from ..campaign import PET_ISLANDS, CampaignMap
 from ..router import router
 from ..session import GameSession
 from .campaign import ARMY_IDLE, map_sync
@@ -81,7 +81,7 @@ def enter_pet_island(s: GameSession, map_id: int) -> None:
     """Ilha dos pets como no oficial (``peri_adasi_tp.json`` #3-8): 140, 125, 21, 127.
 
     ponytail: mapa por sessão com os nós da captura; pets selvagens, coleta e o chefe (4686)
-    dependem do sistema de pets/campanha. Sai pelo portal de chegada (masterType 62).
+    dependem do sistema de pets/campanha. Sai pelo botão de sair (5025) ou indo ao space (8688).
     """
     data = pet_island()["maps"][str(map_id)]
     s.campaign = CampaignMap(map_id, {n["campDataId"]: dict(n) for n in data["nodes"]}, tuple(data["start"]))
@@ -100,10 +100,24 @@ def enter_pet_island(s: GameSession, map_id: int) -> None:
 async def enter_pet_land(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     # opção de diálogo tipo 6 (DialogOptionItem); nenhum nó do 10000 a usa hoje, a entrada é pelo nó 5
     gate = next((n for n in s.ctx.templates.find("MapNodeInfos", MoveToMapId=str(msg.paraInt1))), None)
-    if s.campaign is not None or gate is None or gate["MasterType"] != TRANSFER:
+    if s.campaign is not None or gate is None or gate["MasterType"] != TRANSFER or not _near(s, gate):
         s.log.info("8694 recusado", mapa=msg.paraInt1)
         return
     await _transfer(s, gate)
+
+
+@router.on(5025)
+async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
+    """Botão de sair na ilha dos pets (``MainToolBar``: sem alerta no pet land, manda 5025 direto).
+
+    Volta para a cidade do céu com 4606, como o oficial ao sair de um mapa (``gokyuzu_...json`` #1).
+    ponytail: só a ilha dos pets; as salas de campanha em grupo (5025 genérico) são do sistema de salas.
+    """
+    if s.campaign is None or s.campaign.map_id not in PET_ISLANDS:
+        s.log.info("5025 fora da ilha dos pets", mapa=s.campaign and s.campaign.map_id)
+        return
+    s.campaign = None
+    space.back(s)
 
 
 @router.on(8700)
