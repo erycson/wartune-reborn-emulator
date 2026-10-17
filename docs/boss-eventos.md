@@ -18,8 +18,8 @@ Visão geral e legenda em [multiplayer.md](multiplayer.md). Há captura só da a
 - **Preços em `ConfigInfo`:**
   - `WorldBoss_Buffer_*_Price=5`
   - `WorldBoss_Replacement_Price=30` (dublê)
-  - `Live_Pay=2` (reviver)
-  - `Live_Fight_Pay=3`
+  - `Live_Pay=2`: lido pela `RiverView` tipo 1, mas o botão de reviver só existe no altar (tipo 2)
+  - `Live_Fight_Pay=3`: entrar na luta agora (o botão do chefe)
 
 ### Agenda
 
@@ -51,7 +51,7 @@ Handlers em `game/handlers/worldboss.py`. Recusa = 111 (aviso no meio da tela) e
 | 8271 | `C_WORLDBOSS_STATE` | vazio | 4182 com a agenda de hoje | *(visto)* captura; *(cliente)* `WorldBossManager.setup` |
 | 8258 | `C_WORLD_BOSS_CMD` | `WorldBossMsg{param1=campanha}` | 111 com o motivo: id fora do template, janela fechada, nível abaixo de `MinLevel` (20), em batalha ou em campanha. Se tudo passa, 111 de "mapa não pronto". Nunca 125 | *(cliente)* `WorldBossSocketOutManager.sendWorldBossCmd` (5 s entre pedidos no cliente) |
 | 8259 | `C_WORLD_BOSS_REQ` | `WorldBossMsg{mapId}` | nada (log) | *(cliente)* `reqWorldBossCmd` existe, mas nenhum arquivo o chama |
-| 8264 | `C_WORLDBOSS_PLAYER_LIVE` | `PayTypeMsg{payType}` | 111, sem cobrança | *(cliente)* `RiverView`: reviver `Live_Pay`=2 (tipo 1) ou entrar na luta `Live_Fight_Pay`=3; payType 0 = vinculado primeiro (como `cash.split`) |
+| 8264 | `C_WORLDBOSS_PLAYER_LIVE` | `PayTypeMsg{payType}` | 111, sem cobrança | *(cliente)* `WorldBossRiverMediator` → `RiverView()` tipo 1: entrar na luta com `Live_Fight_Pay`=3; payType 0 = vinculado primeiro, 1 = só diamante (como `cash.split`) |
 | 8470 | `C_WORLDBOSS_BUFFER` | `WorldBossBufferMsg{op=2, type}` | 111, sem cobrança | *(cliente)* `buyWorldBossBufferWithPointOrGiftToken` → `MapSocketOuterManager`; `type` 2 = vinculado, 1 = só diamante; preço `WorldBoss_Buffer_Diamond_Price` / `WorldBoss_Buffer_Gift_Price` = 5 |
 
 **Dependências (por que cada recusa):**
@@ -61,9 +61,10 @@ Handlers em `game/handlers/worldboss.py`. Recusa = 111 (aviso no meio da tela) e
 - **Batalha compartilhada.** O 157 com `battleType 17`, o boss com `type==3`
   (`BattleModel.getWorldBoss`), herói 2002/2003 (vida 2 000 000). Não há captura da luta nem do
   que encerra a batalha de cada jogador. Falta: 4174 (HP global), 4435, 4203 e 4369.
-- **Morte e reviver.** O 4175 de morte nasce na batalha do chefe. Sem o servidor saber que o
+- **Morte e entrada paga.** O 4175 de morte nasce na batalha do chefe. Sem o servidor saber que o
   jogador morreu, o 8264 é recusado. Quando a batalha existir: contar a morte, cobrar
-  `Live_Pay` (tipo 1) ou `Live_Fight_Pay` (entrar), e mandar o 4175 de volta.
+  `Live_Fight_Pay` (3, com a regra de vinculado do payType) e mandar o 4175 de volta. Não há
+  botão de reviver pago no chefe: `Live_Pay` (2) não tem uso no cliente do chefe.
 - **Buff.** Só se compra dentro do mapa do chefe, e o efeito só vale na batalha
   (`CampaignBufferTemps` `Types=4`, 401–420, grade máxima 20). O cliente lê o nível atual pelo
   4165 (`bufferTempId`, `leftTime`) e pelo 4174 (`bufferGrade`). Duração e reset não estão no
@@ -97,7 +98,7 @@ Handlers em `game/handlers/worldboss.py`. Recusa = 111 (aviso no meio da tela) e
 **Morte e reviver**
 - O **4175** `PlayerStateListMsg{playerState[]{armyId, state:1, leftTime ms}}` avisa a morte. A
   contagem é de uns 20 s.
-- Reviver pagando: o cliente manda **8264** `PayTypeMsg`.
+- Entrar na luta pagando (botão da `RiverView` tipo 1): o cliente manda **8264** `PayTypeMsg`.
 
 **Extras**
 - Buff: 8470.

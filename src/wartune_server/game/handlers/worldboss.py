@@ -54,8 +54,9 @@ def _refusal(s: GameSession, campaign_id: int) -> str | None:
 
 @router.on(8264)
 async def revive_or_fight(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    """Reviver ou entrar na luta pagando (``Live_Pay`` 2 / ``Live_Fight_Pay`` 3, payType 0 = vinculado
-    primeiro). Só se pede depois de morrer no chefe, e o servidor ainda não sabe disso: nada é cobrado.
+    """Entrar na luta agora, pagando (``Live_Fight_Pay`` 3; payType 0 = vinculado primeiro, 1 = só
+    diamante). O botão existe na ``RiverView`` tipo 1, depois de morrer no chefe, e o servidor ainda
+    não sabe disso: nada é cobrado. ``Live_Pay`` (2) não tem botão no chefe.
 
     ponytail: o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição);
     quem fizer o mapa do altar tem de separar pelo mapa do jogador.
