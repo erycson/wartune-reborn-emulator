@@ -29,7 +29,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 | Ofertas da home (4238), compra coletiva (8645), relâmpago (8632) | — | nenhuma ativa. **depende de**: configuração de ofertas do operador |
 
 Itens fora da loja:
-- Refino da forja (8336): sorteio uniforme entre os SkillTempInfos 70000–77199, cadeado grátis. **sem dado**.
+- Refino da forja (8336): sorteio uniforme entre os 1584 atributos com `Grades` > 0 (visto: os 42 das capturas têm Grades 1–10). Falta o peso por nível e o custo do cadeado: **precisa de captura** 8336 → 4258 com cadeado e itens de NeedGrades baixo e alto.
 - Decomposição (8340), avaliação de moda (8781), moldagem (8644), composição de moda (8594), troca na bancada (8595). **sem dado**.
 - Itens novos ganham só o `DefaultSkill` como atributo sorteado (o oficial sorteia `RandomSkillCount`). **sem dado**.
 - Sem teto diário para Beden e EXP vindos de itens. **dedução**.
@@ -116,7 +116,7 @@ Outros eventos:
 
 ## Herói, exército e pets ([heroi-exercito.md](heroi-exercito.md))
 
-- Pets: devorar, crescimento, skills, sacrifício, treino, resistência e fusão (8621 ops 1, 4–8, 13, 15). **sem dado**.
+- Pets: composição de um pet (8621 op 13) pela `PetComponseInfos`: 24 de 28 receitas (as 4 restantes dão tipos 117–119, sem template). Fusão de dois pets (15): **precisa de** `PetTempInfos` dos tipos 117–119 e dos itens 2125126/127/128/130/134. Devorar, crescimento, skills, sacrifício, treino e resistência (1, 4–8): **sem dado** (o cliente não diz o ganho por item ou ação; ver heroi-exercito.md).
 - Montaria: estrelas/bênção, rei das montarias, loja, refino, voo (8529 outras ops, 8843). **sem dado** (tela fora do decompilado).
 - Vocação depois do tipo 102 (8643). **sem dado**.
 - Cartas de poder (9505): cartas e EXP vêm da batalha (4902); bônus de coleção falta.
@@ -128,13 +128,13 @@ Outros eventos:
 
 ## Castelo e fazenda ([castelo.md](castelo.md))
 
-- Roubar e reviver na fazenda de amigo (15044 ops 5/6), verme/erva e regar a árvore de amigo: recusados. A lista de amigos já existe; falta ligar.
+- Roubar e reviver na fazenda de amigo (15044 ops 5/6), verme/erva: recusados. Regar a árvore de amigo (15017): recusado; a captura ciftlik já dá ouro, EXP e amizade, falta a regra de quem pode regar (ver castelo.md). A lista de amigos já existe; falta ligar.
 - Melhorar terreno e pets da fazenda (15044 ops 9–16): sem remetente no cliente; a fazenda fica em 3 terrenos.
-- Colher a árvore (5178): quando dá fruto e o que rende. **sem dado**.
+- Colher a árvore (5178): **precisa de captura**; nenhuma tem `fruitCount` > 0. Passos e itens em castelo.md.
 - Recompensa offline ×1,5/×2 (8287): preço desconhecido. **sem dado**.
 - 8255 (batalha em grupo), 8562 (trégua), 5179 (terras selvagens): respondem vazio. **depende de** esses sistemas.
 - Rendimento: o oficial soma +30/h que não explicamos; sem bônus de terras, guilda ou efeitos.
-- **dedução**: ouro de regar = nível × 20, EXP offline = nível × minutos (até 8 h), acelerar a fazenda amadurece na hora, caixa por tempo vira à meia-noite UTC.
+- **dedução**: EXP offline = nível × minutos (até 8 h), acelerar a fazenda amadurece na hora, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto (nível do dono × 20).
 
 ## PvP ([pvp.md](pvp.md))
 
@@ -186,13 +186,12 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/events.py:369](../src/wartune_server/game/handlers/events.py#L369) | nenhum desses sistemas conta ainda; lista vazia = tudo zerado no painel. |
 | [game/handlers/farm.py:15](../src/wartune_server/game/handlers/farm.py#L15) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/farm.py:171](../src/wartune_server/game/handlers/farm.py#L171) | o texto do oficial (farm.view.FarmOperMenu.accelerateTip) não está decompilado; |
-| [game/handlers/farm.py:198](../src/wartune_server/game/handlers/farm.py#L198) | dedução de uma captura só (220 de ouro no nível 11 = 20 por nível); conferir com outra |
 | [game/handlers/farm.py:205](../src/wartune_server/game/handlers/farm.py#L205) | sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado) |
 | [game/handlers/farm.py:238](../src/wartune_server/game/handlers/farm.py#L238) | ações em fazenda de amigo ainda recusadas (lista de amigos), então tudo falso |
 | [game/handlers/forge.py:29](../src/wartune_server/game/handlers/forge.py#L29) | o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar) |
 | [game/handlers/forge.py:199](../src/wartune_server/game/handlers/forge.py#L199) | autoBuy (comprar o que falta) não |
 | [game/handlers/forge.py:211](../src/wartune_server/game/handlers/forge.py#L211) | o espaço é conferido antes de consumir (pode recusar quando os materiais liberariam lugar) |
-| [game/handlers/forge.py:264](../src/wartune_server/game/handlers/forge.py#L264) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme na faixa |
+| [game/handlers/forge.py:268](../src/wartune_server/game/handlers/forge.py#L268) | sorteio uniforme entre os atributos com Grades > 0; peso por nível precisa de captura 8336 -> 4258 |
 | [game/handlers/friends.py:30](../src/wartune_server/game/handlers/friends.py#L30) | limites do cliente não achados (módulo de UI ausente) |
 | [game/handlers/friends.py:312](../src/wartune_server/game/handlers/friends.py#L312) | ``pageIndex`` tratado como 1-based (UI ausente). |
 | [game/handlers/guild.py:19](../src/wartune_server/game/handlers/guild.py#L19) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
@@ -221,11 +220,11 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/offer.py:342](../src/wartune_server/game/handlers/offer.py#L342) | sem compra de vagas extras |
 | [game/handlers/outer_city.py:36](../src/wartune_server/game/handlers/outer_city.py#L36) | velocidade fixa, sem montaria nem efeitos |
 | [game/handlers/outer_city.py:103](../src/wartune_server/game/handlers/outer_city.py#L103) | o próprio castelo e as minas; castelos vizinhos quando houver mapa compartilhado |
-| [game/handlers/pets.py:21](../src/wartune_server/game/handlers/pets.py#L21) | pontos livres por nível do pet; o oficial não publica a regra |
-| [game/handlers/pets.py:53](../src/wartune_server/game/handlers/pets.py#L53) | atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real |
-| [game/handlers/pets.py:59](../src/wartune_server/game/handlers/pets.py#L59) | mesma aproximação |
-| [game/handlers/pets.py:126](../src/wartune_server/game/handlers/pets.py#L126) | devorar, crescimento, skills, sacrifício, treino, resistência e fusões dependem de |
-| [game/handlers/pets.py:142](../src/wartune_server/game/handlers/pets.py#L142) | só jogador online |
+| [game/handlers/pets.py:25](../src/wartune_server/game/handlers/pets.py#L25) | pontos livres por nível do pet; o oficial não publica a regra |
+| [game/handlers/pets.py:57](../src/wartune_server/game/handlers/pets.py#L57) | atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real fica no servidor oficial) |
+| [game/handlers/pets.py:63](../src/wartune_server/game/handlers/pets.py#L63) | mesma aproximação |
+| [game/handlers/pets.py:199](../src/wartune_server/game/handlers/pets.py#L199) | devorar, crescimento, skills, sacrifício, treino, resistência e a fusão de 2 pets (15) dependem de tabelas e capturas que não temos (a fusão dá tipos 117-119, sem template) |
+| [game/handlers/pets.py:215](../src/wartune_server/game/handlers/pets.py#L215) | só jogador online |
 | [game/handlers/rewards.py:10](../src/wartune_server/game/handlers/rewards.py#L10) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/rewards.py:84](../src/wartune_server/game/handlers/rewards.py#L84) | x1,5 e x2 custam diamante no oficial, mas o preço não está no cliente; recusados |
 | [game/handlers/shop.py:38](../src/wartune_server/game/handlers/shop.py#L38) | a tela da loja misteriosa não está no cliente decompilado; 8 é palpite |

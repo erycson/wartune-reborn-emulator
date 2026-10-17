@@ -109,7 +109,9 @@ O `battle.py` ainda não lê.
 | 8621 op 11 atalhos | 4540 | dedução | string em `petName` |
 | 8621 op 12 vaga | 4540, 3 | cliente | add_pet_count por compra; base 3 (login: petCount 6) |
 | 8621 op 14 topo | 4540 | cliente | |
-| 8621 ops 1, 4-8, 13, 15 | — | **parcial** | devorar, crescimento, skills, sacrifício, treino, resistência, fusões |
+| 8621 op 13 compor (um pet) | 4540, 115, 109 | cliente + template | receita de `PetComponseInfos` com `Pet2Types` 0 casa com (`PetType`, `NeedGrade` = tier, `Quality` = estrela) do template do pet; o template passa a ser o do resultado; gasta `NeedItemTempId*` e `NeedGold`. Nível, EXP, pontos, aptidões, skills e qualidade ficam (**dedução**). 24 de 28 receitas; 19, 26, 29 e 32 dão tipos 117–119, sem template: recusadas |
+| 8621 op 15 fusão de dois pets | — | template | as 6 receitas dão tipos 117–119 e pedem itens (2125126, 2125127, 2125128, 2125130, 2125134) que não estão em `ItemTempInfos`: sem resposta (log) |
+| 8621 ops 1, 4–8 | — | **sem dado** | devorar (1), crescimento (4), skills (5), sacrifício (6), aptidão (7), resistência (8). Tabelas que existem: `UpGradeTempInfos` tipo 25 (EXP por nível), tipos 27/29/107 (EXP de qualidade), `PetTempInfos.PowerApt` (mín,máx). Falta o ganho por item ou ação, que o cliente não informa |
 | 8702 pets de outro | 4608 | cliente | só jogador online |
 | login (8224 `army`) | 4540 | visto (login #30) | só quando há pet |
 
