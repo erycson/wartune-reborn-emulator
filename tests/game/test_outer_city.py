@@ -2,7 +2,7 @@
 lugar (docs/cidade-externa.md). Sem outros jogadores no mapa: os pedidos que dependem deles são
 recusados sem resposta, como o cliente espera."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,6 +14,7 @@ from wartune_server.game import battle as battle_mod
 from wartune_server.game import castle as castle_mod
 from wartune_server.game import outer_city as oc
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
 
 
 def _snap(g: Game) -> PlayerSnapshot:
@@ -176,13 +177,17 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
     """Missão 60 (replay #706-#795): as minas vêm no 4129, o 5160 numa livre abre a luta com o guarda
     e a vitória deixa a mina do jogador, conta na missão e soma o ouro dela no castelo."""
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
-    async with logged_in(tmp_path, novice=22500) as g:
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
         castle = snap.castle
         assert castle is not None
         snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
         snap.quests.append(Quest(g.user_id, 60, datetime.now(UTC)))
-        before = castle_mod.gold_yield(snap, g.server.services.templates)
+        templates = g.server.services.templates
+        before = castle_mod.gold_yield(snap, templates)
+        castle.produced_at = clock.now() - timedelta(hours=1)  # uma hora sem recolher: taxa antiga
+        gold = snap.character.gold + castle_mod.pending_gold(snap, templates, clock.now())[0]
 
         got = await _grid(g, "-1_0,-1_1,0_0,0_1,1_0,1_1")
         lands = pb.PhysicListUpdateMsg.FromString(got[0].body).wildLand
@@ -212,7 +217,8 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         assert (land.occupyPlayerId, land.state) == (g.user_id, 1)
         politics = pb.CastleYieldMsg.FromString(next(p for p in got if p.code == 152).body)
         assert [(y.wildPox, y.wildYield) for y in politics.wildYield] == [("16,34", 680)]
-        assert castle_mod.gold_yield(snap, g.server.services.templates) == before + 680
+        assert castle_mod.gold_yield(snap, templates) == before + 680
+        assert (snap.character.gold, castle_mod.pending_gold(snap, templates, clock.now())[0]) == (gold, 0)
 
         # já é dele: atacar de novo só para o exército; e relogar mantém a mina ocupada
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=16, posY=34))

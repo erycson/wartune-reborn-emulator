@@ -136,7 +136,7 @@ async def army_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
 async def _arrive(s: GameSession, seconds: float) -> None:
     await asyncio.sleep(seconds)
     s.outer_walk = None
-    if s.battle is None:
+    if s.battle is None and s.campaign is None:  # numa campanha o 140 é do mapa dela
         _army_sync(s, ARMY_IDLE)
 
 
@@ -151,6 +151,7 @@ async def return_home(s: GameSession, _: pb.PayTypeMsg) -> None:
     """Volta o exército para o castelo (de graça: o botão do exército não checa nada). 98 com a posição."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
+    _stop_walk(s)
     s.outer_army = None
     _map, x, y = oc.home(snap.castle)
     s.send(S_RETURN, pb.OutercityRspMsg(result=snap.character.id, curPosX=x, curPosY=y))
@@ -214,16 +215,19 @@ async def _mine_over(s: GameSession, battle: Battle, mine: oc.Mine, won: bool) -
     if not won or oc.occupied(snap, mine) is not None:
         _mine_sync(s, mine, oc.MINE_FREE)
         return
-    land = oc.occupy(snap, mine, s.ctx.clock.now())
+    assert snap.castle is not None
+    now = s.ctx.clock.now()
+    cs.settle(snap, templates, now)  # o ouro até agora sai na taxa antiga; a mina conta daqui em diante
+    land = oc.occupy(snap, mine, now)
     quests = rules.quest_event(snap, templates, OCCUPY, oc.MINE_SON_TYPE, 1)
-    await s.ctx.characters.save(land, *quests)
+    await s.ctx.characters.save(snap.character, snap.castle, land, *quests)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     await events.leed_done(s, LEED_MINE)
     castle_yield(s)
     s.send(S_POLITICS, politics_msg(snap, templates))
     _mine_sync(s, mine, oc.MINE_FREE)
-    map_id, x, y = oc.position(snap.castle, s.outer_army)  # type: ignore[arg-type]
+    map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # replay #749
 
 
@@ -300,6 +304,7 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
         castle.energy = top
     castle.energy -= need
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
+    _stop_walk(s)
     s.outer_army = None
     await s.ctx.characters.save(c, castle, *([entry] if entry else []))
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_now(s)))
