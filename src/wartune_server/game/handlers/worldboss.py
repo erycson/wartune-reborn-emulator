@@ -19,6 +19,14 @@ NO_MAP = "Dünya Boss savaş haritası henüz hazır değil."
 UNAVAILABLE = "Bu işlem şu an kullanılamıyor."  # reviver e buff: o cliente só pede dentro do mapa do chefe
 
 
+@router.on(8535)
+async def cancel_transport(s: GameSession, _: object) -> None:
+    """Cancela o transporte do jogador morto no mapa de PvP do chefe (ExtraBufferItem, tipo 5). Esse estado de
+    morte vem do mapa da batalha compartilhada, que não existe aqui: nada para cancelar, e o cliente não espera
+    resposta. Só registramos."""
+    s.log.info("8535 sem transporte de morte: não há mapa de PvP do chefe")
+
+
 @router.on(8271)
 async def boss_state(s: GameSession, _: object) -> None:
     """Agenda de hoje dos dois chefes. O cliente pede isso uma vez, no login (``WorldBossManager.setup``)."""

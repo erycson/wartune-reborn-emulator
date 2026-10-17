@@ -1,8 +1,10 @@
-"""Ganho da campanha (gancho) e PK por convite no mapa da campanha (8293, 8525).
+"""Ganho da campanha (gancho) e PK por convite no mapa da campanha (8292, 8293, 8295, 8525).
 
 O gancho (ganho offline da campanha) não tem sistema no servidor: o cliente só manda 8293 com
 ``hookleftWeay`` diferente de zero, e o servidor nunca o põe acima de zero. Então o 8293 é uma
-ressincronização: 4200 zerado, sem cobrar nada.
+ressincronização: 4200 zerado, sem cobrar nada. O 8292 (cancelar o gancho) não tem gancho para cancelar:
+é a mesma resposta. O 8295 pede o estado dos ganchos da sala: lista vazia, e o cliente só termina o
+pré-carregamento quando ela chega (``HookContorler.__updateRoomState``).
 
 O convite de PK (8525 op 1) precisa da batalha no mapa da campanha, que não existe. O cliente não espera
 resposta, então só registramos. Não mandamos 4421 de volta: com a recusa automática ligada
@@ -10,15 +12,32 @@ resposta, então só registramos. Não mandamos 4421 de volta: com a recusa auto
 """
 
 from ...protocol.messages import wartune_pb2 as pb
+from ..builders import login as b
 from ..router import router
 from ..session import GameSession
 
-S_HANGUP_STATE = 4200
+S_HANGUP_STATE, S_HANGUP_ROOM = 4200, 4204
+
+
+def _no_hangup(s: GameSession) -> None:
+    s.send(S_HANGUP_STATE, pb.HangupInfoMsg(leftWeay=0, isStartHangup=False, addWeay=0))
 
 
 @router.on(8293)
 async def quick_hangup(s: GameSession, _: pb.PayTypeMsg) -> None:
-    s.send(S_HANGUP_STATE, pb.HangupInfoMsg(leftWeay=0, isStartHangup=False, addWeay=0))
+    _no_hangup(s)
+
+
+@router.on(8292)
+async def cancel_hangup(s: GameSession, _: object) -> None:
+    """Cancela o gancho (``HookTimeView``, depois da confirmação). Sem gancho no servidor: 4200 zerado."""
+    _no_hangup(s)
+
+
+@router.on(8295)
+async def hangup_room_state(s: GameSession, _: object) -> None:
+    """Estado dos ganchos da sala (``HookContorler``): sem gancho no servidor, lista vazia (4204)."""
+    s.send(S_HANGUP_ROOM, b.complete(pb.HangupStateListMsg()))
 
 
 @router.on(8525)
