@@ -1,7 +1,8 @@
 """Templates estáticos do jogo (``tempinfos.xml``): heróis, itens, prédios, mapas...
 
 É o mesmo arquivo que o cliente baixa de ``TEMPLATE_PATH``, então servidor e
-cliente sempre concordam. O arquivo oficial vem comprimido em zlib; aceitamos
+cliente sempre concordam: com ``url``, o servidor baixa da CDN ao subir e guarda a
+cópia local, que só é usada se a CDN não responder. O arquivo oficial vem comprimido em zlib; aceitamos
 também o XML puro. Somente leitura depois de carregado: pode ser compartilhado
 entre corrotinas sem trava.
 """
@@ -9,12 +10,18 @@ entre corrotinas sem trava.
 from __future__ import annotations
 
 import asyncio
+import os
 import zlib
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from xml.etree import ElementTree
+
+import aiohttp
+import structlog
+
+log = structlog.get_logger(__name__)
 
 Row = Mapping[str, str]
 
@@ -73,7 +80,24 @@ class GameTemplates:
         return cls(categories)
 
     @classmethod
-    async def load(cls, path: Path) -> GameTemplates:
+    async def load(cls, path: Path, url: str | None = None) -> GameTemplates:
+        if url:
+            try:
+                async with (
+                    aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=120)) as http,
+                    http.get(url) as resp,
+                ):
+                    resp.raise_for_status()
+                    data = await resp.read()
+                templates = await asyncio.to_thread(cls.parse, data)  # só grava o que parseia
+            except (aiohttp.ClientError, TimeoutError, ElementTree.ParseError, zlib.error) as exc:
+                if not await asyncio.to_thread(path.exists):
+                    raise
+                log.warning("templates_download_failed", url=url, error=str(exc), fallback=str(path))
+            else:
+                await asyncio.to_thread(_replace, path, data)
+                log.info("templates_downloaded", url=url, bytes=len(data))
+                return templates
         data = await asyncio.to_thread(path.read_bytes)
         return await asyncio.to_thread(cls.parse, data)
 
@@ -105,3 +129,10 @@ class GameTemplates:
             return self._heroes[template_id]
         except KeyError:
             raise KeyError(f"template de herói {template_id} não existe") from None
+
+
+def _replace(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)

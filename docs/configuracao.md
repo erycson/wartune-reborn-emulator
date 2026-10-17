@@ -15,7 +15,8 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_SOCKET_PORT` | `5000` | |
 | `WARTUNE_WEBSOCKET_PORT` | `5001` | ponte para o Ruffle |
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
-| `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | |
+| `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | cópia local dos templates |
+| `WARTUNE_TEMPLATES_URL` | vazio | ex.: `https://cdn.exemplo.com/xml/tempinfos.xml`. Ao subir, baixa da CDN (a mesma que o cliente usa) e regrava o `TEMPLATES_FILE`; se a CDN falhar, usa a cópia local. Mudou o arquivo na CDN: reinicie o servidor |
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |
 | `WARTUNE_SKIP_TUTORIAL` | `false` | faz o tutorial ([tutorial.md](tutorial.md)); `true` mantém o `noviceProcess` em no mínimo 19000 (cena do castelo) |
 | `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |

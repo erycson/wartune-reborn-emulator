@@ -44,7 +44,7 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
     database = Database(settings.database_url, echo=settings.database_echo)
     await database.create_schema()
     templates, keys = await asyncio.gather(
-        GameTemplates.load(settings.templates_file),
+        GameTemplates.load(settings.templates_file, settings.templates_url),
         asyncio.to_thread(LoginKeyPair.load_or_create, settings.rsa_key_file),
     )
     await _register_server(database, settings, keys, clock)
