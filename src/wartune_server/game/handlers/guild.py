@@ -41,6 +41,8 @@ RENAME_POINTS = 1000  # ConsortiaRenameFrame.command01
 GOLD_PER_OFFER = 1000  # contribuição: 1000 ouro = 1, 1 diamante = 1 (ConsortiaContributeFrame)
 QUICK_SECONDS = 600  # acelerar a melhoria: 1 diamante a cada 10 min (ConsortiaUpgradeFrame)
 GUILD_SHOP = "2"  # ShopTempInfos.ShopType do mercado da guilda
+# BuyInfo.result (ShopManager.shopingResult, como em handlers/shop.py)
+R_OK, R_NO_PLAYER, R_NO_ITEM, R_NO_MONEY, R_GUILD, R_LEVEL, R_FAIL = 1, 2, 3, 4, 9, 10, 11
 TEXT_MAX = 255
 MEMBER_CHUNK = 100  # 4133 em pedaços (o cliente junta pelo uuid até somar totalRows)
 _TAG = re.compile(r"<[^>]*>")
@@ -791,13 +793,26 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     stack = max(int(item_row.get("MaxCount") or 1), 1) if item_row else 1
     slots = math.ceil(count / stack) if count > 0 else 0
     used = sum(i.bag_type == BagType.BAG for i in snap.items)
-    ok = mine is not None and item_row is not None and 0 < count <= 999 and c.consortia_offer >= price
-    ok = ok and mine is not None and mine[0].shop_level >= int(row.get("NeedConsortiaLevels") or 0)
-    ok = ok and used + slots <= BAG_SIZE and c.grades >= int(row.get("NeedGrades") or 0)
-    if not ok or item_row is None:
-        _refuse(s, 5154, "sem guilda, nível do mercado, contribuição ou mochila", item=buy.goodId)
-        _buy_result(s, buy, 0)
+    # o primeiro motivo que o cliente mostra (código 0 deixa a mensagem vazia)
+    if mine is None or mine[0].shop_level < int(row.get("NeedConsortiaLevels") or 0):
+        code = R_GUILD
+    elif c.grades < int(row.get("NeedGrades") or 0):
+        code = R_LEVEL
+    elif buy.receiveId not in (0, s.player_id):  # presente exige gravar outro personagem
+        code = R_NO_PLAYER
+    elif item_row is None or not 0 < count <= 999:
+        code = R_NO_ITEM
+    elif c.consortia_offer < price:
+        code = R_NO_MONEY
+    elif used + slots > BAG_SIZE:
+        code = R_FAIL
+    else:
+        code = R_OK
+    if code != R_OK:
+        _refuse(s, 5154, "mercado, nível, presente, quantidade, contribuição ou mochila", item=buy.goodId, codigo=code)
+        _buy_result(s, buy, code)
         return True
+    assert item_row is not None
     c.consortia_offer -= price
     new: list[Item] = []
     left = count

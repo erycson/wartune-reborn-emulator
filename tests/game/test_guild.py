@@ -191,15 +191,37 @@ async def test_guild_shop_pays_with_contribution(tmp_path: Path) -> None:
         assert not await handlers.shop_buy(s, pb.BuyInfo(goodId=999_999, count=1))
 
         assert await handlers.shop_buy(s, pb.BuyInfo(goodId=19, count=1))
-        assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == 0  # mercado nível 0
+        assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == handlers.R_GUILD  # mercado nível 0
 
         _guild(a).shop_level = 6
         assert await handlers.shop_buy(s, pb.BuyInfo(goodId=19, count=1))
         got = await a.idle()
         assert [p.code for p in got if p.code in (3, 115, 111, 90, 83)] == [3, 115, 111, 90, 83]
-        assert _one(got, 90, pb.ShopMsg).buyInfo.result == 1
+        assert _one(got, 90, pb.ShopMsg).buyInfo.result == handlers.R_OK
         assert c.consortia_offer == 60
         assert any(i.template_id == 2040106 for i in s.snapshot.items)  # type: ignore[union-attr]
+
+
+async def test_guild_market_is_bought_through_5154(tmp_path: Path) -> None:
+    """O cliente compra no mercado pelo 5154 genérico (``ShopManager.sendShoping``): ShopType 2 vai
+    para a guilda, e cada recusa manda o código que o cliente sabe mostrar."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        c = _char(a)
+        c.consortia_offer = 100
+        a.client.send(5154, pb.ShopMsg(buyInfo=pb.BuyInfo(goodId=19, count=1), payType=0))
+        assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == handlers.R_GUILD
+
+        _guild(a).shop_level = 6
+        a.client.send(5154, pb.ShopMsg(buyInfo=pb.BuyInfo(goodId=19, count=1, receiveId=999), payType=0))
+        assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == handlers.R_NO_PLAYER
+
+        a.client.send(5154, pb.ShopMsg(buyInfo=pb.BuyInfo(goodId=19, count=1), payType=0))
+        got = await a.idle()
+        assert _one(got, 90, pb.ShopMsg).buyInfo.result == handlers.R_OK
+        assert c.consortia_offer == 60
+        snap = _session(a).snapshot
+        assert snap is not None and any(i.template_id == 2040106 for i in snap.items)
 
 
 async def test_altar_bless_and_take(tmp_path: Path) -> None:

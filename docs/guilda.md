@@ -96,12 +96,17 @@ Todo handler muda a memória antes do primeiro `await` e grava tudo numa `charac
 | 8778, 8783 | time e entrada entre servidores | nada | *(cliente)* m2 |
 
 **Mercado da guilda**: não tem opcode próprio. O cliente compra pelo 5154 genérico
-(`ShopManager.sendShoping`). `handlers.guild.shop_buy(s, buyInfo)` faz a compra quando o `goodId`
-é de `ShopTempInfos.ShopType` 2: preço na coluna `ConsortiaOffer` (contribuição pessoal),
-`NeedConsortiaLevels` contra o nível do mercado. Responde 3, 115, 111, 90 `ShopMsg{buyInfo}`, 83
-canal 3 *(visto)* `birlik_katkisi...json` #60 (goodId 19, 2040106, 40 de contribuição). **O handler
-do 5154 (sistema de loja) precisa chamar `shop_buy` primeiro.** Atenção: o 5154 tem dois nomes em
-`opcodes.json` (`FashionShopMsg`, `ShopMsg`) e o registro decodifica pelo primeiro.
+(`ShopManager.sendShoping` *(cliente)* m2; a janela `BuyFrameI` manda o pedido). O handler do 5154
+(`handlers/shop.py`) passa primeiro para `handlers.guild.shop_buy(s, buyInfo)` quando o `goodId` é
+de `ShopTempInfos.ShopType` 2 (41 linhas no tempinfos): preço na coluna `ConsortiaOffer`
+(contribuição pessoal), `NeedConsortiaLevels` contra o nível do mercado, `NeedGrades` contra o
+nível do jogador. A compra certa responde 3, 115, 111, 90 `ShopMsg{buyInfo}`, 83 canal 3 *(visto)*
+`birlik_katkisi...json` #60 (goodId 19, 2040106, 40 de contribuição). A recusa responde só 90 com
+`buyInfo.result`: 9 sem guilda ou nível do mercado baixo, 10 nível do jogador, 2 presente para
+outro jogador (exige gravar outro personagem), 3 quantidade ou item, 4 contribuição, 11 mochila
+(`ShopManager.shopingResult` *(cliente)*; o 0 não tem texto lá, por isso não é usado). Atenção: o
+5154 tem dois nomes em `opcodes.json` (`FashionShopMsg`, `ShopMsg`) e o registro decodifica pelo
+primeiro.
 
 **8699 não é da guilda**: só o tutorial manda (m8 `sendEnterCollectionBattle`).
 
