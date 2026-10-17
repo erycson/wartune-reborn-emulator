@@ -74,28 +74,29 @@ async def test_missao_42_altin_topla_conta_cada_cobranca(tmp_path: Path) -> None
         assert snap.character.gold > 0
 
 
-async def test_missao_17_reforco_conta_quando_o_grau_chega_ao_minimo(
+async def test_missao_17_reforco_conta_quando_o_grau_passa_do_minimo(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Missão 121 (Para1 2 = grau mínimo do item): reforço que chega a +1 não conta; o que chega a +2 conta."""
+    """Missão 121 (Para1 2, Detail "3 lv"): só conta quando o grau passa de 2, ou seja, ao chegar a +3."""
     async with logged_in(tmp_path, novice=19000) as g:
-        me(g).character.gold = 2000
+        me(g).character.gold = 3000
         wand = Item(g.user_id, WAND, bag_type=0, pos=0)
         await put(g, wand)
         me(g).quests.append(Quest(g.user_id, 121, datetime.now(UTC)))
         monkeypatch.setattr(forge.random, "randint", lambda a, b: 1)  # sempre dá certo
 
-        g.client.send(5150)
-        got = await g.until(86)
-        assert wand.strengthen_grade == 1 and 112 not in codes(got)
+        for grade in (1, 2):
+            g.client.send(5150)
+            got = await g.until(86)
+            assert wand.strengthen_grade == grade and 112 not in codes(got)
 
         g.client.send(5150)
         got = await g.until(112)
-        assert wand.strengthen_grade == 2 and _progress(got) == (121, 1)
+        assert wand.strengthen_grade == 3 and _progress(got) == (121, 1)
 
 
-async def test_missao_18_mosaico_de_pedra_de_ataque(tmp_path: Path) -> None:
-    """Missão 281 (Para1 1 = pedra de ataque, Property1 1): o mosaico (5151) com essa pedra avança 1."""
+async def test_missao_18_qualquer_mosaico_avanca(tmp_path: Path) -> None:
+    """Missão 281 (Detail: Atölye > Mozaik, "herhangi bir değerli taş"): o mosaico (5151) de qualquer pedra avança 1."""
     async with logged_in(tmp_path, novice=19000) as g:
         me(g).character.gold = 1000
         wand = Item(g.user_id, WAND, bag_type=0, pos=0)

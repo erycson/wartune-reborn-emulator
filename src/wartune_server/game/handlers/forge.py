@@ -24,6 +24,7 @@ S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89
 S_REFRESH, S_REPLACE, S_RESOLVE, S_REFRESH_PROPERTY = 4258, 4259, 4260, 4368
 S_QUESTS = 112  # QuestUpdatedRspMsg
 STRENGTHEN, GEM_INLAY, GEM_COMPOSE, REFINE = 17, 18, 19, 47  # QuestCondictionInfos.CondictionType
+MOSAIC_PARA1 = 1  # (visto) tempinfos: 281 Para1 1; Detail "herhangi bir değerli taş" = qualquer pedra
 LUCK, GEM, DRILL = "204", "205", 208004  # SonType da pedra da sorte e das pedras; Elmas Delici
 EQUIP = "1"  # MasterType dos equipamentos
 MAX_COMPOSE = 999
@@ -137,9 +138,8 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     back = bag.add(snap, templates, old, 1, now) if old > 0 else []
     joins[msg.mountPos - 1] = stone.template_id
     item.joins = joins
-    # (visto) tempinfos: 281 = tipo 18, Para1 1; (visto) captura atolye_item_basma_ve_mozaik: "mozaik yapıldı";
-    # Para1 comparado ao Property1 da pedra (dedução)
-    quests = rules.quest_event(snap, templates, GEM_INLAY, int(stone_row.get("Property1") or 0), 1)
+    # (visto) tempinfos: 281 = tipo 18, Detail "Atölye > Mozaik"; (visto) captura atolye: "mozaik yapıldı"
+    quests = rules.quest_event(snap, templates, GEM_INLAY, MOSAIC_PARA1, 1)
     await s.ctx.characters.save(c, item, *changed, *back, *quests, delete=tuple(gone))
 
     castle_yield(s)
@@ -233,7 +233,8 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     c.gold -= gold
     got = bag.add(snap, templates, product, made, now)
     changed = [i for i in changed if i not in got]
-    # (visto) tempinfos: 311 = tipo 19, Para1 0; (visto) captura degerli_tas_birlestirme: 5153 gera pedras;
+    # (visto) tempinfos: 311 = tipo 19, Para1 0, Detail "1 kez Birleştirme"; (visto) captura degerli_tas_birlestirme:
+    # 5153 gera pedras;
     # só conta pedra (SonType 205); cada receita conta 1 (dedução)
     product_row = templates.get("ItemTempInfos", product)
     gem = product_row is not None and product_row.get("SonType") == GEM
@@ -273,7 +274,7 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
     skills = [cur if locks[i] else random.choice(pool) for i, cur in enumerate(item.random_skills[:slots])]
     changed, gone = bag.take(snap, stone, 1)
     _pending[item.id or 0] = skills
-    # (visto) tempinfos: 769 = tipo 47, Para1 0; conta no 8336 (gasta a pedra), não no aceite 8339 (dedução)
+    # (visto) tempinfos: 769 = tipo 47, Para1 0, Detail "1 kez Arıtma"; conta no 8336, não no 8339 (dedução)
     quests = rules.quest_event(snap, s.ctx.templates, REFINE, 0, 1)
     await s.ctx.characters.save(*changed, *quests, delete=tuple(gone))
 
