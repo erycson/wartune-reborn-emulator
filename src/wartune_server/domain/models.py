@@ -43,6 +43,24 @@ class Account:
 
 
 @dataclass(eq=False)
+class PlayTicket:
+    """Ticket emitido pelo portal para a conta entrar em um servidor.
+
+    Vira o flashvar ``key`` do ``Loading.swf`` e volta cifrado no ``POST /login``.
+    Pode ser reutilizado até expirar (recarregar a página não derruba o jogador).
+    """
+
+    token: str
+    account_id: int
+    server_id: int
+    created_at: datetime
+    expires_at: datetime
+
+    def valid_for(self, server_id: int, now: datetime) -> bool:
+        return self.server_id == server_id and now < self.expires_at
+
+
+@dataclass(eq=False)
 class GameServer:
     id: int
     name: str
@@ -55,15 +73,20 @@ class GameServer:
 
 @dataclass(eq=False)
 class Character:
-    """Personagem de uma conta em um servidor. ``id`` é o ``playerId``/``userId`` do cliente."""
+    """Personagem de uma conta em um servidor. ``id`` é o ``playerId``/``userId`` do cliente.
+
+    Nasce **inativo** no primeiro ``POST /login`` naquele servidor (o cliente exige
+    ``userId != 0``) e é ativado pelo ``visualizeregister`` com apelido/sexo/ícone.
+    """
 
     account_id: int
     server_id: int
-    nickname: str
-    sex: int
-    camp: int
-    job: int
     created_at: datetime
+    nickname: str | None = None
+    sex: int = 0
+    camp: int = 1
+    job: int = 0
+    active: bool = False
     id: int | None = None
     grades: int = 1
     gp: int = 0

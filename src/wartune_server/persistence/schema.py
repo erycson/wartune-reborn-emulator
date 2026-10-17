@@ -25,7 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Castle, Character, GameServer, Hero
+from ..domain.models import Account, Castle, Character, GameServer, Hero, PlayTicket
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -72,6 +72,16 @@ accounts = Table(
     Column("banned", Boolean, nullable=False, default=False, server_default="0"),
 )
 
+play_tickets = Table(
+    "play_tickets",
+    metadata,
+    Column("token", String(64), primary_key=True),
+    Column("account_id", Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("server_id", Integer, ForeignKey("game_servers.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("expires_at", UTCDateTime, nullable=False, index=True),
+)
+
 game_servers = Table(
     "game_servers",
     metadata,
@@ -90,10 +100,11 @@ characters = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("account_id", Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True),
     Column("server_id", Integer, ForeignKey("game_servers.id"), nullable=False),
-    Column("nickname", String(32), nullable=False),
-    Column("sex", Integer, nullable=False),
-    Column("camp", Integer, nullable=False),
-    Column("job", Integer, nullable=False),
+    Column("nickname", String(32)),  # NULL até o visualizeregister
+    _int("sex"),
+    _int("camp", 1),
+    _int("job"),
+    Column("active", Boolean, nullable=False, default=False, server_default="0"),
     _int("grades", 1),
     _int("gp"),
     _int("total_gp"),
@@ -164,6 +175,7 @@ def map_entities() -> None:
         return
     for entity, table in (
         (Account, accounts),
+        (PlayTicket, play_tickets),
         (GameServer, game_servers),
         (Character, characters),
         (Hero, heroes),

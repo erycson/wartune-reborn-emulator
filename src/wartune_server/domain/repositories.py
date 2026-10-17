@@ -5,13 +5,18 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
-from .models import Account, Castle, Character, GameServer, Hero
+from .models import Account, Castle, Character, GameServer, Hero, PlayTicket
 
 
 class AccountRepository(Protocol):
     async def add(self, account: Account) -> Account: ...
     async def get(self, account_id: int) -> Account | None: ...
     async def by_username(self, username: str) -> Account | None: ...
+
+
+class PlayTicketRepository(Protocol):
+    async def add(self, ticket: PlayTicket) -> PlayTicket: ...
+    async def get(self, token: str) -> PlayTicket | None: ...
 
 
 class GameServerRepository(Protocol):
@@ -23,6 +28,7 @@ class GameServerRepository(Protocol):
 class CharacterRepository(Protocol):
     async def add(self, character: Character) -> Character: ...
     async def get(self, character_id: int) -> Character | None: ...
+    async def by_nickname(self, server_id: int, nickname: str) -> Character | None: ...
     async def by_account(self, account_id: int, server_id: int) -> Character | None: ...
     async def nickname_taken(self, server_id: int, nickname: str) -> bool: ...
 
@@ -44,6 +50,7 @@ class UnitOfWork(Protocol):
     """
 
     accounts: AccountRepository
+    tickets: PlayTicketRepository
     servers: GameServerRepository
     characters: CharacterRepository
     heroes: HeroRepository

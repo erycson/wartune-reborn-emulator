@@ -36,8 +36,8 @@ async def test_one_character_per_account_per_server(uow_factory) -> None:  # typ
         await uow.servers.upsert(GameServer(2, "S2", "local_0002", "127.0.0.1", 8081, 5002, _now()))
         acc = await _account(uow)
         assert acc.id is not None
-        await uow.characters.add(Character(acc.id, 1, "Herói", 1, 1, 1, _now()))
-        await uow.characters.add(Character(acc.id, 2, "Herói", 1, 1, 1, _now()))  # outro servidor: ok
+        await uow.characters.add(Character(acc.id, 1, _now(), "Herói", 1, 1, 1))
+        await uow.characters.add(Character(acc.id, 2, _now(), "Herói", 1, 1, 1))  # outro servidor: ok
         await uow.commit()
 
     async with uow_factory() as uow:
@@ -45,14 +45,14 @@ async def test_one_character_per_account_per_server(uow_factory) -> None:  # typ
         assert await uow.characters.nickname_taken(1, "Herói")
         assert not await uow.characters.nickname_taken(1, "Outro")
         with pytest.raises(IntegrityError):
-            await uow.characters.add(Character(acc.id, 1, "Segundo", 1, 1, 1, _now()))
+            await uow.characters.add(Character(acc.id, 1, _now(), "Segundo", 1, 1, 1))
 
 
 async def test_hero_and_castle_belong_to_character(uow_factory) -> None:  # type: ignore[no-untyped-def]
     async with uow_factory() as uow:
         acc = await _account(uow)
         assert acc.id is not None
-        char = await uow.characters.add(Character(acc.id, 1, "Maga", 0, 1, 6, _now()))
+        char = await uow.characters.add(Character(acc.id, 1, _now(), "Maga", 0, 1, 6))
         assert char.id is not None
         await uow.heroes.add(Hero(char.id, 6, "Maga", intellect=5, is_leader=True))
         await uow.castles.add(Castle(char.id, "Maga", 100000313, 26, 46))

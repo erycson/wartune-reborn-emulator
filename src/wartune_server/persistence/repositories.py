@@ -8,7 +8,7 @@ from typing import Self
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Castle, Character, GameServer, Hero
+from ..domain.models import Account, Castle, Character, GameServer, Hero, PlayTicket
 
 
 class _Repo:
@@ -27,6 +27,16 @@ class SqlAccountRepository(_Repo):
 
     async def by_username(self, username: str) -> Account | None:
         return await self._s.scalar(select(Account).where(Account.username == username))  # type: ignore[arg-type]
+
+
+class SqlPlayTicketRepository(_Repo):
+    async def add(self, ticket: PlayTicket) -> PlayTicket:
+        self._s.add(ticket)
+        await self._s.flush()
+        return ticket
+
+    async def get(self, token: str) -> PlayTicket | None:
+        return await self._s.get(PlayTicket, token)
 
 
 class SqlGameServerRepository(_Repo):
@@ -50,6 +60,13 @@ class SqlCharacterRepository(_Repo):
 
     async def get(self, character_id: int) -> Character | None:
         return await self._s.get(Character, character_id)
+
+    async def by_nickname(self, server_id: int, nickname: str) -> Character | None:
+        stmt = select(Character).where(
+            Character.server_id == server_id,  # type: ignore[arg-type]
+            Character.nickname == nickname,  # type: ignore[arg-type]
+        )
+        return await self._s.scalar(stmt)
 
     async def by_account(self, account_id: int, server_id: int) -> Character | None:
         stmt = select(Character).where(
@@ -96,6 +113,7 @@ class SqlAlchemyUnitOfWork:
     async def __aenter__(self) -> Self:
         self._session = self._sessions()
         self.accounts = SqlAccountRepository(self._session)
+        self.tickets = SqlPlayTicketRepository(self._session)
         self.servers = SqlGameServerRepository(self._session)
         self.characters = SqlCharacterRepository(self._session)
         self.heroes = SqlHeroRepository(self._session)
