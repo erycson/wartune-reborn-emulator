@@ -21,7 +21,9 @@ from ..templates.repository import GameTemplates
 from . import timebox
 from .events import EventCatalog
 from .guild import Guilds
+from .rooms import Rooms
 from .router import PacketRouter
+from .teams import Teams
 
 if TYPE_CHECKING:
     from .battle import Battle
@@ -45,7 +47,9 @@ class GameContext:
     clock: Clock
     online: OnlinePlayers
     guilds: Guilds = field(default_factory=Guilds)
-    events: EventCatalog = EventCatalog()
+    events: EventCatalog = EventCatalog()  # ordem preservada: app.py passa guilds e events posicionais
+    rooms: Rooms = field(default_factory=Rooms)  # salas de campanha em grupo (PvE)
+    teams: Teams = field(default_factory=Teams)  # times livres (convite de amigos, até 4)
 
 
 class OnlinePlayers:
@@ -150,8 +154,13 @@ class GameSession:
             self.battle.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
-            from .handlers import events  # idem
+            from .handlers import events, room, team  # idem
 
+            try:  # sala e time antes do unbind: quem fica ainda recebe a saída
+                room.leave_room(self, notify_self=False)
+                team.leave_team(self)
+            except Exception:
+                self.log.exception("falha ao sair da sala ou do time")
             try:
                 space.leave(self)
                 if self.snapshot.leader is not None:
