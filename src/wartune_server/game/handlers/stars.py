@@ -24,6 +24,9 @@ TEMP_MAX, BAG_BASE, MAX_GRADE = 16, 8, 10
 JUNK, ENERGY = "1", "6"  # starTempInfo.Profile: lixo (vende sozinho) e fonte de energia
 EXP_TYPES = {"2": "9", "3": "10", "4": "11", "5": "12", "6": "13", "7": "22"}  # Profile -> UpGrade Types
 LOCK_QUEST = 53  # QuestCondictionInfos: travar estrela
+# 36 "Kader": QuestTemps 3 (nível 25, como a 623 de travar) manda clicar [Kader] e fazer "1 Kader" = sortear.
+# Para1 1 (a 622 tem 0): sem fonte do que é; todo sorteio passa 1 e conta cada estrela (dedução)
+RAND_QUEST, RAND_PARA1 = 36, 1
 # ponytail: o oficial não publica as chances do sorteio; pesos por qualidade (Profile) e cristal
 # tirados a olho da captura (lixo ~40%), e 30% de abrir o próximo cristal
 WEIGHTS = {"1": (40,) * 5, "2": (35, 33, 30, 27, 24), "3": (18, 21, 24, 27, 30), "4": (5, 8, 11, 14, 17)}
@@ -164,10 +167,15 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     if not new:
         s.log.info("8269 recusado: sem ouro ou sem espaço", pedido=str(msg))
         return
-    await s.ctx.characters.save(c, sy, *new)
+    quests = rules.quest_event(snap, templates, RAND_QUEST, RAND_PARA1, len(new))
+    await s.ctx.characters.save(c, sy, *new, *quests)
     castle_yield(s)
     _player(s)
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
+    if quests:
+        from .army import send_quests
+
+        send_quests(s, quests)
 
 
 @router.on(8268)

@@ -24,6 +24,9 @@ from .builders.login import QUEST_SITE_LEN, HeroStats
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
 BUILDING_CONDITION = 2  # QuestConditionInfo: prédio SonType Para1 no nível Para2 (progresso = nível atual)
+# 37: a cidade está no mapa Para2, igualdade e não "o maior" (cliente) TaskTemplate.checkMapId
+MAP_CONDITION = 37
+RUNE_STUDY, RUNE_COMBINE, RUNE_GRADE = 76, 77, 78  # símbolo aprendido (Para1 = RuneType), pedras gastas, grau
 WEAPON, CLOTH = "101", "104"  # ItemTempInfo.SonType
 WING, HAT, FASHION_CLOTH, FASHION_ARM = "109", "110", "112", "111"
 HERO_BAGS = (BagType.RUNE, BagType.HONOR, BagType.HERO)  # bolsas do herói que somam atributos
@@ -235,8 +238,8 @@ SELL_CONDITION = 56  # pôr item no leilão (8448), +1 por anúncio
 # (cliente) SeminaryBlessFrame.as manda 8489 no confirmar
 SEMINARY_CONDITION = 57  # bênção do seminário (8489)
 # Os de nível guardam o maior valor: evoluir tropa até Para2 (10) e os que o cliente confere pelo estado
-# 63: Emek Oranı (total da atividade diária)
-LEVEL_CONDITIONS = {10, 63, FRIEND_CONDITION, GUILD_JOIN_CONDITION, OFFER_CONDITION, GUILD_LEVEL_CONDITION}
+# 63: Emek Oranı (total da atividade diária); 78: grau do símbolo
+LEVEL_CONDITIONS = {10, 63, RUNE_GRADE, FRIEND_CONDITION, GUILD_JOIN_CONDITION, OFFER_CONDITION, GUILD_LEVEL_CONDITION}
 # (visto) tempinfos: QuestConditionInfo 121, tipo 17, Para1 2; Detail "3 lv": grau > Para1
 MIN_CONDITIONS = {17}
 EXACT_PARA1 = {TREE_CONDITION}  # Para1 0 não é coringa aqui: regar a própria (1) não avança as de amigo (0)
@@ -341,6 +344,7 @@ def accept_quest(snap: PlayerSnapshot, templates: GameTemplates, template_id: in
     snap.quests.append(q)
     update_novice_quests(snap, templates)
     update_building_quests(snap, templates)
+    update_state_quests(snap, templates, [q])
     return q
 
 
@@ -373,6 +377,40 @@ def update_building_quests(snap: PlayerSnapshot, templates: GameTemplates) -> li
         grade = min(grades.get(cond["Para1"], 0), int(cond["Para2"]))
         if grade != q.progress:
             q.progress = grade
+            changed.append(q)
+    return changed
+
+
+def learned_runes(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
+    """Linhas de RuneTempInfos dos símbolos do herói (o id gravado é o grau atual)."""
+    leader = snap.leader
+    ids = [int(r.split(":")[0]) for r in leader.runes.split(",") if r] if leader is not None else []
+    return [row for rid in ids if (row := templates.get("RuneTempInfos", rid)) is not None]
+
+
+def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: list[Quest]) -> list[Quest]:
+    """Missões de estado: o cliente (TaskTemplate.checkMapId, checkRuneStudy, checkRuneGrade) julga pelo que
+    já existe, não pelo ato. Quem aceita depois do fato já nasce com o progresso dele (como as de prédio)."""
+    changed = []
+    runes = learned_runes(snap, templates)
+    for q in quests:
+        cond = templates.get("QuestCondictionInfos", q.template_id)
+        if q.completed or cond is None:
+            continue
+        kind, para1, para2 = int(cond["CondictionType"]), int(cond["Para1"]), int(cond["Para2"])
+        if kind == MAP_CONDITION:  # vale o mapa de agora: sair dele desfaz (checkMapId)
+            here = snap.castle is not None and snap.castle.map_id == para2
+            if q.progress != (value := para2 if here else 0):
+                q.progress = value
+                changed.append(q)
+            continue
+        if kind in (RUNE_STUDY, RUNE_GRADE):
+            mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
+            value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
+        else:
+            continue
+        if value > q.progress:
+            q.progress = value
             changed.append(q)
     return changed
 

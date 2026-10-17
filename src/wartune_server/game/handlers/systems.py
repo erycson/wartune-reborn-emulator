@@ -14,6 +14,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
 from .. import rules
 from ..builders.login import NEVER, fmt_time
+from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
 from .hero import send_items
@@ -22,6 +23,8 @@ from .player import _army, _player
 S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER = 4427, 4426, 4459
 S_FATE, S_FATE_TURN, S_DRAGON, S_TRANSFER, S_TRANSFER_GRADE = 4544, 4545, 4555, 4556, 4557
 S_POWCARD = 4905
+S_QUESTS = 112  # QuestUpdatedRspMsg
+QUEST_MOUNT_TRAIN = 71  # QuestCondictionInfos: treinar a montaria (Para2 1; uma ação de treino)
 
 # --- montaria -------------------------------------------------------------------------------
 MOUNT_TRAIN, MOUNT_CHANGE, MOUNT_INFO = 1, 2, 5  # MountsOpType
@@ -133,11 +136,14 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
     changed, deleted = rules.take_items(snap, food, n) if msg.payType == PAY_FOOD else ([], [])
     gps[idx] = min(cap, gps[idx] + n * FOOD_GP)
     sy.mount_gp = ",".join(map(str, gps))
-    await s.ctx.characters.save(sy, snap.character, *changed, delete=tuple(deleted))
+    quests = rules.quest_event(snap, templates, QUEST_MOUNT_TRAIN, 0, 1)  # uma ação de treino, qualquer atributo
+    await s.ctx.characters.save(sy, snap.character, *changed, *quests, delete=tuple(deleted))
     send_items(s, changed, deleted)
     _player(s)
     _army(s)
     send_mount(s)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8843)

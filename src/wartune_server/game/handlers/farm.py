@@ -25,6 +25,9 @@ S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 
 REQ, PLANT, WORM, WEED, PICK, ACCELERATE, CLEAR = 0, 1, 2, 3, 4, 7, 8  # FarmOperateType
 OK, FAIL = 0, 1
 EXP = -700  # ItemTempInfos -700: as sementes de EXP rendem EXP do jogador
+QUEST_PLANT, QUEST_HARVEST, QUEST_BUG = 59, 60, 61  # QuestCondictionInfos: plantar, colher, pegar praga
+BUG_PARA1 = 1  # Para1 da praga: vale a fazenda própria ou de amigo (QuestTemps 267/862, Detail)
+S_QUESTS = 112  # QuestUpdatedRspMsg
 MAX_IDS = 100  # listas de amigos que o cliente manda (8219/8231)
 
 
@@ -90,12 +93,15 @@ async def _plant(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, l
     if item.count <= 0:
         snap.items.remove(item)
     new = farm.plant(snap, row, msg.pos, now)
+    quests = rules.quest_event(snap, s.ctx.templates, QUEST_PLANT, 0, 1)
     if item.count > 0:
-        await s.ctx.characters.save(item, new)
+        await s.ctx.characters.save(item, new, *quests)
     else:
-        await s.ctx.characters.save(new, delete=(item,))
+        await s.ctx.characters.save(new, *quests, delete=(item,))
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item if item.count > 0 else None, s.player_id))
     _land_reply(s, msg.pos, new, PLANT, OK)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     return True
 
 
@@ -111,8 +117,11 @@ async def _pest(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, la
         land.grass = 0
     gp = _config(s, "FarmCrop_Operate_GP", 1)
     farm.add_farm_gp(snap.castle, snap.character.grades, s.ctx.templates, gp)
-    await s.ctx.characters.save(land, snap.castle)
+    quests = rules.quest_event(snap, s.ctx.templates, QUEST_BUG, BUG_PARA1, 1) if worm else []  # o mato não conta
+    await s.ctx.characters.save(land, snap.castle, *quests)
     _land_reply(s, msg.pos, land, msg.opType, OK)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     return True
 
 
@@ -149,8 +158,11 @@ async def _pick(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, la
             delta = (count, 0) if field == "point" else (0, count)
             changed.append(record_cash(c, *delta, reason="farm_pick", ref=f"seed:{land.item_template_id}", now=now))
     snap.lands.remove(land)
-    await s.ctx.characters.save(*changed, delete=(land,))
+    quests = rules.quest_event(snap, templates, QUEST_HARVEST, 0, 1)  # só a fazenda própria (Para1 0)
+    await s.ctx.characters.save(*changed, *quests, delete=(land,))
     _land_reply(s, msg.pos, None, PICK, OK)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     if item is not None:
         s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
     if field in ("gold", "crystals"):

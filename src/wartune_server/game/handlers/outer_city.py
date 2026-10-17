@@ -348,11 +348,14 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
         castle.energy = top
     castle.energy -= need
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
+    quests = rules.update_state_quests(snap, templates, snap.quests)  # 37: missões do mapa (checkMapId)
     _stop_walk(s)
     s.outer_army = None
-    await s.ctx.characters.save(c, castle, *([entry] if entry else []))
+    await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests)
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_now(s)))
     s.send(S_TRANSFER, pb.CastleReqMsg(magId=target, posX=spot[0], posY=spot[1], leftEnergy=castle.energy))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     if entry is not None:
         _send_player(s)
 
