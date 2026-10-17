@@ -8,7 +8,8 @@ Aqui cada pacote é montado a partir do banco de dados e dos templates do jogo.
 
 ```powershell
 uv sync
-uv run python tools/export_captures.py      # uma vez: gera data/overlay (config.xml, tempinfos.xml...)
+# uma vez (data/overlay já existe nesta máquina): config.xml, tempinfos.xml... das capturas do Fiddler
+uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw
 uv run wartune-server account create maga segredo1
 uv run wartune-server run
 ```

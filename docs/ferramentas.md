@@ -28,7 +28,8 @@ resolve o tipo protobuf de cada lado e dá nome aos opcodes com `ProtocolType.as
 
 Exporta as sessões HTTP capturadas no Fiddler (só status 200, sem chunked e sem Content-Encoding)
 para `data/overlay/` (586 arquivos). Esse diretório inclui o `client/config.xml` oficial usado como
-modelo e o `xml/tempinfos.xml` (zlib). Fica fora do git, então rode o script depois de clonar.
+modelo e o `xml/tempinfos.xml` (zlib). Fica fora do git, então rode o script depois de clonar:
+`uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw`.
 
 ## Capturas de referência
 
