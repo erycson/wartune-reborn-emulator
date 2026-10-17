@@ -502,8 +502,8 @@ mall_listings = Table(
     _int("point"),
     _int("fix_point"),
     _int("hour", 1),
-    Column("started_at", UTCDateTime, nullable=False),
-    Column("ends_at", UTCDateTime, nullable=False, index=True),
+    Column("started_at", UTCDateTime, nullable=False, server_default=func.current_timestamp()),
+    Column("ends_at", UTCDateTime, nullable=False, index=True, server_default=func.current_timestamp()),
     _int("bidder_id"),  # 0 = sem lance; não é FK para o cancelamento do lance ser só apagar a linha
 )
 
@@ -514,7 +514,7 @@ mall_bids = Table(
     Column("listing_id", Integer, ForeignKey("mall_listings.id", ondelete="CASCADE"), nullable=False, index=True),
     Column("bidder_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
     _int("price"),
-    Column("bid_at", UTCDateTime, nullable=False),
+    Column("bid_at", UTCDateTime, nullable=False, server_default=func.current_timestamp()),
     UniqueConstraint("listing_id", "bidder_id"),
 )
 

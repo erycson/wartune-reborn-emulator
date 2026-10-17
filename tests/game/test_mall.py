@@ -197,8 +197,8 @@ async def test_bids_refund_the_outbid_player_by_mail_and_show_in_my_bids(tmp_pat
         assert me(c).character.point == 70
 
         # o lance devolvido vai pelo correio: o diamante só entra no 5022
-        assert "Lance iadesi" in await _inbox(b)
-        refund = await _mail_id(b, "Lance iadesi")
+        assert "Teklif iadesi" in await _inbox(b)
+        refund = await _mail_id(b, "Teklif iadesi")
         assert me(b).character.point == 80
         assert await _pick(b, refund) == [True]
         assert me(b).character.point == 100

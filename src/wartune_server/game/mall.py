@@ -53,7 +53,7 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
         if listing.bidder_id:
             mails.append(
                 await post(
-                    uow, listing.bidder_id, now, "Kazanılan eşya", f"{label}: en yüksek lance sizde.", items=[item]
+                    uow, listing.bidder_id, now, "Kazanılan eşya", f"{label}: en yüksek teklif sizde.", items=[item]
                 )
             )
             mails.append(

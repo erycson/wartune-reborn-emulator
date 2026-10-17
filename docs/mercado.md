@@ -13,6 +13,10 @@ não traz em `.as`. Por isso as regras de tela abaixo são *(dedução)* e estã
 
 ## Opcodes
 
+Estado: 8448, 8451, 8453 e 8454 completos, com as regras deduzidas listadas em [Dependências](#dependências).
+8449 e 8452 listam as minhas linhas. 8450 e 8457 são **parciais**: `orderBy` e `orderType` são ignorados e o
+cliente decompilado não mostra o sentido da ordenação.
+
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
 | 8448 SellItemReqMsg | anuncia uma pilha da mochila (`itemId`, `itemPos`, `count`, `point`, `fixPoint`, `hour`) | 115 (a mochila muda) e 4352 SellItemRspMsg `{result, item}` | *(cliente)* campos; regras *(dedução)* |
@@ -63,7 +67,7 @@ Os valores são os do cliente: ``Auction.ResultAlert`` é o módulo do código *
 
 - **Lance (8451)**: o primeiro lance é ≥ o inicial; os seguintes são > o último. Lance ≥ `fixPoint`
   é recusado: a compra é pelo 8453. O diamante sai agora (`ledger.pay`, `reason` `mall`); quem já
-  lidera paga só a diferença. O lance superado vai pelo correio ("Lance iadesi", anexo −400 com o
+  lidera paga só a diferença. O lance superado vai pelo correio ("Teklif iadesi", anexo −400 com o
   valor). O `mall_bids` guarda um registro por jogador e por anúncio.
 - **Compra (8453)**: paga `fixPoint` (ou a diferença, se já é o líder). O item entra na mochila do
   comprador na mesma gravação; o diamante do vendedor vai pelo correio ("Satış geliri"); o lance
@@ -97,6 +101,9 @@ Os valores são os do cliente: ``Auction.ResultAlert`` é o módulo do código *
   pelo correio, e o snapshot dele não é mexido daqui.
 - `MALL_LOCK` (asyncio, no processo) serializa as gravações do mercado. Um servidor por processo.
   ponytail: lock global, por anúncio se a fila pesar.
+- Único caminho que apaga carta é o 8206, e ele recusa carta com item não retirado. Apagar personagem
+  ou conta leva a carta e o item juntos (cascata em `characters`). Nenhum código do servidor nem o portal
+  PHP apaga carta por validade. Quem criar essa purga tem que pular as cartas com `item_id` não retirado.
 
 ## Tabelas
 
@@ -123,10 +130,13 @@ e não inventa formato:
 - **Preço fixo**: opcional (`fixPoint` 0). O cliente não diz se o campo é obrigatório.
 - **Vínculo**: não há restrição de vínculo no cliente decompilado; o servidor cobra só diamante
   (`bind=False`) e não aceita diamante vinculado no lance. Não verificado com captura.
-- **`orderBy` / `orderType`**: ignorados. A ordem é a do anúncio mais novo primeiro.
+- **`orderBy` / `orderType`**: ignorados em todas as listas (8449, 8450, 8452, 8457). A ordem é a do
+  anúncio mais novo primeiro. Parcial em 8450 e 8457: o sentido da ordenação não aparece no cliente.
 - **`from`**: lido como tipo do item (1 item, 2 mascote). Mascote não tem leilão: a lista vem vazia.
-  Não confirmado se 8450 é a lista de todos os anúncios ou "itens do jogador" (o nome do opcode sugere
-  os dois; o pedido não traz id de jogador, então a leitura de mercado é a única que cabe).
+- **Mapeamento das listas (não confirmado)**: os nomes das constantes (`C_MALL_LIST_SELL`,
+  `C_MALL_PLAYER_ITEMS`, `C_MALL_LIST_AUCTION`) sugerem "meus anúncios", "itens de jogadores" e
+  "meus lances". Por isso 8449 e 8452 leem as minhas listas e 8450 lê o mercado. Sem captura nem tela
+  decompilada, o sentido de 8450 pode ser outro.
 - **`itemId`**: assumido como `Item.id` (a linha do banco). Sem captura para confirmar.
 - **Encerramento sem job**: um anúncio vencido só é encerrado no próximo pedido do mercado. Enquanto
   ninguém abrir o mercado, o item continua na bolsa 11 e o lance continua valendo. Um job agendado

@@ -329,8 +329,8 @@ async def bid(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
                     uow,
                     listing.bidder_id,
                     now,
-                    "Lance iadesi",
-                    f"{_label(templates, item)}: lanceniz geri döndü.",
+                    "Teklif iadesi",
+                    f"{_label(templates, item)}: teklifiniz geri döndü.",
                     goods=[(market.DIAMOND, listing.point)],
                 )
             )
@@ -395,8 +395,8 @@ async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
                     uow,
                     listing.bidder_id,
                     now,
-                    "Lance iadesi",
-                    f"{_label(templates, item)}: lanceniz geri döndü.",
+                    "Teklif iadesi",
+                    f"{_label(templates, item)}: teklifiniz geri döndü.",
                     goods=[(market.DIAMOND, listing.point)],
                 )
             )

@@ -30,8 +30,18 @@ def upgrade() -> None:
         sa.Column("point", sa.Integer(), server_default="0", nullable=False),
         sa.Column("fix_point", sa.Integer(), server_default="0", nullable=False),
         sa.Column("hour", sa.Integer(), server_default="1", nullable=False),
-        sa.Column("started_at", wartune_server.persistence.schema.UTCDateTime(timezone=True), nullable=False),
-        sa.Column("ends_at", wartune_server.persistence.schema.UTCDateTime(timezone=True), nullable=False),
+        sa.Column(
+            "started_at",
+            wartune_server.persistence.schema.UTCDateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+        ),
+        sa.Column(
+            "ends_at",
+            wartune_server.persistence.schema.UTCDateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+        ),
         sa.Column("bidder_id", sa.Integer(), server_default="0", nullable=False),
         sa.ForeignKeyConstraint(
             ["item_id"], ["items.id"], name=op.f("fk_mall_listings_item_id_items"), ondelete="CASCADE"
@@ -56,7 +66,12 @@ def upgrade() -> None:
         sa.Column("listing_id", sa.Integer(), nullable=False),
         sa.Column("bidder_id", sa.Integer(), nullable=False),
         sa.Column("price", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("bid_at", wartune_server.persistence.schema.UTCDateTime(timezone=True), nullable=False),
+        sa.Column(
+            "bid_at",
+            wartune_server.persistence.schema.UTCDateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("(CURRENT_TIMESTAMP)"),
+        ),
         sa.ForeignKeyConstraint(
             ["bidder_id"], ["characters.id"], name=op.f("fk_mall_bids_bidder_id_characters"), ondelete="CASCADE"
         ),
