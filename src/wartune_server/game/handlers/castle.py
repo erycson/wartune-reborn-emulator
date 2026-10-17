@@ -27,6 +27,7 @@ S_IMPOSE, S_TRANSFER, S_UNOCCUPY, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 108, 4
 BUY_ORDER_PRICE = 100  # "mainBar.QueueBar.content" (QueueBar.buyQueueItem)
 IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; captura: 151 com remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
+ACCELERATE, LEVY = 12, 42  # (visto) tempinfos: QuestConditionInfo 111-113 e 763, CondictionType
 
 
 def _send_player(s: GameSession) -> None:
@@ -191,10 +192,16 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
         return
     for o in orders:
         o.begin_at, o.need_time = now, 0
-    await s.ctx.characters.save(c, entry, *orders)
+    # (visto) tempinfos: Para1 = 1 = cs.BUILD (fila de prédio); (cliente) NewbieBaseActionMediator.as case 12
+    # = QueueBar; cada ação conta 1 (dedução)
+    build = any(o.order_type == cs.BUILD for o in orders)
+    quests = rules.quest_event(snap, s.ctx.templates, ACCELERATE, cs.BUILD, 1) if build else []
+    await s.ctx.characters.save(c, entry, *orders, *quests)
     _send_player(s)
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Bekleme Süresi kaldırıldı."))
     s.send(S_ORDER_QUICK, pb.OrderQuickRspMsg(orderInfo=[cs.order_info(o, now) for o in orders]))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5175)
@@ -235,13 +242,17 @@ async def gold_impose(s: GameSession, _: object) -> None:
     c.gold += gold
     snap.castle.impose_used, snap.castle.imposed_at = used + 1, now
     order.begin_at, order.need_time = now, IMPOSE_COOLDOWN
-    await s.ctx.characters.save(c, snap.castle, order)
+    # (visto) tempinfos: 763 = tipo 42, Para1 0; (cliente) NewbieBaseActionMediator.as case 16 = levyBtn
+    quests = rules.quest_event(snap, templates, LEVY, 0, 1)  # cada cobrança conta 1 (dedução)
+    await s.ctx.characters.save(c, snap.castle, order, *quests)
     castle_yield(s)
     text = f"{gold:,} Altın başarıyla alındı."
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     s.send(S_ORDER_USE, cs.order_info(order, now))  # antes do 4242: a LevyView redesenha nele
     s.send(S_IMPOSE, pb.GoldImposeMsg(leftImpose=used + 1, maxImpose=b.MAX_IMPOSE))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5174)
