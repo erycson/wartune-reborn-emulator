@@ -22,7 +22,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |
 | `WARTUNE_SKIP_TUTORIAL` | `true` | `noviceProcess` mínimo de 19000 (cena do castelo) |
 | `WARTUNE_LOGIN_TICKET_TTL_SECONDS` | `300` | |
-| `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `120` | prazo entre o login HTTP e o 20001 |
+| `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |
 | `WARTUNE_IDLE_TIMEOUT_SECONDS` | `300` | desconecta um socket ocioso |
 | `WARTUNE_LOG_DIR` | `logs` | |
 | `WARTUNE_LOG_LEVEL` | `INFO` | |

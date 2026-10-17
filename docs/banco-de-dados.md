@@ -18,6 +18,7 @@ no início (`create_all`) ou com `wartune-server db init`. Todas as datas são g
 accounts 1───* characters *───1 game_servers
    │              │ 1
    │              ├──* heroes
+   │              ├──* buildings
    │              └──1 castles
    └──* play_tickets *───1 game_servers
 ```
@@ -63,6 +64,14 @@ validado no `POST login` para o servidor certo.
 ### castles
 Um por personagem: `name`, `map_id`, `pos_x`, `pos_y`, `grade`, `energy` e `state`. A posição vem
 de `GridCastlePlacement`, que hoje é uma grade simples no mapa 100000313.
+
+### buildings
+`character_id`, `template_id`, `property1`, `property2`. O `template_id` muda a cada nível
+(`NextGradeTemplateId`). Posição, nome e arte vêm do `BuildingTempInfos`. Na criação do personagem
+são gravados os prédios centrais de nível 1: 90101 (conselho, 901), 10101 (mina de ouro), 30101
+(depósito), 40201 (quartel), 50101 (academia) e 120101 (casa). O cliente não consegue construí-los
+e busca vários deles por `sonType` sem checar null. Os prédios 1501–1511 são do próprio cliente e
+não ficam no banco.
 
 ## Transações
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
-from .models import Account, Castle, Character, GameServer, Hero, PlayTicket
+from .models import Account, Building, Castle, Character, GameServer, Hero, PlayTicket
 
 
 class AccountRepository(Protocol):
@@ -43,6 +43,11 @@ class CastleRepository(Protocol):
     async def by_character(self, character_id: int) -> Castle | None: ...
 
 
+class BuildingRepository(Protocol):
+    async def add(self, building: Building) -> Building: ...
+    async def by_character(self, character_id: int) -> list[Building]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -61,6 +66,8 @@ class UnitOfWork(Protocol):
     def heroes(self) -> HeroRepository: ...
     @property
     def castles(self) -> CastleRepository: ...
+    @property
+    def buildings(self) -> BuildingRepository: ...
 
     async def __aenter__(self) -> Self: ...
     async def __aexit__(

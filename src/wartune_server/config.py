@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     skip_tutorial: bool = True
 
     login_ticket_ttl_seconds: int = 300
-    socket_session_ttl_seconds: int = 120
+    socket_session_ttl_seconds: int = 1800  # sem uso por esse tempo, o login HTTP precisa ser refeito
     idle_timeout_seconds: int = 300
 
     log_dir: Path = Path("logs")

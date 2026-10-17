@@ -25,7 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Castle, Character, GameServer, Hero, PlayTicket
+from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, PlayTicket
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -166,6 +166,16 @@ castles = Table(
     _int("state", 1),
 )
 
+buildings = Table(
+    "buildings",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("template_id", Integer, nullable=False),  # muda a cada nível (NextGradeTemplateId)
+    _int("property1"),
+    _int("property2"),
+)
+
 _mapped = False
 
 
@@ -181,6 +191,7 @@ def map_entities() -> None:
         (Character, characters),
         (Hero, heroes),
         (Castle, castles),
+        (Building, buildings),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

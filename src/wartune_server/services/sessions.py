@@ -25,7 +25,7 @@ class PendingLogin:
     username: str
     server_id: int
     character_id: int | None
-    created_at: datetime
+    last_seen_at: datetime  # TTL deslizante: renovado a cada uso
 
 
 class LoginSessionStore(Protocol):
@@ -48,7 +48,11 @@ class InMemoryLoginSessionStore:
 
     def get(self, key: str) -> PendingLogin | None:
         self._purge()
-        return self._items.get(key)
+        session = self._items.get(key)
+        if session is not None:
+            # a criação do personagem e a carga do cliente podem levar minutos entre os usos
+            session = self._items[key] = replace(session, last_seen_at=self._clock.now())
+        return session
 
     def attach_character(self, key: str, character_id: int) -> PendingLogin | None:
         session = self.get(key)
@@ -60,5 +64,5 @@ class InMemoryLoginSessionStore:
 
     def _purge(self) -> None:
         limit = self._clock.now() - self._ttl
-        for key in [k for k, s in self._items.items() if s.created_at < limit]:
+        for key in [k for k, s in self._items.items() if s.last_seen_at < limit]:
             del self._items[key]

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from ..domain.errors import ConflictError, NotFoundError, ValidationError
-from ..domain.models import Castle, Character, Hero, Job, PlayerSnapshot
+from ..domain.models import Building, Castle, Character, Hero, Job, PlayerSnapshot
 from ..domain.repositories import UnitOfWorkFactory
 from ..templates.repository import GameTemplates
 
@@ -44,6 +44,19 @@ class GridCastlePlacement:
     def place(self, character_id: int) -> tuple[int, int, int]:
         slot = character_id % (self._cols * self._cols)
         return self._map_id, self._origin[0] + (slot % self._cols) * 4, self._origin[1] + (slot // self._cols) * 4
+
+
+# Nível 1 dos prédios centrais. O cliente não tem como construí-los (só tecnologias),
+# e vários pontos da HUD buscam um deles por sonType sem checar null (901, 402, 501, 1201...).
+# Os prédios 1501-1511 (templates 150101...) são criados pelo próprio cliente: não enviar.
+STARTING_BUILDINGS = (
+    90101,  # 901 conselho (prédio principal)
+    10101,  # 101 mina de ouro
+    30101,  # 301 depósito
+    40201,  # 402 quartel
+    50101,  # 501 academia
+    120101,  # 1201 casa
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +113,10 @@ class CharacterService:
             )
             map_id, x, y = self._placement.place(character.id)
             await uow.castles.add(Castle(character.id, nickname, map_id, x, y))
+            for template_id in STARTING_BUILDINGS:
+                if next(self._templates.find("BuildingTempInfos", TemplateId=template_id), None) is None:
+                    raise NotFoundError(f"template de prédio {template_id} ausente no tempinfos")
+                await uow.buildings.add(Building(character.id, template_id))
             await uow.commit()
             return character
 
@@ -120,6 +137,7 @@ class CharacterService:
             server = await uow.servers.get(character.server_id)
             heroes = await uow.heroes.by_character(character_id)
             castle = await uow.castles.by_character(character_id)
+            buildings = await uow.buildings.by_character(character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
-        return PlayerSnapshot(account, server, character, heroes, castle)
+        return PlayerSnapshot(account, server, character, heroes, castle, buildings)

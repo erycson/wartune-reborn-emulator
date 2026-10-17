@@ -150,6 +150,17 @@ class Castle:
     state: int = 1
 
 
+@dataclass(eq=False)
+class Building:
+    """Prédio do castelo (``BuildingInfoMsg``). Posição, nível e arte vêm do template."""
+
+    character_id: int
+    template_id: int
+    id: int | None = None
+    property1: int = 0
+    property2: int = 0
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -159,6 +170,7 @@ class PlayerSnapshot:
     character: Character
     heroes: list[Hero] = field(default_factory=list)
     castle: Castle | None = None
+    buildings: list[Building] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:

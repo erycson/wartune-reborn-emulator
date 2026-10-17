@@ -62,3 +62,17 @@ async def test_hero_and_castle_belong_to_character(uow_factory) -> None:  # type
         castle = await uow.castles.by_character(char.id)
     assert [h.intellect for h in heroes] == [5]
     assert castle is not None and castle.energy == 500
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "postgresql", "sqlite"])
+def test_schema_compiles_for_every_supported_database(dialect_name: str) -> None:
+    from sqlalchemy.dialects import mysql, postgresql, sqlite
+    from sqlalchemy.schema import CreateIndex, CreateTable
+
+    from wartune_server.persistence.schema import metadata
+
+    dialect = {"mysql": mysql, "postgresql": postgresql, "sqlite": sqlite}[dialect_name].dialect()
+    for table in metadata.sorted_tables:
+        assert "CREATE TABLE" in str(CreateTable(table).compile(dialect=dialect))
+        for index in table.indexes:
+            str(CreateIndex(index).compile(dialect=dialect))

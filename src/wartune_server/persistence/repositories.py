@@ -8,7 +8,7 @@ from typing import Self
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Castle, Character, GameServer, Hero, PlayTicket
+from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, PlayTicket
 
 
 class _Repo:
@@ -106,6 +106,17 @@ class SqlCastleRepository(_Repo):
         return await self._s.scalar(select(Castle).where(Castle.character_id == character_id))  # type: ignore[arg-type]
 
 
+class SqlBuildingRepository(_Repo):
+    async def add(self, building: Building) -> Building:
+        self._s.add(building)
+        await self._s.flush()
+        return building
+
+    async def by_character(self, character_id: int) -> list[Building]:
+        query = select(Building).where(Building.character_id == character_id).order_by(Building.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -118,6 +129,7 @@ class SqlAlchemyUnitOfWork:
         self.characters = SqlCharacterRepository(self._session)
         self.heroes = SqlHeroRepository(self._session)
         self.castles = SqlCastleRepository(self._session)
+        self.buildings = SqlBuildingRepository(self._session)
         return self
 
     async def __aexit__(

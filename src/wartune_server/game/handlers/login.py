@@ -100,7 +100,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_SYS_PROPERTY, b.system_property(now, snap.server.opened_at))
         _send(s, S_CHALLENGE_TIME, pb.ChallengeCoolTimeMsg(totalCount=10, type=0, totalBuyCount=10))
     if msg.build:
-        _send(s, S_BUILDINGS, pb.BuildingInfoListMsg())
+        _send(s, S_BUILDINGS, b.buildings_msg(snap, snap.castle, s.ctx.templates))
         _send(s, S_BUILD_ORDERS, pb.BuildOrderList())
     if msg.castle:
         _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))

@@ -112,6 +112,8 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         client.send(8224, pb.PlayerDataMsg(**flags))
         got = await client.until(150)
         assert {p.code for p in got} >= INIT_CODES
+        built = pb.BuildingInfoListMsg.FromString(next(p for p in got if p.code == 4154).body)
+        assert {(b.templateId, b.sonType) for b in built.building} >= {(90101, 901), (40201, 402)}
 
         client.send(8224, pb.PlayerDataMsg(user=True))
         got = await client.until(6)

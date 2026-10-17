@@ -18,7 +18,11 @@ TEMPLATES = GameTemplates.parse(b"""<root><GameHeroTemp>
  Physique="5" Live="90" ForceHit="10" Parry="10" SkillScript="30711,30811"/>
 <GameHeroTempInfo TemplateId="1" Job="1" Sexs="1" Power="5" Agility="1" Intellect="1" Captain="100"
  Physique="5" Live="90" ForceHit="10" Parry="10" SkillScript="10711,10811"/>
-</GameHeroTemp></root>""")
+</GameHeroTemp><BuildingTempInfos>
+<BuildingTempInfo TemplateId="90101" SonType="901"/><BuildingTempInfo TemplateId="10101" SonType="101"/>
+<BuildingTempInfo TemplateId="30101" SonType="301"/><BuildingTempInfo TemplateId="40201" SonType="402"/>
+<BuildingTempInfo TemplateId="50101" SonType="501"/><BuildingTempInfo TemplateId="120101" SonType="1201"/>
+</BuildingTempInfos></root>""")
 
 
 @pytest.fixture(scope="module")
@@ -67,6 +71,7 @@ async def test_full_login_and_registration(env, keys) -> None:  # type: ignore[n
 
     snap = await chars.snapshot(result.user_id)
     assert snap.leader is not None and snap.leader.intellect == 5 and snap.castle is not None
+    assert sorted(b.template_id for b in snap.buildings) == [10101, 30101, 40201, 50101, 90101, 120101]
 
     claimed = await login.claim_socket(result.session_key)
     assert claimed.id == result.user_id
@@ -91,6 +96,19 @@ async def test_ticket_rules(env, keys) -> None:  # type: ignore[no-untyped-def]
         await login.http_login(client_payload(keys, "alice", ticket.token))
     with pytest.raises(AuthenticationError):
         await login.http_login("lixo")
+
+
+async def test_session_ttl_is_sliding(env, keys) -> None:  # type: ignore[no-untyped-def]
+    """Login -> tela de criação -> carga do cliente: cada passo renova a sessão (TTL 60s)."""
+    clock, accounts, login, chars = env
+    acc = await accounts.register("gina", "segredo1")
+    ticket = await accounts.issue_ticket(acc.id, 1)
+    result = await login.http_login(client_payload(keys, "gina", ticket.token))
+    clock.advance(50)
+    login.session_for_character(result.session_key, result.user_id)  # visualizeregister
+    await chars.register(RegistrationRequest(result.user_id, "Gina", 1, 1, 1))
+    clock.advance(50)  # 100s desde o login HTTP
+    assert (await login.claim_socket(result.session_key)).id == result.user_id
 
 
 async def test_session_expires(env, keys) -> None:  # type: ignore[no-untyped-def]

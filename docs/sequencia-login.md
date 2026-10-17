@@ -66,6 +66,10 @@ Os valores vêm da captura oficial de uma maga de nível 1 e estão em `game/bui
 `campaignCount 1`, `reloginCount 1`, `matchRoomCount 15`, `warFieldCount 2`, `trialMaxCount 1`,
 `campaignMaxcount 1` e `status -1`. As datas "nunca" são `2000-01-01 00:00:00`.
 
+O 4154 leva os prédios do banco (veja [banco-de-dados.md](banco-de-dados.md#buildings)). Uma lista
+vazia não trava a cena, mas a HUD e o tutorial quebram logo depois. Todo `templateId` enviado
+precisa existir no `tempinfos.xml`, senão a cena falha com #1009 (`CastleWalkLayer`).
+
 Atributos derivados do herói (ataque, defesa, vida e poder de luta) são calculados pelo servidor.
 As fórmulas atuais foram calibradas com essa única amostra (dá 199 de poder de luta na maga nível 1),
 por isso estão marcadas com `ponytail:` para serem revistas quando houver mais capturas.

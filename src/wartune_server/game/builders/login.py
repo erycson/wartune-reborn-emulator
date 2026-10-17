@@ -14,6 +14,7 @@ from google.protobuf.message import Message
 
 from ...domain.models import Castle, Character, Hero, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from ...templates.repository import GameTemplates
 
 NEVER = "2000-01-01 00:00:00"
 QUEST_SITE_LEN = 200
@@ -207,3 +208,21 @@ def farm_msg(snap: PlayerSnapshot) -> pb.LoadFarmRsp:
 
 def system_property(now: datetime, opened_at: datetime) -> pb.SystemPropertyMsg:
     return pb.SystemPropertyMsg(sysCurtime=fmt_time(now), sysStarTime=fmt_time(opened_at))
+
+
+def buildings_msg(snap: PlayerSnapshot, castle: Castle, templates: GameTemplates) -> pb.BuildingInfoListMsg:
+    msg = pb.BuildingInfoListMsg(result=True)
+    for building in snap.buildings:
+        row = next(templates.find("BuildingTempInfos", TemplateId=building.template_id), None)
+        msg.building.add(
+            userId=snap.character.id or 0,
+            buildingId=building.id or 0,
+            castleId=castle.id or 0,
+            createdDate=fmt_time(snap.character.created_at),
+            isExist=True,
+            templateId=building.template_id,
+            sonType=int(row["SonType"]) if row else 0,
+            propterty1=building.property1,
+            propterty2=building.property2,
+        )
+    return msg
