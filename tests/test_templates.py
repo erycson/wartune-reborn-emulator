@@ -1,0 +1,37 @@
+import zlib
+from pathlib import Path
+
+import pytest
+
+from wartune_server.templates.repository import GameTemplates
+
+XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <GameHeroTemp>
+    <GameHeroTempInfo TemplateId="6" TemplateName="Maga" Job="3" Sexs="0" Power="1" Agility="1" Intellect="5"
+      Captain="100" Physique="5" Live="90" ForceHit="10" Parry="10" SkillScript="30711,30811"/>
+  </GameHeroTemp>
+  <MapInfos><MapInfo Id="1" Name="A"/><MapInfo Id="2" Name="B"/></MapInfos>
+</root>"""
+
+REAL_FILE = Path("data/overlay/xml/tempinfos.xml")
+
+
+def test_parses_zlib_and_plain() -> None:
+    for data in (XML, zlib.compress(XML)):
+        t = GameTemplates.parse(data)
+        assert t.hero(6).intellect == 5
+        assert [r["Name"] for r in t.find("MapInfos", Id=2)] == ["B"]
+
+
+def test_unknown_hero_raises() -> None:
+    with pytest.raises(KeyError):
+        GameTemplates.parse(XML).hero(99)
+
+
+@pytest.mark.skipif(not REAL_FILE.exists(), reason="tempinfos.xml real ausente (rode tools/export_captures.py)")
+async def test_real_file_has_the_six_starting_heroes() -> None:
+    t = await GameTemplates.load(REAL_FILE)
+    assert len(t.categories) > 50
+    assert [t.hero(i).job for i in range(1, 7)] == [1, 2, 3, 1, 2, 3]
+    assert [t.hero(i).sex for i in range(1, 7)] == [1, 1, 1, 0, 0, 0]
