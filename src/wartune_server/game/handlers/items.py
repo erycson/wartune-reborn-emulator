@@ -27,6 +27,7 @@ from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL = 4125, 4709, 4268
+S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (Büyük Sefer)
 BOX, USE, GEM_BOX, BLOOD = "298", "203", "206", "209"  # ItemTempInfo.SonType usáveis
 STORE_STONE = 208014  # Şeytan Kristali (SonType 293): Property1 = EXP do cristal (8484)
 STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
@@ -36,6 +37,7 @@ STACKABLE = (BagType.STORE, BagType.BAG)
 # 203 por Property1 (Property2 = quantidade): campo do personagem e nome no texto do oficial
 USE_KINDS = {1: ("gold", "Altın"), 3: ("point", "Elmas"), 4: ("gift_token", "Bağlı Elmas"), 5: ("weary", "Beden")}
 USE_KINDS |= {6: ("repute", "Prestij"), 7: ("gp", "Lord EXP"), 10: ("strategy", "Ruh")}
+USE_KINDS[15] = ("copies", "Grup Ek Sahne yararı")  # Büyük Sefer (2032101): +1 entrada de campanha em grupo
 GEM_BOX_NAME = re.compile(r"Değerli Taş Kutusu Lv\.(\d)(?:-(\d))?$")
 
 
@@ -211,6 +213,8 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     if kind is None or amount <= 0:
         return False  # cristal, guilda, VIP, buffs...: sistemas que não existem aqui
     field, label = kind
+    if field == "copies":
+        return await _use_copies(s, item, n, amount)
     if field == "weary":
         # ponytail: sem o teto diário de poções de Beden; só o limite do personagem
         amount = min(amount, c.weary_limit - c.weary)
@@ -240,6 +244,28 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{amount:,} EXP kazanıldı"))
         if gained:
             _army(s)
+    return True
+
+
+async def _use_copies(s: GameSession, item: Item, n: int, times: int) -> bool:
+    """Büyük Sefer (203, Property1 15): ``times`` entradas de campanha em grupo a mais, nas que sobram e no
+    máximo do dia (4240 com os dois). Visto (buyuk_sefer_kullanimi_grup_sahne_yarari_1): 1/1 -> 2/2, o 115 do
+    item, o 111 "Grup Ek Sahne yararı 1 kez arttı" e o 3. Vale só no dia do uso (``Character.multi_copies``).
+    *(dedução)* o texto com ``times`` > 1 não foi visto."""
+    snap = s.snapshot
+    assert snap is not None
+    c, now = snap.character, s.ctx.clock.now()
+    count, top = c.multi_copies(rules.copies_base(s.ctx.templates), now)
+    c.multi_copy_count, c.multi_copy_max, c.multi_copy_day = count + times, top + times, now.date().isoformat()
+    # ponytail: sem teto de uso por dia (a captura tem um uso só); o gasto da entrada não existe aqui, falta
+    # captura de entrar numa campanha em grupo (5039 não tem handler)
+    changed, gone = _consume(snap, item, n)  # antes de qualquer await
+    await s.ctx.characters.save(c, *changed, delete=tuple(gone))
+
+    _send_items(s, changed, gone)
+    send(s, S_COPIES, pb.MultiCampaignEnterCountMsg(campaignCount=count + times, campaignMaxcount=top + times))
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Grup Ek Sahne yararı {times} kez arttı"))
+    _player(s)
     return True
 
 

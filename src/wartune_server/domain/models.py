@@ -149,6 +149,10 @@ class Character:
     box_counted_at: datetime | None = None
     offline_at: datetime | None = None  # saída do jogo (recompensa offline)
     offline_seconds: int = 0  # tempo offline ainda não resgatado (8287)
+    # campanha em grupo (4240): entradas que sobram e o máximo de ``multi_copy_day``; outro dia = o base
+    multi_copy_count: int = 0  # PlayerMsg.campaignCount
+    multi_copy_max: int = 0  # PlayerMsg.campaignMaxcount (base + Büyük Sefer usados no dia)
+    multi_copy_day: str = ""  # "YYYY-MM-DD"
 
     @property
     def icon(self) -> int:
@@ -158,6 +162,13 @@ class Character:
     def bless_count_today(self, now: datetime) -> int:
         """Bênçãos do seminário no dia (``PlayerMsg.blessingCount``, tarefa do dia). Outro dia = zero."""
         return self.seminary_count if self.seminary_day == now.date().isoformat() else 0
+
+    def multi_copies(self, base: int, now: datetime) -> tuple[int, int]:
+        """(sobram, máximo) das entradas de campanha em grupo hoje. Outro dia volta ao ``base``
+        (``MultiCampaign_MaxCount``): o item de +1 vale só no dia em que foi usado."""
+        if self.multi_copy_day == now.date().isoformat():
+            return self.multi_copy_count, self.multi_copy_max
+        return base, base
 
 
 @dataclass(eq=False)
