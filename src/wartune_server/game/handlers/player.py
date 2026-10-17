@@ -13,6 +13,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
+from .space import talk
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME = 83, 111, 64, 4234
@@ -68,6 +69,8 @@ async def quest_add(s: GameSession, msg: pb.QuestAddedMsg) -> None:
     assert snap is not None
     now = s.ctx.clock.now()
     added = [q for qid in msg.questId if (q := rules.accept_quest(snap, s.ctx.templates, qid, now)) is not None]
+    for node in sorted({n for q in added for n in rules.talk_nodes(s.ctx.templates, q.template_id)}):
+        talk(s, node, added)  # missão de conversa: o cliente aceita no último passo do diálogo
     if added:
         await s.ctx.characters.save(*added)
         s.send(S_QUESTS, quest_update(added, rules.quest_bitmap(snap)))
@@ -78,7 +81,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     q = rules.quest(snap, msg.templateId)
-    if q is None or q.completed or not rules.quest_done(snap, s.ctx.templates, q):
+    if q is None or q.completed or not rules.quest_done(snap, s.ctx.templates, q, s.ctx.clock.now()):
         s.log.info("5014 recusado", quest=msg.templateId)
         return
     s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
