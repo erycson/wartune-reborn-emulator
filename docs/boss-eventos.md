@@ -79,79 +79,9 @@ Depende de guilda, então fica por último.
 
 Não se sabe quem abre o altar.
 
-## Atividades ("Sıcak Etkinlik", SumActive)
+## Atividades, assinatura, login acumulado, leed, VIP, recompensas e minigames
 
-Cliente: `m2/scripts/managers/FunnyManager.as`. *(visto)* `login.json` #63–69 e
-`online_odul_sicak_etkinlik_giris_odulu_toplama_takas_ve_binek_upgrade.json` #38–89.
-
-### Descoberta no login
-
-1. O servidor manda **4475** `SumActivesMsg{actives[], dataStamp, curPage, maxPage}` em páginas.
-   No oficial foram 5 páginas com 53 atividades e `dataStamp 264`.
-   - **Atividade:** `activeId` (GUID), datas, título e texto, `activeType`, `startTime`/`stopTime`.
-   - **Pacotes:** `packages[]{packageId (GUID), items[], conditions[]{conditionId,
-     conditionValue}}`.
-2. Com todas as páginas recebidas, o cliente manda **8586** `{type:1}`.
-3. O servidor responde com o **4476** `SumActiveDataMsg`, o progresso do jogador:
-   `datas[]{activeId, packdata[]{packId, status, countDown, getCount}}`.
-   - `status`: 1 = pode resgatar, 2 = já resgatado, 3 = ainda não.
-
-### Regras do cliente
-
-- Atividade com `stopTime` no passado é descartada.
-- O cache só é trocado quando `dataStamp` aumenta: subir o número sempre que as definições
-  mudarem.
-- Itens negativos são moedas, como no GradeDrop: -100 ouro, -300 Ruh.
-
-### Resgate
-
-O cliente manda **8586** `{type:2, activeId, packageId, count}`. A resposta do oficial é:
-
-1. 111 "Hediye Paketi başarıyla alındı"
-2. 4476 só com a atividade que mudou
-3. 83 "Kazanılan:…"
-4. 4476 completo
-5. 3, 109 e 115
-
-### Tipos de atividade
-
-| activeType | atividade |
-|---|---|
-| 1 | gasto diário |
-| 10 | troca |
-| 13 | **login** |
-| 14 | **presente online** (`conditionValue` = segundos de jogo; `countDown` = o que falta) |
-| 15 | primeira recarga |
-| 18 | montaria |
-| 27 | anfiteatro |
-| 28 | campo de batalha |
-| 35 | fadas |
-
-### Quem define o quê
-
-Toda a definição (GUIDs, datas, itens, condições) é do **operador**: nada disso está no tempinfos.
-No nosso servidor vira um JSON de configuração, e o progresso de cada jogador vai para o banco.
-
-## Assinatura, login acumulado, caixa por tempo *(cliente)*
-
-- **Assinatura:**
-  - o cliente manda **8266** sem corpo;
-  - o servidor responde **4177** `PlayerSignRspMsg{signDate, signTimes, signSite}`;
-  - template `SignDropInfo` (Times 2/5/10/17/26);
-  - o estado inicial vai no `PlayerMsg`.
-- **Login acumulado:**
-  - o cliente manda **8496** `TakeLoginReward{index}`;
-  - o estado fica em `PlayerMsg.reloginProcess` (bitmask) e `reloginCount`;
-  - template `ReloginDrop`;
-  - a resposta provável é o `PlayerMsg` (3).
-- **Caixa por tempo:**
-  - o servidor manda **4** `BoxBoxMsg`;
-  - o cliente manda **5019** `{operate, time}`;
-  - template `TimeDropInfo`.
-- **Atividade diária ("leed"):**
-  - o servidor manda 4152 e 4150;
-  - o cliente manda 8235 para resgatar;
-  - templates `LeedTempInfo` e `LeedDropInfo`.
+Implementados: regras, opcodes e dependências em [eventos.md](eventos.md).
 
 ## Prioridade
 
@@ -160,10 +90,9 @@ No nosso servidor vira um JSON de configuração, e o progresso de cada jogador 
    - 4248;
    - 4475 com `maxPage=1`;
    - 4476 ao receber o 8586 tipo 1.
-2. **Resgate de atividades** dos tipos 13 e 14, com as definições em JSON.
-3. **Assinatura e login acumulado.**
-4. **Boss mundial:**
+2. Resgate de atividades (13 e 14), assinatura e login acumulado: feito ([eventos.md](eventos.md)).
+3. **Boss mundial:**
    - agenda em asyncio com broadcast do 4182;
    - HP global por campanha;
    - 4174, 4175 e 4203.
-5. **Guilda e altar.**
+4. **Guilda e altar.**
