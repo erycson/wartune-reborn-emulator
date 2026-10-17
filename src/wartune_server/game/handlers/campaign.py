@@ -19,7 +19,18 @@ from .. import rules, space
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
-from ..campaign import AGGRESSIVE, DONE, FIGHTING, FIRST_MAP, MONSTER, NORMAL, SECOND_MAP, CampaignMap, map_for
+from ..campaign import (
+    AGGRESSIVE,
+    DONE,
+    FIGHTING,
+    FIRST_MAP,
+    MONSTER,
+    NORMAL,
+    PET_ISLANDS,
+    SECOND_MAP,
+    CampaignMap,
+    map_for,
+)
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
@@ -470,6 +481,8 @@ async def attack_mode(s: GameSession, msg: pb.AttackModeMsg) -> None:
 
 @router.on(5035)
 async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
+    if msg.state == BACK_TO_MAP and s.campaign is not None and s.campaign.map_id in PET_ISLANDS:
+        _send(s, S_ROOM_ENTER, _room_enter(s))  # o oficial repete o 21 quando a cena termina (peri_adasi_tp #7)
     if msg.state == BACK_TO_MAP and s.battle_gp:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0

@@ -106,6 +106,15 @@ class Character:
     repute: int = 0
     geste: int = 0
     charm: int = 0
+    space_x: int = 72  # tile na cidade do céu ao sair
+    space_y: int = 74
+    qte_guide: int = 0
+    vice_password: str = ""  # sha256 da senha secundária; "" = sem senha
+    vice_reset_at: datetime | None = None
+    vehicle_exp: int = 0
+    vehicle_score: int = 0
+    vehicle_default: int = 1
+    vehicles: str = "1"  # templateIds de VehicleObjectTempInfos possuídos, separados por vírgula
     last_login_at: datetime | None = None
 
     @property

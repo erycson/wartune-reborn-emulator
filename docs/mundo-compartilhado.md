@@ -19,6 +19,14 @@ Cliente: `m2/scripts/map/space/manager/SpaceSocketManager.as`, `SpaceManager.as`
 | 8690 | C>S | SpacePlayerMoveMsg (o próprio, caminho em tiles) | o cliente andou |
 | 8688 | C>S | SimplePropertyMsg | entrar no space |
 | 149 | S>C | HeroEquUpdatedMsg | outro jogador trocou o visual |
+| 8689 | C>S | SimplePropertyMsg | sair do space (`leaveSpace`, sem chamador no cliente) |
+| 8692 | C>S | SimplePropertyMsg `{param1: nodeId}` | clicou num nó do mapa (`MapNodeInfos`) |
+| 4601 | S>C | SimplePropertyMsg `{param1: nodeId}` | abre a janela do nó (`SpaceSceneController.__selectNodeHandler`) |
+| 4126 | S>C | StandPosMsg `{id: playerId, posX, posY}` | teleporte sem andar |
+| 8700 | C>S | vazio | `resetSpacePosition` (sem chamador) |
+| 8701 | C>S | SpacePlayerArmyInfoReqMsg `{userList}` | dados de jogadores (sem chamador; não há mensagem de resposta própria) |
+| 8733 | C>S | SimplePropertyMsg `{param1: nodeId}` | fim de uma coleta iniciada por 143 "COLLECTION" |
+| 8694 | C>S | CampaignReqMsg `{paraInt1: mapa}` | ilha dos pets por opção de diálogo tipo 6 (nenhum nó usa hoje) |
 
 *(visto)*:
 
@@ -143,10 +151,60 @@ Fatia 1 (cidade do céu), feita em `game/space.py` e `game/handlers/space.py`:
 - Quando a sessão termina ou entra numa campanha, manda 4607 aos outros.
 - No relogin a sessão anterior já terminou antes da nova entrar (passo 1 do login), então os outros
   recebem o 4607 e depois o 4597, nessa ordem.
-- A posição não é gravada: todo login começa em (72,74).
+- A posição é gravada ao sair (fatia 2).
 - O `RoomPlayerMsg` leva arma e armadura equipadas (`arm`/`cloth`). Montaria, pet, moda e guilda vão
   vazios até existirem.
 
 **Fica para depois**
-- ponytail: broadcast para o space inteiro, sem área de interesse nem tick de 500 ms. Fazer quando
-  houver jogadores suficientes para pesar.
+- ponytail: broadcast para o space inteiro, sem área de interesse nem tick de 500 ms. Nenhum pedido do
+  cliente manda raio ou área de visão; ele só limita a criação a 1 view por 500 ms (`SpaceWalkLayer.as`).
+  A filtragem, quando vier, é do servidor: escolher quem vai no 4597/4594 e tirar com 4607.
+
+Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/handlers/space.py`:
+
+**Posição**
+- Fica nas colunas `characters.space_x` e `space_y` (padrão 72,74).
+- O 8690 muda só a memória. A sessão grava o personagem quando termina, se o jogador já passou do tutorial.
+- No login, o jogador entra onde parou.
+
+**Visual (149)**
+- `space.refresh_look(s)` manda `HeroEquUpdatedMsg{playerId, armStr, clothStr}` aos outros do space.
+- O 5005 (mochila <-> herói) chama essa função. Quem implementar moda chama a mesma `refresh_look`.
+- Asa, chapéu e moda vão vazios até existirem.
+- Fontes: *(visto)* `exp_kitabi_...json` #22; *(cliente)* `SpaceSocketManager.as:186`.
+
+**Nós (8692)**
+- Vêm de `MapNodeInfos` do tempinfos.xml com `MapId=10000` (70 nós).
+- O servidor confere que o nó existe e que o jogador está a até `HandlerRange+5` tiles. É a mesma conta do
+  cliente (`SpaceArmyViewHelper.selfArmyToEnd`).
+- Por MasterType:
+  - 1 (NPC que anda): o cliente resolve sozinho; o servidor ignora.
+  - 171 (teleporte, `Param3` = nível mínimo): o nó 5 leva à ilha dos pets. O nó 15 (mina de ametista, 30000)
+    fica sem resposta: depende do sistema de minas.
+  - Os demais (61 NPC com janela, 191 mapa do tesouro, 300 pilhas de presente): ecoa 4601 com o nodeId e o
+    cliente abre a janela (`Param3` = "frameType,título,nível").
+
+**Ilha dos pets (20001)**
+- Entra pelo nó 5 ou pelo 8694, com a sequência da captura `peri_adasi_tp.json` #3-8:
+  1. 140
+  2. 125 `{createdType 1, campaignId 20001}`
+  3. 21, com o jogador em (141,171)
+  4. 127 com os 121 nós, guardados em `content/petisland.json`
+- Enquanto está na ilha, o jogador some do space dos outros (4607).
+- Quando a cena termina de carregar (5035 `state=4`), o servidor repete o 21, como a captura (#6-7).
+- Para sair, o cliente manda 5025 `RoomExitMsg` pelo botão de sair: no pet land o `MainToolBar` não pede
+  confirmação. O servidor responde 4606 e o jogador reaparece para os outros. O 8688 também traz de volta.
+  - ponytail: o 5025 só é tratado na ilha dos pets; o 5025 das salas em grupo é do sistema de salas (C).
+- O 8694 também confere a distância até o nó de teleporte.
+- No login vai 4686 `PetIslandDefendStateMsg` zerado, ou seja, sem invasão do chefe (`login.json` #39).
+- ponytail: mapa por sessão, sem outros jogadores. Pets selvagens (masterType 91), coleta (1003), loja
+  (888) e o chefe dependem do sistema de pets/campanha.
+
+**Outros pedidos**
+- 8689: some da tela dos outros (4607).
+- 8700: 4126 com o último tile conhecido.
+- 8701: 4597 com os jogadores pedidos que estão no space (até 50).
+- 8733: só registra no log. A coleta só existe depois de um 143 "COLLECTION", que ainda não mandamos.
+- 9526 (caixa do chefe da cidade externa, 4940): só registra no log. Sem o chefe de mapa não há caixas
+  ([boss-eventos.md](boss-eventos.md)). No cliente o proto real é `army.BoxMsg`, com as mesmas tags do
+  `ArmyBoxMsg`.
