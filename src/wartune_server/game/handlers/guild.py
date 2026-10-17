@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 from ...domain.models import BagType, Character, Consortia, ConsortiaInvite, ConsortiaItem, ConsortiaMember, Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.characters import normalize_nickname
+from .. import bag, rules
 from .. import guild as gd
-from .. import rules
 from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from ..builders import login as b
 from ..builders.player import item_moved
@@ -41,6 +41,8 @@ RENAME_POINTS = 1000  # ConsortiaRenameFrame.command01
 GOLD_PER_OFFER = 1000  # contribuição: 1000 ouro = 1, 1 diamante = 1 (ConsortiaContributeFrame)
 QUICK_SECONDS = 600  # acelerar a melhoria: 1 diamante a cada 10 min (ConsortiaUpgradeFrame)
 GUILD_SHOP = "2"  # ShopTempInfos.ShopType do mercado da guilda
+# BuyInfo.result (ShopManager.shopingResult, como em handlers/shop.py)
+R_OK, R_NO_PLAYER, R_NO_ITEM, R_NO_MONEY, R_GUILD, R_LEVEL, R_FAIL = 1, 2, 3, 4, 9, 10, 11
 TEXT_MAX = 255
 MEMBER_CHUNK = 100  # 4133 em pedaços (o cliente junta pelo uuid até somar totalRows)
 _TAG = re.compile(r"<[^>]*>")
@@ -779,43 +781,43 @@ def _buy_result(s: GameSession, buy: pb.BuyInfo, result: int) -> None:
 async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     """Compra no mercado da guilda (``ShopTempInfos.ShopType`` 2), paga com a contribuição pessoal.
 
-    Não tem opcode próprio: o cliente usa a compra genérica 5154 (``ShopManager.sendShoping``),
-    cujo handler (sistema de loja) deve chamar esta função. Devolve False se o ``goodId`` não é
-    do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83.
+    Não tem opcode próprio: o cliente usa a compra genérica 5154 (``ShopManager.sendShoping``), e o
+    handler dele (``handlers/shop.py``) chama esta função primeiro. Devolve False se o ``goodId`` não
+    é do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83.
     """
     row = s.ctx.templates.get("ShopTempInfos", buy.goodId, key="Id")
     if row is None or row.get("ShopType") != GUILD_SHOP:
         return False
     snap, mine = s.snapshot, _mine(s)
     assert snap is not None
-    c, count = snap.character, buy.count
+    c, count, now = snap.character, buy.count, s.ctx.clock.now()
     item_row = s.ctx.templates.get("ItemTempInfos", int(row["ItemId"]))
     price = int(row.get("ConsortiaOffer") or 0) * count
-    stack = max(int(item_row.get("MaxCount") or 1), 1) if item_row else 1
-    slots = math.ceil(count / stack) if count > 0 else 0
-    used = sum(i.bag_type == BagType.BAG for i in snap.items)
-    ok = mine is not None and item_row is not None and 0 < count <= 999 and c.consortia_offer >= price
-    ok = ok and mine is not None and mine[0].shop_level >= int(row.get("NeedConsortiaLevels") or 0)
-    ok = ok and used + slots <= BAG_SIZE and c.grades >= int(row.get("NeedGrades") or 0)
-    if not ok or item_row is None:
-        _refuse(s, 5154, "sem guilda, nível do mercado, contribuição ou mochila", item=buy.goodId)
-        _buy_result(s, buy, 0)
+    # o primeiro motivo que o cliente mostra (código 0 deixa a mensagem vazia)
+    if mine is None or mine[0].shop_level < int(row.get("NeedConsortiaLevels") or 0):
+        code = R_GUILD
+    elif c.grades < int(row.get("NeedGrades") or 0):
+        code = R_LEVEL
+    elif buy.receiveId not in (0, s.player_id):  # presente exige gravar outro personagem
+        code = R_NO_PLAYER
+    elif item_row is None or not 0 < count <= 999:
+        code = R_NO_ITEM
+    elif c.consortia_offer < price:
+        code = R_NO_MONEY
+    elif not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], now):  # espaços comprados contam
+        code = R_FAIL
+    else:
+        code = R_OK
+    if code != R_OK:
+        _refuse(s, 5154, "mercado, nível, presente, quantidade, contribuição ou mochila", item=buy.goodId, codigo=code)
+        _buy_result(s, buy, code)
         return True
+    assert item_row is not None
     c.consortia_offer -= price
-    new: list[Item] = []
-    left = count
-    while left > 0:
-        item = Item(c.id or 0, int(row["ItemId"]), count=min(left, stack))
-        item.pos = rules.free_bag_pos(snap)
-        snap.items.append(item)
-        new.append(item)
-        left -= item.count
-    await s.ctx.characters.save(c, *new)
+    got = bag.add(snap, s.ctx.templates, int(row["ItemId"]), count, now)  # empilha onde dá, como a loja comum
+    await s.ctx.characters.save(c, *got)
     _player(s)
-    moved = pb.ItemMovedListMsg()
-    for item in new:
-        moved.MergeFrom(item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
-    s.send(S_ITEMS, moved)
+    s.send(S_ITEMS, bag.moved(got, s.player_id))
     text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} başarıyla alındı!"
     _alert(s, text)
     _buy_result(s, buy, 1)
@@ -857,7 +859,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 
     ponytail: a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item
     do mercado da guilda liberado pelo nível do altar, na casa "Market Eşyası" (Site 1). A
-    bênção rápida (``param1`` > 1, VIP 6) fica recusada até existir VIP.
+    bênção rápida (``param1`` > 1, VIP 6) fica recusada: o custo e a quantidade do x10 estão só no m6.
     """
     g = s.ctx.guilds
     mine = _mine(s)

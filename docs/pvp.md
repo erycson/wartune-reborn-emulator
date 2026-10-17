@@ -226,14 +226,19 @@ captura soma EXP mundial e offline, sem fórmula)*. O drop por vitória (#30) n�
 | 8724 `{tarUserId}` | Exige nível `Pet_Challenge_Grade`, formação com pets, oponente da lista, sem espera e tentativas. 157 `battleType 35` só com `pets` (os do jogador com `userId` dele), automática: sem 75, 4361 `{60000, 50}` no quadro 1500. No fim: 4176 `{leftTime 300}`, 4103 `{battleScene 19}`, 83 "Puan  +5". | *(visto)* #7, #43-#47, #55 |
 | 8725 `chaPos` | Só ids de pets do jogador e -1; grava e confirma com 4540 `{chaPos}`. Sem `chaPos` (os Senhores mandam assim) é ignorado. | *(cliente)* `PlayerManager.as` |
 | 8726 | Skills do pet no torneio: o pet tem de ser do jogador; responde 4540 com `chaSkillIndexs`. | *(cliente)* `PetData.as` |
-| 8727 | "Encerrar já" (`Battle.finish`): só para VIP ≥ `Pet_BattleOver_Grade`; sem VIP no servidor, recusado. | *(cliente)* `BattleUIView.as` |
+| 8727 `{battleId}` | "Encerrar já" (`Battle.finish`): só VIP ativo (`is_vip`: data de fim do VIP no futuro) com nível ≥ `Pet_BattleOver_Grade` (3) e a luta do torneio. VIP vencido não conta, mesmo com nível 3. Senão, recusado sem resposta. | *(cliente)* `BattleUIView.as` (`IsVipAndNoExpirt` e `VipGrade` >= 3, o mesmo valor do template); VIP de `handlers/vip.py` |
 | 8728 `{type 1/2}` | Recompensa diária/semanal de `PetChallengeRewards` pela ordem, uma por dia/semana ISO; itens na mochila (115) e 4613 `{status 1, rank}`. | *(cliente)* `PetChallengeReportFrame`; template |
 
-**Depende do sistema de pets:** `arena.pets_of(snap)` devolve `[]` enquanto não houver pets no
-servidor. Sem pets o cliente nem abre o torneio ("nopet"), e o servidor recusa formação, skills,
-desafio e recompensa. O teste cobre a batalha simulando um pet. Pontos: +5 por vitória; a perda
-não foi observada e não tira pontos; os do atacado não mudam *(dedução)*. A vida e o ataque dos
-pets são aproximados do que a captura mostra.
+**Pets:** `arena.pets_of(snap)` lê `snap.pets` (tabela `pets`, em [heroi-exercito.md](heroi-exercito.md)).
+A formação guarda o espaço de cada pet (`chaPos`, `slot`); do lado do jogador, `pos` = espaço + 1
+*(visto)* #7. O pet do oponente segue a ordem da formação (`pos` = índice + 3, sem captura que diga).
+Os dois lados usam os pets gravados: o do oponente vem do snapshot da sessão dele ou, se estiver
+offline, do banco (como o coliseu faz com o herói). A batalha usa grau, qualidade e skills do
+próprio pet (`change_skills`, formato da captura #1, `735101,731001,...`; sem ele, as do template). Sem nenhum pet o cliente nem abre
+o torneio ("nopet"), e o servidor recusa formação, skills, desafio e recompensa. Nada no servidor
+cria pets ainda: ganhar um é do sistema de pets (item, missão), não deste torneio. Pontos: +5 por
+vitória; a perda não foi observada e não tira pontos; os do atacado não mudam *(dedução)*. A vida
+e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque = vida / 14).
 
 ### Eventos fechados
 

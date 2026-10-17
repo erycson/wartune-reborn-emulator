@@ -23,6 +23,7 @@ from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
+from .guild import shop_buy as guild_shop_buy
 from .player import _army, _player
 
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
@@ -72,7 +73,7 @@ def charge(snap: PlayerSnapshot, column: str, total: int, pay_type: int, ref: st
             return None
         changed, gone = bag.take(snap, tid, total)
         return Charge(changed=changed, gone=gone)
-    return None  # ConsortiaOffer: depende da guilda
+    return None  # ConsortiaOffer: o mercado da guilda paga pelo guild.shop_buy (5154)
 
 
 def check(s: GameSession, row: Row | None, count: int) -> int:
@@ -88,7 +89,7 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
         return GONE
     if not 1 <= count <= MAX_COUNT or price(row) is None:
         return NO_ITEM
-    if int(row.get("NeedMinVip") or 0) > 0:  # ponytail: não há VIP; libera quando houver
+    if int(row.get("NeedMinVip") or 0) > 0:  # ponytail: nenhuma loja tem NeedMinVip hoje; regra não conferida
         return VIP
     if int(row.get("NeedConsortiaLevels") or 0) > 0:  # depende da guilda
         return GUILD
@@ -186,6 +187,8 @@ def _shop_msg(msg: object) -> pb.ShopMsg:
 @router.on(5154)
 async def shop_buy(s: GameSession, msg: pb.FashionShopMsg) -> None:
     req = _shop_msg(msg)
+    if await guild_shop_buy(s, req.buyInfo):  # ShopType 2: mercado da guilda, paga com contribuição
+        return
     result = await buy(s, req.buyInfo, req.payType)
     if result != OK:
         s.log.info("5154 recusado", pedido=str(req), resultado=result)
