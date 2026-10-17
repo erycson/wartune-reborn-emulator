@@ -13,14 +13,14 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - Cada linha de `QuestCondictionInfos` é uma condição. A N-ésima linha, na ordem do XML, é o `condition_N` do 112 (`builders/player.quest_info`).
 - O cliente faz o mesmo (visto no cliente: `TaskTemplate.addConditionList` monta a lista na ordem do arquivo; `checkCount(cond, idx)` lê `taskInfo["condition" + (idx + 1)]`; `isCompleted` só fica pronto quando todas as linhas estão prontas). Por isso o servidor também conclui só com todas.
 - Sete missões têm mais de uma linha: 8 e 13 (4 linhas tipo 27), 240 (3 tipo 25), 450 e 730 (2 tipo 25), 680 (3 tipo 28) e 764 (tipo 3 e tipo 10). Nenhuma passa de 4 linhas (teste em `tests/game/test_missoes_condicoes.py`).
-- Contadores: `quests.progress` (condition_1) e `progress_2`, `progress_3`, `progress_4` (migração `0022_progresso_das_condicoes_da_missao`). Antes só havia o primeiro, e `templates.get` devolvia só a primeira linha: as missões de várias linhas nunca podiam concluir por completo.
+- Contadores: `quests.progress` (condition_1) e `progress_2`, `progress_3`, `progress_4` (migração `0022_progresso_das_condicoes_da_missao`). Antes só o primeiro contador existia e `templates.get` devolvia só a primeira linha: a 764, por exemplo, concluía só com o recrutamento e ignorava o nível da tropa.
 
 ## Como cada tipo é contado
 
 - **Contador (soma)**: cada ação soma `valor`. Ex.: 3 (recrutar), 7 (ocupar), 34 (formação), 52, 53.
 - **Maior valor**: tipo 10 (nível da tropa), via `LEVEL_CONDITIONS`.
 - **Estado, lido na conclusão**: tipo 1 (nível do personagem) e 39 (dia do login). Não gravam progresso; `quest_done` lê o snapshot na hora.
-- **Estado, gravado quando muda**: tipo 23 (passo do tutorial, no aceite e no 5017) e tipo 2 (nível do prédio, no aceite e quando o prédio sobe).
+- **Estado, gravado quando muda**: tipo 23 (passo do tutorial, no aceite e quando o guia avança) e tipo 2 (nível do prédio, no aceite e quando o prédio sobe).
 - **Conversa**: tipo 85, marcado uma vez quando o jogador fala com o NPC perto dele.
 - **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O servidor não conta nada desses tipos ainda; ver a tabela.
 
@@ -47,7 +47,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - Para1 = 0 e Para4 = `"10000,nó"` (mapa e nó do NPC). Exemplo: missão 361 (Tina) = `10000,2`; missão 174 (Jesi) = `10000,9`.
 - Servidor: o 8692 perto do nó (`space.talk`) marca as missões abertas com esse alvo; o aceite (5012) perto do nó marca as recém aceitas. Perto = `_near` do 8692 (alcance do nó + 5).
 - Ponytail: o servidor não vê o fim do diálogo. Conta o clique ou o aceite perto do nó, que são as ações reais que ele recebe.
-- Não há 8692 de conversa nas capturas, então a ordem 8692 e 5012 vem só do cliente (visto no código, não numa captura).
+- Capturas: não há 8692 de conversa. O único 8692 visto é um teleporte (`peri_adasi_tp.json`, nó 5). A ordem 8692 e 5012 vem só do cliente (código, não captura).
 - Teste: `test_falar_com_npc_conta_no_aceite_perto_do_no` e `test_falar_com_npc_pelo_8692_so_perto_e_nao_com_quem_anda`.
 
 ### Tipos que não foram ligados
