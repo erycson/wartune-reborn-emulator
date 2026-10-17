@@ -12,6 +12,7 @@ from aiohttp import web
 from .config import Settings
 from .domain.models import GameServer
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
+from .game.events import EventCatalog
 from .game.router import router
 from .game.session import GameContext, GameSession, OnlinePlayers
 from .http.app import HttpDeps, build_http_app
@@ -93,7 +94,14 @@ class GameServerApp:
         self.online = OnlinePlayers()
         registry = MessageRegistry.load_default()
         ctx = GameContext(
-            registry, router, services.login, services.characters, services.templates, services.clock, self.online
+            registry,
+            router,
+            services.login,
+            services.characters,
+            services.templates,
+            services.clock,
+            self.online,
+            EventCatalog.load(settings.events_file),
         )
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds

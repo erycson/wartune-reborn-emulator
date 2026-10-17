@@ -26,7 +26,19 @@ from sqlalchemy import (
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    CashLedger,
+    Castle,
+    Character,
+    EventState,
+    GameServer,
+    Hero,
+    Item,
+    PlayTicket,
+    Quest,
+)
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -208,6 +220,33 @@ items = Table(
     Column("is_new", Boolean, nullable=False, default=True, server_default="1"),
 )
 
+event_states = Table(
+    "event_states",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("key", String(96), nullable=False),
+    _int("value"),
+    Column("text", Text, nullable=False, default="", server_default=""),
+    Column("updated_at", UTCDateTime, nullable=False),
+    UniqueConstraint("character_id", "key"),
+)
+
+cash_ledger = Table(
+    "cash_ledger",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("delta_point"),
+    _int("delta_gift_token"),
+    _int("balance_point"),
+    _int("balance_gift_token"),
+    Column("reason", String(64), nullable=False, default="", server_default=""),
+    Column("ref", String(128), nullable=False, default="", server_default=""),
+    Column("gm", String(64)),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
 _mapped = False
 
 
@@ -226,6 +265,8 @@ def map_entities() -> None:
         (Building, buildings),
         (Quest, quests),
         (Item, items),
+        (EventState, event_states),
+        (CashLedger, cash_ledger),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

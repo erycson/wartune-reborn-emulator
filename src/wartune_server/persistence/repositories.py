@@ -8,7 +8,18 @@ from typing import Self
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    Castle,
+    Character,
+    EventState,
+    GameServer,
+    Hero,
+    Item,
+    PlayTicket,
+    Quest,
+)
 
 
 class _Repo:
@@ -139,6 +150,12 @@ class SqlItemRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlEventStateRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[EventState]:
+        query = select(EventState).where(EventState.character_id == character_id).order_by(EventState.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -154,6 +171,7 @@ class SqlAlchemyUnitOfWork:
         self.buildings = SqlBuildingRepository(self._session)
         self.quests = SqlQuestRepository(self._session)
         self.items = SqlItemRepository(self._session)
+        self.events = SqlEventStateRepository(self._session)
         return self
 
     async def __aexit__(

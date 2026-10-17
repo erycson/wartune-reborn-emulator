@@ -18,6 +18,7 @@ from ..services.characters import CharacterService
 from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
+from .events import EventCatalog
 from .router import PacketRouter
 
 if TYPE_CHECKING:
@@ -41,6 +42,7 @@ class GameContext:
     templates: GameTemplates
     clock: Clock
     online: OnlinePlayers
+    events: EventCatalog = EventCatalog()
 
 
 class OnlinePlayers:
@@ -102,6 +104,7 @@ class GameSession:
         self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
         self.space_pos: tuple[int, int] | None = None  # tile na cidade do céu; None = fora dela
         self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
+        self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
@@ -129,8 +132,10 @@ class GameSession:
             self.battle.cancel()
         if self.snapshot is not None:
             from . import space  # space importa este módulo
+            from .handlers import events  # idem
 
             space.leave(self)
+            await events.leave(self)  # grava o tempo online (presente online)
             self.ctx.online.unbind(self.player_id, self)
             self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()

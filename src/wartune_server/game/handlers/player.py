@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
-from ...templates.repository import Row
-from .. import rules
+from .. import rewards, rules
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
 from ..router import router
@@ -16,8 +17,6 @@ S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_CASTLE_YIELD, S_FAST_KEY, S_TIME = 83, 111, 109, 64, 4234
 GOLD_MAX, CRYSTALS = 10000, 1000  # ponytail: armazém e cristais fixos até existirem no banco
 BOX = "298"  # ItemTempInfo.SonType do pacote que abre um GradeDrop (Property1 = DropId)
-BAG_SIZE = 42  # PlayerInfo.bagDefaultCount; ponytail: sem espaços comprados (bagCount) ainda
-CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token"}  # TemplateId < 0
 
 
 def _player(s: GameSession) -> None:
@@ -35,6 +34,21 @@ def castle_yield(s: GameSession) -> None:
     msg = pb.CastleYieldMsg(goldYield=0, goldTotalCount=s.snapshot.character.gold, goldMax=GOLD_MAX)
     msg.curPopulation, msg.maxPopulation, msg.crystalsCount = 0, 0, CRYSTALS
     s.send(S_CASTLE_YIELD, msg)
+
+
+def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str) -> None:
+    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 109 (ouro), 115 (itens) e o 83 no chat."""
+    _player(s)
+    if any(t == -100 for t, _ in drops):
+        castle_yield(s)
+    if new:
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+def alert(s: GameSession, text: str) -> None:
+    """Aviso no meio da tela (111, canal 7)."""
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
 
 
 @router.on(5015)
@@ -137,47 +151,25 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
     c, templates = snap.character, s.ctx.templates
     box = next((i for i in snap.items if (i.bag_type, i.pos) == (BagType.BAG, msg.pos)), None)
     row = templates.get("ItemTempInfos", box.template_id) if box is not None else None
-    drops = list(templates.find("GradeDrop", DropId=row.get("Property1"))) if row is not None else []
+    rows = templates.find("GradeDrop", DropId=row.get("Property1")) if row is not None else ()
+    drops = [(int(d["TemplateId"]), int(d["Data"])) for d in rows]
     usable = box is not None and row is not None and row.get("SonType") == BOX and msg.bagType == BagType.BAG
-    ids = [int(d["TemplateId"]) for d in drops]
-    known = all(t in CURRENCIES or (t > 0 and templates.get("ItemTempInfos", t)) for t in ids)
-    goods = [d for d in drops if int(d["TemplateId"]) > 0]
-    fits = sum(i.bag_type == BagType.BAG for i in snap.items) - 1 + len(goods) <= BAG_SIZE
-    if not (usable and drops and known and fits) or c.grades < int(row.get("NeedGrades", 0)):  # type: ignore[union-attr]
+    ok = usable and drops and rewards.can_grant(snap, templates, drops, freed=1)
+    if not ok or c.grades < int(row.get("NeedGrades", 0)):  # type: ignore[union-attr]
         s.log.info("5006 recusado", pedido=str(msg), item=box and box.template_id, drops=len(drops))
         return
     assert box is not None
 
     snap.items.remove(box)  # antes de qualquer await: o próximo pacote já não acha a caixa
-    new: list[Item] = []
-    for d in goods:
-        tpl = templates.get("ItemTempInfos", int(d["TemplateId"])) or {}
-        # ponytail: o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela
-        # do sorteio não está nos templates, então vai o DefaultSkill (vazio = nenhum)
-        skill = int(tpl.get("DefaultSkill") or 0)
-        item = Item(c.id or 0, int(d["TemplateId"]), count=int(d["Data"]), random_skill=skill)
-        item.pos = rules.free_bag_pos(snap)
-        snap.items.append(item)
-        new.append(item)
-    for d in drops:
-        if (field := CURRENCIES.get(int(d["TemplateId"]))) is not None:
-            setattr(c, field, getattr(c, field) + int(d["Data"]))
+    new, _ = rewards.grant(snap, templates, drops)
     await s.ctx.characters.save(c, *new, delete=(box,))
 
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
     _army(s)
-    if -100 in ids:
+    if any(t == -100 for t, _ in drops):
         castle_yield(s)
-    moved = pb.ItemMovedListMsg()
-    for item in new:
-        moved.moved.extend(item_moved(BagType.BAG, 0, item.pos, item, s.player_id).moved)
-    s.send(S_ITEMS, moved)
-
-    def label(d: Row) -> str:
-        name = (templates.get("ItemTempInfos", int(d["TemplateId"])) or {}).get("TemplateName", d["TemplateId"])
-        return f"{name} {int(d['Data']):,}" if int(d["TemplateId"]) < 0 else f"{name} x{d['Data']}"
-
-    text = "Kazanılan:" + ", ".join(label(d) for d in reversed(drops))  # o oficial lista do fim para o começo
+    s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+    text = rewards.text(templates, drops[::-1])  # o oficial lista do fim para o começo
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     _player(s)

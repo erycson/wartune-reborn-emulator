@@ -197,6 +197,35 @@ class Item:
     is_new: bool = True
 
 
+@dataclass(eq=False)
+class EventState:
+    """Contador/marca de evento do personagem (``key`` única por personagem, ex. ``sign``,
+    ``leed:16``, ``sum:<activeId>:<packageId>``). ``updated_at`` decide os zerados diários."""
+
+    character_id: int
+    key: str
+    updated_at: datetime
+    id: int | None = None
+    value: int = 0
+    text: str = ""
+
+
+@dataclass(eq=False)
+class CashLedger:
+    """Movimento de diamante (``point``) e diamante vinculado (``gift_token``) com o saldo depois."""
+
+    character_id: int
+    delta_point: int
+    delta_gift_token: int
+    balance_point: int
+    balance_gift_token: int
+    reason: str
+    created_at: datetime
+    ref: str = ""
+    gm: str | None = None
+    id: int | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -209,6 +238,7 @@ class PlayerSnapshot:
     buildings: list[Building] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
+    events: list[EventState] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:

@@ -54,8 +54,12 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
 
 
 def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
+    from . import events  # events importa este módulo
+
     fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
-    return b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap))
+    msg = b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap))
+    events.fill_player(msg, snap, s.ctx.clock.now())
+    return msg
 
 
 def _send(s: GameSession, code: int, msg: Message | None = None) -> None:
@@ -100,6 +104,11 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     s.ctx.online.bind(s.player_id, s)
     s.log = s.log.bind(player=s.player_id)
     s.log.info("jogador entrou", nick=snap.character.nickname, novice=snap.character.novice_process)
+    from . import events
+
+    # primeiro login do dia (login acumulado, atividades de login) antes do PlayerMsg que mostra isso
+    if changed := events.touch_login(snap, s.ctx.clock.now(), s.ctx.events):
+        await s.ctx.characters.save(*changed)
 
     s.send(S_LOGIN_OK)
     _send(s, S_PLAYER_INFO, player_info(s, snap))
@@ -147,6 +156,9 @@ async def _login_state(s: GameSession) -> None:
         for item in snap.items:
             bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
         s.send(S_ITEMS, bag)
+    from . import events
+
+    events.login_push(s)
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
