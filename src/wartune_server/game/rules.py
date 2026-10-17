@@ -4,7 +4,7 @@ herói, equipamentos, missões. Quem chama grava as entidades alteradas (``Chara
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..domain.models import BagType, Character, Hero, Item, Pawn, PlayerSnapshot, PlayerSystems, Quest, StarBag
 from ..templates.repository import GameTemplates, Row
@@ -44,6 +44,14 @@ def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
 def systems(snap: PlayerSnapshot) -> PlayerSystems:
     assert snap.systems is not None  # CharacterService.snapshot sempre preenche
     return snap.systems
+
+
+def refresh_star_day(sy: PlayerSystems, now: datetime) -> None:
+    """O dia das estrelas vira às 5h (o cliente manda o 8325 nessa hora); quem estava offline
+    recebe o sorteio grátis na próxima leitura. Idempotente: grava junto com a próxima save."""
+    day = (now - timedelta(hours=5)).strftime("%Y-%m-%d")
+    if sy.star_day != day:
+        sy.star_day, sy.star_free = day, 1
 
 
 MOUNT_ATTRS = ("Power", "Intellect", "Physique", "Agility")  # ordem de PlayerSystems.mount_gp

@@ -133,6 +133,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
+    rules.refresh_star_day(sy, s.ctx.clock.now())
     opened = sites(snap)
     quick = msg.site == -1
     if (quick and c.gold < QUICK_MIN_GOLD) or (not quick and not (0 <= msg.site < len(opened) and opened[msg.site])):
@@ -345,9 +346,10 @@ async def star_daily_reset(s: GameSession, _: object) -> None:
     """O cliente pede às 5h: renova o sorteio grátis do dia. Resposta: 3 (startFree)."""
     snap = s.snapshot
     assert snap is not None
-    sy, today = rules.systems(snap), s.ctx.clock.now().strftime("%Y-%m-%d")
-    if sy.star_day != today:
-        sy.star_day, sy.star_free = today, 1
+    sy = rules.systems(snap)
+    before = sy.star_day
+    rules.refresh_star_day(sy, s.ctx.clock.now())
+    if sy.star_day != before:
         await s.ctx.characters.save(sy)
     _player(s)
 

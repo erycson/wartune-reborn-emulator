@@ -56,11 +56,16 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     arm = rules.arm_avatar(snap, templates)
     pawn = army_pawn_msg(snap, templates, snap.character.id)
     mount = rules.systems(snap).mount_template
-    return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount), stats.fighting_capacity
+    msg = b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount)
+    if pet := next((p for p in snap.pets if p.is_fight), None):  # login #5: o pet em batalha
+        msg.petTempId, msg.petQuqlity, msg.petName = pet.template_id, pet.quality, pet.name
+    return msg, stats.fighting_capacity
 
 
 def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
+    if snap.systems is not None:  # startFree certo mesmo para quem estava offline às 5h
+        rules.refresh_star_day(snap.systems, s.ctx.clock.now())
     return b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap))
 
 

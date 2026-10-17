@@ -13,7 +13,7 @@ from .. import rules
 from ..builders.login import complete
 from ..router import router
 from ..session import GameSession
-from .player import _player
+from .player import _army, _player
 
 S_PETS, S_OTHER_PETS = 4540, 4608
 ADD_POINTS, RESET_POINTS, FIGHT, REST, FAST_KEY, MORE_SLOTS, TO_TOP = 2, 3, 9, 10, 11, 12, 14
@@ -132,6 +132,8 @@ async def pet_op(s: GameSession, msg: pb.PlayerPetOpMsg) -> None:
     s.send(S_PETS, pets_msg(snap, templates, pets))
     if paid:
         _player(s)
+    if msg.opType in (FIGHT, REST):
+        _army(s)  # o 150 leva o pet em batalha (petTempId/petName)
 
 
 @router.on(8702)

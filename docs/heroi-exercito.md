@@ -116,6 +116,12 @@ O `battle.py` ainda não lê.
 Atributos derivados do pet (força etc. = template + pontos + nível × aptidão/100) e o HP são
 aproximação: o cliente não calcula e a captura não fecha com fórmula simples.
 
+## Carga do login
+
+Enviados: 100 (tropas, no `user`), 150 com `mountTempId` e o pet em batalha (`petTempId`, `petQuqlity`, `petName`, como no login #5), 4540 (flag `army`, só com pet), 4178 + 4180 (`star`), 4905 (`powcardInfo`); 4427/4426, 4544 e 4555 respondem aos pedidos 8530, 8628 e 8642 que o cliente faz sozinho. O sorteio grátis das estrelas vira às 5h e é recalculado em toda leitura (`rules.refresh_star_day`), então quem estava offline no 8325 não perde.
+
+Não enviados: 4495 do login (#40 é `{opType 0, opResult false, count 0}`; o `ArmyManager.__runeOperateHandler` não faz nada com isso) e 4902 (bônus das cartas por campType na batalha; o `MagicCardManager` só guarda — depende da batalha).
+
 ## Dependências
 
 - Ganhar montaria, pet e cartas: uso de item / missões / batalha (outros módulos).
