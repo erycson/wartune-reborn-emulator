@@ -285,6 +285,7 @@ class BagType(IntEnum):
     HERO = 4  # equipado; ``object_id`` = id do herói
     MAIL = 10  # item anexado a um correio, esperando o 5022 (``BagType.mail`` do cliente)
     AUCTION = 11  # item à venda no mercado (``BagType.auction`` do cliente)
+    MAZE = 24  # prêmios do labirinto de gemas até o "receber tudo" (9517); ``BagType.Maze`` do cliente
 
 
 # bolsas que não ficam no snapshot: o item só volta a ele quando é retirado (5022, cancelamento)

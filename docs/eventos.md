@@ -112,8 +112,9 @@ captura virou -500).
 
 ## Minigames (`handlers/minigames.py`)
 
-Todo C>S da lista tem handler. Os que o servidor não joga respondem o estado fechado que o cliente
-mostra (ícone escondido, tela vazia), sem travar. Só o **fundo novato** é real.
+Todo C>S da lista tem handler. Reais: **fundo novato** (8751) e **labirinto de gemas** (9508, 9509, 9513,
+9516, 9517). Os que o servidor não joga respondem o estado fechado que o cliente mostra (ícone escondido, tela
+vazia), sem travar. 9510 e 9515 (ajuda de amigo do labirinto) recusam sem efeito.
 
 **Fundo novato (8751, 4640)** — `data/events.json` > `novice_fund` (valores da captura login.json #94).
 - `opType` 0 = estado (4640); 1 = compra o nível `opParam` (1..3): nível 11+ do personagem, uma vez,
@@ -145,8 +146,14 @@ mostra (ícone escondido, tela vazia), sem travar. Só o **fundo novato** é rea
 | 9501 | 4908 `sysState` 0 | (cliente) AnswerManager |
 | 9502 | 4914 `op` 1, `seekCount` 0, `seekNodeList` presente e vazio | (cliente) TreasureHuntControler |
 | 9507 | 4916 e 4918 vazios | (cliente) FishManager |
-| 9508 | 4922 vazio (sem tabuleiro) | (cliente) GemMazeManager |
-| 9509, 9510, 9513, 9515, 9516, 9517, 9521, 9522 | sem resposta | (cliente) |
+| 9508 | 4922 com o tabuleiro (real, abaixo) | (visto) av_askeri #1, login da replay #10; (cliente) GemMazeManager |
+| 9509 | troca: cascata, 4923 por passo e 4924 (real, abaixo) | (visto) av_askeri #5-#56; (cliente) GemMazeView |
+| 9510 | ajuda de amigo: recusa com 4924 (sem amigos; o 4925 nunca sai) | (cliente) GemMazeManager |
+| 9513 | caixa de tesouro: 4928 com o `boxMark` novo e a caixa (real, abaixo) | (cliente) GemMazeManager, GemMazeBoxView |
+| 9515 | resposta de ajuda: só registra | (cliente) GemMazeManager |
+| 9516 | compra de movimentos: 4927 (real, abaixo) | (cliente) GemMazeManager, GemMazeFrame |
+| 9517 | receber tudo: bolsa 24 vai para a mochila, "Başarıyla alındı!" | (visto) av_askeri #60-#62 |
+| 9521, 9522 | sem resposta | (cliente) |
 | 9520 | 300 (fecha o quadro; só o GoldRoadManager escuta) | (cliente) GoldRoadManager |
 | 9523 | 4936 `leadExtractTimes` 0 | (cliente) FunnyControler |
 | 9550 | 4980 lista vazia | (cliente) InfoTipsManager |
@@ -154,6 +161,58 @@ mostra (ícone escondido, tela vazia), sem travar. Só o **fundo novato** é rea
 | 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) login #127 |
 | 8604 | 295 `open` falso; 4526 `openView` falso (295 sem captura) | (cliente) BottleManager |
 | 9645 | 190 e 4590 fechados (o código não diz qual dos dois; os dois fechados é o estado certo) | (visto) login #125, #126 |
+
+**Labirinto de gemas (9508–9517, real)**: `handlers/gemmaze.py`; a regra da troca e da cascata está em
+`game/gemmaze.py`.
+- Tabuleiro 5×5 (marca = linha × 5 + coluna; cores 1–5). A troca é entre vizinhas na horizontal ou na
+  vertical (cliente: `GemMazeView.isUpon`). Três ou mais iguais em linha ou coluna saem; as de cima descem;
+  o topo ganha gemas novas; a cascata repete até não sobrar combinação. *(visto)* Na captura
+  `av_askeri_ve_odul_toplama`, cada uma das 7 trocas tem uma única vizinha que forma a primeira combinação
+  e cada cascata (10 passos) bate com a gravidade (`tests/game/test_labirinto_gemas.py`).
+- Pontos e EXP: 3 em linha = 10 e 1; 4 = 20 e 2 *(visto)*. Cinco ou mais segue a mesma conta *(ponytail)*.
+- Movimentos: 20 e 5 ajudas no personagem novo *(visto, replay)*. Cada troca gasta 1, também a sem
+  combinação *(ponytail)*. Troca entre gemas que não são vizinhas não gasta e só recebe o 4924.
+- Prêmio: cada passo dá um prêmio (`rewardInfo` do 4923) para a bolsa 24 (`BagType.MAZE`, 48 espaços, empilha
+  até o `MaxCount`). O 9517 passa a bolsa para a mochila se couber tudo. As buscas por posição (`bag.at`, `bag_item`, arrumar, tirar) filtram `BagType.BAG`, então nenhuma acha item da bolsa 24 (auditado). Itens: 2060008 Değerli Taş Kutusu
+  Lv.1 ×1, 208027 Arıtma Kilidi ×1, 208014 Şeytan Kristali ×2 *(visto: o 115 sobe a pilha de 2 em 2 e o
+  chat diz "x 2")* (nomes dos `ItemTempInfos`). Sorteio uniforme entre os três *(ponytail: nenhum template
+  liga o prêmio à cor nem ao tamanho)*.
+- Caixas (9513/4928): *(cliente)* `GemMazeBoxView`: a caixa `i` (1–5) libera com `score` >= 500, 1000, 2000,
+  3500, 6000 e o pedido manda `boxId` = 1, 2, 4, 8, 16; `boxMark` é a soma dos bits das caixas pegas. O
+  prêmio é o item `boxesId[i]` (2131035–2131039, Antik Kayıp Hazine I–V; a dica da caixa é esse item,
+  `GemMazeIntergalBoxView`) e vai para a bolsa 24 *(ponytail: a bolsa não foi capturada)*. Sem pontos, caixa
+  já pega, bit inválido ou bolsa cheia: 4928 com a marca atual e sem prêmio.
+- Renovação por dia (UTC): movimentos voltam a 20 (os comprados acima disso ficam), ajudas a 5, pontos e
+  caixas zeram; o semanal zera na semana nova (ISO). Tabuleiro, nível e EXP ficam. *(dedução)*: na captura
+  um personagem de nível 5 abre com 20 movimentos, 5 ajudas e 0 pontos; `score` e `weekScore` são campos
+  separados. O período não foi capturado.
+- Compra (9516): `Gem_Maze_BuyInfo` = `10,5,99`: 10 movimentos por compra; 99 é o teto (89 + 10, o mesmo
+  limite de 90 do cliente). Custo de 5 em diamante, ou vinculado com `buyTypes` 2 *(dedução)*. O 4927 só
+  sai quando a compra vale, porque o cliente soma 10 ao receber.
+- Login: 4922 com o tabuleiro gravado, só se a conta já tem um (*dedução*). O `login.json` (4638 e 4640, #93-94) não tem 4922 nenhum; o replay (pacotes 10 e 12, depois do 4900) tem, com o tabuleiro já aberto. Não grava.
+- Estado: uma linha `EventState` de chave `gemmaze` com `text` em JSON (tabuleiro, movimentos, ajudas,
+  nível, EXP, máximo de EXP, pontos, semanal, caixas pegas, dia da renovação). Abrir sem linha sorteia e
+  grava. Cada troca grava tudo
+  numa vez, antes dos pacotes do passo (o 4924 sai por último).
+- Dedução: tabuleiro novo sem combinação pronta e com ao menos uma jogada; cor de gema nova uniforme.
+- *ponytail*: sem subida de nível (a tabela não foi capturada: `curExp` passa de `maxExp`); `scoreOrder` 0
+  (sem ranking); `buyTimesLeft` 0.
+
+**Precisa de captura (o que gravar e o que fazer no jogo):**
+- Subida de nível: jogar até subir e gravar os 4923 com `gemLevel` e `maxExp` novos. A captura só tem o
+  nível 0 (30 de EXP) e o nível 5 (150).
+- Troca sem combinação: trocar duas gemas que não formam nada e gravar o que o oficial manda (só o 4924,
+  um 4923 vazio, ou nada).
+- Prêmios: jogar uns 50 passos e gravar os `rewardInfo`, para ver se cor e tamanho decidem o prêmio, e
+  os pesos.
+- Caixas (9513/4928): juntar 500 pontos, pegar a 1ª caixa e gravar o 9513, o 4928 e o 115 (para ver em
+  que bolsa a caixa cai e se o `rewardInfo` é a caixa ou o conteúdo).
+- Renovação: abrir o labirinto antes e depois da meia-noite (e numa segunda-feira) e gravar os 4922, para
+  ver o que volta (movimentos, ajudas, pontos, caixas, semanal) e a hora.
+- Ajuda de amigo (9510, 4925, 9515, 4924): convidar um amigo e gravar os dois lados.
+- Compra (9516/4927): comprar movimentos com diamante e com vinculado; gravar o 4927 e o saldo.
+- Ranking semanal (`scoreOrder`, `weekScore`): gravar o 4922 de outra semana e de um jogador de topo.
+- Bolsa do labirinto cheia (48 itens): gravar o que o oficial manda ao trocar e ao receber tudo.
 
 **Dependências (sistema fechado, com o motivo):**
 - **Garrafa (8604):** `BottleItems` (58 sorteios) e `Bottle_Price` 20|200|1000 existem. Falta o
@@ -163,8 +222,6 @@ mostra (ícone escondido, tela vazia), sem travar. Só o **fundo novato** é rea
   banca não traz a resposta certa.
 - **Pesca (9507):** `FishTemplateInfos` e `Fish_*` existem; faltam as regras de surgimento e captura
   (sem captura de 9507, inventar seria chutar).
-- **Labirinto (9508..9517):** `av_askeri_ve_odul_toplama.json` #1/#5 (4922/4923) mostra um tabuleiro oficial, mas não as regras de
-  combinação, geração e pontuação. `Gem_Maze_BuyInfo` existe.
 - **Caça ao tesouro (9502):** `treasure_*` existe; faltam os nós (posição e nome).
 - **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` existe; sem tabela de células.
 - **Minério (9645):** `MineOfActiveTime`, `Mine_Level`, `FreshManDepositCost` existem; sem tabela de
@@ -181,4 +238,5 @@ mostra (ícone escondido, tela vazia), sem travar. Só o **fundo novato** é rea
 
 **Alterações em arquivos compartilhados:** `data/events.json` (chave `novice_fund`),
 `game/events.py` (`EventCatalog.novice_fund`), `handlers/events.py` (`minigames.login_push` no login)
-e `handlers/__init__.py` (registro). Sem migração: o estado do fundo usa `event_states`.
+`domain/models.py` (`BagType.MAZE`), `handlers/minigames.py` (chama `gemmaze.login_push`) e
+`handlers/__init__.py` (registro). Sem migração: o fundo e o labirinto usam `event_states`.

@@ -37,13 +37,13 @@ Itens fora da loja:
 
 ## Minigames e eventos ([eventos.md](eventos.md))
 
-37 de 38 respondem o estado "fechado" que o cliente sabe mostrar; só o fundo de novato (8751) funciona.
+6 de 38 são reais: fundo de novato (8751) e labirinto de gemas (9508, 9509, 9513, 9516, 9517). 2 recusam sem efeito (9510, 9515: ajuda de amigo do labirinto). Os outros 30 respondem o estado "fechado" que o cliente sabe mostrar.
 
 | Minigame | Opcodes | Falta |
 |---|---|---|
 | Garrafa | 8604 | depósito, martelo, caixas por pontuação/andar, pesos (`BottleItems` existe) |
 | Quiz | 9501 | banco de perguntas com resposta |
-| Labirinto de gemas | 9508–9517 | regras de combinação e pontuação (só a captura do tabuleiro) |
+| Labirinto de gemas | 9508–9517 | **real** ([eventos.md](eventos.md)). **precisa de captura**: subida de nível (tabela de `maxExp`), pesos dos prêmios, o que o oficial faz com troca sem combinação, bolsa do prêmio das caixas (9513), período da renovação diária (dedução), ajuda de amigo (9510/9515/4925), ranking semanal, preço e teto da compra (dedução) |
 | Estrada dourada | 9520–9522 | tabela das casas |
 | Pesca, caça ao tesouro, minério | 9507, 9502, 9645 | regras de aparecimento, nós e prêmios; no 9645 o cabeçalho (`extend1`) que separa minério de super assinatura não chega ao handler |
 | Loteria, caça-níquel, cadeiras, caixa de ano novo, história, sorteio de grupo | 8748/8750, 9500, 9638, 8994, 8629/8630, 9523 | template e configuração do evento |
@@ -167,6 +167,10 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/castle.py:80](../src/wartune_server/game/castle.py#L80) | sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem |
 | [game/castle.py:154](../src/wartune_server/game/castle.py#L154) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
 | [game/farm.py:19](../src/wartune_server/game/farm.py#L19) | sem upgrade de terra (opType 9 não tem sender) |
+| [game/gemmaze.py:90](../src/wartune_server/game/gemmaze.py#L90) | o período (dia, UTC) não foi capturado; os movimentos comprados não somem (fica o maior). |
+| [game/gemmaze.py:196](../src/wartune_server/game/gemmaze.py#L196) | 5 ou mais em linha segue a conta de 3 e 4 (não foi capturado) |
+| [game/gemmaze.py:205](../src/wartune_server/game/gemmaze.py#L205) | prêmio sorteado uniforme entre os três vistos; a tabela oficial (pesos) precisa de captura |
+| [game/gemmaze.py:208](../src/wartune_server/game/gemmaze.py#L208) | troca sem combinação é aceita e gasta movimento (o cliente troca na tela e não desfaz; |
 | [game/guild.py:162](../src/wartune_server/game/guild.py#L162) | só os 50 últimos na memória; o banco guarda todos |
 | [game/handlers/account.py:20](../src/wartune_server/game/handlers/account.py#L20) | prazo do reset não está no cliente nem nas capturas; ajustar se aparecer |
 | [game/handlers/account.py:190](../src/wartune_server/game/handlers/account.py#L190) | sala de um jogador só; broadcast quando houver sala compartilhada |
@@ -195,6 +199,12 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/forge.py:264](../src/wartune_server/game/handlers/forge.py#L264) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme na faixa |
 | [game/handlers/friends.py:30](../src/wartune_server/game/handlers/friends.py#L30) | limites do cliente não achados (módulo de UI ausente) |
 | [game/handlers/friends.py:312](../src/wartune_server/game/handlers/friends.py#L312) | ``pageIndex`` tratado como 1-based (UI ausente). |
+| [game/handlers/gemmaze.py:71](../src/wartune_server/game/handlers/gemmaze.py#L71) | o oficial manda 0 para personagem novo; o contador não foi capturado |
+| [game/handlers/gemmaze.py:77](../src/wartune_server/game/handlers/gemmaze.py#L77) | ranking semanal não existe aqui (o oficial manda 1771 para um jogador de topo) |
+| [game/handlers/gemmaze.py:167](../src/wartune_server/game/handlers/gemmaze.py#L167) | sem subida de nível (a tabela de EXP por nível não foi capturada): curExp passa de maxExp |
+| [game/handlers/gemmaze.py:179](../src/wartune_server/game/handlers/gemmaze.py#L179) | o semanal soma o mesmo que o do dia e zera na semana nova (``gm.refresh``, dedução) |
+| [game/handlers/gemmaze.py:238](../src/wartune_server/game/handlers/gemmaze.py#L238) | a caixa vai para a bolsa do labirinto (o ícone voa para ela, como o das gemas); a bolsa |
+| [game/handlers/gemmaze.py:258](../src/wartune_server/game/handlers/gemmaze.py#L258) | o template não diz a moeda nem o limite diário: diamante (ou vinculado com buyTypes 2) é dedução |
 | [game/handlers/guild.py:19](../src/wartune_server/game/handlers/guild.py#L19) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
 | [game/handlers/guild.py:182](../src/wartune_server/game/handlers/guild.py#L182) | duas transações (o membro precisa do id da guilda); se a segunda falhar fica uma |
 | [game/handlers/guild.py:440](../src/wartune_server/game/handlers/guild.py#L440) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
@@ -213,7 +223,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/mall.py:43](../src/wartune_server/game/handlers/mall.py#L43) | duração livre de 1 a 72 h e página de 9: a tela de leilão não está no cliente decompilado |
 | [game/handlers/mall.py:46](../src/wartune_server/game/handlers/mall.py#L46) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
 | [game/handlers/marriage.py:7](../src/wartune_server/game/handlers/marriage.py#L7) | pedidos, ofertas de casamento e pedidos de divórcio ficam em memória (somem se o |
-| [game/handlers/minigames.py:67](../src/wartune_server/game/handlers/minigames.py#L67) | janela de resgate desconhecida (2099 = sem fim) |
+| [game/handlers/minigames.py:68](../src/wartune_server/game/handlers/minigames.py#L68) | janela de resgate desconhecida (2099 = sem fim) |
 | [game/handlers/offer.py:28](../src/wartune_server/game/handlers/offer.py#L28) | o sorteio de qualidade do oficial não é conhecido; pesos para 1..5 (5 = ouro, rende x6) |
 | [game/handlers/offer.py:204](../src/wartune_server/game/handlers/offer.py#L204) | as condições (RewardCondictionInfos: capturar NPC, missões, etc.) dependem de |
 | [game/handlers/offer.py:224](../src/wartune_server/game/handlers/offer.py#L224) | depende do sistema de batalha abrir a luta com o NPC da tarefa; só registra. |
