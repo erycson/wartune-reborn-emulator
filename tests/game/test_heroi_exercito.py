@@ -224,3 +224,94 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         relogin.client.send(8224, pb.PlayerDataMsg(star=True))
         got = await relogin.until(4180)
         assert len(pb.StarMoveRspMsg.FromString(got[-2].body).move) == 2
+
+
+async def test_mount_list_train_and_change(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        sy = snap.systems
+        assert sy is not None
+        sy.mount_avatars, sy.mount_template, sy.mount_gp = "1000,1103", 1103, "1610,270,970,1160"
+        food = Item(g.user_id, 208017, pos=0, count=9)
+        snap.items.append(food)
+        await g.server.services.characters.save(sy, food)
+
+        g.client.send(8530)
+        got = await g.until(4426)
+        assert codes(got) == [4427, 4426]
+        assert pb.MountAvatarMsg.FromString(got[0].body).soulScore == 400  # igual ao login #11
+        info = pb.MountInfoMsg.FromString(got[1].body)
+        assert (info.power, info.intellect, info.physique, info.agility, info.levelMax) == (65, 35, 55, 60, 25)
+
+        g.client.send(8529, pb.MountEditMsg(op=1, propertyType=0, payType=1, param1=9))
+        got = await g.until(4426)
+        assert codes(got) == [115, 3, 150, 4426]
+        info = pb.MountInfoMsg.FromString(got[-1].body)
+        assert (info.power, info.powerGp, info.mountTotalGp) == (70, 1700, 4100)  # captura de treino #90
+        assert pb.ArmyArmyMsg.FromString(got[2].body).mountTempId == 1103
+        g.client.send(8529, pb.MountEditMsg(op=1, propertyType=0, payType=1, param1=1))  # acabou a comida
+        g.client.send(8529, pb.MountEditMsg(op=2, param1=2000))  # não possui
+        assert await g.idle() == []
+        g.client.send(8529, pb.MountEditMsg(op=2, param1=1000))
+        assert pb.MountInfoMsg.FromString((await g.until(4426))[-1].body).mountTempId == 1000
+
+
+async def test_fate_train_and_turn(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        g.client.send(8628)  # abaixo do nível 55
+        assert await g.idle() == []
+        snap.character.grades = 55
+        stones = Item(g.user_id, 208024, pos=0, count=5)
+        snap.items.append(stones)
+        await g.server.services.characters.save(snap.character, stones)
+
+        g.client.send(8628)
+        fates = pb.FateListMsg.FromString((await g.until(4544))[-1].body).fateInfo
+        assert [(f.templateId, f.fateTypes, f.grades) for f in fates] == [(2000, 2000, 0), (2100, 3000, 0)]
+        g.client.send(8626, pb.FateEditMsg(skillSonType=2000, useItemCount=6))  # só tem 5
+        assert await g.idle() == []
+        g.client.send(8626, pb.FateEditMsg(skillSonType=2000, useItemCount=5))
+        got = await g.until(4544)
+        assert codes(got) == [115, 4544]
+        assert pb.FateListMsg.FromString(got[1].body).fateInfo[0].totalGp == 5
+
+        g.client.send(8627, pb.FateEditMsg(turnNum=1))  # grátis do dia
+        got = await g.until(115)
+        turn = pb.FateEditMsg.FromString(got[0].body)
+        assert turn.isSuccess and turn.currCount == 1 and len(turn.count) == 1
+        assert pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item.templateId == 208024
+        g.client.send(8627, pb.FateEditMsg(turnNum=1))  # 10 diamantes: não tem
+        assert pb.FateEditMsg.FromString((await g.until(4545))[-1].body).isSuccess is False
+
+
+async def test_dragon_feed_and_powcard(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        sy = snap.systems
+        assert sy is not None
+        snap.character.grades, sy.powcards = 40, "10001:1:12:0"
+        food = Item(g.user_id, 208032, pos=0, count=20)
+        snap.items.append(food)
+        await g.server.services.characters.save(snap.character, sy, food)
+
+        g.client.send(8642)
+        dragon = pb.FateListMsg.FromString((await g.until(4555))[-1].body).fateInfo[0]
+        assert (dragon.fateTypes, dragon.grades) == (101, 0)
+        g.client.send(8641, pb.FateEditMsg(useItemCount=10))
+        dragon = pb.FateListMsg.FromString((await g.until(4555))[-1].body).fateInfo[0]
+        assert (dragon.grades, dragon.totalGp) == (1, 4)  # 6 para o grau 1; nível 40 para no grau 1
+        g.client.send(8641, pb.FateEditMsg(useItemCount=1))
+        g.client.send(8643)  # transferência só no grau 5
+        assert await g.idle() == []
+
+        g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))
+        card = pb.PowCardSuiteListMsg.FromString((await g.until(4905))[-1].body).suites[0].cardInfos[0]
+        assert (card.grade, card.gp, card.buf.bufId) == (2, 2, 3041)  # igual ao login #76
+        g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))  # faltam 30
+        assert await g.idle() == []
+
+        relogin = await g.connect()
+        relogin.client.send(8224, pb.PlayerDataMsg(powcardInfo=True))
+        suite = pb.PowCardSuiteListMsg.FromString((await relogin.until(4905))[-1].body).suites[0]
+        assert (suite.suiteId, suite.cardInfos[0].grade) == (1000, 2)

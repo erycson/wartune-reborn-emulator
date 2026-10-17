@@ -144,6 +144,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
 
         login_stars(s)
+    if msg.powcardInfo:  # login #76
+        from .systems import S_POWCARD, powcard_msg
+
+        s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates))
 
 
 async def _login_state(s: GameSession) -> None:
