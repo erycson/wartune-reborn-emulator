@@ -522,6 +522,7 @@ arenas = Table(
     _str("pet_formation", 128),
     _str("pet_reward_day", 10),
     _str("pet_reward_week", 10),
+    _int("attack_left", 5),
 )
 
 # posição do coliseu; trocas entre dois jogadores acontecem sob a trava de game/arena.py, por isso

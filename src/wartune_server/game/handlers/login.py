@@ -16,6 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from .. import arena as A
 from .. import castle, farm, guild, rules, social, space, timebox
 from ..builders import login as b
 from ..builders import player as pb_player
@@ -120,6 +121,9 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     social.announce(s, online=True)
     from . import events
 
+    # o dia vira antes do PlayerMsg: o attackLeftCount dele já é o do dia (o arena.login só zera na carga)
+    if snap.arena is not None:
+        A.roll_day(snap.arena, s.ctx.clock.now())
     # primeiro login do dia (login acumulado, atividades de login) antes do PlayerMsg que mostra isso
     if touched := events.touch_login(snap, s.ctx.clock.now(), s.ctx.events):
         await s.ctx.characters.save(*touched)

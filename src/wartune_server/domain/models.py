@@ -509,6 +509,7 @@ class Arena:
     pet_formation: str = ""  # chaPos: "petId,-1,..."
     pet_reward_day: str = ""  # dia da recompensa diária resgatada
     pet_reward_week: str = ""  # semana ISO (AAAA-Wnn) da recompensa semanal resgatada
+    attack_left: int = 5  # PlayerMsg.attackLeftCount: ataques da cidade externa; zera com o dia (4202)
 
 
 @dataclass(eq=False)

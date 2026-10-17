@@ -112,6 +112,8 @@ class GameSession:
         self.chat_state = 7  # estado do IM (15029): 7 online; os amigos veem no 4232/4272
         # oponentes da última lista do coliseu/torneio (4169/4611): só esses podem ser desafiados
         self.arena_offer: dict[int, int] = {}
+        # exército na cidade externa (mapa, x, y em tiles) depois de andar; None = parado no castelo
+        self.outer_army: tuple[int, int, int] | None = None
         self.pet_offer: dict[int, int] = {}
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
