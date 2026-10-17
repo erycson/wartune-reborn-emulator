@@ -63,15 +63,6 @@ Depois ela ajusta os módulos de código (`N.png`, que começam com `road7` + md
   o módulo **sem erro** se não baterem. Os módulos que só existem no CDN completo (6, 7, 9, 12–14,
   17, 18) são de outro build, então a lista recebe o md5 embutido em cada arquivo.
 
-E preenche assets que faltam no CDN e travam o cliente:
-
-* **Figuras de level-up** (`swf/register1/1..5.swf`): geradas a partir de uma figura existente, trocando
-  `Human_6` por `Human_N`. Sem elas o `HeroLeveUpdateAction` estoura a pilha (#1023).
-* **Corpos padrão** (`swf/avatar/<classe>_default_body/<sexo>.bswf`): cópia da primeira roupa da classe
-  (ou do padrão de outra classe). O cliente procura as classes num pacote derivado do caminho
-  (`asset.<pasta>_<arquivo>.S_0_0`), então a cópia tem o pacote renomeado no DoABC e no SymbolClass.
-  Sem isso a batalha quebra em `onBattleUILoaded1` (#1009).
-
 ## Capturas de referência
 
 `tests/fixtures/pcap_samples.json` traz até 3 amostras por opcode de uma sessão oficial
