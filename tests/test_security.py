@@ -45,4 +45,3 @@ def test_load_or_create_persists(tmp_path) -> None:  # type: ignore[no-untyped-d
     path = tmp_path / "k.pem"
     first = LoginKeyPair.load_or_create(path)
     assert LoginKeyPair.load_or_create(path).modulus_b64 == first.modulus_b64
-

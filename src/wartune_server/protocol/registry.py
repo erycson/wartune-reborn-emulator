@@ -79,7 +79,6 @@ def message_class(proto_name: str) -> type[Message]:
 def _default_registry() -> MessageRegistry:
     raw = json.loads(resources.files(__package__).joinpath("data/opcodes.json").read_text(encoding="utf-8"))
     table = {
-        int(code): OpcodeInfo(int(code), tuple(v["names"]), tuple(v["c2s"]), tuple(v["s2c"]))
-        for code, v in raw.items()
+        int(code): OpcodeInfo(int(code), tuple(v["names"]), tuple(v["c2s"]), tuple(v["s2c"])) for code, v in raw.items()
     }
     return MessageRegistry(table)

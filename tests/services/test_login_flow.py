@@ -156,4 +156,3 @@ async def test_registration_rules(env, keys) -> None:  # type: ignore[no-untyped
             await chars.register(RegistrationRequest(ids[1], bad, 1, 1, 1))
     with pytest.raises(ValidationError, match="classe"):
         await chars.register(RegistrationRequest(ids[1], "Valido", 1, 1, 9))
-

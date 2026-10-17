@@ -32,7 +32,6 @@ async def _db_init(settings: Settings) -> None:
     print(f"banco pronto: {settings.database_url}")
 
 
-
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="wartune-server")
     sub = parser.add_subparsers(dest="cmd", required=True)

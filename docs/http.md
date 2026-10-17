@@ -9,6 +9,7 @@ funcionava no projector depois que parou de mandar gzip para quem não pedia.
 | Rota | Quem chama | Entrada | Resposta |
 |---|---|---|---|
 | `GET /crossdomain.xml` | Flash | — | libera o SWF vindo do Apache (outra porta = outra origem) |
+| `POST /maillist` | EmailManager | `userId`, `mailId`, `reqType`, `key` | `<Result value="true"/>` em **zlib** (o cliente faz `ByteArray.uncompress`); caixa sempre vazia por enquanto |
 | `GET/POST /loginselectlist` | Loading | `username`, `site` | `<Result><Item ID Active NickName/></Result>` |
 | `POST /login`, `/login2` | LoginQueue | `p` (RSA+Base64), `site`, `playfb`, `p2`, `client` | `<Result value message userId Address Port/>` |
 | `GET/POST /visualizeregister` | MainFigureView | `userid`, `username`, `nickname`, `sex`, `camp`, `icon`, `site`, `key` | `<Result value="true" type="0"/>` ou `value="false"` com `message` |
@@ -53,3 +54,7 @@ faltam nele (gerada por `tools/build_cdn_overrides.py`). O `.htaccess` resolve, 
 1. a própria pasta (respostas oficiais capturadas e os `.png` de código do relay);
 2. o CDN completo em `/wartune-cdn/`;
 3. `cdn/client/`, porque o cliente pede arquivos relativos ao `Loading.swf`, que no oficial ficava em `/client/` (ex.: `resouececheck.sq`, a lista de MD5 sem a qual os SWFs cifrados não abrem).
+
+Arquivos que o cliente pede e o CDN não tem (`xml/version.xml`, `xml/resource.xml`) saem de
+`tools/cdn_stubs`. No 404, o Flash entrega um corpo vazio e segue; o Ruffle entrega o HTML do Apache,
+e o `StartupResourcesLoader` quebra com `XML parser failure`.

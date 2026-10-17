@@ -33,8 +33,9 @@ def setup_logging(log_dir: Path, level: str = "INFO", packets: bool = True) -> N
     )
 
     def formatter(renderer: structlog.types.Processor) -> structlog.stdlib.ProcessorFormatter:
-        return structlog.stdlib.ProcessorFormatter(foreign_pre_chain=shared, processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta, renderer])
+        return structlog.stdlib.ProcessorFormatter(
+            foreign_pre_chain=shared, processors=[structlog.stdlib.ProcessorFormatter.remove_processors_meta, renderer]
+        )
 
     console = logging.StreamHandler(sys.stdout)
     console.setFormatter(formatter(structlog.dev.ConsoleRenderer(colors=sys.stdout.isatty())))

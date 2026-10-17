@@ -14,7 +14,12 @@ from wartune_server.protocol import (
 # Primeiros 40 bytes cifrados de dois logins 20001 reais (logs do relay), com a chave padrão.
 REAL_LOGIN_PREFIXES = [
     (bytes.fromhex("df137e3b281c5fd55ddd8f60ae4181584b9c684ce8363a6e8a7cb36d41126f7d609b929702f47342"), 72),
-    (bytes.fromhex("df137e3a2803bd453ddd8f60ad3d7ca6579458 4ceb39438ffd14ba3c1c1013ba0d7da2e2d945fb99".replace(" ", "")), 73),
+    (
+        bytes.fromhex(
+            "df137e3a2803bd453ddd8f60ad3d7ca6579458 4ceb39438ffd14ba3c1c1013ba0d7da2e2d945fb99".replace(" ", "")
+        ),
+        73,
+    ),
 ]
 
 

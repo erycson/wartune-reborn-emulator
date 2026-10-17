@@ -13,6 +13,7 @@ Formatos conferidos no cliente decompilado:
 
 from __future__ import annotations
 
+import zlib
 from dataclasses import dataclass
 from xml.sax.saxutils import quoteattr
 
@@ -27,10 +28,7 @@ from ..services.login import LoginService
 
 log = structlog.get_logger(__name__)
 
-CROSSDOMAIN = (
-    '<?xml version="1.0"?><cross-domain-policy>'
-    '<allow-access-from domain="*" /></cross-domain-policy>'
-)
+CROSSDOMAIN = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*" /></cross-domain-policy>'
 
 TUTORIAL_DONE = 19000  # BaseManager: noviceProcess >= 19000 entra direto no castelo
 
@@ -77,6 +75,7 @@ class GameHttpApi:
         r.add_route("*", "/visualizeregister", self.register)
         r.add_post("/updateplayernovice", self.novice)
         r.add_route("*", "/flashversionservlet", self.plain_true)
+        r.add_post("/maillist", self.mail_list)
 
     # -- jogo --------------------------------------------------------------------------
     async def crossdomain(self, _: web.Request) -> web.Response:
@@ -140,6 +139,12 @@ class GameHttpApi:
 
     async def plain_true(self, _: web.Request) -> web.Response:
         return web.Response(text="true")
+
+    async def mail_list(self, _: web.Request) -> web.Response:
+        # EmailManager faz ByteArray.uncompress() no corpo: o XML vai em zlib
+        # ponytail: caixa sempre vazia; listar `<Info>` quando houver tabela de e-mails
+        xml = '<?xml version="1.0" encoding="UTF-8"?><Result value="true" message="Success"/>'
+        return web.Response(body=zlib.compress(xml.encode()), content_type="application/octet-stream")
 
 
 @web.middleware

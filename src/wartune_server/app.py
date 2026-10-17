@@ -71,10 +71,16 @@ async def _register_server(database: Database, settings: Settings, keys: LoginKe
         opened_at = current.opened_at if current else clock.now()
         await uow.servers.upsert(
             GameServer(
-                settings.server_id, settings.server_name, settings.site, settings.public_host,
-                settings.http_port, settings.socket_port, opened_at,
+                settings.server_id,
+                settings.server_name,
+                settings.site,
+                settings.public_host,
+                settings.http_port,
+                settings.socket_port,
+                opened_at,
                 websocket_port=settings.websocket_port,
-                rsa_modulus=keys.modulus_b64, rsa_exponent=keys.exponent_b64,
+                rsa_modulus=keys.modulus_b64,
+                rsa_exponent=keys.exponent_b64,
             )
         )
         await uow.commit()
@@ -86,8 +92,9 @@ class GameServerApp:
         self.services = services
         self.online = OnlinePlayers()
         registry = MessageRegistry.load_default()
-        ctx = GameContext(registry, router, services.login, services.characters, services.templates,
-                          services.clock, self.online)
+        ctx = GameContext(
+            registry, router, services.login, services.characters, services.templates, services.clock, self.online
+        )
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds
         )

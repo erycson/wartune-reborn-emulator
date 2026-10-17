@@ -3,8 +3,11 @@
 Copia de cada origem, na ordem, os arquivos que faltam no CDN ou têm conteúdo diferente.
 A primeira origem que tiver o arquivo vence:
 
-1. ``data/overlay``: respostas capturadas do servidor oficial (tools/export_captures.py)
-2. ``server-relay/public``: SWFs/PNGs do relay validados contra a captura (os .png de código
+1. ``tools/cdn_stubs``: arquivos mínimos para o que o CDN não tem e o cliente pede
+   (``xml/version.xml``, ``xml/resource.xml``); no 404 o Ruffle entrega o HTML do Apache e o
+   cliente quebra ao ler como XML
+2. ``data/overlay``: respostas capturadas do servidor oficial (tools/export_captures.py)
+3. ``server-relay/public``: SWFs/PNGs do relay validados contra a captura (os .png de código
    diferem dos do CDN)
 
 Depois da cópia, os módulos de código cifrados (``N.png``, cabeçalho ``road7``) que o relay
@@ -29,7 +32,7 @@ import struct
 import zlib
 from pathlib import Path
 
-SOURCES = [Path("data/overlay"), Path("D:/wartune/server-relay/public")]
+SOURCES = [Path("tools/cdn_stubs"), Path("data/overlay"), Path("D:/wartune/server-relay/public")]
 CDN = Path("D:/xampp/htdocs/wartune-cdn")
 
 SKIP_SUFFIXES = {".php", ".html", ".jsp", ".json"}

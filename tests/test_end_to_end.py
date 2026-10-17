@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import os
 import re
+import zlib
 from pathlib import Path
 from urllib.parse import quote_from_bytes
 
@@ -76,22 +77,39 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
             row = await uow.servers.get(settings.server_id)
         assert row is not None and row.rsa_modulus == services.keys.modulus_b64 and row.websocket_port == 5001
         assert "allow-access-from" in await (await http.get("/crossdomain.xml")).text()
+        mail = zlib.decompress(await (await http.post("/maillist", data={"userId": "1"})).read())
+        assert b'<Result value="true"' in mail
 
         sel = await (await http.get("/loginselectlist", params={"username": "maga", "site": fv["site"]})).text()
         assert "<Item" not in sel
 
         temp = "7654321"
         plain = f"{quote_from_bytes(b'maga', safe='')}|{fv['key']}|{temp}|0".encode()
-        login = await (await http.post("/login", data={"p": services.keys.encrypt_b64(plain), "site": fv["site"]})).text()
+        login = await (
+            await http.post("/login", data={"p": services.keys.encrypt_b64(plain), "site": fv["site"]})
+        ).text()
         user_id = int(re.search(r'userId="(\d+)"', login).group(1))  # type: ignore[union-attr]
         assert user_id > 0 and 'value="true"' in login
 
         key = hashlib.md5(temp.encode()).hexdigest()
-        reg = await (await http.post("/visualizeregister", data={
-            "userid": user_id, "username": "maga", "nickname": "Maga", "sex": 0, "camp": 1, "icon": 6, "key": key,
-        })).text()
+        reg = await (
+            await http.post(
+                "/visualizeregister",
+                data={
+                    "userid": user_id,
+                    "username": "maga",
+                    "nickname": "Maga",
+                    "sex": 0,
+                    "camp": 1,
+                    "icon": 6,
+                    "key": key,
+                },
+            )
+        ).text()
         assert 'value="true"' in reg and 'type="0"' in reg, reg
-        novice = await http.post("/updateplayernovice", data={"op": 1, "userid": user_id, "noviceprocess": 0, "key": key})
+        novice = await http.post(
+            "/updateplayernovice", data={"op": 1, "userid": user_id, "noviceprocess": 0, "key": key}
+        )
         assert await novice.text() == "19000"  # skip_tutorial
 
         sel = await (await http.get("/loginselectlist", params={"username": "maga"})).text()
@@ -135,4 +153,3 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         tcp.close()
         server.acceptor.close_all()
         await services.database.dispose()
-
