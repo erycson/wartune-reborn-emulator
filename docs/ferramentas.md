@@ -26,7 +26,7 @@ resolve o tipo protobuf de cada lado e dá nome aos opcodes com `ProtocolType.as
 
 ## `tools/decode_pcap.py`
 
-Decifra as capturas do Wireshark do oficial (`D:\wartune\server-relayll pcaps\*.pcapng`, uma por
+Decifra as capturas do Wireshark do oficial (`D:\wartune\server-relay\all pcaps\*.pcapng`, uma por
 sistema) para o formato do `replay_packets.json`, que o `dump_capture.py` lê. Remonta cada fluxo TCP
 da porta 5000 pela sequência. As capturas começam no meio da sessão, sem o 20001 com a chave, então
 a chave é recuperada pelo cabeçalho: cada byte dela só evolui com o texto cifrado, e o cabeçalho tem
