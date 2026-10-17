@@ -12,19 +12,38 @@ from ..router import router
 from ..session import GameSession
 
 S_SYSTEM_ARMY = 20
+# exército do sistema por mapa (SystemArmyMsg): só os mapas com resposta na captura; os demais ficam vazios
+SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplated, soldierTemplated)
+    # (visto) replay #923: 5038 com paraInt1=1011; o 20 com soldierTemplated 2011 é o pacote #924
+    1011: ([], [2011]),
+    # (visto) replay #1321: 20 com heroTemplated 1011, depois do pedido #1219 e das entradas #1312/#1314;
+    # ligar esse 20 ao #1219 é dedução
+    1021: ([1011], [2011]),
+    # (visto) peri_uyanis #89-90: 5038 paraInt1=2011 -> 20
+    2011: ([3011], [4012, 4011]),
+}
 
 
 @router.on(5033)
 async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    # confirmação de nó (replay: 140, 131, 128, 157). Sem o mapa de nós e o progresso, não há o que confirmar
-    s.log.info("5033 sem efeito (dependência de nós)", p1=msg.paraInt1, p2=msg.paraInt2)
+    # caixa Pandora: ecoa mapId (paraInt1) e nodeId (paraInt2) do S>C 29 (CampaignConfirmMsg, replay #1154);
+    # paraBool1 = confirmou (cliente: CampaignMapController.__callServerSccess). Sem a recompensa, não muda estado
+    s.log.info("5033 sem efeito (caixa Pandora: sem captura da recompensa)", p1=msg.paraInt1, p2=msg.paraInt2)
 
 
 @router.on(5038)
 async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    # exército do sistema do nó (replay: 20 SystemArmyMsg). Sem tabela de nó, a lista vai vazia
-    s.log.info("5038 exército do sistema vazio (dependência)", p1=msg.paraInt1)
-    s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg())
+    """Pré-carga de batalha do mapa (``PreLoadNextCampaign``, ``paraInt1`` = mapa): responde 20 com a lista do mapa.
+
+    (cliente) o 20 só alimenta ``BattleResPreloadManager``. (visto) nem todo 5038 tem um 20 no pacote seguinte
+    do replay (o #1219 não tem). (dedução) responder logo a cada 5038; o cliente remove o listener do 20 depois
+    do primeiro (``PreLoadNextCampaign``, linhas 46 e 80).
+    """
+    heroes, soldiers = SYSTEM_ARMY.get(msg.paraInt1, ([], []))
+    if msg.paraInt1 not in SYSTEM_ARMY:
+        # ponytail: mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado
+        s.log.info("5038 mapa sem captura (lista vazia)", mapa=msg.paraInt1)
+    s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg(heroTemplated=heroes, soldierTemplated=soldiers))
 
 
 @router.on(5121)

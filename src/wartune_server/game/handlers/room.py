@@ -17,6 +17,7 @@ from ..session import GameSession
 S_ROOM, S_ROOM_LIST, S_PLACE, S_EDIT, S_MEMBERS = 12, 13, 17, 32, 120
 S_EXIT, S_KILL, S_MASTER = 15, 28, 121
 S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
+S_ROOM_STATE = 4913  # SimplePropertyMsg: sala do link no chat (9504), BaseManager.__mulityCampaignRequestHandler
 PLAYER_READY = 2  # playerState do dono na captura; os demais ainda não foram vistos, usam o mesmo valor
 
 
@@ -35,6 +36,11 @@ def _room_msg(room: Room) -> pb.RoomMsg:
 
 def _list_msg(rooms: list[Room]) -> pb.RoomListRspMsg:
     return pb.RoomListRspMsg(room=[_room_msg(r) for r in rooms])
+
+
+def _of_type(msg: pb.RoomReqMsg, rooms: list[Room]) -> list[Room]:
+    """Só as salas do tipo pedido. Aqui só há as de campanha (PvE); PvP e veículo vêm vazios."""
+    return rooms if msg.roomType == PVE else []
 
 
 def _members_msg(s: GameSession, room: Room) -> pb.RoomPlayerListMsg:
@@ -120,6 +126,9 @@ def leave_room(s: GameSession) -> None:
 
 @router.on(5023)
 async def create_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    if msg.roomType != PVE:  # PvP (1) e veículo (2) não têm sala aqui: recusa, sem criar sala de outro tipo
+        s.log.info("5023 recusado: tipo de sala sem sistema", tipo=msg.roomType)
+        return
     if s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5023 recusado: já está numa sala")
         return
@@ -131,6 +140,9 @@ async def create_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
 
 @router.on(5024)
 async def enter_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    if msg.roomType != PVE:
+        s.log.info("5024 recusado: tipo de sala sem sistema", tipo=msg.roomType)
+        return
     room = s.ctx.rooms.get(msg.roomId)
     if room is None or s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5024 recusado", sala=msg.roomId)
@@ -146,14 +158,14 @@ async def enter_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
 
 
 @router.on(5026)
-async def list_rooms(s: GameSession, _: pb.RoomReqMsg) -> None:
-    s.send(S_ROOM_LIST, _list_msg(s.ctx.rooms.visible()))
+async def list_rooms(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    s.send(S_ROOM_LIST, _list_msg(_of_type(msg, s.ctx.rooms.visible())))
 
 
 @router.on(8465)
 async def find_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
     """Procurar sala: lista só a de ``roomId``; sem id, todas. Sem captura do pedido: só o filtro."""
-    rooms = [r for r in s.ctx.rooms.visible() if not msg.roomId or r.id == msg.roomId]
+    rooms = [r for r in _of_type(msg, s.ctx.rooms.visible()) if not msg.roomId or r.id == msg.roomId]
     s.send(S_ROOM_LIST, _list_msg(rooms))
 
 
@@ -203,8 +215,20 @@ async def exit_room(s: GameSession, _: pb.RoomExitMsg) -> None:
 
 @router.on(9504)
 async def multi_campaign(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
-    # campanha multi (4913 SimplePropertyMsg): o pedido e o formato da resposta não foram identificados
-    s.log.info("9504 sem resposta (dependência)", p1=msg.param1)
+    """Link de sala no chat (``sendSearchRoomState``, ``param1`` = roomId): responde 4913 com a sala.
+
+    (cliente) BaseManager.__mulityCampaignRequestHandler: ``param1`` é o id, ``param2`` a campanha (0 = sem
+    campanha). ``param7`` vai para ``isInCampaign``, que troca o alerta de entrada (``EnterCampaignTips``, em
+    ``confirmBack``). (dedução) ``param7`` = quem pediu está numa campanha, lido de ``s.campaign``; o cliente
+    tem a mesma leitura em ``SwitchPageHelp.isInCampaign`` (cena do pedidor). ``WorldBossHelper.getCampaignTips``
+    não serve de fonte: só cobre mapas especiais. Leitura alternativa (sala iniciada -> False) não se separa
+    aqui, porque salas não iniciam no servidor. Sala inexistente fica sem resposta (dedução, sem captura).
+    """
+    room = s.ctx.rooms.get(msg.param1)
+    if room is None:
+        s.log.info("9504 sala inexistente", sala=msg.param1)
+        return
+    s.send(S_ROOM_STATE, pb.SimplePropertyMsg(param1=room.id, param2=room.campaign, param7=s.campaign is not None))
 
 
 @router.on(5027)
