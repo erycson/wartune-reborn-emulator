@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rules
+from .. import rules, space
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
@@ -74,9 +74,16 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     s.connection.rekey(bytes(k & 0xFF for k in msg.ekeys))
     try:
         character = await s.ctx.login.claim_socket(msg.key)
+        # relogin: a sessão anterior termina (e grava) antes de carregarmos o snapshot; senão ela
+        # gravaria depois por cima do que esta sessão fizer (item duplicado ou perdido)
+        await s.ctx.online.kick(character.id or 0)
         snap = await s.ctx.characters.snapshot(character.id or 0)
     except DomainError as exc:
         s.log.info("login no socket recusado", erro=str(exc))
+        s.connection.close()
+        return
+    except TimeoutError:
+        s.log.warning("sessão anterior não terminou; login recusado", player=character.id)
         s.connection.close()
         return
     if snap.leader is None or snap.castle is None:
@@ -139,3 +146,4 @@ async def _login_state(s: GameSession) -> None:
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
+    space.enter(s)  # o oficial cria a cidade do céu logo depois do 6

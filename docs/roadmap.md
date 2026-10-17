@@ -27,7 +27,7 @@
 Levantamento e ordem em [multiplayer.md](multiplayer.md).
 
 - [x] Chat: mundo, cena, privado ([chat.md](chat.md)); guilda, time e cornetas pagas depois
-- [ ] Cidade do céu: ver outros jogadores andando; relogin espera a sessão anterior
+- [x] Cidade do céu: ver outros jogadores andando ([mundo-compartilhado.md](mundo-compartilhado.md)); relogin espera a sessão anterior
 - [ ] Coliseu contra robôs e cópias de jogadores
 - [ ] Atividades (SumActive): login e presente online
 - [ ] Boss mundial

@@ -30,6 +30,7 @@ class Game:
     server: GameServerApp
     user_id: int
     join: Callable[[str], Awaitable[Game]]
+    connect: Callable[[], Awaitable[Game]]  # mais um socket na mesma conta (relogin)
 
     async def until(self, code: int) -> list[Packet]:
         return await self.client.until(code)
@@ -80,7 +81,7 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIter
     async def join(username: str, icon: int = job_icon) -> Game:
         account = await portal.account(username)
         ticket = await portal.ticket(account.id)  # type: ignore[arg-type]
-        temp = "7654321"
+        temp = str(int.from_bytes(os.urandom(3)))  # chave da sessão HTTP: uma por login, como no cliente
         plain = f"{quote_from_bytes(username.encode(), safe='')}|{ticket}|{temp}|0".encode()
         form = {"p": services.keys.encrypt_b64(plain), "site": settings.site}
         login = await (await http.post("/login", data=form)).text()
@@ -91,6 +92,9 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIter
         await http.post("/visualizeregister", data=reg | {"key": key})
         await services.characters.set_novice_process(user_id, novice)
 
+        return await socket_login(user_id, key)
+
+    async def socket_login(user_id: int, key: str) -> Game:
         client = FakeFlashClient(*await asyncio.open_connection("127.0.0.1", tcp.sockets[0].getsockname()[1]))
         clients.append(client)
         ekeys = os.urandom(8)
@@ -99,7 +103,9 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIter
         await client.until(150)
         client.send(8224, pb.PlayerDataMsg(user=True))
         await client.until(6)
-        return Game(client, server, user_id, join)
+        if novice >= 19000:
+            await client.until(4595)  # cidade do céu, logo depois do 6
+        return Game(client, server, user_id, join, lambda: socket_login(user_id, key))
 
     try:
         yield await join("maga")

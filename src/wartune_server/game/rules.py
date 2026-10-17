@@ -12,7 +12,7 @@ from .builders.login import QUEST_SITE_LEN, HeroStats
 
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
-WEAPON = "101"  # ItemTempInfo.SonType
+WEAPON, CLOTH = "101", "104"  # ItemTempInfo.SonType
 
 # ganho de atributos por nível, por JobType (1 guerreiro, 2 caçador, 3 mago). O mago foi medido na
 # captura (níveis 1, 3 e 5); ponytail: guerreiro e caçador são o espelho dele, trocar quando houver captura.
@@ -50,6 +50,11 @@ def leader_stats(snap: PlayerSnapshot, templates: GameTemplates) -> HeroStats:
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
     """``ArmyArmyMsg.arm``: arte da arma equipada (``/wizard_arms002``)."""
     return next((r.get("Avata", "") for r in equipment(snap, templates) if r.get("SonType") == WEAPON), "")
+
+
+def cloth_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
+    """``RoomPlayerMsg.cloth``: arte da armadura equipada (``/warrior_body023``)."""
+    return next((r.get("Avata", "") for r in equipment(snap, templates) if r.get("SonType") == CLOTH), "")
 
 
 def grade_steps(templates: GameTemplates) -> list[tuple[int, int]]:

@@ -124,7 +124,7 @@ Clicar num castelo dá estas opções:
 
 ## No servidor
 
-Fatia 1 (cidade do céu), em `game/space.py` e `game/handlers/space.py`:
+Fatia 1 (cidade do céu), feita em `game/space.py` e `game/handlers/space.py`:
 
 **Escopo**
 - Só depois do tutorial (`noviceProcess` ≥ 19000). O 4595 troca a cena do cliente.
@@ -141,8 +141,11 @@ Fatia 1 (cidade do céu), em `game/space.py` e `game/handlers/space.py`:
 
 **Saída**
 - Quando a sessão termina ou entra numa campanha, manda 4607 aos outros.
-- O `unbind` diz se a sessão era a atual, para um relogin não anunciar a saída do jogador que
-  acabou de entrar.
+- No relogin a sessão anterior já terminou antes da nova entrar (passo 1 do login), então os outros
+  recebem o 4607 e depois o 4597, nessa ordem.
+- A posição não é gravada: todo login começa em (72,74).
+- O `RoomPlayerMsg` leva arma e armadura equipadas (`arm`/`cloth`). Montaria, pet, moda e guilda vão
+  vazios até existirem.
 
 **Fica para depois**
 - ponytail: broadcast para o space inteiro, sem área de interesse nem tick de 500 ms. Fazer quando

@@ -15,7 +15,7 @@ from ...content import tutorial
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
-from .. import rules
+from .. import rules, space
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -121,49 +121,8 @@ def map_sync(s: GameSession, state: int) -> pb.MapUpdatedMsg:
 
 def _room_enter(s: GameSession) -> pb.RoomEnterMsg:
     snap, c = s.snapshot, _map(s)
-    assert snap is not None and snap.leader is not None
-    fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
-    msg = pb.RoomEnterMsg(result=1)
-    msg.player.add(
-        currentRoomIndex=0,
-        heroId=snap.leader.id,
-        playerId=s.player_id,
-        grades=snap.character.grades,
-        nickName=snap.character.nickname or "",
-        templateId=snap.leader.template_id,
-        arm=rules.arm_avatar(snap, s.ctx.templates),
-        cloth="",
-        armyId=s.player_id,
-        fightingCapacity=fighting,
-        curPosX=c.pos[0],
-        curPosY=c.pos[1],
-        campaignId=c.map_id,
-        onlineState=True,
-        consortiaId=0,
-        consortiaName="",
-        changeShapeId=0,
-        armyState=0,
-        teamId=0,
-        bufferTempId=0,
-        geste=0,
-        headId=0,
-        isVip=False,
-        vipType=0,
-        mountTempId=0,
-        mountGrade=0,
-        wing="",
-        hat="",
-        fashionArm="",
-        fashionCloth="",
-        hide=False,
-        appellid=0,
-        fateSkills="",
-        petTemplateId=0,
-        petQuqlity=0,
-        petName="",
-        isNoGet=False,
-    )
-    return msg
+    assert snap is not None
+    return pb.RoomEnterMsg(result=1, player=[space.room_player(snap, s.ctx.templates, c.pos, c.map_id)])
 
 
 def _escort(s: GameSession) -> None:

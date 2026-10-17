@@ -84,7 +84,7 @@ class OnlinePlayers:
         session = self._by_id.get(player_id)
         if session is None:
             return
-        log.info("derrubando jogador a pedido do GM", player=player_id)
+        log.info("derrubando sessão", player=player_id)
         session.connection.close()
         async with asyncio.timeout(KICK_TIMEOUT):
             await session.gone.wait()
@@ -100,6 +100,7 @@ class GameSession:
         self.battle: Battle | None = None
         self.hero_sp = 0  # SP do herói entre batalhas (o oficial carrega de uma para a outra)
         self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
+        self.space_pos: tuple[int, int] | None = None  # tile na cidade do céu; None = fora dela
         self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
@@ -127,6 +128,9 @@ class GameSession:
         if self.battle is not None:
             self.battle.cancel()
         if self.snapshot is not None:
+            from . import space  # space importa este módulo
+
+            space.leave(self)
             self.ctx.online.unbind(self.player_id, self)
             self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()
