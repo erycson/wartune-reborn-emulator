@@ -16,10 +16,15 @@ migração `0003`) e na memória em `Guilds` (`GameContext.guilds`, carregado no
 Motivo: o chefe aceita, expulsa ou promove quem está online. Se isso mexesse no `Character` da
 outra sessão, o próximo `save` dela gravaria o objeto antigo por cima. No `Character` fica só o que
 o próprio jogador muda: contribuição (`consortia_offer`, `consortia_total_offer`), os seis níveis
-de habilidade, `is_auto` e `last_out_consortia`. Itens para outro jogador (baú) passam pelo
-snapshot da sessão dele se estiver online, ou carregam/gravam o snapshot se estiver offline.
+de habilidade, `is_auto` e `last_out_consortia`. Itens para outro jogador (baú) entram no snapshot da
+sessão dele se estiver online, ou no snapshot carregado do banco se estiver offline, e tudo vai numa
+gravação só. O prêmio da bênção pendente fica na linha do membro (`consortia_members.bless_item`,
+migração `0018`), não na memória.
 
-Todo handler muda a memória antes do primeiro `await` e grava tudo numa `characters.save`.
+Todo handler valida e muda a memória sem `await` no meio, e grava tudo numa `characters.save`. O
+baú lê as mochilas dos destinatários offline antes de validar (só leitura). A criação grava com
+`characters.write`, porque o membro precisa do id da guilda, e só põe a guilda na memória depois
+do commit.
 
 ## Regras do cliente
 
@@ -39,6 +44,7 @@ Todo handler muda a memória antes do primeiro `await` e grava tudo numa `charac
 - 4133 em pedaços com o mesmo `uuid` até somar `totalRows`; membro sem apelido é descartado.
 - 4138/164: datas sempre `YYYY-MM-DD hh:mm:ss`; `warnDate` 8 dias ou mais atrás mostra
   "guilda inativa"; `currentDate` é a base da contagem da espera da melhoria.
+- **Bênção** (m6 `consortia/view/myConsortia/building/ConsortiaAltarFrame.as` e `consortia/helper/ConsortiaAltarHelper.as`): cada bênção custa `Property1` da contribuição pessoal, e o limite do dia é `Property2` do nível do altar (tipo 3 do `ConsortiaLevelInfos`). A rápida chama `consortiaAltarBless(10)` com VIP 6; o cliente não multiplica custo nem limite pelo 10.
 
 ## Opcodes (cliente -> servidor)
 
@@ -73,11 +79,11 @@ Todo handler muda a memória antes do primeiro `await` e grava tudo numa `charac
 | 5147 | aprender habilidade | 3, 150 | *(cliente)* m2 `consortiaStudy` |
 | 8215 | info do altar | 4141 (bênçãos usadas hoje), 4142 prêmio pendente | *(cliente)* m2 `__refreshAltarInfo` |
 | 8217 | casas da roleta | 4144 `site[]` (`DropViewInfos.Site`) | *(cliente)* m2 `ConsortiaDropTemplateCate` |
-| 5145 | bênção | 45 `{blessLeftTime, blessSite, blessTempId, blessCount}`; `blessSite` = posição no 4144, -1 = nada | *(cliente)* m2 `__getAltarBlessInfo`, m6 `ConsortiaAltarFrame` |
-| 8216 | pegar o prêmio da bênção | 115, 4143 `{result}` | *(cliente)* m2 `__addFreshItem` |
+| 5145 | bênção | 45 `{blessLeftTime, blessSite, blessTempId, blessCount}`; `blessSite` = posição no 4144, -1 = nada; o prêmio fica no membro até o 8216 | *(cliente)* m2 `__getAltarBlessInfo`, m6 `ConsortiaAltarFrame` |
+| 8216 | pegar o prêmio da bênção (sem espaço livre: 4143 `result` falso e o prêmio fica) | 115, 4143 `{result}` | *(cliente)* m2 `__addFreshItem` |
 | 8577 | baú | 4466 | *(visto)* `birlik_katkisi...json` #4 |
 | 8579 | membros para distribuir | 4465 | *(cliente)* m6 |
-| 8578 | distribuir (chefe) | 115 para cada membro online; 4466 | *(cliente)* m6 |
+| 8578 | distribuir (chefe) | 115 para quem está online e tem espaço; 148 quando vai pelo correio (*dedução*); 4466 | *(cliente)* m6 |
 | 8241 | eleição: candidatos | 4389 | *(cliente)* m2 `__setVotingUsers` |
 | 8481 | votar | 4390 `{result}` | *(cliente)* m2 |
 | 8335 | anúncio de recrutamento | nada (o cliente só deixa com `speakTimes > 0`, sempre 0) | *(cliente)* m6 |
@@ -128,21 +134,75 @@ primeiro.
 
 ## Pendências
 
-- **Mapas das atividades**: altar do demônio (7601), terra secreta (7501), guerra (4501) e entre
-  servidores (4601) abrem com o 125 e os nós do mapa. O servidor só tem o mapa do tutorial
-  (`game/campaign.py`). Os nós de 7601 e 7501 não estão nos `.maps` do CDN (só 13 mapas têm; os
-  das atividades ficavam no banco do oficial), então falta uma captura de cada atividade. Por isso
-  8542/8537/8471/8783 são recusados; o cliente não trava (só envia, com intervalo entre cliques,
-  m2 `ConsortiaSocketOutManager`) e os pacotes de dentro do mapa
-  (4437 relatório, 4448, 4449 fim, 4485, 4432/4632, 4440/4439/4457/4462/4460) não saem. Com o mapa
-  pronto, a luta usa o fluxo PvE de `game/battle.py`, e o ranking por dano vai no `hurtOrder` do
-  4437; os prêmios vão para o baú com `handlers.guild.add_to_box`.
-- O altar abre e o estado (`altarState` 0/1/2, 21 min) aparece no 164/4138.
-- **Prêmio da bênção**: a tabela do oficial não está nos templates. ponytail: sempre um item do
-  mercado liberado pelo nível do altar, na casa 1; fica na memória até o 8216. A bênção rápida
-  (x10, VIP 6) é recusada: o VIP já existe (`handlers/vip.py`), mas o custo e a quantidade do x10
-  estão só no m6, que não está na árvore decompilada; conferir antes de implementar.
-- **Eleição**: a regra que abre a votação (chefe sumido) não está no cliente; `voting_state` só
-  muda pelo banco.
-- **Baú**: membro offline com mochila cheia perde o item (falta correio).
-- 8335 recrutamento, guildas-robô e o renomear grátis (`same`) não existem.
+**Resolvido nesta rodada**: criar guilda grava guilda, membro, evento e candidaturas numa transação
+só (antes eram duas); o prêmio da bênção fica na linha do membro (`consortia_members.bless_item`,
+migração `0018`), então reiniciar o servidor não perde o prêmio; altar, prêmio e baú usam a mochila
+inteira (`bag.capacity`: espaços comprados contam e o item empilha); item do baú que não cabe na
+mochila do membro vai pelo correio, com o nome do item como título (*(dedução)*: o oficial não
+mostrou o caso, a loja é a única referência e manda pelo correio).
+
+**Mapas e batalhas das atividades: precisa de captura.** Os quatro mapas existem em `MapInfos`
+(nome, tamanho, `MapFileId`) e `Campaigns`, mas os nós não existem em nenhuma das fontes. Conferido
+em 2026-10-17 com o decodificador dos `.maps` do CDN (memória `campaign-nodes-in-maps-files`):
+
+| Mapa | Atividade | `MapInfos` | `.maps` (nós com `id` diferente de 0) | Situação |
+|---|---|---|---|---|
+| 7601 | altar do demônio | 4000×3000, `Campaigns` tipo 8 | 4.591 objetos com dados de campanha, todos com `id` 0 | captura |
+| 7501 | terra secreta | 2000×2000, tipo 7 | nenhum objeto de campanha | captura |
+| 4501 | guerra de guildas | 8000×4000, tipo 6 | nenhum objeto de campanha | captura |
+| 4601 | guerra entre servidores | 6000×3500, tipo 16 | 41 nós com `id`: 20 carros de guilda, 5 torres, 5 nós de energia e o resto (recursos e outros) | evento fechado (abaixo) |
+
+`MapNodeInfos` e `CampaignData` não têm nenhuma linha para esses quatro mapas. A luta usaria o fluxo
+PvE de `game/battle.py` com esses nós; sem eles o cliente carregaria um mapa vazio, sem saída, então
+8542, 8537, 8471 e 8783 continuam recusados.
+
+**O que capturar** (uma captura por atividade, de uma sessão completa):
+
+- **Altar (7601)**: guilda nível 5 ou mais, o chefe abre o altar (8541), um membro entra (8542) e
+  chega ao fim. Precisa do 125 do mapa 7601, da lista de nós (5125 ou `CampaignNodeList`) com os
+  monstros e o altar, e dos pacotes 8549, 8550, 8593, 8264 (reviver), 4437 (relatório), 4448 e 4449.
+- **Terra secreta (7501)**: entrar (8537), regar a árvore (8565), comprar o buff (8566), chegar ao
+  nó do senhor (8743), com a lista de nós.
+- **Guerra (4501)**: no dia de `Guild_WarDay` (1, 3 e 5) entre 20:00 e 21:00, duas guildas: grupos
+  (8546 e 4441), desafios e lista (8472/8477 com 4377/4379), entrar (8471, 125 do 4501), montar time
+  (8473), buff (8547) e os pacotes de dentro do mapa.
+- **Bênção**: pelo menos 30 bênçãos no altar de nível 10, gravando o 45 e o 4143 de cada uma, para
+  ver as 10 casas e a tabela de prêmios. Mais uma rápida (x10) com VIP 6: custo em contribuição antes
+  e depois, o 45 e o 4143. Sem isso, a tabela e a forma da resposta do x10 não saem de lugar nenhum.
+- **Guerra entre servidores (4601)**: só se o evento reabrir (inscrição 8779 e a resposta 4682 com
+  `info`, depois o time 8778 e a entrada 8783).
+
+**Fechado pelo template**: `CrossGuild_TimeOutDate` é 2025-11-14 (fim do ícone) e a inscrição
+(`GuildSignOpen`/`GuildSignStop`) foi de 2025-09-16 a 2025-09-20. A guerra entre servidores está
+fechada no servidor hoje, por isso 8782 responde "não inscrita". *(dedução)* sobre o estado do evento.
+
+**Custos e horários já nos templates** (`ConfigInfos`), que o próximo que implementar o mapa usa.
+A descrição está em chinês; a ligação com o opcode é *(dedução)*:
+
+- `AltarLive_Offer` 50: contribuição para reviver no altar (8264).
+- `ConsortiaAltarBufferNeedOffer` 200: buff do altar (8550).
+- `ConsortiaAltarSceneNeedOffe_Fix` 10000: travar os monstros da tela (8593).
+- `ConsortiaAltarSceneNeedOffe_Live` 10000 e `ConsortiaAltarSceneLive` 20: custo e vida recuperada do altar.
+- `Fam_Buffer_Price` 200 e `FamTree_WaterMax` 50: buff da terra secreta e carga diária da árvore.
+- `Guild_WarDay` 1,3,5 e `GuildWar_Time` 20:00,21:00: dias e horas da guerra de guildas.
+
+**Prêmio da bênção (5145/8216)**: a tabela do oficial não está nos templates nem nas capturas.
+`DropViewInfos` tem só nome e ícone das 10 casas (`pray_001` a `pray_010`); `LeedDrop` (sites 1 a 5) e
+`VipDrop` (sites 1 a 9) têm outras casas, não as 10 da bênção; `DistrictDrop` (distritos 101 a 107) não é chamado pelo
+cliente; e nenhuma captura tem o 45 ou o 4143. Continua valendo o *ponytail*: o prêmio é sempre um
+item do mercado liberado pelo nível do altar, na casa 1.
+
+**Bênção rápida (x10, VIP 6)**: recusada. O m6 (`ConsortiaAltarFrame`) mostra o VIP 6
+(`QUICK_BLESS_VIP_GRADE`) e as 10 bênçãos (`QUICK_BLESS_COUNT`, `consortiaAltarBless(10)`). O
+`ConsortiaAltarHelper.canBless` confere um custo e o limite diário de uma bênção, e nenhum custo
+nem forma de resposta do x10 aparece no cliente. Captura: a seção do altar acima.
+
+**Eleição (8241/8481)**: nada abre a votação, só editando o banco (`voting_state`). A regra do chefe
+sumido não está no cliente nem nas capturas.
+
+**Sem dado**: 8335 recrutamento (o cliente só deixa com `speakTimes` > 0, e aqui é sempre 0); guildas-robô
+(o oficial tinha, aqui é a guilda aberta com mais membros); renomear grátis depois de juntar servidores
+(`same`, precisa da guerra entre servidores).
+
+**Pendente, sem fonte**: sair da guilda antes de pegar o prêmio da bênção perde o prêmio (fica na
+linha do membro). O oficial não mostrou esse caso.

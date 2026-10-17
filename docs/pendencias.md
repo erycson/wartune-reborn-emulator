@@ -105,14 +105,16 @@ Outros eventos:
 
 ## Guilda ([guilda.md](guilda.md))
 
-- Atividades com mapa (altar 8542, terra secreta 8537/8565/8566/8743, guerra 8471, entre servidores 8783) e os pacotes dentro do mapa: recusados. **sem dado**: os nós dos mapas 7601/7501 não estão nos `.maps`.
-- Rankings e prêmios das atividades: o gancho `add_to_box` existe, ninguém chama.
-- Bênção (5145): o prêmio é sempre um item do mercado liberado pelo nível do altar; o prêmio pendente fica só em memória; bênção rápida (VIP 6) recusada. **sem dado**: tabela oficial.
+- Mapas e batalhas das atividades (altar 7601, terra secreta 7501, guerra 4501, entre servidores 4601) e os
+  pacotes dentro deles: recusados. **precisa de captura**: os nós de 7601, 7501 e 4501 não estão em nenhuma
+  fonte; o 4601 tem os nós, mas o evento está fechado pelo template. O que capturar está em
+  [guilda.md](guilda.md#pendências).
+- Rankings e prêmios das atividades: o gancho `add_to_box` existe, ninguém chama (depende das atividades).
+- Bênção (5145): o prêmio é sempre um item do mercado liberado pelo nível do altar, na casa 1. A tabela do
+  oficial e a bênção rápida (x10) **precisam de captura**. O prêmio pendente agora fica na linha do membro.
 - Eleição (8241/8481): nada inicia a eleição (só editando o banco). **sem dado**.
-- 8335 só registra (`speakTimes` sempre 0).
-- Criar guilda grava em duas transações; se a segunda falhar, o ouro some e a guilda fica sem membros.
-- Item da caixa para membro offline com mochila cheia se perde. **depende de**: correio na entrega.
-- Altar, caixa e prêmios usam só os 42 espaços base da mochila.
+- 8335 só registra (`speakTimes` sempre 0). **sem dado**: anúncio de recrutamento.
+- Sair da guilda antes de pegar o prêmio da bênção perde o prêmio (*ponytail*).
 
 ## Herói, exército e pets ([heroi-exercito.md](heroi-exercito.md))
 
@@ -167,7 +169,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/castle.py:80](../src/wartune_server/game/castle.py#L80) | sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem |
 | [game/castle.py:154](../src/wartune_server/game/castle.py#L154) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
 | [game/farm.py:19](../src/wartune_server/game/farm.py#L19) | sem upgrade de terra (opType 9 não tem sender) |
-| [game/guild.py:162](../src/wartune_server/game/guild.py#L162) | só os 50 últimos na memória; o banco guarda todos |
+| [game/guild.py:161](../src/wartune_server/game/guild.py#L161) | só os 50 últimos na memória; o banco guarda todos |
 | [game/handlers/account.py:20](../src/wartune_server/game/handlers/account.py#L20) | prazo do reset não está no cliente nem nas capturas; ajustar se aparecer |
 | [game/handlers/account.py:190](../src/wartune_server/game/handlers/account.py#L190) | sala de um jogador só; broadcast quando houver sala compartilhada |
 | [game/handlers/arena.py:18](../src/wartune_server/game/handlers/arena.py#L18) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
@@ -195,15 +197,13 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/forge.py:264](../src/wartune_server/game/handlers/forge.py#L264) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme na faixa |
 | [game/handlers/friends.py:30](../src/wartune_server/game/handlers/friends.py#L30) | limites do cliente não achados (módulo de UI ausente) |
 | [game/handlers/friends.py:312](../src/wartune_server/game/handlers/friends.py#L312) | ``pageIndex`` tratado como 1-based (UI ausente). |
-| [game/handlers/guild.py:19](../src/wartune_server/game/handlers/guild.py#L19) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
-| [game/handlers/guild.py:182](../src/wartune_server/game/handlers/guild.py#L182) | duas transações (o membro precisa do id da guilda); se a segunda falhar fica uma |
-| [game/handlers/guild.py:440](../src/wartune_server/game/handlers/guild.py#L440) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
-| [game/handlers/guild.py:609](../src/wartune_server/game/handlers/guild.py#L609) | o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual. |
-| [game/handlers/guild.py:653](../src/wartune_server/game/handlers/guild.py#L653) | não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado |
-| [game/handlers/guild.py:865](../src/wartune_server/game/handlers/guild.py#L865) | a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item |
-| [game/handlers/guild.py:898](../src/wartune_server/game/handlers/guild.py#L898) | só na memória; reiniciar o servidor perde o prêmio |
-| [game/handlers/guild.py:1002](../src/wartune_server/game/handlers/guild.py#L1002) | offline grava direto; se ele logar durante o await o item só aparece no próximo |
-| [game/handlers/guild.py:1038](../src/wartune_server/game/handlers/guild.py#L1038) | o oficial abre a eleição quando o chefe some por muitos dias; a regra não está no |
+| [game/handlers/guild.py:470](../src/wartune_server/game/handlers/guild.py#L470) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
+| [game/handlers/guild.py:639](../src/wartune_server/game/handlers/guild.py#L639) | o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual. |
+| [game/handlers/guild.py:683](../src/wartune_server/game/handlers/guild.py#L683) | não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado |
+| [game/handlers/guild.py:895](../src/wartune_server/game/handlers/guild.py#L895) | a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item |
+| [game/handlers/guild.py:943](../src/wartune_server/game/handlers/guild.py#L943) | o prêmio fica na linha do membro: sair da guilda antes de pegar perde o prêmio |
+| [game/handlers/guild.py:1026](../src/wartune_server/game/handlers/guild.py#L1026) | correio por mochila cheia no baú é *dedução*; membro offline vê o item no próximo login |
+| [game/handlers/guild.py:1105](../src/wartune_server/game/handlers/guild.py#L1105) | o oficial abre a eleição quando o chefe some por muitos dias; a regra não está no |
 | [game/handlers/guild_events.py:66](../src/wartune_server/game/handlers/guild_events.py#L66) | falta o sistema de mapas de campanha (só existe o do tutorial) e as ondas de |
 | [game/handlers/hero.py:127](../src/wartune_server/game/handlers/hero.py#L127) | a EXP gasta sai da EXP do nível atual (c.gp); conferir com captura se o oficial |
 | [game/handlers/hero.py:290](../src/wartune_server/game/handlers/hero.py#L290) | o preço sobe com diamondIndex (usos no dia); sem contador diário fica no primeiro |
