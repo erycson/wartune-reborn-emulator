@@ -13,7 +13,7 @@ import math
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 
-from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot, WildLand
+from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
 from . import outer_city, rules
@@ -109,30 +109,20 @@ def pending_gold(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) 
 
 
 def settle(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> None:
-    """Acumula a produção no ouro do personagem (grave personagem e castelo juntos)."""
+    """Acumula a produção no ouro do personagem (grave personagem e castelo juntos). Passou o refresh de
+    12 h das minas: o ouro até o fim do ciclo sai com a taxa delas e o ciclo novo começa em ``now``, sem
+    ocupação (``outer_city.occupied`` só vale no ciclo atual)."""
+    if snap.castle is not None and now >= outer_city.cycle_end(snap):
+        _settle(snap, templates, outer_city.cycle_end(snap))
+        snap.castle.mines_at = now
+    _settle(snap, templates, now)
+
+
+def _settle(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> None:
     gain, mark = pending_gold(snap, templates, now)
     if snap.castle is not None and mark is not None:
         snap.character.gold += gain
         snap.castle.produced_at = mark
-
-
-def expire_mines(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[WildLand]:
-    """Refresh de 12 h das minas do jogador (``outer_city.MINE_PERIOD``). Ciclo vencido: o ouro até o fim
-    dele sai na taxa antiga (``settle``), as ocupações voltam livres e o ciclo novo começa em ``now``.
-    Quem chama grava o castelo (``mines_at``) e apaga as devolvidas com ``delete=``."""
-    # ponytail: ouro cobrado depois do fim do ciclo por handler que não passa aqui (5015, 8202, 8327,
-    # farm) ainda paga a taxa da mina até o próximo 8201, 5160 ou login. Subir: chamar o refresh antes de cada settle.
-    castle = snap.castle
-    assert castle is not None
-    castle.mines_at = start = outer_city.cycle_start(snap)
-    end = start + outer_city.MINE_PERIOD
-    if now < end:
-        return []
-    settle(snap, templates, end)
-    stale = list(snap.wild_lands)
-    snap.wild_lands.clear()
-    castle.mines_at = now
-    return stale
 
 
 def start_production(snap: PlayerSnapshot, now: datetime) -> None:

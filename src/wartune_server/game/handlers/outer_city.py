@@ -79,15 +79,16 @@ def _castle_state(s: GameSession) -> None:
 
 
 async def refresh(s: GameSession) -> None:
-    """Mina do ciclo anterior vence no refresh de 12 h. Sem tarefa periódica: roda ao logar e nos pedidos
-    de mina (8201, 5160 e o fim da luta), então quem fica online cruzando o refresh vê a mina cair no
-    próximo pedido."""
+    """Refresh de 12 h das minas (``castle.settle`` vira o ciclo). Sem tarefa periódica: roda ao logar,
+    nos pedidos de mina (8201, 5160 e o fim da luta) e em todo ``settle`` de ouro, então quem fica online
+    cruzando o refresh vê a mina cair no próximo pedido."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    before = snap.castle.mines_at
-    stale = cs.expire_mines(snap, s.ctx.templates, s.ctx.clock.now())
-    if stale or snap.castle.mines_at != before:
-        await s.ctx.characters.save(snap.character, snap.castle, delete=tuple(stale))
+    now = s.ctx.clock.now()
+    if snap.castle.mines_at is not None and now < oc.cycle_end(snap):
+        return
+    cs.settle(snap, s.ctx.templates, now)
+    await s.ctx.characters.save(snap.character, snap.castle)
 
 
 @router.on(9525)

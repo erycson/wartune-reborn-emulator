@@ -255,8 +255,8 @@ async def test_refresh_de_12_horas_sorteia_nivel_e_guarda(tmp_path: Path) -> Non
 
 
 async def test_ocupacao_de_mina_vence_no_refresh(tmp_path: Path) -> None:
-    """No refresh a mina do jogador volta livre: o ouro até o refresh sai na taxa antiga, a linha da mina
-    sai do banco, o ciclo novo começa no pedido e a mina pode ser ocupada de novo (unique personagem+mina)."""
+    """No refresh a mina do jogador volta livre: o ouro até o refresh sai na taxa antiga, o ciclo novo
+    começa no pedido e a mina pode ser ocupada de novo na mesma linha (unique personagem+mina)."""
     clock = FakeClock()
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
@@ -280,13 +280,35 @@ async def test_ocupacao_de_mina_vence_no_refresh(tmp_path: Path) -> None:
         shown = next(w for w in page.wildLand if w.id == mine.id)
         assert (shown.occupyPlayerId, shown.state) == (0, oc.MINE_FREE)
         assert castle.mines_at == clock.now() and shown.createDate == oc.game_date(clock.now())
-        assert snap.wild_lands == [] and snap.character.gold == gold + expected
+        after = castle_mod.gold_yield(snap, templates) * 60 // 3600  # o minuto depois do refresh: só os prédios
+        assert oc.occupied(snap, mine) is None and snap.character.gold == gold + expected + after
         assert oc.mine_gold(snap, templates) == 0
 
-        await g.server.services.characters.save(WildLand(g.user_id, mine.id, clock.now()))  # cabe: a antiga saiu
+        assert oc.occupy(snap, mine, clock.now()) is land  # a linha do ciclo vencido volta a valer
+        await g.server.services.characters.save(land)
         fresh = await g.server.services.characters.snapshot(g.user_id)
-        assert oc.occupied(fresh, mine) is not None and fresh.castle is not None
-        assert fresh.castle.mines_at == clock.now()
+        assert oc.occupied(fresh, mine) is not None and len(fresh.wild_lands) == 1
+        assert fresh.castle is not None and fresh.castle.mines_at == clock.now()
+
+
+async def test_ouro_de_outro_handler_para_no_fim_do_ciclo(tmp_path: Path) -> None:
+    """Todo settle de ouro (5015, 8202, 8327, fazenda, caixa) vira o ciclo: a mina só rende até o refresh."""
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        castle = snap.castle
+        assert castle is not None and castle.mines_at is not None
+        templates = g.server.services.templates
+        buildings = castle_mod.gold_yield(snap, templates)
+        oc.occupy(snap, oc.MINES[0], clock.now())
+        per_hour = castle_mod.gold_yield(snap, templates) - buildings
+        assert per_hour > 0
+        end = oc.cycle_end(snap)
+        castle.produced_at, snap.character.gold = end - timedelta(hours=1), 0
+        clock.advance((end - clock.now()).total_seconds() + 3600)  # uma hora antes e uma depois do refresh
+        castle_mod.settle(snap, templates, clock.now())
+        assert castle.mines_at == clock.now() and oc.mine_gold(snap, templates) == 0
+        assert snap.character.gold == (buildings + per_hour) + buildings
 
 
 async def test_mina_de_outro_jogador_nao_bloqueia_a_instancia(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -342,5 +364,6 @@ async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None
         clock.advance(120)  # passou o refresh; a chave do login (30 min) ainda vale
         await g.connect()
         fresh = await g.server.services.characters.snapshot(g.user_id)
-        assert fresh.wild_lands == [] and fresh.castle is not None and fresh.castle.mines_at == clock.now()
+        assert oc.occupied(fresh, oc.MINES[0]) is None
+        assert fresh.castle is not None and fresh.castle.mines_at == clock.now()
         assert fresh.character.gold >= gold_before  # o settle do refresh nunca tira ouro

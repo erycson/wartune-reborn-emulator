@@ -81,12 +81,11 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
   10. Cada ciclo sorteia o nível com semente `"<jogador>:<id da mina>:<início do ciclo>"`: fica o mesmo até o
   refresh. Os templates são 200408, 200409 e 200410 (`MapPhysicsTempInfos`: `Grades` é o nível, `Property4` o
   ouro por hora). Nível fora de 8 a 10 e guarda diferente não têm captura.
-- **Expiração** *(dedução)*: no fim do ciclo toda ocupação vence. Quem roda o refresh é o login, o 8201, o 5160
-  e o fim da luta da mina (`handlers/outer_city.refresh`); não há tarefa periódica. O ouro até o fim do ciclo
-  sai na taxa antiga (`castle.expire_mines` chama `settle`), e as linhas vencidas saem com `delete=` (a unique é
-  `character_id, wild_id`). *(ponytail)* ouro cobrado depois do fim do ciclo por handler que não passa pelo
-  refresh (5015, 8202, 8327, farm) ainda paga a taxa da mina até o próximo 8201, 5160 ou login; subir:
-  refresh antes de cada `settle`.
+- **Expiração** *(dedução)*: no fim do ciclo toda ocupação vence. Quem vira o ciclo é o `castle.settle`: todo
+  acerto de ouro (5015, 8202, 8327, fazenda, caixa por tempo, mina) e o refresh do login, do 8201, do 5160 e do
+  fim da luta (`handlers/outer_city.refresh`); não há tarefa periódica. O ouro até o fim do ciclo sai com a
+  taxa das minas, o resto só com a dos prédios. A linha da mina fica no banco e só vale se `occupied_at` for do
+  ciclo atual; ocupar de novo reaproveita a linha (a unique é `character_id, wild_id`).
 - **Guia do tutorial** *(cliente)*: o m8 (`NewbieBaseActionMediator`, alvo 80) procura as minas pelos pixels
   (320,680) e (720,680), e o castelo em (520,920). Sem elas a máscara escura do passo 22500 nunca sai. Por
   isso o castelo novo nasce em (26,46), como no oficial (`GridCastlePlacement`), e a migração 0017 move

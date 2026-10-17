@@ -72,8 +72,9 @@ def inside(templates: GameTemplates, map_id: int, x: int, y: int) -> bool:
 def centre(templates: GameTemplates, map_id: int) -> tuple[int, int]:
     """Onde o castelo cai ao chegar num mapa novo.
 
-    ponytail: o oficial escolhe um ponto livre; sem outros castelos no servidor, usamos o centro
-    (captura: mapa 2 em 2191,1952, perto do centro de 4000×4000 tiles).
+    ponytail: o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do
+    centro de 4000×4000 tiles), então dois castelos que mudam para o mesmo mapa ficam no mesmo ponto até um
+    deles se mover (5176 no mesmo mapa). Subir: procurar ponto livre com ``CastleRepository.on_map``.
     """
     size = map_size(templates, map_id) or (0, 0)
     return size[0] // 2, size[1] // 2
@@ -113,7 +114,7 @@ MINE_CAPACITY = 324  # fightCapaity da mina livre nas capturas
 # hora do mundo. Replay: 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre: 19:48:57 =
 # 16:48:57 UTC, 73 s antes do signDate 19:50:10 do mesmo asiesat (login.json), e o relogin das 17:05
 # UTC não mudou o createDate. As duas fases ficam 7 h 29 min distantes: não há hora do mundo.
-# ponytail: (dedução) o ciclo vencido só renova no próximo login, 8201 ou 5160 e começa nessa hora;
+# ponytail: (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora;
 # quem fica online pode ver o oficial renovar na hora certa (sem captura de um refresh ao vivo).
 MINE_PERIOD = timedelta(hours=12)
 # (dedução) nível sorteado a cada refresh: as duas capturas têm 8, 9 e 10 (replay: 8, 9, 10, 10; cevre:
@@ -143,6 +144,10 @@ def cycle_start(snap: PlayerSnapshot) -> datetime:
     return min((w.occupied_at for w in snap.wild_lands), default=datetime.fromtimestamp(0, UTC))
 
 
+def cycle_end(snap: PlayerSnapshot) -> datetime:
+    return cycle_start(snap) + MINE_PERIOD
+
+
 def game_date(at: datetime) -> str:
     """Data como o oficial manda (createDate): no fuso do jogo."""
     return at.astimezone(GAME_TZ).strftime(DATE)
@@ -157,8 +162,10 @@ def draw(snap: PlayerSnapshot, mine: Mine) -> tuple[int, int]:
 
 
 def occupied(snap: PlayerSnapshot, mine: Mine) -> WildLand | None:
-    """Ocupação do jogador. Quem chama antes precisa ter rodado ``castle.expire_mines``."""
-    return next((w for w in snap.wild_lands if w.wild_id == mine.id), None)
+    """Ocupação do jogador no ciclo atual. A linha de um ciclo vencido fica no banco e é reaproveitada
+    por ``occupy`` (unique personagem + mina)."""
+    start = cycle_start(snap)
+    return next((w for w in snap.wild_lands if w.wild_id == mine.id and w.occupied_at >= start), None)
 
 
 def mine_msg(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine, state: int, capacity: int) -> pb.WildLandMsg:
@@ -252,8 +259,11 @@ def mine_battle(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine, guar
 
 
 def occupy(snap: PlayerSnapshot, mine: Mine, now: datetime) -> WildLand:
-    land = WildLand(snap.character.id or 0, mine.id, now)
-    snap.wild_lands.append(land)
+    land = next((w for w in snap.wild_lands if w.wild_id == mine.id), None)
+    if land is None:
+        land = WildLand(snap.character.id or 0, mine.id, now)
+        snap.wild_lands.append(land)
+    land.occupied_at = now
     return land
 
 
