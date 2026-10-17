@@ -13,6 +13,7 @@ from ..campaign import PET_ISLANDS, CampaignMap
 from ..router import router
 from ..session import GameSession
 from .campaign import ARMY_IDLE, map_sync
+from .room import leave_room
 
 MAX_PATH = 16  # o cliente manda no máximo ~7 passos; o resto é repassado a todos, então corta
 MAX_USERS = 50  # 8701: jogadores por pedido
@@ -108,16 +109,17 @@ async def enter_pet_land(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
 @router.on(5025)
 async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
-    """Botão de sair na ilha dos pets (``MainToolBar``: sem alerta no pet land, manda 5025 direto).
-
-    Volta para a cidade do céu com 4606, como o oficial ao sair de um mapa (``gokyuzu_...json`` #1).
-    ponytail: só a ilha dos pets; as salas de campanha em grupo (5025 genérico) são do sistema de salas.
+    """Botão de sair (5025): na ilha dos pets volta para a cidade do céu com 4606 (``gokyuzu_...json`` #1);
+    fora dela, sai da sala de campanha em grupo se estiver numa (``handlers/room.py``).
     """
-    if s.campaign is None or s.campaign.map_id not in PET_ISLANDS:
-        s.log.info("5025 fora da ilha dos pets", mapa=s.campaign and s.campaign.map_id)
+    if s.campaign is not None and s.campaign.map_id in PET_ISLANDS:
+        s.campaign = None
+        space.back(s)
         return
-    s.campaign = None
-    space.back(s)
+    if s.ctx.rooms.of(s.player_id) is not None:
+        leave_room(s)
+        return
+    s.log.info("5025 sem ilha dos pets nem sala", mapa=s.campaign and s.campaign.map_id)
 
 
 @router.on(8700)

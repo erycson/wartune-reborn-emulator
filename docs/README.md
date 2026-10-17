@@ -17,6 +17,7 @@
 | [ferramentas.md](ferramentas.md) | Decompilação, geração do `.proto` e dos opcodes, exportação das capturas |
 | [eventos.md](eventos.md) | Atividades, assinatura, leed, VIP, contrato do rei, alquimia, painel de recompensas, anel e minigames |
 | [multiplayer.md](multiplayer.md) | Levantamento do multiplayer e ordem de implementação: [chat](chat.md), [mundo compartilhado](mundo-compartilhado.md), [PvP](pvp.md), [boss e eventos](boss-eventos.md) |
+| [salas-campanha.md](salas-campanha.md) | Salas PvE, times livres e os pedidos do lote: o que está completo e o que depende de quê |
 | [administracao.md](administracao.md) | Painel GM do portal, `/gm/kick` e `/gm/ban`, banimento, históricos de login, cash e itens |
 | [diversos.md](diversos.md) | Veículos, anti-vício, senha secundária, captcha, acelerador e os pacotes do login que faltam |
 | [social.md](social.md) | Amigos, lista negra, correio (socket + `maillist`), troca de nome, casamento |
