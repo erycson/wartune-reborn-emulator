@@ -184,7 +184,7 @@ def battle_pawn(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[Row, in
 
 def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1: int, value: int) -> list[Quest]:
     """Avança missões abertas cuja condição é ``kind`` (QuestCondictionInfos.CondictionType) e cujo
-    Para1 casa (0 = qualquer). Tipos de contagem somam ``value``; os de nível (10) guardam o maior;
+    Para1 casa (0 = qualquer). Tipos de contagem somam ``value``; os de nível (LEVEL_CONDITIONS) guardam o maior;
     os de grau (17) casam quando ``para1`` (grau atingido) passa do Para1 e guardam ``value``."""
     changed = []
     for q in snap.quests:
@@ -201,7 +201,7 @@ def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1
     return changed
 
 
-LEVEL_CONDITIONS = {10}  # evoluir tropa até o nível Para2
+LEVEL_CONDITIONS = {10, 63}  # evoluir tropa até o nível Para2; Emek Oranı (total da atividade diária)
 MIN_CONDITIONS = {17}  # (visto) tempinfos: QuestConditionInfo 121, tipo 17, Para1 2; Detail "3 lv": grau > Para1
 
 
