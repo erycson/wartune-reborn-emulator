@@ -185,7 +185,8 @@ def fill_default_bodies(out: Path, cdn: Path) -> int:
     Na batalha o herói sem roupa usa esse corpo; sem ele o ``HeroRoleView.bossLoadComplete`` acessa
     um conteúdo nulo e a batalha trava (cabelo e capa só ficam invisíveis). O CDN copiado só tem
     alguns. Substituto: a primeira roupa da classe naquele sexo, ou o corpo padrão de outra classe.
-    O ``.bswf`` é cifrado pelo cliente, por isso a cópia em vez de um SWF vazio.
+    O cliente acha as classes de dentro pelo caminho (``asset.<pasta>_<arquivo>.S_0_0``,
+    ``DomainResourceLoad.getPackageName``), então a cópia tem o pacote renomeado (``rename_bswf``).
     # ponytail: figura de outra roupa/classe até achar os arquivos originais
     """
 
@@ -204,9 +205,98 @@ def fill_default_bodies(out: Path, cdn: Path) -> int:
                 continue
             target = out / f"{AVATARS}/{job}_default_body/{sex}.bswf"
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
+            target.write_bytes(rename_bswf(source.read_bytes(), _package(source), _package(target)))
             made += 1
     return made
+
+
+def _package(path: Path) -> str:
+    return f"asset.{path.parent.name.lower()}_{path.stem.lower()}"
+
+
+def rename_bswf(data: bytes, old: str, new: str) -> bytes:
+    """``.bswf``: registros de cabeçalho (tipo de 1 byte) e o SWF no registro 16 (int32 + bytes)."""
+    pos = 0
+    while pos < len(data):
+        kind = data[pos]
+        pos += 1
+        if kind == 16:
+            size = struct.unpack_from(">i", data, pos)[0]
+            swf = rename_swf(data[pos + 4 : pos + 4 + size], old, new)
+            return data[:pos] + struct.pack(">i", len(swf)) + swf
+        if kind in (2, 3, 8):  # readUTF
+            pos += 2 + struct.unpack_from(">H", data, pos)[0]
+        else:  # 1, 4, 6: byte; 5, 7, 9: int
+            pos += 4 if kind in (5, 7, 9) else 1
+    raise ValueError("bswf sem SWF")
+
+
+def _u30(buf: bytes, pos: int) -> tuple[int, int]:
+    value = shift = 0
+    while True:
+        byte = buf[pos]
+        pos += 1
+        value |= (byte & 0x7F) << shift
+        shift += 7
+        if not byte & 0x80:
+            return value, pos
+
+
+def _put_u30(value: int) -> bytes:
+    out = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        out.append(byte | (0x80 if value else 0))
+        if not value:
+            return bytes(out)
+
+
+def _rename_abc(abc: bytes, old: bytes, new: bytes) -> bytes:
+    """Troca ``old`` por ``new`` nas strings do pool de constantes; o resto do ABC só usa índices."""
+    pos = 4  # minor, major
+    count, pos = _u30(abc, pos)  # int
+    for _ in range(max(count - 1, 0)):
+        pos = _u30(abc, pos)[1]
+    count, pos = _u30(abc, pos)  # uint
+    for _ in range(max(count - 1, 0)):
+        pos = _u30(abc, pos)[1]
+    count, pos = _u30(abc, pos)  # double
+    pos += 8 * max(count - 1, 0)
+    out = bytearray(abc[:pos])
+    count, pos = _u30(abc, pos)  # string
+    out += _put_u30(count)
+    for _ in range(max(count - 1, 0)):
+        size, pos = _u30(abc, pos)
+        text = abc[pos : pos + size].replace(old, new)
+        pos += size
+        out += _put_u30(len(text)) + text
+    return bytes(out + abc[pos:])
+
+
+def rename_swf(swf: bytes, old: str, new: str) -> bytes:
+    """Renomeia o pacote nas tags DoABC (72, 82) e SymbolClass (76); recalcula os tamanhos."""
+    o, n = old.encode(), new.encode()
+    body = zlib.decompress(swf[8:]) if swf[:3] == b"CWS" else swf[8:]
+    rect = 5 + 4 * (body[0] >> 3)
+    pos = (rect + 7) // 8 + 4  # RECT, frame rate, frame count
+    out = bytearray(body[:pos])
+    while pos < len(body):
+        header = struct.unpack_from("<H", body, pos)[0]
+        code, size, pos = header >> 6, header & 0x3F, pos + 2
+        if size == 0x3F:
+            size, pos = struct.unpack_from("<I", body, pos)[0], pos + 4
+        tag = body[pos : pos + size]
+        pos += size
+        if code == 82:  # flags (4) + nome (C string) + ABC
+            end = tag.index(b"\0", 4) + 1
+            tag = tag[:end] + _rename_abc(tag[end:], o, n)
+        elif code == 72:
+            tag = _rename_abc(tag, o, n)
+        elif code == 76:
+            tag = tag.replace(o, n)  # (id, C string)*: nenhum tamanho interno
+        out += struct.pack("<HI", code << 6 | 0x3F, len(tag)) + tag
+    return b"CWS" + swf[3:4] + struct.pack("<I", len(out) + 8) + zlib.compress(bytes(out), 9)
 
 
 def main() -> None:
