@@ -21,3 +21,15 @@
 - Fórmulas reais de dano, iniciativa e poder de combate
 - Cidade externa de verdade: terras selvagens, castelos vizinhos, outros jogadores
 - Atividades (4476), títulos (4484), moda (8625), patrulha dos monstros (4122)
+
+## Multiplayer
+
+Levantamento e ordem em [multiplayer.md](multiplayer.md).
+
+- [ ] Chat: mundo, cena, privado
+- [ ] Cidade do céu: ver outros jogadores andando; relogin espera a sessão anterior
+- [ ] Coliseu contra robôs e cópias de jogadores
+- [ ] Atividades (SumActive): login e presente online
+- [ ] Boss mundial
+- [ ] Amigos, times, mina de ouro, torneio de fadas
+- [ ] Guilda, boss de guilda, ataque a castelo
