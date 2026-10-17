@@ -194,7 +194,7 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     if msg.userId not in (0, s.player_id) or farm.tree_left(castle, now) > 0 or castle.tree_fruit > 0:
         s.log.info("15017 recusado", motivo="árvore de amigo, em espera ou com fruto", user=msg.userId)
         return
-    # dedução: 220 de ouro no nível 11 da captura = 20 por nível
+    # ponytail: dedução de uma captura só (220 de ouro no nível 11 = 20 por nível); conferir com outra
     gold = c.grades * 20
     cs.settle(snap, templates, now)
     c.gold += gold

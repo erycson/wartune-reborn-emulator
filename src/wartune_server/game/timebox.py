@@ -57,5 +57,5 @@ def on_logout(c: Character, now: datetime) -> None:
 
 
 def offline_gp(c: Character) -> int:
-    # dedução: a fórmula do oficial não está no cliente; nível x minutos fora, até 8 horas
+    # ponytail: dedução, a fórmula do oficial não está no cliente; nível x minutos fora, até 8 horas
     return c.offline_seconds // 60 * c.grades

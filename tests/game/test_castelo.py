@@ -4,6 +4,7 @@ caixa por tempo e recompensa offline (docs/castelo.md)."""
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from aiohttp.test_utils import TestClient, TestServer
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
@@ -264,3 +265,21 @@ def test_offline_time_and_online_time_are_counted_apart() -> None:
     assert (c.box_seconds, c.offline_at) == (1800, start + timedelta(minutes=30))
     timebox.on_login(c, start + timedelta(hours=20))  # dia seguinte: a caixa recomeça
     assert (c.box_seconds, c.box_period, c.offline_seconds) == (0, 0, timebox.OFFLINE_MAX)
+
+
+async def test_novice_set_over_http_survives_the_logout_save(tmp_path: Path) -> None:
+    """A saída grava o personagem inteiro (tempo online/offline): não pode desfazer o updateplayernovice."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        http = TestClient(TestServer(g.server.http_app))
+        await http.start_server()
+        try:
+            form = {"op": 1, "userid": g.user_id, "noviceprocess": READY + 500, "key": session.login_key or ""}
+            assert await (await http.post("/updateplayernovice", data=form)).text() == str(READY + 500)
+        finally:
+            await http.close()
+        g.client.writer.close()
+        await session.gone.wait()
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved.character.novice_process == READY + 500 and saved.character.offline_at is not None
