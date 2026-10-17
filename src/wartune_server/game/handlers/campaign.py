@@ -7,31 +7,42 @@ Sequências reproduzidas da captura oficial (``docs/tutorial.md``). O roteiro de
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from google.protobuf.json_format import ParseDict
 from google.protobuf.message import Message
 
-from ...content import tutorial
+from ...content import dungeon, tutorial
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
-from .. import rules, space
+from .. import drops, rewards, rules, space
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import item_moved, quest_update
 from ..campaign import (
     AGGRESSIVE,
+    DISAPPEAR_DELAY,
     DONE,
+    DUNGEON_FIRST,
+    DUNGEON_SECOND,
     FIGHTING,
     FIRST_MAP,
+    FLICKER_DELAY,
+    HIDDEN,
     MONSTER,
     NORMAL,
+    PANDORA,
     PET_ISLANDS,
     SECOND_MAP,
     CampaignMap,
+    battle_spec,
+    group_of,
     map_for,
+    unlock_actions,
 )
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
@@ -43,6 +54,8 @@ S_PLOT, S_MAP_SYNC, S_CAMERA, S_MOVIE, S_CAMPAIGN_FINISH = 138, 140, 142, 143, 1
 S_BATTLE_REPORT, S_NPC_CHASE, S_NPC_MOVE, S_ESCORT, S_PLAYER_MOVE = 4103, 4105, 4122, 4124, 4162
 S_BUFFERS, S_NODE_STAND, S_FIGHT_MOVIE = 4165, 4208, 4382
 S_FULL_ARMY, S_QUESTS, S_ITEMS = 150, 112, 115
+S_CONFIRM, S_NOTIFY, S_CARDS, S_REPORT, S_RANK = 29, 126, 135, 137, 4151
+S_STANDPOS, S_FOG_UPDATE, S_TAKE_CARD = 4126, 19, 26
 
 ENTER, PORTAL_ENTER = 1, 3  # RoomCreatedMsg.createdType
 ARMY_IDLE, ARMY_FIGHTING = 0, 2
@@ -155,14 +168,13 @@ def _node_update(s: GameSession, camp: int, state: int, *, user: bool = False, f
         msg.userId = s.player_id
     if fresh:
         msg.uuId = _uuid()
-    msg.param1 = 0
+    msg.param1 = int(node.get("param1", 0)) if _map(s).dungeon else 0  # masmorra: 1 nos lobos do 1021, 500 no baú
     if fresh:
         msg.sonType = node["sonType"]
     _send(s, S_NODE, msg)
 
 
-def _plot(s: GameSession, index: int) -> None:
-    entry = tutorial()["plots"][index]
+def _send_plot(s: GameSession, entry: dict[str, Any]) -> None:
     cls = s.ctx.registry.message_type(S_PLOT, Direction.SERVER_TO_CLIENT)
     assert cls is not None
     msg = ParseDict(entry["plot"], cls())
@@ -171,6 +183,10 @@ def _plot(s: GameSession, index: int) -> None:
         if info.roleName == "{nick}":
             info.roleName = nick or ""
     _send(s, S_PLOT, msg, extend2=entry["extend2"])
+
+
+def _plot(s: GameSession, index: int) -> None:
+    _send_plot(s, tutorial()["plots"][index])
 
 
 def _player_move(s: GameSession, camp: int, camera: bool) -> None:
@@ -239,9 +255,12 @@ async def node_lock(s: GameSession, msg: pb.NodeLockReqMsg) -> None:
 async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     c = s.campaign
     node = c.node(msg.paraInt1) if c else None
-    if c is None or node is None or node["state"] != NORMAL or c.fighting:
+    if c is None or node is None or node["state"] != NORMAL or c.fighting or c.locked(msg.paraInt1):
         return
     camp = msg.paraInt1
+    if c.dungeon:
+        await _dungeon_arrive(s, camp, node)
+        return
     if camp in ARRIVE_PLOT:
         if camp not in c.talked:  # o cliente repete o 5125 enquanto anda sobre o nó
             c.talked.add(camp)
@@ -378,7 +397,8 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
 
 def _start_battle(s: GameSession, camp: int) -> None:
     c = _map(s)
-    spec = tutorial()["battles"][str(camp)]
+    spec = battle_spec(camp)
+    assert spec is not None
     c.fighting = camp
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
     _send(s, S_ARMY_POS, _army_brief(s, ARMY_FIGHTING))
@@ -412,8 +432,8 @@ async def special_boss(s: GameSession, _: object) -> None:
     s.battle.start()
 
 
-def _report(battle: Battle, won: bool, gp: int) -> pb.BattleReportMsg:
-    report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
+def _report(battle: Battle, won: bool, gp: int, strategy: int = 0) -> pb.BattleReportMsg:
+    report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=strategy, gpBonus=gp)
     report.battleScene = int(battle.spec.get("battleScene", CAMPAIGN_SCENE))
     report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
     return report
@@ -424,25 +444,35 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     assert snap is not None and snap.leader is not None
     s.battle, s.hero_sp = None, battle.player_sp
     gp = int(battle.spec.get("gpBonus", 0)) if won else 0
+    strategy = int(battle.spec.get("strategyBonus", 0)) if won else 0
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
+    if gp or strategy:
+        snap.character.strategy += strategy  # "Ruh" do chefe (replay #1711: strategyBonus 72)
         await s.ctx.characters.save(snap.character, snap.leader)
     s.battle_gp = gp
     await _push_player(s)
-    _send(s, S_BATTLE_REPORT, _report(battle, won, gp))
+    _send(s, S_BATTLE_REPORT, _report(battle, won, gp, strategy))
     if gp:
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp} EXP kazanıldı"))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     if s.campaign is None:
         return
-    s.campaign.fighting = 0
+    c = s.campaign
+    c.fighting = 0
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     if not won:
         _node_update(s, camp, NORMAL)
         return
     _node_update(s, camp, DONE, fresh=True)
+    if c.dungeon:  # a masmorra manda o 4382 logo depois do 128 (replay #1060, #1720), não na volta do 5035
+        _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=gp, gold=0, strategy=strategy))
+        s.battle_gp = 0
+        if _dungeon_won(s, camp):
+            _dungeon_end(s)
+        return
     for unlocked in WIN_UNLOCKS.get(camp, []):
         _node_update(s, unlocked, NORMAL, fresh=True)
 
@@ -491,6 +521,213 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
     if msg.state == OUTER_CITY and s.outer_fight_over:  # replay #750 e #803: depois da luta da mina
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=0))
         s.outer_fight_over = False
+
+
+# -- masmorra Kurt İni (campanha 1001) --------------------------------------------------------
+# Conteúdo em content/dungeon_1001.json (tools/extract_dungeon.py). Dois mapas, 1011 e 1021, cada um
+# com lobos (grupo em param3), uma caixa Pandora (29, 5033) e baús de ouro. Ao cair o grupo, o
+# param4 esconde ou libera nós; sem param4 o mapa acaba (fim: 137 ... 140; a carta sai no 5122, com 134).
+DUNGEON_CAMPAIGN = 1001
+DUNGEON_WEARY = 20  # (visto) Beden gasto por mapa ("20 can kullanıldı", #918 e #1320); nenhuma coluna do template
+
+
+@router.on(5039)
+async def dungeon_enter(s: GameSession, _: object) -> None:
+    """Começa a masmorra no 1011; com o 1011 vencido, o 5039 leva ao 1021 (replay #908 e #1212).
+
+    (dedução) vencido o 1021, o 5039 começa de novo no 1011: a captura não mostra repetição.
+    """
+    c = s.campaign
+    snap = s.snapshot
+    if snap is None or (c is not None and c.dungeon and not c.finished):
+        return  # já está na masmorra
+    if snap.character.weary < DUNGEON_WEARY:
+        # ponytail: sem energia não entra e não responde; a recusa do oficial precisa de captura com Beden < 20
+        s.log.info("5039 sem energia", weary=snap.character.weary)
+        return
+    snap.character.weary -= DUNGEON_WEARY  # antes do await: um 5039 repetido já vê o mapa novo
+    _enter_dungeon(s, DUNGEON_SECOND if c is not None and c.dungeon and c.map_id == DUNGEON_FIRST else DUNGEON_FIRST)
+    # (visto) 3 com weary 200 -> 180 -> 160 e 83 depois do 138/143 em cada mapa (replay #917-#918, #1319-#1320)
+    await _push_player(s)
+    name = (s.ctx.templates.get("Campaigns", DUNGEON_CAMPAIGN, key="CampaignId") or {}).get("CampaignName", "")
+    _send(
+        s,
+        S_CHAT,
+        pb.ChatChannelMsg(channel=3, encodeMsg=f"[{name}] haritasına girildi, {DUNGEON_WEARY} can kullanıldı."),
+    )
+    await s.ctx.characters.save(snap.character)
+
+
+def _enter_dungeon(s: GameSession, map_id: int) -> None:
+    s.campaign = CampaignMap.enter_dungeon(map_id)
+    room = pb.RoomCreatedMsg(createdType=ENTER)
+    room.room.campaignId = map_id
+    _send(s, S_ROOM_CREATED, room)
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+    _send(s, S_ROOM_ENTER, _room_enter(s))
+    _send(s, S_NODES, s.campaign.node_list())
+    _send(s, S_FOG, s.campaign.fog())
+    _send(s, S_MOVIE, pb.PlayerMovieMsg(movieTargetType=3, targetId=0, movieType="MOVIE_MAP_NAME", delay=0))
+    if map_id == DUNGEON_FIRST:
+        _send_plot(s, dungeon()["plots"][0])  # diálogo da entrada (138 no #916)
+
+
+async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
+    c = _map(s)
+    spec = battle_spec(camp)
+    if spec is not None:  # (visto) o chefe 102109 é masterType 41, não 42: vale ter luta no ``battles``
+        _start_battle(s, camp)
+    elif node["masterType"] == PANDORA and node.get("param3"):
+        confirm = dungeon()["maps"][str(c.map_id)]["pandora"]["confirm"]
+        _send(s, S_CONFIRM, ParseDict(confirm, pb.CampaignConfirmMsg()))
+    elif str(camp) in dungeon()["chests"]:
+        await _gold_chest(s, camp)
+
+
+async def _gold_chest(s: GameSession, camp: int) -> None:
+    snap = s.snapshot
+    assert snap is not None
+    chest = dungeon()["chests"][str(camp)]
+    snap.character.gold += int(chest["gold"])  # antes de qualquer await: o único save é no fim
+    # (visto) 109, 126 ou 111, 128, 83 (replay #1020-#1023, #1409-#1413; sem 126, #1475-#1477 sem espaço)
+    castle_yield(s)
+    text = chest["notify"] or f"Kazanılan:Altın {chest['gold']}"
+    if chest["notify"]:
+        _send(s, S_NOTIFY, pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=text, delay=0))
+    else:
+        _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    _node_update(s, camp, DONE)
+    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    await s.ctx.characters.save(snap.character)
+
+
+def _buffers(s: GameSession) -> pb.CampaignBufferMsg:
+    return pb.CampaignBufferMsg(
+        armyId=s.player_id, bufferInfo=[pb.BufferInfoMsg(bufferTempId=b, leftTime=0) for b in _map(s).buffs]
+    )
+
+
+@router.on(5033)
+async def pandora_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
+    """Abre a caixa Pandora (CampaignConfirmMsg 29 -> 5033): buff sorteado, nó vira DONE (replay #1120, #1563).
+
+    (visto) a posição do 4126 é a do nó + 2 nos dois Pandoras da captura (24,24 -> 26,26).
+    """
+    c = s.campaign
+    if c is None or not c.dungeon or not msg.paraBool1:
+        return
+    node = c.node(msg.paraInt2)
+    pandora = dungeon()["maps"][str(c.map_id)].get("pandora", {})
+    confirm = pandora.get("confirm", {})
+    if node is None or node["state"] != NORMAL or c.fighting or msg.paraInt2 != confirm.get("nodeId"):
+        return
+    if msg.paraInt1 != confirm.get("mapId"):
+        return
+    snap = s.snapshot
+    assert snap is not None
+    c.buffs.append(int(pandora["buff"]))
+    # (visto) 4126, 4165, 150, 150, 128, 111, 83 nas duas caixas (replay #1155-#1161, #1623-#1630)
+    _send(s, S_STANDPOS, pb.StandPosMsg(id=s.player_id, posX=node["posX"] + 2, posY=node["posY"] + 2))
+    _send(s, S_BUFFERS, _buffers(s))
+    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    _node_update(s, msg.paraInt2, DONE)
+    _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=pandora["alert"]))
+    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=pandora["alert"]))
+
+
+@router.on(5180)
+async def campaign_finish(s: GameSession, msg: pb.CampaignReqMsg) -> None:
+    """Quadro das cartas fechado: ``paraInt1`` 1 = sair, 2 = de novo (cliente: ChestFrame.dispose/campaignAgain).
+
+    Sem efeito: a resposta do oficial não dá para separar no relay (o S>C chega atrasado). O mapa vencido
+    fica em ``s.campaign`` para o próximo 5039 levar ao 1021.
+    """
+    s.log.info("5180 sem efeito", p1=msg.paraInt1)
+
+
+def _dungeon_won(s: GameSession, camp: int) -> bool:
+    """Depois da vitória: True se o mapa acabou. Lobos: só ao cair o grupo todo (param4 libera ou esconde)."""
+    c = _map(s)
+    node = c.node(camp)
+    assert node is not None
+    group = group_of(node)
+    if not group:
+        return True  # chefe (102109): a última luta do 1021
+    if any(c.nodes[g]["state"] != DONE for g in group):
+        return False
+    actions = unlock_actions(node)
+    if not actions:
+        return True  # último lobo do 1011 (replay #1186 -> #1215; dedução: o fim é o grupo todo caído)
+    notice = dungeon()["notices"].get(str(c.map_id))
+    if notice:
+        _send(s, S_NOTIFY, pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=notice, delay=0), extend2=25)
+    for target, action in actions:
+        t = c.node(target)
+        assert t is not None
+        if action == 0:  # DISAPPEARD: o gatilho some (replay #1595)
+            movie = pb.PlayerMovieMsg(
+                movieTargetType=0, targetId=t["nodeId"], movieType="DISAPPEARD", delay=DISAPPEAR_DELAY
+            )
+            _send(s, S_MOVIE, movie, extend2=DISAPPEAR_DELAY)
+            t["state"] = HIDDEN
+        else:  # FLICKER e 128 com o nó novo: o chefe aparece (replay #1597, #1605)
+            movie = pb.PlayerMovieMsg(movieTargetType=0, targetId=t["nodeId"], movieType="FLICKER", delay=FLICKER_DELAY)
+            _send(s, S_MOVIE, movie, extend2=FLICKER_DELAY)
+            _node_update(s, target, NORMAL, fresh=True)
+    return False
+
+
+def _dungeon_end(s: GameSession) -> None:
+    """Fim do mapa: relatório e as 5 cartas viradas (replay #1215-#1226 e #1722-#1729); a carta sai no 5122.
+
+    (visto) o 20 no meio do fim do 1011 (#1218) é a resposta do 5038 (#1165), que o cliente manda depois de
+    toda luta (um 20 para cada 5038); no fim do 1021 o 20 (#1718) sai antes do 4382.
+    """
+    c = _map(s)
+    snap = s.snapshot
+    assert snap is not None and snap.leader is not None
+    data = dungeon()["maps"][str(c.map_id)]
+    c.finished = True
+    _send(s, S_REPORT, ParseDict(data["report"], pb.CampaignReportMsg()))
+    _send(s, S_RANK, ParseDict(data["rank"], pb.RankListRspMsg()))
+    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=data["exp_text"]))
+    _send(s, S_CARDS, ParseDict(data["cards"], pb.CampaignCardsMsg()))
+    c.buffs = []
+    _send(s, S_BUFFERS, _buffers(s))
+    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+
+
+@router.on(5122)
+async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
+    """Vira a carta ``paraInt2`` do 135: item de ``drops.card`` gravado, 115, 26, 83 e 134 (replay #1227-#1243).
+
+    (cliente) ChestFrame.as: o 5122 só sai do clique numa carta do 135 (``__clickHandler``) ou do
+    ``autoChest`` (``isPay`` true) quando o tempo acaba; 8 s depois do 26 o quadro fecha e manda o 5180(1).
+    (visto) o 5122 no relay (#1166) aparece antes do fim (#1215) só porque o S>C do relay chega atrasado:
+    o 10007 da luta 4c4d40c7 (#1153) vem antes do 157 dela (#1186).
+    """
+    c = s.campaign
+    snap = s.snapshot
+    if c is None or snap is None or not c.dungeon or not c.finished or c.card is not None:
+        s.log.info("5122 sem carta para virar", p2=msg.paraInt2)
+        return  # fora do fim da masmorra, ou a carta já saiu: uma só por mapa
+    count = int(dungeon()["maps"][str(c.map_id)]["cards"].get("cardCount", 0))
+    if not 0 <= msg.paraInt2 < count:
+        return
+    # ponytail: carta paga (isPay, autoChest) tratada como a grátis: price 0 e uma só por mapa; cartas
+    # pagas extras (payCardCount 5) precisam de captura de quem paga
+    c.card = msg.paraInt2  # antes do await: um segundo 5122 já cai no ``c.card is not None``
+    grant = drops.card(snap, s.ctx.templates, DUNGEON_CAMPAIGN, msg.paraInt2)
+    if grant is not None:
+        item, take, text = grant
+        await s.ctx.characters.save(snap.character, item)  # um save: carta na mochila
+        _send(s, S_ITEMS, rewards.items_msg([item], s.player_id))
+        _send(s, S_TAKE_CARD, take)
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    _send(s, S_CAMPAIGN_FINISH)  # mochila cheia: sem carta, mas o 134 fecha o quadro
 
 
 # -- progresso do guia -------------------------------------------------------------------------
