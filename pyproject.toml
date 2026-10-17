@@ -34,6 +34,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.17.1",
+    "types-protobuf>=7.35.1.20260906",
 ]
 
 [tool.pytest.ini_options]
@@ -41,14 +42,25 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 extend-exclude = ["src/wartune_server/protocol/messages"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC"]
+per-file-ignores = { "tests/**" = ["E501"] }
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 exclude = ["src/wartune_server/protocol/messages"]
+
+[[tool.mypy.overrides]]
+# mapeamento imperativo do SQLAlchemy: atributos de classe só existem em runtime
+module = "wartune_server.persistence.repositories"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = ["wartune_server.protocol.messages.*"]
+ignore_errors = true
+follow_imports = "skip"

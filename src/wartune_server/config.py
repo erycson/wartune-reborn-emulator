@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     templates_file: Path = Path("data/overlay/xml/tempinfos.xml")
     rsa_key_file: Path = Path("data/rsa_private.pem")
 
+    # Pula o tutorial: o noviceProcess salvo nunca fica abaixo de 19000 (cena do castelo)
+    skip_tutorial: bool = True
+
     login_ticket_ttl_seconds: int = 300
     socket_session_ttl_seconds: int = 120
     idle_timeout_seconds: int = 300

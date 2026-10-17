@@ -19,7 +19,7 @@ PACKET_LOGGER = "wartune.packets"
 
 def setup_logging(log_dir: Path, level: str = "INFO", packets: bool = True) -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
-    shared = [
+    shared: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=False),

@@ -71,6 +71,7 @@ class Connection:
         self._send_cipher = StreamCipher()
         self._queue: asyncio.Queue[object] = asyncio.Queue(maxsize=queue_size)
         self._closing = False
+        self._writer: asyncio.Task[None] | None = None
         self._log = log.bind(conn=conn_id, peer=transport.peer)
         self.client_id = 0  # vai no cabeçalho dos pacotes enviados (id do jogador)
 
@@ -98,15 +99,21 @@ class Connection:
         self._queue.put_nowait(_Rekey(key))  # envio: em ordem com o que já está na fila
 
     def close(self) -> None:
-        if not self._closing:
-            self._closing = True
-            with contextlib.suppress(asyncio.QueueFull):
-                self._queue.put_nowait(_CLOSE)
+        """Encerra depois de enviar o que já está na fila; o escritor fecha o transporte,
+        o que acorda o leitor parado em ``read``."""
+        if self._closing:
+            return
+        self._closing = True
+        try:
+            self._queue.put_nowait(_CLOSE)
+        except asyncio.QueueFull:  # cliente que não lê: descarta a fila
+            if self._writer is not None:
+                self._writer.cancel()
 
     # -- ciclo de vida ------------------------------------------------------------------
     async def run(self, handler: ConnectionHandler) -> None:
         self._log.info("conexão aberta")
-        writer = asyncio.create_task(self._writer_loop(), name=f"writer-{self.id}")
+        self._writer = writer = asyncio.create_task(self._writer_loop(), name=f"writer-{self.id}")
         try:
             await self._reader_loop(handler)
         except PacketError as exc:
@@ -151,17 +158,20 @@ class Connection:
                     self._log.exception("erro tratando pacote", code=packet.code, nome=self._registry.name(packet.code))
 
     async def _writer_loop(self) -> None:
-        while True:
-            item = await self._queue.get()
-            if item is _CLOSE:
-                return
-            if isinstance(item, _Rekey):
-                self._send_cipher.reset(item.key)
-            elif isinstance(item, Packet):
-                self._log_packet(Direction.SERVER_TO_CLIENT, item)
-                await self.transport.write(self._send_cipher.encrypt(item.encode()))
-            elif isinstance(item, bytes):  # cru, sem cifra (policy)
-                await self.transport.write(item)
+        try:
+            while (item := await self._queue.get()) is not _CLOSE:
+                if isinstance(item, _Rekey):
+                    self._send_cipher.reset(item.key)
+                elif isinstance(item, Packet):
+                    self._log_packet(Direction.SERVER_TO_CLIENT, item)
+                    await self.transport.write(self._send_cipher.encrypt(item.encode()))
+                elif isinstance(item, bytes):  # cru, sem cifra (policy)
+                    await self.transport.write(item)
+        except (ConnectionError, OSError) as exc:
+            self._log.info("falha ao enviar", erro=str(exc))
+        finally:
+            self._closing = True
+            await self.transport.close()
 
     def _log_packet(self, direction: Direction, packet: Packet) -> None:
         if not logging.getLogger(PACKET_LOGGER).isEnabledFor(logging.DEBUG):

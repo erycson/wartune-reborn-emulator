@@ -18,7 +18,7 @@ def test_modulus_is_positive_for_hurlant(keys: LoginKeyPair) -> None:
 
 
 def test_decrypts_client_payload(keys: LoginKeyPair) -> None:
-    plain = "jo%C3%A3o|ticket-abc|1234567|0".encode()
+    plain = b"jo%C3%A3o|ticket-abc|1234567|0"
     assert keys.decrypt_b64(keys.encrypt_b64(plain)) == plain
 
 

@@ -49,12 +49,18 @@ class UnitOfWork(Protocol):
     Sem ``commit()`` explícito, as alterações são descartadas ao sair do bloco.
     """
 
-    accounts: AccountRepository
-    tickets: PlayTicketRepository
-    servers: GameServerRepository
-    characters: CharacterRepository
-    heroes: HeroRepository
-    castles: CastleRepository
+    @property
+    def accounts(self) -> AccountRepository: ...
+    @property
+    def tickets(self) -> PlayTicketRepository: ...
+    @property
+    def servers(self) -> GameServerRepository: ...
+    @property
+    def characters(self) -> CharacterRepository: ...
+    @property
+    def heroes(self) -> HeroRepository: ...
+    @property
+    def castles(self) -> CastleRepository: ...
 
     async def __aenter__(self) -> Self: ...
     async def __aexit__(

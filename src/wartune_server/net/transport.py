@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from typing import Protocol
 
 from aiohttp import WSMsgType, web
@@ -38,10 +39,8 @@ class StreamTransport:
     async def close(self) -> None:
         if not self._writer.is_closing():
             self._writer.close()
-        try:
+        with contextlib.suppress(ConnectionError, OSError):
             await self._writer.wait_closed()
-        except (ConnectionError, OSError):
-            pass
 
 
 class WebSocketTransport:
@@ -58,7 +57,7 @@ class WebSocketTransport:
             if msg.type == WSMsgType.BINARY:
                 return bytes(msg.data)
             if msg.type == WSMsgType.TEXT:
-                return msg.data.encode()
+                return str(msg.data).encode()
             if msg.type in (WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED, WSMsgType.ERROR):
                 return b""
 

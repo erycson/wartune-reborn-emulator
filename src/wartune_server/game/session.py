@@ -1,0 +1,92 @@
+"""Estado de um jogador conectado e despacho dos pacotes para os handlers."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import structlog
+from google.protobuf.message import Message
+
+from ..domain.models import PlayerSnapshot
+from ..net.connection import Connection
+from ..protocol import Packet
+from ..protocol.registry import Direction, MessageRegistry
+from ..services.characters import CharacterService
+from ..services.clock import Clock
+from ..services.login import LoginService
+from ..templates.repository import GameTemplates
+from .router import PacketRouter
+
+log = structlog.get_logger(__name__)
+
+LOGIN_CODE = 20001
+
+
+@dataclass(frozen=True, slots=True)
+class GameContext:
+    """Dependências compartilhadas por todas as sessões (montadas em ``app``)."""
+
+    registry: MessageRegistry
+    router: PacketRouter
+    login: LoginService
+    characters: CharacterService
+    templates: GameTemplates
+    clock: Clock
+    online: OnlinePlayers
+
+
+class OnlinePlayers:
+    """Jogadores com socket autenticado neste processo. Um personagem = uma sessão."""
+
+    def __init__(self) -> None:
+        self._by_id: dict[int, GameSession] = {}
+
+    def __len__(self) -> int:
+        return len(self._by_id)
+
+    def get(self, player_id: int) -> GameSession | None:
+        return self._by_id.get(player_id)
+
+    def bind(self, player_id: int, session: GameSession) -> None:
+        old = self._by_id.get(player_id)
+        if old is not None and old is not session:
+            log.info("login duplicado; derrubando sessão anterior", player=player_id)
+            old.connection.close()
+        self._by_id[player_id] = session
+
+    def unbind(self, player_id: int, session: GameSession) -> None:
+        if self._by_id.get(player_id) is session:
+            del self._by_id[player_id]
+
+
+class GameSession:
+    def __init__(self, connection: Connection, ctx: GameContext) -> None:
+        self.connection = connection
+        self.ctx = ctx
+        self.snapshot: PlayerSnapshot | None = None
+        self.login_key: str | None = None
+        self.log = log.bind(conn=connection.id)
+
+    @property
+    def player_id(self) -> int:
+        assert self.snapshot is not None and self.snapshot.character.id is not None
+        return self.snapshot.character.id
+
+    def send(self, code: int, message: Message | None = None) -> None:
+        self.connection.send_message(code, message)
+
+    async def on_packet(self, packet: Packet) -> None:
+        if self.snapshot is None and packet.code != LOGIN_CODE:
+            self.log.warning("pacote antes do login; ignorado", code=packet.code)
+            return
+        handler = self.ctx.router.get(packet.code)
+        if handler is None:
+            self.log.debug("opcode sem handler", code=packet.code, nome=self.ctx.registry.name(packet.code))
+            return
+        message = self.ctx.registry.decode(packet.code, Direction.CLIENT_TO_SERVER, packet.body)
+        await handler(self, message)
+
+    async def on_disconnect(self) -> None:
+        if self.snapshot is not None:
+            self.ctx.online.unbind(self.player_id, self)
+            self.log.info("jogador saiu", player=self.player_id)

@@ -28,7 +28,7 @@ class PacketError(ValueError):
     """Pacote malformado."""
 
 
-def checksum(packet: bytes) -> int:
+def checksum(packet: bytes | bytearray) -> int:
     return (119 + sum(packet[6:])) & 0x7F7F
 
 
