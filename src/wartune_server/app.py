@@ -42,7 +42,7 @@ class Services:
 async def build_services(settings: Settings, clock: Clock | None = None) -> Services:
     clock = clock or SystemClock()
     database = Database(settings.database_url, echo=settings.database_echo)
-    await database.create_schema()
+    await database.migrate()
     templates, keys = await asyncio.gather(
         GameTemplates.load(settings.templates_file),
         asyncio.to_thread(LoginKeyPair.load_or_create, settings.rsa_key_file),

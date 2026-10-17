@@ -12,7 +12,7 @@ src/wartune_server/
   templates/    tempinfos.xml carregado em memória (heróis, itens, mapas...)
   security/     RSA do login (compatível com o Hurlant do Flash)
   app.py        raiz de composição (monta tudo e sobe os servidores)
-  cli.py        run | db init
+  cli.py        run | db init/revision | character novice | templates update
 ```
 
 As dependências apontam para dentro: `game` e `http` usam `services`, que usam `domain`.

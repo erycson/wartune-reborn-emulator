@@ -36,7 +36,8 @@ O portal tem a própria configuração em `D:\xampp\htdocs\wartune-reborn\portal
 
 ```
 uv run wartune-server run                          # sobe o servidor (Ctrl+C encerra com limpeza)
-uv run wartune-server db init                      # cria as tabelas
+uv run wartune-server db init                      # cria o banco ou aplica as migrações
+uv run wartune-server db revision "mensagem"        # gera migração depois de mudar schema.py
 uv run wartune-server character novice 2 0          # refaz o tutorial do personagem 2
 uv run wartune-server templates update [url]       # baixa o tempinfos.xml da CDN (a do cliente); reinicie depois
 ```

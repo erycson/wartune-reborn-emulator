@@ -20,6 +20,7 @@ from .app import GameServerApp, build_services
 from .config import Settings
 from .domain.errors import DomainError
 from .logging_setup import setup_logging
+from .persistence.database import Database
 from .templates.repository import GameTemplates
 
 
@@ -37,6 +38,15 @@ async def _db_init(settings: Settings) -> None:
     services = await build_services(settings)
     await services.database.dispose()
     print(f"banco pronto: {settings.database_url}")
+
+
+async def _db_revision(settings: Settings, message: str) -> None:
+    database = Database(settings.database_url)
+    try:
+        await database.migrate()
+        await database.new_revision(message)
+    finally:
+        await database.dispose()
 
 
 async def _set_novice(settings: Settings, character_id: int, value: int) -> None:
@@ -64,7 +74,9 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run", help="sobe o servidor")
     db = sub.add_parser("db", help="banco de dados").add_subparsers(dest="db_cmd", required=True)
-    db.add_parser("init", help="cria as tabelas que faltam")
+    db.add_parser("init", help="cria o banco ou aplica as migrações pendentes")
+    revision = db.add_parser("revision", help="gera uma migração a partir das mudanças em schema.py")
+    revision.add_argument("mensagem")
     char = sub.add_parser("character", help="personagens").add_subparsers(dest="char_cmd", required=True)
     novice = char.add_parser("novice", help="muda o noviceProcess (0 refaz o tutorial)")
     novice.add_argument("id", type=int)
@@ -79,6 +91,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.cmd == "run":
             asyncio.run(_run(settings))
+        elif args.cmd == "db" and args.db_cmd == "revision":
+            asyncio.run(_db_revision(settings, args.mensagem))
         elif args.cmd == "db":
             asyncio.run(_db_init(settings))
         elif args.cmd == "character":

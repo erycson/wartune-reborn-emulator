@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import event
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import Connection, event, inspect
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
-from .schema import map_entities, metadata
+from .schema import map_entities
 
 SUPPORTED_DRIVERS = {"sqlite+aiosqlite", "mysql+asyncmy", "postgresql+asyncpg"}
+MIGRATIONS = Path(__file__).with_name("migrations")
+BASELINE = "0001"  # o esquema de antes das migrações (bancos criados pelo create_all)
 
 
 class Database:
@@ -33,13 +37,36 @@ class Database:
     def session(self) -> AsyncSession:
         return self.sessions()
 
-    async def create_schema(self) -> None:
-        """Cria as tabelas que faltam. Em produção prefira ``alembic upgrade head``."""
+    async def migrate(self) -> None:
+        """Leva o banco à última migração. Um banco de antes das migrações é marcado como baseline."""
         async with self.engine.begin() as conn:
-            await conn.run_sync(metadata.create_all)
+            await conn.run_sync(_upgrade)
+
+    async def new_revision(self, message: str) -> None:
+        """Gera ``migrations/versions/NNNN_*.py`` comparando o banco (já migrado) com ``schema.py``."""
+        number = len(list((MIGRATIONS / "versions").glob("[0-9]*.py"))) + 1
+        async with self.engine.begin() as conn:
+            await conn.run_sync(
+                lambda c: command.revision(_alembic(c), message, autogenerate=True, rev_id=f"{number:04d}")
+            )
 
     async def dispose(self) -> None:
         await self.engine.dispose()
+
+
+def _alembic(connection: Connection) -> Config:
+    config = Config()
+    config.set_main_option("script_location", str(MIGRATIONS))
+    config.attributes["connection"] = connection
+    return config
+
+
+def _upgrade(connection: Connection) -> None:
+    config = _alembic(connection)
+    tables = set(inspect(connection).get_table_names())
+    if "alembic_version" not in tables and "characters" in tables:
+        command.stamp(config, BASELINE)
+    command.upgrade(config, "head")
 
 
 def _sqlite_pragmas(dbapi_conn, _record) -> None:  # type: ignore[no-untyped-def]

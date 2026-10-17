@@ -9,8 +9,8 @@ puras, e as tabelas ficam em `persistence/schema.py`. Funciona com:
 | MySQL / MariaDB | `mysql+asyncmy://usuario:senha@host:3306/wartune` |
 | PostgreSQL | `postgresql+asyncpg://usuario:senha@host:5432/wartune` |
 
-No SQLite o servidor liga `foreign_keys`, `journal_mode=WAL` e `busy_timeout`. O schema é criado
-no início (`create_all`) ou com `wartune-server db init`. Todas as datas são gravadas em UTC.
+No SQLite o servidor liga `foreign_keys`, `journal_mode=WAL` e `busy_timeout`. O schema é criado e
+migrado no início ou com `wartune-server db init` (ver Migrações). Todas as datas são gravadas em UTC.
 
 ## Modelo
 
@@ -92,5 +92,11 @@ bloco descarta as alterações. Os objetos carregados continuam utilizáveis dep
 
 ## Migrações
 
-Ainda não há Alembic: o schema só cresceu até agora, e o `create_all` cria o que falta. Ele entra
-na primeira mudança que alterar uma coluna existente, porque aí é preciso migrar dados.
+Alembic, em `src/wartune_server/persistence/migrations/` (sem `alembic.ini`: a configuração é montada
+em `Database.migrate`). Ao subir e no `db init`, o servidor aplica as migrações pendentes. Um banco
+criado antes delas (pelo antigo `create_all`) é marcado como `0001`, o baseline, e segue dali.
+
+Para mudar o schema: edite `schema.py`, rode `uv run wartune-server db revision "o que mudou"`
+(gera `versions/NNNN_*.py` comparando o banco com o schema), revise o arquivo e rode os testes.
+`test_migrations_match_schema` falha se o schema mudou sem migração. O portal PHP usa o mesmo
+banco: coluna nova precisa de valor padrão para os `INSERT` dele continuarem funcionando.
