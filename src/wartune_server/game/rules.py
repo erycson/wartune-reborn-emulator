@@ -13,6 +13,8 @@ from .builders.login import QUEST_SITE_LEN, HeroStats
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
 WEAPON, CLOTH = "101", "104"  # ItemTempInfo.SonType
+WING, HAT, FASHION_CLOTH, FASHION_ARM = "109", "110", "112", "111"
+HERO_BAGS = (BagType.RUNE, BagType.HONOR, BagType.HERO)  # bolsas do herói que somam atributos
 
 # ganho de atributos por nível, por JobType (1 guerreiro, 2 caçador, 3 mago). O mago foi medido na
 # captura (níveis 1, 3 e 5); ponytail: guerreiro e caçador são o espelho dele, trocar quando houver captura.
@@ -27,18 +29,53 @@ def job_type(job: int) -> int:
     return (job - 1) % 3 + 1
 
 
+STAT_KEYS = "Power Agility Intellect Captain Physique Attack Defence MagicAttack MagicDefence ForceHit Parry Live Conat"
+
+
+def strengthened(row: Row, grade: int) -> Row:
+    """Atributos do item reforçado: ``GoodsHelp.getStrengthenAddition`` = int(base*g*0.1) + g*5."""
+    if grade <= 0:
+        return row
+    out = dict(row)
+    for k in STAT_KEYS.split():
+        if (base := int(row.get(k) or 0)) > 0:
+            out[k] = str(base + int(base * grade * 0.1) + grade * 5)
+    return out
+
+
 def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
-    """Linhas de template que somam nos atributos do líder: itens equipados e o atributo sorteado."""
+    """Linhas de template que somam nos atributos do líder: itens equipados (com o reforço), os
+    atributos sorteados (``SkillPropertyTempInfos``) e as pedras engastadas."""
     leader = snap.leader
     rows: list[Row] = []
     for item in snap.items:
-        if item.bag_type != BagType.HERO or leader is None or item.object_id != leader.id:
+        if item.bag_type not in HERO_BAGS or leader is None or item.object_id != leader.id:
             continue
         if (row := templates.get("ItemTempInfos", item.template_id)) is not None:
-            rows.append(row)
-        if item.random_skill and (bonus := templates.get("SkillPropertyTempInfos", item.random_skill)) is not None:
-            rows.append(bonus)
+            rows.append(strengthened(row, item.strengthen_grade))
+        for skill in item.random_skills:
+            if skill and (bonus := templates.get("SkillPropertyTempInfos", skill)) is not None:
+                rows.append(bonus)
+        for gem in item.joins:
+            if gem > 0 and (stone := templates.get("ItemTempInfos", gem)) is not None:
+                rows.append(stone)
     return rows
+
+
+def avatar(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) -> str:
+    """Arte (``Avata``) do item equipado com aquele SonType ("" se não houver)."""
+    leader = snap.leader
+    return next(
+        (
+            (templates.get("ItemTempInfos", i.template_id) or {}).get("Avata", "")
+            for i in snap.items
+            if i.bag_type == BagType.HERO
+            and leader is not None
+            and i.object_id == leader.id
+            and (templates.get("ItemTempInfos", i.template_id) or {}).get("SonType") == son_type
+        ),
+        "",
+    )
 
 
 def leader_stats(snap: PlayerSnapshot, templates: GameTemplates) -> HeroStats:

@@ -140,7 +140,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
 
         client.send(8224, pb.PlayerDataMsg(user=True))
         got = await client.until(6)
-        assert [p.code for p in got] == [112, 4512, 4515, 4516, 4501, 4686, 4598, 150, 6]
+        assert [p.code for p in got] == [112, 4542, 4184, 4512, 4515, 4516, 4501, 4686, 4598, 150, 6]
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
         assert len(server.online) == 1
 

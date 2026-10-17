@@ -331,6 +331,10 @@ class SqlAlchemyUnitOfWork:
         # que continuam utilizáveis (destacados) depois do bloco.
         await self._session.close()
 
+    async def by_character[T](self, entity: type[T], character_id: int) -> list[T]:
+        query = select(entity).where(entity.character_id == character_id).order_by(entity.id)  # type: ignore[attr-defined]
+        return list(await self._session.scalars(query))
+
     async def save(self, entity: object) -> None:
         # nova: add (o próprio objeto ganha o id); já gravada e destacada: merge copia o estado
         if getattr(entity, "id", None) is None:

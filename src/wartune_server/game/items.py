@@ -9,8 +9,9 @@ from ..domain.models import BagType, Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import rules
+from .bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from .builders.player import item_moved
-from .handlers.player import BAG_SIZE, CURRENCIES
+from .handlers.player import CURRENCIES
 
 
 def bag_item(snap: PlayerSnapshot, *, pos: int | None = None, template_id: int | None = None) -> Item | None:

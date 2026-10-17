@@ -165,6 +165,9 @@ class UnitOfWork(Protocol):
     @property
     def guilds(self) -> GuildRepository: ...
 
+    async def by_character[T](self, entity: type[T], character_id: int) -> list[T]:
+        """Linhas de uma tabela de estado do jogador (lojas, moda...) em ordem de id."""
+
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""
 

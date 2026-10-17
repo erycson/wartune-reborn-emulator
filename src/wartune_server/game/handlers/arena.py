@@ -15,6 +15,7 @@ from ...domain.models import ArenaRank, BagType, ChallengeLog, Item, PlayerSnaps
 from ...protocol.messages import wartune_pb2 as pb
 from .. import arena as A
 from .. import rules
+from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from ..battle import Battle
 from ..builders import login as b
 from ..builders.player import item_moved
@@ -22,7 +23,7 @@ from ..router import router
 from ..session import GameSession
 from .campaign import map_sync, player_hero
 from .login import army, player_info
-from .player import BAG_SIZE, castle_yield
+from .player import castle_yield
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 150, 140
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482

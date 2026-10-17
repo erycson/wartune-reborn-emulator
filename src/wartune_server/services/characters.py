@@ -21,9 +21,12 @@ from ..domain.models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    FashionBook,
     Hero,
     Job,
+    MysteryShop,
     PlayerSnapshot,
+    ShopBuy,
 )
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
@@ -161,6 +164,9 @@ class CharacterService:
             sns = await uow.sns.by_character(character_id)
             marriage = await uow.marriages.by_character(character_id)
             arena = await uow.arena.by_character(character_id) or Arena(character_id)
+            shop_buys = await uow.by_character(ShopBuy, character_id)
+            fashions = await uow.by_character(FashionBook, character_id)
+            mystery = await uow.by_character(MysteryShop, character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
         return PlayerSnapshot(
@@ -177,6 +183,9 @@ class CharacterService:
             sns,
             marriage,
             arena,
+            shop_buys,
+            fashions,
+            mystery,
         )
 
     async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:

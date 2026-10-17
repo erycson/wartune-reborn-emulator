@@ -1,0 +1,137 @@
+# Mochila, itens, loja, forja e moda
+
+Handlers em `game/handlers/items.py` (mochila e uso), `shop.py` (lojas), `forge.py` (forja) e
+`fashion.py` (moda). Regras da mochila em `game/bag.py`; moeda premium em `services/cash.py`.
+Legenda: *(visto)* = captura oficial; *(cliente)* = arquivo `.as` do cliente decompilado;
+*(dedução)* = coerente com os dois, sem prova direta.
+
+Regra de todos os handlers: tudo é validado no servidor (dono, posição, quantidade, preço, nível,
+espaço), o snapshot muda antes de qualquer `await` e uma `save` grava tudo junto. Recusa sem
+resposta só quando o cliente não espera nenhuma; senão vai o resultado de erro que ele sabe mostrar.
+
+## Bolsas (`bagType`)
+
+| bagType | o que é | posições |
+|---|---|---|
+| 0 | bancada da forja/moda (`Hide`) | 0 = equipamento, 1 = pedra da sorte; 0..11 na decomposição |
+| 1 | mochila | 0 .. 42 + `bagCount` (−1); 217 com a mochila alugada ativa (`PlayerInfo.bagTotalCount`) *(cliente)* |
+| 2 | runas de batalha do herói (SonType 214) | 0..2, uma a cada nível 20/30/40 *(cliente)* |
+| 3 | medalha de honra do herói (MasterType 3) | 0 |
+| 4 | equipamento do herói (`objectId` = id do herói) | por SonType (`GoodsSonType.getSonTypePos`) *(cliente)* |
+
+Espaços do herói: 101→0, 103→1, 104→2, 106→3, 107→4/5, 108→6/7, 109 asa→8, 110 chapéu→9,
+112 roupa de moda→10, 111 arma de moda→11, 117→12, 118→13. Equipar confere `Job` (lista com 0 ou o
+job do herói), `Sexs` (2 ou o sexo) e `NeedGrades` (`GoodsCheck.checkGoodsCanEquip`) *(cliente)*.
+Os bags 6 (guilda), 10 (correio), 11 (leilão), 22–26 (mascote) e 32 (depósito) dependem de sistemas
+que não existem e são recusados no 5005.
+
+Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros furos ficam −1
+(fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates).
+
+## Mochila e uso — `items.py`
+
+| C>S | o que faz | S>C | fonte |
+|---|---|---|---|
+| 5005 ItemReqMsg | move entre os bags 0–4; destino ocupado: empilha (mesmo item, mochila/bancada) ou troca (o outro precisa caber na origem). Da bancada para a mochila o cliente manda `endPos` 0: o servidor escolhe o primeiro livre. Vestir moda pela primeira vez põe no livro (4542) | 3, 150, 115 origem, 115 destino (+4542) | *(visto)* ordem; validações *(cliente)* |
+| 5006 ItemUseMsg | 298 pacote: troca pelo `GradeDrop`; 203 recurso: Property1 1 ouro, 3 elmas, 4 elmas vinculado, 5 Beden (até `weary_limit`), 6 prestígio, 7 EXP, 10 Ruh × Property2 × `count`; 206 "Değerli Taş Kutusu Lv.N"/"Lv.A-B": pedra aleatória do nível (`TransformInfos`); 209 poção de HP: `blood` += Property1 | 203: 115, 111 "Tebrikler! Kazanılan:Altın x1000", 109 (ouro) ou 3 (+83 "5,000 EXP kazanıldı" na EXP); 206: 115, 115, 111, 3, 83; 209: 115, 113, 150, 3 | *(visto)* |
+| 5007 ItemReqMsg.beginPos | vende a pilha toda | 115, 109 | preço `GoodsHelp.getSellGold` *(cliente)* |
+| 8624 ItemSellReqMsg | venda em lote (pos, count) | 115, 109 | *(cliente)* |
+| 8220 ArrangeReq | aplica a ordem que o cliente calculou (`BaseBagListView.sort`: cada item `oldplace`→índice), sem colisão nem fora da mochila; `isStackItem` junta pilhas incompletas (mesmo item e mesmo cadeado) e fecha os buracos | 115 com a mochila | *(cliente)*; pilhas *(dedução)* |
+| 8346 ItemRemoveMsg | o cliente só pede para tirar item vencido; nenhum item tem validade aqui: recusa | — | *(cliente)* |
+| 8809 LockAndUnlockMsg | opType 1 mochila, 3 equipamento, 4 medalha: alterna `isLocked`. Item travado não é vendido nem usado | 115 | *(cliente)* |
+| 8484 ItemUseStoreReqMsg | gasta `count` Şeytan Kristali (208014, Property1 = EXP) no cristal: `storeGp` e `storeGrade` (`UpGradeTempInfos` Types 15, `Data` = total) | 115, 3 | *(cliente)* |
+| 5010 PayTypeMsg | compra `property1` linhas de 7 espaços (até 175); linha i custa (i+1)×10 elmas até a 10ª, depois 100 (`BagBuyFrame`) | 3 (`bagCount`) | *(cliente)* |
+| 8819 RentalBagOpReqMsg | aluga a mochila de 217 por `param2` dias (`rental_bag_day_cost` × 2 páginas), `param1` = payType; renovar soma ao prazo | 3, 4709 `{opType, rentalBagTime, status 1}` | *(cliente)* |
+| 8199 DetailReqMsg | ficha de outro jogador (online ou do banco): equipamento do líder, atributos, `hideFashion`, `storeGrade`, `appellId` | 4125 DetailRspMsg | *(cliente)* `PlayerInfoFrameII` |
+| 5129 CampaignReqMsg | baú caído na campanha: os drops de campanha não existem | 4268 BattleReportMsg `{signId}` vazio (o cliente limpa o nó) | *(cliente)* `CampaignMapController` |
+
+Poção de HP e Bağlı Elmas/Elmas vindos de item gravam o `cash_ledger` com `reason` `item`.
+Depende de outro sistema (recusado com log no 5006): cristal (203/11), guilda (203/8), VIP (203/12),
+buffs (201), caixas 206 cujo conteúdo só está na descrição (Property1 = o próprio id).
+
+## Loja — `shop.py`
+
+Preço e moeda como `ShopGoodsInfo.setPrice` *(cliente)*: a primeira coluna > 0 entre `Point`,
+`GiftToken`, `Gold`, `Honor` (item 208001), `ConsortiaOffer` (guilda: não suportado) e `MazeCoin`
+(item 208009). Preço em `GiftToken` aceita vinculado: `payType` 0 usa o vinculado primeiro e completa
+com elmas; 1 só elmas. Preço em `Point` só aceita elmas. Lojas de pontuação (ShopType 8, 13, 15, 20)
+ficam sem suporte.
+
+`BuyInfo.result` *(cliente, `ShopManager`)*: 1 ok, 2 jogador ausente (presente para outro: depende
+do correio), 3 item, 4 sem dinheiro (silencioso), 6 limite do dia (`VIP0Count`), 7 VIP, 8 item
+inexistente / oferta, 9 nível de guilda, 10 nível, 11 falhou (mochila cheia; o oficial manda pelo
+correio, 12).
+
+| C>S | o que faz | S>C | fonte |
+|---|---|---|---|
+| 5154 ShopMsg | compra (o registro decodifica como FashionShopMsg; o handler relê como ShopMsg) | 3 ou 109 (ou 115 da moeda-item), 115 do item, 111 e 83 "{nome} x{n} başarıyla alındı!", 90 ShopMsg `{buyInfo + result}` | *(visto)* |
+| 8592 FashionShopMsg | compra de moda, uma ou várias | o mesmo por item (90 cada) e 4486 `{result}` no fim | *(cliente)* `FashionAllBuyFrame` |
+| 5633 ShopMsg | compra e usa a poção de HP (ShopType 100) | 109/3, 113 `{heroId, hp, blood, bloodId}`, 170 `{result, templateId}` | *(visto)* |
+| 8218 | compras de hoje | 4145 `hasDataInfo[{userId, itemId, counts, buyDate}]` | *(visto)* |
+| 8693 ShopMsg | quantos daquele item já comprei hoje | 4599 `buyInfo.count` | *(cliente)* |
+| 8632 | ofertas relâmpago: vêm do 4238 (eventos do operador), nenhuma ativa | 4547 `{refreshDate}` vazio | *(cliente)* |
+| 8645 ShopMsg | compra coletiva: só existe com uma oferta type 3 do 4238; recusa sem resposta | — | *(cliente)* |
+| 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (10) | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
+| 8482 ShopItemBuyMsg | compra o item `index` da misteriosa (uma vez cada, até `ShopBuy_MaxCount` 20 por dia) | 3/109, 115, 111, 83, 4383 `{result, buyCount}`, 4384 | *(cliente)* |
+| 8597 AppellExchangeMsg | `look`: títulos (vazio); trocar exige ter o título (conquistas não existem); `appellId` 0 tira o título | 4484 AppellsMsg | *(cliente)* |
+
+Misteriosa: 8 itens sorteados pelo peso `Rands` entre os do nível do jogador; troca sozinha uma vez
+por dia (`# ponytail:`, a tela não está no cliente decompilado). Limite diário por item em
+`shop_buys` (zera quando muda o dia).
+
+## Forja — `forge.py`
+
+O cliente põe o equipamento na bancada (5005 para o bag 0, pos 0) e manda a operação.
+
+| C>S | o que faz | S>C | fonte |
+|---|---|---|---|
+| 5150 (vazio) | reforço: taxa `clamp(100 − g×10, 10, 100)` + Property1 da pedra da sorte (bancada pos 1, SonType 204); ouro `NG≥80 ? (NG/10+1)²×P×(g+1)^2.1×10 : 1.5^(NG/10+1)×(P+1)×(g+1)^2.2×5+500`; até `StrengthenMax`. A pedra vai mesmo na falha e o nível não cai | 115 da pedra, 109, (115 do item no sucesso), 86 StoreRspMsg `{strengResult, strengthenGrade}` | *(visto)* falha; fórmulas *(cliente)* |
+| 5151 StoreReqMsg `{mountPos, bagType, bagPos}` | engasta a pedra (SonType 205) no furo aberto; furo ocupado troca e cobra o Property3 da antiga, que volta para a mochila; nunca duas do mesmo atributo (Property1) | 109, 115 da pedra, 115 do item, 111/83 "Başarıyla mozaik yapıldı!" | *(visto)* |
+| 5152 StoreReqMsg `{holePos, operate}` | true: abre o furo com 1 Elmas Delici (208004); o 4º só em item Profile 5. false: tira a pedra (Property3 em ouro) e devolve | abrir: 115, 115; tirar: 109, 115, 115, 111 "Başarıyla söküldü!", 83 "…Kazanılan:{pedra} x1!" | *(visto)*; abrir *(cliente)* |
+| 5153 StoreReqMsg `{composeId, composeNum}` | receita `ComposeTempInfos` (Material1–4 × Count × n, NeedGold × n, NeedMinLevel) | 115, 109, 115, 111 "Kazanılan:{nome} x{n}", 89 `{composeResult false, composeTemplateId −1}`, 83 | *(visto)* |
+| 8538 StoreReqMsg `{srcItemid, desItemid, count}` | troca pedras do mesmo nível (`TransformInfos`, CostGold × count) | 115, 109, 115, 111/83 "Dönüşüm başarılı" | *(visto)* |
+| 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm | 115, 4258 `{randomSkill[]}` | *(cliente)*; sorteio *(dedução)* |
+| 8339 (vazio) | aplica o último sorteio | 4259 `{result}`, 115 | *(cliente)* |
+| 8464 RefreshPropertyReqMsg `{itemId}` | atributos sorteados do item (o pendente, se houver) | 4368 `{randomSkill[], lockPos[], result}` | *(dedução)* |
+| 8340 (vazio) | decomposição: a tabela de produtos não está nos templates | 4260 `{result false}` | *(cliente)* |
+| 8644 PayTypeMsg | moldagem: os materiais 2120100–2120103 não existem nos templates; recusa sem resposta | — | *(cliente)* |
+
+Login: 4184 ItemSmithyMsg com todos os Ids de `ComposeTempInfos` *(visto)*.
+Atributos: o equipamento reforçado soma `int(base×g×0.1) + g×5` em cada atributo > 0
+(`GoodsHelp.getStrengthenAddition`), mais os 5 `randomSkill` (`SkillPropertyTempInfos`) e as pedras.
+
+Simplificações (`# ponytail:`): o refino sorteia uniforme entre os `SkillTempInfos` 70000–77199 que
+têm `SkillPropertyTempInfos` e os cadeados são de graça (tabela e custo não estão no cliente); o
+sorteio pendente fica na memória até o 8339; `autoBuy` na composição é recusado.
+
+## Moda — `fashion.py`
+
+| C>S | o que faz | S>C | fonte |
+|---|---|---|---|
+| 5008 HeroHideFashionReqMsg | `hide` 1 esconde, 2 mostra, 0 só pede a aparência | 149 HeroEquUpdatedMsg para todos | *(cliente)* `ArmySocketOutManager` |
+| 8625 (vazio) | livro de moda | 4542 FashionMsg `{info[{tempId, isSwitch, appraisalSkill}], fashionIds[]}`; `fashionIds` = todas as 1388 modas (MasterType 1, SonType 109–112) | *(visto)* |
+| 8595 FashionMsg / StoreReqMsg | `templateId` = `saveBook`, só usado pelas roupas do casamento; vazio = troca na bancada, regra fora do cliente decompilado: recusa | — | *(cliente)* `FashionManager`, `MarryUIMediator` |
+| 8631 FashionMsg | apaga o ícone de "novo" (estado só do cliente) | — | *(cliente)* |
+| 8781 FashionMsg | avaliação: sorteia `appraisalSkill` por tabela desconhecida; recusa | 4542 como está | *(cliente)* |
+| 8594 StoreReqMsg `{operate, payType}` | compor moda na bancada (curinga 208020): regra desconhecida | 4487 StoreRspMsg `{composeResult false}` (o `FashionBag` ignora) | *(cliente)* |
+
+Login: 4542 depois dos itens *(visto)*. A moda entra no livro na primeira vez que é vestida
+*(dedução)*. Compra de moda: 8592, na loja.
+
+## Moeda premium e `cash_ledger`
+
+`services/cash.py`: `pay(c, total, pay_type, reason, ref, now, gift_ok)` debita (vinculado primeiro
+com `payType` 0 quando o preço aceita) e devolve o `CashLedger`; `change(...)` para créditos e GM.
+Quem chama passa o registro para a mesma `CharacterService.save` da operação. `reason` em uso: `shop`
+(loja e misteriosa), `bag` (5010), `rental_bag` (8819), `item` (elmas vindos de item). Ouro não grava.
+
+## Dependências de outros sistemas
+
+- Correio: presente para outro jogador (result 2) e compra com mochila cheia (o oficial manda pelo correio).
+- Guilda: preço em `ConsortiaOffer`, `NeedConsortiaLevels`, itens 203/8.
+- VIP: `NeedMinVip`, limites `VIP1Count`..`VIP6Count`, itens 203/12.
+- Eventos do operador (4238): descontos, ofertas relâmpago (8632), compra coletiva (8645).
+- Conquistas: títulos (8597).
+- Casamento: `saveBook` (8595).
+- Campanha: drop dos baús (5129).
+- Mascote: bags 22–26 e cadeado opType 2.

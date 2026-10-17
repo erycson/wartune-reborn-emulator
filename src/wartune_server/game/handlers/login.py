@@ -30,6 +30,7 @@ S_PLAYER_INFO = 3
 S_ARMY = 150
 S_LOGIN_STATE = 6
 S_LOGIN_SYNC_MAPID = 4598
+S_FASHION_BOOK, S_SMITHY = 4542, 4184
 S_CASTLE = 4153
 S_CASTLE_TIME = 4452
 S_BUILDINGS = 4154
@@ -50,6 +51,10 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     assert leader is not None and castle is not None and snap.character.id is not None
     stats = rules.leader_stats(snap, s.ctx.templates)
     hero = b.hero_info(leader, snap.character.id, stats)
+    t = s.ctx.templates
+    hero.wing, hero.hat = rules.avatar(snap, t, rules.WING), rules.avatar(snap, t, rules.HAT)
+    hero.fashionArm = rules.avatar(snap, t, rules.FASHION_ARM)
+    hero.fashionCloth = rules.avatar(snap, t, rules.FASHION_CLOTH)
     arm = rules.arm_avatar(snap, s.ctx.templates)
     return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm), stats.fighting_capacity
 
@@ -160,6 +165,8 @@ async def _login_state(s: GameSession) -> None:
         for item in snap.items:
             bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
         s.send(S_ITEMS, bag)
+    _send(s, S_FASHION_BOOK, pb_player.fashion_book(snap, s.ctx.templates))
+    s.send(S_SMITHY, pb_player.smithy(s.ctx.templates))
     if snap.character.novice_process >= space.POST_TUTORIAL:  # a conta nova do replay não recebe
         vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
     # ilha dos pets: sem invasão do chefe em andamento (login.json #39, todos os campos zerados)
