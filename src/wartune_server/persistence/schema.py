@@ -22,11 +22,25 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    CashLedger,
+    Castle,
+    Character,
+    GameServer,
+    Hero,
+    Item,
+    ItemLog,
+    LoginHistory,
+    PlayTicket,
+    Quest,
+)
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -208,6 +222,55 @@ items = Table(
     Column("is_new", Boolean, nullable=False, default=True, server_default="1"),
 )
 
+
+def _created_at() -> Column[datetime]:
+    # o portal PHP também grava nestas tabelas e deixa a data por conta do banco
+    return Column("created_at", UTCDateTime, nullable=False, server_default=func.current_timestamp(), index=True)
+
+
+def _text(name: str) -> Column[str]:
+    return Column(name, Text, nullable=False, default="", server_default="")
+
+
+login_history = Table(
+    "login_history",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("account_id", Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="SET NULL")),
+    Column("source", Text, nullable=False, server_default="game"),
+    _text("ip"),
+    Column("user_agent", Text),
+    _created_at(),
+)
+
+cash_ledger = Table(
+    "cash_ledger",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("delta_point"),
+    _int("delta_gift_token"),
+    _int("balance_point"),
+    _int("balance_gift_token"),
+    _text("reason"),
+    _text("ref"),
+    Column("gm", Text),
+    _created_at(),
+)
+
+item_log = Table(
+    "item_log",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("template_id"),
+    _int("count"),
+    _text("action"),
+    _text("ref"),
+    _created_at(),
+)
+
 _mapped = False
 
 
@@ -226,6 +289,9 @@ def map_entities() -> None:
         (Building, buildings),
         (Quest, quests),
         (Item, items),
+        (LoginHistory, login_history),
+        (CashLedger, cash_ledger),
+        (ItemLog, item_log),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

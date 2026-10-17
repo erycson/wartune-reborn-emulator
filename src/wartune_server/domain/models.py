@@ -197,6 +197,46 @@ class Item:
     is_new: bool = True
 
 
+@dataclass(eq=False)
+class LoginHistory:
+    """Uma entrada no portal (``source="portal"``, gravada pelo PHP) ou no jogo (``"game"``)."""
+
+    account_id: int
+    source: str
+    ip: str
+    created_at: datetime
+    character_id: int | None = None
+    user_agent: str | None = None
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class CashLedger:
+    """Movimento de ``point``/``gift_token``: compras, pacotes, edições GM e recargas."""
+
+    character_id: int
+    delta_point: int
+    delta_gift_token: int
+    balance_point: int
+    balance_gift_token: int
+    reason: str
+    ref: str
+    created_at: datetime
+    gm: str | None = None
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class ItemLog:
+    character_id: int
+    template_id: int
+    count: int  # negativo = saiu da mochila
+    action: str
+    ref: str
+    created_at: datetime
+    id: int | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""

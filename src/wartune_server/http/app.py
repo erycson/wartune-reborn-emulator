@@ -23,7 +23,7 @@ from aiohttp import web
 from aiohttp.typedefs import Handler
 
 from ..config import Settings
-from ..domain.errors import DomainError, ValidationError
+from ..domain.errors import DomainError, NotFoundError, ValidationError
 from ..game.session import OnlinePlayers
 from ..services.characters import CharacterService, RegistrationRequest
 from ..services.login import LoginService
@@ -82,6 +82,7 @@ class GameHttpApi:
         r.add_post("/questionreplaylist", self.empty_list)  # CustomerServiceManager: respostas do suporte
         if self._d.settings.gm_secret:  # sem segredo a rota nem existe (a porta é pública)
             r.add_post("/gm/kick", self.gm_kick)
+            r.add_post("/gm/ban", self.gm_ban)
 
     # -- jogo --------------------------------------------------------------------------
     async def crossdomain(self, _: web.Request) -> web.Response:
@@ -101,7 +102,7 @@ class GameHttpApi:
     async def http_login(self, request: web.Request) -> web.Response:
         params = await _params(request)
         try:
-            result = await self._d.login.http_login(params.get("p", ""))
+            result = await self._d.login.http_login(params.get("p", ""), request.remote or "")
         except DomainError as exc:
             log.info("login HTTP recusado", erro=str(exc), peer=request.remote)
             return xml_result(False, str(exc), userId=0)
@@ -143,11 +144,16 @@ class GameHttpApi:
             return web.Response(text="0")
         return web.Response(text=str(snap.character.novice_process))
 
+    def _gm_allowed(self, request: web.Request) -> bool:
+        secret = self._d.settings.gm_secret or ""
+        if hmac.compare_digest(request.headers.get("X-GM-Secret", "").encode(), secret.encode()):
+            return True
+        log.warning("rota GM com segredo errado", caminho=request.path, peer=request.remote)
+        return False
+
     async def gm_kick(self, request: web.Request) -> web.Response:
         """Portal (painel GM): derruba o personagem antes de editar o banco; 200 = já pode gravar."""
-        secret = self._d.settings.gm_secret or ""
-        if not hmac.compare_digest(request.headers.get("X-GM-Secret", "").encode(), secret.encode()):
-            log.warning("gm/kick com segredo errado", peer=request.remote)
+        if not self._gm_allowed(request):
             return web.json_response({"ok": False, "error": "segredo inválido"}, status=403)
         try:
             character_id = _int(await _params(request), "character_id")
@@ -156,6 +162,28 @@ class GameHttpApi:
             return web.json_response({"ok": False, "error": str(exc)}, status=400)
         except TimeoutError:
             return web.json_response({"ok": False, "error": "a sessão não terminou a tempo"}, status=503)
+        return web.json_response({"ok": True})
+
+    async def gm_ban(self, request: web.Request) -> web.Response:
+        """Portal: ``account_id`` e ``banned`` 0/1. Banir invalida as sessões de login e derruba o
+        personagem; o próximo /login e 20001 da conta são recusados."""
+        if not self._gm_allowed(request):
+            return web.json_response({"ok": False, "error": "segredo inválido"}, status=403)
+        try:
+            params = await _params(request)
+            account_id, banned = _int(params, "account_id"), _int(params, "banned")
+            if banned not in (0, 1):
+                raise ValidationError("parâmetro banned inválido")
+            for character_id in await self._d.login.set_banned(account_id, bool(banned)):
+                if banned:
+                    await self._d.online.kick(character_id)
+        except ValidationError as exc:
+            return web.json_response({"ok": False, "error": str(exc)}, status=400)
+        except NotFoundError as exc:
+            return web.json_response({"ok": False, "error": str(exc)}, status=404)
+        except TimeoutError:
+            return web.json_response({"ok": False, "error": "a sessão não terminou a tempo"}, status=503)
+        log.info("conta banida" if banned else "conta desbanida", conta=account_id)
         return web.json_response({"ok": True})
 
     async def plain_true(self, _: web.Request) -> web.Response:

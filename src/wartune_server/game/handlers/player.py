@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
+from ...services.ledger import cash_entry, item_entry
 from ...templates.repository import Row
 from .. import rules
 from ..builders import login as b
@@ -159,10 +160,18 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
         item.pos = rules.free_bag_pos(snap)
         snap.items.append(item)
         new.append(item)
+    cash = {"point": 0, "gift_token": 0}
     for d in drops:
         if (field := CURRENCIES.get(int(d["TemplateId"]))) is not None:
             setattr(c, field, getattr(c, field) + int(d["Data"]))
-    await s.ctx.characters.save(c, *new, delete=(box,))
+            if field in cash:
+                cash[field] += int(d["Data"])
+    ref = f"5006:{box.template_id}"
+    logs: list[object] = [item_entry(c.id or 0, box.template_id, -1, "use", ref)]
+    logs += [item_entry(c.id or 0, i.template_id, i.count, "drop", ref) for i in new]
+    if any(cash.values()):
+        logs.append(cash_entry(c, cash["point"], cash["gift_token"], "item", ref))
+    await s.ctx.characters.save(c, *new, *logs, delete=(box,))
 
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
     _army(s)

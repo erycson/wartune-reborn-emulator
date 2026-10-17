@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from urllib.parse import unquote_to_bytes
 
 from ..domain.errors import AuthenticationError, NotFoundError
-from ..domain.models import Character
+from ..domain.models import Character, LoginHistory
 from ..domain.repositories import UnitOfWorkFactory
 from ..security.rsa_keys import LoginKeyPair, RSAError
 from .clock import Clock
@@ -83,7 +83,7 @@ class LoginService:
             return []
         return [SelectEntry(character.id, character.active, character.nickname)]
 
-    async def http_login(self, encrypted_payload: str) -> LoginResult:
+    async def http_login(self, encrypted_payload: str, ip: str = "") -> LoginResult:
         try:
             payload = LoginPayload.parse(self._keys.decrypt_b64(encrypted_payload))
         except RSAError as exc:
@@ -104,6 +104,7 @@ class LoginService:
             if character is None:
                 character = await uow.characters.add(Character(account.id, self._server_id, now))
             character.last_login_at = now
+            await uow.save(LoginHistory(account.id, "game", ip, now, character.id))
             await uow.commit()
 
         assert character.id is not None
@@ -124,13 +125,32 @@ class LoginService:
             raise AuthenticationError("sessão não corresponde ao personagem")
         return session
 
-    async def claim_socket(self, key: str) -> Character:
+    async def claim_socket(self, key: str, ip: str = "") -> Character:
         """Valida o 20001. A sessão continua válida até expirar (reconexão do socket)."""
         session = self.session(key)
         async with self._uow() as uow:
             character = await uow.characters.get(session.character_id or 0)
-        if character is None:
-            raise NotFoundError("personagem não encontrado")
-        if not character.active:
-            raise AuthenticationError("personagem ainda não foi criado")
+            account = await uow.accounts.get(session.account_id)
+            if account is None or account.banned:  # banido depois do /login
+                raise AuthenticationError("conta bloqueada")
+            if character is None:
+                raise NotFoundError("personagem não encontrado")
+            if not character.active:
+                raise AuthenticationError("personagem ainda não foi criado")
+            await uow.save(LoginHistory(session.account_id, "game", ip, self._clock.now(), character.id))
+            await uow.commit()
         return character
+
+    async def set_banned(self, account_id: int, banned: bool) -> list[int]:
+        """Marca a conta e, se banida, invalida as sessões HTTP; devolve o personagem a derrubar
+        (um por conta neste servidor)."""
+        async with self._uow() as uow:
+            account = await uow.accounts.get(account_id)
+            if account is None:
+                raise NotFoundError("conta não encontrada")
+            account.banned = banned
+            await uow.commit()
+            character = await uow.characters.by_account(account_id, self._server_id)
+        if banned:
+            self._sessions.drop_account(account_id)
+        return [character.id] if character is not None and character.id is not None else []

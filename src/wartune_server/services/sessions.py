@@ -32,6 +32,7 @@ class LoginSessionStore(Protocol):
     def put(self, session: PendingLogin) -> None: ...
     def get(self, key: str) -> PendingLogin | None: ...
     def attach_character(self, key: str, character_id: int) -> PendingLogin | None: ...
+    def drop_account(self, account_id: int) -> None: ...
 
 
 class InMemoryLoginSessionStore:
@@ -61,6 +62,11 @@ class InMemoryLoginSessionStore:
         updated = replace(session, character_id=character_id)
         self._items[key] = updated
         return updated
+
+    def drop_account(self, account_id: int) -> None:
+        """Banimento: as chaves da conta deixam de valer (20001, visualizeregister...)."""
+        for key in [k for k, s in self._items.items() if s.account_id == account_id]:
+            del self._items[key]
 
     def _purge(self) -> None:
         limit = self._clock.now() - self._ttl

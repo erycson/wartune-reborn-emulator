@@ -73,7 +73,7 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     # o cliente já trocou de chave logo após enviar o 20001: tudo daqui em diante usa a nova
     s.connection.rekey(bytes(k & 0xFF for k in msg.ekeys))
     try:
-        character = await s.ctx.login.claim_socket(msg.key)
+        character = await s.ctx.login.claim_socket(msg.key, s.connection.transport.peer.rsplit(":", 1)[0])
         # relogin: a sessão anterior termina (e grava) antes de carregarmos o snapshot; senão ela
         # gravaria depois por cima do que esta sessão fizer (item duplicado ou perdido)
         await s.ctx.online.kick(character.id or 0)
