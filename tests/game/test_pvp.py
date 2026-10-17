@@ -52,14 +52,14 @@ async def fight(g: Game, target: int) -> list[Any]:
 async def test_colosseum_against_a_robot_enters_the_ranking(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     weak = A.robot_spec
 
-    def harmless(robot: A.Robot, templates: Any) -> Any:  # robô de 1 de vida: vitória certa
-        soldiers, heroes = weak(robot, templates)
+    def harmless(robot: A.Robot, templates: Any, *args: Any) -> Any:  # robô de 1 de vida: vitória certa
+        soldiers, heroes = weak(robot, templates, *args)
         for unit in soldiers + heroes:
             unit.update(hp=1, initHp=1, maxHp=1)
         return soldiers, heroes
 
     monkeypatch.setattr(A, "robot_spec", harmless)
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         first = await info(g)
         assert (first.curRank, first.challengeCount, first.totalCount, first.leftDay > 0) == (0, 0, 10, True)
         robots = [p.userId for p in first.simplePlayer]
@@ -115,7 +115,7 @@ async def test_colosseum_copy_of_a_player_can_beat_you_and_wins_swap_places(
         return hero
 
     monkeypatch.setattr(A, "copy_hero", copy)
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         other = await g.join("outro")
         chars = g.server.services.characters
         await chars.save(ranks=(ArenaRank(other.user_id, 1), ArenaRank(g.user_id, 2)))
@@ -143,7 +143,7 @@ async def test_colosseum_copy_of_a_player_can_beat_you_and_wins_swap_places(
 
 
 async def test_colosseum_refusals(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         g.client.send(8253, pb.PlayerChallengeMsg(tarUserId=A.ROBOT_BASE + 5))  # fora da lista
         assert codes(await g.idle()) == [4176]
 
@@ -167,7 +167,7 @@ async def test_daily_reset_zeroes_counters_and_sends_4202(tmp_path: Path) -> Non
     assert (arena.day, arena.challenge_count, arena.pet_count) == ("2026-01-01", 0, 0)
     assert A.roll_day(arena, datetime(2026, 1, 1, 23, tzinfo=UTC)) is False
 
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         snap = snap_of(g)
         assert snap.arena is not None
         snap.arena.day, snap.arena.challenge_count = "2000-01-01", 4
@@ -179,7 +179,7 @@ async def test_daily_reset_zeroes_counters_and_sends_4202(tmp_path: Path) -> Non
 
 
 async def test_pet_tournament_without_pets(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         g.client.send(8256, pb.ChallengeRequestMsg(type=1))
         listed = body(await g.until(4611), 4611, pb.PetChallengeInfoMsg)
         assert (listed.playerInfo.score, listed.playerInfo.order, listed.playerInfo.challengeCount) == (1000, 0, 10)
@@ -207,7 +207,7 @@ async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: p
     pet = A.Pet(77, 104101, 60, 7, "Pan")
     monkeypatch.setattr(A, "pets_of", lambda snap: [pet])
     monkeypatch.setattr(A, "PET_NOTICE_FRAME", 150)
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         snap = snap_of(g)
         snap.character.grades = 55
         g.client.send(8725, pb.PlayerPetMsg(chaPos="77,-1,-1"))
@@ -264,7 +264,7 @@ async def test_pet_battle_finish_resolves_without_more_attacks() -> None:
 
 
 async def test_closed_events_and_battle_extras(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         g.client.send(8711)
         assert body(await g.until(4529), 4529, pb.LordsOrderListMsg).param1 == 0
         g.client.send(8714)
@@ -296,7 +296,7 @@ async def test_closed_events_and_battle_extras(tmp_path: Path) -> None:
 
 
 async def test_login_sends_challenge_state(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=30001) as g:
         snap = snap_of(g)
         assert snap.arena is not None
         snap.arena.cool_until = datetime.now(UTC) + timedelta(seconds=100)
@@ -316,3 +316,11 @@ def test_rank_rewards_and_costs() -> None:
     assert A.Robot(A.ROBOT_BASE + 7, 40).hero_template == 11030
     assert arena_handlers._forward(0, 5) == 1 and arena_handlers._forward(5, 3) == 1
     assert arena_handlers._forward(3, 5) == 2 and arena_handlers._forward(4, 4) == 0
+
+
+async def test_colosseum_is_closed_during_the_tutorial(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        g.client.send(8256, pb.ChallengeRequestMsg(type=0))
+        assert await g.idle() == []
+        g.client.send(8253, pb.PlayerChallengeMsg(tarUserId=A.ROBOT_BASE))
+        assert codes(await g.idle()) == [4176]

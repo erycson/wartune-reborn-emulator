@@ -35,6 +35,7 @@ CLAIMABLE, CLAIMED = 0, 1  # RankRewardMsg.status
 PET_TOP = 10
 PET_ROBOT_ORDER = 500  # posição mostrada para os robôs (captura: 500-502)
 GOD_ARRIVE = 2  # ChallengeMsg.type do 5021 da "chegada dos deuses" (outro sistema)
+COLOSSEUM_NOVICE = 30000  # o cliente só abre o coliseu com noviceProcess acima disso (gotoColosseumFrame)
 
 
 def _arena(s: GameSession) -> Any:
@@ -51,7 +52,12 @@ def _cool(s: GameSession, kind: int) -> None:
 
 
 def login(s: GameSession, msg: pb.PlayerDataMsg) -> None:
-    """Partes do 8224 que são deste sistema (a 4176 de tipo 0 conta como um passo da carga)."""
+    """Partes do 8224 que são deste sistema (a 4176 de tipo 0 conta como um passo da carga).
+    O dia vira em silêncio: a 4202 no meio da carga viria antes da 4176. Fica só na memória; o
+    próximo save grava, e sem save a virada se repete igual no próximo login."""
+    snap = s.snapshot
+    assert snap is not None and snap.arena is not None
+    A.roll_day(snap.arena, s.ctx.clock.now())
     _cool(s, A.COLOSSEUM)
     _cool(s, A.PETS)
 
@@ -119,6 +125,15 @@ def _log_msg(log: ChallengeLog, owner: int) -> pb.ChallengeLogMsg:
 # -- coliseu ---------------------------------------------------------------------------------------
 
 
+def _novice(s: GameSession) -> bool:
+    """Coliseu liberado: o tutorial já passou do ponto em que o cliente abre a tela."""
+    assert s.snapshot is not None
+    if s.snapshot.character.novice_process > COLOSSEUM_NOVICE:
+        return True
+    s.log.info("coliseu antes do tutorial", novice=s.snapshot.character.novice_process)
+    return False
+
+
 async def _colosseum_info(s: GameSession) -> None:
     snap, arena, now = s.snapshot, _arena(s), s.ctx.clock.now()
     assert snap is not None
@@ -153,7 +168,8 @@ async def _colosseum_info(s: GameSession) -> None:
 async def challenge_info(s: GameSession, msg: pb.ChallengeRequestMsg) -> None:
     """Lista de oponentes: 0 coliseu (4169), 1 torneio de fadas (4611), 2 os melhores do torneio (4619)."""
     if msg.type == A.COLOSSEUM:
-        await _colosseum_info(s)
+        if _novice(s):
+            await _colosseum_info(s)
     elif msg.type == A.PETS:
         await _pet_info(s)
     else:
@@ -167,7 +183,9 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     assert snap is not None
     target = msg.tarUserId
     reason = (
-        "fora da lista"
+        "tutorial"
+        if not _novice(s)
+        else "fora da lista"
         if target not in s.arena_offer
         else "em espera"
         if A.left(arena.cool_until, now)
@@ -191,20 +209,21 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         return
     arena.challenge_count += 1
     arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)
+    hero = player_hero(s, A.colosseum_spec([], []))
     if other is not None:
         soldiers: list[dict[str, Any]] = []
         heroes = [A.copy_hero(other, s.ctx.templates)]
         name, grade, job = other.character.nickname or "", other.character.grades, rules.job_type(other.character.job)
     else:
         robot = A.Robot(target, s.arena_offer[target])
-        soldiers, heroes = A.robot_spec(robot, s.ctx.templates)
+        soldiers, heroes = A.robot_spec(robot, s.ctx.templates, hero.msg.hp, hero.attack)
         name, grade, job = robot.name, robot.grade, 1
     spec = A.colosseum_spec(soldiers, heroes)
 
     async def finished(battle: Battle, won: bool) -> None:
         await _colosseum_over(s, battle, won, target, name, grade, job)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished)
     await s.ctx.characters.save(snap.character, arena)  # gasta antes da luta: cair não devolve
     s.log.info("coliseu", alvo=target, battle=s.battle.id)
     s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))

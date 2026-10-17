@@ -179,8 +179,8 @@ Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado 
 
 | C>S | O servidor faz / responde | Fonte |
 |---|---|---|
-| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (arma/armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. | *(visto)* meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
-| 8253 `{tarUserId, payType}` | Recusa (só 4176) se fora da lista, em espera, em batalha ou sem tentativas. Da 11ª à 20ª cobra `min((compradas+1)*2, 10)` diamantes (`payType 0` usa o vinculado primeiro, `1` só diamante). Gasta a tentativa e grava **antes** da luta (cair não devolve). 140 `state 2`, 157 `battleType 16, mapTempId 992`, herói inimigo `type 2, userId 0, heroId 1300000000`. No fim: 3, 150, 4103 `{battleScene 7, gpBonus}`, 83 EXP, 140 `state 0`, 4176 `{leftTime 600}` (a espera conta do fim, como na captura). | *(visto)* #6, #26-#29; *(cliente)* `ColosseumModel.buyCountNeedPay` |
+| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (arma/armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. Com `noviceProcess <= 30000` (tutorial) não responde nada, como o cliente que nem abre a tela. | *(visto)* meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
+| 8253 `{tarUserId, payType}` | Recusa (só 4176) se ainda no tutorial (`noviceProcess <= 30000`), fora da lista, em espera, em batalha ou sem tentativas. Da 11ª à 20ª cobra `min((compradas+1)*2, 10)` diamantes (`payType 0` usa o vinculado primeiro, `1` só diamante). Gasta a tentativa e grava **antes** da luta (cair não devolve). 140 `state 2`, 157 `battleType 16, mapTempId 992`, herói inimigo `type 2, userId 0, heroId 1300000000`. No fim: 3, 150, 4103 `{battleScene 7, gpBonus}`, 83 EXP, 140 `state 0`, 4176 `{leftTime 600}` (a espera conta do fim, como na captura). | *(visto)* #6, #26-#29; *(cliente)* `ColosseumModel.buyCountNeedPay` |
 | 8265 `PayTypeMsg` | Zera a espera (type 0 coliseu, 1 torneio) por `ceil(s/60)*5` diamantes (`payType 2` aceita vinculado); 3 e 4176. | *(cliente)* `QueueBar.as`, `SocketSendManager.sendCoolColosseun` |
 | 8329 | Recompensa da posição, uma por período de `period_days`: ouro e Ruh de `data/colosseum_rewards.json`. 4243 `{isTake false, param1 posição, param2 ouro, param3 Ruh, param4 dias}`. | *(cliente)* `TopToolsBar.as`; tabela *(dedução)* |
 | 5021 | `type 1`: tentativa do torneio por `Jion_pet_challenge` de ouro (até 10/dia, *dedução*), 109 e 4176. Outros tipos (2 = chegada dos deuses) não são daqui: registrado. O coliseu compra pelo 8253. | *(cliente)* `PetChallengeController.buyChallengeCount` |
@@ -196,11 +196,15 @@ atacado ganha uma linha no histórico (`challenge_logs`) sem que a sessão dele 
 pode resgatar) com `challReward`; 4613 com `petChallengeReward`; 4481 com `crossScoreReward`.
 
 **Reset diário:** os contadores (`arenas.day`) zeram no primeiro pedido do dia; com a tela aberta
-vai o 4202 com vigor e ataques atuais (o cliente sobrescreve esses campos).
+vai o 4202 com vigor e ataques atuais (o cliente sobrescreve esses campos). No login o dia vira
+em silêncio (a 4202 viria antes da 4176 da carga) e só na memória, até o próximo save.
 
 **Robôs:** `Robot(id, nível)`; nome, sexo e herói saem do id (mesmo robô na lista e na luta).
 Só há robôs guerreiros nos templates (`GameHeroTemp` HeroType 2: 11001-11030 e 14001-14030),
-então acima do nível 30 eles ficam no 30. Vão com 2 arqueiros 10202, como na captura.
+então acima do nível 30 eles ficam no 30. A captura tem 2 arqueiros 10202 com o robô, mas lá o
+jogador também lutava com soldados; aqui ele não tem, então o robô vai sozinho, com 35% da vida e
+15% do ataque do herói do jogador *(dedução, ajustado por simulação: guerreiro e mago ganham 15/15
+do nível 11 ao 50; o caçador perde até o ~30 porque o ataque dele ainda sai de PhyAttack)*.
 
 **EXP da luta:** `win_gp_per_grade`/`lose_gp_per_grade` × nível, no mesmo arquivo *(dedução: a
 captura soma EXP mundial e offline, sem fórmula)*. O drop por vitória (#30) não foi reproduzido.

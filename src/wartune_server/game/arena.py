@@ -243,7 +243,7 @@ def snapshot_player(snap: PlayerSnapshot, templates: GameTemplates, rank: int) -
 
 # -- montagem das batalhas ------------------------------------------------------------------------
 
-ENEMY_HERO, ENEMY_SOLDIERS = 7, (5, 6)  # livingIds da captura do coliseu (#6)
+ENEMY_HERO = 7  # livingId da captura do coliseu (#6)
 PLAYER_LIVING, PLAYER_POS = 3, 6
 
 
@@ -286,10 +286,22 @@ def _npc_hero(**fields: Any) -> dict[str, Any]:
     return base | fields
 
 
-def robot_spec(robot: Robot, templates: GameTemplates) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """(soldados, heróis) do robô: herói do template + 2 arqueiros, como na captura."""
+# Fração da vida e do ataque do jogador. Simulado (modo automático, 15 lutas por nível): guerreiro e
+# mago ganham 15/15 dos níveis 11 a 50. ponytail: o caçador perde até o nível ~30 porque o ataque
+# dele sai de PhyAttack (4x Força, baixo); corrigir com a fórmula real de ataque por classe.
+ROBOT_HP, ROBOT_ATTACK = 0.35, 0.15
+
+
+def robot_spec(
+    robot: Robot, templates: GameTemplates, player_hp: int, player_attack: int
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """(soldados, heróis) do robô. O herói é o do template, com vida e ataque proporcionais aos do
+    jogador: o robô existe para o servidor vazio, e a primeira vitória é a porta do ranking.
+    ponytail: a captura tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha soldados;
+    aqui o jogador não tem, e com eles o robô do template ganhava quase sempre (simulado do nível
+    11 ao 30). Voltar com os soldados quando o exército do jogador entrar na batalha."""
     row = templates.get("GameHeroTemp", robot.hero_template) or {}
-    hp = int(row.get("Live", 100))
+    hp = max(1, int(player_hp * ROBOT_HP))
     hero = _npc_hero(
         tempId=robot.hero_template,
         nickName=robot.name,
@@ -298,25 +310,9 @@ def robot_spec(robot: Robot, templates: GameTemplates) -> tuple[list[dict[str, A
         initHp=hp,
         hp=hp,
         skillId=[int(x) for x in row.get("SkillScript", "").split(",") if x],
+        attack=max(1, int(player_attack * ROBOT_ATTACK)),
     )
-    pawn = templates.get("PawnTempInfos", 10202) or {}
-    soldier_hp = int(pawn.get("Live", 251))
-    soldiers = [
-        {
-            "livingId": living,
-            "tempId": 10202,
-            "type": 1,
-            "side": 2,
-            "pos": pos,
-            "initHp": soldier_hp,
-            "hp": soldier_hp,
-            "qteTime": 0,
-            "castTime": 4000,
-            "skillId": [20, 21] * 5,
-        }
-        for living, pos in zip(ENEMY_SOLDIERS, (1, 7), strict=True)
-    ]
-    return soldiers, [hero]
+    return [], [hero]
 
 
 def copy_hero(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, Any]:
