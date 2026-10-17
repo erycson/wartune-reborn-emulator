@@ -115,7 +115,6 @@ class Guilds:
     profiles: dict[int, Character] = field(default_factory=dict)
     logout_at: dict[int, datetime] = field(default_factory=dict)
     reserved: set[str] = field(default_factory=set)  # nomes sendo criados (entre a checagem e o save)
-    blessed: dict[int, tuple[int, int]] = field(default_factory=dict)  # prêmio da bênção por pegar
 
     @classmethod
     async def load(cls, characters: CharacterService, server_id: int) -> Guilds:

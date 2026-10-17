@@ -120,14 +120,16 @@ Outros eventos:
 
 ## Guilda ([guilda.md](guilda.md))
 
-- Atividades com mapa (altar 8542, terra secreta 8537/8565/8566/8743, guerra 8471, entre servidores 8783) e os pacotes dentro do mapa: recusados. **sem dado**: os nós dos mapas 7601/7501 não estão nos `.maps`.
-- Rankings e prêmios das atividades: o gancho `add_to_box` existe, ninguém chama.
-- Bênção (5145): o prêmio é sempre um item do mercado liberado pelo nível do altar; o prêmio pendente fica só em memória; bênção rápida (VIP 6) recusada. **sem dado**: tabela oficial.
+- Mapas e batalhas das atividades (altar 7601, terra secreta 7501, guerra 4501, entre servidores 4601) e os
+  pacotes dentro deles: recusados. **precisa de captura**: os nós de 7601, 7501 e 4501 não estão em nenhuma
+  fonte; o 4601 tem os nós, mas o evento está fechado pelo template. O que capturar está em
+  [guilda.md](guilda.md#pendências).
+- Rankings e prêmios das atividades: o gancho `add_to_box` existe, ninguém chama (depende das atividades).
+- Bênção (5145): o prêmio é sempre um item do mercado liberado pelo nível do altar, na casa 1. A tabela do
+  oficial e a bênção rápida (x10) **precisam de captura**. O prêmio pendente agora fica na linha do membro.
 - Eleição (8241/8481): nada inicia a eleição (só editando o banco). **sem dado**.
-- 8335 só registra (`speakTimes` sempre 0).
-- Criar guilda grava em duas transações; se a segunda falhar, o ouro some e a guilda fica sem membros.
-- Item da caixa para membro offline com mochila cheia se perde. **depende de**: correio na entrega.
-- Altar, caixa e prêmios usam só os 42 espaços base da mochila.
+- 8335 só registra (`speakTimes` sempre 0). **sem dado**: anúncio de recrutamento.
+- Sair da guilda antes de pegar o prêmio da bênção perde o prêmio (*ponytail*).
 
 ## Herói, exército e pets ([heroi-exercito.md](heroi-exercito.md))
 
@@ -161,7 +163,7 @@ Outros eventos:
 - Canal de time (6) no chat: recusado.
 - VIP ainda ignorado em: cota de cornetas, limite de amigos (`MAX_FRIENDS`), acelerar construção índice 0 (5172).
 - Presentes do VIP/contrato do rei para amigo (8513/8540): recusados (gravar outro personagem).
-- Mochila de 42 espaços base (sem os comprados/alugados) em: guilda, coliseu, fazenda, caixa por tempo, correio.
+- Mochila de 42 espaços base (sem os comprados/alugados) em: coliseu, fazenda, caixa por tempo, correio.
 
 ## Simplificações marcadas no código
 
@@ -180,13 +182,13 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/builders/login.py:76](../src/wartune_server/game/builders/login.py#L76) | bate com o oficial no nível 1 (199); nível 3 dá 291 contra 278. Falta a fórmula real. |
 | [game/builders/login.py:243](../src/wartune_server/game/builders/login.py#L243) | 1 exército por personagem; tabela própria quando houver tropas extras |
 | [game/castle.py:80](../src/wartune_server/game/castle.py#L80) | sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem |
-| [game/castle.py:154](../src/wartune_server/game/castle.py#L154) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
+| [game/castle.py:165](../src/wartune_server/game/castle.py#L165) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
 | [game/farm.py:19](../src/wartune_server/game/farm.py#L19) | sem upgrade de terra (opType 9 não tem sender) |
 | [game/gemmaze.py:90](../src/wartune_server/game/gemmaze.py#L90) | o período (dia, UTC) não foi capturado; os movimentos comprados não somem (fica o maior). |
 | [game/gemmaze.py:196](../src/wartune_server/game/gemmaze.py#L196) | 5 ou mais em linha segue a conta de 3 e 4 (não foi capturado) |
 | [game/gemmaze.py:205](../src/wartune_server/game/gemmaze.py#L205) | prêmio sorteado uniforme entre os três vistos; a tabela oficial (pesos) precisa de captura |
 | [game/gemmaze.py:208](../src/wartune_server/game/gemmaze.py#L208) | troca sem combinação é aceita e gasta movimento (o cliente troca na tela e não desfaz; |
-| [game/guild.py:162](../src/wartune_server/game/guild.py#L162) | só os 50 últimos na memória; o banco guarda todos |
+| [game/guild.py:161](../src/wartune_server/game/guild.py#L161) | só os 50 últimos na memória; o banco guarda todos |
 | [game/handlers/account.py:20](../src/wartune_server/game/handlers/account.py#L20) | prazo do reset não está no cliente nem nas capturas; ajustar se aparecer |
 | [game/handlers/account.py:190](../src/wartune_server/game/handlers/account.py#L190) | sala de um jogador só; broadcast quando houver sala compartilhada |
 | [game/handlers/arena.py:18](../src/wartune_server/game/handlers/arena.py#L18) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
@@ -211,7 +213,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/forge.py:29](../src/wartune_server/game/handlers/forge.py#L29) | o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar) |
 | [game/handlers/forge.py:199](../src/wartune_server/game/handlers/forge.py#L199) | autoBuy (comprar o que falta) não |
 | [game/handlers/forge.py:211](../src/wartune_server/game/handlers/forge.py#L211) | o espaço é conferido antes de consumir (pode recusar quando os materiais liberariam lugar) |
-| [game/handlers/forge.py:268](../src/wartune_server/game/handlers/forge.py#L268) | sorteio uniforme entre os atributos com Grades > 0; peso por nível precisa de captura 8336 -> 4258 |
+| [game/handlers/forge.py:268](../src/wartune_server/game/handlers/forge.py#L268) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos |
 | [game/handlers/friends.py:30](../src/wartune_server/game/handlers/friends.py#L30) | limites do cliente não achados (módulo de UI ausente) |
 | [game/handlers/friends.py:312](../src/wartune_server/game/handlers/friends.py#L312) | ``pageIndex`` tratado como 1-based (UI ausente). |
 | [game/handlers/gemmaze.py:71](../src/wartune_server/game/handlers/gemmaze.py#L71) | o oficial manda 0 para personagem novo; o contador não foi capturado |
@@ -220,25 +222,22 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/gemmaze.py:179](../src/wartune_server/game/handlers/gemmaze.py#L179) | o semanal soma o mesmo que o do dia e zera na semana nova (``gm.refresh``, dedução) |
 | [game/handlers/gemmaze.py:238](../src/wartune_server/game/handlers/gemmaze.py#L238) | a caixa vai para a bolsa do labirinto (o ícone voa para ela, como o das gemas); a bolsa |
 | [game/handlers/gemmaze.py:258](../src/wartune_server/game/handlers/gemmaze.py#L258) | o template não diz a moeda nem o limite diário: diamante (ou vinculado com buyTypes 2) é dedução |
-| [game/handlers/guild.py:19](../src/wartune_server/game/handlers/guild.py#L19) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
-| [game/handlers/guild.py:182](../src/wartune_server/game/handlers/guild.py#L182) | duas transações (o membro precisa do id da guilda); se a segunda falhar fica uma |
-| [game/handlers/guild.py:440](../src/wartune_server/game/handlers/guild.py#L440) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
-| [game/handlers/guild.py:609](../src/wartune_server/game/handlers/guild.py#L609) | o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual. |
-| [game/handlers/guild.py:653](../src/wartune_server/game/handlers/guild.py#L653) | não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado |
-| [game/handlers/guild.py:865](../src/wartune_server/game/handlers/guild.py#L865) | a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item |
-| [game/handlers/guild.py:898](../src/wartune_server/game/handlers/guild.py#L898) | só na memória; reiniciar o servidor perde o prêmio |
-| [game/handlers/guild.py:1002](../src/wartune_server/game/handlers/guild.py#L1002) | offline grava direto; se ele logar durante o await o item só aparece no próximo |
-| [game/handlers/guild.py:1038](../src/wartune_server/game/handlers/guild.py#L1038) | o oficial abre a eleição quando o chefe some por muitos dias; a regra não está no |
+| [game/handlers/guild.py:471](../src/wartune_server/game/handlers/guild.py#L471) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
+| [game/handlers/guild.py:640](../src/wartune_server/game/handlers/guild.py#L640) | o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual. |
+| [game/handlers/guild.py:684](../src/wartune_server/game/handlers/guild.py#L684) | não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado |
+| [game/handlers/guild.py:896](../src/wartune_server/game/handlers/guild.py#L896) | a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item |
+| [game/handlers/guild.py:944](../src/wartune_server/game/handlers/guild.py#L944) | o prêmio fica na linha do membro, então sair da guilda antes de pegar perde o prêmio |
+| [game/handlers/guild.py:1027](../src/wartune_server/game/handlers/guild.py#L1027) | o correio por mochila cheia é dedução (o |
+| [game/handlers/guild.py:1110](../src/wartune_server/game/handlers/guild.py#L1110) | o oficial abre a eleição quando o chefe some por muitos dias; a regra não está no |
 | [game/handlers/guild_events.py:66](../src/wartune_server/game/handlers/guild_events.py#L66) | falta o sistema de mapas de campanha (só existe o do tutorial) e as ondas de |
 | [game/handlers/hero.py:127](../src/wartune_server/game/handlers/hero.py#L127) | a EXP gasta sai da EXP do nível atual (c.gp); conferir com captura se o oficial |
 | [game/handlers/hero.py:290](../src/wartune_server/game/handlers/hero.py#L290) | o preço sobe com diamondIndex (usos no dia); sem contador diário fica no primeiro |
 | [game/handlers/items.py:215](../src/wartune_server/game/handlers/items.py#L215) | sem o teto diário de poções de Beden; só o limite do personagem |
 | [game/handlers/items.py:381](../src/wartune_server/game/handlers/items.py#L381) | depois de juntar pilhas, fecha os buracos na mesma ordem (dedução) |
 | [game/handlers/mail.py:38](../src/wartune_server/game/handlers/mail.py#L38) | correio de guilda (sendType 2) recusado até existir guilda. |
-| [game/handlers/mall.py:44](../src/wartune_server/game/handlers/mall.py#L44) | a tela oferece 8, 24 e 48 h, mas o valor enviado não está no decompilado: 1..72 é o que aceitamos |
-| [game/handlers/mall.py:47](../src/wartune_server/game/handlers/mall.py#L47) | a lista pede 9 por página; o teto de 50 é dedução, a tela de leilão não está no decompilado |
-| [game/mall.py:33](../src/wartune_server/game/mall.py#L33) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
-| [game/mall.py:35](../src/wartune_server/game/mall.py#L35) | o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento |
+| [game/handlers/mall.py:45](../src/wartune_server/game/handlers/mall.py#L45) | a tela oferece 8, 24 e 48 h (Auction.SubmitHour1..3); o valor enviado não está no decompilado |
+| [game/handlers/mall.py:48](../src/wartune_server/game/handlers/mall.py#L48) | a lista pede 9 por página (8449, 8452); o teto de 50 é dedução, a tela de leilão não está no decompilado |
+| [game/handlers/mall.py:54](../src/wartune_server/game/handlers/mall.py#L54) | o texto repete 60 e 70 nas duas faixas; aqui 60 e 70 já são da faixa de cima. Abaixo de 40 vale |
 | [game/handlers/marriage.py:7](../src/wartune_server/game/handlers/marriage.py#L7) | pedidos, ofertas de casamento e pedidos de divórcio ficam em memória (somem se o |
 | [game/handlers/minigames.py:68](../src/wartune_server/game/handlers/minigames.py#L68) | janela de resgate desconhecida (2099 = sem fim) |
 | [game/handlers/offer.py:28](../src/wartune_server/game/handlers/offer.py#L28) | o sorteio de qualidade do oficial não é conhecido; pesos para 1..5 (5 = ouro, rende x6) |
@@ -246,13 +245,13 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/offer.py:224](../src/wartune_server/game/handlers/offer.py#L224) | depende do sistema de batalha abrir a luta com o NPC da tarefa; só registra. |
 | [game/handlers/offer.py:330](../src/wartune_server/game/handlers/offer.py#L330) | as condições (enviar mensagem, batalhas...) dependem de outros sistemas avisarem; |
 | [game/handlers/offer.py:342](../src/wartune_server/game/handlers/offer.py#L342) | sem compra de vagas extras |
-| [game/handlers/outer_city.py:36](../src/wartune_server/game/handlers/outer_city.py#L36) | velocidade fixa, sem montaria nem efeitos |
-| [game/handlers/outer_city.py:103](../src/wartune_server/game/handlers/outer_city.py#L103) | o próprio castelo e as minas; castelos vizinhos quando houver mapa compartilhado |
+| [game/handlers/outer_city.py:37](../src/wartune_server/game/handlers/outer_city.py#L37) | velocidade fixa, sem montaria nem efeitos |
+| [game/handlers/outer_city.py:135](../src/wartune_server/game/handlers/outer_city.py#L135) | os exércitos alheios não aparecem (o 169 é só o próprio): a posição de outro jogador só existe |
 | [game/handlers/pets.py:25](../src/wartune_server/game/handlers/pets.py#L25) | pontos livres por nível do pet; o oficial não publica a regra |
-| [game/handlers/pets.py:57](../src/wartune_server/game/handlers/pets.py#L57) | atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real fica no servidor oficial) |
+| [game/handlers/pets.py:57](../src/wartune_server/game/handlers/pets.py#L57) | atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real |
 | [game/handlers/pets.py:63](../src/wartune_server/game/handlers/pets.py#L63) | mesma aproximação |
-| [game/handlers/pets.py:82](../src/wartune_server/game/handlers/pets.py#L82) | a família (tipo, tier, estrela) é o template; o filtro de UI do cliente (canComposePet, NeedGrade 50) não casa com as receitas: confirmar com captura de uma composição |
-| [game/handlers/pets.py:202](../src/wartune_server/game/handlers/pets.py#L202) | devorar, crescimento, skills, sacrifício, treino, resistência e a fusão de 2 pets (15) dependem de tabelas e capturas que não temos (a fusão dá tipos 117-119, sem template) |
+| [game/handlers/pets.py:82](../src/wartune_server/game/handlers/pets.py#L82) | família (tipo, tier, estrela) = template: é a leitura que fecha os 24 pares de receita com um |
+| [game/handlers/pets.py:202](../src/wartune_server/game/handlers/pets.py#L202) | devorar, crescimento, skills, sacrifício, treino, resistência e a fusão de 2 pets (15) |
 | [game/handlers/pets.py:218](../src/wartune_server/game/handlers/pets.py#L218) | só jogador online |
 | [game/handlers/rewards.py:10](../src/wartune_server/game/handlers/rewards.py#L10) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/rewards.py:84](../src/wartune_server/game/handlers/rewards.py#L84) | x1,5 e x2 custam diamante no oficial, mas o preço não está no cliente; recusados |
@@ -273,6 +272,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/systems.py:222](../src/wartune_server/game/handlers/systems.py#L222) | 1 de EXP por pedra (sem captura do treino) |
 | [game/handlers/systems.py:332](../src/wartune_server/game/handlers/systems.py#L332) | a vocação (vocationGrades/Gp) que vem depois não tem tabela nem captura; começa no 1 |
 | [game/handlers/systems.py:369](../src/wartune_server/game/handlers/systems.py#L369) | o buff da coleção completa (bufInfos da suíte, visto 40001) não tem tabela conhecida |
+| [game/handlers/tower.py:28](../src/wartune_server/game/handlers/tower.py#L28) | sem progresso salvo da torre; andar real precisa do progresso |
 | [game/handlers/treasure.py:24](../src/wartune_server/game/handlers/treasure.py#L24) | o oficial sorteia a qualidade do mapa; sem essa tabela, dá sempre o de bronze (2190001) |
 | [game/handlers/vehicle.py:34](../src/wartune_server/game/handlers/vehicle.py#L34) | id = templateId (o oficial manda um id de banco; o cliente só usa templateId) |
 | [game/handlers/vehicle.py:45](../src/wartune_server/game/handlers/vehicle.py#L45) | tecnologia de veículo não existe ainda |
@@ -287,8 +287,11 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/worldboss.py:69](../src/wartune_server/game/handlers/worldboss.py#L69) | o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição); |
 | [game/items.py:12](../src/wartune_server/game/items.py#L12) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
 | [game/items.py:54](../src/wartune_server/game/items.py#L54) | um item novo por entrada, sem empilhar (igual ao 5006); empilhar quando o |
-| [game/outer_city.py:70](../src/wartune_server/game/outer_city.py#L70) | o oficial escolhe um ponto livre; sem outros castelos no servidor, usamos o centro |
-| [game/outer_city.py:102](../src/wartune_server/game/outer_city.py#L102) | o oficial sorteia o nível de novo a cada RefreshTime (43200 s) e a ocupação vence nesse |
+| [game/mall.py:33](../src/wartune_server/game/mall.py#L33) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
+| [game/mall.py:35](../src/wartune_server/game/mall.py#L35) | o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento |
+| [game/mall.py:43](../src/wartune_server/game/mall.py#L43) | arredondamento para baixo; o texto do cliente não diz como o oficial arredonda |
+| [game/outer_city.py:75](../src/wartune_server/game/outer_city.py#L75) | o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do |
+| [game/outer_city.py:117](../src/wartune_server/game/outer_city.py#L117) | (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora; |
 | [game/rewards.py:20](../src/wartune_server/game/rewards.py#L20) | -600 "Kristal" (cristal do castelo) ainda não existe no banco (CRYSTALS fixo em |
 | [game/rewards.py:23](../src/wartune_server/game/rewards.py#L23) | sem espaços comprados (bagCount) ainda |
 | [game/rewards.py:72](../src/wartune_server/game/rewards.py#L72) | o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela |

@@ -301,3 +301,121 @@ async def test_guild_shop_daily_limit(tmp_path: Path) -> None:
         assert await handlers.shop_buy(s, pb.BuyInfo(goodId=665, count=1))
         assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == handlers.R_LIMIT
         assert c.consortia_offer == left  # recusado sem cobrar
+
+
+async def test_guild_creation_saves_guild_member_and_event_together(tmp_path: Path) -> None:
+    """Criar grava guilda, membro e evento na mesma transação (o membro precisa do id da guilda)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        guild = _guild(a)
+        _, members, _, events, _ = await _session(a).ctx.characters.guild_state(_char(a).server_id)
+        assert [(m.consortia_id, m.character_id, m.duty_id) for m in members] == [(guild.id, a.user_id, gd.CHAIRMAN)]
+        assert [e.consortia_id for e in events] == [guild.id]
+
+
+async def test_altar_prize_is_saved_on_the_member(tmp_path: Path) -> None:
+    """O prêmio da bênção fica na linha do membro: recarregar a guilda do banco (reinício) o devolve."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        s, c = _session(a), _char(a)
+        _guild(a).altar_level = 1
+        c.consortia_offer = 100
+        a.client.send(5145, pb.SimplePropertyMsg(param1=1))
+        assert _one(await a.idle(), 45, pb.ConsortiaMsg).blessSite != -1
+
+        reloaded = await gd.Guilds.load(s.ctx.characters, c.server_id)
+        member = reloaded.members[a.user_id]
+        assert member.bless_item > 0 and member.bless_item_count == 1
+        a.client.send(8215)
+        assert _one(await a.idle(), 4142, pb.ItemInfoMsg).templateId == member.bless_item
+
+
+async def test_altar_prize_waits_for_a_free_bag_slot(tmp_path: Path) -> None:
+    """Mochila cheia não perde o prêmio: ele espera um espaço, e o espaço comprado conta."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        s, c = _session(a), _char(a)
+        _guild(a).altar_level = 1
+        c.consortia_offer = 100
+        snap = s.snapshot
+        assert snap is not None
+        for pos in range(42):  # mochila base cheia de pilhas completas
+            item = Item(c.id or 0, 2040106, count=bag.max_count(s.ctx.templates, 2040106))
+            item.pos = pos
+            snap.items.append(item)
+        a.client.send(5145, pb.SimplePropertyMsg(param1=1))
+        assert _one(await a.idle(), 45, pb.ConsortiaMsg).blessSite != -1
+        member = s.ctx.guilds.members[a.user_id]
+
+        a.client.send(8216)
+        assert not _one(await a.idle(), 4143, pb.ConsortiaMsg).result
+        assert member.bless_item > 0
+
+        c.bag_count = 7  # comprou espaços: o prêmio entra no primeiro livre, depois dos 42
+        a.client.send(8216)
+        got = await a.idle()
+        assert _one(got, 4143, pb.ConsortiaMsg).result
+        assert [i.pos for i in snap.items if i.pos >= 42] == [42]
+        assert member.bless_item == 0 and member.bless_item_count == 0
+
+
+async def test_box_item_goes_by_mail_when_the_bag_is_full(tmp_path: Path) -> None:
+    """Item do baú: cabe na mochila entra nela; sem espaço vai pelo correio, com o item como anexo."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        s = _session(a)
+        await s.ctx.characters.save(handlers.add_to_box(s, _guild(a).id or 0, 2060044, 3))  # quem chama grava
+        full = _session(b).snapshot
+        assert full is not None
+        for pos in range(42):
+            item = Item(full.character.id or 0, 2040106, count=bag.max_count(s.ctx.templates, 2040106))
+            item.pos = pos
+            full.items.append(item)
+
+        a.client.send(
+            8578,
+            pb.ConsortiaTreasureBoxMsg(
+                templateId=2060044,
+                playerInfo=[
+                    pb.ConsortiaMembersInfoMsg(userId=b.user_id, count=2),
+                    pb.ConsortiaMembersInfoMsg(userId=a.user_id, count=1),
+                ],
+            ),
+        )
+        got = await a.idle()
+        assert not _one(got, 4466, pb.ConsortiaStorageInfoMsg).storageInfo  # 3 distribuídos: baú zerado
+        mine = s.snapshot
+        assert mine is not None
+        assert [i.count for i in mine.items if i.template_id == 2060044] == [1]
+        assert not [i for i in full.items if i.template_id == 2060044]
+        assert 148 in [p.code for p in await b.idle()]  # aviso do correio para quem está online
+
+        mails = await s.ctx.characters.read(lambda uow: uow.mails.by_receiver(b.user_id))
+        annexes = await s.ctx.characters.read(lambda uow: uow.mails.annexes([m.id or 0 for m in mails]))
+        assert [(x.template_id, x.count) for x in annexes if x.template_id == 2060044] == [(2060044, 2)]
+
+
+async def test_creating_hides_own_applications_before_the_write(tmp_path: Path) -> None:
+    """Durante a gravação da criação, a candidatura dele já saiu da memória: outra guilda não o aceita (5134)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await a.join("bruxa")
+        _rich(b)
+        b.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(a).id))
+        apply_id = _one(await b.idle(), 35, pb.ConsortiaMsg).applyId
+        s = _session(b)
+        chars = s.ctx.characters
+        real, seen = chars.write, []
+
+        async def spy(change):  # type: ignore[no-untyped-def]
+            seen.append(s.ctx.guilds.invite(apply_id))
+            return await real(change)
+
+        chars.write = spy  # type: ignore[method-assign]
+        try:
+            b.client.send(5130, pb.ConsortiaMsg(consortiaName="Corvos"))
+            assert _one(await b.idle(), 117, pb.ConsortiaMsg).consortiaId
+        finally:
+            chars.write = real  # type: ignore[method-assign]
+        assert seen == [None]

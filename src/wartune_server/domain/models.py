@@ -671,6 +671,8 @@ class ConsortiaMember:
     offer_day: str = ""  # YYYY-MM-DD de ``today_offer``
     bless_count: int = 0
     bless_day: str = ""
+    bless_item: int = 0  # prêmio da bênção por pegar (8216); 0 = nenhum
+    bless_item_count: int = 0
     voted_for: int = 0  # eleição de chefe: em quem votou na eleição ``Consortia.voting_id``
     voted_id: int = 0
 
