@@ -8,6 +8,7 @@
 | [sequencia-login.md](sequencia-login.md) | Do portal até a cena do castelo, passo a passo |
 | [tutorial.md](tutorial.md) | Campanha de treino: roteiro dos nós, retomada, missões, nível e atributos |
 | [batalha.md](batalha.md) | Batalha simulada no servidor: pacotes, relógio, turnos, dano |
+| [castelo.md](castelo.md) | Prédios, tecnologia, filas e aceleração, produção, cobrança de ouro, fazenda, árvore, caixa por tempo e offline |
 | [http.md](http.md) | Endpoints HTTP do jogo, portal PHP e CDN |
 | [banco-de-dados.md](banco-de-dados.md) | Modelo de dados, várias contas em vários servidores, SQLite/MySQL/Postgres |
 | [configuracao.md](configuracao.md) | Variáveis de ambiente, logs e CLI |
