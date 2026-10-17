@@ -20,6 +20,7 @@ from wartune_server.services.clock import FakeClock
 CODES = [8448, 8449, 8450, 8451, 8452, 8453, 8454, 8457]
 HORN = 208002  # Büyük Borazan: StartingPrice 10, empilhável (MaxCount 9999)
 CRYSTAL = 208014  # Şeytan Kristali: StartingPrice 0, o template não vai a leilão
+CHEAP = 208027  # StartingPrice 1
 
 
 def last[T: Message](got: list[Packet], cls: type[T]) -> T:
@@ -212,7 +213,8 @@ async def test_bids_refund_the_outbid_player_by_mail_and_show_in_my_bids(tmp_pat
         assert [x.maxAuctionId for x in last(await a.until(4353), pb.AuctionItemsMsg).sellItem] == [listing.id]
 
 
-async def test_fixed_price_buy_takes_the_item_and_mails_the_seller(tmp_path: Path) -> None:
+async def test_fixed_price_buy_mails_the_item_to_the_buyer_and_the_taxed_price_to_the_seller(tmp_path: Path) -> None:
+    """(cliente) AuctionHelp.helpContent item 3 (a compra chega pelo correio) e item 7 (20% de imposto)."""
     async with logged_in(tmp_path, novice=19000) as a:
         horn = await _put(a, HORN, 1)
         a.client.send(8448, _sell(horn, point=10, fixPoint=50, hour=8))
@@ -228,14 +230,16 @@ async def test_fixed_price_buy_takes_the_item_and_mails_the_seller(tmp_path: Pat
         b.client.send(8453, pb.AuctionItemReqMsg(id=listing.id, point=50))
         got = await b.until(4357)
         assert last(got, pb.FixAuctionItemRspMsg).result == h.OK
-        assert 115 in [p.code for p in got]  # a mochila do comprador mudou antes da resposta
+        assert 115 not in [p.code for p in got]  # a mochila não muda: o item vai pelo correio
         assert me(b).character.point == 10
-        assert [bag for bag, _, _ in await _owned(b, HORN)] == [BagType.BAG]
+        assert await _owned(b, HORN) == [(BagType.MAIL, 0, 1)]
         assert await _listings(a) == []
+        assert await _pick(b, await _mail_id(b, "Satın alınan eşya")) == [True]
+        assert [bag for bag, _, _ in await _owned(b, HORN)] == [BagType.BAG]
 
         sale = await _mail_id(a, "Satış geliri")  # vendedor online: recebe pelo correio mesmo assim
         assert await _pick(a, sale) == [True]
-        assert me(a).character.point == seller_before + 50
+        assert me(a).character.point == seller_before + 40  # 50 menos 20% de imposto
 
 
 async def test_cancel_returns_the_item_and_is_refused_after_a_bid(tmp_path: Path) -> None:
@@ -300,7 +304,7 @@ async def test_expired_auctions_settle_by_mail_even_for_an_offline_seller(tmp_pa
         a2 = await a.connect()  # o vendedor volta: diamante do lance e item sem lance, tudo pelo correio
         before = me(a2).character.point
         assert await _pick(a2, await _mail_id(a2, "Satış geliri")) == [True]
-        assert me(a2).character.point == before + 15
+        assert me(a2).character.point == before + 12  # 15 menos 20% de imposto, para baixo
         assert await _pick(a2, await _mail_id(a2, "Geri dönen eşya")) == [True]
         assert [bag for bag, _, _ in await _owned(a2, HORN)] == [BagType.BAG]  # o sem lance voltou; o vendido é de b
 
@@ -384,3 +388,49 @@ async def test_sell_caps_a_listing_at_nine_pieces(tmp_path: Path) -> None:
         g.client.send(8448, _sell(stack, count=9, point=90))
         assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK
         assert stack.count == 1
+
+
+def test_sale_tax_takes_twenty_percent_rounded_down() -> None:
+    assert [market.income(p) for p in (50, 15, 4, 1)] == [40, 12, 3, 0]
+
+
+def test_daily_limit_by_level() -> None:
+    """(cliente) AuctionHelp.helpContent itens 9-11."""
+    assert [h.daily_limit(g) for g in (1, 40, 59, 60, 69, 70, 80, 90)] == [500, 500, 500, 1000, 1000, 1500, 1500, 1500]
+
+
+async def test_bid_and_fixed_buy_stop_at_the_daily_limit(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as a:
+        first = await _put(a, HORN, 1)
+        second = await _put(a, HORN, 1, pos=6)
+        a.client.send(8448, _sell(first, point=10, fixPoint=900, hour=8))
+        await a.until(4352)
+        a.client.send(8448, _sell(second, point=10, fixPoint=20, hour=8, itemPos=6))
+        await a.until(4352)
+        cheap, pricey = sorted(await _listings(a), key=lambda x: x.fix_point)
+        b = await a.join("bruxa")
+        await _diamonds(b, 2000)
+        limit = h.daily_limit(me(b).character.grades)
+
+        b.client.send(8453, pb.AuctionItemReqMsg(id=pricey.id, point=900))  # passa do limite do dia
+        assert last(await b.until(4357), pb.FixAuctionItemRspMsg).result == h.DAILY_LIMIT
+        b.client.send(8451, pb.AuctionItemReqMsg(id=pricey.id, point=limit + 1))
+        assert last(await b.until(4355), pb.AuctionItemRspMsg).result == h.DAILY_LIMIT
+        assert me(b).character.point == 2000  # recusado antes de cobrar
+
+        b.client.send(8451, pb.AuctionItemReqMsg(id=pricey.id, point=limit - 10))
+        assert last(await b.until(4355), pb.AuctionItemRspMsg).result == h.OK
+        b.client.send(8453, pb.AuctionItemReqMsg(id=cheap.id, point=20))  # 10 restantes, o fixo custa 20
+        assert last(await b.until(4357), pb.FixAuctionItemRspMsg).result == h.DAILY_LIMIT
+        assert me(b).character.mall_spent == limit - 10
+        fresh = await b.server.services.characters.snapshot(b.user_id)
+        assert fresh.character.mall_spent == limit - 10  # gravado junto com o débito
+
+
+async def test_sell_refuses_a_start_price_below_two(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        cheap = await _put(g, CHEAP, 1)
+        g.client.send(8448, _sell(cheap, point=1))  # (cliente) Auction.SubmitAlert2: StartingPrice 1, mas o piso é 2
+        assert last(await g.until(4352), pb.SellItemRspMsg).result == h.PRICE
+        g.client.send(8448, _sell(cheap, point=2))
+        assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK

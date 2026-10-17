@@ -97,8 +97,8 @@ Outros eventos:
 ## Mercado entre jogadores ([mercado.md](mercado.md))
 
 - Encerramento agendado a cada 60 s (`game/mall.py` `run`): um anúncio vencido sai até 60 s depois do fim, mesmo sem pedido ao mercado. Antes, só o próximo pedido encerrava.
-- Quantidade (até 9) é *(cliente)*. **dedução**: duração 1–72 h (a tela oferece 8, 24 e 48), preço mínimo `StartingPrice × count`, sem taxa, teto de página 50, primeiro lance ≥ inicial.
-- **precisa de captura**: vínculo (−7 no cliente é "item vinculado"; o servidor não tem o dado e usa −7 para item travado); ouro cobrado em algum passo (−10); limite diário de compra (−52, sem valor); lance igual ao inicial; líder subindo o próprio lance (−17); cartas oficiais do vencido (título, texto, momento); `hour` no 8448 (horas ou índice da opção). Detalhe em [mercado.md](mercado.md#dependências).
+- *(cliente, ajuda do leilão)*: imposto de 20% do vendedor, compra pelo fixo entregue pelo correio, limite diário de compra por nível (500/1000/1500, −52), piso de 2 no inicial, até 9 unidades. **dedução**: duração 1–72 h (a tela oferece 8, 24 e 48), preço mínimo `StartingPrice × count`, teto de página 50, primeiro lance ≥ inicial, arredondamento do imposto e bordas das faixas do limite.
+- **precisa de captura**: valor da taxa em ouro do anúncio (a ajuda confirma que existe; −10); nível de abertura do leilão (`{0}` da `AuctionShopTip`); vínculo (−7 no cliente é "item vinculado"; o servidor não tem o dado e usa −7 para item travado); lance igual ao inicial; líder subindo o próprio lance (−17); cartas oficiais (título, texto, momento); `hour` no 8448 (horas ou índice da opção). Detalhe em [mercado.md](mercado.md#dependências).
 - Lance e compra pagam só elmas (sem vinculado), sem prova de que o oficial restrinja.
 - Lista do mercado (8450) e busca (8457) ignoram a ordenação.
 - Cancelar parte de uma pilha não reempilha com a original.
