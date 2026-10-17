@@ -21,6 +21,8 @@ accounts 1───* characters *───1 game_servers
    │              ├──* buildings
    │              ├──* quests
    │              ├──* items
+   │              ├──* shop_buys, fashion_books, cash_ledger
+   │              ├──1 mystery_shops
    │              └──1 castles
    └──* play_tickets *───1 game_servers
 ```
@@ -56,12 +58,16 @@ validado no `POST login` para o servidor certo.
 | sex, camp, job | `job` = ícone = template do herói (1–6) |
 | grades, gp, total_gp, gold, point, gift_token, strategy | progresso e moedas (`strategy` = Ruh) |
 | weary, weary_limit, novice_process, fighting_capacity, repute, geste, charm | |
+| bag_count, rental_bag_until | espaços comprados (5010, de 7 em 7) e fim do aluguel da mochila de 217 (8819) |
+| store_grade, store_gp | cristal (8484) |
+| appell_id | título em uso |
 | created_at, last_login_at | |
 
 ### heroes
 `character_id`, `template_id`, `nickname`, `grades`, `gp`, os cinco atributos (`power`, `agility`,
 `intellect`, `captain`, `physique`) e os pontos distribuídos em cada um (`*_point`), além de
-`remain_point`, `skill_point`, `skill_script`, `fast_key`, `fight_pos` e `is_leader`.
+`remain_point`, `skill_point`, `skill_script`, `fast_key`, `fight_pos` e `is_leader`; `hide_fashion`
+(5008), `blood` e `blood_id` (reserva de HP das poções).
 
 ### castles
 Um por personagem: `name`, `map_id`, `pos_x`, `pos_y`, `grade`, `energy` e `state`. A posição vem
@@ -80,8 +86,22 @@ não ficam no banco.
 `added_at`, `completed_at`. As concluídas viram o bitmap `questSite`; não há tabela para ele.
 
 ### items
-`character_id`, `template_id`, `bag_type` (1 mochila, 4 herói), `object_id` (id do herói quando
-equipado), `pos`, `count`, `random_skill` (`randomSkill_1`, o atributo sorteado) e `is_new`.
+`character_id`, `template_id`, `bag_type` (0 bancada, 1 mochila, 2 runas, 3 medalha, 4 herói),
+`object_id` (id do herói nos bags 2–4), `pos`, `count`, `random_skill` e `random_skill_2..5`
+(atributos sorteados), `is_new`, `strengthen_grade`, `join_1..4` (furos: −1 fechado, 0 vazio, >0
+pedra), `is_locked` e `mould_grade`. Ver [itens.md](itens.md).
+
+### shop_buys, mystery_shops, fashion_books
+`shop_buys`: compras do dia por `good_id` (`ShopTempInfo.Id`), únicas por personagem; `day` muda e a
+contagem zera. `mystery_shops`: uma por personagem, os itens sorteados da loja misteriosa, os índices
+comprados e as compras do dia. `fashion_books`: modas do livro (`template_id` único por personagem,
+`is_switch`, `appraisal_skill`).
+
+### cash_ledger
+Todo movimento de elmas (`point`) e elmas vinculado (`gift_token`): `delta_point`,
+`delta_gift_token`, os saldos depois (`balance_*`), `reason` (`shop`, `bag`, `rental_bag`, `item`,
+`gm`, `recharge`), `ref` (o que foi comprado), `gm` (quem, quando for GM) e `created_at`. Só cresce;
+é gravado na mesma transação da compra (`services/cash.py`).
 
 ## Transações
 

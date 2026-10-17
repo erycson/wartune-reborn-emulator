@@ -20,7 +20,8 @@
 - [ ] **Validar o tutorial no cliente**
 - Fórmulas reais de dano, iniciativa e poder de combate
 - Cidade externa de verdade: terras selvagens, castelos vizinhos, outros jogadores
-- Atividades (4476), títulos (4484), moda (8625), patrulha dos monstros (4122)
+- [x] Mochila, uso de itens, lojas (comum, moda, poção, misteriosa), forja e moda, com registro de elmas no `cash_ledger` ([itens.md](itens.md))
+- Atividades (4476), títulos (4484: lista vazia até haver conquistas), patrulha dos monstros (4122)
 
 ## Multiplayer
 
