@@ -63,12 +63,13 @@ async def test_pre_carga_do_mapa_vem_da_captura(tmp_path: Path):
 
 async def test_info_da_torre_tem_as_entradas_da_captura(tmp_path: Path):
     async with logged_in(tmp_path, novice=19000) as a:
-        a.client.send(8297, pb.TowerInfoReqMsg(index=3))  # capturas: 1 entrada livre de 1, nenhuma feita
+        a.client.send(8297, pb.TowerInfoReqMsg(index=0))  # capturas: 1 entrada livre de 1, nenhuma feita
         info = _body(await a.idle(), TOWER_INFO, pb.TowerInfoMsg)
-        assert (info.towerIndex, info.campaignId, info.enterCount, info.freeEnterCount, info.maxEnterCount) == (
-            3,
-            8001,
-            0,
-            1,
-            1,
-        )
+        assert (info.campaignId, info.enterCount, info.freeEnterCount, info.maxEnterCount) == (8001, 0, 1, 1)
+
+
+async def test_info_da_torre_ecoa_o_indice_e_nao_inventa_andar(tmp_path: Path):
+    async with logged_in(tmp_path, novice=19000) as a:
+        a.client.send(8297, pb.TowerInfoReqMsg(index=1))  # index é o pedido; towerIndex é o andar atual
+        info = _body(await a.idle(), TOWER_INFO, pb.TowerInfoMsg)
+        assert (info.index, info.towerIndex) == (1, 0)  # sem progresso: andar 0 (não começou)
