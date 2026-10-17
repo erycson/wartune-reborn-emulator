@@ -81,6 +81,33 @@ async def test_criar_guilda_avanca_a_missao_22(tmp_path: Path) -> None:
         assert _quests(await g.idle()) == {220: (1, False)}
 
 
+async def test_entrar_na_guilda_avanca_a_missao_22_do_candidato(tmp_path: Path) -> None:
+    """O líder aceita (5134) a candidatura de quem está online: o 112 vai para o candidato."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create_guild(a)
+        other = await a.join("clara")
+        _snap(other).character.grades = 20
+        _open(other, 220)
+        await other.idle()
+        other.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(a).id))
+        [apply] = [p for p in await other.idle() if p.code == 35]
+        a.client.send(5134, pb.ConsortiaMsg(applyId=pb.ConsortiaMsg.FromString(apply.body).applyId, result=True))
+        await a.idle()
+        assert _quests(await other.idle()) == {220: (1, False)}
+
+
+async def test_pesquisa_da_guilda_nao_avanca_a_missao_51(tmp_path: Path) -> None:
+    """Pesquisa (tipo 6+) não é Para1 da 51: a 819 fica parada."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        await _create_guild(g)
+        _open(g, 819)
+        guild = _guild(g)
+        guild.offer, guild.levels, guild.school_level = 1_000_000, 5, 5  # requisito da pesquisa
+        g.client.send(5133, pb.ConsortiaMsg(upgradeType=6))
+        assert _quests(await g.idle()) == {}
+        assert _guild(g).attack_level == 1  # a pesquisa foi feita
+
+
 async def test_contribuicao_avanca_a_missao_29_pelo_total(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         await _create_guild(g)

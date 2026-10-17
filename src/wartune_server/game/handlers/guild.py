@@ -783,7 +783,8 @@ async def upgrade(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     event = _event(s, guild, f"{row.get('LevelName', kind)} Lv.{level}")
     # missão de nível da guilda (51) vale para todos os membros online, não só para quem melhorou
     changed: list[tuple[GameSession, PlayerSnapshot, list[Quest]]] = []
-    for o in gd.online_members(s.ctx, guild.id or 0):
+    # pesquisa (6-12) não é Para1 da 51: (cliente) checkConsortuaGrade só conhece 1-5
+    for o in gd.online_members(s.ctx, guild.id or 0) if kind in rules.GUILD_LEVEL_ATTRS else []:
         member_snap = o.snapshot
         assert member_snap is not None
         if quests := rules.quest_event(member_snap, templates, rules.GUILD_LEVEL_CONDITION, kind, level):

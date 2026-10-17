@@ -217,17 +217,22 @@ def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1
 FRIEND_CONDITION = 21  # ter amigo: checkFriendsCount, tamanho da lista de amigos
 GUILD_JOIN_CONDITION = 22  # estar em guilda: checkJoinConsortia, consortiaID > 0
 OFFER_CONDITION = 29  # contribuição total: checkConsortiaOffer, consortiaTotalOffer >= Para2
-GUILD_LEVEL_CONDITION = 51  # nível da guilda: checkConsortuaGrade; Para1 1 guilda, 2 mercado, 3 altar
-BLESS_CONDITION = 30  # bênção do altar, uma por dia (5145); (dedução) QuestTemps 241 "Birlik İbadeti"
+GUILD_LEVEL_CONDITION = 51  # nível da guilda: checkConsortuaGrade; Para1 = prédio (GUILD_LEVEL_ATTRS)
+# (visto) tempinfos QuestTemps 241 Detail: [Birlik İnşaatı] > [İbadethane] > [1 kez İbadet Et] = altar (5145)
+BLESS_CONDITION = 30  # bênção do altar, uma por dia (5145)
 # (visto) tempinfos QuestTemps 260 = própria (Para1 1); 22, 261 e 271 = de amigo (Para1 0)
 TREE_CONDITION = 20  # regar a árvore (15017); (visto) captura #5 de ciftlik.json é a própria
-SELL_CONDITION = 56  # pôr item à venda (8448); (dedução) QuestTemps 825 "İhale", 1 item no leilão
-# (cliente) SeminaryBlessFrame.as manda 8489 no confirmar; (dedução) é o "Rulet Aç" da 857
+# (visto) tempinfos QuestTemps 825 Detail: [Pazar] > ekipmanı [1 defa İhaleye Ver] = pôr à venda (8448)
+SELL_CONDITION = 56  # pôr item no leilão (8448), +1 por anúncio
+# (visto) tempinfos QuestTemps 857 Detail: [Akademi] > [Bereket Ruleti] > [Rulet Aç];
+# (cliente) SeminaryBlessFrame.as manda 8489 no confirmar
 SEMINARY_CONDITION = 57  # bênção do seminário (8489)
 # Os de nível guardam o maior valor: evoluir tropa até Para2 (10) e os que o cliente confere pelo estado
 LEVEL_CONDITIONS = {10, FRIEND_CONDITION, GUILD_JOIN_CONDITION, OFFER_CONDITION, GUILD_LEVEL_CONDITION}
 EXACT_PARA1 = {TREE_CONDITION}  # Para1 0 não é coringa aqui: regar a própria (1) não avança as de amigo (0)
-GUILD_LEVEL_ATTRS = {1: "levels", 2: "shop_level", 3: "altar_level"}  # Para1 de 51 -> Consortia (LEVEL_TYPES)
+# Para1 de 51 -> Consortia: (cliente) TaskTemplate.as checkConsortuaGrade, Para1 1-5 = levels, shopLevel,
+# altarLevel, schoolLevel, storeLevel (mesma numeração de guild.LEVEL_TYPES; 6-12 são pesquisas, fora da 51)
+GUILD_LEVEL_ATTRS = {1: "levels", 2: "shop_level", 3: "altar_level", 4: "school_level", 5: "store_level"}
 
 
 def social_state_quests(snap: PlayerSnapshot, templates: GameTemplates, guild: Consortia | None) -> list[Quest]:
