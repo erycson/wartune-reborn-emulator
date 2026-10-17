@@ -31,7 +31,7 @@ no lado dele até eu mandar 15003 relation 1 de volta. Lista negra (2) filtra mu
 | 15012 | FriendRelationMsg | como 15003 relation 1 | pronto; sem chamador no cliente *(dedução)* |
 | 15004 | `{otherId}` | 79 `{otherId, result}`; o outro lado volta a pendente (165) | pronto *(cliente)* |
 | 8285 | vazio | 4193 RefuseFriendRspMsg | pronto: alterna "recusar pedidos" *(cliente)* |
-| 8286 | vazio | 4194 RefuseFriendRspMsg | pronto: alterna "recusar convites"; o convite de guilda (5142) é recusado ([guilda.md](guilda.md)) *(cliente)* `sendRefuseInvite` |
+| 8286 | vazio | 4194 RefuseFriendRspMsg | pronto: alterna "recusar convites" *(cliente)* `sendRefuseInvite`; o bloqueio do convite de guilda (5142) é *(dedução)*, ver [guilda.md](guilda.md) |
 | 8746 | vazio | 4635 RefuseFriendRspMsg | pronto: alterna "recusar convites de time"; o 8738 não chega ao alvo que recusa *(cliente)* `sendRefuseTeamInvite` |
 | 15013 | vazio | 85 RecommendListMsg | pronto: até 10 online fora da lista *(cliente)* |
 | 15025 / 15026 / 15027 | FriendGroupMsg | 4227 / 4228 / 4229 | pronto: apagar devolve os amigos ao grupo 2 *(cliente)*; até 10 grupos, nome até 12 *(dedução)* |
