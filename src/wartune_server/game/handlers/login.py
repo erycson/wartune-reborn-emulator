@@ -51,6 +51,7 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     assert leader is not None and castle is not None and snap.character.id is not None
     templates = s.ctx.templates
     stats = rules.leader_stats(snap, templates)
+    rules.refresh_skill_point(leader, templates)  # derivado do nível e das skills (cache na coluna)
     hero = b.hero_info(leader, snap.character.id, stats, rules.talent_points(leader, templates))
     arm = rules.arm_avatar(snap, templates)
     pawn = army_pawn_msg(snap, templates, snap.character.id)

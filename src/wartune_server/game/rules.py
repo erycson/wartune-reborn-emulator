@@ -189,7 +189,7 @@ def add_gp(snap: PlayerSnapshot, templates: GameTemplates, gp: int) -> int:
     c.grades, c.gp = grade, c.total_gp - floor
     if leader is not None and gained > 0:
         leader.grades = grade
-        leader.skill_point = skill_points(leader, templates, leader.skill_script)
+        refresh_skill_point(leader, templates)
         for attr, per_level in GROWTH[job_type(c.job)].items():
             setattr(leader, attr, getattr(leader, attr) + per_level * gained)
             setattr(leader, f"{attr}_point", getattr(leader, f"{attr}_point") + per_level * gained)
@@ -203,6 +203,14 @@ def skill_grades(templates: GameTemplates, script: str) -> int:
 def skill_points(hero: Hero, templates: GameTemplates, script: str) -> int:
     """1 ponto a cada 2 níveis, já contando as skills iniciais (nível 6 com 2 skills = 1: visto)."""
     return max(0, hero.grades // 2 - skill_grades(templates, script))
+
+
+def active_script(hero: Hero) -> str:
+    return hero.skill_script2 if hero.skill_index == 1 else hero.skill_script
+
+
+def refresh_skill_point(hero: Hero, templates: GameTemplates) -> None:
+    hero.skill_point = skill_points(hero, templates, active_script(hero))
 
 
 def talent_points(hero: Hero, templates: GameTemplates) -> int:
@@ -279,6 +287,48 @@ def pay_soul(c: Character, cost: int) -> bool:
         return False
     c.strategy -= cost
     return True
+
+
+def bag_count(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) -> int:
+    return sum(i.count for i in bag_items(snap, templates, son_type))
+
+
+def bag_items(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) -> list[Item]:
+    """Itens da mochila com esse ItemTempInfo.SonType, por posição (os da frente são gastos antes)."""
+    found = []
+    for item in sorted(snap.items, key=lambda i: i.pos):
+        row = templates.get("ItemTempInfos", item.template_id)
+        if item.bag_type == BagType.BAG and row is not None and row.get("SonType") == son_type:
+            found.append(item)
+    return found
+
+
+def take_items(snap: PlayerSnapshot, items: list[Item], count: int) -> tuple[list[Item], list[Item]]:
+    """Gasta ``count`` unidades de ``items`` (já no snapshot). Devolve ``(alterados, apagados)``; quem
+    chama confere antes que há o bastante e grava os dois numa save só."""
+    changed, deleted = [], []
+    for item in items:
+        if count <= 0:
+            break
+        used = min(count, item.count)
+        item.count -= used
+        count -= used
+        if item.count == 0:
+            snap.items.remove(item)
+            deleted.append(item)
+        else:
+            changed.append(item)
+    return changed, deleted
+
+
+def config(templates: GameTemplates, name: str, default: str = "0") -> str:
+    row = next(templates.find("ConfigInfos", ConfigName=name), None)
+    return row["ConfigValue"] if row else default
+
+
+def upgrade_row(templates: GameTemplates, types: str, grade: int) -> Row | None:
+    """UpGradeTempInfo de ``Types`` no grau ``grade`` (tabelas de custo/EXP por nível)."""
+    return next(templates.find("UpGradeTempInfos", Types=types, Grades=grade), None)
 
 
 def free_bag_pos(snap: PlayerSnapshot) -> int:
