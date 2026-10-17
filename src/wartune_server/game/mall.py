@@ -1,14 +1,19 @@
 """Mercado entre jogadores: encerrar os anúncios vencidos e as cartas que saem deles (correio).
 
-Não há job agendado: ``settle`` roda no começo de cada pedido do mercado (``handlers/mall.py``), na mesma
-transação da operação. O item e o diamante vão pelo correio porque o destinatário pode estar offline e o
+``settle`` roda em dois lugares, sempre na mesma transação e sob ``MALL_LOCK``: no começo de cada pedido do
+mercado (``handlers/mall.py``) e no encerramento agendado (``run``, a cada ``SWEEP_SECONDS``), que encerra os
+vencidos sem ninguém pedir nada. O item e o diamante vão pelo correio porque o destinatário pode estar offline e o
 snapshot dele não pode ser alterado daqui.
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+import structlog
 
 from ..domain.models import Item, Mail, MailType
 from ..domain.repositories import UnitOfWork
@@ -16,7 +21,27 @@ from ..templates.repository import GameTemplates
 from . import mail as mailbox
 from .bag import name
 
+if TYPE_CHECKING:
+    from ..services.characters import CharacterService
+    from ..services.clock import Clock
+    from .session import OnlinePlayers
+
+log = structlog.get_logger(__name__)
+
 DIAMOND = -400  # TemplateId da moeda no correio (CURRENCIES, handlers/player.py): elmas não vinculados
+
+# ponytail: lock global do processo (um servidor por processo). Por anúncio se a fila pesar.
+MALL_LOCK = asyncio.Lock()
+# ponytail: o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento
+SWEEP_SECONDS = 60
+# (cliente) language.txt AuctionHelp.helpContent item 7: "o sistema tira 20% de imposto do vendedor"
+TAX_PERCENT = 20
+
+
+def income(price: int) -> int:
+    """O que o vendedor recebe de uma venda de ``price`` diamantes, já sem o imposto."""
+    # ponytail: arredondamento para baixo; o texto do cliente não diz como o oficial arredonda
+    return price * (100 - TAX_PERCENT) // 100
 
 
 async def post(
@@ -58,7 +83,12 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
             )
             mails.append(
                 await post(
-                    uow, listing.seller_id, now, "Satış geliri", f"{label} satıldı.", goods=[(DIAMOND, listing.point)]
+                    uow,
+                    listing.seller_id,
+                    now,
+                    "Satış geliri",
+                    f"{label} satıldı.",
+                    goods=[(DIAMOND, income(listing.point))],
                 )
             )
         else:
@@ -66,3 +96,33 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
                 await post(uow, listing.seller_id, now, "Geri dönen eşya", f"{label}: alıcı çıkmadı.", items=[item])
             )
     return mails
+
+
+async def sweep(
+    characters: CharacterService, templates: GameTemplates, online: OnlinePlayers, server_id: int, now: datetime
+) -> list[Mail]:
+    """Uma rodada do encerramento agendado: os vencidos do servidor, sem pedido de ninguém. Mesmo lock e mesma
+    transação dos pedidos; o 148 sai depois do commit."""
+    async with MALL_LOCK:
+        mails = await characters.write(lambda uow: settle(uow, templates, server_id, now))
+    for mail in mails:
+        mailbox.notify(online, mail)
+    return mails
+
+
+async def run(
+    characters: CharacterService,
+    templates: GameTemplates,
+    online: OnlinePlayers,
+    clock: Clock,
+    server_id: int,
+    every: float = SWEEP_SECONDS,
+) -> None:
+    """Loop do encerramento (``app.py`` cancela ao desligar). A primeira rodada sai já, para pegar o que venceu
+    com o servidor fora. Uma rodada que falha é registrada e a próxima tenta de novo."""
+    while True:
+        try:
+            await sweep(characters, templates, online, server_id, clock.now())
+        except Exception:
+            log.exception("encerramento do mercado falhou", proxima_em_s=every)
+        await asyncio.sleep(every)

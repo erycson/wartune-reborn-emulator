@@ -198,6 +198,8 @@ characters = Table(
     _str("seminary_day", 10),
     _int("bugle_free_used"),
     Column("bugle_free_day", String(10), nullable=False, default="", server_default=""),
+    _int("mall_spent"),
+    _str("mall_day", 10),
     _int("consortia_offer"),
     _int("consortia_total_offer"),
     _int("skill_attack"),

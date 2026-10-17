@@ -125,6 +125,8 @@ class Character:
     seminary_day: str = ""  # "YYYY-MM-DD"; outro dia zera a contagem
     bugle_free_used: int = 0  # cornetas pequenas grátis usadas em ``bugle_free_day``
     bugle_free_day: str = ""  # "YYYY-MM-DD"; outro dia = cota cheia de novo
+    mall_spent: int = 0  # diamante pago no mercado (lances e preço fixo) em ``mall_day`` (limite diário, -52)
+    mall_day: str = ""  # "YYYY-MM-DD"; outro dia zera
     # guilda: só o que o próprio jogador muda (a filiação fica em ``ConsortiaMember``)
     consortia_offer: int = 0  # contribuição disponível (gasta no mercado e nas habilidades)
     consortia_total_offer: int = 0

@@ -12,6 +12,7 @@ from aiohttp import web
 from .config import Settings
 from .domain.models import GameServer
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
+from .game import mall as market
 from .game.events import EventCatalog
 from .game.guild import Guilds
 from .game.router import router
@@ -117,6 +118,7 @@ class GameServerApp:
         s = self.settings
         runners: list[web.AppRunner] = []
         servers: list[asyncio.Server] = []
+        sweeper: asyncio.Task[None] | None = None
         try:
             for app, port in ((self.http_app, s.http_port), (websocket_app(self.acceptor), s.websocket_port)):
                 runner = web.AppRunner(app, access_log=None)
@@ -128,8 +130,17 @@ class GameServerApp:
             if s.policy_port and (policy := await start_policy(s.bind_host, s.policy_port)):
                 servers.append(policy)
             log.info("servidor pronto", servidor=s.server_id, nome=s.server_name)
+            sweeper = asyncio.create_task(
+                market.run(
+                    self.services.characters, self.services.templates, self.online, self.services.clock, s.server_id
+                ),
+                name="mercado-encerramento",
+            )
             await stop.wait()
         finally:
+            if sweeper is not None:
+                sweeper.cancel()
+                await asyncio.gather(sweeper, return_exceptions=True)
             log.info("encerrando", online=len(self.online))
             for server in servers:
                 server.close()

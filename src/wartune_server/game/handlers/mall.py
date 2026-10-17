@@ -1,6 +1,6 @@
 """Mercado entre jogadores: anunciar (8448), listas (8449 meus anúncios, 8450 mercado, 8452 meus lances,
 8457 busca), lance (8451), compra pelo preço fixo (8453) e cancelar (8454). Regras e fontes em
-``docs/mall.md``; encerramento dos anúncios vencidos em ``game/mall.py``.
+``docs/mercado.md``; encerramento dos anúncios vencidos em ``game/mall.py``.
 
 Cada pedido roda numa transação só (``characters.write``): a varredura dos vencidos, a operação e os
 correios. Quem pede recebe direto na mochila; quem não pede (vendedor, vencedor, lance devolvido) recebe
@@ -9,14 +9,13 @@ pelo correio, porque o snapshot dele pode não estar carregado aqui.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 
 from google.protobuf.message import Message
 
-from ...domain.models import BagType, Item, Mail, MallBid, MallListing, PlayerSnapshot
+from ...domain.models import BagType, Character, Item, Mail, MallBid, MallListing, PlayerSnapshot
 from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
@@ -38,13 +37,41 @@ S_LIST_BIDS, S_FIX, S_CANCEL, S_SEARCH = 4356, 4357, 4358, 4359
 # SellResultType do cliente (``Auction.ResultAlert`` = abs(código))
 OK, GONE, COUNT, PRICE, FIX_PRICE, HOUR = 0, -2, -3, -4, -5, -6
 BLOCKED, NO_ITEM, NO_POINT, NOT_AUCTION, FIX_FAIL, CANCEL_FAIL, OWN_FIX, OWN_BID = -7, -8, -11, -12, -14, -15, -16, -17
+SELL_MAX_COUNT = -18  # MALL_SELL_MAX_COUNT: mais de 9 unidades num anúncio
+DAILY_LIMIT = -52  # Auction.ResultAlert52: "İhale günlük satın alma sınırına ulaştı!" (fora do SellResultType)
+# -7 aqui é item travado (8809). O texto do cliente para -7 é "eşya bağlı halde" (vinculado): falta o dado de vínculo
 
 GOODS, PET = 1, 2  # SellItemVO.itemType (e MallItemMsg.itemFrom): só item vai ao mercado
-# ponytail: duração livre de 1 a 72 h e página de 9: a tela de leilão não está no cliente decompilado
-MIN_HOUR, MAX_HOUR, PAGE, PAGE_MAX = 1, 72, 9, 50
+# ponytail: a tela oferece 8, 24 e 48 h (Auction.SubmitHour1..3); o valor enviado não está no decompilado
+MIN_HOUR, MAX_HOUR = 1, 72
+MAX_COUNT = 9  # (cliente) Auction.ResultAlert18: "o item vendido tem no máximo 9 unidades" (por anúncio)
+# ponytail: a lista pede 9 por página (8449, 8452); o teto de 50 é dedução, a tela de leilão não está no decompilado
+PAGE, PAGE_MAX = 9, 50
+MIN_POINT = 2  # (cliente) Auction.SubmitAlert2: "İlk Fiyat 2'den az olamaz"
 
-# ponytail: lock global do processo (um servidor por processo). Por anúncio se a fila pesar.
-MALL_LOCK = asyncio.Lock()
+# (cliente) language.txt AuctionHelp.helpContent itens 9-11: limite diário de compra em diamante por nível,
+# Lv40-60 500, Lv60-70 1000, Lv70-80 1500.
+# ponytail: o texto repete 60 e 70 nas duas faixas; aqui 60 e 70 já são da faixa de cima. Abaixo de 40 vale
+# a primeira faixa e acima de 80 a última (o texto não diz). Conta o diamante pago (lance e preço fixo), e o
+# lance devolvido não volta para a cota (o texto não diz).
+DAILY_LIMITS = ((60, 500), (70, 1000))
+TOP_DAILY_LIMIT = 1500
+
+
+def daily_limit(grades: int) -> int:
+    return next((limit for below, limit in DAILY_LIMITS if grades < below), TOP_DAILY_LIMIT)
+
+
+def _spent_today(c: Character, now: datetime) -> int:
+    return c.mall_spent if c.mall_day == now.date().isoformat() else 0
+
+
+def _over_limit(c: Character, cost: int, now: datetime) -> bool:
+    return _spent_today(c, now) + cost > daily_limit(c.grades)
+
+
+def _count_spent(c: Character, cost: int, now: datetime) -> None:
+    c.mall_spent, c.mall_day = _spent_today(c, now) + cost, now.date().isoformat()
 
 
 @dataclass
@@ -67,7 +94,7 @@ async def _transact(s: GameSession, op: Callable[[UnitOfWork, datetime], Awaitab
         settled = await market.settle(uow, templates, server, now)
         return await op(uow, now), settled
 
-    async with MALL_LOCK:
+    async with market.MALL_LOCK:
         reply, settled = await s.ctx.characters.write(change)
     for mail in [*settled, *reply.mails]:
         mailbox.notify(s.ctx.online, mail)
@@ -181,11 +208,15 @@ async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
             code = NOT_AUCTION
         elif item is None or row is None or item.id != msg.itemId:
             code = NO_ITEM
-        elif item.is_locked or int(row.get("StartingPrice") or 0) <= 0:  # 0 = o template não vai a leilão
+        elif int(row.get("StartingPrice") or 0) <= 0:  # 0 = o template não vai a leilão (cliente: -12)
+            code = NOT_AUCTION
+        elif item.is_locked:
             code = BLOCKED
         elif not 1 <= msg.count <= item.count:
             code = COUNT
-        elif msg.point < int(row["StartingPrice"]) * msg.count:
+        elif msg.count > MAX_COUNT:
+            code = SELL_MAX_COUNT
+        elif msg.point < max(MIN_POINT, int(row["StartingPrice"]) * msg.count):
             code = PRICE
         elif msg.fixPoint and msg.fixPoint <= msg.point:
             code = FIX_PRICE
@@ -312,16 +343,13 @@ async def bid(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
         if code != OK:
             return Reply([(S_BID, pb.AuctionItemRspMsg(result=code))])
         own = listing.bidder_id == s.player_id
-        paid = ledger.pay(
-            c,
-            msg.point - listing.point if own else msg.point,  # quem já lidera paga só a diferença
-            bind=False,
-            reason="mall",
-            ref=f"mall:{listing.id} lance",
-            now=now,
-        )
+        cost = msg.point - listing.point if own else msg.point  # quem já lidera paga só a diferença
+        if _over_limit(c, cost, now):
+            return Reply([(S_BID, pb.AuctionItemRspMsg(result=DAILY_LIMIT))])
+        paid = ledger.pay(c, cost, bind=False, reason="mall", ref=f"mall:{listing.id} lance", now=now)
         if paid is None:
             return Reply([(S_BID, pb.AuctionItemRspMsg(result=NO_POINT))])
+        _count_spent(c, cost, now)
         reply = Reply(player=True)
         if listing.bidder_id and not own:
             reply.mails.append(
@@ -354,7 +382,9 @@ async def bid(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
 @router.on(8453)
 async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
     """Compra pelo preço fixo (``point`` tem que ser igual ao ``fixPoint`` do anúncio, senão o cliente
-    recarrega a lista). Paga agora, o item entra na mochila e o diamante vai ao vendedor pelo correio."""
+    recarrega a lista). Paga agora; o item vai ao comprador e o diamante (menos o imposto) ao vendedor, os dois
+    pelo correio: (cliente) AuctionHelp.helpContent item 3, "a compra chega pela mensagem do sistema", e o 4357
+    do cliente só tira a linha da lista."""
     snap = s.snapshot
     assert snap is not None
     c, templates = snap.character, s.ctx.templates
@@ -364,30 +394,24 @@ async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
         if not rows:
             return Reply([(S_FIX, pb.FixAuctionItemRspMsg(result=GONE, mallItemId=msg.id))])
         listing, item = rows[0]
-        free = bag.free_positions(snap, now)
+        own = listing.bidder_id == s.player_id
+        cost = listing.fix_point - listing.point if own else listing.fix_point
         if listing.seller_id == s.player_id:
             code = OWN_FIX
         elif not listing.fix_point:
             code = FIX_FAIL
         elif msg.point != listing.fix_point:
             code = PRICE
-        elif not free:
-            code = FIX_FAIL
+        elif _over_limit(c, cost, now):
+            code = DAILY_LIMIT
         else:
             code = OK
         if code != OK:
             return Reply([(S_FIX, pb.FixAuctionItemRspMsg(result=code, mallItemId=listing.id or 0))])
-        own = listing.bidder_id == s.player_id
-        paid = ledger.pay(
-            c,
-            listing.fix_point - listing.point if own else listing.fix_point,
-            bind=False,
-            reason="mall",
-            ref=f"mall:{listing.id} compra",
-            now=now,
-        )
+        paid = ledger.pay(c, cost, bind=False, reason="mall", ref=f"mall:{listing.id} compra", now=now)
         if paid is None:
             return Reply([(S_FIX, pb.FixAuctionItemRspMsg(result=NO_POINT, mallItemId=listing.id or 0))])
+        _count_spent(c, cost, now)
         reply = Reply(player=True)
         if listing.bidder_id and not own:
             reply.mails.append(
@@ -407,18 +431,20 @@ async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
                 now,
                 "Satış geliri",
                 f"{_label(templates, item)} satıldı.",
-                goods=[(market.DIAMOND, listing.fix_point)],
+                goods=[(market.DIAMOND, market.income(listing.fix_point))],
+            )
+        )
+        label = _label(templates, item)
+        reply.mails.append(
+            await market.post(
+                uow, s.player_id, now, "Satın alınan eşya", f"{label}: sabit fiyatla alındı.", items=[item]
             )
         )
         for bid in await uow.mall.bids_of(listing.id or 0):
             await uow.delete(bid)
         await uow.delete(listing)
-        item.character_id, item.bag_type, item.object_id, item.pos = s.player_id, BagType.BAG, 0, free[0]
-        snap.items.append(item)
-        await uow.save(item)
         await uow.save(c)
         await uow.save(paid)
-        reply.out.append((S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id)))
         reply.out.append((S_FIX, pb.FixAuctionItemRspMsg(result=OK, mallItemId=listing.id or 0)))
         return reply
 
