@@ -41,8 +41,9 @@ SELL_MAX_COUNT = -18  # MALL_SELL_MAX_COUNT: mais de 9 unidades num anúncio
 # -7 aqui é item travado (8809). O texto do cliente para -7 é "eşya bağlı halde" (vinculado): falta o dado de vínculo
 
 GOODS, PET = 1, 2  # SellItemVO.itemType (e MallItemMsg.itemFrom): só item vai ao mercado
-HOURS = (8, 24, 48)  # (cliente) Auction.SubmitHour1..3: as três durações que a tela oferece
-MAX_COUNT = 9  # (cliente) Auction.ResultAlert18: "o item vendido tem no máximo 9 unidades"
+# ponytail: a tela oferece 8, 24 e 48 h (Auction.SubmitHour1..3); o valor enviado não está no decompilado
+MIN_HOUR, MAX_HOUR = 1, 72
+MAX_COUNT = 9  # (cliente) Auction.ResultAlert18: "o item vendido tem no máximo 9 unidades" (por anúncio)
 # ponytail: a lista pede 9 por página (8449, 8452); o teto de 50 é dedução, a tela de leilão não está no decompilado
 PAGE, PAGE_MAX = 9, 50
 
@@ -167,7 +168,7 @@ def _label(templates: GameTemplates, item: Item) -> str:
 @router.on(8448)
 async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
     """Põe um item da mochila à venda: ``point`` é o lance inicial (mínimo ``StartingPrice`` × quantidade),
-    ``fixPoint`` 0 = sem compra imediata, ``hour`` a duração (8, 24 ou 48 h). O item sai da mochila na mesma transação
+    ``fixPoint`` 0 = sem compra imediata, ``hour`` a duração. O item sai da mochila na mesma transação
     que cria o anúncio: nunca existe nos dois lugares."""
     snap = s.snapshot
     assert snap is not None
@@ -193,7 +194,7 @@ async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
             code = PRICE
         elif msg.fixPoint and msg.fixPoint <= msg.point:
             code = FIX_PRICE
-        elif msg.hour not in HOURS:
+        elif not MIN_HOUR <= msg.hour <= MAX_HOUR:
             code = HOUR
         if code != OK or item is None:
             s.log.info("8448 recusado", pedido=str(msg), resultado=code)

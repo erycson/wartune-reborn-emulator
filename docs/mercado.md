@@ -44,7 +44,7 @@ do código; o texto de cada um é `Auction.ResultAlert<valor absoluto>` no `lang
 | −3 | `COUNT` | quantidade fora de 1..`count` da pilha | "Uygunsuz miktar!" |
 | −4 | `PRICE` | lance abaixo do mínimo, lance ≥ preço fixo, ou compra com `point` diferente do `fixPoint` | "…var olan fiyatten yüksek olmak zorunda" |
 | −5 | `FIX_PRICE` | `fixPoint` não é maior que o `point` inicial | "Sabit Fiyat yanlış" |
-| −6 | `HOUR` | duração fora de 8, 24 e 48 h (as três da tela, `Auction.SubmitHour1..3`) | "Saat yanlış" |
+| −6 | `HOUR` | duração fora de 1..72 h (dedução; a tela oferece 8, 24 e 48 h, `Auction.SubmitHour1..3`) | "Saat yanlış" |
 | −7 | `BLOCKED` | item travado (8809) | "Eşya bağlı halde" (vinculado; ver Dependências) |
 | −8 | `NO_ITEM` | a posição não tem o item de `itemId` | "Eşya mevcut değil" |
 | −11 | `NO_POINT` | diamante insuficiente | "Elmas yetersiz!" |
@@ -64,9 +64,12 @@ diário de compra). Mudou nesta revisão: template sem `StartingPrice` dava −7
 - Só item da mochila (bolsa 1) com `sellType` 1. Mascote (`sellType` 2) não tem leilão.
 - Template com `StartingPrice` > 0 em `ItemTempInfos` (`tempinfos.xml`). O preço inicial mínimo é
   `StartingPrice × count` *(dedução)*: o template define o piso, e o jogador escolhe acima.
-- Duração e quantidade *(cliente)*: `hour` é 8, 24 ou 48 (`Auction.SubmitHour1..3`); `count` vai de 1 a 9
-  (`Auction.ResultAlert18`). O fim é `started_at + hour`: `AuctionListItemData.timeLeft` calcula
-  `hour × 3600000 − (agora − startTime)`, e o servidor grava `ends_at = started_at + hour`.
+- Duração: a tela oferece 8, 24 ou 48 h (`Auction.SubmitHour1..3`); o servidor aceita 1 a 72 *(dedução)*, porque o
+  valor que o cliente manda (horas ou índice da opção) não está no decompilado. O fim é `started_at + hour`:
+  `AuctionListItemData.timeLeft` calcula `hour × 3600000 − (agora − startTime)` sobre o `hour` que o servidor devolve,
+  então o servidor grava `ends_at = started_at + hour` *(cliente)*.
+- Quantidade: 1 a 9 por anúncio *(cliente)*: `Auction.ResultAlert18` diz "Satılan eşyanın en fazla 9 adet olmalıdır"
+  (o item vendido tem no máximo 9 unidades) e a tela pede "İhale sayısını girin" (`Auction.EnterSellNum`).
 - `fixPoint` 0 = sem compra imediata; senão tem que ser maior que `point`.
 - Pilha parcial: a quantidade anunciada vira uma linha nova na bolsa 11 (AUCTION, posição 0) e a
   mochila fica com o resto na mesma linha. Não volta a empilhar na pilha original ao cancelar.
@@ -138,8 +141,10 @@ Bolsas novas: 10 (MAIL, correio) e 11 (AUCTION, leilão), ambas com posição 0 
 Tudo abaixo é *(dedução)*, texto do cliente sem valor, ou falta de dado. O servidor responde algo coerente e não
 inventa formato:
 
-- **Duração e quantidade**: confirmadas pelo cliente: 8, 24 ou 48 h e 1 a 9 unidades. Não há captura que mostre o
-  que o oficial faz com outra hora ou com 10 unidades.
+- **Duração**: a tela oferece 8, 24 ou 48 h, mas o servidor aceita 1 a 72 *(dedução)*. **Precisa de captura**:
+  anunciar com cada uma das três opções da tela e ler o `hour` do 8448 (horas ou índice da opção).
+- **Quantidade**: 1 a 9 por anúncio *(cliente, `Auction.ResultAlert18`)*. Não há captura que mostre o que o oficial
+  faz com 10 unidades.
 - **Página**: a lista pede 9 por página *(cliente: `sendMyAuctionListReq(1,9,1)`)*. O teto de 50 é *(dedução)*.
   O 8457 não manda tamanho e usa 9.
 - **Preço inicial**: o piso é `StartingPrice × count` *(dedução)*. O cliente valida na tela "İlk Fiyat 2'den az

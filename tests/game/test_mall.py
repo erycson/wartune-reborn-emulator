@@ -374,19 +374,6 @@ async def test_scheduler_keeps_running_after_a_failed_round(monkeypatch: pytest.
     assert len(calls) >= 2  # a rodada que falhou não parou o agendador
 
 
-async def test_sell_offers_only_the_three_durations_of_the_client(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as g:
-        horn = await _put(g, HORN, 1)
-        for hour in (1, 7, 12, 72):
-            g.client.send(8448, _sell(horn, hour=hour))
-            assert last(await g.until(4352), pb.SellItemRspMsg).result == h.HOUR
-        assert await _listings(g) == []
-
-        g.client.send(8448, _sell(horn, hour=24))  # 8, 24 e 48 h são as opções da tela (Auction.SubmitHour1..3)
-        assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK
-        assert len(await _listings(g)) == 1
-
-
 async def test_sell_caps_a_listing_at_nine_pieces(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         stack = await _put(g, HORN, 10)
