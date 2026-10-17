@@ -71,10 +71,10 @@ def login_push(s: GameSession) -> None:
     s.online_since = s.ctx.clock.now()
     vip.login_push(s)
     offer.login_push(s)
-    minigames.login_push(s)
     _send_leeds(s)
     _send_actives(s)
     _send_serven(s)
+    minigames.login_push(s)  # o 4640 vem logo depois do 4638, como no login do oficial (#93-94)
 
 
 async def leave(s: GameSession) -> None:
