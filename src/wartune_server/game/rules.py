@@ -54,9 +54,7 @@ def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
 
 def grade_steps(templates: GameTemplates) -> list[tuple[int, int]]:
     """``(nível, EXP total para chegar nele)`` em ordem."""
-    rows = sorted(
-        (int(r["Grades"]), int(r["Data"])) for r in templates.find("UpGradeTempInfos", Types=PLAYER_GRADE)
-    )
+    rows = sorted((int(r["Grades"]), int(r["Data"])) for r in templates.find("UpGradeTempInfos", Types=PLAYER_GRADE))
     steps, total = [], 0
     for grade, data in rows:
         total += data
@@ -113,10 +111,10 @@ def update_novice_quests(snap: PlayerSnapshot, templates: GameTemplates) -> list
         if q.completed or q.progress:
             continue
         cond = templates.get("QuestCondictionInfos", q.template_id)
-        if cond is not None and int(cond["CondictionType"]) == NOVICE_CONDITION:
-            if snap.character.novice_process > int(cond["Para1"]):
-                q.progress = int(cond["Para2"])
-                changed.append(q)
+        novice = cond is not None and int(cond["CondictionType"]) == NOVICE_CONDITION
+        if novice and cond is not None and snap.character.novice_process > int(cond["Para1"]):
+            q.progress = int(cond["Para2"])
+            changed.append(q)
     return changed
 
 

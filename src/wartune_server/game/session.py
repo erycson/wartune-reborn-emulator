@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import structlog
 from google.protobuf.message import Message
@@ -16,6 +17,10 @@ from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
 from .router import PacketRouter
+
+if TYPE_CHECKING:
+    from .battle import Battle
+    from .campaign import CampaignMap
 
 log = structlog.get_logger(__name__)
 
@@ -65,6 +70,10 @@ class GameSession:
         self.ctx = ctx
         self.snapshot: PlayerSnapshot | None = None
         self.login_key: str | None = None
+        self.campaign: CampaignMap | None = None
+        self.battle: Battle | None = None
+        self.hero_sp = 0  # SP do herói entre batalhas (o oficial carrega de uma para a outra)
+        self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
         self.log = log.bind(conn=connection.id)
 
     @property
@@ -72,8 +81,8 @@ class GameSession:
         assert self.snapshot is not None and self.snapshot.character.id is not None
         return self.snapshot.character.id
 
-    def send(self, code: int, message: Message | None = None) -> None:
-        self.connection.send_message(code, message)
+    def send(self, code: int, message: Message | None = None, *, extend2: int = 0) -> None:
+        self.connection.send_message(code, message, extend2=extend2)
 
     async def on_packet(self, packet: Packet) -> None:
         if self.snapshot is None and packet.code != LOGIN_CODE:
@@ -87,6 +96,8 @@ class GameSession:
         await handler(self, message)
 
     async def on_disconnect(self) -> None:
+        if self.battle is not None:
+            self.battle.cancel()
         if self.snapshot is not None:
             self.ctx.online.unbind(self.player_id, self)
             self.log.info("jogador saiu", player=self.player_id)
