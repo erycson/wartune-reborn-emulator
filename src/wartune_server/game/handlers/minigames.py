@@ -19,13 +19,14 @@ from .. import rewards
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
+from . import gemmaze
 from .player import alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
 S_BUGLE_REQ, S_BUGLE_REWARD, S_NEW_YEAR, S_SLOT = 4553, 4554, 4811, 4901
 S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
-S_GEM, S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 4922, 300, 4933, 4936, 4980
+S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
 S_ORE, S_TOP_TOOL, S_BOTTLE_DROP, S_BOTTLE_RESULT = 190, 4590, 295, 4526
 
@@ -176,7 +177,8 @@ async def normal_fund(s: GameSession, _: object) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """Login do oficial (login.json #94): o 4640 do fundo novato com o estado do personagem."""
+    """Login do oficial: o 4922 do labirinto (replay) e o 4640 do fundo novato (login.json #94)."""
+    gemmaze.login_push(s)
     snap = s.snapshot
     assert snap is not None
     if s.ctx.events.novice_fund:
@@ -214,11 +216,12 @@ async def rebate(s: GameSession, _: object) -> None:
     _send(s, S_REBATE, pb.RebateInfoMsg())
 
 
-@router.on(8629, 8630, 8634, 8638, 8748, 9509, 9510, 9513, 9515, 9516, 9517, 9521, 9522)
+@router.on(8629, 8630, 8634, 8638, 8748, 9521, 9522)
 async def no_reply(s: GameSession, _: object) -> None:
     """Pedidos que o cliente só manda com a tela aberta, que aqui nunca abre: sem resposta.
     História (8629/8630; nunca 4546), volta do jogador (8634; nunca 4550), pegar corneta (8638),
-    giro da loteria (8748), labirinto de gemas (9509..9517) e dados da estrada dourada (9521/9522)."""
+    giro da loteria (8748) e dados da estrada dourada (9521/9522). O labirinto de gemas (9508..9517) é
+    ``handlers/gemmaze.py``."""
     s.log.debug("minigame fechado: pedido sem resposta")
 
 
@@ -287,12 +290,6 @@ async def fishing(s: GameSession, _: object) -> None:
     """Pesca fechada: piscina vazia (4916) e sem peixes (4918). Os pesos de spawn não estão em lugar nenhum."""
     _send(s, S_FISH_POOL, pb.FishPoolMsg())
     _send(s, S_FISH_INFOS, pb.FishInfosMsg())
-
-
-@router.on(9508)
-async def gem_maze(s: GameSession, _: object) -> None:
-    """Labirinto de gemas fechado (4922 sem tabuleiro, timesLeft 0)."""
-    _send(s, S_GEM, pb.GemMazeInfoMsg())
 
 
 @router.on(9520)

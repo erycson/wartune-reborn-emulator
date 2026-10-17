@@ -13,6 +13,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     fashion,
     forge,
     friends,
+    gemmaze,
     guild,
     guild_events,
     hangup,
