@@ -94,7 +94,7 @@ O cliente põe o equipamento na bancada (5005 para o bag 0, pos 0) e manda a ope
 | 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm. Pool: `SkillTempInfos` 70000–77199 com `Grades` > 0 e `SkillPropertyTempInfos` (1584 de 2157) | 115, 4258 `{randomSkill[]}` | *(cliente)*; pool *(visto)*: os 42 atributos das capturas têm `Grades` 1–10, nenhum 0 (0 = placeholder: +0 com 500000, "Asker Miktarı"); peso *(dedução)* uniforme |
 | 8339 (vazio) | aplica o último sorteio | 4259 `{result}`, 115 | *(cliente)* |
 | 8464 RefreshPropertyReqMsg `{itemId}` | atributos sorteados do item (o pendente, se houver) | 4368 `{randomSkill[], lockPos[], result}` | *(dedução)* |
-| 8340 (vazio) | decomposição: a tabela de produtos não está nos templates | 4260 `{result false}` | *(cliente)* |
+| 8340 (vazio) | decomposição: sem chamador no cliente decompilado (`sendResolve`) e sem tabela de produtos nos templates; falta captura | 4260 `{result false}` | *(cliente)* |
 | 8644 PayTypeMsg | moldagem: os materiais 2120100–2120103 não existem nos templates; recusa sem resposta | — | *(cliente)* |
 
 Login: 4184 ItemSmithyMsg com todos os Ids de `ComposeTempInfos` *(visto)*.

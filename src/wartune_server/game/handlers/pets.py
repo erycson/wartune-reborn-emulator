@@ -79,6 +79,9 @@ def pet_template_id(pet_type: int, tier: int, star: int) -> int:
     return pet_type * 1000 + tier * 100 + star
 
 
+# ponytail: família (tipo, tier, estrela) = template: é a leitura que fecha os 24 pares de receita com um
+# template existente. O filtro de UI do cliente (PetController.canComposePet: NeedGrade 50, nível >= 60,
+# qualidade >= 4) não casa com estas receitas (tier 1-3); confirmar com captura de uma composição.
 def compose_recipe(templates: GameTemplates, pet: Pet) -> tuple[Row, int] | None:
     """Receita de um pet só (``PetComponseInfos``, Pet2Types 0) para o template do pet, e o template que sai.
     ``None`` se não há receita, se ela pede diamante (só as de 2 pets pedem) ou se o pet resultante não tem

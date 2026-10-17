@@ -223,8 +223,9 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/pets.py:25](../src/wartune_server/game/handlers/pets.py#L25) | pontos livres por nível do pet; o oficial não publica a regra |
 | [game/handlers/pets.py:57](../src/wartune_server/game/handlers/pets.py#L57) | atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real fica no servidor oficial) |
 | [game/handlers/pets.py:63](../src/wartune_server/game/handlers/pets.py#L63) | mesma aproximação |
-| [game/handlers/pets.py:199](../src/wartune_server/game/handlers/pets.py#L199) | devorar, crescimento, skills, sacrifício, treino, resistência e a fusão de 2 pets (15) dependem de tabelas e capturas que não temos (a fusão dá tipos 117-119, sem template) |
-| [game/handlers/pets.py:215](../src/wartune_server/game/handlers/pets.py#L215) | só jogador online |
+| [game/handlers/pets.py:82](../src/wartune_server/game/handlers/pets.py#L82) | a família (tipo, tier, estrela) é o template; o filtro de UI do cliente (canComposePet, NeedGrade 50) não casa com as receitas: confirmar com captura de uma composição |
+| [game/handlers/pets.py:202](../src/wartune_server/game/handlers/pets.py#L202) | devorar, crescimento, skills, sacrifício, treino, resistência e a fusão de 2 pets (15) dependem de tabelas e capturas que não temos (a fusão dá tipos 117-119, sem template) |
+| [game/handlers/pets.py:218](../src/wartune_server/game/handlers/pets.py#L218) | só jogador online |
 | [game/handlers/rewards.py:10](../src/wartune_server/game/handlers/rewards.py#L10) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/rewards.py:84](../src/wartune_server/game/handlers/rewards.py#L84) | x1,5 e x2 custam diamante no oficial, mas o preço não está no cliente; recusados |
 | [game/handlers/shop.py:38](../src/wartune_server/game/handlers/shop.py#L38) | a tela da loja misteriosa não está no cliente decompilado; 8 é palpite |
