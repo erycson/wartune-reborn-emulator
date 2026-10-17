@@ -25,7 +25,7 @@ def fmt_time(value: datetime) -> str:
     return value.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def complete(msg: Message) -> Message:
+def complete[M: Message](msg: M) -> M:
     """Marca todo campo escalar ausente com o valor padrão, recursivamente.
 
     O servidor oficial escreve todos os campos; no AS3 uma string ausente vira

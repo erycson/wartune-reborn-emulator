@@ -54,6 +54,7 @@ NOVICE_UNLOCKS = {14000: [1000108]}  # portal aparece quando o guia chega nesse 
 PORTAL = {1000108: SECOND_MAP}
 CHEST = 1000202  # param3: arma por job ("1011002|1012002|1013002|..."), índice job-1
 EXIT = 1000206
+BOSS = "8251"  # chave em tutorial.json["battles"]
 
 
 def _send(s: GameSession, code: int, msg: Message | None = None, extend2: int = 0) -> None:
@@ -74,7 +75,7 @@ def _army_brief(s: GameSession, state: int) -> pb.ArmyArmyMsg:
     return pb.ArmyArmyMsg(armyId=s.player_id, playerId=s.player_id, curPosX=c.pos[0], curPosY=c.pos[1], state=state)
 
 
-def _map_sync(s: GameSession, state: int) -> pb.MapUpdatedMsg:
+def map_sync(s: GameSession, state: int) -> pb.MapUpdatedMsg:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None and snap.leader is not None
     full, fighting = army(s, snap)
@@ -225,7 +226,7 @@ def _enter_map(s: GameSession, map_id: int, created: int) -> None:
     room.room.campaignId = map_id
     _send(s, S_ROOM_CREATED, room)
     if created == ENTER:
-        _send(s, S_MAP_SYNC, _map_sync(s, ARMY_IDLE))
+        _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
         _send(s, S_ROOM_ENTER, _room_enter(s))
         _send(s, S_NODES, s.campaign.node_list())
         _send(s, S_FOG, s.campaign.fog())
@@ -334,7 +335,7 @@ async def _leave_campaign(s: GameSession) -> None:
     assert s.snapshot is not None
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     _send(s, S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
-    _send(s, S_MAP_SYNC, _map_sync(s, ARMY_IDLE))
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _send(s, S_CAMPAIGN_FINISH)
     s.campaign = None
 
@@ -400,7 +401,7 @@ def _start_battle(s: GameSession, camp: int) -> None:
     c = _map(s)
     spec = tutorial()["battles"][str(camp)]
     c.fighting = camp
-    _send(s, S_MAP_SYNC, _map_sync(s, ARMY_FIGHTING))
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
     _send(s, S_ARMY_POS, _army_brief(s, ARMY_FIGHTING))
     _node_update(s, camp, FIGHTING, user=True)
 
@@ -410,6 +411,33 @@ def _start_battle(s: GameSession, camp: int) -> None:
     s.battle = Battle(spec, _player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
     s.log.info("batalha", nó=camp, battle=s.battle.id)
     s.battle.start()
+
+
+@router.on(8251)
+async def special_boss(s: GameSession, _: object) -> None:
+    """Fim do tutorial na cidade externa: retomar o castelo dos Boğa Başlı (sem nó de campanha)."""
+    if s.battle is not None:
+        return
+    spec = tutorial()["battles"][BOSS]
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))  # o oficial manda duas vezes
+
+    async def finished(battle: Battle, won: bool) -> None:
+        s.battle, s.hero_sp = None, battle.player.sp
+        _send(s, S_BATTLE_REPORT, _report(battle, won, 0))
+        _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+        _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+
+    s.battle = Battle(spec, _player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.log.info("batalha do chefe", battle=s.battle.id)
+    s.battle.start()
+
+
+def _report(battle: Battle, won: bool, gp: int) -> pb.BattleReportMsg:
+    report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
+    report.battleScene = int(battle.spec.get("battleScene", CAMPAIGN_SCENE))
+    report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
+    return report
 
 
 async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
@@ -422,9 +450,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         await s.ctx.characters.save(snap.character, snap.leader)
     s.battle_gp = gp
     await _push_player(s)
-    report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
-    report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = CAMPAIGN_SCENE, 0, 0, 0
-    _send(s, S_BATTLE_REPORT, report)
+    _send(s, S_BATTLE_REPORT, _report(battle, won, gp))
     if gp:
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp} EXP kazanıldı"))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
@@ -432,7 +458,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if s.campaign is None:
         return
     s.campaign.fighting = 0
-    _send(s, S_MAP_SYNC, _map_sync(s, ARMY_IDLE))
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     if not won:
         _node_update(s, camp, NORMAL)

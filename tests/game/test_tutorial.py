@@ -118,3 +118,67 @@ def test_resume_states() -> None:
     assert first.node(1000104)["state"] == DONE and first.node(1000106)["state"] == NORMAL  # type: ignore[index]
     second = CampaignMap.enter(10002, 18500)
     assert second.escort == 9548 and second.node(1000206)["state"] == NORMAL  # type: ignore[index]
+
+
+async def _win(g, prepare: pb.BattlePrepareMsg, end: int) -> list:  # type: ignore[no-untyped-def,type-arg]
+    g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
+    g.client.send(10008, pb.UseSkillMsg(battleId=prepare.battleId, heroId=prepare.heros[-1].livingId, skillId=30711))
+    got = await g.until(4103)
+    report = pb.BattleReportMsg.FromString(got[-1].body)
+    assert report.battleResult == 1, codes(got)
+    return got + await g.until(end)
+
+
+async def test_second_map_to_castle(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=18000) as g:
+        c = g.client
+        c.send(5127, pb.NoviceReqMsgMsg(type=1))
+        assert codes(await g.until(143)) == [125, 140, 21, 127, 130, 4124, 143]
+
+        c.send(5125, pb.CampaignReqMsg(paraInt1=1000208, paraBool1=True))
+        got = await g.until(128)
+        assert codes(got) == [4162, 128]
+        assert (
+            pb.PlayerMoveMsg.FromString(got[0].body).tarX,
+            pb.PlayerMoveMsg.FromString(got[0].body).ismoveCamera,
+        ) == (32, True)
+
+        c.send(5125, pb.CampaignReqMsg(paraInt1=1000205, paraBool1=True))
+        assert codes(await g.until(138)) == [138]
+        c.send(5032, pb.CallBackReqMsg(mapId=878, nodeId=1000205, cmd=2))
+        got = await g.until(157)
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert prepare.battleType == 18 and any(h.tempId == 1005 for h in prepare.heros)  # Tina aliada
+        got = await _win(g, prepare, 128)
+        got += await g.idle()
+        updates = [pb.CampaignNodeUpdateMsg.FromString(p.body) for p in got if p.code == 128]
+        assert [(u.nodeId, u.nodeState) for u in updates] == [(9555, 8), (9556, 1), (9557, 1)]
+
+        c.send(5017, pb.NoviceReqMsgMsg(noviceProcess=18600))
+        await g.until(1)
+        c.send(5125, pb.CampaignReqMsg(paraInt1=1000206, paraBool1=True))
+        assert codes(await g.until(134)) == [4165, 150, 140, 134]
+
+        c.send(9525, pb.MapBossQuestMsg(mapId=1))
+        assert codes(await g.until(4938)) == [4938]
+        c.send(8201, pb.PhysicUpdateReqMsg(reqGrid="0_0", mapId=1))
+        got = await g.until(169)
+        assert pb.PhysicListUpdateMsg.FromString(got[0].body).baseCastle[0].occupyPlayerId == g.user_id
+
+        c.send(8251)
+        got = await g.until(157)
+        assert codes(got) == [140, 140, 157]
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert prepare.battleType == 15
+        me = next(h for h in prepare.heros if h.userId == g.user_id)
+        c.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
+        for _ in range(12):
+            c.send(10008, pb.UseSkillMsg(battleId=prepare.battleId, heroId=me.livingId, skillId=30711))
+        got = await g.until(4103)
+        assert pb.BattleReportMsg.FromString(got[-1].body).battleScene == 1
+        assert [x for x in codes(await g.until(140) + await g.until(140)) if x not in (153, 75)][-2:] == [140, 140]
+
+        c.send(8747, pb.SimplePropertyMsg(param7=True))
+        assert codes(await g.until(4382)) == [4382]
+        c.send(8281)
+        assert codes(await g.until(104)) == [109, 109, 100, 4130, 104]

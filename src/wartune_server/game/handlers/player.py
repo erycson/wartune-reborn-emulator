@@ -26,7 +26,7 @@ def _army(s: GameSession) -> None:
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
 
 
-def _castle_yield(s: GameSession) -> None:
+def castle_yield(s: GameSession) -> None:
     assert s.snapshot is not None
     msg = pb.CastleYieldMsg(goldYield=0, goldTotalCount=s.snapshot.character.gold, goldMax=GOLD_MAX)
     msg.curPopulation, msg.maxPopulation, msg.crystalsCount = 0, 0, CRYSTALS
@@ -35,7 +35,7 @@ def _castle_yield(s: GameSession) -> None:
 
 @router.on(5015)
 async def castle_update(s: GameSession, _: object) -> None:
-    _castle_yield(s)
+    castle_yield(s)
 
 
 @router.on(20008)
@@ -86,7 +86,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     _player(s)
     s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
     if gold:
-        _castle_yield(s)
+        castle_yield(s)
     if gp:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp:,} EXP kazanıldı"))
     _army(s)
