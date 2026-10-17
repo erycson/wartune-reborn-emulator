@@ -15,7 +15,7 @@ Alvo online vem de `OnlinePlayers` (snapshot); offline, do banco (`characters.by
 | `relations` | `(character_id, other_id)` único, `relation` 1 amigo / 2 lista negra / 3 pendente, `group_id` |
 | `friend_groups` | grupos criados (`group_id` >= 3; 1 recentes e 2 amigos são fixos do cliente) |
 | `sns_profiles` | perfil SNS (assinatura, sexo, aniversário, signo, sangue, cidade...) |
-| `mails` / `mail_annexes` | correio e até 5 anexos por template (`taken`); anexos caem com o correio |
+| `mails` / `mail_annexes` | correio e até 5 anexos por template (`taken`) ou por item de verdade (`item_id`, migração 0012); anexos caem com o correio |
 | `marriages` | uma linha por pessoa do casal: `mate_id`, `state` 1 noivo / 2 noivado cancelado / 3 casado / 4 divorciado, `spec_id`, `married_at` |
 | `characters` | + `refuse_friend`, `bugle_free_used`, `bugle_free_day` |
 
@@ -57,8 +57,8 @@ A `key` precisa ser a da sessão HTTP do próprio `userId`.
 | C>S | mensagem | S>C | situação |
 |---|---|---|---|
 | 8205 | MailSendReqMsg `{sendType, receiverUserId[], title, contents}` | 148 MailMsg para o destinatário | pronto: jogador→jogador, 1 destinatário, assunto ≤ 15, texto ≤ 300, 100 de ouro, nível 6. Correio de guilda (sendType 2) recusado *(cliente)* |
-| 8206 | MailDelReqMsg `{delList}` | 4132 com os ids apagados | pronto |
-| 5022 | MailMsg `{mailsIdArray, position}` (0 = todos) | 114 MailPickupRspMsg, 4131 ReceiveMailMsg, 115, 109/3 | pronto: atômico por correio; sem espaço = `result false` |
+| 8206 | MailDelReqMsg `{delList}` | 4132 com os ids apagados | pronto; não apaga correio com item de verdade ainda não retirado (ele fica até o 5022) |
+| 5022 | MailMsg `{mailsIdArray, position}` (0 = todos) | 114 MailPickupRspMsg, 4131 ReceiveMailMsg, 115, 109/3 | pronto: atômico por correio; sem espaço = `result false`. Item de verdade (leilão, lance devolvido) vai para a mochila; diamante do anexo entra no `cash_ledger` (`reason` `mail`) |
 | 9591 | MailCheckMsg | 337 `state 0` | parcial: verificação de e-mail precisa de SMTP; nunca dá `mail_rewards` |
 | — | | 148 | correio novo (online) |
 
