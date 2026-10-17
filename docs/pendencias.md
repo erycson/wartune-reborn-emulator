@@ -71,7 +71,7 @@ Outros eventos:
 
 - Salas e times só em memória. Decisão: salas não persistem; times não persistem até haver captura de login com time; o contador de campanha multi (4240) deve persistir, mas falta o efeito do item "Büyük Sefer" e o reset (ver Persistência em salas-campanha.md).
 - Começar a campanha da sala (5039, visto no replay): responde 125, 140 e 21, mas precisa do mapa 1011 (exército inicial e nós). **depende de**: mapa de nós.
-- Confirmar/terminar campanha (5033, 5180; o 5033 manda `paraInt1` 879, que não é Id de `MapInfos`, então precisa de captura do mesmo clique em outro mapa), carta (5122), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
+- Caixa Pandora (5033 com S>C 29, mapId 879/880, nodeId 101107/102107): o 5033 só ecoa a escolha; falta a recompensa e a resposta do servidor (captura de abrir a caixa). Confirmar/terminar campanha (5180), carta (5122), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
 - Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
 - Torre (8297/8300): limites vistos na captura; totalGp e itens **dependem de** progresso da torre.
 - Varredura (8528): falta captura do pedido C>S. Custos em `ConfigInfos` (campanha 5000 ouro e 300 s; labirinto 1000 e 30 s por andar). **depende de** progresso de campanha.
@@ -179,7 +179,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/army.py:301](../src/wartune_server/game/handlers/army.py#L301) | só a posição do próprio herói é gravada; |
 | [game/handlers/army.py:321](../src/wartune_server/game/handlers/army.py#L321) | a posição do exército no mapa externo não é gravada (sistema do mapa externo). |
 | [game/handlers/battle.py:35](../src/wartune_server/game/handlers/battle.py#L35) | a postura não muda o dano (a fórmula real não é conhecida) |
-| [game/handlers/campaign_map.py:38](../src/wartune_server/game/handlers/campaign_map.py#L38) | mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado |
+| [game/handlers/campaign_map.py:44](../src/wartune_server/game/handlers/campaign_map.py#L44) | mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado |
 | [game/handlers/castle.py:280](../src/wartune_server/game/handlers/castle.py#L280) | trégua ainda não existe; zera e confirma. |
 | [game/handlers/chat.py:26](../src/wartune_server/game/handlers/chat.py#L26) | o cliente não limita a guilda (ChatHelper); 1 s contra spam |
 | [game/handlers/chat.py:28](../src/wartune_server/game/handlers/chat.py#L28) | o cliente não limita o privado; 1 s contra spam |

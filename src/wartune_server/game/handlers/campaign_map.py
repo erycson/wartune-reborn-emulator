@@ -26,8 +26,9 @@ SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplate
 
 @router.on(5033)
 async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    # confirmação de nó (replay: 140, 131, 128, 157). Sem o mapa de nós e o progresso, não há o que confirmar
-    s.log.info("5033 sem efeito (dependência de nós)", p1=msg.paraInt1, p2=msg.paraInt2)
+    # caixa Pandora: ecoa mapId (paraInt1) e nodeId (paraInt2) do S>C 29 (CampaignConfirmMsg, replay #1154);
+    # paraBool1 = confirmou (cliente: CampaignMapController.__callServerSccess). Sem a recompensa, não muda estado
+    s.log.info("5033 sem efeito (caixa Pandora: sem captura da recompensa)", p1=msg.paraInt1, p2=msg.paraInt2)
 
 
 @router.on(5038)
