@@ -62,11 +62,30 @@ async def play_1011(g: Game) -> list[Packet]:
 async def test_entrada_manda_o_mapa_1011(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         got = await enter(g)
-        assert codes(got) == [125, 140, 21, 127, 130, 143, 138]
+        assert codes(got) == [125, 140, 21, 127, 130, 143, 138, 3, 83]
         assert pb.RoomCreatedMsg.FromString(got[0].body).room.campaignId == 1011
         assert len(pb.CampaignNodeListMsg.FromString(got[3].body).node) == 10
         fog = pb.CampaignFogMsg.FromString(got[4].body)
         assert (fog.row, fog.col) == (24, 19)  # névoa da captura, não a de 'tudo visível'
+
+
+async def test_cada_mapa_gasta_20_de_beden_e_sem_beden_nao_entra(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=25500) as g:
+        characters = g.server.services.characters
+        before = (await characters.snapshot(g.user_id)).character.weary
+        got = await enter(g)
+        assert pb.PlayerMsg.FromString(got[-2].body).weary == before - 20
+        assert (
+            pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "[Kurt İni] haritasına girildi, 20 can kullanıldı."
+        )
+        assert (await characters.snapshot(g.user_id)).character.weary == before - 20  # gravado
+
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        session.snapshot.character.weary = 19
+        session.campaign = None  # fora da masmorra, com 19 de Beden
+        assert codes(await enter(g)) == []
+        assert session.snapshot.character.weary == 19 and session.campaign is None
 
 
 async def test_lobo_comeca_a_luta_na_chegada_e_da_exp(tmp_path: Path) -> None:
@@ -170,8 +189,11 @@ async def test_grupo_de_1021_libera_o_chefe_e_fecha_a_masmorra(tmp_path: Path) -
         await take(g, 2)
         g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))  # quadro fechado: sem resposta
         assert await g.idle() == []
+        g.client.send(5035, pb.LoginStateMsg(state=0))  # o cliente volta ao castelo (replay #1170, #1171)
+        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
+        await g.idle()
         got = await enter(g)
-        assert codes(got) == [125, 140, 21, 127, 130, 143]  # sem plot: o diálogo é só do 1011
+        assert codes(got) == [125, 140, 21, 127, 130, 143, 3, 83]  # sem plot: o diálogo é só do 1011
         assert pb.RoomCreatedMsg.FromString(got[0].body).room.campaignId == 1021
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=102104, paraBool1=True))  # baú sem 126 (replay #1475)

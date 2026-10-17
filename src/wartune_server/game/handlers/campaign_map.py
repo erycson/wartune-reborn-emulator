@@ -16,8 +16,8 @@ S_SYSTEM_ARMY = 20
 SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplated, soldierTemplated)
     # (visto) replay #923: 5038 com paraInt1=1011; o 20 com soldierTemplated 2011 é o pacote #924
     1011: ([], [2011]),
-    # (visto) replay #1321: 20 com heroTemplated 1011, depois do pedido #1219 e das entradas #1312/#1314;
-    # ligar esse 20 ao #1219 é dedução
+    # (visto) replay #1321: 20 com heroTemplated 1011, resposta do pedido #1219 (um 20 para cada 5038; o
+    # S>C do relay chega uns 30 pacotes atrasado)
     1021: ([1011], [2011]),
     # (visto) peri_uyanis #89-90: 5038 paraInt1=2011 -> 20
     2011: ([3011], [4012, 4011]),
@@ -28,9 +28,9 @@ SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplate
 async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     """Pré-carga de batalha do mapa (``PreLoadNextCampaign``, ``paraInt1`` = mapa): responde 20 com a lista do mapa.
 
-    (cliente) o 20 só alimenta ``BattleResPreloadManager``. (visto) nem todo 5038 tem um 20 no pacote seguinte
-    do replay (o #1219 não tem). (dedução) responder logo a cada 5038; o cliente remove o listener do 20 depois
-    do primeiro (``PreLoadNextCampaign``, linhas 46 e 80).
+    (cliente) o 20 só alimenta ``BattleResPreloadManager``. (visto) um 20 para cada 5038 na masmorra (#923 ->
+    #924 ... #1650 -> #1718, com o atraso do S>C no relay). Responder logo a cada 5038; o cliente remove o
+    listener do 20 depois do primeiro (``PreLoadNextCampaign``, linhas 46 e 80).
     """
     heroes, soldiers = SYSTEM_ARMY.get(msg.paraInt1, ([], []))
     if msg.paraInt1 not in SYSTEM_ARMY:

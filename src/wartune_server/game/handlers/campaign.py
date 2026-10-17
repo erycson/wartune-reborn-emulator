@@ -528,6 +528,7 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
 # com lobos (grupo em param3), uma caixa Pandora (29, 5033) e baús de ouro. Ao cair o grupo, o
 # param4 esconde ou libera nós; sem param4 o mapa acaba (fim: 137 ... 140; a carta sai no 5122, com 134).
 DUNGEON_CAMPAIGN = 1001
+DUNGEON_WEARY = 20  # (visto) Beden gasto por mapa ("20 can kullanıldı", #918 e #1320); nenhuma coluna do template
 
 
 @router.on(5039)
@@ -537,9 +538,24 @@ async def dungeon_enter(s: GameSession, _: object) -> None:
     (dedução) vencido o 1021, o 5039 começa de novo no 1011: a captura não mostra repetição.
     """
     c = s.campaign
-    if c is not None and c.dungeon and not c.finished:
+    snap = s.snapshot
+    if snap is None or (c is not None and c.dungeon and not c.finished):
         return  # já está na masmorra
+    if snap.character.weary < DUNGEON_WEARY:
+        # ponytail: sem energia não entra e não responde; a recusa do oficial precisa de captura com Beden < 20
+        s.log.info("5039 sem energia", weary=snap.character.weary)
+        return
+    snap.character.weary -= DUNGEON_WEARY  # antes do await: um 5039 repetido já vê o mapa novo
     _enter_dungeon(s, DUNGEON_SECOND if c is not None and c.dungeon and c.map_id == DUNGEON_FIRST else DUNGEON_FIRST)
+    # (visto) 3 com weary 200 -> 180 -> 160 e 83 depois do 138/143 em cada mapa (replay #917-#918, #1319-#1320)
+    await _push_player(s)
+    name = (s.ctx.templates.get("Campaigns", DUNGEON_CAMPAIGN, key="CampaignId") or {}).get("CampaignName", "")
+    _send(
+        s,
+        S_CHAT,
+        pb.ChatChannelMsg(channel=3, encodeMsg=f"[{name}] haritasına girildi, {DUNGEON_WEARY} can kullanıldı."),
+    )
+    await s.ctx.characters.save(snap.character)
 
 
 def _enter_dungeon(s: GameSession, map_id: int) -> None:
