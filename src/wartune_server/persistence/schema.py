@@ -670,6 +670,8 @@ consortia_members = Table(
     _str("offer_day", 10),
     _int("bless_count"),
     _str("bless_day", 10),
+    _int("bless_item"),
+    _int("bless_item_count"),
     _int("voted_for"),
     _int("voted_id"),
 )

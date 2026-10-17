@@ -11,15 +11,30 @@ import random
 import re
 from datetime import datetime, timedelta
 
-from ...domain.models import BagType, Character, Consortia, ConsortiaInvite, ConsortiaItem, ConsortiaMember, Item
+from ...domain.models import (
+    BagType,
+    Character,
+    Consortia,
+    ConsortiaEvent,
+    ConsortiaInvite,
+    ConsortiaItem,
+    ConsortiaMember,
+    Item,
+    Mail,
+    MailType,
+    PlayerSnapshot,
+)
+from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.characters import normalize_nickname
 from .. import bag, rules
 from .. import guild as gd
-from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from ..builders import login as b
 from ..builders.player import item_moved
 from ..castle import castle_yield
+from ..mail import SYSTEM_SENDER
+from ..mail import notify as notify_mail
+from ..mail import stage as stage_mail
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
@@ -173,17 +188,32 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     now = _now(s)
     c.gold -= CREATE_GOLD
     guild = Consortia(c.server_id, name, s.player_id, c.nickname or "", s.player_id, now)
+    member = ConsortiaMember(0, s.player_id, now, duty_id=gd.CHAIRMAN)
+    event = ConsortiaEvent(0, now, f"{c.nickname} birliği kurdu.")
+    gone = g.invites_of(s.player_id)
+
+    async def change(uow: UnitOfWork) -> None:
+        # uma transação: guilda, membro, evento e as candidaturas dele (o membro precisa do id da guilda)
+        await uow.save(c)
+        await uow.save(guild)
+        await uow.flush()
+        member.consortia_id = event.consortia_id = guild.id or 0
+        await uow.save(member)
+        await uow.save(event)
+        for invite in gone:
+            await uow.delete(invite)
+
     g.reserved.add(name.lower())
     try:
-        await s.ctx.characters.save(c, guild)  # o id da guilda sai daqui
+        await s.ctx.characters.write(change)
     finally:
         g.reserved.discard(name.lower())
-    g.guilds[guild.id or 0] = guild
-    # ponytail: duas transações (o membro precisa do id da guilda); se a segunda falhar fica uma
-    # guilda sem membros e o ouro gasto. Uma só quando o mapeamento tiver relação guilda->membro.
-    member, gone = _join(s, guild, s.player_id, gd.CHAIRMAN)
-    event = _event(s, guild, f"{c.nickname} birliği kurdu.")
-    await s.ctx.characters.save(member, event, delete=tuple(gone))
+    gid = guild.id or 0
+    g.guilds[gid] = guild
+    g.members[s.player_id] = member
+    g.events[gid].append(event)
+    g.invites = [i for i in g.invites if i.user_id != s.player_id]
+    g.profiles[s.player_id] = c
     castle_yield(s)
     _joined(s, guild, s.player_id)
 
@@ -847,9 +877,9 @@ async def altar_info(s: GameSession, _: object) -> None:
     """4141 ``blessLeftTime`` = bênçãos já usadas hoje; 4142 o prêmio que falta pegar."""
     mine = _mine(s)
     s.send(S_ALTAR_INFO, b.complete(pb.ConsortiaMsg(blessLeftTime=_bless_used(mine[1], _now(s)) if mine else 0)))
-    pending = s.ctx.guilds.blessed.get(s.player_id)
-    if pending is not None:
-        s.send(S_ALTAR_ITEM, b.complete(pb.ItemInfoMsg(templateId=pending[0], count=pending[1], userId=s.player_id)))
+    if mine is not None and mine[1].bless_item:
+        item = pb.ItemInfoMsg(templateId=mine[1].bless_item, count=mine[1].bless_item_count, userId=s.player_id)
+        s.send(S_ALTAR_ITEM, b.complete(item))
 
 
 @router.on(8217)
@@ -860,13 +890,13 @@ async def altar_site(s: GameSession, _: object) -> None:
 @router.on(5145)
 async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     """Bênção: gasta ``Property1`` de contribuição, até ``Property2`` vezes por dia (nível do altar).
-    ``blessSite`` é a posição na lista do 4144 (-1 = nada).
+    ``blessSite`` é a posição na lista do 4144 (-1 = nada). O prêmio fica na linha do membro até o 8216.
 
     ponytail: a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item
-    do mercado da guilda liberado pelo nível do altar, na casa "Market Eşyası" (Site 1). A
-    bênção rápida (``param1`` > 1, VIP 6) fica recusada: o custo e a quantidade do x10 estão só no m6.
+    do mercado da guilda liberado pelo nível do altar, na casa "Market Eşyası" (Site 1). A bênção
+    rápida (``param1`` > 1, VIP 6) fica recusada: o m6 (ConsortiaAltarFrame) mostra o VIP 6 e as 10
+    bênçãos, mas não o custo nem a forma da resposta.
     """
-    g = s.ctx.guilds
     mine = _mine(s)
     c, now = _char(s), _now(s)
     used = _bless_used(mine[1], now) if mine else 0
@@ -877,7 +907,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         for r in s.ctx.templates.find("ShopTempInfos", ShopType=GUILD_SHOP)
         if mine is not None and int(r.get("NeedConsortiaLevels") or 0) <= mine[0].altar_level
     ]
-    ok = mine is not None and row is not None and msg.param1 <= 1 and s.player_id not in g.blessed
+    ok = mine is not None and row is not None and msg.param1 <= 1 and not mine[1].bless_item
     if (
         not ok
         or row is None
@@ -894,9 +924,10 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         return
     prize = int(random.choice(pool)["ItemId"])
     c.consortia_offer -= int(row["Property1"])
-    mine[1].bless_count, mine[1].bless_day = used + 1, _day(now)
-    g.blessed[s.player_id] = (prize, 1)  # ponytail: só na memória; reiniciar o servidor perde o prêmio
-    await s.ctx.characters.save(c, mine[1])
+    member = mine[1]
+    member.bless_count, member.bless_day = used + 1, _day(now)
+    member.bless_item, member.bless_item_count = prize, 1
+    await s.ctx.characters.save(c, member)
     _player(s)
     s.send(
         S_BLESS,
@@ -906,19 +937,23 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 
 @router.on(8216)
 async def altar_take(s: GameSession, _: object) -> None:
-    """Pega o prêmio da bênção para a mochila (4143 ``result``)."""
-    snap, g = s.snapshot, s.ctx.guilds
+    """Pega o prêmio da bênção para a mochila (4143 ``result``). Sem espaço livre, o prêmio fica no membro.
+
+    ``bag.fits``/``bag.add`` contam os espaços comprados e empilham onde dá, como a loja comum.
+    ponytail: o prêmio fica na linha do membro, então sair da guilda antes de pegar perde o prêmio
+    (o oficial não mostrou esse caso).
+    """
+    snap, mine, now = s.snapshot, _mine(s), _now(s)
     assert snap is not None
-    pending = g.blessed.get(s.player_id)
-    if pending is None or sum(i.bag_type == BagType.BAG for i in snap.items) >= BAG_SIZE:
+    member = mine[1] if mine is not None else None
+    goods = [(member.bless_item, member.bless_item_count)] if member is not None and member.bless_item else []
+    if member is None or not goods or not bag.fits(snap, s.ctx.templates, goods, now):
         s.send(S_ADDFRESH, b.complete(pb.ConsortiaMsg(result=False)))
         return
-    del g.blessed[s.player_id]
-    item = Item(snap.character.id or 0, pending[0], count=pending[1])
-    item.pos = rules.free_bag_pos(snap)
-    snap.items.append(item)
-    await s.ctx.characters.save(item)
-    s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
+    member.bless_item, member.bless_item_count = 0, 0
+    got = bag.add(snap, s.ctx.templates, goods[0][0], goods[0][1], now)
+    await s.ctx.characters.save(member, *got)
+    s.send(S_ITEMS, bag.moved(got, s.player_id))
     s.send(S_ADDFRESH, b.complete(pb.ConsortiaMsg(result=True)))
 
 
@@ -968,53 +1003,85 @@ async def box_info(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
     s.send(S_BOX_ALLOT, b.complete(out))
 
 
+async def _snapshot(s: GameSession, player_id: int) -> PlayerSnapshot:
+    """Mochila de um membro: a da sessão se estiver online (ela é dona do snapshot), senão carrega do banco."""
+    other = s.ctx.online.get(player_id)
+    if other is not None and other.snapshot is not None:
+        return other.snapshot
+    return await s.ctx.characters.snapshot(player_id)
+
+
+def _letter(s: GameSession, player_id: int, template_id: int, now: datetime) -> Mail:
+    """Correio do sistema com o item; título e texto são o nome do item, como o casamento faz."""
+    row = s.ctx.templates.get("ItemTempInfos", template_id)
+    name = row.get("TemplateName", str(template_id)) if row is not None else str(template_id)
+    return Mail(player_id, now, name, name, mail_type=MailType.SYSTEM, send_type=SYSTEM_SENDER)
+
+
 @router.on(8578)
 async def box_send(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
-    """O chefe distribui: o item vai direto para a mochila de cada membro (online ou não)."""
+    """O chefe distribui um item do baú: cada membro recebe na mochila, ou pelo correio se não couber.
+
+    Lê as mochilas dos destinatários antes de mudar qualquer coisa, valida e muda o baú e as mochilas
+    de uma vez, e grava tudo numa transação. ponytail: o correio por mochila cheia é dedução (o
+    oficial não mostrou o caso); membro offline vê o item no próximo login (o 8224 recarrega o
+    snapshot), e se ele logar durante a gravação também só no próximo login.
+    """
     g = s.ctx.guilds
     mine = _mine(s)
     if mine is None or mine[1].duty_id != gd.CHAIRMAN:
         _refuse(s, 8578, "não é chefe")
         return
     guild = mine[0]
+    wanted = [(p.userId, p.count) for p in msg.playerInfo if p.count > 0]
+    snaps: dict[int, PlayerSnapshot] = {}
+    for uid, _ in wanted:
+        if uid in g.members:
+            snaps[uid] = await _snapshot(s, uid)
     box = g.box.get(guild.id or 0, [])
     stored = next((i for i in box if i.template_id == msg.templateId), None)
-    wanted = [(p.userId, p.count) for p in msg.playerInfo if p.count > 0]
-    members_ok = all((m := g.members.get(uid)) is not None and m.consortia_id == guild.id for uid, _ in wanted)
     total = sum(n for _, n in wanted)
+    members_ok = all(
+        uid in snaps and (m := g.members.get(uid)) is not None and m.consortia_id == guild.id for uid, _ in wanted
+    )
     if stored is None or not wanted or not members_ok or total > stored.count:
         _refuse(s, 8578, "item, membro ou quantidade inválida", item=msg.templateId)
         return
+    now = _now(s)
     stored.count -= total
+    gone: list[object] = []
+    changed: list[object] = [stored]
     if stored.count <= 0:
         box.remove(stored)
-        await s.ctx.characters.save(delete=(stored,))
-    else:
-        await s.ctx.characters.save(stored)
+        gone, changed = [stored], []
+    moved: dict[int, list[Item]] = {}
+    letters: list[tuple[Mail, list[tuple[int, int]]]] = []
     for uid, n in wanted:
-        await _give(s, uid, msg.templateId, n)
+        snap = snaps[uid]
+        if bag.fits(snap, s.ctx.templates, [(msg.templateId, n)], now):
+            got = bag.add(snap, s.ctx.templates, msg.templateId, n, now)
+            moved.setdefault(uid, []).extend(got)
+            changed += got
+        else:
+            s.log.info("baú: mochila cheia, item vai pelo correio", jogador=uid, item=msg.templateId)
+            letters.append((_letter(s, uid, msg.templateId, now), [(msg.templateId, n)]))
+
+    async def change(uow: UnitOfWork) -> None:
+        for entity in gone:
+            await uow.delete(entity)
+        for entity in changed:
+            await uow.save(entity)
+        for letter, goods in letters:
+            await stage_mail(uow, letter, goods)
+
+    await s.ctx.characters.write(change)
+    for uid, got in moved.items():
+        other = s.ctx.online.get(uid)
+        if other is not None and other.snapshot is not None:
+            other.send(S_ITEMS, bag.moved(got, uid))
+    for letter, _ in letters:
+        notify_mail(s.ctx.online, letter)
     s.send(S_BOX, b.complete(_box_msg(s, guild.id or 0)))
-
-
-async def _give(s: GameSession, player_id: int, template_id: int, count: int) -> None:
-    """Item para outro jogador: pela sessão dele se estiver online (a sessão é dona do snapshot).
-
-    ponytail: offline grava direto; se ele logar durante o await o item só aparece no próximo
-    login (o 8224 recarrega o snapshot). Mochila cheia perde o item: falta correio.
-    """
-    other = s.ctx.online.get(player_id)
-    snap = other.snapshot if other is not None else None
-    if snap is None:
-        snap = await s.ctx.characters.snapshot(player_id)
-    if sum(i.bag_type == BagType.BAG for i in snap.items) >= BAG_SIZE:
-        s.log.warning("baú: mochila cheia, item perdido", jogador=player_id, item=template_id)
-        return
-    item = Item(player_id, template_id, count=count)
-    item.pos = rules.free_bag_pos(snap)
-    snap.items.append(item)
-    await s.ctx.characters.save(item)
-    if other is not None and other.snapshot is snap:
-        other.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, player_id))
 
 
 def add_to_box(s: GameSession, guild_id: int, template_id: int, count: int) -> ConsortiaItem:
