@@ -38,7 +38,6 @@ S_FRIENDS = 4156
 S_FARM = 4157
 S_SYS_PROPERTY = 4160
 S_AAS = 4173
-S_CHALLENGE_TIME = 4176
 S_VERSION = 4233
 S_SNS = 4245
 S_QUESTS = 112
@@ -120,7 +119,11 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.sys:
         _send(s, S_VERSION, pb.VersionMsg())
         _send(s, S_SYS_PROPERTY, b.system_property(now, snap.server.opened_at))
-        _send(s, S_CHALLENGE_TIME, pb.ChallengeCoolTimeMsg(totalCount=10, type=0, totalBuyCount=10))
+        from . import arena, lords, warfield  # arena importa este módulo
+
+        arena.login(s, msg)  # 4176 do coliseu (um passo da carga) e do torneio
+        lords.login(s)  # 4776, 4535: Senhores fechados
+        warfield.login(s)  # 4248: campos de batalha fechados (o padrão do cliente é aberto)
     if msg.build:
         _send(s, S_BUILDINGS, b.buildings_msg(snap, snap.castle, s.ctx.templates))
         _send(s, S_BUILD_ORDERS, pb.BuildOrderList())
@@ -137,6 +140,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+    if msg.challReward or msg.petChallengeReward or msg.crossScoreReward:
+        from . import arena
+
+        await arena.login_rewards(s, msg)
 
 
 async def _login_state(s: GameSession) -> None:

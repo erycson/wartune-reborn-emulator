@@ -1,4 +1,4 @@
-"""Batalha PvE simulada no servidor, em tempo real (o cliente só toca o que recebe).
+"""Batalha simulada no servidor, em tempo real (o cliente só toca o que recebe).
 
 Relógio em quadros de 40 ms (25 fps) a partir do 156. Cada ação vai num 153 no quadro em que
 acontece; mandar adiantado faz o cliente saltar o relógio. Detalhes do protocolo em
@@ -7,7 +7,10 @@ acontece; mandar adiantado faz o cliente saltar o relógio. Detalhes do protocol
 Modelo observado na captura: rodadas em que cada unidade viva age uma vez; ações do mesmo lado
 começam com 12 quadros de diferença, a troca de lado e a rodada seguinte vêm ~9 quadros depois do
 fim da última animação (``frameNum``); a primeira ação sai por volta do quadro 100. O herói do
-jogador espera a ordem (10008) do cliente; o lado dele não morre (são todas batalhas do tutorial).
+jogador espera a ordem (10008) do cliente. No PvE (tutorial) o lado dele não morre; com
+``spec["pvp"]`` ele perde de verdade, o herói inimigo anuncia a skill no 75 e o dano é simétrico.
+Sem herói do jogador (torneio de fadas) a luta é toda automática e, depois de ``notice`` quadros,
+o 4361 avisa que o dano sobe ``damageImprove`` %.
 """
 
 from __future__ import annotations
@@ -31,7 +34,7 @@ from .builders.login import fmt_time
 
 log = structlog.get_logger(__name__)
 
-S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP = 157, 156, 153, 154, 75, 69
+S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP, S_NOTICE = 157, 156, 153, 154, 75, 69, 4361
 
 FRAME_SECONDS = 0.04
 FIRST_ACTION = 100
@@ -46,6 +49,13 @@ ALL_ENEMIES = "3"  # SkillTempInfo.AcceptObject; 4 = si mesmo, 5 = aliado (curas
 SELF_OR_ALLY = {"4", "5"}
 PLAYER_SIDE = 1
 AUTO = 1  # AttackModeMsg.mode / BattlePrepareMsg.attackModel
+ORDER_TIMEOUT = 112  # PvP: sem ordem em 4,5 s (castTime do herói) o herói age sozinho
+ENEMY_CAST_MS = 3500  # HeroOrderMsg.castTime do herói inimigo na captura do coliseu
+
+
+def _parse(data: dict[str, Any], msg: Message) -> Message:
+    # as specs levam chaves só do servidor ("attack", "defaultSkill"), fora do protobuf
+    return ParseDict(data, msg, ignore_unknown_fields=True)
 
 
 @dataclass
@@ -59,6 +69,7 @@ class Unit:
     is_player: bool = False
     sp: int = 0
     turn: int = 0
+    hero: bool = False  # herói NPC (o PvP anuncia a skill dele no 75)
 
     @property
     def alive(self) -> bool:
@@ -78,7 +89,7 @@ class Battle:
     def __init__(
         self,
         spec: dict[str, Any],
-        player: PlayerHero,
+        player: PlayerHero | None,
         templates: GameTemplates,
         clock: Clock,
         send: Callable[[int, Message], None],
@@ -95,9 +106,17 @@ class Battle:
         self._order: tuple[int, int] | None = None  # (skillId, quadro em que chegou)
         self._order_frame: int | None = None  # quadro da ordem usada no golpe atual do herói
         self._task: asyncio.Task[None] | None = None
-        self._player_msg = player.msg
+        self.pvp = bool(spec.get("pvp"))
+        self._notice: int | None = spec.get("notice")  # quadro do 4361 (só pets)
+        self._improve = 0  # % de dano a mais depois do 4361
+        self._skip = False  # finish(): resolve o resto sem esperar nem mandar 153
+        self._player_msg = player.msg if player is not None else None
         self.units = self._units(player)
-        self.player = next(u for u in self.units if u.is_player)
+        self.player = next((u for u in self.units if u.is_player), None)
+
+    @property
+    def player_sp(self) -> int:
+        return self.player.sp if self.player is not None else 0
 
     @property
     def frame(self) -> int:
@@ -113,22 +132,27 @@ class Battle:
 
     # -- montagem --------------------------------------------------------------------------
 
-    def _units(self, player: PlayerHero) -> list[Unit]:
+    def _units(self, player: PlayerHero | None) -> list[Unit]:
+        """Soldados, heróis NPC e pets da spec, mais o herói do jogador. ``attack``/``defaultSkill``
+        na spec valem mais que o template (cópia de jogador, robô, pet)."""
         units = []
         for s in self.spec["soldiers"]:
             row = self.templates.get("PawnTempInfos", s["tempId"]) or {}
             skills = list(s.get("skillId", [])) or [int(row.get("DefaultSkill", 0))]
             attack = max(int(row.get("Attack", 0)), int(row.get("MagicAttack", 0)))
             units.append(Unit(s["livingId"], s["side"], s["hp"], skills, attack, skills[0]))
-        for h in self.spec["heroes"]:
-            row = self.templates.get("GameHeroTemp", h["tempId"]) or {}
-            default = int(row.get("DefaultSkill", 0))
-            attack = max(int(row.get("Attack", 0)), int(row.get("MagicAttack", 0)))
+        for kind, category in (("heroes", "GameHeroTemp"), ("pets", "PetTempInfos")):
+            for h in self.spec.get(kind, []):
+                row = self.templates.get(category, h["tempId"]) or {}
+                default = int(h.get("defaultSkill") or row.get("DefaultSkill") or row.get("DefaultSkills") or 0)
+                attack = h.get("attack") or max(int(row.get("Attack", 0)), int(row.get("MagicAttack", 0)))
+                skills = list(h.get("skillId", [])) or [default]
+                units.append(Unit(h["livingId"], h["side"], h["hp"], skills, attack, default, hero=kind == "heroes"))
+        if player is not None:
+            m = player.msg
             units.append(
-                Unit(h["livingId"], h["side"], h["hp"], list(h.get("skillId", [])) or [default], attack, default)
+                Unit(m.livingId, m.side, m.hp, list(m.skillId), player.attack, player.default_skill, True, m.sp)
             )
-        m = player.msg
-        units.append(Unit(m.livingId, m.side, m.hp, list(m.skillId), player.attack, player.default_skill, True, m.sp))
         return units
 
     def prepare_msg(self) -> pb.BattlePrepareMsg:
@@ -148,12 +172,15 @@ class Battle:
             damageImprove=0,
         )
         for s in spec["soldiers"]:
-            ParseDict(s, msg.soldiers.add())
+            _parse(s, msg.soldiers.add())
         for h in spec["heroes"]:
-            ParseDict(h, msg.heros.add())
-        msg.heros.add().CopyFrom(self._player_msg)
-        for skill in self._player_msg.skillId:
-            msg.coolDown.add(templatedId=skill, coolDown=0, coolType=1, appearCoolDown=0)
+            _parse(h, msg.heros.add())
+        for p in spec.get("pets", []):
+            _parse(p, msg.pets.add())
+        if self._player_msg is not None:
+            msg.heros.add().CopyFrom(self._player_msg)
+            for skill in self._player_msg.skillId:
+                msg.coolDown.add(templatedId=skill, coolDown=0, coolType=1, appearCoolDown=0)
         return msg
 
     # -- comandos do cliente ----------------------------------------------------------------
@@ -184,10 +211,16 @@ class Battle:
     def set_auto(self, auto: bool) -> None:
         self.auto = auto
 
+    def finish(self) -> None:
+        """Termina já (8727, "encerrar a luta" do torneio de fadas): o resto é resolvido sem 153."""
+        self._skip = True
+        self.auto = True
+
     def order(self, living_id: int, skill_id: int) -> None:
         """10008: aceita (75 result 0) ou recusa (result 1) a skill escolhida."""
-        ok = living_id == self.player.living_id and skill_id in self.player.skills and self._affordable(skill_id)
-        targets = [t.living_id for t in self._targets(self.player, skill_id)] if ok else []
+        p = self.player
+        ok = p is not None and living_id == p.living_id and skill_id in p.skills and self._affordable(skill_id)
+        targets = [t.living_id for t in self._targets(p, skill_id)] if ok and p is not None else []
         reply = pb.HeroOrderMsg(battleId=self.id, heroIndexId=living_id, skillId=skill_id, result=0 if ok else 1)
         reply.castTime, reply.qteTime = 0, 0
         reply.targetIndexs.extend(targets)
@@ -199,9 +232,14 @@ class Battle:
 
     async def _tick(self) -> None:
         await asyncio.sleep(FRAME_SECONDS)
+        if self._notice is not None and self.frame >= self._notice:
+            self._notice, self._improve = None, int(self.spec.get("damageImprove", 0))
+            self._send(
+                S_NOTICE, pb.BattleNoticeMsg(battleId=self.id, countDown=COUNTDOWN_MS, damageImprove=self._improve)
+            )
 
     async def _until(self, frame: int) -> None:
-        while self.frame < frame:
+        while self.frame < frame and not self._skip:
             await self._tick()
 
     async def _run(self) -> None:
@@ -229,7 +267,8 @@ class Battle:
         # ponytail: a iniciativa do oficial não foi decifrada; aliados NPC, inimigos e o herói por último
         allies = [u for u in self.units if u.side == PLAYER_SIDE and not u.is_player]
         enemies = [u for u in self.units if u.side != PLAYER_SIDE]
-        return sorted(allies, key=lambda u: u.living_id) + sorted(enemies, key=lambda u: u.living_id) + [self.player]
+        hero = [self.player] if self.player is not None else []
+        return sorted(allies, key=lambda u: u.living_id) + sorted(enemies, key=lambda u: u.living_id) + hero
 
     async def _fight(self) -> bool:
         start, end, side = 0, FIRST_ACTION - NEXT_GAP, 0
@@ -243,6 +282,8 @@ class Battle:
                 due = end + NEXT_GAP if first or unit.side != side else start + SAME_SIDE_GAP
                 self._order_frame = None
                 skill = await self._player_skill(due) if unit.is_player else self._npc_skill(unit)
+                if self.pvp and unit.hero and unit.side != PLAYER_SIDE and not self._skip:
+                    self._announce(unit, skill)
                 if self._order_frame is not None:
                     due = max(due, self._order_frame + ORDER_DELAY)
                 await self._until(due)
@@ -252,11 +293,20 @@ class Battle:
                 await self._until(start + END_DELAY)
                 return self._side_alive(True)
 
+    def _announce(self, unit: Unit, skill: int) -> None:
+        """75 do herói inimigo: o cliente mostra a skill que ele vai usar (captura do coliseu #9)."""
+        msg = pb.HeroOrderMsg(battleId=self.id, heroIndexId=unit.living_id, skillId=skill, result=0)
+        msg.castTime, msg.qteTime = ENEMY_CAST_MS, 0
+        msg.targetIndexs.extend(t.living_id for t in self._targets(unit, skill))
+        self._send(S_ORDER, msg)
+
     async def _player_skill(self, due: int) -> int:
         self._order_frame = None
-        # manual: espera a ordem sem prazo (o guia pausa no meio da batalha para ensinar a 30811;
-        # golpear sozinho poderia acabar a luta antes). O oficial sem ordem não foi observado.
-        while self._order is None and not self.auto:
+        # manual: no PvE espera a ordem sem prazo (o guia pausa no meio da batalha para ensinar a
+        # 30811; golpear sozinho poderia acabar a luta antes). No PvP, quem não escolhe em
+        # ORDER_TIMEOUT quadros age sozinho (não dá para travar a tentativa do coliseu).
+        limit = self.frame + ORDER_TIMEOUT
+        while self._order is None and not self.auto and not (self.pvp and self.frame >= max(due, limit)):
             await self._tick()
         if self._order is None:
             return self._auto_skill()
@@ -265,6 +315,7 @@ class Battle:
         return skill if self._affordable(skill) else self._auto_skill()
 
     def _auto_skill(self) -> int:
+        assert self.player is not None
         return next((s for s in self.player.skills if self._affordable(s)), self.player.default_skill)
 
     def _npc_skill(self, unit: Unit) -> int:
@@ -281,7 +332,7 @@ class Battle:
         return int(row["Cost"]) if row else 0
 
     def _affordable(self, skill: int) -> bool:
-        return self.player.sp + self._cost(skill) >= 0
+        return self.player_sp + self._cost(skill) >= 0
 
     def _targets(self, unit: Unit, skill: int) -> list[Unit]:
         foes = sorted((u for u in self.units if u.alive and u.side != unit.side), key=lambda u: u.living_id)
@@ -289,6 +340,13 @@ class Battle:
         if not foes or (row is not None and row.get("AcceptObject") == ALL_ENEMIES):
             return foes
         return [foes[0]]
+
+    def _factor(self, unit: Unit) -> float:
+        # ponytail: fórmula de dano desconhecida. PvE calibrado na captura do tutorial (herói mata os
+        # soldados com um golpe, soldados tiram ~35% do ataque); PvP simétrico. Trocar pela real.
+        if self.pvp:
+            return random.uniform(0.3, 0.4) * (100 + self._improve) / 100
+        return 0.65 if unit.side == PLAYER_SIDE else random.uniform(0.3, 0.4)
 
     def _act(self, unit: Unit, skill: int) -> int:
         """Executa e manda o 153; devolve a duração da animação em quadros."""
@@ -316,16 +374,14 @@ class Battle:
         raw = unit.attack * int(row.get("Parameter1", 100)) / 100 + int(row.get("Parameter2", 0))
         for target in self._targets(unit, skill):
             for _ in range(hits):
-                # ponytail: fórmula de dano desconhecida; calibrado na captura (herói mata os soldados
-                # do tutorial com um golpe, soldados tiram ~35% do ataque). Trocar quando houver a real.
-                factor = 0.65 if unit.side == PLAYER_SIDE else random.uniform(0.3, 0.4)
-                value = max(1, int(raw * factor / hits))
-                if target.side == PLAYER_SIDE:
+                value = max(1, int(raw * self._factor(unit) / hits))
+                if target.side == PLAYER_SIDE and not self.pvp:
                     # as batalhas do tutorial são vitórias roteirizadas: o lado do jogador não morre
                     value = min(value, max(0, target.hp - 1))
                 target.hp = max(0, target.hp - value)
                 msg.damages.add(
                     livingId=target.living_id, damageType=DAMAGE_HP, damageValue=value, leftValue=target.hp, parry=False
                 )
-        self._send(S_ATTACK, msg)
+        if not self._skip:
+            self._send(S_ATTACK, msg)
         return frames

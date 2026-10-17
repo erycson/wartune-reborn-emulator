@@ -1,13 +1,17 @@
 from . import (  # noqa: F401  (registra os handlers no router)
     account,
+    arena,
+    battle,
     campaign,
     chat,
     friends,
     login,
+    lords,
     mail,
     marriage,
     outer_city,
     player,
     space,
     vehicle,
+    warfield,
 )

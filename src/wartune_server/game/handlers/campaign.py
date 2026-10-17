@@ -320,7 +320,7 @@ async def _leave_campaign(s: GameSession) -> None:
 # -- batalha -----------------------------------------------------------------------------------
 
 
-def _player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
+def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     leader = snap.leader
@@ -385,7 +385,7 @@ def _start_battle(s: GameSession, camp: int) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _battle_over(s, battle, camp, won)
 
-    s.battle = Battle(spec, _player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
     s.log.info("batalha", nó=camp, battle=s.battle.id)
     s.battle.start()
 
@@ -400,12 +400,12 @@ async def special_boss(s: GameSession, _: object) -> None:
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))  # o oficial manda duas vezes
 
     async def finished(battle: Battle, won: bool) -> None:
-        s.battle, s.hero_sp = None, battle.player.sp
+        s.battle, s.hero_sp = None, battle.player_sp
         _send(s, S_BATTLE_REPORT, _report(battle, won, 0))
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
 
-    s.battle = Battle(spec, _player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
     s.log.info("batalha do chefe", battle=s.battle.id)
     s.battle.start()
 
@@ -420,7 +420,7 @@ def _report(battle: Battle, won: bool, gp: int) -> pb.BattleReportMsg:
 async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    s.battle, s.hero_sp = None, battle.player.sp
+    s.battle, s.hero_sp = None, battle.player_sp
     gp = int(battle.spec.get("gpBonus", 0)) if won else 0
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)

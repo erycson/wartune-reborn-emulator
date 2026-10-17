@@ -35,4 +35,10 @@ Levantamento e ordem em [multiplayer.md](multiplayer.md).
 - [ ] Atividades (SumActive): login e presente online
 - [ ] Boss mundial
 - [ ] Times, mina de ouro, torneio de fadas
+- [x] Coliseu contra robôs e cópias de jogadores, ranking e recompensas ([pvp.md](pvp.md))
+- [ ] Torneio de fadas: pronto do lado do PvP, espera o sistema de pets
+- [ ] Senhores, campo de batalha, mina de ametista: respondem como fechados
+- [ ] Atividades (SumActive): login e presente online
+- [ ] Boss mundial
+- [ ] Amigos, times, mina de ouro
 - [ ] Guilda, boss de guilda, ataque a castelo

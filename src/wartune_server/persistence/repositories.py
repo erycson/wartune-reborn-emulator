@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Self
+from typing import Any, Self
 
 from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..domain.models import (
     Account,
+    Arena,
+    ArenaRank,
     Building,
     Castle,
+    ChallengeLog,
     Character,
     FriendGroup,
     GameServer,
@@ -210,6 +213,61 @@ class SqlMarriageRepository(_Repo):
         return await self._s.scalar(select(Marriage).where(Marriage.character_id == character_id))  # type: ignore[arg-type]
 
 
+class SqlArenaRepository(_Repo):
+    """Coliseu e torneio de fadas. Os rankings são por servidor (``characters.server_id``)."""
+
+    async def by_character(self, character_id: int) -> Arena | None:
+        return await self._s.scalar(select(Arena).where(Arena.character_id == character_id))  # type: ignore[arg-type]
+
+    async def rank(self, character_id: int) -> int:
+        row = await self._s.get(ArenaRank, character_id)
+        return row.rank if row is not None else 0
+
+    def _ranked(self, server_id: int) -> Any:
+        on = ArenaRank.character_id == Character.id
+        return select(ArenaRank).join(Character, on).where(Character.server_id == server_id)  # type: ignore[arg-type]
+
+    async def last_rank(self, server_id: int) -> int:
+        ranks = [r.rank for r in await self._s.scalars(self._ranked(server_id))]
+        return max(ranks, default=0)
+
+    async def ranks(self, server_id: int, low: int, high: int) -> list[ArenaRank]:
+        """Posições de ``low`` a ``high`` (inclusive), em ordem."""
+        rank = ArenaRank.rank
+        query = self._ranked(server_id).where(rank >= low, rank <= high).order_by(rank)
+        return list(await self._s.scalars(query))
+
+    async def set_rank(self, character_id: int, rank: int) -> None:
+        await self._s.merge(ArenaRank(character_id, rank))
+
+    def _pets(self, server_id: int) -> Any:
+        on = Arena.character_id == Character.id
+        return select(Arena).join(Character, on).where(Character.server_id == server_id)  # type: ignore[arg-type]
+
+    async def pet_order(self, server_id: int, score: int) -> int:
+        """Posição de quem tem ``score`` pontos no torneio de fadas (1 = mais pontos)."""
+        higher = self._pets(server_id).where(Arena.pet_score > score, Arena.pet_formation != "")
+        return int(await self._s.scalar(select(func.count()).select_from(higher.subquery())) or 0) + 1
+
+    async def pet_board(self, server_id: int, limit: int, below: int | None = None) -> list[Arena]:
+        """Os ``limit`` com formação e mais pontos (só os com menos que ``below``, se dado)."""
+        score = Arena.pet_score
+        query = self._pets(server_id).where(Arena.pet_formation != "")
+        if below is not None:
+            query = query.where(score < below)
+        query = query.order_by(score.desc(), Arena.character_id).limit(limit)  # type: ignore[attr-defined]
+        return list(await self._s.scalars(query))
+
+    async def logs(self, character_id: int, kind: int, limit: int) -> list[ChallengeLog]:
+        query = (
+            select(ChallengeLog)
+            .where(ChallengeLog.character_id == character_id, ChallengeLog.kind == kind)  # type: ignore[arg-type]
+            .order_by(ChallengeLog.id.desc())  # type: ignore[union-attr]
+            .limit(limit)
+        )
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -230,6 +288,7 @@ class SqlAlchemyUnitOfWork:
         self.sns = SqlSnsRepository(self._session)
         self.mails = SqlMailRepository(self._session)
         self.marriages = SqlMarriageRepository(self._session)
+        self.arena = SqlArenaRepository(self._session)
         return self
 
     async def __aexit__(

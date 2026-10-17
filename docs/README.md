@@ -16,4 +16,5 @@
 | [administracao.md](administracao.md) | Painel GM do portal, `/gm/kick` e `/gm/ban`, banimento, históricos de login, cash e itens |
 | [diversos.md](diversos.md) | Veículos, anti-vício, senha secundária, captcha, acelerador e os pacotes do login que faltam |
 | [social.md](social.md) | Amigos, lista negra, correio (socket + `maillist`), troca de nome, casamento |
+| [pvp.md](pvp.md) | Coliseu, torneio de fadas e os eventos PvP fechados (Senhores, campo de batalha, mina) |
 | [roadmap.md](roadmap.md) | O que está pronto e os próximos marcos |

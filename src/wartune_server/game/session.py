@@ -105,6 +105,9 @@ class GameSession:
         self.vice_confirmed = False  # senha secundária digitada nesta sessão (8806 op 1)
         self.accelerator_at: float | None = None  # último 20010 (time.monotonic)
         self.chat_state = 7  # estado do IM (15029): 7 online; os amigos veem no 4232/4272
+        # oponentes da última lista do coliseu/torneio (4169/4611): só esses podem ser desafiados
+        self.arena_offer: dict[int, int] = {}
+        self.pet_offer: dict[int, int] = {}
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
