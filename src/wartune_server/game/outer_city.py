@@ -1,9 +1,10 @@
 """Cidade externa (mapa-múndi): posição do exército, grade visível e castelo que muda de lugar.
 
 Regras vindas do cliente (`OuterCityController`, `WorldMapControler`, `WorldMapHelper`) e da captura
-`transfer_kampi_sistemi.json` (5176 -> 140, 152, 105). O mapa é compartilhado só no que o servidor
-guarda: castelos e minas ocupadas de quem já jogou (ver docs/cidade-externa.md). Exército andando de
-outro jogador e terra selvagem fora das 4 minas não existem aqui.
+`transfer_kampi_sistemi.json` (5176 -> 140, 152, 105). O mapa 100000xxx do castelo é uma instância
+de cada jogador (o próprio castelo e as 4 minas do mapa 100); nos mapas 1 a 5, compartilhados, aparecem
+os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando de outro jogador e
+terra selvagem fora das 4 minas não existem aqui.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from datetime import UTC, datetime, timedelta
 from ..domain.models import Castle, PlayerSnapshot, WildLand
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
+from .worldboss import GAME_TZ
 
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
 GRID = 50  # a grade pedida pelo cliente é "x_y" de 50 × 50 tiles (OuterCitySocketOutManager)
@@ -98,30 +100,27 @@ class Mine:
 
 
 # As 4 minas do mapa 100 nas capturas (replay #706, cevre #11): mesmos ids e posições para contas
-# diferentes, então são do modelo do mapa. O guia do tutorial (m8 NewbieBaseActionMediator, alvo 80)
-# procura as duas primeiras pelos pixels (320,680) e (720,680).
+# diferentes, então são do modelo do mapa. Mas cada conta tem a sua cópia: a instância (100000313 no
+# replay, 100000714 na cevre), os robôs, os ids do armyPawn e o createDate mudam de uma para a outra.
+# Ocupação de outro jogador não aparece nem bloqueia. O guia do tutorial (m8 NewbieBaseActionMediator,
+# alvo 80) procura as duas primeiras pelos pixels (320,680) e (720,680).
 MINES = (Mine(853876, 16, 34), Mine(853877, 36, 34), Mine(853874, 71, 54), Mine(853875, 54, 64))
 MINE_TYPE, MINE_SON_TYPE = 20, 2006  # WildLandMsg.type; MapPhysicsTempInfos.SonType (missão 60, Para1)
 MINE_FREE, MINE_FIGHTING = 1, 4  # WildLandMsg.state
 MINE_CAPACITY = 324  # fightCapaity da mina livre nas capturas
-# Refresh: RefreshTime 43200 s em todas as minas (MapPhysicsTempInfos). A fase do ciclo é do mundo:
-# ponytail: o replay abriu às 12:19:54 e a cevre às 19:48:57; usamos a do replay.
-MINE_EPOCH = datetime(2026, 5, 21, 12, 19, 54, tzinfo=UTC)
+# Refresh: RefreshTime 43200 s em todas as minas (MapPhysicsTempInfos). O ciclo é do jogador
+# (``Castle.mines_at``): o createDate vem no fuso do jogo (UTC+3) e cai na entrada da conta, não numa
+# hora do mundo. Replay: 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre: 19:48:57 =
+# 16:48:57 UTC, 73 s antes do signDate 19:50:10 do mesmo asiesat (login.json), e o relogin das 17:05
+# UTC não mudou o createDate. As duas fases ficam 7 h 29 min distantes: não há hora do mundo.
+# ponytail: (dedução) o ciclo vencido só renova no próximo login, 8201 ou 5160 e começa nessa hora;
+# quem fica online pode ver o oficial renovar na hora certa (sem captura de um refresh ao vivo).
 MINE_PERIOD = timedelta(hours=12)
 # (dedução) nível sorteado a cada refresh: as duas capturas têm 8, 9 e 10 (replay: 8, 9, 10, 10; cevre:
 # 9, 9, 10, 10). Template = MapPhysicsTempInfos (Grades = nível, Property4 = ouro por hora).
 MINE_TEMPLATE = {8: 200408, 9: 200409, 10: 200410}
 # guarda por nível: visto 6504 no nível 8 (replay) e 6505 nos níveis 9 e 10 (replay e cevre)
 MINE_GUARD = {8: 6504, 9: 6505, 10: 6505}
-
-
-@dataclass(frozen=True, slots=True)
-class Holder:
-    """Dono da mina: o próprio jogador ou outro. ``capacity`` é o poder do dono (``fightCapaity``)."""
-
-    id: int
-    name: str
-    capacity: int
 
 
 def mine_at(map_id: int, x: int, y: int) -> Mine | None:
@@ -134,29 +133,38 @@ def mines_in(grids: set[str]) -> list[Mine]:
     return [m for m in MINES if grid_of(m.x, m.y) in grids]
 
 
-def cycle_start(now: datetime) -> datetime:
-    """Começo do ciclo de refresh em que ``now`` cai. Ocupação feita antes dele já venceu."""
-    return MINE_EPOCH + ((now - MINE_EPOCH) // MINE_PERIOD) * MINE_PERIOD
+def cycle_start(snap: PlayerSnapshot) -> datetime:
+    """Começo do ciclo de minas do jogador. Castelo de antes da migração 0018 (``mines_at`` vazio):
+    a ocupação mais velha, para a mina dele não vencer na hora (o refresh do login grava o valor)."""
+    castle = snap.castle
+    assert castle is not None
+    if castle.mines_at is not None:
+        return castle.mines_at
+    return min((w.occupied_at for w in snap.wild_lands), default=datetime.fromtimestamp(0, UTC))
 
 
-def draw(mine: Mine, start: datetime) -> tuple[int, int]:
-    """(template, guarda) da mina no ciclo que começou em ``start``. A semente é a mina e o começo do
-    ciclo: todo jogador vê o mesmo sorteio, e ele muda a cada refresh."""
-    level = random.Random(f"{mine.id}:{start.isoformat()}").choice(tuple(MINE_TEMPLATE))
+def game_date(at: datetime) -> str:
+    """Data como o oficial manda (createDate): no fuso do jogo."""
+    return at.astimezone(GAME_TZ).strftime(DATE)
+
+
+def draw(snap: PlayerSnapshot, mine: Mine) -> tuple[int, int]:
+    """(template, guarda) da mina no ciclo atual do jogador. A semente é o jogador, a mina e o começo do
+    ciclo: o sorteio fica o mesmo até o refresh e muda a cada um."""
+    seed = f"{snap.character.id}:{mine.id}:{int(cycle_start(snap).timestamp())}"
+    level = random.Random(seed).choice(tuple(MINE_TEMPLATE))
     return MINE_TEMPLATE[level], MINE_GUARD[level]
 
 
 def occupied(snap: PlayerSnapshot, mine: Mine) -> WildLand | None:
-    """Ocupação do próprio jogador. Quem chama antes precisa ter rodado ``castle.expire_mines``."""
+    """Ocupação do jogador. Quem chama antes precisa ter rodado ``castle.expire_mines``."""
     return next((w for w in snap.wild_lands if w.wild_id == mine.id), None)
 
 
-def mine_msg(
-    templates: GameTemplates, mine: Mine, start: datetime, state: int, holder: Holder | None
-) -> pb.WildLandMsg:
+def mine_msg(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine, state: int, capacity: int) -> pb.WildLandMsg:
     """Como no 4129 e no 140 do oficial: a livre não tem ``occupyPlayerName``; a ocupada leva o nome e o
-    poder do dono em ``fightCapaity``."""
-    template, guard = draw(mine, start)
+    poder do jogador em ``fightCapaity``."""
+    template, guard = draw(snap, mine)
     row = templates.get("MapPhysicsTempInfos", template) or {}
     msg = pb.WildLandMsg(
         id=mine.id,
@@ -169,27 +177,25 @@ def mine_msg(
         level=int(row.get("Grades", 0)),
         refreshTime=int(row.get("RefreshTime", 0)) * 1000,
         state=state,
-        createDate=start.strftime(DATE),
+        createDate=game_date(cycle_start(snap)),
         fightCapaity=MINE_CAPACITY,
         bossType=0,
         size=0,
     )
-    if holder is not None:
-        msg.occupyPlayerId, msg.occupyPlayerName, msg.fightCapaity = holder.id, holder.name, holder.capacity
+    if occupied(snap, mine) is not None:
+        msg.occupyPlayerId, msg.occupyPlayerName = snap.character.id or 0, snap.character.nickname or ""
+        msg.fightCapaity = capacity
     msg.armyPawn.add(id=mine.id, armyId=mine.id, tempateId=guard, ownPawns=1)
     return msg
 
 
 def mine_yield(snap: PlayerSnapshot, templates: GameTemplates) -> list[pb.WildYieldMsg]:
-    """152: uma linha por mina ocupada (replay #743, #794). Ocupação válida é do ciclo atual, então o
-    sorteio é o do começo do ciclo em que ela foi feita."""
+    """152: uma linha por mina ocupada (replay #743, #794), com o sorteio do ciclo atual."""
     out = []
     for mine in MINES:
-        land = occupied(snap, mine)
-        if land is None:
+        if occupied(snap, mine) is None:
             continue
-        start = cycle_start(land.occupied_at)
-        row = templates.get("MapPhysicsTempInfos", draw(mine, start)[0]) or {}
+        row = templates.get("MapPhysicsTempInfos", draw(snap, mine)[0]) or {}
         grade = int(row.get("Grades", 0))
         out.append(
             pb.WildYieldMsg(
@@ -200,7 +206,7 @@ def mine_yield(snap: PlayerSnapshot, templates: GameTemplates) -> list[pb.WildYi
                 wildYield=int(row.get("Property4", 0)),
                 wildRefreshTime=int(row.get("RefreshTime", 0)),
                 mapId=BASE_MAP,
-                createTime=start.strftime(DATE),
+                createTime=game_date(cycle_start(snap)),
             )
         )
     return out
@@ -252,7 +258,8 @@ def occupy(snap: PlayerSnapshot, mine: Mine, now: datetime) -> WildLand:
 
 
 def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
-    """Castelo de outro jogador no 4129 (o do próprio jogador é ``builders.login.castle_msg``)."""
+    """Castelo de outro jogador num mapa compartilhado (o do próprio jogador é ``builders.login.castle_msg``).
+    (dedução) os mesmos campos do castelo próprio na transfer #14; a captura não tem castelo de outro jogador."""
     return pb.BaseCastleMsg(
         id=castle.id or 0,
         mapId=castle.map_id,

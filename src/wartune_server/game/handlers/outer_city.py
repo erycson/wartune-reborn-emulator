@@ -1,17 +1,16 @@
 """Cidade externa (mapa do castelo): grade de exércitos, andar, voltar ao castelo, ataques extras,
 mudar o castelo de lugar e a volta para a cidade no fim do tutorial.
 
-Regras e fontes em ``game/outer_city.py`` e ``docs/cidade-externa.md``. O mundo do servidor tem os
-castelos e as minas de ouro ocupadas de quem já jogou, mais as 4 minas do mapa 100. Quando o cliente
-pede algo que depende de exército alheio ou de terra selvagem, o pedido é recusado com log e o que o
-cliente precisa para não travar é mandado.
+Regras e fontes em ``game/outer_city.py`` e ``docs/cidade-externa.md``. O mapa do castelo é uma
+instância do jogador (o castelo e as 4 minas do mapa 100); nos mapas compartilhados (1 a 5) aparecem
+os castelos dos outros jogadores. Quando o cliente pede algo que depende de exército alheio ou de terra
+selvagem, o pedido é recusado com log e o que o cliente precisa para não travar é mandado.
 """
 
 from __future__ import annotations
 
 import asyncio
 import math
-from datetime import datetime
 
 from ...domain.models import Castle
 from ...protocol.messages import wartune_pb2 as pb
@@ -81,10 +80,13 @@ def _castle_state(s: GameSession) -> None:
 
 async def refresh(s: GameSession) -> None:
     """Mina do ciclo anterior vence no refresh de 12 h. Sem tarefa periódica: roda ao logar e nos pedidos
-    de mina (8201, 5160), então quem fica online cruzando o refresh vê a mina cair no próximo pedido."""
+    de mina (8201, 5160 e o fim da luta), então quem fica online cruzando o refresh vê a mina cair no
+    próximo pedido."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    if stale := cs.expire_mines(snap, s.ctx.templates, s.ctx.clock.now()):
+    before = snap.castle.mines_at
+    stale = cs.expire_mines(snap, s.ctx.templates, s.ctx.clock.now())
+    if stale or snap.castle.mines_at != before:
         await s.ctx.characters.save(snap.character, snap.castle, delete=tuple(stale))
 
 
@@ -107,29 +109,12 @@ async def army_grid(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     s.log.info("5181 grade", mapa=msg.mapId, grades=len(msg.files.split(",")))
 
 
-async def _holders(s: GameSession, mines: list[oc.Mine], start: datetime) -> dict[int, oc.Holder]:
-    """Dono de cada mina pedida: o próprio jogador, ou outro com ocupação do ciclo atual (nome e poder
-    vêm do snapshot dele, como o 4129 do oficial)."""
-    snap = s.snapshot
-    assert snap is not None
-    own = snap.character.id or 0
-    holders = {m.id: _own_holder(s) for m in mines if oc.occupied(snap, m) is not None}
-    lands = await s.ctx.characters.read(lambda uow: uow.wild_lands.occupied([m.id for m in mines], start))
-    for land in lands:
-        if land.character_id == own or land.wild_id in holders:
-            continue
-        other = await s.ctx.characters.snapshot(land.character_id)
-        power = rules.leader_stats(other, s.ctx.templates).fighting_capacity
-        holders[land.wild_id] = oc.Holder(land.character_id, other.character.nickname or "", power)
-    return holders
-
-
 async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Castle, str]]:
-    """Castelos de outros jogadores no mesmo mapa e nas grades pedidas (o 4129 do oficial traz os castelos
-    da grade, de jogador e de robô; aqui só há jogadores)."""
+    """Castelos de outros jogadores nas grades pedidas de um mapa compartilhado (1 a 5). A instância
+    100000xxx é do jogador: no oficial ela só tem o castelo dele e 2 robôs (replay #706, cevre #11)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    if map_id != snap.castle.map_id:
+    if map_id != snap.castle.map_id or oc.template_of(map_id) == oc.BASE_MAP:
         return []
     own = snap.character.id or 0
     castles = await s.ctx.characters.read(lambda uow: uow.castles.on_map(map_id))
@@ -143,8 +128,8 @@ async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Ca
 
 @router.on(8201)
 async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
-    """4129 com as minas da grade (dono do ciclo atual), os castelos de outros jogadores do mapa e o próprio
-    castelo; depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa.
+    """4129 com as minas da grade (ciclo atual do jogador), o próprio castelo e, num mapa compartilhado, os
+    castelos de outros jogadores; depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa.
 
     ponytail: os exércitos alheios não aparecem (o 169 é só o próprio): a posição de outro jogador só existe
     na sessão dele, e não há presença entre sessões.
@@ -154,12 +139,9 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     await refresh(s)
     grids = {g for g in msg.reqGrid.split(",") if g}
     reply = pb.PhysicListUpdateMsg(reqGrid=msg.reqGrid)
-    start = oc.cycle_start(s.ctx.clock.now())
     if oc.template_of(msg.mapId) == oc.BASE_MAP:  # replay #706: as minas vêm antes do castelo
-        mines = oc.mines_in(grids)
-        holders = await _holders(s, mines, start)
-        for mine in mines:
-            reply.wildLand.append(oc.mine_msg(s.ctx.templates, mine, start, oc.MINE_FREE, holders.get(mine.id)))
+        for mine in oc.mines_in(grids):
+            reply.wildLand.append(oc.mine_msg(snap, s.ctx.templates, mine, oc.MINE_FREE, _capacity(s)))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
     for castle, name in await _rivals(s, grids, msg.mapId):
         reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
@@ -218,27 +200,11 @@ def _capacity(s: GameSession) -> int:
     return rules.leader_stats(s.snapshot, s.ctx.templates).fighting_capacity
 
 
-def _own_holder(s: GameSession) -> oc.Holder:
-    snap = s.snapshot
-    assert snap is not None
-    return oc.Holder(snap.character.id or 0, snap.character.nickname or "", _capacity(s))
-
-
-async def _held_by_other(s: GameSession, mine: oc.Mine, start: datetime) -> bool:
-    """Mina ocupada por outro jogador no ciclo atual. ponytail: a luta contra o dono não tem captura, então
-    a mina dele não é atacada (o exército só para)."""
-    snap = s.snapshot
-    assert snap is not None
-    lands = await s.ctx.characters.read(lambda uow: uow.wild_lands.occupied([mine.id], start))
-    return any(w.character_id != snap.character.id for w in lands)
-
-
 def _mine_sync(s: GameSession, mine: oc.Mine, state: int) -> None:
     """140 da mina com o dono que ela tem agora (o próprio jogador, se ocupou)."""
     snap = s.snapshot
     assert snap is not None
-    holder = _own_holder(s) if oc.occupied(snap, mine) is not None else None
-    land = oc.mine_msg(s.ctx.templates, mine, oc.cycle_start(s.ctx.clock.now()), state, holder)
+    land = oc.mine_msg(snap, s.ctx.templates, mine, state, _capacity(s))
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
 
 
@@ -250,23 +216,18 @@ def _army_sync(s: GameSession, state: int) -> None:
 @router.on(5160)
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (replay #713-#795): 140 do
-    exército lutando, 140 da mina em luta (state 4) e a 157. Mina de outro jogador, castelo, terra ou
+    exército lutando, 140 da mina em luta (state 4) e a 157. Mina já ocupada, castelo, terra ou
     tesouro: o exército só para (140 parado)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     await refresh(s)
     _stop_walk(s)
     mine = oc.mine_at(msg.mapId, msg.posX, msg.posY)
-    start = oc.cycle_start(s.ctx.clock.now())
     if mine is None or oc.occupied(snap, mine) is not None or s.battle is not None:
         s.log.info("5160 sem alvo", mapa=msg.mapId, x=msg.posX, y=msg.posY)
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s)))
         return
-    if await _held_by_other(s, mine, start):
-        s.log.info("5160 mina de outro jogador", mina=mine.id)
-        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s)))
-        return
-    _, guard = oc.draw(mine, start)
+    _, guard = oc.draw(snap, mine)
     _army_sync(s, ARMY_FIGHTING)
     _mine_sync(s, mine, oc.MINE_FIGHTING)
     spec = oc.mine_battle(snap, s.ctx.templates, mine, guard)
@@ -293,10 +254,9 @@ async def _mine_over(s: GameSession, battle: Battle, mine: oc.Mine, won: bool) -
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
     _army_sync(s, ARMY_IDLE)
+    await refresh(s)  # a luta pode ter cruzado o refresh: a ocupação é do ciclo novo
     now = s.ctx.clock.now()
-    # ponytail: a checagem de dono e o save não são atômicos; duas sessões que vencem a mesma mina no mesmo
-    # instante passam juntas. Subir: trava por mina ou unique (wild_id, ciclo).
-    if not won or oc.occupied(snap, mine) is not None or await _held_by_other(s, mine, oc.cycle_start(now)):
+    if not won or oc.occupied(snap, mine) is not None:
         _mine_sync(s, mine, oc.MINE_FREE)
         return
     assert snap.castle is not None

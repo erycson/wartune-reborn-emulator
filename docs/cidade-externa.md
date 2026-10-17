@@ -13,10 +13,14 @@ Fontes: *(visto)* captura oficial (`captures/transfer_kampi_sistemi.json`, `capt
 
 ## O que o servidor tem
 
-O mapa é compartilhado só no que o servidor guarda: o castelo de cada jogador (no mesmo mapa e nas grades
-pedidas, pelo 8201) e as minas de ouro do mapa 100 ocupadas por quem já jogou (ver *Minas de ouro*). Não há
-exércitos alheios andando, terras selvagens fora das 4 minas nem castelos de robôs. Pedido que depende disso
-é recusado ou respondido vazio, do jeito que o cliente espera para não travar.
+O mapa do castelo (100000xxx, modelo 100) é uma instância de cada jogador *(visto)*: replay #706 e cevre #11
+trazem as mesmas 4 minas (ids e posições) e os mesmos ids de castelo (765957-765959), mas a instância
+(100000313 e 100000714), os 2 robôs, os ids do `armyPawn` das minas e o `createDate` mudam de uma conta para
+a outra. Por isso o servidor mostra ali só o castelo e as minas do próprio jogador; ocupação de outro jogador
+não aparece nem bloqueia. Nos mapas compartilhados (1 a 5) o 8201 traz os castelos dos outros jogadores nas
+grades pedidas. Não há exércitos alheios andando, terras selvagens fora das 4 minas nem castelos de robôs
+(os 2 da instância e os "Köy" do mapa 2). Pedido que depende disso é recusado ou respondido vazio, do jeito
+que o cliente espera para não travar.
 
 ## Opcodes C>S
 
@@ -24,10 +28,10 @@ exércitos alheios andando, terras selvagens fora das 4 minas nem castelos de ro
 |---|---|---|---|
 | 5004 | Registra. Sem resposta | *(cliente)* o cliente não lê resposta do 5004 | — (os exércitos da tela chegam pelo 169) |
 | 5181 | Sem resposta própria. A grade vem no 169 do 8201 | *(visto)* transfer #12-15, cevre #11-12: sem S>C | — |
-| 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100; o dono é o do ciclo atual, com nome e poder), o próprio castelo e os castelos de outros jogadores do mesmo mapa nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* transfer #15 (no mapa 2 o 4129 traz o castelo de `asiesat` com `occupyPlayerName` e `occupyLeagueName`, e o 169 traz o exército dele); replay #706 | exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) e castelos "Köy" sem dono (NPC, *(dedução)*) |
+| 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100, ocupadas só pelo próprio jogador), o próprio castelo e, num mapa compartilhado (1 a 5), os castelos de outros jogadores nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* replay #706, cevre #11, transfer #14-15 (no mapa 2 o 4129 traz o castelo de `asiesat` e 20 "Köy"; o 169 traz o exército dele); *(dedução)* castelo de outro jogador com os campos do próprio (a captura não tem um) | robôs da instância (nomes mudam por conta: Chloe/Elizabeth no replay, Elizabeth/Abigail na cevre), exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) e castelos "Köy" sem dono |
 | 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,134 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* replay #761-#767 (18 tiles em 2,43 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Mina livre: luta com o guarda (ver *Minas de ouro*). Sem alvo, mina já do jogador ou mina de outro jogador: 140 com o exército parado (state 0), sem luta | *(visto)* replay #713-#795; *(dedução)* parar sem alvo e na mina alheia | luta contra o dono de mina alheia, castelos e exércitos alheios, terras e tesouros (precisa de captura) |
+| 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* replay #713-#795; *(dedução)* parar sem alvo | castelos e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Registra. Sem resposta | *(cliente)* ação a46 do guia do tutorial (m8) | nó de coleta que o passo abre (ausente nas capturas) |
 | 9506 | Ataque extra: 100 diamantes (vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount` | *(cliente)* `AttackAlertFrame` (`setAddAttackCount`); preço em `ConfigInfos` `AddAttck_Point` | — |
@@ -60,28 +64,29 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 
 - **Layout** *(visto)*: as 4 minas vêm das capturas, com os mesmos ids e posições para contas diferentes
   (replay e cevre), então são do mapa modelo 100: 853876 (16,34), 853877 (36,34), 853874 (71,54) e
-  853875 (54,64). O nível não é fixo: é sorteado a cada refresh (abaixo). Guarda: um soldado, 6504 no nível 8
-  e 6505 nos níveis 9 e 10. O arquivo `maps/100/100.maps` não tem minas.
+  853875 (54,64). Cada conta tem a sua cópia (ver *O que o servidor tem*). O nível não é fixo: é sorteado a
+  cada refresh (abaixo). Guarda: um soldado, 6504 no nível 8 e 6505 nos níveis 9 e 10. O arquivo
+  `maps/100/100.maps` não tem minas.
 - **Refresh de 12 h** *(visto)*: `RefreshTime` 43200 s (`MapPhysicsTempInfos`), que sai como 43200000 no 4129
-  e no 140 das duas capturas (mapa 100); `createDate` é o começo do ciclo. *(dedução)* os ciclos começam a
-  cada 12 h a partir de 2026-05-21 12:19:54 UTC (`createDate` do replay). A fase é do mundo: *ponytail*, a
-  cevre abriu em outra hora; mundo novo pode ter outra fase.
+  e no 140 das duas capturas (mapa 100, fixo: na cevre, 35 min depois do `createDate`, ainda é 43200000; só no
+  mapa 2 ele vem como contagem regressiva). `createDate` é o começo do ciclo, no fuso do jogo (UTC+3,
+  `worldboss.GAME_TZ`): replay 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre 19:48:57 = 16:48:57
+  UTC, 73 s antes do `signDate` 19:50:10 do mesmo `asiesat` (login.json), e o relogin das 17:05 UTC não
+  mudou o `createDate`. As duas fases ficam 7 h 29 min distantes, então o ciclo é do jogador
+  (`Castle.mines_at`, migração 0018), não do mundo. *(dedução)* o ciclo abre no login; vencido, o seguinte
+  abre no primeiro login, 8201 ou 5160 depois do fim (*ponytail*: quem fica online pode ver o oficial renovar
+  na hora certa; não há captura de um refresh ao vivo). Castelo de antes da 0018: o ciclo começa na ocupação
+  mais velha.
 - **Nível sorteado** *(dedução)*: os 8 sorteios vistos nas duas capturas (replay e cevre) deram nível 8, 9 e
-  10. Cada ciclo sorteia o nível com semente `"<id da mina>:<início do ciclo>"`, então todo jogador vê o mesmo sorteio. Os
-  templates são 200408, 200409 e 200410 (`MapPhysicsTempInfos`: `Grades` é o nível, `Property4` o ouro por
-  hora). Nível fora de 8 a 10 e guarda diferente não têm captura.
-- **Expiração** *(dedução)*: ocupação com `occupied_at` antes do começo do ciclo vence. Quem roda o refresh é o
-  login, o 8201 e o 5160 (`handlers/outer_city.refresh`); não há tarefa periódica, então quem fica online só vê
-  a mina cair no próximo pedido. Antes de sair, o ouro até o refresh sai na taxa antiga (`castle.expire_mines`
-  chama `settle`), e as linhas vencidas saem com `delete=` (a unique é `character_id, wild_id`). *(ponytail)*
-  ouro cobrado depois do começo do ciclo por handler que não passa pelo refresh (5015, 8202, 8327, farm) ainda
-  paga a taxa da mina até o próximo 8201, 5160 ou login; subir: refresh antes de cada `settle`. Duas sessões
-  que vencem a mesma mina no mesmo instante passam juntas na checagem de dono (sem trava por mina).
-- **Dono de outro jogador**: o castelo alheio no 4129 leva `occupyPlayerId`, `occupyPlayerName` e
-  `occupyLeagueName` *(visto)* transfer #15 (`asiesat`, mapa 2). Para a mina, *(dedução)* o 4129 leva o dono
-  pelo mesmo campo e o poder em `fightCapaity`; nas capturas as minas do mapa 2 vêm com `occupyPlayerId` 0.
-  Mina ocupada por outro: o 5160 só para o exército, sem luta (*ponytail*). *(precisa de captura)* a luta contra
-  o dono e a regra oficial para isso.
+  10. Cada ciclo sorteia o nível com semente `"<jogador>:<id da mina>:<início do ciclo>"`: fica o mesmo até o
+  refresh. Os templates são 200408, 200409 e 200410 (`MapPhysicsTempInfos`: `Grades` é o nível, `Property4` o
+  ouro por hora). Nível fora de 8 a 10 e guarda diferente não têm captura.
+- **Expiração** *(dedução)*: no fim do ciclo toda ocupação vence. Quem roda o refresh é o login, o 8201, o 5160
+  e o fim da luta da mina (`handlers/outer_city.refresh`); não há tarefa periódica. O ouro até o fim do ciclo
+  sai na taxa antiga (`castle.expire_mines` chama `settle`), e as linhas vencidas saem com `delete=` (a unique é
+  `character_id, wild_id`). *(ponytail)* ouro cobrado depois do fim do ciclo por handler que não passa pelo
+  refresh (5015, 8202, 8327, farm) ainda paga a taxa da mina até o próximo 8201, 5160 ou login; subir:
+  refresh antes de cada `settle`.
 - **Guia do tutorial** *(cliente)*: o m8 (`NewbieBaseActionMediator`, alvo 80) procura as minas pelos pixels
   (320,680) e (720,680), e o castelo em (520,920). Sem elas a máscara escura do passo 22500 nunca sai. Por
   isso o castelo novo nasce em (26,46), como no oficial (`GridCastlePlacement`), e a migração 0017 move
@@ -99,8 +104,8 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - **Ouro** *(visto)*: cada mina ocupada soma `Property4` por hora no 109 (280 para 960). O 152 lista as minas
   em `wildYield` e mantém `goldYield` só com os prédios e `goldWildLandYield` em 0, como no replay.
 - **0017** `wild_lands`: mina ocupada por personagem (`wild_id`, `occupied_at`), carregada em
-  `PlayerSnapshot.wild_lands`. Relogar mantém a mina até o refresh. Leitura de todos os jogadores:
-  `SqlWildLandRepository.occupied(ids, início do ciclo)`.
+  `PlayerSnapshot.wild_lands`. Relogar mantém a mina até o refresh.
+- **0018** `castles.mines_at`: começo do ciclo de 12 h das minas do jogador.
 
 ## Tabelas e migrações
 
@@ -108,15 +113,17 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
   (junto com ele) e na 9506. Também conta no `PlayerMsg.attackLeftCount` e no `4202`.
 - **0013** `treasure_maps`: uma linha por personagem, com `day`, `join_count` e `reward_count`. Carregada no
   `snapshot` (`PlayerSnapshot.treasure`), como `mystery_shops`.
+- **0017** `wild_lands` (minas ocupadas) e **0018** `castles.mines_at` (começo do ciclo de 12 h das minas;
+  vazio em castelo antigo). Ver *Minas de ouro*.
 - Diamantes passam por `services/ledger.py` (`pay`). Não há tabela de ledger nova.
 
 ## Dependências em aberto
 
-1. **Mapa-múndi compartilhado.** Feito: castelos de outros jogadores no mesmo mapa e nas grades (8201) e minas
-   ocupadas por outros, com nome e poder do dono (8201, 5160). Falta: exércitos de outros jogadores (o 169 da
-   transfer #15 traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168
-   não existem aqui), terras selvagens fora das 4 minas, castelos NPC "Köy", e a resposta do 5160 e do 8488
-   contra castelo ou exército alheio (*precisa de captura*). A luta contra o dono de uma mina alheia também *precisa de captura*.
+1. **Mapa-múndi compartilhado.** Feito: castelos de outros jogadores nos mapas 1 a 5, nas grades pedidas
+   (8201). Falta: exércitos de outros jogadores (o 169 da transfer #15 traz o de `asiesat`, mas a posição de
+   outro jogador só existe na sessão dele; 4167 e 4168 não existem aqui), terras selvagens fora das 4 minas,
+   os 2 robôs da instância, castelos NPC "Köy", e a resposta do 5160 e do 8488 contra castelo ou exército
+   alheio (*precisa de captura*).
 2. **Gancho da campanha** (8292, 8293, 8295, 8525). O servidor responde o gancho zerado (4200) e a lista
    de ganchos vazia (4204); o cancelar (8292) não muda nada. O ganho de tempo offline da campanha precisa do
    sistema de gancho, e os ganchos de outros jogadores não existem.
@@ -129,7 +136,7 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 7. **Mapa de bronze e nível.** *(dedução)* O item que o oficial dá é sorteado por qualidade; a tabela não está
    nos templates, então vai sempre o de bronze. A trava de nível é o `NeedGrades` do item (55), sem trava
    própria no cliente.
-8. **Minas (precisa de captura).** Perda de soldados numa derrota contra a mina; luta contra o dono de mina
-   ocupada por outro; fase do refresh em outro mundo; guarda e nível fora de 8 a 10; e se o `RefreshTime` muda
-   em outro mapa (no mapa 2 o `refreshTime` vem como contagem regressiva: 39799344 ms às 20:38 para `createDate`
-   19:41:30).
+8. **Minas (precisa de captura).** Perda de soldados numa derrota contra a mina; o que acontece no fim do
+   ciclo com o jogador online (captura atravessando 12 h depois do `createDate`) e se o ciclo abre no login ou
+   na criação da conta (captura de um login mais de 12 h depois do último); guarda e nível fora de 8 a 10. No
+   mapa 2 o `refreshTime` vem como contagem regressiva (39799344 ms às 20:39 para `createDate` 19:41:30).

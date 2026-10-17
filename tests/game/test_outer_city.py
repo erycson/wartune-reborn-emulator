@@ -1,6 +1,6 @@
 """Cidade externa: grade de exércitos, andar, voltar ao castelo, ataque extra e mudar o castelo de
-lugar (docs/cidade-externa.md). O mapa tem os castelos e as minas ocupadas de quem já jogou; exército
-alheio não aparece, e os pedidos que dependem dele são recusados sem resposta, como o cliente espera."""
+lugar (docs/cidade-externa.md). O mapa do castelo é uma instância do jogador; exército alheio não aparece,
+e os pedidos que dependem dele são recusados sem resposta, como o cliente espera."""
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -13,7 +13,6 @@ from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import castle as castle_mod
 from wartune_server.game import outer_city as oc
-from wartune_server.game import rules
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
@@ -186,7 +185,7 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
         snap.quests.append(Quest(g.user_id, 60, datetime.now(UTC)))
         templates = g.server.services.templates
-        tpl, guard = oc.draw(oc.MINES[0], oc.cycle_start(clock.now()))  # o sorteio do ciclo: nível e guarda
+        tpl, guard = oc.draw(snap, oc.MINES[0])  # o sorteio do ciclo: nível e guarda
         per_hour = int(templates.get("MapPhysicsTempInfos", tpl)["Property4"])
         before = castle_mod.gold_yield(snap, templates)
         castle.produced_at = clock.now() - timedelta(hours=1)  # uma hora sem recolher: taxa antiga
@@ -233,32 +232,36 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         assert [(w.posX, w.occupyPlayerId) for w in lands] == [(16, g.user_id), (36, 0)]
 
 
-def test_refresh_de_12_horas_sorteia_nivel_e_guarda() -> None:
-    """RefreshTime 43200 s: o ciclo começa na fase do replay. O nível sai entre 8 e 10 e o guarda acompanha
-    (replay: nível 8 com o guarda 6504; níveis 9 e 10 com 6505). Todo jogador vê o mesmo sorteio do ciclo."""
-    epoch = oc.MINE_EPOCH
-    assert oc.cycle_start(epoch) == epoch
-    assert oc.cycle_start(epoch + oc.MINE_PERIOD - timedelta(seconds=1)) == epoch
-    assert oc.cycle_start(epoch + oc.MINE_PERIOD) == epoch + oc.MINE_PERIOD
-    assert oc.cycle_start(epoch - timedelta(seconds=1)) == epoch - oc.MINE_PERIOD
-
-    draws = [oc.draw(mine, epoch + k * oc.MINE_PERIOD) for k in range(40) for mine in oc.MINES]
-    for template, guard in draws:
-        level = template - 200400
-        assert level in (8, 9, 10) and oc.MINE_TEMPLATE[level] == template
-        assert guard == oc.MINE_GUARD[level]
-    assert {t for t, _ in draws} == set(oc.MINE_TEMPLATE.values())  # o sorteio muda de um ciclo para o outro
-    assert oc.draw(oc.MINES[0], epoch) == oc.draw(oc.MINES[0], epoch)  # mesmo ciclo, mesmo sorteio
+async def test_refresh_de_12_horas_sorteia_nivel_e_guarda(tmp_path: Path) -> None:
+    """RefreshTime 43200 s: o ciclo é do jogador e começa no login. O nível sai entre 8 e 10 e o guarda
+    acompanha (replay: nível 8 com o guarda 6504; níveis 9 e 10 com 6505); o createDate vem no fuso do jogo."""
+    clock = FakeClock(datetime(2026, 5, 21, 9, 19, 54, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        castle = snap.castle
+        assert castle is not None and castle.mines_at == clock.now()  # o login abriu o ciclo
+        assert oc.game_date(castle.mines_at) == "2026-05-21 12:19:54"  # replay #706: 09:19:54 UTC
+        start = castle.mines_at
+        draws = []
+        for k in range(40):
+            castle.mines_at = start + k * oc.MINE_PERIOD
+            draws += [oc.draw(snap, mine) for mine in oc.MINES]
+        for template, guard in draws:
+            level = template - 200400
+            assert level in (8, 9, 10) and oc.MINE_TEMPLATE[level] == template
+            assert guard == oc.MINE_GUARD[level]
+        assert {t for t, _ in draws} == set(oc.MINE_TEMPLATE.values())  # o sorteio muda de um ciclo para o outro
+        assert oc.draw(snap, oc.MINES[0]) == oc.draw(snap, oc.MINES[0])  # mesmo ciclo, mesmo sorteio
 
 
 async def test_ocupacao_de_mina_vence_no_refresh(tmp_path: Path) -> None:
     """No refresh a mina do jogador volta livre: o ouro até o refresh sai na taxa antiga, a linha da mina
-    sai do banco e o ciclo seguinte pode ocupá-la de novo (sem violar a unicidade personagem+mina)."""
-    clock = FakeClock(oc.MINE_EPOCH + timedelta(hours=1))
+    sai do banco, o ciclo novo começa no pedido e a mina pode ser ocupada de novo (unique personagem+mina)."""
+    clock = FakeClock()
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
         castle = snap.castle
-        assert castle is not None
+        assert castle is not None and castle.mines_at is not None
         templates = g.server.services.templates
         mine = oc.MINES[1]
         land = WildLand(g.user_id, mine.id, clock.now())
@@ -266,7 +269,7 @@ async def test_ocupacao_de_mina_vence_no_refresh(tmp_path: Path) -> None:
         castle.produced_at = clock.now()
         await g.server.services.characters.save(land, castle, snap.character)
 
-        boundary = oc.cycle_start(clock.now()) + oc.MINE_PERIOD
+        boundary = castle.mines_at + oc.MINE_PERIOD
         expected, _ = castle_mod.pending_gold(snap, templates, boundary)  # na taxa com a mina, até o refresh
         assert expected > 0
         gold = snap.character.gold
@@ -276,48 +279,68 @@ async def test_ocupacao_de_mina_vence_no_refresh(tmp_path: Path) -> None:
         page = pb.PhysicListUpdateMsg.FromString(next(p.body for p in got if p.code == 4129))
         shown = next(w for w in page.wildLand if w.id == mine.id)
         assert (shown.occupyPlayerId, shown.state) == (0, oc.MINE_FREE)
-        assert shown.createDate == "2026-05-22 00:19:54"  # começo do ciclo novo: 12:19:54 + 12 h
+        assert castle.mines_at == clock.now() and shown.createDate == oc.game_date(clock.now())
         assert snap.wild_lands == [] and snap.character.gold == gold + expected
         assert oc.mine_gold(snap, templates) == 0
 
         await g.server.services.characters.save(WildLand(g.user_id, mine.id, clock.now()))  # cabe: a antiga saiu
         fresh = await g.server.services.characters.snapshot(g.user_id)
-        assert oc.occupied(fresh, mine) is not None
+        assert oc.occupied(fresh, mine) is not None and fresh.castle is not None
+        assert fresh.castle.mines_at == clock.now()
 
 
-async def test_castelo_e_mina_de_outro_jogador_aparecem_no_mapa(tmp_path: Path) -> None:
-    """Cevre #11 e #45: o 4129 da grade traz o castelo de outro jogador do mapa e a mina que ele ocupa, com o
-    nome e o poder dele. O 5160 numa mina alheia não começa luta (ponytail: sem captura da luta contra o dono)."""
-    clock = FakeClock(oc.MINE_EPOCH + timedelta(hours=1))
-    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
-        castle = _snap(g).castle
+async def test_mina_de_outro_jogador_nao_bloqueia_a_instancia(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """O mapa do castelo é uma instância de cada conta (replay #706 e cevre #11: mesmas minas, instâncias,
+    robôs e createDate diferentes). A mina que outro jogador ocupou aparece livre e abre a luta (missão 60),
+    e o castelo dele não entra no 4129 da instância."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = _snap(g)
+        castle = snap.castle
         assert castle is not None
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
         other = await g.join("outro")
-        mine = oc.MINES[1]
-        await g.server.services.characters.save(WildLand(other.user_id, mine.id, clock.now()))
+        mine = oc.MINES[0]
+        await g.server.services.characters.save(WildLand(other.user_id, mine.id, g.server.services.clock.now()))
 
         got = await _grid(g, oc.grid_of(mine.x, mine.y))
         page = pb.PhysicListUpdateMsg.FromString(next(p.body for p in got if p.code == 4129))
-        assert sorted(c.occupyPlayerId for c in page.baseCastle) == sorted([g.user_id, other.user_id])
-        shown = next(w for w in page.wildLand if w.id == mine.id)
-        assert (shown.occupyPlayerId, shown.occupyPlayerName) == (other.user_id, "Outro")
-        assert shown.fightCapaity == rules.leader_stats(_snap(other), g.server.services.templates).fighting_capacity
+        assert [c.occupyPlayerId for c in page.baseCastle] == [g.user_id]
+        assert next(w for w in page.wildLand if w.id == mine.id).occupyPlayerId == 0
 
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=mine.x, posY=mine.y))
-        got = await g.until(140)
-        assert all(p.code != 157 for p in got)  # sem batalha: o exército só para
-        session = g.server.online.get(g.user_id)
-        assert session is not None and session.battle is None
+        assert (await g.until(157))[-1].code == 157
+
+
+async def test_castelo_de_outro_jogador_num_mapa_compartilhado(tmp_path: Path) -> None:
+    """Nos mapas 1 a 5 o 4129 da grade traz os castelos dos outros jogadores com o nome deles."""
+    async with logged_in(tmp_path, novice=22500) as g:
+        other = await g.join("outro")
+        for game, x in ((g, 2100), (other, 2110)):
+            castle = _snap(game).castle
+            assert castle is not None
+            castle.map_id, castle.pos_x, castle.pos_y = 2, x, 1900
+            await g.server.services.characters.save(castle)
+
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(2100, 1900)))
+        page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
+        assert [(c.occupyPlayerId, c.occupyPlayerName, c.posX) for c in page.baseCastle][1:] == [
+            (other.user_id, "Outro", 2110)
+        ]
+        assert list(page.wildLand) == []  # as minas do mapa 2 não existem no servidor
 
 
 async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None:
     """Quem volta ao jogo depois do refresh já entra com a mina livre: a linha sai no login, antes do 109 e do 152."""
-    clock = FakeClock(oc.MINE_EPOCH + oc.MINE_PERIOD - timedelta(seconds=60))  # ciclo 0, a 1 min do refresh
+    clock = FakeClock()
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
-        await g.server.services.characters.save(WildLand(g.user_id, oc.MINES[0].id, clock.now()))
+        snap = _snap(g)
+        assert snap.castle is not None
+        snap.castle.mines_at = clock.now() - oc.MINE_PERIOD + timedelta(seconds=60)  # a 1 min do refresh
+        await g.server.services.characters.save(snap.castle, WildLand(g.user_id, oc.MINES[0].id, clock.now()))
         gold_before = (await g.server.services.characters.snapshot(g.user_id)).character.gold
         clock.advance(120)  # passou o refresh; a chave do login (30 min) ainda vale
         await g.connect()
         fresh = await g.server.services.characters.snapshot(g.user_id)
-        assert fresh.wild_lands == []
+        assert fresh.wild_lands == [] and fresh.castle is not None and fresh.castle.mines_at == clock.now()
         assert fresh.character.gold >= gold_before  # o settle do refresh nunca tira ouro

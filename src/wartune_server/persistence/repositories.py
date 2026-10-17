@@ -42,7 +42,6 @@ from ..domain.models import (
     Relation,
     SnsProfile,
     Star,
-    WildLand,
 )
 
 
@@ -384,15 +383,6 @@ class SqlOwnedRepository[T]:
         return list(await self._s.scalars(select(e).where(e.character_id == character_id).order_by(e.id)))
 
 
-class SqlWildLandRepository(_Repo):
-    async def occupied(self, wild_ids: list[int], since: datetime) -> list[WildLand]:
-        """Minas ocupadas de qualquer jogador no ciclo que começou em ``since``."""
-        if not wild_ids:
-            return []
-        stmt = select(WildLand).where(WildLand.wild_id.in_(wild_ids), WildLand.occupied_at >= since)  # type: ignore[attr-defined,arg-type]
-        return list(await self._s.scalars(stmt))
-
-
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -423,7 +413,6 @@ class SqlAlchemyUnitOfWork:
         self.stars = SqlOwnedRepository(self._session, Star)
         self.pets = SqlOwnedRepository(self._session, Pet)
         self.systems = SqlOwnedRepository(self._session, PlayerSystems)
-        self.wild_lands = SqlWildLandRepository(self._session)
         return self
 
     async def __aexit__(
