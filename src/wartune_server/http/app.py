@@ -186,11 +186,14 @@ class StaticFiles:
 
     async def handle(self, request: web.Request) -> web.StreamResponse:
         rel = request.match_info["path"]
-        for root in self._roots:
-            candidate = (root / rel).resolve()
-            if candidate.is_relative_to(root) and candidate.is_file():  # bloqueia ../
-                return web.FileResponse(candidate)
-        log.debug("estático não encontrado", path=rel)
+        # No oficial o Loading.swf fica em /client/, e o cliente pede vários arquivos relativos a ele
+        # (resouececheck.sq...). Aqui o swf é servido na raiz, então tentamos client/ também.
+        for name in (rel, f"client/{rel}"):
+            for root in self._roots:
+                candidate = (root / name).resolve()
+                if candidate.is_relative_to(root) and candidate.is_file():  # bloqueia ../
+                    return web.FileResponse(candidate)
+        log.warning("estático não encontrado", path=rel)
         raise web.HTTPNotFound()
 
 

@@ -133,3 +133,17 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         tcp.close()
         server.acceptor.close_all()
         await services.database.dispose()
+
+
+async def test_static_falls_back_to_client_dir(tmp_path: Path) -> None:
+    from aiohttp import web
+
+    from wartune_server.http.app import StaticFiles
+
+    (tmp_path / "client").mkdir()
+    (tmp_path / "client" / "resouececheck.sq").write_bytes(b"md5")
+    app = web.Application()
+    app.router.add_get("/{path:.+}", StaticFiles([tmp_path]).handle)
+    async with TestClient(TestServer(app)) as http:
+        assert await (await http.get("/resouececheck.sq?rnd=1")).read() == b"md5"
+        assert (await http.get("/nada.swf")).status == 404
