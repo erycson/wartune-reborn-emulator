@@ -239,11 +239,15 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
 
 
 def _pool(templates: GameTemplates) -> list[int]:
+    # Grades 0 são placeholders (+0 com valor 500000, "Asker Miktarı" inteiro): nenhum dos 42 atributos
+    # sorteados nas capturas tem Grades 0; os demais têm 1 a 10
     if not _refine_pool:
         _refine_pool.extend(
             int(r["TemplateId"])
             for r in templates.rows("SkillTempInfos")
-            if int(r["TemplateId"]) in REFINE_SKILLS and templates.get("SkillPropertyTempInfos", int(r["TemplateId"]))
+            if int(r["TemplateId"]) in REFINE_SKILLS
+            and int(r.get("Grades") or 0) > 0
+            and templates.get("SkillPropertyTempInfos", int(r["TemplateId"]))
         )
     return _refine_pool
 
@@ -261,8 +265,8 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
         s.log.info("8336 recusado", pedido=str(msg))
         return
     item = found[0]
-    # ponytail: a tabela de sorteio do oficial não está nos templates: sorteio uniforme na faixa
-    # 70000-77199 e cadeados de graça (o custo do cadeado também não está no cliente decompilado)
+    # ponytail: a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos
+    # com Grades > 0 (sem peso por nível: precisa de captura 8336 -> 4258); cadeados de graça (custo não achado)
     pool, locks = _pool(s.ctx.templates), list(msg.lock) + [False] * 5
     skills = [cur if locks[i] else random.choice(pool) for i, cur in enumerate(item.random_skills[:slots])]
     changed, gone = bag.take(snap, stone, 1)
