@@ -1,0 +1,76 @@
+# Banco de dados
+
+SQLAlchemy 2 async com mapeamento imperativo: as entidades de `domain/models.py` são dataclasses
+puras, e as tabelas ficam em `persistence/schema.py`. Funciona com:
+
+| Banco | URL (`WARTUNE_DATABASE_URL`) |
+|---|---|
+| SQLite (padrão) | `sqlite+aiosqlite:///data/wartune.db` |
+| MySQL / MariaDB | `mysql+asyncmy://usuario:senha@host:3306/wartune` |
+| PostgreSQL | `postgresql+asyncpg://usuario:senha@host:5432/wartune` |
+
+No SQLite o servidor liga `foreign_keys`, `journal_mode=WAL` e `busy_timeout`. O schema é criado
+no início (`create_all`) ou com `wartune-server db init`. Todas as datas são gravadas em UTC.
+
+## Modelo
+
+```
+accounts 1───* characters *───1 game_servers
+   │              │ 1
+   │              ├──* heroes
+   │              └──1 castles
+   └──* play_tickets *───1 game_servers
+```
+
+Uma **conta** é global, e um **personagem** existe por (conta, servidor). Assim, o mesmo usuário
+pode jogar em vários servidores com um personagem diferente em cada um. O `characters.id` é o
+`playerId`/`userId` que o cliente vê.
+
+### accounts
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | int PK | |
+| username | varchar(32) único | |
+| password_hash | varchar(255) | scrypt |
+| created_at, last_login_at | datetime UTC | |
+| banned | bool | |
+
+### game_servers
+Cada processo grava a própria linha no início: `id` (= `WARTUNE_SERVER_ID`), `name`, `site` (único),
+`public_host`, `http_port`, `socket_port` e `opened_at`. A data de abertura é mantida nas
+reinicializações e vira o `sysStarTime`.
+
+### play_tickets
+`token` (PK), `account_id`, `server_id`, `created_at`, `expires_at`. É emitido pelo portal e
+validado no `POST login` para o servidor certo.
+
+### characters
+| Coluna | Notas |
+|---|---|
+| account_id, server_id | únicos juntos: um personagem por conta em cada servidor |
+| nickname | NULL até o `visualizeregister`; único por servidor |
+| active | falso até a criação na tela de registro |
+| sex, camp, job | `job` = ícone = template do herói (1–6) |
+| grades, gp, total_gp, gold, point, gift_token | progresso e moedas |
+| weary, weary_limit, novice_process, fighting_capacity, repute, geste, charm | |
+| created_at, last_login_at | |
+
+### heroes
+`character_id`, `template_id`, `nickname`, `grades`, `gp`, os cinco atributos (`power`, `agility`,
+`intellect`, `captain`, `physique`) e os pontos distribuídos em cada um (`*_point`), além de
+`remain_point`, `skill_point`, `skill_script`, `fast_key`, `fight_pos` e `is_leader`.
+
+### castles
+Um por personagem: `name`, `map_id`, `pos_x`, `pos_y`, `grade`, `energy` e `state`. A posição vem
+de `GridCastlePlacement`, que hoje é uma grade simples no mapa 100000313.
+
+## Transações
+
+Os serviços usam `async with uow_factory() as uow: …; await uow.commit()`. Sem `commit()`, o
+bloco descarta as alterações. Os objetos carregados continuam utilizáveis depois do bloco
+(`expire_on_commit=False`).
+
+## Migrações
+
+Ainda não há Alembic: o schema só cresceu até agora, e o `create_all` cria o que falta. Ele entra
+na primeira mudança que alterar uma coluna existente, porque aí é preciso migrar dados.
