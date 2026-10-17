@@ -64,6 +64,7 @@ from ..domain.models import (
     ShopBuy,
     SnsProfile,
     Star,
+    TreasureMap,
 )
 
 NAMING = {
@@ -521,6 +522,16 @@ marriages = Table(
 )
 
 
+treasure_maps = Table(
+    "treasure_maps",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(unique=True),
+    _str("day", 10),
+    _int("join_count"),
+    _int("reward_count"),
+)
+
 arenas = Table(
     "arenas",
     metadata,
@@ -538,6 +549,7 @@ arenas = Table(
     _str("pet_formation", 128),
     _str("pet_reward_day", 10),
     _str("pet_reward_week", 10),
+    _int("attack_left", 5),
 )
 
 # posição do coliseu; trocas entre dois jogadores acontecem sob a trava de game/arena.py, por isso
@@ -756,6 +768,7 @@ def map_entities() -> None:
         (MailAnnex, mail_annexes),
         (Marriage, marriages),
         (Arena, arenas),
+        (TreasureMap, treasure_maps),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
         (Consortia, consortias),

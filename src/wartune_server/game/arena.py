@@ -23,6 +23,7 @@ from . import rules
 COLOSSEUM, PETS = 0, 1  # ChallengeRequestMsg/ChallengeCoolTimeMsg.type e ChallengeLog.kind
 FREE_COUNT, MAX_BUY = 10, 10  # coliseu: tentativas grátis e compráveis por dia (totalCount/totalBuyCount)
 COLOSSEUM_COOL, PET_COOL = 600, 300  # segundos de espera depois de lutar (4176 nas capturas)
+ATTACK_FREE = 5  # attackLeftCount do dia (PlayerMsg; o AttackAlertFrame mostra "x/5")
 ROBOT_BASE = 1_300_000_000  # userId dos robôs (capturas: 13000xxxxx); nunca viram personagem
 PET_ROBOT_BASE = ROBOT_BASE + 1400
 REWARDS_FILE = Path("data/colosseum_rewards.json")
@@ -64,9 +65,10 @@ def roll_day(arena: Arena, now: datetime) -> bool:
     """Zera os contadores se o dia virou. ``True`` se zerou algo que o cliente já mostrava (4202)."""
     if arena.day == today(now):
         return False
-    used = bool(arena.challenge_count or arena.pet_count or arena.pet_buy_count)
+    used = bool(arena.challenge_count or arena.pet_count or arena.pet_buy_count or arena.attack_left != ATTACK_FREE)
     arena.day = today(now)
     arena.challenge_count = arena.pet_count = arena.pet_buy_count = 0
+    arena.attack_left = ATTACK_FREE
     return used
 
 
@@ -101,7 +103,7 @@ def data_reset(snap: PlayerSnapshot) -> pb.DataResetMsg:
         weary=c.weary,
         hangupCount=0,
         transEnergy=0,
-        attackCount=5,  # o mesmo attackLeftCount do PlayerMsg
+        attackCount=snap.arena.attack_left if snap.arena is not None else ATTACK_FREE,  # = attackLeftCount
         challengeCount=0,
         leftHangupWeary=0,
         tower1EnterCount=0,

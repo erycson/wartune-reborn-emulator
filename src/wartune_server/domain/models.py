@@ -517,6 +517,7 @@ class Arena:
     pet_formation: str = ""  # chaPos: "petId,-1,..."
     pet_reward_day: str = ""  # dia da recompensa diária resgatada
     pet_reward_week: str = ""  # semana ISO (AAAA-Wnn) da recompensa semanal resgatada
+    attack_left: int = 5  # PlayerMsg.attackLeftCount: ataques da cidade externa; zera com o dia (4202)
 
 
 @dataclass(eq=False)
@@ -525,6 +526,17 @@ class ArenaRank:
 
     character_id: int
     rank: int
+
+
+@dataclass(eq=False)
+class TreasureMap:
+    """Mapa do tesouro do personagem: mapas recebidos no dia (``join_tremap_count``) e escavações."""
+
+    character_id: int
+    id: int | None = None
+    day: str = ""  # AAAA-MM-DD da contagem de mapas recebidos; noutro dia zera
+    join_count: int = 0  # mapas recebidos hoje (8744 op 1)
+    reward_count: int = 0  # escavações concluídas hoje; o servidor não escava, então fica em 0
 
 
 @dataclass(eq=False)
@@ -764,6 +776,7 @@ class PlayerSnapshot:
     stars: list[Star] = field(default_factory=list)
     pets: list[Pet] = field(default_factory=list)
     systems: PlayerSystems | None = None  # o serviço cria em memória quando não existe
+    treasure: list[TreasureMap] = field(default_factory=list)  # zero ou um: mapa do tesouro (8744)
 
     @property
     def leader(self) -> Hero | None:

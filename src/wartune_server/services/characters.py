@@ -28,6 +28,7 @@ from ..domain.models import (
     PlayerSnapshot,
     PlayerSystems,
     ShopBuy,
+    TreasureMap,
 )
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
@@ -175,6 +176,7 @@ class CharacterService:
             stars = await uow.stars.by_character(character_id)
             pets = await uow.pets.by_character(character_id)
             systems = next(iter(await uow.systems.by_character(character_id)), None)
+            treasure = await uow.by_character(TreasureMap, character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
         # linha nova só em memória: vai para o banco na primeira save() que a incluir
@@ -203,6 +205,7 @@ class CharacterService:
             stars,
             pets,
             systems,
+            treasure,
         )
 
     async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:

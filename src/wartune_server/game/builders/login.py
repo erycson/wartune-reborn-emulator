@@ -177,7 +177,7 @@ def player_msg(
         charm=c.charm,
         weary=c.weary,
         wearyLimit=0,
-        attackLeftCount=5,
+        attackLeftCount=snap.arena.attack_left if snap.arena is not None else 5,
         noviceProcess=c.novice_process,
         fightingCapacity=fighting_capacity,
         gradeProcess="0",
