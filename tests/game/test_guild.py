@@ -286,3 +286,18 @@ async def test_altar_open_needs_level_5_and_tells_members(tmp_path: Path) -> Non
         assert _one(got, 4436, pb.ConsortiaAltarOpenRspMsg).result == gd.ALTAR_OPEN
         assert _one(got, 164, pb.ConsortiaInfoMsg).altarState == gd.ALTAR_OPEN
         assert guild.offer == 10_000
+
+
+async def test_guild_shop_daily_limit(tmp_path: Path) -> None:
+    """goodId 665 (Lv.40 Efsane Taşı): VIP0Count 5 por dia, como a loja comum."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        s, c = _session(a), _char(a)
+        _guild(a).shop_level = 10
+        c.consortia_offer, c.grades = 1_000_000, 80
+        assert await handlers.shop_buy(s, pb.BuyInfo(goodId=665, count=5))
+        assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == handlers.R_OK
+        left = c.consortia_offer
+        assert await handlers.shop_buy(s, pb.BuyInfo(goodId=665, count=1))
+        assert _one(await a.idle(), 90, pb.ShopMsg).buyInfo.result == handlers.R_LIMIT
+        assert c.consortia_offer == left  # recusado sem cobrar

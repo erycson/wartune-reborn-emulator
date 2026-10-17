@@ -42,7 +42,7 @@ GOLD_PER_OFFER = 1000  # contribuição: 1000 ouro = 1, 1 diamante = 1 (Consorti
 QUICK_SECONDS = 600  # acelerar a melhoria: 1 diamante a cada 10 min (ConsortiaUpgradeFrame)
 GUILD_SHOP = "2"  # ShopTempInfos.ShopType do mercado da guilda
 # BuyInfo.result (ShopManager.shopingResult, como em handlers/shop.py)
-R_OK, R_NO_PLAYER, R_NO_ITEM, R_NO_MONEY, R_GUILD, R_LEVEL, R_FAIL = 1, 2, 3, 4, 9, 10, 11
+R_OK, R_NO_PLAYER, R_NO_ITEM, R_NO_MONEY, R_LIMIT, R_GUILD, R_LEVEL, R_FAIL = 1, 2, 3, 4, 6, 9, 10, 11
 TEXT_MAX = 255
 MEMBER_CHUNK = 100  # 4133 em pedaços (o cliente junta pelo uuid até somar totalRows)
 _TAG = re.compile(r"<[^>]*>")
@@ -788,9 +788,12 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     row = s.ctx.templates.get("ShopTempInfos", buy.goodId, key="Id")
     if row is None or row.get("ShopType") != GUILD_SHOP:
         return False
+    from .shop import count_buy, today_count  # shop importa este módulo
+
     snap, mine = s.snapshot, _mine(s)
     assert snap is not None
     c, count, now = snap.character, buy.count, s.ctx.clock.now()
+    limit = int(row.get("VIP0Count") or -1)  # ShopGoodsInfo.OneDayCount: pedras e peças épicas, 1-5 por dia
     item_row = s.ctx.templates.get("ItemTempInfos", int(row["ItemId"]))
     price = int(row.get("ConsortiaOffer") or 0) * count
     # o primeiro motivo que o cliente mostra (código 0 deixa a mensagem vazia)
@@ -802,6 +805,8 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
         code = R_NO_PLAYER
     elif item_row is None or not 0 < count <= 999:
         code = R_NO_ITEM
+    elif limit != -1 and today_count(snap, buy.goodId, now) + count > limit:
+        code = R_LIMIT
     elif c.consortia_offer < price:
         code = R_NO_MONEY
     elif not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], now):  # espaços comprados contam
@@ -815,7 +820,7 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     assert item_row is not None
     c.consortia_offer -= price
     got = bag.add(snap, s.ctx.templates, int(row["ItemId"]), count, now)  # empilha onde dá, como a loja comum
-    await s.ctx.characters.save(c, *got)
+    await s.ctx.characters.save(c, *got, count_buy(snap, buy.goodId, count, now))
     _player(s)
     s.send(S_ITEMS, bag.moved(got, s.player_id))
     text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} başarıyla alındı!"
