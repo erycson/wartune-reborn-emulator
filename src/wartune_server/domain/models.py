@@ -107,6 +107,11 @@ class Character:
     geste: int = 0
     charm: int = 0
     last_login_at: datetime | None = None
+    bag_count: int = 0  # espaços comprados além dos 42 da mochila (5010), de 7 em 7
+    rental_bag_until: datetime | None = None  # mochila alugada (8819): 217 espaços até esta data
+    store_grade: int = 0  # nível do cristal (8484, PlayerMsg.storeGrade)
+    store_gp: int = 0
+    appell_id: int = 0  # título em uso
 
     @property
     def icon(self) -> int:
@@ -140,6 +145,9 @@ class Hero:
     fast_key: str = ""
     fight_pos: int = 1
     is_leader: bool = True
+    hide_fashion: bool = False  # 5008: esconder a moda
+    blood: int = 0  # reserva de HP das poções (SonType 209), SimpleHeroInfoMsg.blood
+    blood_id: int = 0  # última poção usada (bloodId)
 
 
 @dataclass(eq=False)
@@ -180,7 +188,10 @@ class Quest:
 
 
 class BagType(IntEnum):
+    STORE = 0  # bancada da forja/moda: o item vai para cá (5005) antes da operação
     BAG = 1
+    RUNE = 2  # runas de batalha do herói (SonType 214)
+    HONOR = 3  # medalha de honra do herói (MasterType 3)
     HERO = 4  # equipado; ``object_id`` = id do herói
 
 
@@ -195,6 +206,88 @@ class Item:
     count: int = 1
     random_skill: int = 0  # randomSkill_1 (atributo extra sorteado, ex. 70302 "Zeka+2")
     is_new: bool = True
+    random_skill_2: int = 0
+    random_skill_3: int = 0
+    random_skill_4: int = 0
+    random_skill_5: int = 0
+    strengthen_grade: int = 0
+    join_1: int = -1  # furos: -1 fechado, 0 aberto e vazio, >0 templateId da pedra
+    join_2: int = -1
+    join_3: int = -1
+    join_4: int = -1
+    is_locked: bool = False
+    mould_grade: int = 0
+
+    @property
+    def random_skills(self) -> list[int]:
+        return [self.random_skill, self.random_skill_2, self.random_skill_3, self.random_skill_4, self.random_skill_5]
+
+    @random_skills.setter
+    def random_skills(self, value: list[int]) -> None:
+        v = (list(value) + [0] * 5)[:5]
+        self.random_skill, self.random_skill_2, self.random_skill_3, self.random_skill_4, self.random_skill_5 = v
+
+    @property
+    def joins(self) -> list[int]:
+        return [self.join_1, self.join_2, self.join_3, self.join_4]
+
+    @joins.setter
+    def joins(self, value: list[int]) -> None:
+        self.join_1, self.join_2, self.join_3, self.join_4 = value
+
+
+@dataclass(eq=False)
+class CashLedger:
+    """Movimento de moeda premium (``point``/``gift_token``) com o saldo depois dele.
+
+    Gravado na mesma transação da compra (``services.cash``); só cresce, nunca é editado.
+    """
+
+    character_id: int
+    delta_point: int
+    delta_gift_token: int
+    balance_point: int
+    balance_gift_token: int
+    reason: str  # 'shop', 'gm', 'recharge', 'forge', ...
+    ref: str
+    created_at: datetime
+    gm: str | None = None
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class ShopBuy:
+    """Quanto o personagem comprou de um ``ShopTempInfo`` no dia ``day`` (limite diário VIP0Count)."""
+
+    character_id: int
+    good_id: int
+    day: str  # AAAA-MM-DD; outro dia = contagem zerada
+    counts: int = 0
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class FashionBook:
+    """Moda registrada no livro de moda (4542 ``FashionBook``)."""
+
+    character_id: int
+    template_id: int
+    is_switch: bool = True
+    appraisal_skill: int = 0
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class MysteryShop:
+    """Loja misteriosa (ShopType 5) do personagem: os itens sorteados e as compras do dia."""
+
+    character_id: int
+    fresh_at: datetime
+    goods: str = ""  # Ids de ShopTempInfo separados por vírgula
+    bought: str = ""  # índices já comprados, separados por vírgula
+    day: str = ""
+    buy_count: int = 0
+    id: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,6 +302,9 @@ class PlayerSnapshot:
     buildings: list[Building] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
+    shop_buys: list[ShopBuy] = field(default_factory=list)
+    fashions: list[FashionBook] = field(default_factory=list)
+    mystery: list[MysteryShop] = field(default_factory=list)  # zero ou um
 
     @property
     def leader(self) -> Hero | None:

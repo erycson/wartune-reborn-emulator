@@ -8,7 +8,17 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from ..domain.errors import ConflictError, NotFoundError, ValidationError
-from ..domain.models import Building, Castle, Character, Hero, Job, PlayerSnapshot
+from ..domain.models import (
+    Building,
+    Castle,
+    Character,
+    FashionBook,
+    Hero,
+    Job,
+    MysteryShop,
+    PlayerSnapshot,
+    ShopBuy,
+)
 from ..domain.repositories import UnitOfWorkFactory
 from ..templates.repository import GameTemplates
 
@@ -140,9 +150,14 @@ class CharacterService:
             buildings = await uow.buildings.by_character(character_id)
             quests = await uow.quests.by_character(character_id)
             items = await uow.items.by_character(character_id)
+            shop_buys = await uow.by_character(ShopBuy, character_id)
+            fashions = await uow.by_character(FashionBook, character_id)
+            mystery = await uow.by_character(MysteryShop, character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
-        return PlayerSnapshot(account, server, character, heroes, castle, buildings, quests, items)
+        return PlayerSnapshot(
+            account, server, character, heroes, castle, buildings, quests, items, shop_buys, fashions, mystery
+        )
 
     async def save(self, *entities: object, delete: tuple[object, ...] = ()) -> None:
         """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens) e

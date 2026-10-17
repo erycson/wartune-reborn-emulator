@@ -49,6 +49,10 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     assert leader is not None and castle is not None and snap.character.id is not None
     stats = rules.leader_stats(snap, s.ctx.templates)
     hero = b.hero_info(leader, snap.character.id, stats)
+    t = s.ctx.templates
+    hero.wing, hero.hat = rules.avatar(snap, t, rules.WING), rules.avatar(snap, t, rules.HAT)
+    hero.fashionArm = rules.avatar(snap, t, rules.FASHION_ARM)
+    hero.fashionCloth = rules.avatar(snap, t, rules.FASHION_CLOTH)
     arm = rules.arm_avatar(snap, s.ctx.templates)
     return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm), stats.fighting_capacity
 

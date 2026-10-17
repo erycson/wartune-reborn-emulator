@@ -22,11 +22,26 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    CashLedger,
+    Castle,
+    Character,
+    FashionBook,
+    GameServer,
+    Hero,
+    Item,
+    MysteryShop,
+    PlayTicket,
+    Quest,
+    ShopBuy,
+)
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -126,6 +141,11 @@ characters = Table(
     _int("charm"),
     Column("created_at", UTCDateTime, nullable=False),
     Column("last_login_at", UTCDateTime),
+    _int("bag_count"),
+    Column("rental_bag_until", UTCDateTime),
+    _int("store_grade"),
+    _int("store_gp"),
+    _int("appell_id"),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -155,6 +175,9 @@ heroes = Table(
     Column("fast_key", String(255), nullable=False, default="", server_default=""),
     _int("fight_pos", 1),
     Column("is_leader", Boolean, nullable=False, default=False, server_default="0"),
+    Column("hide_fashion", Boolean, nullable=False, default=False, server_default="0"),
+    _int("blood"),
+    _int("blood_id"),
 )
 
 castles = Table(
@@ -206,6 +229,66 @@ items = Table(
     _int("count", 1),
     _int("random_skill"),
     Column("is_new", Boolean, nullable=False, default=True, server_default="1"),
+    _int("random_skill_2"),
+    _int("random_skill_3"),
+    _int("random_skill_4"),
+    _int("random_skill_5"),
+    _int("strengthen_grade"),
+    _int("join_1", -1),
+    _int("join_2", -1),
+    _int("join_3", -1),
+    _int("join_4", -1),
+    Column("is_locked", Boolean, nullable=False, default=False, server_default="0"),
+    _int("mould_grade"),
+)
+
+shop_buys = Table(
+    "shop_buys",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("good_id"),
+    Column("day", String(10), nullable=False, default="", server_default=""),
+    _int("counts"),
+    UniqueConstraint("character_id", "good_id"),
+)
+
+fashion_books = Table(
+    "fashion_books",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("template_id"),
+    Column("is_switch", Boolean, nullable=False, default=True, server_default="1"),
+    _int("appraisal_skill"),
+    UniqueConstraint("character_id", "template_id"),
+)
+
+mystery_shops = Table(
+    "mystery_shops",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, unique=True),
+    Column("fresh_at", UTCDateTime, nullable=False, server_default=func.current_timestamp()),
+    Column("goods", Text, nullable=False, default="", server_default=""),
+    Column("bought", Text, nullable=False, default="", server_default=""),
+    Column("day", String(10), nullable=False, default="", server_default=""),
+    _int("buy_count"),
+)
+
+cash_ledger = Table(
+    "cash_ledger",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("delta_point"),
+    _int("delta_gift_token"),
+    _int("balance_point"),
+    _int("balance_gift_token"),
+    Column("reason", Text, nullable=False, default="", server_default=""),
+    Column("ref", Text, nullable=False, default="", server_default=""),
+    Column("gm", Text),
+    Column("created_at", UTCDateTime, nullable=False, server_default=func.current_timestamp()),
 )
 
 _mapped = False
@@ -226,6 +309,10 @@ def map_entities() -> None:
         (Building, buildings),
         (Quest, quests),
         (Item, items),
+        (CashLedger, cash_ledger),
+        (ShopBuy, shop_buys),
+        (FashionBook, fashion_books),
+        (MysteryShop, mystery_shops),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True
