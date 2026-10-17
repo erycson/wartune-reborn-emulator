@@ -7,6 +7,7 @@
 | [packets.md](packets.md) | Tabela de todos os opcodes, gerada a partir do cliente |
 | [sequencia-login.md](sequencia-login.md) | Do portal até a cena do castelo, passo a passo |
 | [tutorial.md](tutorial.md) | Campanha de treino: roteiro dos nós, retomada, missões, nível e atributos |
+| [missoes.md](missoes.md) | Missões: como o progresso é contado, condições de várias linhas (condition_1..4) e a tabela por tipo de condição |
 | [itens.md](itens.md) | Mochila, uso de itens, lojas, forja, moda e o registro de elmas (`cash_ledger`) |
 | [heroi-exercito.md](heroi-exercito.md) | Tropas, skills, talento, runas, montaria, estrelas, destino, dragão, cartas e pets |
 | [batalha.md](batalha.md) | Batalha simulada no servidor: pacotes, relógio, turnos, dano |

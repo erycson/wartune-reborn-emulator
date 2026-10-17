@@ -288,6 +288,9 @@ class Quest:
     id: int | None = None
     completed: bool = False
     progress: int = 0  # condition_1
+    progress_2: int = 0  # condition_2: missões com mais de uma linha em QuestCondictionInfos
+    progress_3: int = 0  # condition_3
+    progress_4: int = 0  # condition_4
     completed_at: datetime | None = None
 
 

@@ -4,6 +4,7 @@ herói, equipamentos, missões. Quem chama grava as entidades alteradas (``Chara
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from ..domain.models import (
@@ -197,29 +198,32 @@ def battle_pawn(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[Row, in
 
 
 def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1: int, value: int) -> list[Quest]:
-    """Avança missões abertas cuja condição é ``kind`` (QuestCondictionInfos.CondictionType) e cujo
-    Para1 casa (0 = qualquer; em ``EXACT_PARA1`` tem que ser igual). Tipos de contagem somam ``value``;
-    os de nível (``LEVEL_CONDITIONS``) guardam o maior; os de grau (17) casam quando ``para1`` (grau atingido)
-    passa do Para1 e guardam ``value``."""
+    """Avança, em cada missão aberta, cada linha de QuestCondictionInfos com CondictionType ``kind`` e Para1
+    que casa (0 = qualquer; em ``EXACT_PARA1`` tem que ser igual; em ``MIN_CONDITIONS`` o ``para1`` (grau
+    atingido) tem que passar do Para1). A linha N grava no contador condition_N. Tipos de contagem somam
+    ``value``; os de nível (``LEVEL_CONDITIONS``) e de grau guardam o maior."""
     changed = []
     for q in snap.quests:
-        cond = templates.get("QuestCondictionInfos", q.template_id)
-        if q.completed or cond is None or int(cond["CondictionType"]) != kind:
+        if q.completed:
             continue
-        need = int(cond["Para1"])
-        if kind in MIN_CONDITIONS:
-            ok = para1 > need
-        elif kind in EXACT_PARA1:
-            ok = need == para1
-        else:
-            ok = need in (0, para1)
-        if not ok:
-            continue
-        new = max(q.progress, value) if kind in LEVEL_CONDITIONS | MIN_CONDITIONS else q.progress + value
-        if new != q.progress:
-            q.progress = new
-            changed.append(q)
+        for k, cond in enumerate(conditions(templates, q.template_id)):
+            if int(cond["CondictionType"]) != kind or not _para1_ok(kind, int(cond["Para1"]), para1):
+                continue
+            old = progress_of(q, k)
+            new = max(old, value) if kind in LEVEL_CONDITIONS | MIN_CONDITIONS else old + value
+            if new != old:
+                set_progress(q, k, new)
+                if q not in changed:
+                    changed.append(q)
     return changed
+
+
+def _para1_ok(kind: int, need: int, para1: int) -> bool:
+    if kind in MIN_CONDITIONS:
+        return para1 > need
+    if kind in EXACT_PARA1:
+        return need == para1
+    return need in (0, para1)
 
 
 # Missões sociais e de guilda (QuestCondictionInfos.CondictionType)
@@ -259,6 +263,27 @@ def social_state_quests(snap: PlayerSnapshot, templates: GameTemplates, guild: C
         for kind, attr in GUILD_LEVEL_ATTRS.items():
             changed += quest_event(snap, templates, GUILD_LEVEL_CONDITION, kind, getattr(guild, attr))
     return changed
+PLAYER_LEVEL_CONDITION = 1  # nível do jogador >= Para2, lido na hora (cliente: TaskTemplate.checkPlayerGrades)
+LOGIN_DAY_CONDITION = 39  # entrar num dia diferente do da aceitação (cliente: checkSencondLogin)
+TALK_CONDITION = 85  # falar com o NPC do nó Para4 ("mapa,nó"): vem do 8692 ou do aceite (cliente: finishStory)
+PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
+
+
+def conditions(templates: GameTemplates, template_id: int) -> list[Row]:
+    """Linhas de QuestCondictionInfos da missão, na ordem do arquivo. A N-ésima é condition_N no 112: o cliente
+    lê ``taskInfo["condition" + (i + 1)]`` para a i-ésima linha (TaskTemplate.checkCount) e só conclui com todas.
+
+    ponytail: busca linear nas 352 linhas a cada chamada; indexar por TemplateId em GameTemplates se pesar.
+    """
+    return list(templates.find("QuestCondictionInfos", TemplateId=template_id))
+
+
+def progress_of(q: Quest, k: int) -> int:
+    return int(getattr(q, PROGRESS_FIELDS[k]))
+
+
+def set_progress(q: Quest, k: int, value: int) -> None:
+    setattr(q, PROGRESS_FIELDS[k], value)
 
 
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
@@ -352,13 +377,15 @@ def update_novice_quests(snap: PlayerSnapshot, templates: GameTemplates) -> list
     """Missões do tutorial (condição tipo 23) que passaram a cumprir a condição."""
     changed = []
     for q in snap.quests:
-        if q.completed or q.progress:
+        if q.completed:
             continue
-        cond = templates.get("QuestCondictionInfos", q.template_id)
-        novice = cond is not None and int(cond["CondictionType"]) == NOVICE_CONDITION
-        if novice and cond is not None and snap.character.novice_process > int(cond["Para1"]):
-            q.progress = int(cond["Para2"])
-            changed.append(q)
+        for k, cond in enumerate(conditions(templates, q.template_id)):
+            if int(cond["CondictionType"]) != NOVICE_CONDITION or progress_of(q, k):
+                continue
+            if snap.character.novice_process > int(cond["Para1"]):
+                set_progress(q, k, int(cond["Para2"]))
+                if q not in changed:
+                    changed.append(q)
     return changed
 
 
@@ -371,13 +398,16 @@ def update_building_quests(snap: PlayerSnapshot, templates: GameTemplates) -> li
             grades[row["SonType"]] = max(grades.get(row["SonType"], 0), int(row["BuildingGrade"]))
     changed = []
     for q in snap.quests:
-        cond = templates.get("QuestCondictionInfos", q.template_id)
-        if q.completed or cond is None or int(cond["CondictionType"]) != BUILDING_CONDITION:
+        if q.completed:
             continue
-        grade = min(grades.get(cond["Para1"], 0), int(cond["Para2"]))
-        if grade != q.progress:
-            q.progress = grade
-            changed.append(q)
+        for k, cond in enumerate(conditions(templates, q.template_id)):
+            if int(cond["CondictionType"]) != BUILDING_CONDITION:
+                continue
+            grade = min(grades.get(cond["Para1"], 0), int(cond["Para2"]))
+            if grade != progress_of(q, k):
+                set_progress(q, k, grade)
+                if q not in changed:
+                    changed.append(q)
     return changed
 
 
@@ -394,30 +424,66 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
     changed = []
     runes = learned_runes(snap, templates)
     for q in quests:
-        cond = templates.get("QuestCondictionInfos", q.template_id)
-        if q.completed or cond is None:
+        if q.completed:
             continue
-        kind, para1, para2 = int(cond["CondictionType"]), int(cond["Para1"]), int(cond["Para2"])
-        if kind == MAP_CONDITION:  # vale o mapa de agora: sair dele desfaz (checkMapId)
-            here = snap.castle is not None and snap.castle.map_id == para2
-            if q.progress != (value := para2 if here else 0):
-                q.progress = value
-                changed.append(q)
-            continue
-        if kind in (RUNE_STUDY, RUNE_GRADE):
-            mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
-            value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
-        else:
-            continue
-        if value > q.progress:
-            q.progress = value
-            changed.append(q)
+        for k, cond in enumerate(conditions(templates, q.template_id)):
+            kind, para1, para2 = int(cond["CondictionType"]), int(cond["Para1"]), int(cond["Para2"])
+            old = progress_of(q, k)
+            if kind == MAP_CONDITION:  # vale o mapa de agora: sair dele desfaz (checkMapId)
+                here = snap.castle is not None and snap.castle.map_id == para2
+                value = para2 if here else 0
+            elif kind in (RUNE_STUDY, RUNE_GRADE):
+                mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
+                value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
+                value = max(value, old)
+            else:
+                continue
+            if value != old:
+                set_progress(q, k, value)
+                if q not in changed:
+                    changed.append(q)
     return changed
 
 
-def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) -> bool:
-    cond = templates.get("QuestCondictionInfos", q.template_id)
-    return cond is None or q.progress >= int(cond.get("Para2", "1"))
+def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: datetime) -> bool:
+    """Concluída quando todas as condições batem, como no cliente. Nível do jogador e dia do login são lidos
+    agora; os de contagem usam o contador gravado (condition_N)."""
+    for k, cond in enumerate(conditions(templates, q.template_id)):
+        kind, need = int(cond["CondictionType"]), int(cond.get("Para2", "1"))
+        if kind == PLAYER_LEVEL_CONDITION:
+            have = snap.character.grades
+        elif kind == LOGIN_DAY_CONDITION:  # dia em UTC, o mesmo fuso do addDate mandado no 112
+            have = int(now.date() > q.added_at.date())
+        else:
+            have = progress_of(q, k)
+        if have < need:
+            return False
+    return True
+
+
+def talk_nodes(templates: GameTemplates, template_id: int) -> list[int]:
+    """Nós (NPCs) das condições de conversa (85) da missão: o Para4 é "mapa,nó"."""
+    rows = conditions(templates, template_id)
+    return [int(c["Para4"].partition(",")[2]) for c in rows if c["CondictionType"] == str(TALK_CONDITION)]
+
+
+def talk_event(
+    snap: PlayerSnapshot, templates: GameTemplates, target: str, only: Sequence[Quest] | None = None
+) -> list[Quest]:
+    """Conversa com o alvo "mapa,nó": a condição 85 cujo Para4 é esse alvo vira 1 (uma vez basta). ``only``
+    limita às missões recém aceitas; sem ele, vale para todas as abertas."""
+    changed = []
+    for q in snap.quests if only is None else only:
+        if q.completed:
+            continue
+        hit = False
+        for k, cond in enumerate(conditions(templates, q.template_id)):
+            if cond["CondictionType"] == str(TALK_CONDITION) and cond["Para4"] == target and not progress_of(q, k):
+                set_progress(q, k, 1)
+                hit = True
+        if hit:
+            changed.append(q)
+    return changed
 
 
 def quest_rewards(snap: PlayerSnapshot, templates: GameTemplates, template_id: int) -> tuple[Row, list[Item]]:

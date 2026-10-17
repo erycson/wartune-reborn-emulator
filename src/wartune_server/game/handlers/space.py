@@ -5,10 +5,14 @@ Nós do mapa 10000: ``MapNodeInfos`` do tempinfos.xml (``SpaceTemplateManager.no
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from ...content import pet_island
+from ...domain.models import Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import Row
-from .. import space
+from .. import rules, space
+from ..builders.player import quest_update
 from ..campaign import PET_ISLANDS, CampaignMap
 from ..router import router
 from ..session import GameSession
@@ -17,7 +21,7 @@ from .room import leave_room
 
 MAX_PATH = 16  # o cliente manda no máximo ~7 passos; o resto é repassado a todos, então corta
 MAX_USERS = 50  # 8701: jogadores por pedido
-S_EVENT, S_STAND = 4601, 4126
+S_EVENT, S_STAND, S_QUESTS = 4601, 4126, 112  # 112: QuestUpdatedRspMsg
 S_MAP_SYNC, S_ROOM_CREATED, S_ROOM_ENTER, S_NODES = 140, 125, 21, 127
 PATROL, TRANSFER = "1", "171"  # MasterType: NPC que anda (o cliente resolve sozinho) e teleporte
 REACH = 5  # o cliente dispara a até HandlerRange+5 tiles (SpaceArmyViewHelper.selfArmyToEnd)
@@ -34,6 +38,18 @@ def _near(s: GameSession, node: Row) -> bool:
     x, y = s.space_pos
     reach = int(node.get("HandlerRange") or 0) + REACH
     return abs(x - int(node["PosX"])) <= reach and abs(y - int(node["PosY"])) <= reach
+
+
+def talk(s: GameSession, node_id: int, quests: Sequence[Quest] | None = None) -> list[Quest]:
+    """Conversa com o NPC ``node_id``: a condição 85 cujo Para4 é "10000,nó" ganha o progresso se o jogador
+    estiver perto do nó (como no 8692). ``quests`` limita às recém aceitas.
+
+    ponytail: o fim do diálogo é local no cliente (``finishStory``); aqui conta o clique ou o aceite perto do nó.
+    """
+    snap, node = s.snapshot, _node(s, node_id)
+    if snap is None or node is None or not _near(s, node):
+        return []
+    return rules.talk_event(snap, s.ctx.templates, f"{space.SPACE},{node_id}", quests)
 
 
 @router.on(8688)
@@ -66,6 +82,10 @@ async def node_trigger(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         await _transfer(s, node)
     else:
         s.send(S_EVENT, pb.SimplePropertyMsg(param1=msg.param1))  # SpaceSceneController.__selectNodeHandler
+        changed = talk(s, msg.param1)
+        if changed and (snap := s.snapshot) is not None:
+            await s.ctx.characters.save(*changed)
+            s.send(S_QUESTS, quest_update(changed, rules.quest_bitmap(snap)))
 
 
 async def _transfer(s: GameSession, node: Row) -> None:
