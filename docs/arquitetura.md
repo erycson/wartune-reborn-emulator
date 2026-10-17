@@ -6,11 +6,11 @@ src/wartune_server/
   net/          transporte (TCP, WebSocket), Connection (leitor/escritor), servidores
   game/         GameSession, router por opcode, handlers e builders de mensagens
   http/         aiohttp: endpoints dinâmicos do Loading.swf (REQUEST_PATH)
-  services/     regras de negócio sem rede: contas, login, personagens, relógio
+  services/     regras de negócio sem rede: login (ticket do portal), personagens, relógio
   domain/       entidades (dataclasses), protocolos de repositório, erros
   persistence/  SQLAlchemy async: schema, repositórios, UnitOfWork
   templates/    tempinfos.xml carregado em memória (heróis, itens, mapas...)
-  security/     RSA do login (compatível com o Hurlant do Flash), scrypt
+  security/     RSA do login (compatível com o Hurlant do Flash)
   app.py        raiz de composição (monta tudo e sobe os servidores)
   cli.py        run | db init
 ```
