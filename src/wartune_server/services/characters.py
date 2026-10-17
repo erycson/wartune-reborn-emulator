@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Protocol
 
 from ..domain.errors import ConflictError, NotFoundError, ValidationError
 from ..domain.models import Building, Castle, Character, Hero, Job, PlayerSnapshot
-from ..domain.repositories import UnitOfWorkFactory
+from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
 
 NICK_MIN, NICK_MAX = 2, 14
@@ -140,9 +141,27 @@ class CharacterService:
             buildings = await uow.buildings.by_character(character_id)
             quests = await uow.quests.by_character(character_id)
             items = await uow.items.by_character(character_id)
+            relations = await uow.relations.by_character(character_id)
+            groups = await uow.friend_groups.by_character(character_id)
+            sns = await uow.sns.by_character(character_id)
+            marriage = await uow.marriages.by_character(character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
-        return PlayerSnapshot(account, server, character, heroes, castle, buildings, quests, items)
+        return PlayerSnapshot(
+            account, server, character, heroes, castle, buildings, quests, items, relations, groups, sns, marriage
+        )
+
+    async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:
+        """Consulta avulsa numa transação só de leitura (outros jogadores, correio, busca)."""
+        async with self._uow() as uow:
+            return await query(uow)
+
+    async def write[T](self, change: Callable[[UnitOfWork], Awaitable[T]]) -> T:
+        """Como ``read``, mas grava no fim: inserts que dependem de ids gerados (correio + anexos)."""
+        async with self._uow() as uow:
+            result = await change(uow)
+            await uow.commit()
+            return result
 
     async def save(self, *entities: object, delete: tuple[object, ...] = ()) -> None:
         """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens) e

@@ -116,6 +116,9 @@ class Character:
     vehicle_default: int = 1
     vehicles: str = "1"  # templateIds de VehicleObjectTempInfos possuídos, separados por vírgula
     last_login_at: datetime | None = None
+    refuse_friend: bool = False  # PlayerMsg.refuseFriend: recusa pedidos de amizade (8285)
+    bugle_free_used: int = 0  # cornetas pequenas grátis usadas em ``bugle_free_day``
+    bugle_free_day: str = ""  # "YYYY-MM-DD"; outro dia = cota cheia de novo
 
     @property
     def icon(self) -> int:
@@ -216,6 +219,32 @@ class LoginHistory:
     created_at: datetime
     character_id: int | None = None
     user_agent: str | None = None
+
+
+class RelationType(IntEnum):
+    """``FriendRelationMsg.relation`` do lado de quem tem a linha."""
+
+    FRIEND = 1  # amizade dos dois lados
+    BLACKLIST = 2
+    PENDING = 3  # eu adicionei, o outro ainda não me adicionou
+
+
+@dataclass(eq=False)
+class Relation:
+    """Linha da lista de amigos de ``character_id`` apontando para ``other_id``."""
+
+    character_id: int
+    other_id: int
+    relation: int
+    id: int | None = None
+    group_id: int = -1  # 2 = grupo padrão "amigos" do cliente; -1 pendente/lista negra
+
+
+@dataclass(eq=False)
+class FriendGroup:
+    character_id: int
+    group_id: int  # >= 3: 1, 2, -1 e -2 são do cliente
+    name: str
     id: int | None = None
 
 
@@ -246,6 +275,83 @@ class ItemLog:
     id: int | None = None
 
 
+@dataclass(eq=False)
+class SnsProfile:
+    """Perfil social (``SNSInfoMsg``): assinatura, aniversário, signo, local, avatar."""
+
+    character_id: int
+    id: int | None = None
+    sign_desc: str = ""
+    sex: int = 0
+    birthday_type: int = 0
+    birth_year: int = 0
+    birth_month: int = 0
+    birth_day: int = 0
+    star_id: int = 0
+    blood_type: int = 0
+    country: int = 0
+    province: int = 0
+    city: int = 0
+    head_id: int = 0
+
+
+class MailType(IntEnum):
+    """``EmailInfo.MailType``: 3 é relatório de batalha, 4 traz estrelas (outra mochila)."""
+
+    PLAYER = 1
+    SYSTEM = 2
+
+
+@dataclass(eq=False)
+class Mail:
+    receiver_id: int
+    sent_at: datetime
+    title: str
+    contents: str
+    id: int | None = None
+    sender_id: int = 0  # 0 = sistema
+    sender_nick: str = ""
+    sender_grades: int = 0
+    mail_type: int = MailType.PLAYER
+    send_type: int = 1  # EmailInfo.SendType: 1 jogador, 2 GM/sistema (ícone de GM)
+    read_at: datetime | None = None
+    validity_days: int = 30
+
+
+@dataclass(eq=False)
+class MailAnnex:
+    """Anexo de correio por template (``AnnexN <= 0`` no cliente): TemplateId e quantidade."""
+
+    mail_id: int
+    slot: int  # 1..5 (AnnexN)
+    template_id: int
+    count: int
+    id: int | None = None
+    taken: bool = False
+
+
+class MarriageState(IntEnum):
+    """``MarriageMsg.state`` (MarryModel: isEngaged 1, isEnEngaged 2, isMarry 3, isDivorce 4)."""
+
+    ENGAGED = 1
+    ENGAGE_CANCELLED = 2
+    MARRIED = 3
+    DIVORCED = 4
+
+
+@dataclass(eq=False)
+class Marriage:
+    """Situação de ``character_id`` com ``mate_id``; o casal tem duas linhas espelhadas."""
+
+    character_id: int
+    mate_id: int
+    state: int
+    since: datetime  # noivado
+    id: int | None = None
+    spec_id: int = 0  # MarrySpecTempInfo do casamento (0 = nenhum)
+    married_at: datetime | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -258,6 +364,10 @@ class PlayerSnapshot:
     buildings: list[Building] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
+    relations: list[Relation] = field(default_factory=list)
+    groups: list[FriendGroup] = field(default_factory=list)
+    sns: SnsProfile | None = None
+    marriage: Marriage | None = None
 
     @property
     def leader(self) -> Hero | None:

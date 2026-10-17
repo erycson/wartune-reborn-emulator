@@ -33,13 +33,19 @@ from ..domain.models import (
     CashLedger,
     Castle,
     Character,
+    FriendGroup,
     GameServer,
     Hero,
     Item,
     ItemLog,
     LoginHistory,
+    Mail,
+    MailAnnex,
+    Marriage,
     PlayTicket,
     Quest,
+    Relation,
+    SnsProfile,
 )
 
 NAMING = {
@@ -149,6 +155,9 @@ characters = Table(
     Column("vehicles", String(255), nullable=False, default="1", server_default="1"),  # templateIds possuídos
     Column("created_at", UTCDateTime, nullable=False),
     Column("last_login_at", UTCDateTime),
+    Column("refuse_friend", Boolean, nullable=False, default=False, server_default="0"),
+    _int("bugle_free_used"),
+    Column("bugle_free_day", String(10), nullable=False, default="", server_default=""),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -280,6 +289,97 @@ item_log = Table(
     _created_at(),
 )
 
+
+def _owner(name: str = "character_id", **kw: Any) -> Column[int]:
+    return Column(name, Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, **kw)
+
+
+relations = Table(
+    "relations",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    _owner("other_id", index=True),  # quem me tem na lista: avisos 160/161
+    Column("relation", Integer, nullable=False),
+    _int("group_id", -1),
+    UniqueConstraint("character_id", "other_id"),
+)
+
+friend_groups = Table(
+    "friend_groups",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    Column("group_id", Integer, nullable=False),
+    Column("name", String(32), nullable=False),
+    UniqueConstraint("character_id", "group_id"),
+)
+
+sns_profiles = Table(
+    "sns_profiles",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(unique=True),
+    Column("sign_desc", String(255), nullable=False, default="", server_default=""),
+    *(
+        _int(name)
+        for name in (
+            "sex",
+            "birthday_type",
+            "birth_year",
+            "birth_month",
+            "birth_day",
+            "star_id",
+            "blood_type",
+            "country",
+            "province",
+            "city",
+            "head_id",
+        )
+    ),
+)
+
+mails = Table(
+    "mails",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner("receiver_id", index=True),
+    _int("sender_id"),  # sem FK: 0 = sistema, e o correio sobrevive ao remetente
+    Column("sender_nick", String(32), nullable=False, default="", server_default=""),
+    _int("sender_grades"),
+    _int("mail_type", 1),
+    _int("send_type", 1),
+    Column("title", String(64), nullable=False),
+    Column("contents", Text, nullable=False),
+    Column("sent_at", UTCDateTime, nullable=False),
+    Column("read_at", UTCDateTime),
+    _int("validity_days", 30),
+)
+
+mail_annexes = Table(
+    "mail_annexes",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("mail_id", Integer, ForeignKey("mails.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("slot", Integer, nullable=False),
+    Column("template_id", Integer, nullable=False),
+    Column("count", Integer, nullable=False),
+    Column("taken", Boolean, nullable=False, default=False, server_default="0"),
+    UniqueConstraint("mail_id", "slot"),
+)
+
+marriages = Table(
+    "marriages",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(unique=True),
+    _owner("mate_id"),
+    Column("state", Integer, nullable=False),
+    _int("spec_id"),
+    Column("since", UTCDateTime, nullable=False),
+    Column("married_at", UTCDateTime),
+)
+
 _mapped = False
 
 
@@ -301,6 +401,12 @@ def map_entities() -> None:
         (LoginHistory, login_history),
         (CashLedger, cash_ledger),
         (ItemLog, item_log),
+        (Relation, relations),
+        (FriendGroup, friend_groups),
+        (SnsProfile, sns_profiles),
+        (Mail, mails),
+        (MailAnnex, mail_annexes),
+        (Marriage, marriages),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

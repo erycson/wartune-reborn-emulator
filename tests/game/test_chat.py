@@ -67,3 +67,19 @@ async def test_private_chat_and_offline_target(tmp_path: Path) -> None:
         a.server.online.get(a.user_id).chat_at.clear()  # type: ignore[union-attr]  # sem esperar o intervalo
         a.client.send(15023, pb.ChatFriendMsg(toId=b.user_id, encodeMsg="ainda aí?"))
         assert pb.ChatFriendMsg.FromString((await a.until(4236))[-1].body).result == -1
+
+
+async def test_small_bugle_free_quota_then_item(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        await _grade(a, 6)
+        session = a.server.online.get(a.user_id)
+        assert session is not None and session.snapshot is not None
+        c = session.snapshot.character
+        c.bugle_free_day, c.bugle_free_used = session.ctx.clock.now().date().isoformat(), 10
+        a.client.send(8705)
+        assert pb.CampaignReqMsg.FromString((await a.until(4500))[-1].body).paraInt1 == 0
+        await b.idle()
+
+        a.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="sem corneta"))
+        assert _chats(await b.idle()) == []

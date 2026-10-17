@@ -27,11 +27,12 @@
 
 Levantamento e ordem em [multiplayer.md](multiplayer.md).
 
-- [x] Chat: mundo, cena, privado ([chat.md](chat.md)); guilda, time e cornetas pagas depois
+- [x] Chat: mundo, cena, privado, cornetas pagas ([chat.md](chat.md)); guilda e time depois
+- [x] Social: amigos, lista negra, correio, troca de nome, casamento sem cerimônia ([social.md](social.md))
 - [x] Cidade do céu: ver outros jogadores andando ([mundo-compartilhado.md](mundo-compartilhado.md)); relogin espera a sessão anterior
 - [x] Cidade do céu, fatia 2: nós (4601), posição gravada, visual (149), entrada e volta da ilha dos pets. Também: garagem de veículos, conta e segurança ([diversos.md](diversos.md))
 - [ ] Coliseu contra robôs e cópias de jogadores
 - [ ] Atividades (SumActive): login e presente online
 - [ ] Boss mundial
-- [ ] Amigos, times, mina de ouro, torneio de fadas
+- [ ] Times, mina de ouro, torneio de fadas
 - [ ] Guilda, boss de guilda, ataque a castelo

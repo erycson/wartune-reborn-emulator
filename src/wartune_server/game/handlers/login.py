@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rules, space
+from .. import rules, social, space
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
@@ -102,6 +102,7 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     s.ctx.online.bind(s.player_id, s)
     s.log = s.log.bind(player=s.player_id)
     s.log.info("jogador entrou", nick=snap.character.nickname, novice=snap.character.novice_process)
+    social.announce(s, online=True)
 
     s.send(S_LOGIN_OK)
     _send(s, S_PLAYER_INFO, player_info(s, snap))
@@ -129,9 +130,9 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.tree:
         _send(s, S_FARM, b.farm_msg(snap))
     if msg.friend:
-        _send(s, S_FRIENDS, pb.FriendRelationList(maxPage=0, curPage=0))
+        _send(s, S_FRIENDS, await social.friend_list(s))
     if msg.snsReq:
-        _send(s, S_SNS, pb.SNSInfoMsg())
+        _send(s, S_SNS, social.sns_info(snap.character, snap.sns))
     if msg.aas:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
@@ -159,4 +160,6 @@ async def _login_state(s: GameSession) -> None:
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
+    if snap.marriage is not None:  # solteiro não recebe nada (login.json)
+        _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
     space.enter(s)  # o oficial cria a cidade do céu logo depois do 6

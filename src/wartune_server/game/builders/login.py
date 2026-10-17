@@ -174,6 +174,7 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         qteGuide=c.qte_guide,
         hasVicePassword=int(bool(c.vice_password)),
         isDuringToResetTime=int(c.vice_reset_at is not None),
+        refuseFriend=c.refuse_friend,
     )
     msg.order.playerId = c.id or 0
     return msg

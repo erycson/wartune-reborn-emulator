@@ -31,6 +31,8 @@ class Game:
     user_id: int
     join: Callable[[str], Awaitable[Game]]
     connect: Callable[[], Awaitable[Game]]  # mais um socket na mesma conta (relogin)
+    http: TestClient  # type: ignore[type-arg]
+    key: str  # chave da sessão HTTP (maillist etc.)
 
     async def until(self, code: int) -> list[Packet]:
         return await self.client.until(code)
@@ -105,7 +107,7 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIter
         await client.until(6)
         if novice >= 19000:
             await client.until(4595)  # cidade do céu, logo depois do 6
-        return Game(client, server, user_id, join, lambda: socket_login(user_id, key))
+        return Game(client, server, user_id, join, lambda: socket_login(user_id, key), http, key)
 
     try:
         yield await join("maga")

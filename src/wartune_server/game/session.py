@@ -104,6 +104,7 @@ class GameSession:
         self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
         self.vice_confirmed = False  # senha secundária digitada nesta sessão (8806 op 1)
         self.accelerator_at: float | None = None  # último 20010 (time.monotonic)
+        self.chat_state = 7  # estado do IM (15029): 7 online; os amigos veem no 4232/4272
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
@@ -130,7 +131,7 @@ class GameSession:
         if self.battle is not None:
             self.battle.cancel()
         if self.snapshot is not None:
-            from . import space  # space importa este módulo
+            from . import social, space  # importam este módulo
 
             space.leave(self)
             if self.snapshot.character.novice_process >= space.POST_TUTORIAL:  # posição no space (8690 só na memória)
@@ -139,5 +140,7 @@ class GameSession:
                 except Exception:  # banco fora no desligamento: perde só a posição
                     self.log.exception("posição no space não gravada")
             self.ctx.online.unbind(self.player_id, self)
+            if self.ctx.online.get(self.player_id) is None:  # relogin: a sessão nova já avisou o 160
+                social.announce(self, online=False)
             self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()

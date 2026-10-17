@@ -5,7 +5,23 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
-from .models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from .models import (
+    Account,
+    Building,
+    Castle,
+    Character,
+    FriendGroup,
+    GameServer,
+    Hero,
+    Item,
+    Mail,
+    MailAnnex,
+    Marriage,
+    PlayTicket,
+    Quest,
+    Relation,
+    SnsProfile,
+)
 
 
 class AccountRepository(Protocol):
@@ -31,6 +47,7 @@ class CharacterRepository(Protocol):
     async def by_nickname(self, server_id: int, nickname: str) -> Character | None: ...
     async def by_account(self, account_id: int, server_id: int) -> Character | None: ...
     async def nickname_taken(self, server_id: int, nickname: str) -> bool: ...
+    async def by_ids(self, ids: list[int]) -> list[Character]: ...
 
 
 class HeroRepository(Protocol):
@@ -58,6 +75,29 @@ class ItemRepository(Protocol):
     async def by_character(self, character_id: int) -> list[Item]: ...
 
 
+class RelationRepository(Protocol):
+    async def by_character(self, character_id: int) -> list[Relation]: ...
+    async def get(self, character_id: int, other_id: int) -> Relation | None: ...
+
+
+class FriendGroupRepository(Protocol):
+    async def by_character(self, character_id: int) -> list[FriendGroup]: ...
+
+
+class SnsRepository(Protocol):
+    async def by_character(self, character_id: int) -> SnsProfile | None: ...
+    async def search(self, filters: dict[str, int], offset: int, limit: int) -> tuple[int, list[SnsProfile]]: ...
+
+
+class MailRepository(Protocol):
+    async def by_receiver(self, receiver_id: int, ids: list[int] | None = None) -> list[Mail]: ...
+    async def annexes(self, mail_ids: list[int]) -> list[MailAnnex]: ...
+
+
+class MarriageRepository(Protocol):
+    async def by_character(self, character_id: int) -> Marriage | None: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -82,9 +122,22 @@ class UnitOfWork(Protocol):
     def quests(self) -> QuestRepository: ...
     @property
     def items(self) -> ItemRepository: ...
+    @property
+    def relations(self) -> RelationRepository: ...
+    @property
+    def friend_groups(self) -> FriendGroupRepository: ...
+    @property
+    def sns(self) -> SnsRepository: ...
+    @property
+    def mails(self) -> MailRepository: ...
+    @property
+    def marriages(self) -> MarriageRepository: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""
+
+    async def flush(self) -> None:
+        """Manda os INSERTs pendentes (as entidades novas ganham id) sem fechar a transação."""
 
     async def delete(self, entity: object) -> None:
         """Apaga uma entidade já gravada."""
