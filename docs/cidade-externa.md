@@ -26,7 +26,7 @@ cliente espera para não travar.
 | 8201 | 4129 com o próprio castelo, depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* transfer #15; *(cliente)* `OuterCityController` | terras selvagens e castelos vizinhos |
 | 8254 | Guarda o último ponto andado (pixels // 20). Sem resposta; rota vazia, outro exército ou fora do mapa são ignorados | *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Sem alvo: 140 com o exército parado (state 0) | *(visto)* cevre: 140 de state 1 para 0 | terras, minas, tesouros e castelos alheios (batalha) |
+| 5160 | Sem alvo: 140 com o exército parado (state 0) | *(dedução)*: parar sem alvo é escolha nossa; a sequência do 140 é a da mina (*(visto)* cevre, state 1 para 0) | terras, minas, tesouros e castelos alheios (batalha) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Registra. Sem resposta | *(cliente)* ação a46 do guia do tutorial (m8) | nó de coleta que o passo abre (ausente nas capturas) |
 | 9506 | Ataque extra: 100 diamantes (vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount` | *(cliente)* `AttackAlertFrame` (`setAddAttackCount`); preço em `ConfigInfos` `AddAttck_Point` | — |
@@ -35,7 +35,7 @@ cliente espera para não travar.
 | 8525 | Registra (convite de PK, ataque no campo de animais). Sem resposta | *(cliente)* `CampaignSocketOutManager`, `HookMapPKMediator`: o convite não espera resposta | batalha de PK no mapa da campanha (ausente) |
 | 8636 | 4552 com área 1 e `maxIndex` 0 | *(cliente)* `SinglePassSocketOutManager`, `SinglePassManager` | progresso das fases (8753, 8755) |
 | 8637 | Recusa a recompensa: 4552 atual | *(cliente)* a recompensa exige `maxIndex == área * 10` | progresso das fases |
-| 8744 | Op 6: 4633 com a contagem. Op 1: dá um mapa de bronze (2190001) e conta no dia, até `join_tremap_count` (5). Ops 2 a 5: 4633 atual | *(cliente)* `TreasureMapSocketOutManager`, `TreasureMapGetFrame`; *(visto)* config `join_tremap_count` | pontos de tesouro no mapa (refresh, dig, use) e batalha de equipe (dig, reward) |
+| 8744 | Op 6: 4633 com a contagem. Op 1: dá um mapa de bronze (2190001) e conta no dia, até `join_tremap_count` (5), só para quem tem o nível do item (`NeedGrades` 55). Ops 2 a 5: 4633 atual | *(cliente)* `TreasureMapSocketOutManager`, `TreasureMapGetFrame`; `join_tremap_count` é a config de `ConfigInfos` que o cliente lê em `TreasureMapModel`; o nível é *(dedução)*, o cliente não tem trava para receber | pontos de tesouro no mapa (refresh, dig, use) e batalha de equipe (dig, reward) |
 | 8745 | Registra. Sem resposta | *(cliente)* `TreasureMapSocketOutManager.sendReinforceTreasureMap` | mapa de tesouro de guilda |
 
 S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`), 169 (`OutercityArmyUpdatedGridMsg`),
@@ -73,5 +73,6 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 5. **Guia do tutorial** (8699, ação a46). Abre um nó de coleta que nenhuma captura tem.
 6. **Contagem diária do mapa do tesouro.** *(dedução)* A config `join_tremap_count` não diz o período, e o
    cliente não mostra data. Assumimos o dia, como o coliseu e o ataque extra.
-7. **Mapa de bronze.** *(dedução)* O item que o oficial dá é sorteado por qualidade; a tabela não está nos
-   templates.
+7. **Mapa de bronze e nível.** *(dedução)* O item que o oficial dá é sorteado por qualidade; a tabela não está
+   nos templates, então vai sempre o de bronze. A trava de nível é o `NeedGrades` do item (55), sem trava
+   própria no cliente.

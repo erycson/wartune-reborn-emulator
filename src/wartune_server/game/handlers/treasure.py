@@ -51,6 +51,12 @@ def _state(s: GameSession, book: TreasureMap, op: int) -> pb.PlayerTreasureMsg:
 async def _receive(s: GameSession, book: TreasureMap) -> None:
     snap = s.snapshot
     assert snap is not None
+    # o cliente não tem trava de nível para receber; o item pede NeedGrades (55), e sem isso dava para
+    # subir um personagem novo só para pegar mapas e vender (*(dedução)*)
+    need = int((s.ctx.templates.get("ItemTempInfos", GET_ITEM) or {}).get("NeedGrades", 0))
+    if snap.character.grades < need:
+        s.log.info("8744 mapa recusado", motivo="nível", precisa=need)
+        return
     if book.join_count >= _config(s, "join_tremap_count"):
         s.log.info("8744 mapa recusado", motivo="limite do dia")
         return
