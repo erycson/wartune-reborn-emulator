@@ -166,7 +166,11 @@ async def test_second_map_to_castle(tmp_path: Path) -> None:
         c.send(8747, pb.SimplePropertyMsg(param7=True))
         assert codes(await g.until(4382)) == [4382]
         c.send(8281)
-        assert codes(await g.until(104)) == [109, 109, 100, 4130, 104]
+        got = await g.until(104)
+        assert codes(got) == [109, 109, 100, 4130, 104]
+        # replay #578: o Er vem com 0 e libera o "Asker Al" do quartel (canRecruit no cliente)
+        pawn = pb.ArmyPawnUpdatedMsg.FromString(got[2].body).armyPawn
+        assert [(p.tempateId, p.ownPawns) for p in pawn] == [(10101, 0)]
 
 
 @pytest.mark.parametrize("callbacks", [0, 1])

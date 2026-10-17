@@ -225,9 +225,9 @@ async def _login_state(s: GameSession) -> None:
     from . import events
 
     events.login_push(s)
-    # tropas do castelo (oficial: login.json #6); personagem sem tropas não recebe
-    if snap.pawns:
-        s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
+    # tropas do castelo (oficial: login.json #6); personagem sem tropas nem quartel não recebe
+    if (pawns := castle_pawns(snap, s.ctx.templates)).armyPawn:
+        s.send(S_CASTLE_PAWNS, pawns)
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

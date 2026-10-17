@@ -124,6 +124,8 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
         s.send(cs.S_CASTLE_YIELD, after)
     s.send(S_ORDER_USE, cs.order_info(order, now))
     s.send(S_BUILDINGS, _buildings(s, [building, *unlocked]))
+    if any(b.template_id // 100 == int(rules.BARRACKS) for b in (building, *unlocked)):
+        s.send(S_ARMY_PAWN, castle_pawns(snap, templates))  # tipo novo liberado no quartel
     text = f"Geliştirilen Seviye: {target['BuildingName']} Lv.{target['BuildingGrade']}"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     if quests:
