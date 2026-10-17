@@ -9,7 +9,8 @@ funcionava no projector depois que parou de mandar gzip para quem não pedia.
 | Rota | Quem chama | Entrada | Resposta |
 |---|---|---|---|
 | `GET /crossdomain.xml` | Flash | — | libera o SWF vindo do Apache (outra porta = outra origem) |
-| `POST /maillist` | EmailManager | `userId`, `mailId`, `reqType`, `key` | `<Result value="true"/>` em **zlib** (o cliente faz `ByteArray.uncompress`); caixa sempre vazia por enquanto |
+| `POST /maillist` | EmailManager | `userId`, `mailId`, `reqType`, `key` | `<Result value="true"/>` em **zlib** (o cliente faz `ByteArray.uncompress`); `<Info .../>` por correio ([social.md](social.md#correio)); `key` da sessão do próprio `userId` |
+| `GET/POST /nicknamecheck` | RenameView | `nickname` | `xml_result` true = nome livre (antes do 8345) |
 | `GET/POST /loginselectlist` | Loading | `username`, `site` | `<Result><Item ID Active NickName/></Result>` |
 | `POST /login`, `/login2` | LoginQueue | `p` (RSA+Base64), `site`, `playfb`, `p2`, `client` | `<Result value message userId Address Port/>` |
 | `GET/POST /visualizeregister` | MainFigureView | `userid`, `username`, `nickname`, `sex`, `camp`, `icon`, `site`, `key` | `<Result value="true" type="0"/>` ou `value="false"` com `message` |

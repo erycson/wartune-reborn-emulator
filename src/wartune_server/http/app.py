@@ -16,6 +16,7 @@ from __future__ import annotations
 import hmac
 import zlib
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from xml.sax.saxutils import quoteattr
 
 import structlog
@@ -24,8 +25,11 @@ from aiohttp.typedefs import Handler
 
 from ..config import Settings
 from ..domain.errors import DomainError, ValidationError
+from ..domain.models import Mail, MailAnnex
+from ..domain.repositories import UnitOfWork
+from ..game import mail as mailbox
 from ..game.session import OnlinePlayers
-from ..services.characters import CharacterService, RegistrationRequest
+from ..services.characters import CharacterService, RegistrationRequest, normalize_nickname
 from ..services.login import LoginService
 
 log = structlog.get_logger(__name__)
@@ -78,7 +82,8 @@ class GameHttpApi:
         r.add_route("*", "/visualizeregister", self.register)
         r.add_post("/updateplayernovice", self.novice)
         r.add_route("*", "/flashversionservlet", self.plain_true)
-        r.add_post("/maillist", self.empty_list)  # EmailManager
+        r.add_post("/maillist", self.mail_list)  # EmailManager.getMailList
+        r.add_route("*", "/nicknamecheck", self.nickname_check)  # RenameView, antes do 8345
         r.add_post("/questionreplaylist", self.empty_list)  # CustomerServiceManager: respostas do suporte
         if self._d.settings.gm_secret:  # sem segredo a rota nem existe (a porta é pública)
             r.add_post("/gm/kick", self.gm_kick)
@@ -161,11 +166,53 @@ class GameHttpApi:
     async def plain_true(self, _: web.Request) -> web.Response:
         return web.Response(text="true")
 
+    async def mail_list(self, request: web.Request) -> web.Response:
+        """Correio do jogador. ``mailId`` "0" = todos, senão ids separados por vírgula (148 novo,
+        ``reqType=1`` ao abrir um correio: marca como lido)."""
+        params = await _params(request)
+        try:
+            character_id = _int(params, "userId")
+            self._d.login.session_for_character(params.get("key", ""), character_id)
+            ids = [int(i) for i in params.get("mailId", "0").split(",") if i.strip()]
+        except (DomainError, ValueError) as exc:
+            log.info("maillist recusado", erro=str(exc))
+            return _zlib('<?xml version="1.0" encoding="UTF-8"?><Result value="false" message=""/>')
+        wanted = None if ids in ([], [0]) else ids
+
+        async def load(uow: UnitOfWork) -> tuple[list[Mail], list[MailAnnex], str]:
+            mails = await uow.mails.by_receiver(character_id, wanted)
+            annexes = await uow.mails.annexes([m.id or 0 for m in mails])
+            c = await uow.characters.get(character_id)
+            return mails, annexes, (c.nickname or "") if c else ""
+
+        mails, annexes, nick = await self._d.characters.read(load)
+        if params.get("reqType") == "1":
+            unread = [m for m in mails if m.read_at is None]
+            for m in unread:
+                m.read_at = datetime.now(UTC)
+            await self._d.characters.save(*unread)
+        return _zlib(mailbox.list_xml(mails, annexes, nick))
+
+    async def nickname_check(self, request: web.Request) -> web.Response:
+        """``@value`` true = nome livre; senão ``@message`` vai para a tela de troca de nome."""
+        params = await _params(request)
+        try:
+            nick = normalize_nickname(params.get("nickname", ""))
+        except ValidationError as exc:
+            return xml_result(False, str(exc))
+        taken = await self._d.characters.read(
+            lambda uow: uow.characters.nickname_taken(self._d.settings.server_id, nick)
+        )
+        return xml_result(not taken, "este nome já está em uso" if taken else "")
+
     async def empty_list(self, _: web.Request) -> web.Response:
         # o cliente faz ByteArray.uncompress() no corpo: o XML vai em zlib
-        # ponytail: listas sempre vazias; `<Info>` quando houver e-mails e suporte
-        xml = '<?xml version="1.0" encoding="UTF-8"?><Result value="true" message="Success"/>'
-        return web.Response(body=zlib.compress(xml.encode()), content_type="application/octet-stream")
+        # ponytail: respostas do suporte sempre vazias até existir o atendimento
+        return _zlib('<?xml version="1.0" encoding="UTF-8"?><Result value="true" message="Success"/>')
+
+
+def _zlib(xml: str) -> web.Response:
+    return web.Response(body=zlib.compress(xml.encode()), content_type="application/octet-stream")
 
 
 @web.middleware

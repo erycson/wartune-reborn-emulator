@@ -5,10 +5,26 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Self
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    Castle,
+    Character,
+    FriendGroup,
+    GameServer,
+    Hero,
+    Item,
+    Mail,
+    MailAnnex,
+    Marriage,
+    PlayTicket,
+    Quest,
+    Relation,
+    SnsProfile,
+)
 
 
 class _Repo:
@@ -75,6 +91,11 @@ class SqlCharacterRepository(_Repo):
         )
         return await self._s.scalar(stmt)
 
+    async def by_ids(self, ids: list[int]) -> list[Character]:
+        if not ids:
+            return []
+        return list(await self._s.scalars(select(Character).where(Character.id.in_(ids))))  # type: ignore[union-attr]
+
     async def nickname_taken(self, server_id: int, nickname: str) -> bool:
         stmt = select(
             exists().where(
@@ -139,6 +160,56 @@ class SqlItemRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlRelationRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[Relation]:
+        query = select(Relation).where(Relation.character_id == character_id).order_by(Relation.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+    async def get(self, character_id: int, other_id: int) -> Relation | None:
+        query = select(Relation).where(
+            Relation.character_id == character_id,  # type: ignore[arg-type]
+            Relation.other_id == other_id,  # type: ignore[arg-type]
+        )
+        return await self._s.scalar(query)
+
+
+class SqlFriendGroupRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[FriendGroup]:
+        query = select(FriendGroup).where(FriendGroup.character_id == character_id).order_by(FriendGroup.group_id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
+class SqlSnsRepository(_Repo):
+    async def by_character(self, character_id: int) -> SnsProfile | None:
+        return await self._s.scalar(select(SnsProfile).where(SnsProfile.character_id == character_id))  # type: ignore[arg-type]
+
+    async def search(self, filters: dict[str, int], offset: int, limit: int) -> tuple[int, list[SnsProfile]]:
+        """Perfis com todos os ``filters`` iguais (0 = qualquer), mais o total para paginar."""
+        where = [getattr(SnsProfile, k) == v for k, v in filters.items() if v]
+        total = await self._s.scalar(select(func.count()).select_from(SnsProfile).where(*where))
+        query = select(SnsProfile).where(*where).order_by(SnsProfile.id).offset(offset).limit(limit)  # type: ignore[arg-type]
+        return int(total or 0), list(await self._s.scalars(query))
+
+
+class SqlMailRepository(_Repo):
+    async def by_receiver(self, receiver_id: int, ids: list[int] | None = None) -> list[Mail]:
+        query = select(Mail).where(Mail.receiver_id == receiver_id)  # type: ignore[arg-type]
+        if ids is not None:
+            query = query.where(Mail.id.in_(ids))  # type: ignore[union-attr]
+        return list(await self._s.scalars(query.order_by(Mail.id)))  # type: ignore[arg-type]
+
+    async def annexes(self, mail_ids: list[int]) -> list[MailAnnex]:
+        if not mail_ids:
+            return []
+        query = select(MailAnnex).where(MailAnnex.mail_id.in_(mail_ids)).order_by(MailAnnex.mail_id, MailAnnex.slot)  # type: ignore[attr-defined, arg-type]
+        return list(await self._s.scalars(query))
+
+
+class SqlMarriageRepository(_Repo):
+    async def by_character(self, character_id: int) -> Marriage | None:
+        return await self._s.scalar(select(Marriage).where(Marriage.character_id == character_id))  # type: ignore[arg-type]
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -154,6 +225,11 @@ class SqlAlchemyUnitOfWork:
         self.buildings = SqlBuildingRepository(self._session)
         self.quests = SqlQuestRepository(self._session)
         self.items = SqlItemRepository(self._session)
+        self.relations = SqlRelationRepository(self._session)
+        self.friend_groups = SqlFriendGroupRepository(self._session)
+        self.sns = SqlSnsRepository(self._session)
+        self.mails = SqlMailRepository(self._session)
+        self.marriages = SqlMarriageRepository(self._session)
         return self
 
     async def __aexit__(
@@ -169,6 +245,9 @@ class SqlAlchemyUnitOfWork:
             self._session.add(entity)
         else:
             await self._session.merge(entity)
+
+    async def flush(self) -> None:
+        await self._session.flush()
 
     async def delete(self, entity: object) -> None:
         await self._session.delete(await self._session.merge(entity))

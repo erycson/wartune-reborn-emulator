@@ -38,7 +38,7 @@ O jogador escolhe entre 1, 10, 6, 5 e 8 (`chat/view/InputChannelList.as`).
 | 8705 | vazio; resposta 4500 `paraInt1` = cornetas pequenas grátis | ao abrir o chat |
 | 15023 | ChatFriendMsg `{fromId, fromNick, toId, encodeMsg}` | privado |
 | 15038 | InfoReqMsg `{otherId, from}`; resposta 4256 RelationPlayerMsg (mesmo `from`) | dados de alguém que mandou privado e não é amigo |
-| 25024 / 25096 | ChatChannelMsg | só batalha/campanha entre servidores; ignorável |
+| 25024 / 25096 | ChatChannelMsg | batalha/campanha entre servidores; aqui = 15005 local |
 
 `team[]` é a lista de destinatários que o cliente sugere em sala/campanha: o servidor recalcula.
 
@@ -73,32 +73,24 @@ De `chat/utils/ChatHelper.as` e `chat/view/ChatInputViewII.as` *(cliente)*:
   jogador/item;
 - remetente, VIP, guilda e `userType` vêm sempre do servidor, nunca do cliente.
 
-## Amigos *(cliente; só o pedido de amizade foi visto)*
+## Amigos, correio e guilda
 
-| C>S | | S>C | |
-|---|---|---|---|
-| 15003 | FriendRelationMsg `{nickName, relation}` 1 amigo, 2 lista negra | 78 | FriendInfoMsg (resultado / amigo novo) |
-| 15004 | `{otherId}` remover | 79 | remoção |
-| 15013 | recomendados | 84 | pedido recebido `{nickName, noticeMsg}`; aceitar = 15003 relation 1 de volta |
-| 15042 | busca | 160 / 161 | amigo entrou / saiu |
-| | | 4156 | lista paginada `relationList[]` (hoje vai vazia no login) |
-
-*(visto)* `arkadas_istegi_gonderme.json` 1–3: 78 com `relation:3` (pendente), 111 "Eklendi,
-yanıtını bekleyin", 83 canal 3. `login.json #68/#79`: 4156 em 2 páginas, relations 1 e 3.
-
-## Correio e guilda
-
-- Correio: a lista é HTTP (`maillist`, XML zlib); hoje responde vazio (`http/app.py`). Socket:
-  8205 enviar, 8206 apagar, 5022 anexo; 148 avisa correio novo.
-- Guilda: 5130 criar, 5142 convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207
-  membros, 8212 info; respostas 4138/164 info, 4133 membros, 162/163 entrou/saiu. Fica para depois
-  do resto (canal 5 depende dela).
+Amigos, lista negra, correio, nome e casamento: [social.md](social.md). Guilda: 5130 criar, 5142
+convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207 membros, 8212 info; respostas
+4138/164 info, 4133 membros, 162/163 entrou/saiu (o canal 5 depende dela).
 
 ## No servidor
 
 `game/handlers/chat.py`:
 
-- 8198: mundo, para todos online. ponytail: grátis; item 208003, cota e 4500 depois.
+- 8198: mundo, para todos online. Gasta primeiro a cota grátis do dia (ConfigInfo
+  `SMALL_BUGLE_FREE_COUNT` = 10, zera na virada do dia) e depois uma corneta 208003 (115 e 4500).
+- 8705: 4500 `paraInt1` = cornetas grátis restantes.
+- 5011: corneta grande (canal 1), gasta o item 208002.
+- 8623: corneta entre servidores, gasta 208025 e manda 4541 CrossBigBugleMsg para este servidor
+  (sem entre-servidores).
+- 25024 / 25096: tratados como o 15005 deste servidor.
+- Lista negra: quem me bloqueou não recebe meus 83/4541; no privado eu vejo `result -1`.
 - 15005: canal 8 para todos online fora de batalha. Os canais 5 e 6 são recusados até existirem
   guilda e time.
 - 15023: privado, com 4231 para o alvo e 4236 para quem enviou (`result -1` se offline).

@@ -171,6 +171,7 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         lastFreeSkillLearnTime=NEVER,
         rentalBagTime=NEVER,
         status=-1,
+        refuseFriend=c.refuse_friend,
     )
     msg.order.playerId = c.id or 0
     return msg
