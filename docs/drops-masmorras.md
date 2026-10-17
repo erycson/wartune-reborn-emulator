@@ -14,10 +14,11 @@ execução por `game/drops.py`: esta página é só um retrato dela, para confer
 - **Falta**: chance de cada item; cartas pagas (`payCardCount`, `price`); a carta em grupo (9000+, um
   por jogador?); o prêmio das listas vazias (chefe do mundo 4001+, 5001/5003, 3001, 7501, 7601, labirintos
   8001/8101). Anote na coluna *Visto em* o vídeo ou a captura (ex.: `vídeo X 03:12, caiu 1011104`).
-- **Não ligado ainda**: o servidor só roda os mapas do tutorial; o fim de masmorra (5180 → 137, 135,
-  115, 26, 83, 134) depende do mapa de nós e do progresso de campanha (docs/salas-campanha.md).
+- **Ligado (1001)**: vencer o último nó do Kurt İni manda 137, 4151, 83, 20, 135, 4165, 150, 150, 140, 115, 26, 83, 134 e sorteia a carta com `drops.card` (`game/handlers/campaign.py`, `_dungeon_end`). Só o 1001 tem mapa de nós; as outras masmorras desta lista ainda não rodam no servidor (ver [salas-campanha.md](salas-campanha.md)).
 
 ## 1001 Kurt İni (Lv 5, solo)
+
+Ligado no servidor: mapas 1011 e 1021 em `content/dungeon_1001.json`. A chance de cada item não é conhecida; o sorteio é uniforme (ver acima).
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|

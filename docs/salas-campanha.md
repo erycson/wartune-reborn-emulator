@@ -56,13 +56,13 @@ recusados, e 5026/8465 de outro tipo voltam vazios. Antes, uma sala PvP virava s
 | 5120 | CAMPAIGN_EXIT | completo para sala | cliente (15) | Sai da sala. Não tira o jogador de um mapa de campanha. |
 | 5025 | ROOM_EXIT | completo para sala | cliente (15) | Ilha dos pets primeiro; fora dela, sai da sala. |
 | 9504 | MULITY_CAMPAIGN_REQUEST | completo na forma | cliente (`BaseManager.__mulityCampaignRequestHandler`, 4913) | Link de sala no chat: pedido `SimplePropertyMsg` com o roomId. Responde 4913 com `param1` = sala, `param2` = campanha (0 = sem campanha) e `param7` = quem pediu está numa campanha (`s.campaign`, *dedução*; o cliente troca o alerta de entrada com ele). `SwitchPageHelp.isInCampaign` (cena do pedidor) dá a mesma leitura; `WorldBossHelper.getCampaignTips` não serve (só mapas especiais). Leitura alternativa (sala iniciada → False) não se separa, porque salas não iniciam aqui. Sala inexistente: sem resposta (*dedução*). |
-| 5033 | CAMPAIGN_CONFIRM | parcial | replay (#1120, #1563); S>C 29 em #1154 | Caixa Pandora. O S>C 29 (`CampaignConfirmMsg`: título "Açma Duyurusu", `mapId` 879, `nodeId` 101107, type 0) abre a caixa, e o cliente devolve `sendFrameCallBack(mapId, nodeId, escolha)` (`CampaignMapController.__callServerSccess`; m3 `MapSocketOuterManager.as`). Então `paraInt1` = mapId, `paraInt2` = nodeId e `paraBool1` = confirmou (true no replay). O 1563 traz 880 e 102107. 879 e 880 não são Id de `MapInfos`, `CampaignData` nem `Campaigns`. O 5125 de chegada (#1119) leva 101107 em `paraInt1`. Depois do 5033 o replay mostra 140, 131, 128 e 157 (não conferidos um a um). O servidor não manda o 29 hoje. Falta: a recompensa da caixa e a resposta do servidor (captura de abrir a caixa). Não muda estado. |
+| 5033 | CAMPAIGN_CONFIRM | feito (masmorra) | replay (#1120, #1563); S>C 29 em #1154 | Caixa Pandora da masmorra. O S>C 29 (`CampaignConfirmMsg`: título "Açma Duyurusu", `mapId` 879 ou 880, `nodeId` 101107 ou 102107, type 0) abre a caixa, e o cliente devolve `paraInt1` = mapId, `paraInt2` = nodeId e `paraBool1` = confirmou. O servidor só age se houver um 29 pendente e os três campos baterem. Responde 4126 (posição do nó + 2, visto nas duas caixas), 4165 com o buff da captura (1301 no 1011, 1701 no 1021), 128 DONE e 111 com o alerta. No tutorial não há caixa. Falta: recompensa além do buff (a captura traz `itemTempId` 0) e o 83 que o pass 1 mandou depois da caixa. |
 | 5038 | CAMPAIGN_SYSTEM_ARMY | parcial | replay (#923 a #1321), peri_uyanis (#89 e #90) | `paraInt1` é o mapa (cliente: `PreLoadNextCampaign`). Responde 20 `SystemArmyMsg` com a lista do mapa para 1011, 1021 e 2011 (`SYSTEM_ARMY`); mapa fora da tabela: lista vazia. Visto: o 1011 tem o 20 no pacote seguinte (#923 → #924); nem todo 5038 tem (o #1219 não tem). Responder logo a cada 5038 é *dedução*; o cliente remove o listener depois do primeiro 20. A lista de cada mapa deve sair dos nós do `.maps` (*dedução*). |
 | 5121 | CAMPAIGN_ARMY | parcial | cliente (`NpcInfoFrame`) | Não muda estado. Único remetente: `NpcInfoFrame`, com `paraInt1=2` fixo e `paraInt2` = id do NPC. Precisa de captura da resposta. |
-| 5122 | CAMPAIGN_TAKE_CARD | parcial | replay (#1166, #1651) | Corpo visto: `paraInt1` 58073072 (o id do exército), `paraInt2` 2, `paraBool1` false. 19 e 4105 logo depois são do mapa, não resposta. A carta sai no fim da masmorra (#1221-#1243): 135 (`CampaignCards`, 5 cartas, preço 0), 115, 26 com o `index` escolhido, 83, 134. O sorteio está em `game/drops.py` (lista `Campaigns.Item`, [drops-masmorras.md](drops-masmorras.md)); falta ligar ao fim de masmorra, que não roda aqui. |
-| 5126 | CAMPAIGN_FOG_UPDATE | parcial | replay | Névoa não é guardada. O 130 volta só no próximo ENTER. O oficial também manda 19 com névoa própria. |
-| 5180 | CAMPAIGN_FINISH | parcial | replay (#1169, #1653) | `paraInt1` = 1. Replay mostra 140, 131, 128 e 157 com o próximo nó. Depende de progresso de campanha. |
-| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | parcial, sem handler | replay (#908) | Corpo `{1: 1, 2: 1001}` (campanha 1001). Respostas: 125 `RoomCreatedMsg` (campaignId 1011), 140 (exército no mapa) e 21 `RoomEnterMsg`. Sem remetente no cliente decompilado. Falta o mapa 1011 (posição inicial e nós). |
+| 5122 | CAMPAIGN_TAKE_CARD | feito (masmorra) | replay (#1166 -> #1241, #1651) | Corpo visto: `paraInt1` 58073072 (o id do exército), `paraInt2` 2 (o `index` da carta), `paraBool1` false. 19 e 4105 logo depois são do mapa, não resposta. Na masmorra guarda o `index` (`CampaignMap.card`); o pacote chega antes do fim do mapa (por horário) e o fim entrega a carta: 115, 26 com esse `index`, 83, 134. O sorteio está em `game/drops.py`. Fora da masmorra, sem efeito. Falta: chance de cada item ([drops-masmorras.md](drops-masmorras.md)). |
+| 5126 | CAMPAIGN_FOG_UPDATE | feito (masmorra) | replay (#950 -> #953) | Na masmorra devolve 19 com os mesmos `index` e `fogByte` enviados. A névoa não é guardada: o 130 volta com a névoa da captura no próximo ENTER. No tutorial, sem efeito. |
+| 5180 | CAMPAIGN_FINISH | feito (masmorra) | replay (#1169, #1653) | `paraInt1` = 1. Solta a luta que a chegada guardou (`CampaignMap.waiting`): o último lobo do 1011 (101109) e o chefe do 1021 (102109) só começam aqui. Sem luta esperando, sem efeito. Replay: 140, 131, 128 e 157 (#1186, #1657). |
+| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | feito (masmorra) | replay (#908, #1212) | Corpo `{1: 1, 2: 1001}` (campanha 1001). Não há tipo C>S para o 5039 no `opcodes.json`: o handler recebe `None` e ignora o corpo. Entra no 1011: 125 (`RoomCreatedMsg`, campaignId 1011), 140, 21, 127 (10 nós), 130 (névoa 24 x 19), 143 e 138 (diálogo de entrada, `{nick}`). Com o 1011 vencido, o mesmo 5039 leva ao 1021, sem diálogo. (dedução) vencido o 1021, o 5039 recomeça no 1011: a captura não mostra. |
 | 8286 | C_ROOM_REFUSE | completo | cliente (`sendRefuseInvite`, 4194) | Alterna "recusar convites". Responde 4194. O bloqueio do 5142 da guilda é *(dedução)*, ver [guilda.md](guilda.md). Não há convite de sala no servidor. |
 | 8297 | TOWER_INFO | parcial | captura (4205) | 4205 com `maxIndex=60`, `campaignId=8001`, 0 entradas feitas e 1 livre de 1 (visto em `labirent_sandik` #17 e `yeralti` #1). `index` ecoa o pedido; `towerIndex` (andar atual) fica 0 sem progresso. `totalGp`, `itemTempIds` e `order` dependem de progresso. |
 | 8300 | TOWER_LIVE | parcial | sem captura | Sem efeito. Custo da torre não modelado. |
@@ -119,14 +119,19 @@ capturar.
   `MaxCount - multiCopyCount` na missão diária, `DayGuideManager`). Quando houver isso, é uma coluna nova no
   personagem, com migração.
 
+## Masmorra Kurt İni (campanha 1001)
+
+Mapas 1011 e 1021, nós, névoa, lutas, Pandora, baús e fim vêm de `content/dungeon_1001.json`, extraído da captura por `tools/extract_dungeon.py` (mesmo padrão do tutorial, sem nada do jogador). A sessão guarda o mapa em `CampaignMap` com `dungeon=True`: sem Tina e sem a tabela de retomada do tutorial.
+
+- **Chegada (5125)**: nó com luta no `battles` começa a luta; com `await_finish` (101109 e chefe 102109) espera o 5180. Pandora (`param3` com buffs) manda o 29. Baú de ouro (101108 e 102108 com 500, 102104 sem aviso) dá o ouro num save só. Nó travado (`CampaignMap.locked`: o chefe 102109 só libera com o grupo caído) não reage.
+- **Grupo de lobos**: a vitória só fecha o grupo (`param3`) quando todos caem. O `param4` do último lobo esconde (action 0, DISAPPEARD) ou mostra (action 1, FLICKER) outro nó; no 1021 vem o aviso (126) antes.
+- **Fim**: vencer o último nó (101109 no 1011, chefe 102109 no 1021) manda 137, 4151, 83, 20, 135, 4165, 150, 150, 140 e, com o `index` do 5122, sorteia a carta (`drops.card`, `Campaigns.Item`): 115, 26, 83, 134, com o item e o personagem gravados num save só. O buff da Pandora zera no fim; a "Ruh" do chefe (`strategyBonus` 72) entra no personagem.
+- **Diferenças de captura**: a EXP do fim (630, no texto do 83) é constante copiada: o `BaseGp` do 1001 é 600 e não explica o número. O diálogo de entrada é só o do 1011.
+
 ## Dependências que faltam
 
-- **Começar a campanha da sala**: o 5039 (visto no replay, corpo `{1: 1, 2: 1001}`) responde 125, 140 e 21.
-  Falta o mapa 1011: posição inicial do exército (no 140) e os nós. O `InstanceSelectFrame` não está
-  decompilado, então a escolha da campanha antes do 5039 ainda não foi capturada. Até lá a sala fica
-  "Savaş seçilmedi".
-- **Mapa de nós 1011/2011 e progresso de campanha**: 5180 e a varredura (8528) precisam disso. O 5033 é a caixa Pandora (outra dependência, ver a linha dele). Ver
-  [mundo-compartilhado.md](mundo-compartilhado.md).
+- **Começar a campanha da sala**: o 5039 entra no 1011 (seção da masmorra). Falta a escolha da campanha antes do 5039: o `InstanceSelectFrame` não está decompilado, então ainda não foi capturada. Até lá a sala fica "Savaş seçilmedi".
+- **Progresso de campanha e mapa 2011**: o progresso da masmorra não é salvo (só a carta). O mapa 2011 não tem nós, e a varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
 - **Lista de soldados por mapa (5038)**: só 1011, 1021 e 2011 estão na captura. `PawnTempInfos` confere
   para 2011 ("Otlak Kurdu", nível 5, no mapa 1011 de nível 5 a 7). Os demais mapas precisam de captura do
   5038 de cada um.
@@ -148,6 +153,7 @@ capturar.
 ## Testes
 
 - `tests/game/test_rooms_teams.py`: registros de salas e times, sem sessão.
+- `tests/game/test_masmorra_1001.py`: masmorra Kurt İni: entrada (125, 140, 21, 127, 130, 143, 138); luta do lobo (157, 4103, 128, 4382); último lobo só com o 5180; Pandora (29, mapa errado sem efeito, depois 4126, 4165, 128, 111, segunda caixa nada); baú de 500 uma vez e gravado; chefe travado (`CampaignMap.locked`); mapa 1011 inteiro com carta gravada; grupo do 1021 (126, 143, 143, 128) e fim com o chefe; 5126 (19).
 - `tests/game/test_salas_campanha.py`: os 29 opcodes têm handler (e 5025); corpo vazio não derruba a
   sessão; fluxo completo da sala com dois jogadores (criar, entrar, recusar, expulsar, passar o dono,
   sair, dissolver e queda por desconexão); convite sem amizade não chega.
