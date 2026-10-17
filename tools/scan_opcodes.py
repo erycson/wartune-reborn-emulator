@@ -4,13 +4,15 @@
   corpo do ``handler``, o ``readBody(...)`` diz qual mensagem é lida.
 * Cliente -> servidor: na função que faz ``new PackageOut(N)``, a mensagem passada
   a ``sendProtoBuffer``/``sendProtobuffer``.
+* Transações (``getCode()`` retornando N) contam como listener de N com os ``readBody`` da classe.
 * Nomes vêm de ``ProtocolType.as`` (C→S) e ``AcceptProtocolType.as`` (S→C).
+* O que a varredura estática não alcança fica em ``SPECIAL_S2C``/``SPECIAL_C2S``.
 
 Gera ``proto/opcodes.json`` e ``docs/packets.md``.
 
 Uso::
 
-    uv run python tools/scan_opcodes.py D:/wartune/decompiled/m2/scripts D:/wartune/decompiled/m3/scripts
+    uv run python tools/scan_opcodes.py D:/wartune/decompiled/{m2,m3,m4,m5,m8,m10,m11,m15,m16}/scripts
 """
 
 from __future__ import annotations
@@ -24,13 +26,31 @@ from pathlib import Path
 RE_IMPORT = re.compile(r"^\s*import\s+([\w.]+);", re.M)
 RE_PACKAGE = re.compile(r"^\s*package\s+([\w.]+)", re.M)
 RE_FUNC = re.compile(r"function\s+(?:get\s+|set\s+)?(\w+)\s*\(")
-RE_LISTEN = re.compile(r'addEventListener\("SLGSocketEvent"\s*\+\s*(\d+),\s*(\w+)')
+RE_LISTEN = re.compile(r'(?:addEventListener\("SLGSocketEvent"\s*\+\s*|\.listener\(\s*)(\d+),\s*(\w+)')
 RE_READ_NEW = re.compile(r"readBody\(\s*new\s+([\w.]+)\(\)\s*\)")
 RE_READ_VAR = re.compile(r"readBody\(\s*(\w+)\s*\)")
 RE_PKG_OUT = re.compile(r"new\s+PackageOut\(\s*(\d+)")
-RE_SEND = re.compile(r"send[Pp]roto[Bb]uffer\(\s*\w+\s*,\s*(new\s+[\w.]+\(\)|\w+|null)")
-RE_DELEGATE = re.compile(r"(\w+)\(\s*param1\s*\)")
-RE_CONST =re.compile(r"public\s+static\s+const\s+(\w+)\s*:\s*uint\s*=\s*(\d+)\s*;")
+# Os dois argumentos: wrappers locais invertem a ordem (``sendProtoBuffer(msg, pkg)``).
+RE_SEND = re.compile(r"send[Pp]roto[Bb]uffer\(\s*(new\s+[\w.]+\(\)|\w+|null)\s*,\s*(new\s+[\w.]+\(\)|\w+|null)")
+# Repasse: ``f(param1)`` ou callback passado como último argumento (``addPkgToBuffer(pkg, cena, f)``).
+RE_DELEGATE = re.compile(r"(\w+)\(\s*param1\s*\)|,\s*(\w+)\s*\)")
+RE_CONST = re.compile(r"public\s+static\s+const\s+(\w+)\s*:\s*u?int\s*=\s*(\d+)\s*;")
+RE_GETCODE = re.compile(r"function\s+getCode\(\)\s*:\s*int\s*\{\s*return\s+(\d+)\s*;")
+
+# Casos especiais de yishi/service/managers/SocketManager.as (__chatSocketData): esses opcodes não viram
+# "SLGSocketEvent" + N. 157 e a família GAME_CMD (153, 156, 69, 77, 4149, 4361, 4600) caem em transações
+# com getCode() e são achados pela varredura; 159 e 171 não têm readBody conhecido. Valores: FQN AS3.
+SPECIAL_S2C = {
+    140: "com.road.yishi.proto.army.MapUpdatedMsg",  # SocketManager.mapDataSync
+    143: "com.road.yishi.proto.player.PlayerMovieMsg",  # "U_PLAY_MOVIE" -> map/space/manager/SpaceSocketManager.as
+    154: "com.road.yishi.proto.battle.PrepareOverMsg",  # battle/transaction/VictoryFailTransaction.as
+    72: "com.road.yishi.proto.battle.ReinforceMsg",  # ReinfoTransaction -> battle/handler/ReinforceHandler.as
+}
+# Opcode passado em variável: SocketSendManager.sendLoadOverByType(10007 | 10018, ...).
+SPECIAL_C2S = {
+    10007: "com.road.yishi.proto.battle.LoadOverMsg",
+    10018: "com.road.yishi.proto.battle.LoadOverMsg",
+}
 
 
 def split_functions(src: str) -> dict[str, str]:
@@ -44,9 +64,9 @@ def split_functions(src: str) -> dict[str, str]:
 
 
 def var_type(body: str, var: str) -> str | None:
-    if m := re.search(rf"(?:var\s+|\(|,\s*){re.escape(var)}\s*:\s*([\w.]+)", body):
-        if m.group(1) not in ("*", "Object", "Message"):
-            return m.group(1)
+    m = re.search(rf"(?:var\s+|\(|,\s*){re.escape(var)}\s*:\s*([\w.]+)", body)
+    if m and m.group(1) not in ("*", "Object", "Message"):
+        return m.group(1)
     if m := re.search(rf"{re.escape(var)}\s*=\s*new\s+([\w.]+)\(\)", body):
         return m.group(1)
     if m := re.search(rf"{re.escape(var)}\s*=\s*[^;]*readBody\([^)]*\)\s+as\s+([\w.]+)", body):
@@ -77,7 +97,7 @@ class Scanner:
             for name, code in RE_CONST.findall(src):
                 self.names[int(code)].add(name)
             return
-        if "SLGSocketEvent" not in src and "PackageOut(" not in src:
+        if "SLGSocketEvent" not in src and "PackageOut(" not in src and "getCode" not in src:
             return
         imports = {imp.rsplit(".", 1)[-1]: imp for imp in RE_IMPORT.findall(src)}
         pkg = RE_PACKAGE.search(src)
@@ -88,12 +108,18 @@ class Scanner:
             body = funcs.get(handler, "")
             types = self._read_types(body)
             if not types:  # handler que só repassa o evento: segue um nível
-                for callee in RE_DELEGATE.findall(body):
+                for callee in filter(None, sum(RE_DELEGATE.findall(body), ())):
                     if callee != handler:
                         types += self._read_types(funcs.get(callee, ""))
             for t in types:
                 self.s2c[int(code)].add(self.resolve(t, imports, package))
             self.s2c.setdefault(int(code), set())
+
+        if m := RE_GETCODE.search(src):  # transação: os readBody de qualquer método da classe
+            code = int(m.group(1))
+            for t in (t for body in funcs.values() for t in self._read_types(body)):
+                self.s2c[code].add(self.resolve(t, imports, package))
+            self.s2c.setdefault(code, set())
 
         for body in funcs.values():
             codes = [int(c) for c in RE_PKG_OUT.findall(body)]
@@ -102,7 +128,8 @@ class Scanner:
             sends = RE_SEND.findall(body)
             for code in codes:
                 self.c2s.setdefault(code, set())
-                for arg in sends:
+                for first, second in sends:
+                    arg = second if var_type(body, first) == "PackageOut" else first
                     if arg == "null":
                         self.c2s[code].add("(vazio)")
                     elif arg.startswith("new"):
@@ -166,6 +193,10 @@ def main() -> int:
     for root in args.roots:
         for path in sorted(root.rglob("*.as")):
             scanner.scan_file(path)
+    for code, fqn in SPECIAL_S2C.items():
+        scanner.s2c[code].add(scanner.index[fqn])
+    for code, fqn in SPECIAL_C2S.items():
+        scanner.c2s[code].add(scanner.index[fqn])
     table = scanner.result()
     args.out.write_text(json.dumps(table, indent=1, ensure_ascii=False), encoding="utf-8")
     args.doc.parent.mkdir(parents=True, exist_ok=True)

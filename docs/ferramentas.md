@@ -22,7 +22,7 @@ uv run python -m grpc_tools.protoc -Iproto --python_out=src/wartune_server/proto
 
 Varre os listeners `"SLGSocketEvent" + N` (seguindo um nível de delegação) e os `new PackageOut(N)`,
 resolve o tipo protobuf de cada lado e dá nome aos opcodes com `ProtocolType.as` e
-`AcceptProtocolType.as`. Gera `protocol/data/opcodes.json` (1055 opcodes) e [packets.md](packets.md).
+`AcceptProtocolType.as`. Gera `protocol/data/opcodes.json` (1061 opcodes) e [packets.md](packets.md).
 
 ## `tools/export_captures.py`
 

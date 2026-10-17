@@ -6,11 +6,20 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "1": {
   "names": [
    "U_C_PLAYER_NOVICE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "2": {
+  "names": [
+   "U_C_PLAYER_GRADE"
   ],
   "c2s": [],
   "s2c": [],
@@ -29,7 +38,9 @@
   "client_listens": true
  },
  "4": {
-  "names": [],
+  "names": [
+   "U_C_PLAYER_TIME"
+  ],
   "c2s": [],
   "s2c": [
    "BoxBoxMsg"
@@ -584,8 +595,19 @@
   "client_sends": false,
   "client_listens": true
  },
+ "63": {
+  "names": [
+   "U_C_HERO_UPDATESKILL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
  "64": {
-  "names": [],
+  "names": [
+   "U_C_HERO_SETFASTKEY"
+  ],
   "c2s": [],
   "s2c": [
    "HeroFastKeyMsg"
@@ -616,18 +638,22 @@
    "U_B_USER_STOP"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "UserStopMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "72": {
   "names": [
    "U_B_USER_REINFORCE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "ReinforceMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "74": {
   "names": [
@@ -663,9 +689,11 @@
    "U_B_FIGHT_MODE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "AttackModeMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "78": {
   "names": [
@@ -1220,7 +1248,9 @@
    "U_C_CAMPAIGN_REPORT"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "CampaignReportMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -1249,9 +1279,11 @@
    "U_C_MAPDATA_SYNC"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "MapUpdatedMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "141": {
   "names": [
@@ -1280,9 +1312,11 @@
    "U_C_PLAY_MOVIE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PlayerMovieMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "144": {
   "names": [
@@ -1384,36 +1418,44 @@
    "U_B_ATTACKING"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "AttackOrderMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "154": {
   "names": [
    "U_B_PREPARE_OVER"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PrepareOverMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "156": {
   "names": [
    "U_B_START"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "BattleStartMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "157": {
   "names": [
    "U_B_PREPARE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "BattlePrepareMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "158": {
   "names": [
@@ -1846,9 +1888,11 @@
    "U_C_BAG_EQUIPLOOK"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "DetailRspMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4126": {
   "names": [
@@ -2095,9 +2139,11 @@
    "U_B_LOAD_RES"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "ArmyResMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4150": {
   "names": [
@@ -2234,7 +2280,9 @@
    "U_C_PLAYER_MOVE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PlayerMoveMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -2318,9 +2366,11 @@
    "U_C_PLAYER_SEARCH"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePlayerSearchRspMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4171": {
   "names": [
@@ -2691,7 +2741,9 @@
    "U_C_TOWER_DIED"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TowerDiedMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -3006,7 +3058,9 @@
    "U_C_WARREPORT"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "WarReportListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -3064,9 +3118,11 @@
    "U_C_STARSHOP_BUY"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "StarShopMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4262": {
   "names": [
@@ -3144,7 +3200,9 @@
    "U_C_WARMOVIE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "WarMovieMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -3296,9 +3354,11 @@
    "U_B_BATTLE_NOTICE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "BattleNoticeMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4368": {
   "names": [
@@ -3442,7 +3502,9 @@
    "U_C_PLAY_GETMOIVE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "FightOverMoiveMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -3528,9 +3590,11 @@
    "U_C_BLESS_REFRESH"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "BlessingMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4392": {
   "names": [
@@ -3661,9 +3725,11 @@
    "U_C_CHECK_SEND"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "CheckSend"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4421": {
   "names": [
@@ -3725,18 +3791,22 @@
    "U_C_MOUNT_UPDATE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "MountInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4427": {
   "names": [
    "U_C_MOUNT_AVATARLIST"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "MountAvatarMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4428": {
   "names": [
@@ -3895,7 +3965,9 @@
    "U_C_ALTARNPC_MOVE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "CampaignNpcMoveListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -3904,7 +3976,9 @@
    "U_C_ALTAROVER_MSG"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -3986,7 +4060,9 @@
    "U_C_GUILDWAR_OPEN_LEFTTIME"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "GuildMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4006,9 +4082,11 @@
    "U_C_MOUNT_INFO_SEND"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "MountInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4460": {
   "names": [
@@ -4249,9 +4327,11 @@
    "U_C_FASHION_SHOP_BUY"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "FashionShopMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4487": {
   "names": [
@@ -4325,7 +4405,9 @@
   "client_listens": true
  },
  "4495": {
-  "names": [],
+  "names": [
+   "U_C_RUNE_OP"
+  ],
   "c2s": [],
   "s2c": [
    "HeroRuneOpMsg"
@@ -4422,7 +4504,9 @@
    "U_C_VEHICLE_CAMPAIGN_LIST_RSP"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PlayerVehicleListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4695,9 +4779,11 @@
    "U_C_FATE_TURNREQUEST"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "FateEditMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4546": {
   "names": [
@@ -4706,7 +4792,7 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4547": {
   "names": [
@@ -4757,61 +4843,73 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4552": {
   "names": [
    "U_C_RES_SINGLEPASS_INFO"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SinglePassMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4553": {
   "names": [
    "U_C_BUGLE_REQ"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VipRouletteMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4554": {
   "names": [
    "U_C_BUGLE_REWARDS"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VipRouletteMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4555": {
   "names": [
    "U_C_DRAGON_REQ"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "FateListMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4556": {
   "names": [
    "U_C_TRANSFER"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4557": {
   "names": [
    "U_C_TRANS_GRADE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "FateInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4558": {
   "names": [
@@ -4823,7 +4921,9 @@
   "client_listens": false
  },
  "4559": {
-  "names": [],
+  "names": [
+   "U_C_GROUPON_INFO"
+  ],
   "c2s": [],
   "s2c": [
    "GrouponShopMsg"
@@ -4832,7 +4932,9 @@
   "client_listens": true
  },
  "4560": {
-  "names": [],
+  "names": [
+   "U_C_GROUPON_RESULT"
+  ],
   "c2s": [],
   "s2c": [
    "GrouponShopMsg"
@@ -4878,7 +4980,9 @@
    "U_C_PLAYER_SPACE_SYNC_POS"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SpacePlayerMoveMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4931,9 +5035,11 @@
    "U_C_UPDATE_AWAKE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "AwakeMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4601": {
   "names": [
@@ -5006,9 +5112,11 @@
    "U_C_PET_CHALLENGE_LIST"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PetChallengeInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4612": {
   "names": [
@@ -5088,45 +5196,55 @@
    "U_C_TOP_CHALLENGE_INFO"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PetChallengeInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4620": {
   "names": [
    "U_C_TEAM_INVITE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "InviteTeamMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4621": {
   "names": [
    "U_C_TEAM_LEAVE_FOR_NOW"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4622": {
   "names": [
    "U_C_TEAM_CREATE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TeamInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4624": {
   "names": [
    "U_C_TEAM_PLAYER_INFO"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TeamInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4625": {
   "names": [
@@ -5135,61 +5253,73 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4626": {
   "names": [
    "U_C_TEAM_ADD_MEMBER"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TeamInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4627": {
   "names": [
    "U_C_TEAM_CAPTAIN_CHANGE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4628": {
   "names": [
    "U_C_TEAM_FIGHT_POS_CHANGE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "MemberFightPosListMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4629": {
   "names": [
    "U_C_TEAM_MEMBER_LEFT"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4630": {
   "names": [
    "U_C_TEAM_KICK_MEMBER"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4631": {
   "names": [
    "U_C_BATTLEGUARD_INFO"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "HeroWatchMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4632": {
   "names": [
@@ -5207,9 +5337,11 @@
    "U_C_TREASUREMAP_INFO"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PlayerTreasureMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4634": {
   "names": [
@@ -5218,7 +5350,7 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4635": {
   "names": [
@@ -5509,9 +5641,11 @@
    "U_C_MOUNT_UPGRADESTAR"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "AvatarInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4681": {
   "names": [
@@ -5560,9 +5694,11 @@
    "U_C_CROSSGUILD_FIRST"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "GuildInfoMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4686": {
   "names": [
@@ -5596,7 +5732,9 @@
   "client_listens": true
  },
  "4696": {
-  "names": [],
+  "names": [
+   "U_C_VICEPASSWORD"
+  ],
   "c2s": [],
   "s2c": [
    "VicePasswordMsg"
@@ -5616,7 +5754,9 @@
   "client_listens": true
  },
  "4725": {
-  "names": [],
+  "names": [
+   "U_C_PLAYER_TOKENINFO"
+  ],
   "c2s": [],
   "s2c": [
    "PlayerTokenInfoMsg"
@@ -5669,7 +5809,9 @@
   "client_listens": true
  },
  "4798": {
-  "names": [],
+  "names": [
+   "U_C_MATE_LORDS_INFO"
+  ],
   "c2s": [],
   "s2c": [
    "MateLordsListMsg"
@@ -5678,7 +5820,9 @@
   "client_listens": true
  },
  "4799": {
-  "names": [],
+  "names": [
+   "U_C_MATE_LORDS_MAININFO"
+  ],
   "c2s": [],
   "s2c": [
    "MateLordsListMsg"
@@ -5687,11 +5831,44 @@
   "client_listens": true
  },
  "4801": {
-  "names": [],
+  "names": [
+   "U_C_MATE_LORDS_OPENSTATE"
+  ],
   "c2s": [],
   "s2c": [
    "SimplePropertyMsg"
   ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4803": {
+  "names": [
+   "U_CROSS_BATTLE_VIEW"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4804": {
+  "names": [
+   "U_CROSS_VIEW_BATTLE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4806": {
+  "names": [
+   "U_C_MULTI_LORDS_FIANL_ORDER"
+  ],
+  "c2s": [],
+  "s2c": [],
   "client_sends": false,
   "client_listens": true
  },
@@ -6057,9 +6234,11 @@
    "U_C_LEAD_EXTRACT"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "LeadRewardMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4938": {
   "names": [
@@ -6236,13 +6415,17 @@
   "names": [
    "U_C_PLAYER_NOVICE"
   ],
-  "c2s": [],
+  "c2s": [
+   "NoviceReqMsgMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5018": {
-  "names": [],
+  "names": [
+   "U_C_PLAYER_GRADE"
+  ],
   "c2s": [
    "BoxBoxMsg"
   ],
@@ -6251,7 +6434,9 @@
   "client_listens": false
  },
  "5019": {
-  "names": [],
+  "names": [
+   "U_C_PLAYER_TIME"
+  ],
   "c2s": [
    "BoxBoxMsg"
   ],
@@ -6317,7 +6502,7 @@
    "U_C_CAMPAIGN_ROOM_EXIT"
   ],
   "c2s": [
-   "?PackageOut"
+   "RoomExitMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6401,7 +6586,7 @@
    "U_C_CAMPAIGN_CONFIRM"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6450,7 +6635,7 @@
    "U_C_CAMPAIGN_SYSTEM_ARMY"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6481,7 +6666,7 @@
    "U_C_CAMPAIGN_EXIT"
   ],
   "c2s": [
-   "?PackageOut"
+   "RoomExitMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6492,7 +6677,7 @@
    "U_C_CAMPAIGN_ARMY"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6503,7 +6688,7 @@
    "U_C_CAMPAIGN_TAKE_CARD"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6523,7 +6708,7 @@
    "U_C_CAMPAIGN_SYNCPOS"
   ],
   "c2s": [
-   "?PackageOut"
+   "PosMoveMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6534,7 +6719,7 @@
    "U_C_CAMPAIGN_ARRIVE"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6545,7 +6730,7 @@
    "U_C_CAMPAIGN_FOG_UPDATE"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignFogDataListReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6576,7 +6761,7 @@
    "U_C_DROPITEM_TAKE"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -6918,7 +7103,9 @@
   "client_listens": false
  },
  "5167": {
-  "names": [],
+  "names": [
+   "U_C_HERO_SETFASTKEY"
+  ],
   "c2s": [
    "HeroFastKeyMsg"
   ],
@@ -7028,7 +7215,7 @@
    "U_C_CAMPAIGN_FINISH"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -7046,7 +7233,9 @@
   "client_listens": false
  },
  "5184": {
-  "names": [],
+  "names": [
+   "C_HERO_SKILLPOINT_RESET"
+  ],
   "c2s": [
    "PayTypeMsg"
   ],
@@ -7055,12 +7244,23 @@
   "client_listens": false
  },
  "5185": {
-  "names": [],
+  "names": [
+   "C_HERO_SKILL_UPGRADE"
+  ],
   "c2s": [
    "HeroAddPointReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
+  "client_listens": false
+ },
+ "5186": {
+  "names": [
+   "C_HERO_SKILL_LIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
   "client_listens": false
  },
  "5187": {
@@ -7108,7 +7308,7 @@
    "C_NODE_LOCKSTATE"
   ],
   "c2s": [
-   "?PackageOut"
+   "NodeLockReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -7444,9 +7644,11 @@
   "names": [
    "C_FIGHT_SPECIAL_BOSS"
   ],
-  "c2s": [],
+  "c2s": [
+   "(vazio)"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8253": {
@@ -7476,7 +7678,7 @@
    "C_PLAYER_REINFORCE"
   ],
   "c2s": [
-   "?PackageOut"
+   "CampaignNodeMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -7649,9 +7851,11 @@
   "names": [
    "C_CAMPIAGN_ARMYPOS_EDIT"
   ],
-  "c2s": [],
+  "c2s": [
+   "ArmyFightPosEditListMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8278": {
@@ -7678,9 +7882,11 @@
   "names": [
    "C_BUILDING_INIT"
   ],
-  "c2s": [],
+  "c2s": [
+   "(vazio)"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8282": {
@@ -7871,9 +8077,7 @@
   "names": [
    "C_PLAYER_NODE_STATE"
   ],
-  "c2s": [
-   "?PackageOut"
-  ],
+  "c2s": [],
   "s2c": [],
   "client_sends": true,
   "client_listens": false
@@ -8138,9 +8342,11 @@
   "names": [
    "C_USER_PIN_CHECK"
   ],
-  "c2s": [],
+  "c2s": [
+   "UserPin"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8353": {
@@ -8235,18 +8441,22 @@
   "names": [
    "C_COMPREHEND"
   ],
-  "c2s": [],
+  "c2s": [
+   "ComprehendMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8456": {
   "names": [
    "C_SAVESPECIAL"
   ],
-  "c2s": [],
+  "c2s": [
+   "ComprehendMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8457": {
@@ -8375,18 +8585,22 @@
   "names": [
    "C_ACTIVE_SECONDSKILL"
   ],
-  "c2s": [],
+  "c2s": [
+   "PayTypeMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8480": {
   "names": [
    "C_CHANGE_SKILL"
   ],
-  "c2s": [],
+  "c2s": [
+   "HeroSkillChangeMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8481": {
@@ -8424,9 +8638,11 @@
   "names": [
    "C_BAG_USESTORE"
   ],
-  "c2s": [],
+  "c2s": [
+   "ItemUseStoreReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8485": {
@@ -8455,16 +8671,18 @@
   ],
   "c2s": [],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8496": {
   "names": [
    "C_PLAYER_RELOGIN_CMD"
   ],
-  "c2s": [],
+  "c2s": [
+   "TakeLoginReward"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8505": {
@@ -8774,7 +8992,7 @@
    "C_PLAYER_REFAIRE"
   ],
   "c2s": [
-   "?PackageOut"
+   "GuildMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -8785,7 +9003,7 @@
    "ARRIVE_ALTAR"
   ],
   "c2s": [
-   "?PackageOut"
+   "ArriveAltarReqMsg"
   ],
   "s2c": [],
   "client_sends": true,
@@ -9027,7 +9245,9 @@
   "client_listens": false
  },
  "8598": {
-  "names": [],
+  "names": [
+   "C_CC"
+  ],
   "c2s": [
    "SimplePropertyMsg"
   ],
@@ -9056,7 +9276,9 @@
   "client_listens": false
  },
  "8605": {
-  "names": [],
+  "names": [
+   "U_C_HERO_RUNE_OP"
+  ],
   "c2s": [
    "HeroRuneOpMsg"
   ],
@@ -9239,18 +9461,22 @@
   "names": [
    "C_GAME_STORY_REQUEST"
   ],
-  "c2s": [],
+  "c2s": [
+   "GameStoryMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8630": {
   "names": [
    "C_GAME_STORY_REWARD"
   ],
-  "c2s": [],
+  "c2s": [
+   "(vazio)"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8631": {
@@ -9484,9 +9710,11 @@
   "names": [
    "C_NEW_GUILD_FIGHT"
   ],
-  "c2s": [],
+  "c2s": [
+   "(vazio)"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8700": {
@@ -9647,9 +9875,11 @@
   "names": [
    "C_TAKE_360_REWARD"
   ],
-  "c2s": [],
+  "c2s": [
+   "PrivilegeMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8723": {
@@ -10151,7 +10381,9 @@
   "client_listens": false
  },
  "8843": {
-  "names": [],
+  "names": [
+   "C_NEW_MOUNT_ACTIVE"
+  ],
   "c2s": [
    "(vazio)"
   ],
@@ -10565,9 +10797,11 @@
   "names": [
    "U_B_USER_LOADOVER"
   ],
-  "c2s": [],
+  "c2s": [
+   "LoadOverMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "10008": {
@@ -10594,9 +10828,11 @@
   "names": [
    "U_B_USR_STOP_CMD"
   ],
-  "c2s": [],
+  "c2s": [
+   "BattleReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "10015": {
@@ -10625,9 +10861,11 @@
   "names": [
    "B_REINFORCE_LOADOVER"
   ],
-  "c2s": [],
+  "c2s": [
+   "LoadOverMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "10020": {
