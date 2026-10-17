@@ -21,6 +21,7 @@ from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
 from ..session import LOGIN_CODE, GameSession
+from . import account, vehicle
 
 KEY_SIZE = 8
 
@@ -42,6 +43,7 @@ S_VERSION = 4233
 S_SNS = 4245
 S_QUESTS = 112
 S_ITEMS = 115
+S_PET_ISLAND_BOSS = 4686
 
 
 def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
@@ -139,6 +141,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
 async def _login_state(s: GameSession) -> None:
     # recarrega: o noviceProcess pode ter mudado via HTTP (updateplayernovice) depois do 20001
     s.snapshot = snap = await s.ctx.characters.snapshot(s.player_id)
+    if account.expire_vice_reset(snap.character, s.ctx.clock.now()):
+        await s.ctx.characters.save(snap.character)
     assert snap.castle is not None
     active = [q for q in snap.quests if not q.completed]
     s.send(S_QUESTS, pb_player.quest_update(active, rules.quest_bitmap(snap)))
@@ -147,6 +151,10 @@ async def _login_state(s: GameSession) -> None:
         for item in snap.items:
             bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
         s.send(S_ITEMS, bag)
+    vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
+    # ilha dos pets: sem invasão do chefe em andamento (login.json #39, todos os campos zerados)
+    zero = dict.fromkeys(("leftTime", "mapId", "bossId", "peaceMiddle", "peaceHigh", "peaceBoss", "ragePoint"), 0)
+    s.send(S_PET_ISLAND_BOSS, pb.PetIslandDefendStateMsg(**zero))
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

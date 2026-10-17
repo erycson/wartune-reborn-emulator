@@ -56,6 +56,7 @@ NOVICE_UNLOCKS = {14000: [1000108]}  # portal aparece quando o guia chega nesse 
 PORTAL = {1000108: SECOND_MAP}
 CHEST = 1000202  # param3: arma por job ("1011002|1012002|1013002|..."), índice job-1
 EXIT = 1000206
+RETURN_PORTAL = 62  # masterType do portal de chegada que leva de volta à cidade do céu
 BOSS = "8251"  # chave em tutorial.json["battles"]
 
 
@@ -229,7 +230,10 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if c is None or node is None or node["state"] != NORMAL or c.fighting:
         return
     camp = msg.paraInt1
-    if camp in ARRIVE_PLOT:
+    if node["masterType"] == RETURN_PORTAL and c.map_id not in (FIRST_MAP, SECOND_MAP):
+        s.campaign = None  # portal de volta (ilha dos pets): cidade do céu com 4606
+        space.back(s)
+    elif camp in ARRIVE_PLOT:
         if camp not in c.talked:  # o cliente repete o 5125 enquanto anda sobre o nó
             c.talked.add(camp)
             _plot(s, ARRIVE_PLOT[camp])

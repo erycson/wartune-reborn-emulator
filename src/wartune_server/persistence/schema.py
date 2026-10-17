@@ -124,6 +124,15 @@ characters = Table(
     _int("repute"),
     _int("geste"),
     _int("charm"),
+    _int("space_x", 72),  # último tile na cidade do céu (o oficial nasce em 72,74)
+    _int("space_y", 74),
+    _int("qte_guide"),  # 8302: guia da skill QTE visto (PlayerMsg.qteGuide)
+    Column("vice_password", String(64), nullable=False, default="", server_default=""),  # sha256; "" = sem senha
+    Column("vice_reset_at", UTCDateTime),  # 8806 op 4: pedido de reset da senha secundária
+    _int("vehicle_exp"),  # 4515 PlayerVehicleProfileMsg
+    _int("vehicle_score"),
+    _int("vehicle_default", 1),
+    Column("vehicles", String(255), nullable=False, default="1", server_default="1"),  # templateIds possuídos
     Column("created_at", UTCDateTime, nullable=False),
     Column("last_login_at", UTCDateTime),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor

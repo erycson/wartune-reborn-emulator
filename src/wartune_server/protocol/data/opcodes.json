@@ -8078,7 +8078,7 @@
    "C_PLAYER_NODE_STATE"
   ],
   "c2s": [
-   "?Message"
+   "PlayerNodeStateMsg"
   ],
   "s2c": [],
   "client_sends": true,

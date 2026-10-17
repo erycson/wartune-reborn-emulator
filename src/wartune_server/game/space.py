@@ -15,8 +15,7 @@ from .builders import login as b
 from .session import GameSession
 
 SPACE = 10000
-SPAWN = (72, 74)  # tiles; ponytail: a posição não é gravada, volta aqui a cada login
-S_CREATE, S_RETURN, S_PRESENT, S_MOVE, S_REMOVE = 4595, 4606, 4597, 4594, 4607
+S_CREATE, S_RETURN, S_PRESENT, S_MOVE, S_REMOVE, S_LOOK = 4595, 4606, 4597, 4594, 4607, 149
 POST_TUTORIAL = 19000  # noviceProcess da cena do castelo; antes disso o 4595 atrapalharia o tutorial
 
 
@@ -45,7 +44,7 @@ def room_player(
     )
 
 
-def _player(s: GameSession) -> pb.RoomPlayerMsg:
+def member(s: GameSession) -> pb.RoomPlayerMsg:
     assert s.snapshot is not None and s.space_pos is not None
     snap, templates = s.snapshot, s.ctx.templates
     return room_player(snap, templates, s.space_pos, SPACE, cloth=rules.cloth_avatar(snap, templates))
@@ -63,7 +62,7 @@ def others(s: GameSession) -> list[GameSession]:
     return [o for o in s.ctx.online.sessions() if o is not s and o.space_pos is not None]
 
 
-def enter(s: GameSession) -> None:
+def enter(s: GameSession, code: int = S_CREATE) -> None:
     """Login: cria a cena (4595), apresenta quem já está lá e avisa os outros.
 
     O 4594 só desenha quem o cliente já conhece por um 4597, por isso vai sempre depois dele.
@@ -71,12 +70,13 @@ def enter(s: GameSession) -> None:
     assert s.snapshot is not None
     if s.snapshot.character.novice_process < POST_TUTORIAL:
         return
-    s.space_pos = s.space_pos or SPAWN
-    me = _player(s)
-    s.send(S_CREATE, pb.RoomEnterMsg(result=1, player=[me]))
+    c = s.snapshot.character
+    s.space_pos = s.space_pos or (c.space_x, c.space_y)  # onde saiu da última vez
+    me = member(s)
+    s.send(code, pb.RoomEnterMsg(result=1, player=[me]))  # 4595 no login, 4606 voltando de um mapa
     present = others(s)
     if present:
-        s.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[_player(o) for o in present]))
+        s.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[member(o) for o in present]))
         s.send(S_MOVE, _positions(present))
     for o in present:
         o.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[me]))
@@ -86,9 +86,9 @@ def enter(s: GameSession) -> None:
 def back(s: GameSession) -> None:
     """8688: o jogador pediu para ir à cidade do céu; o 4606 troca a cena."""
     if s.space_pos is None:
-        enter(s)
-    if s.space_pos is not None:
-        s.send(S_RETURN, pb.RoomEnterMsg(result=1, player=[_player(s)]))
+        enter(s, S_RETURN)
+    else:
+        s.send(S_RETURN, pb.RoomEnterMsg(result=1, player=[member(s)]))
 
 
 def move(s: GameSession, path: list[tuple[int, int]]) -> None:
@@ -96,12 +96,33 @@ def move(s: GameSession, path: list[tuple[int, int]]) -> None:
     if s.space_pos is None or not path:
         return
     s.space_pos = path[-1]
+    assert s.snapshot is not None
+    s.snapshot.character.space_x, s.snapshot.character.space_y = s.space_pos  # gravado ao sair
     msg = pb.SpacePlayerMoveMsg()
     player = msg.players.add(playerId=s.player_id)
     for x, y in path:
         player.path.add(x=x, y=y)
     for o in others(s):
         o.send(S_MOVE, msg)
+
+
+def refresh_look(s: GameSession) -> None:
+    """149: o jogador trocou equipamento; os outros redesenham arma e armadura dele."""
+    if s.space_pos is None:
+        return
+    assert s.snapshot is not None
+    snap, templates = s.snapshot, s.ctx.templates
+    msg = b.complete(
+        pb.HeroEquUpdatedMsg(
+            playerId=s.player_id,
+            armStr=rules.arm_avatar(snap, templates),
+            clothStr=rules.cloth_avatar(snap, templates),
+            hide=False,
+            appellId=0,
+        )
+    )
+    for o in others(s):
+        o.send(S_LOOK, msg)
 
 
 def leave(s: GameSession) -> None:

@@ -171,6 +171,9 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         lastFreeSkillLearnTime=NEVER,
         rentalBagTime=NEVER,
         status=-1,
+        qteGuide=c.qte_guide,
+        hasVicePassword=int(bool(c.vice_password)),
+        isDuringToResetTime=int(c.vice_reset_at is not None),
     )
     msg.order.playerId = c.id or 0
     return msg

@@ -5,7 +5,7 @@ from __future__ import annotations
 from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import Row
-from .. import rules
+from .. import rules, space
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
 from ..router import router
@@ -127,6 +127,8 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     _army(s)
     s.send(S_ITEMS, item_moved(msg.beginBagType, msg.beginObjId, msg.beginPos, other, s.player_id))
     s.send(S_ITEMS, item_moved(msg.endBagType, msg.endObjId, msg.endPos, item, s.player_id))
+    if BagType.HERO in (msg.beginBagType, msg.endBagType):
+        space.refresh_look(s)  # os outros na cidade do céu veem a arma/armadura nova
 
 
 @router.on(5006)
