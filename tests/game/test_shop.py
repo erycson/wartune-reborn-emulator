@@ -43,6 +43,7 @@ async def test_buy_with_gift_token_writes_the_ledger(tmp_path: Path) -> None:
         assert pb.ShopMsg.FromString(got[-1].body).buyInfo.result == 1
         item = pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item
         assert (item.templateId, item.count) == (208002, 2)
+        assert not item.HasField("attack")  # 115 sem complete(): o oficial omite os atributos do item
         assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg.endswith("x2 başarıyla alındı!")
         assert ledger(tmp_path) == [(0, -100, 0, 50, "shop", "good:35 x2")]
 

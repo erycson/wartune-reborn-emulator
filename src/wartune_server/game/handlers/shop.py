@@ -134,8 +134,9 @@ def send_charge(s: GameSession, paid: Charge) -> None:
 
 
 def send(s: GameSession, code: int, msg: Message) -> None:
-    """Manda completando os campos (strings ausentes viram null no AS3)."""
-    s.send(code, b.complete(msg))
+    """Manda completando os campos (strings ausentes viram null no AS3). O 115 vai como está: o
+    oficial omite attack/defence/... do item e o cliente usaria o 0 no lugar do template."""
+    s.send(code, msg if isinstance(msg, pb.ItemMovedListMsg) else b.complete(msg))
 
 
 def alert(s: GameSession, text: str) -> None:

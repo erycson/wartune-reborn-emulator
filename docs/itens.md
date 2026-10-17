@@ -36,7 +36,7 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 | 5006 ItemUseMsg | 298 pacote: troca pelo `GradeDrop`; 203 recurso: Property1 1 ouro, 3 elmas, 4 elmas vinculado, 5 Beden (até `weary_limit`), 6 prestígio, 7 EXP, 10 Ruh × Property2 × `count`; 206 "Değerli Taş Kutusu Lv.N"/"Lv.A-B": pedra aleatória do nível (`TransformInfos`); 209 poção de HP: `blood` += Property1 | 203: 115, 111 "Tebrikler! Kazanılan:Altın x1000", 109 (ouro) ou 3 (+83 "5,000 EXP kazanıldı" na EXP); 206: 115, 115, 111, 3, 83; 209: 115, 113, 150, 3 | *(visto)* |
 | 5007 ItemReqMsg.beginPos | vende a pilha toda | 115, 109 | preço `GoodsHelp.getSellGold` *(cliente)* |
 | 8624 ItemSellReqMsg | venda em lote (pos, count) | 115, 109 | *(cliente)* |
-| 8220 ArrangeReq | aplica a ordem que o cliente calculou (`oldplace`→`newplace`), sem colisão nem fora da mochila; `isStackItem` junta pilhas incompletas (mesmo item e mesmo cadeado) | 115 com a mochila | *(cliente)*; pilhas *(dedução)* |
+| 8220 ArrangeReq | aplica a ordem que o cliente calculou (`BaseBagListView.sort`: cada item `oldplace`→índice), sem colisão nem fora da mochila; `isStackItem` junta pilhas incompletas (mesmo item e mesmo cadeado) e fecha os buracos | 115 com a mochila | *(cliente)*; pilhas *(dedução)* |
 | 8346 ItemRemoveMsg | o cliente só pede para tirar item vencido; nenhum item tem validade aqui: recusa | — | *(cliente)* |
 | 8809 LockAndUnlockMsg | opType 1 mochila, 3 equipamento, 4 medalha: alterna `isLocked`. Item travado não é vendido nem usado | 115 | *(cliente)* |
 | 8484 ItemUseStoreReqMsg | gasta `count` Şeytan Kristali (208014, Property1 = EXP) no cristal: `storeGp` e `storeGrade` (`UpGradeTempInfos` Types 15, `Data` = total) | 115, 3 | *(cliente)* |

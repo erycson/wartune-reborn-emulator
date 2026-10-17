@@ -372,7 +372,10 @@ async def bag_arrange(s: GameSession, msg: pb.ArrangeReq) -> None:
                 item.count += use
                 if bag.take_one(snap, other, use):
                     gone.append(other)
-    kept = [i for i in items if i not in gone]
+    kept = sorted((i for i in items if i not in gone), key=lambda i: i.pos)
+    if gone:  # ponytail: depois de juntar pilhas, fecha os buracos na mesma ordem (dedução)
+        for pos, item in enumerate(kept):
+            item.pos = pos
     await s.ctx.characters.save(*kept, delete=tuple(gone))
     old = [Item(0, 0, pos=p) for p in by_pos if p not in {i.pos for i in kept}]
     _send_items(s, kept, old)
