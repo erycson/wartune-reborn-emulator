@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # true pula o tutorial: o noviceProcess salvo nunca fica abaixo de 19000 (cena do castelo)
     skip_tutorial: bool = False
 
+    # Segredo compartilhado com o painel GM do portal (POST /gm/kick). Sem ele a rota não existe.
+    gm_secret: str | None = None
+
     socket_session_ttl_seconds: int = 1800  # sem uso por esse tempo, o login HTTP precisa ser refeito
     idle_timeout_seconds: int = 300
 

@@ -98,7 +98,7 @@ class GameServerApp:
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds
         )
-        self.http_app = build_http_app(HttpDeps(settings, services.login, services.characters))
+        self.http_app = build_http_app(HttpDeps(settings, services.login, services.characters, self.online))
 
     async def serve(self, stop: asyncio.Event) -> None:
         s = self.settings

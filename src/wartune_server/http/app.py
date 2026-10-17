@@ -13,8 +13,9 @@ Formatos conferidos no cliente decompilado:
 
 from __future__ import annotations
 
+import hmac
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from xml.sax.saxutils import quoteattr
 
 import structlog
@@ -23,6 +24,7 @@ from aiohttp.typedefs import Handler
 
 from ..config import Settings
 from ..domain.errors import DomainError, ValidationError
+from ..game.session import OnlinePlayers
 from ..services.characters import CharacterService, RegistrationRequest
 from ..services.login import LoginService
 
@@ -59,6 +61,7 @@ class HttpDeps:
     settings: Settings
     login: LoginService
     characters: CharacterService
+    online: OnlinePlayers = field(default_factory=OnlinePlayers)
 
 
 class GameHttpApi:
@@ -77,6 +80,8 @@ class GameHttpApi:
         r.add_route("*", "/flashversionservlet", self.plain_true)
         r.add_post("/maillist", self.empty_list)  # EmailManager
         r.add_post("/questionreplaylist", self.empty_list)  # CustomerServiceManager: respostas do suporte
+        if self._d.settings.gm_secret:  # sem segredo a rota nem existe (a porta é pública)
+            r.add_post("/gm/kick", self.gm_kick)
 
     # -- jogo --------------------------------------------------------------------------
     async def crossdomain(self, _: web.Request) -> web.Response:
@@ -137,6 +142,21 @@ class GameHttpApi:
             log.info("updateplayernovice recusado", erro=str(exc))
             return web.Response(text="0")
         return web.Response(text=str(snap.character.novice_process))
+
+    async def gm_kick(self, request: web.Request) -> web.Response:
+        """Portal (painel GM): derruba o personagem antes de editar o banco; 200 = já pode gravar."""
+        secret = self._d.settings.gm_secret or ""
+        if not hmac.compare_digest(request.headers.get("X-GM-Secret", "").encode(), secret.encode()):
+            log.warning("gm/kick com segredo errado", peer=request.remote)
+            return web.json_response({"ok": False, "error": "segredo inválido"}, status=403)
+        try:
+            character_id = _int(await _params(request), "character_id")
+            await self._d.online.kick(character_id)
+        except ValidationError as exc:
+            return web.json_response({"ok": False, "error": str(exc)}, status=400)
+        except TimeoutError:
+            return web.json_response({"ok": False, "error": "a sessão não terminou a tempo"}, status=503)
+        return web.json_response({"ok": True})
 
     async def plain_true(self, _: web.Request) -> web.Response:
         return web.Response(text="true")

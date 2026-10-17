@@ -19,6 +19,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_TEMPLATES_URL` | vazio | ex.: `https://cdn.exemplo.com/xml/tempinfos.xml`, usada pelo `templates update` |
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |
 | `WARTUNE_SKIP_TUTORIAL` | `false` | faz o tutorial ([tutorial.md](tutorial.md)); `true` mantém o `noviceProcess` em no mínimo 19000 (cena do castelo) |
+| `WARTUNE_GM_SECRET` | vazio | segredo do painel GM do portal (`gm_secret` no `config.php`). Liga o `POST /gm/kick` (cabeçalho `X-GM-Secret`, campo `character_id`), que derruba o jogador e só responde depois que a sessão terminou, para o portal editar o banco sem o servidor desfazer. Vazio: a rota não existe |
 | `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |
 | `WARTUNE_IDLE_TIMEOUT_SECONDS` | `300` | desconecta um socket ocioso |
 | `WARTUNE_LOG_DIR` | `logs` | |

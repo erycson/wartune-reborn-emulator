@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
 log = structlog.get_logger(__name__)
 
 LOGIN_CODE = 20001
+KICK_TIMEOUT = 5  # segundos para a sessão derrubada terminar o handler em andamento
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +65,20 @@ class OnlinePlayers:
         if self._by_id.get(player_id) is session:
             del self._by_id[player_id]
 
+    async def kick(self, player_id: int) -> None:
+        """Derruba a sessão e espera ela terminar (o handler em andamento conclui e salva antes).
+
+        Depois disso o banco pode ser editado por fora sem o ``merge`` da sessão desfazer.
+        ``TimeoutError`` se ela não terminar a tempo.
+        """
+        session = self._by_id.get(player_id)
+        if session is None:
+            return
+        log.info("derrubando jogador a pedido do GM", player=player_id)
+        session.connection.close()
+        async with asyncio.timeout(KICK_TIMEOUT):
+            await session.gone.wait()
+
 
 class GameSession:
     def __init__(self, connection: Connection, ctx: GameContext) -> None:
@@ -74,6 +90,7 @@ class GameSession:
         self.battle: Battle | None = None
         self.hero_sp = 0  # SP do herói entre batalhas (o oficial carrega de uma para a outra)
         self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
+        self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
     @property
@@ -101,3 +118,4 @@ class GameSession:
         if self.snapshot is not None:
             self.ctx.online.unbind(self.player_id, self)
             self.log.info("jogador saiu", player=self.player_id)
+        self.gone.set()
