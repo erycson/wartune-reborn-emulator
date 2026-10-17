@@ -47,6 +47,13 @@ async def test_system_mail_with_annex_is_listed_and_picked_up_once(tmp_path: Pat
         assert list(pb.MailDelReqMsg.FromString((await a.until(4132))[-1].body).delList) == [mail.id]
         assert "<Info" not in await _inbox(a)
 
+        gold = s.snapshot.character.gold  # type: ignore[union-attr]
+        coins = await send_system_mail(s.ctx, a.user_id, "ouro", "moedas", [(-100, 50)])  # -100 = ouro
+        a.client.send(5022, pb.MailMsg(mailsIdArray=[coins.id or 0], position=[0]))
+        rsp = pb.MailPickupRspMsg.FromString((await a.until(114))[-1].body)
+        assert [r.result for r in rsp.pickupResult] == [True]
+        assert s.snapshot.character.gold == gold + 50  # type: ignore[union-attr]
+
 
 async def test_player_mail_costs_gold_and_notifies(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as a:
