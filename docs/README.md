@@ -13,4 +13,5 @@
 | [configuracao.md](configuracao.md) | Variáveis de ambiente, logs e CLI |
 | [ferramentas.md](ferramentas.md) | Decompilação, geração do `.proto` e dos opcodes, exportação das capturas |
 | [multiplayer.md](multiplayer.md) | Levantamento do multiplayer e ordem de implementação: [chat](chat.md), [mundo compartilhado](mundo-compartilhado.md), [PvP](pvp.md), [boss e eventos](boss-eventos.md) |
+| [pvp.md](pvp.md) | Coliseu, torneio de fadas e os eventos PvP fechados (Senhores, campo de batalha, mina) |
 | [roadmap.md](roadmap.md) | O que está pronto e os próximos marcos |

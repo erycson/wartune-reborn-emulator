@@ -22,12 +22,9 @@ robô), e a IA dele age. Os robôs de iniciante têm `userId 13000xxxxx`.
 - `heroId` alto
 - nome e skills do jogador copiado
 
-**O que falta no `battle.py` atual:**
-- o lado do jogador perder de verdade (hoje o dano nunca leva o jogador abaixo de 1 de vida);
-- herói e pet inimigos montados a partir de um snapshot;
-- 75 também para a IA inimiga;
-- batalha só de pets, automática;
-- limite de tempo com o 4361.
+**No `battle.py`** (detalhes em [batalha.md](batalha.md)): com `spec["pvp"]` o lado do jogador
+perde de verdade, o herói inimigo anuncia a skill no 75 e o dano é simétrico; a batalha só de
+pets é automática e manda o 4361 aos 60 s.
 
 ## Coliseu (desafio por ranking, battleType 16)
 
@@ -69,8 +66,9 @@ robô), e a IA dele age. Os robôs de iniciante têm `userId 13000xxxxx`.
 - **Reset diário:** 4202 `DataResetMsg`.
 - **Histórico:** `ChallengeInfoMsg.challengeLog[]`.
 
-**Lacunas:** não há tabela de recompensa por posição no tempinfos, e a regra de troca de posição
-no ranking não foi observada.
+**Lacunas:** não há tabela de recompensa por posição no tempinfos (o servidor usa
+`data/colosseum_rewards.json`), e a regra de troca de posição no ranking não foi observada (o
+servidor troca as duas posições).
 
 ## Torneio de fadas (battleType 35)
 
@@ -164,3 +162,82 @@ Fica por último, ou capturar antes.
   - reset pelo 4202.
 - **Recompensas:** flags de já resgatada.
 - **Mapa:** dono da mina, proteção do castelo.
+
+Feito: `arenas` (contadores, espera, pontos e formação do torneio, resgates; no snapshot),
+`arena_ranks` (posição do coliseu, fora do snapshot) e `challenge_logs` (histórico), migração
+0003. Falta o mapa (mina de ouro, castelo).
+
+## O que o servidor faz
+
+Código: `game/arena.py` (regras), `game/handlers/arena.py` (coliseu e torneio),
+`handlers/lords.py`, `handlers/warfield.py`, `handlers/battle.py`. Teste: `tests/game/test_pvp.py`.
+
+Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado (`m2/scripts/...`);
+*(dedução)* escolha nossa.
+
+### Coliseu
+
+| C>S | O servidor faz / responde | Fonte |
+|---|---|---|
+| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (arma/armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. | *(visto)* meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
+| 8253 `{tarUserId, payType}` | Recusa (só 4176) se fora da lista, em espera, em batalha ou sem tentativas. Da 11ª à 20ª cobra `min((compradas+1)*2, 10)` diamantes (`payType 0` usa o vinculado primeiro, `1` só diamante). Gasta a tentativa e grava **antes** da luta (cair não devolve). 140 `state 2`, 157 `battleType 16, mapTempId 992`, herói inimigo `type 2, userId 0, heroId 1300000000`. No fim: 3, 150, 4103 `{battleScene 7, gpBonus}`, 83 EXP, 140 `state 0`, 4176 `{leftTime 600}` (a espera conta do fim, como na captura). | *(visto)* #6, #26-#29; *(cliente)* `ColosseumModel.buyCountNeedPay` |
+| 8265 `PayTypeMsg` | Zera a espera (type 0 coliseu, 1 torneio) por `ceil(s/60)*5` diamantes (`payType 2` aceita vinculado); 3 e 4176. | *(cliente)* `QueueBar.as`, `SocketSendManager.sendCoolColosseun` |
+| 8329 | Recompensa da posição, uma por período de `period_days`: ouro e Ruh de `data/colosseum_rewards.json`. 4243 `{isTake false, param1 posição, param2 ouro, param3 Ruh, param4 dias}`. | *(cliente)* `TopToolsBar.as`; tabela *(dedução)* |
+| 5021 | `type 1`: tentativa do torneio por `Jion_pet_challenge` de ouro (até 10/dia, *dedução*), 109 e 4176. Outros tipos (2 = chegada dos deuses) não são daqui: registrado. O coliseu compra pelo 8253. | *(cliente)* `PetChallengeController.buyChallengeCount` |
+| 8635 `QuestInfo` | Lutar contra a própria cópia é ação de missão com condição 92, que não existe no tempinfos: recusado com log. | *(cliente)* `TaskFrameII.as` |
+| 8590 | 4482 `{isTake false}` ("sem direito"): não há arena entre servidores. | *(cliente)* `TopToolsBar.as` |
+
+**Ranking** (`arena_ranks`, por servidor, fora do snapshot porque muda quando outro vence): a
+primeira vitória (contra robô ou jogador) entra no fim; vencer alguém acima troca as posições;
+perder não muda nada. Leitura, troca e gravação sob uma trava global (`arena.RANK_LOCK`). O
+atacado ganha uma linha no histórico (`challenge_logs`) sem que a sessão dele seja tocada.
+
+**Login:** 4176 tipo 0 (usadas, espera) e tipo 1 (restantes) no 8224 `sys`; 4244 (`isTake` =
+pode resgatar) com `challReward`; 4613 com `petChallengeReward`; 4481 com `crossScoreReward`.
+
+**Reset diário:** os contadores (`arenas.day`) zeram no primeiro pedido do dia; com a tela aberta
+vai o 4202 com vigor e ataques atuais (o cliente sobrescreve esses campos).
+
+**Robôs:** `Robot(id, nível)`; nome, sexo e herói saem do id (mesmo robô na lista e na luta).
+Só há robôs guerreiros nos templates (`GameHeroTemp` HeroType 2: 11001-11030 e 14001-14030),
+então acima do nível 30 eles ficam no 30. Vão com 2 arqueiros 10202, como na captura.
+
+**EXP da luta:** `win_gp_per_grade`/`lose_gp_per_grade` × nível, no mesmo arquivo *(dedução: a
+captura soma EXP mundial e offline, sem fórmula)*. O drop por vitória (#30) não foi reproduzido.
+
+### Torneio de fadas
+
+| C>S | O servidor faz / responde | Fonte |
+|---|---|---|
+| 8256 `{type:1}` | 4611: `playerInfo{score, order}` (o cliente monta a própria linha; o jogador não vai em `playerPets`), até 4 jogadores de pontos logo acima, robôs (3 pets nível 50, qualidade 6, ordem 500+) e o histórico. | *(visto)* peri_turnuvasi #3, #58 |
+| 8256 `{type:2}` | 4619 com os 10 de mais pontos. | *(cliente)* `PetChallengeController.openChallengeTopFrame` |
+| 8724 `{tarUserId}` | Exige nível `Pet_Challenge_Grade`, formação com pets, oponente da lista, sem espera e tentativas. 157 `battleType 35` só com `pets` (os do jogador com `userId` dele), automática: sem 75, 4361 `{60000, 50}` no quadro 1500. No fim: 4176 `{leftTime 300}`, 4103 `{battleScene 19}`, 83 "Puan  +5". | *(visto)* #7, #43-#47, #55 |
+| 8725 `chaPos` | Só ids de pets do jogador e -1; grava e confirma com 4540 `{chaPos}`. Sem `chaPos` (os Senhores mandam assim) é ignorado. | *(cliente)* `PlayerManager.as` |
+| 8726 | Skills do pet no torneio: o pet tem de ser do jogador; responde 4540 com `chaSkillIndexs`. | *(cliente)* `PetData.as` |
+| 8727 | "Encerrar já" (`Battle.finish`): só para VIP ≥ `Pet_BattleOver_Grade`; sem VIP no servidor, recusado. | *(cliente)* `BattleUIView.as` |
+| 8728 `{type 1/2}` | Recompensa diária/semanal de `PetChallengeRewards` pela ordem, uma por dia/semana ISO; itens na mochila (115) e 4613 `{status 1, rank}`. | *(cliente)* `PetChallengeReportFrame`; template |
+
+**Depende do sistema de pets:** `arena.pets_of(snap)` devolve `[]` enquanto não houver pets no
+servidor. Sem pets o cliente nem abre o torneio ("nopet"), e o servidor recusa formação, skills,
+desafio e recompensa. O teste cobre a batalha simulando um pet. Pontos: +5 por vitória; a perda
+não foi observada e não tira pontos; os do atacado não mudam *(dedução)*. A vida e o ataque dos
+pets são aproximados do que a captura mostra.
+
+### Eventos fechados
+
+| C>S | Resposta | Por quê |
+|---|---|---|
+| 8711 | 4529 processo 0, sem campeões | Senhores (Warlords) é torneio entre servidores com agenda; sem ela, o cliente recusa a sala ("não aberto") *(cliente)* `WarlordsManager.as` |
+| 8714, 8710 | 4530 processo 0 e 4536 (expulsa da sala) | o 8714 repete a cada 5 s até o 4530 |
+| 8715, 8716 | 4531 vazio (nada é cobrado) | |
+| 8718 / 8721 | 4532 / 4537 vazios | |
+| 8717, 8720 | nada (o cliente não espera) | o 8720 só aparece depois de um 4533, nunca mandado |
+| 8979, 8975, 8976, 8981 | 4799 `{isOpen false, isSign false, isOver true}` | Senhores de casal; o botão já é escondido no cliente (`MATELORD`) |
+| 8337 | 4255 vazio | classificação do campo de batalha |
+| 8332, 8334, 8338 | nada | campo de batalha (campanhas 4001-4013, mapa com times): sem 125 o cliente não troca de cena |
+| 8633 | nada | mina de ametista (campanha 30000): o botão só aparece com 4549/4422, nunca mandados |
+
+No login (8224 `sys`): 4776 com a agenda dos Senhores no passado e 4535 processo 0; **4248 com
+`state 1` para 4001-4013** (o padrão do cliente é 0 = aberto, e o botão apareceria no nível 30).
+Abrir de verdade depende do mapa de campanha compartilhado (campo e mina) e de agenda/servidores
+cruzados (Senhores).
