@@ -170,3 +170,57 @@ async def test_rune_learn_upgrade_and_equip(tmp_path: Path) -> None:
         assert (op.opResult, op.runeInfo.runeKey) == (True, "202,-1,")
         g.client.send(8605, pb.HeroRuneOpMsg(opType=3, runeKey="301,-1,"))  # não aprendida
         assert pb.HeroRuneOpMsg.FromString((await g.until(4495))[-1].body).opResult is False
+
+
+async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from wartune_server.game.handlers import stars
+
+    rolls = iter(["202", "302", "4"])  # verde de ataque, verde de defesa, fonte de energia
+    monkeypatch.setattr(stars, "roll", lambda t, g, s: t.get("starTempInfos", int(next(rolls))))
+    monkeypatch.setattr(stars, "OPEN_NEXT", 0)
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        snap.character.gold, snap.character.grades, snap.character.point = 8000, 20, 100
+        await g.server.services.characters.save(snap.character)
+
+        g.client.send(8269, pb.StarRandReqMsg(site=0))  # grátis do dia
+        got = await g.until(4180)
+        assert codes(got) == [109, 3, 4180] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
+        for _ in range(2):
+            g.client.send(8269, pb.StarRandReqMsg(site=0))
+            await g.until(4180)
+        assert snap.character.gold == 0  # 2 x 4000
+        g.client.send(8269, pb.StarRandReqMsg(site=0))  # sem ouro
+        g.client.send(8269, pb.StarRandReqMsg(site=1))  # cristal apagado
+        assert await g.idle() == []
+
+        g.client.send(8268, pb.StarPickReqMsg(dropsite=-1))
+        got = await g.until(3)
+        assert codes(got) == [109, 4179, 4178, 4179, 3]  # a fonte de energia vira StarPoint
+        assert pb.PlayerMsg.FromString(got[-1].body).starpoint == 1000
+        assert [(s.bag_type, s.pos) for s in snap.stars] == [(1, 0), (1, 1)]
+
+        g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0))
+        assert codes(await g.until(150)) == [4178, 150]
+        g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=2))  # 2 espaços
+        assert await g.idle() == []
+        g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=0, eat=True))
+        got = await g.until(150)
+        moved = pb.StarMoveRspMsg.FromString(got[0].body).move
+        assert [(m.changeType, m.changePos, m.star_Info.gp) for m in moved] == [(1, 1, 0), (2, 0, 10)]
+
+        g.client.send(8330, pb.StarLockReqMsg(starType=2, pos=0))
+        assert pb.StarMoveRspMsg.FromString((await g.until(4178))[-1].body).move[0].star_Info.isLock
+
+        g.client.send(8270, pb.PayTypeMsg(payType=1))
+        assert pb.PlayerMsg.FromString((await g.until(3))[-1].body).starCount == 1
+        g.client.send(8341, pb.StarShopMsg(goodId=1605))  # 7000 de StarPoint: não tem
+        assert await g.idle() == []
+        g.client.send(8341, pb.StarShopMsg(goodId=4))
+        got = await g.until(3)
+        assert pb.StarMoveRspMsg.FromString(got[0].body).move[0].star_Info.templateId == 4
+
+        relogin = await g.connect()
+        relogin.client.send(8224, pb.PlayerDataMsg(star=True))
+        got = await relogin.until(4180)
+        assert len(pb.StarMoveRspMsg.FromString(got[-2].body).move) == 2

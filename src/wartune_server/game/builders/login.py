@@ -190,6 +190,9 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         status=-1,
     )
     msg.order.playerId = c.id or 0
+    if snap.systems is not None:  # estrelas: sorteios grátis, espaços comprados e moeda da loja
+        msg.startFree, msg.starCount = snap.systems.star_free, snap.systems.star_bag
+        msg.starpoint = snap.systems.star_point
     return msg
 
 

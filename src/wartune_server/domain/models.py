@@ -287,6 +287,9 @@ class PlayerSystems:
     fate_day: str = ""
     star_sites: str = "1,0,0,0,0"  # cristais abertos para sortear estrelas
     star_bag: int = 0  # espaços comprados na mochila de estrelas
+    star_point: int = 0  # moeda da loja de estrelas (PlayerMsg.starpoint)
+    star_free: int = 1  # sorteios grátis do dia (PlayerMsg.startFree)
+    star_day: str = ""
     powcards: str = ""  # cartas: "tempId:grade:gp,..."
     pet_slots: int = 0  # limites de pet comprados
 

@@ -140,6 +140,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+    if msg.star:
+        from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
+
+        login_stars(s)
 
 
 async def _login_state(s: GameSession) -> None:

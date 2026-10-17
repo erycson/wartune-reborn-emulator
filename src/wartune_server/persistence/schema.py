@@ -305,6 +305,9 @@ player_systems = Table(
     _str("fate_day", 16),
     _str("star_sites", 32, "1,0,0,0,0"),
     _int("star_bag"),
+    _int("star_point"),
+    _int("star_free", 1),
+    _str("star_day", 16),
     _str("powcards", 1024),
     _int("pet_slots"),
 )

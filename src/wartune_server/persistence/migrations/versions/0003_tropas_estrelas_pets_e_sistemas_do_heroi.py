@@ -2,7 +2,7 @@
 
 Revision ID: 0003
 Revises: 0002
-Create Date: 2026-10-17 14:23:48.918491
+Create Date: 2026-10-17 14:39:35.487532
 """
 
 from __future__ import annotations
@@ -83,6 +83,9 @@ def upgrade() -> None:
         sa.Column("fate_day", sa.String(length=16), server_default="", nullable=False),
         sa.Column("star_sites", sa.String(length=32), server_default="1,0,0,0,0", nullable=False),
         sa.Column("star_bag", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("star_point", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("star_free", sa.Integer(), server_default="1", nullable=False),
+        sa.Column("star_day", sa.String(length=16), server_default="", nullable=False),
         sa.Column("powcards", sa.String(length=1024), server_default="", nullable=False),
         sa.Column("pet_slots", sa.Integer(), server_default="0", nullable=False),
         sa.ForeignKeyConstraint(
