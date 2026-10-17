@@ -15,7 +15,7 @@ from .. import rewards
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
-from . import offer, vip
+from . import minigames, offer, vip
 from .login import army
 from .player import alert, granted
 
@@ -71,6 +71,7 @@ def login_push(s: GameSession) -> None:
     s.online_since = s.ctx.clock.now()
     vip.login_push(s)
     offer.login_push(s)
+    minigames.login_push(s)
     _send_leeds(s)
     _send_actives(s)
     _send_serven(s)
