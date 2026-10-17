@@ -1,5 +1,5 @@
 """Missões da fazenda, da montaria, dos símbolos (runas), do torneio de fadas e do mapa da cidade (tipos 59,
-60, 61, 71, 76, 77, 78, 37 e 87). Cada tipo: a ação do cliente, o 112 com o progresso e, nos de estado
+60, 61, 71, 76, 77, 78, 37, 87 e 36 = sorteio de estrela "Kader"). Cada tipo: a ação do cliente, o 112 com o progresso e, nos de estado
 (76, 78, 37), a missão aceita depois do fato já nascendo cumprida (``rules.update_state_quests``).
 """
 
@@ -216,6 +216,39 @@ async def test_quest_37_aceita_depois_de_estar_no_mapa(tmp_path: Path) -> None:
         assert quest_msgs(await g.until(112)) == {390: 2}
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=390))
         assert 52 in codes(await g.until(52))
+
+
+async def test_quest_37_vale_o_mapa_de_agora_nao_o_maior(tmp_path: Path) -> None:
+    """37 compara igual (TaskTemplate.checkMapId): no mapa 2, a 173 (mapa 1) nasce com 0; a 390 (mapa 2) cumpre
+    e, se a cidade sai para o mapa 3, volta a 0 e o 5014 não fecha."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = await _set(g, grades=35)
+        castle = snap.castle
+        assert castle is not None
+        castle.energy = 500
+        g.client.send(5176, pb.CastleReqMsg(magId=2, posX=0, posY=0, payType=1))
+        await g.until(105)
+        g.client.send(5012, pb.QuestAddedMsg(questId=[173, 390]))
+        assert quest_msgs(await g.until(112)) == {173: 0, 390: 2}
+        g.client.send(5176, pb.CastleReqMsg(magId=3, posX=0, posY=0, payType=1))
+        assert quest_msgs(await g.until(112)) == {390: 0}
+        g.client.send(5014, pb.QuestFinishedReqMsg(templateId=390))
+        assert 52 not in codes(await g.idle())
+
+
+# --- Kader / estrelas (36) -------------------------------------------------------------------------
+
+
+async def test_quest_36_sortear_kader(tmp_path: Path) -> None:
+    """36 (QuestTemps 3 "Kader", Para1 1, Para2 1): um sorteio de estrela (8269) conta; o 112 sai depois do 4180."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = await _set(g, grades=25, gold=8000)
+        _accepted(g, 3)
+        g.client.send(8269, pb.StarRandReqMsg(site=0))
+        got = await g.until(112)
+        assert codes(got).index(112) > codes(got).index(4180)
+        assert quest_msgs(got) == {3: 1}
+        assert len(snap.stars) == 1
 
 
 # --- torneio de fadas (87) -------------------------------------------------------------------------

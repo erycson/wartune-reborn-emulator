@@ -13,9 +13,9 @@ from .builders.login import QUEST_SITE_LEN, HeroStats
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
 BUILDING_CONDITION = 2  # QuestConditionInfo: prédio SonType Para1 no nível Para2 (progresso = nível atual)
-MAP_CONDITION = 37  # QuestCondictionInfo: cidade transferida para o mapa Para2 (MapInfos Id 1 a 5; guarda o maior)
+# 37: a cidade está no mapa Para2, igualdade e não "o maior" (cliente) TaskTemplate.checkMapId
+MAP_CONDITION = 37
 RUNE_STUDY, RUNE_COMBINE, RUNE_GRADE = 76, 77, 78  # símbolo aprendido (Para1 = RuneType), pedras gastas, grau
-REGION_MAPS = range(1, 6)  # mapas compartilhados 1 a 5 (outer_city.map_allowed)
 WEAPON, CLOTH = "101", "104"  # ItemTempInfo.SonType
 WING, HAT, FASHION_CLOTH, FASHION_ARM = "109", "110", "112", "111"
 HERO_BAGS = (BagType.RUNE, BagType.HONOR, BagType.HERO)  # bolsas do herói que somam atributos
@@ -202,7 +202,7 @@ def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1
     return changed
 
 
-LEVEL_CONDITIONS = {10, MAP_CONDITION, RUNE_GRADE}  # nível da tropa (10), mapa da cidade (37), grau do símbolo (78)
+LEVEL_CONDITIONS = {10, RUNE_GRADE}  # nível da tropa (10), grau do símbolo (78)
 
 
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
@@ -341,10 +341,14 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
         cond = templates.get("QuestCondictionInfos", q.template_id)
         if q.completed or cond is None:
             continue
-        kind, para1 = int(cond["CondictionType"]), int(cond["Para1"])
-        if kind == MAP_CONDITION:
-            value = snap.castle.map_id if snap.castle is not None and snap.castle.map_id in REGION_MAPS else 0
-        elif kind in (RUNE_STUDY, RUNE_GRADE):
+        kind, para1, para2 = int(cond["CondictionType"]), int(cond["Para1"]), int(cond["Para2"])
+        if kind == MAP_CONDITION:  # vale o mapa de agora: sair dele desfaz (checkMapId)
+            here = snap.castle is not None and snap.castle.map_id == para2
+            if q.progress != (value := para2 if here else 0):
+                q.progress = value
+                changed.append(q)
+            continue
+        if kind in (RUNE_STUDY, RUNE_GRADE):
             mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
             value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
         else:

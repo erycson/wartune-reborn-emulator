@@ -310,7 +310,8 @@ async def _rune_upgrade(
     set_runes(hero, learned)
     new_tpl = templates.get("RuneTempInfos", rune_id)
     assert new_tpl is not None
-    # 78: o grau que o símbolo chegou (o maior); 77: pedras da bolsa gastas (o cliente conta por pedra)
+    # 78: o grau que o símbolo chegou (o maior); 77: pedras da bolsa gastas, uma por pedra (dedução: QuestTemps
+    # 916 chama de "Sembol Taşını birleştirme" dar a pedra ao símbolo; o cliente só faz checkCount)
     quests = rules.quest_event(snap, templates, rules.RUNE_GRADE, int(new_tpl["RuneType"]), int(new_tpl["RuneGrade"]))
     if msg.count > 0:
         quests += rules.quest_event(snap, templates, rules.RUNE_COMBINE, RUNE_EXP_ITEM, msg.count)
