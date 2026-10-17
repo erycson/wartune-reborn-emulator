@@ -1,0 +1,142 @@
+"""Entidades do domínio (sem dependência de banco ou rede).
+
+Modelo multi-servidor: uma ``Account`` é global (login do portal) e pode ter um
+``Character`` em cada ``GameServer`` (S1, S2...). Tudo que pertence ao jogo
+(herói, castelo, itens...) pendura no personagem, nunca na conta.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import IntEnum
+
+
+class Sex(IntEnum):
+    FEMALE = 0
+    MALE = 1
+
+
+class Job(IntEnum):
+    """``JobType`` do cliente: 1-3 masculino, 4-6 feminino (guerreiro, caçador, mago)."""
+
+    MALE_WARRIOR = 1
+    MALE_HUNTER = 2
+    MALE_WIZARD = 3
+    FEMALE_WARRIOR = 4
+    FEMALE_HUNTER = 5
+    FEMALE_WIZARD = 6
+
+    @property
+    def sex(self) -> Sex:
+        return Sex.MALE if self.value <= 3 else Sex.FEMALE
+
+
+@dataclass(eq=False)
+class Account:
+    username: str
+    password_hash: str
+    created_at: datetime
+    id: int | None = None
+    last_login_at: datetime | None = None
+    banned: bool = False
+
+
+@dataclass(eq=False)
+class GameServer:
+    id: int
+    name: str
+    site: str
+    public_host: str
+    http_port: int
+    socket_port: int
+    opened_at: datetime
+
+
+@dataclass(eq=False)
+class Character:
+    """Personagem de uma conta em um servidor. ``id`` é o ``playerId``/``userId`` do cliente."""
+
+    account_id: int
+    server_id: int
+    nickname: str
+    sex: int
+    camp: int
+    job: int
+    created_at: datetime
+    id: int | None = None
+    grades: int = 1
+    gp: int = 0
+    total_gp: int = 0
+    gold: int = 0
+    point: int = 0  # moeda premium
+    gift_token: int = 0
+    weary: int = 200
+    weary_limit: int = 200
+    novice_process: int = 0
+    fighting_capacity: int = 0
+    repute: int = 0
+    geste: int = 0
+    charm: int = 0
+    last_login_at: datetime | None = None
+
+    @property
+    def icon(self) -> int:
+        """O cliente usa o mesmo número para ``pic``/``icon`` e ``job``."""
+        return self.job
+
+
+@dataclass(eq=False)
+class Hero:
+    """Herói líder do personagem (``SimpleHeroInfoMsg``)."""
+
+    character_id: int
+    template_id: int
+    nickname: str
+    id: int | None = None
+    grades: int = 1
+    gp: int = 0
+    power: int = 0
+    agility: int = 0
+    intellect: int = 0
+    captain: int = 0
+    physique: int = 0
+    power_point: int = 0
+    agility_point: int = 0
+    intellect_point: int = 0
+    captain_point: int = 0
+    physique_point: int = 0
+    remain_point: int = 0
+    skill_point: int = 0
+    skill_script: str = ""
+    fast_key: str = ""
+    fight_pos: int = 1
+    is_leader: bool = True
+
+
+@dataclass(eq=False)
+class Castle:
+    character_id: int
+    name: str
+    map_id: int
+    pos_x: int
+    pos_y: int
+    id: int | None = None
+    grade: int = 1
+    energy: int = 500
+    state: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class PlayerSnapshot:
+    """Tudo que o login precisa de uma vez (carregado numa transação)."""
+
+    account: Account
+    server: GameServer
+    character: Character
+    heroes: list[Hero] = field(default_factory=list)
+    castle: Castle | None = None
+
+    @property
+    def leader(self) -> Hero | None:
+        return next((h for h in self.heroes if h.is_leader), None)
