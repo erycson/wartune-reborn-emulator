@@ -36,13 +36,13 @@ Levantamento e ordem em [multiplayer.md](multiplayer.md).
 - [x] Cidade do céu, fatia 2: nós (4601), posição gravada, visual (149), entrada e volta da ilha dos pets. Também: garagem de veículos, conta e segurança ([diversos.md](diversos.md))
 - [ ] Coliseu contra robôs e cópias de jogadores
 - [x] Atividades (SumActive), assinatura, leed, VIP, recompensas e minigames ([eventos.md](eventos.md)); condições que dependem de outros sistemas listadas lá
-- [ ] Boss mundial
+- [ ] Boss mundial: agenda (8271 -> 4182) e recusas prontas; falta o mapa do chefe ([boss-eventos.md](boss-eventos.md))
 - [ ] Times, mina de ouro, torneio de fadas
 - [x] Coliseu contra robôs e cópias de jogadores, ranking e recompensas ([pvp.md](pvp.md))
 - [ ] Torneio de fadas: pronto do lado do PvP, espera o sistema de pets
 - [ ] Senhores, campo de batalha, mina de ametista: respondem como fechados
 - [ ] Atividades (SumActive): login e presente online
-- [ ] Boss mundial
+- [ ] Boss mundial: agenda (8271 -> 4182) e recusas prontas; falta o mapa do chefe ([boss-eventos.md](boss-eventos.md))
 - [ ] Amigos, times, mina de ouro
 - [ ] Guilda, boss de guilda, ataque a castelo
 - [ ] Amigos, times, mina de ouro, torneio de fadas

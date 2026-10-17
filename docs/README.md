@@ -21,5 +21,6 @@
 | [diversos.md](diversos.md) | Veículos, anti-vício, senha secundária, captcha, acelerador e os pacotes do login que faltam |
 | [social.md](social.md) | Amigos, lista negra, correio (socket + `maillist`), troca de nome, casamento |
 | [pvp.md](pvp.md) | Coliseu, torneio de fadas e os eventos PvP fechados (Senhores, campo de batalha, mina) |
+| [boss-eventos.md](boss-eventos.md) | Chefe do mundo: agenda (4182), recusas de entrada, reviver e buff, e o que falta do mapa do chefe |
 | [guilda.md](guilda.md) | Guilda: opcodes, regras do cliente, estado em memória, o que falta (altar, guerra) |
 | [roadmap.md](roadmap.md) | O que está pronto e os próximos marcos |

@@ -1,0 +1,87 @@
+from datetime import UTC, datetime
+from pathlib import Path
+
+from tests.game.harness import logged_in
+from wartune_server.game import worldboss
+from wartune_server.game.router import router
+from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
+from wartune_server.templates.repository import GameTemplates
+
+WORLD_BOSS_OPCODES = (8258, 8259, 8264, 8271, 8470)
+ALERT = 111
+BEFORE_OPEN = datetime(2026, 5, 21, 9, 20, tzinfo=UTC)  # 12:20 em UTC+3: 5001 fechado, 5003 ainda não
+OPEN_5001 = datetime(2026, 5, 21, 8, 30, tzinfo=UTC)  # 11:30 em UTC+3
+
+
+def _states(msg: pb.WorldBossStateMsg) -> list[tuple[int, int]]:
+    return [(i.campaignId, i.state) for i in msg.worldBossInfo]
+
+
+def test_window_uses_utc_plus_3_and_edges() -> None:
+    templates = GameTemplates(
+        {
+            "Campaigns": [
+                {"CampaignId": "5001", "Types": "1", "OpenTime": "11:00", "StopTime": "12:00", "MinLevel": "20"},
+                {"CampaignId": "5003", "Types": "1", "OpenTime": "21:35", "StopTime": "22:35", "MinLevel": "20"},
+                {"CampaignId": "4602", "Types": "16", "OpenTime": "21:35", "StopTime": "22:35", "MinLevel": "20"},
+            ]
+        }
+    )
+    # captura (replay idx 78 -> 102): 5001=2 e 5003=1
+    assert _states(worldboss.states_msg(templates, BEFORE_OPEN)) == [(5001, 2), (5003, 1)]
+    row = worldboss.boss(templates, 5001)
+    assert row is not None
+    assert worldboss.state(row, datetime(2026, 5, 21, 8, 0, tzinfo=UTC)) == worldboss.OPEN  # 11:00 em UTC+3
+    assert worldboss.state(row, datetime(2026, 5, 21, 7, 59, tzinfo=UTC)) == worldboss.BEFORE
+    assert worldboss.state(row, datetime(2026, 5, 21, 8, 59, tzinfo=UTC)) == worldboss.OPEN  # 11:59
+    assert worldboss.state(row, datetime(2026, 5, 21, 9, 0, tzinfo=UTC)) == worldboss.CLOSED  # 12:00
+    assert worldboss.boss(templates, 4602) is None  # Types 16 não é chefe do mundo
+
+
+async def test_agenda_e_recusas_com_o_relogio_da_captura(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(BEFORE_OPEN)) as g:
+        c = g.client
+        c.send(8271)
+        [state] = [pb.WorldBossStateMsg.FromString(p.body) for p in await g.idle() if p.code == 4182]
+        assert _states(state) == [(5001, 2), (5003, 1)]
+
+        c.send(8258, pb.WorldBossMsg(param1=5003))  # fora da janela: aviso, sem 125
+        c.send(8258, pb.WorldBossMsg(param1=4602))  # não é chefe do mundo
+        assert [p.code for p in await g.idle()] == [ALERT, ALERT]
+
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        ch = session.snapshot.character
+        ch.point, ch.gift_token = 50, 50
+        c.send(8264, pb.PayTypeMsg(payType=0))  # reviver: sem morte no chefe, nada cobrado
+        c.send(8470, pb.WorldBossBufferMsg(op=2, type=2))  # buff: sem mapa do chefe, nada cobrado
+        assert [p.code for p in await g.idle()] == [ALERT, ALERT]
+        assert (ch.point, ch.gift_token) == (50, 50)
+
+
+async def test_entrada_aberta_sem_mapa_recusa_com_aviso(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
+        c = g.client
+        c.send(8258, pb.WorldBossMsg(param1=5001))  # nível 1 < 20
+        assert [p.code for p in await g.idle()] == [ALERT]
+
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        session.snapshot.character.grades = 20
+        c.send(8258, pb.WorldBossMsg(param1=5001))  # aberto e nível ok: só falta o mapa
+        assert [p.code for p in await g.idle()] == [ALERT]
+
+
+async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(BEFORE_OPEN)) as g:
+        c = g.client
+        for code in (8258, 8259, 8264, 8470):
+            c.send(code)  # corpo vazio: 8258 recusa (id 0), 8259 não tem resposta
+        c.send(8271)
+        assert [p.code for p in await g.idle()] == [ALERT, ALERT, ALERT, 4182]
+
+
+def test_todo_opcode_da_lista_tem_handler() -> None:
+    for code in WORLD_BOSS_OPCODES:
+        assert router.get(code) is not None, code
