@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ...domain.models import Item, Quest
+from ...domain.models import Item, PlayerSnapshot, Quest
 from ...protocol.messages import wartune_pb2 as pb
+from ...templates.repository import GameTemplates
 from .login import NEVER, QUEST_SITE_LEN, fmt_time
 
 ITEM_ADDED = 1  # ItemMoveUpdateMsg.changeType: bolsa (1) ou herói (4), igual ao bagType de destino
@@ -72,4 +73,24 @@ def item_moved(change_type: int, object_id: int, pos: int, item: Item | None, pl
     moved = msg.moved.add(changeType=change_type, changeObjId=object_id, changePos=pos)
     if item is not None:
         moved.item.CopyFrom(item_info(item, player_id))
+    return msg
+
+
+def smithy(templates: GameTemplates) -> pb.ItemSmithyMsg:
+    """4184 do login: as receitas de composição liberadas (o oficial manda todos os Ids)."""
+    return pb.ItemSmithyMsg(composeId=[int(r["Id"]) for r in templates.rows("ComposeTempInfos")])
+
+
+def fashion_book(snap: PlayerSnapshot, templates: GameTemplates) -> pb.FashionMsg:
+    """4542: o livro de moda (modas registradas, aparência ligada, avaliação) e, em ``fashionIds``,
+    todas as modas do jogo (MasterType 1, SonType 109-112), como o oficial."""
+    msg = pb.FashionMsg()
+    sons = ("109", "110", "111", "112")
+    msg.fashionIds.extend(
+        int(r["TemplateId"])
+        for r in templates.rows("ItemTempInfos")
+        if r.get("MasterType") == "1" and r.get("SonType") in sons
+    )
+    for f in snap.fashions:
+        msg.info.add(tempId=f.template_id, isSwitch=f.is_switch, appraisalSkill=f.appraisal_skill)
     return msg

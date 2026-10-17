@@ -29,6 +29,7 @@ S_PLAYER_INFO = 3
 S_ARMY = 150
 S_LOGIN_STATE = 6
 S_LOGIN_SYNC_MAPID = 4598
+S_FASHION_BOOK, S_SMITHY = 4542, 4184
 S_CASTLE = 4153
 S_CASTLE_TIME = 4452
 S_BUILDINGS = 4154
@@ -151,6 +152,8 @@ async def _login_state(s: GameSession) -> None:
         for item in snap.items:
             bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
         s.send(S_ITEMS, bag)
+    _send(s, S_FASHION_BOOK, pb_player.fashion_book(snap, s.ctx.templates))
+    s.send(S_SMITHY, pb_player.smithy(s.ctx.templates))
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

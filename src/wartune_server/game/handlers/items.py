@@ -17,9 +17,10 @@ from ...services import cash
 from ...templates.repository import Row
 from .. import bag, rules
 from ..builders import login as b
-from ..builders.player import item_info, item_moved
+from ..builders.player import fashion_book, item_info, item_moved
 from ..router import router
 from ..session import GameSession
+from . import fashion
 from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, castle_yield
 from .shop import send, send_blood
 
@@ -114,12 +115,16 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         if other is not None:
             other.bag_type, other.object_id, other.pos = begin
         first, second = other, item
-    await s.ctx.characters.save(*(i for i in (item, other) if i is not None and i not in gone), delete=gone)
+    book = fashion.register(snap, s.ctx.templates, item.template_id) if end_bag == BagType.HERO else None
+    kept = (i for i in (item, other, book) if i is not None and i not in gone)
+    await s.ctx.characters.save(*kept, delete=gone)
 
     _player(s)
     _army(s)
     s.send(S_ITEMS, item_moved(*begin, first, s.player_id))
     s.send(S_ITEMS, item_moved(*end, second, s.player_id))
+    if book is not None:
+        send(s, fashion.S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
 
 
 # --- 5006 usar ---
