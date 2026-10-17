@@ -12,7 +12,7 @@ from ..session import GameSession
 from .login import army, player_info
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
-S_CHAT, S_CASTLE_YIELD, S_FAST_KEY, S_TIME = 83, 109, 64, 4234
+S_CHAT, S_ALERT, S_CASTLE_YIELD, S_FAST_KEY, S_TIME = 83, 111, 109, 64, 4234
 GOLD_MAX, CRYSTALS = 10000, 1000  # ponytail: armazém e cristais fixos até existirem no banco
 
 
@@ -93,6 +93,10 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     _player(s)
     for item in goods:
         s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
+        row = s.ctx.templates.get("ItemTempInfos", item.template_id) or {}
+        text = f"Kazanılan:{row.get('TemplateName', item.template_id)} x{item.count}"
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_QUEST_DONE, pb.QuestFinishedRspMsg(templateId=q.template_id))
 
 

@@ -56,6 +56,7 @@ class CampaignMap:
     escort: int = 0  # nodeId do NPC que segue o jogador (Tina), 0 = nenhum
     callbacks: Counter[int] = field(default_factory=Counter)  # 5032 recebidos por nó
     fighting: int = 0  # campDataId em combate
+    talked: set[int] = field(default_factory=set)  # nós cujo diálogo de chegada já saiu
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:

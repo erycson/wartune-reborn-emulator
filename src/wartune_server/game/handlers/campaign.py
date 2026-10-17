@@ -269,7 +269,9 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         return
     camp = msg.paraInt1
     if camp in ARRIVE_PLOT:
-        _plot(s, ARRIVE_PLOT[camp])
+        if camp not in c.talked:  # o cliente repete o 5125 enquanto anda sobre o nó
+            c.talked.add(camp)
+            _plot(s, ARRIVE_PLOT[camp])
     elif camp == WALK_TRIGGER:
         _player_move(s, camp, camera=True)
     elif camp == CHEST:
