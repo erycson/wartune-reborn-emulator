@@ -18,6 +18,7 @@ CODES = [
     8752, 8753, 8754, 8755, 9504,
 ]  # fmt: skip
 ROOM_CREATED, ROOM_LIST, PLACE, MEMBERS, TEAM_INVITE = 12, 13, 17, 120, 4620
+EXIT, KILL, MASTER = 15, 28, 121  # RoomExitRspMsg (saiu), KillPlayerRspMsg (expulso), ChangeMasterRspMsg
 
 
 def _body[M: Message](packets: list[Packet], code: int, msg_type: type[M]) -> M:
@@ -78,22 +79,22 @@ async def test_sala_criar_entrar_expulsar_sair(tmp_path: Path):
         got_a = await a.idle()
         got_b = await b.idle()
         assert _ids(_body(got_a, MEMBERS, pb.RoomPlayerListMsg)) == [a.user_id]
-        assert ROOM_LIST in [p.code for p in got_b]
+        assert KILL in [p.code for p in got_b]
 
         b.client.send(5024, pb.RoomReqMsg(roomId=room_id))  # volta a entrar
         await b.idle()
         await a.idle()
         b.client.send(5120, pb.RoomExitMsg())  # sai: o dono continua
-        assert ROOM_LIST in [p.code for p in await b.idle()]
+        assert EXIT in [p.code for p in await b.idle()]
         assert _ids(_body(await a.idle(), MEMBERS, pb.RoomPlayerListMsg)) == [a.user_id]
 
         b.client.send(5024, pb.RoomReqMsg(roomId=room_id))  # de novo, e a saída do dono dissolve
         await b.idle()
         await a.idle()
         a.client.send(5120, pb.RoomExitMsg())
-        assert ROOM_LIST in [p.code for p in await a.idle()]
+        assert EXIT in [p.code for p in await a.idle()]
         got_b = await b.idle()
-        assert ROOM_LIST in [p.code for p in got_b]
+        assert EXIT in [p.code for p in got_b]
         b.client.send(5026, pb.RoomReqMsg())
         assert list(_body(await b.idle(), ROOM_LIST, pb.RoomListRspMsg).room) == []
 
@@ -117,3 +118,20 @@ async def test_queda_do_membro_avisa_quem_ficou(tmp_path: Path):
         b.client.writer.close()  # desconexão: o teardown tira b da sala antes do unbind
         got_a = await a.idle(0.3)
         assert _ids(_body(got_a, MEMBERS, pb.RoomPlayerListMsg)) == [a.user_id]
+
+
+async def test_dono_passa_o_comando(tmp_path: Path):
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("outro")
+        a.client.send(5023, pb.RoomReqMsg(capacity=2))
+        room = _body(await a.idle(), ROOM_CREATED, pb.RoomMsg)
+        b.client.send(5024, pb.RoomReqMsg(roomId=room.roomId))
+        await b.idle()
+        await a.idle()
+        a.client.send(5030, pb.CampaignReqMsg(paraInt1=b.user_id))
+        got_b = await b.idle()
+        assert _body(got_b, MASTER, pb.ChangeMasterRspMsg).masterId == b.user_id
+        b.client.send(5029, pb.RoomReqMsg(index=1, open=False))  # agora b é o dono: fecha o lugar 1
+        assert PLACE in [p.code for p in await b.idle()]
+        a.client.send(5029, pb.RoomReqMsg(index=1, open=True))  # a já não manda: recusado
+        assert PLACE in [p.code for p in await a.idle()]

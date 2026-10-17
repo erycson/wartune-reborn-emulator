@@ -15,6 +15,7 @@ from ..router import router
 from ..session import GameSession
 
 S_ROOM, S_ROOM_LIST, S_PLACE, S_EDIT, S_MEMBERS = 12, 13, 17, 32, 120
+S_EXIT, S_KILL, S_MASTER = 15, 28, 121
 PLAYER_READY = 2  # playerState do dono na captura; os demais ainda não foram vistos, usam o mesmo valor
 
 
@@ -91,22 +92,29 @@ def _refuse(s: GameSession, room: Room | None) -> None:
         s.send(S_PLACE, pb.PlaceStateRspMsg(placeState=room.seats))
 
 
-def leave_room(s: GameSession, *, notify_self: bool = True) -> None:
-    """Sai da sala (botão de sair ou desconexão). O dono sair dissolve a sala e os outros voltam à lista."""
+def _exit_notice(s: GameSession, to: list[int], player_id: int) -> None:
+    """15 RoomExitRspMsg: o cliente de ``player_id`` sai da sala (RoomManager.__returnRoomHandler)."""
+    for pid in to:
+        other = s.ctx.online.get(pid)
+        if other is not None:
+            other.send(S_EXIT, pb.RoomExitRspMsg(playerId=player_id))
+
+
+def leave_room(s: GameSession) -> None:
+    """Sai da sala (5025/5120 ou desconexão). Quem sai recebe o 15 com o próprio id (o cliente volta à lista).
+
+    O dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o próprio id.
+    """
     left = s.ctx.rooms.leave(s.player_id)
     if left is None:
         return
     room, dissolved = left
-    if dissolved:  # dissolveu: o registro já tirou todos; a lista de salas é o que sobra para eles
-        lobby = _list_msg(s.ctx.rooms.visible())
+    if dissolved:  # o registro já tirou todos; ``room.members`` ainda lista quem estava
         for pid in room.members:
-            other = s.ctx.online.get(pid)
-            if other is not None and pid != s.player_id:
-                other.send(S_ROOM_LIST, lobby)
+            _exit_notice(s, [pid], pid)
     else:
+        _exit_notice(s, [*room.members, s.player_id], s.player_id)
         _sync(s, room)
-    if notify_self:
-        s.send(S_ROOM_LIST, _list_msg(s.ctx.rooms.visible()))
 
 
 @router.on(5023)
@@ -164,6 +172,10 @@ async def change_master(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if room is None or not s.ctx.rooms.hand_over(room, msg.paraInt1):
         s.log.info("5030 recusado", novo=msg.paraInt1)
         return
+    for pid in room.members:
+        other = s.ctx.online.get(pid)
+        if other is not None:
+            other.send(S_MASTER, pb.ChangeMasterRspMsg(roomId=room.id, masterId=room.master))
     _sync(s, room)
 
 
@@ -173,11 +185,14 @@ async def kick_member(s: GameSession, msg: pb.RoomReqMsg) -> None:
     if room is None or msg.userId == s.player_id or msg.userId not in room.members:
         s.log.info("5031 recusado", alvo=msg.userId)
         return
+    # 28 KillPlayerRspMsg: o expulso também recebe, e o cliente dele volta à lista (__campaingkillOutHandler)
+    kill = pb.KillPlayerRspMsg(roomId=room.id, killedPlayerId=msg.userId)
+    for pid in room.members:
+        other = s.ctx.online.get(pid)
+        if other is not None:
+            other.send(S_KILL, kill)
     s.ctx.rooms.leave(msg.userId)  # alvo não é o dono (checado acima): só tira o lugar
     _sync(s, room)
-    target = s.ctx.online.get(msg.userId)
-    if target is not None:
-        target.send(S_ROOM_LIST, _list_msg(s.ctx.rooms.visible()))
 
 
 @router.on(5120)

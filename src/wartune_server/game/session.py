@@ -157,7 +157,7 @@ class GameSession:
             from .handlers import events, room, team  # idem
 
             try:  # sala e time antes do unbind: quem fica ainda recebe a saída
-                room.leave_room(self, notify_self=False)
+                room.leave_room(self)
                 team.leave_team(self)
             except Exception:
                 self.log.exception("falha ao sair da sala ou do time")
