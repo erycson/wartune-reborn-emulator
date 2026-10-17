@@ -458,8 +458,6 @@ async def challenge_pet(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         s.log.info("8724 recusado", motivo=reason or "em batalha", alvo=target)
         _cool(s, A.PETS)
         return
-    arena.pet_count += 1
-    arena.pet_cool_until = A.cool_until(now, A.PET_COOL)
     me = s.player_id
     units = [
         A.pet_unit(p.template, p.grade, p.quality, i + 1, 1, p.slot + 1, me, p.id, s.ctx.templates, p.skills)
@@ -475,6 +473,8 @@ async def challenge_pet(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         theirs = A.pet_robot_units(s.ctx.templates, len(units) + 1)
         name = A.Robot(target, A.PET_ROBOT_GRADE).name
     spec = A.pet_spec(units, theirs)
+    arena.pet_count += 1  # o gasto só depois de montar a luta: um erro antes não come a tentativa
+    arena.pet_cool_until = A.cool_until(now, A.PET_COOL)
 
     async def finished(battle: Battle, won: bool) -> None:
         await _pet_over(s, won, target, name)
