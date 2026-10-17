@@ -40,14 +40,14 @@ Levantamento e ordem em [multiplayer.md](multiplayer.md).
 - [ ] Coliseu contra robôs e cópias de jogadores
 - [x] Atividades (SumActive), assinatura, leed, VIP, recompensas e minigames ([eventos.md](eventos.md)); condições que dependem de outros sistemas listadas lá
 - [ ] Boss mundial: agenda (8271 -> 4182) e recusas prontas; falta o mapa do chefe ([boss-eventos.md](boss-eventos.md))
-- [ ] Times, mina de ouro, torneio de fadas
+- [ ] Times, mina de ouro
 - [x] Coliseu contra robôs e cópias de jogadores, ranking e recompensas ([pvp.md](pvp.md))
-- [ ] Torneio de fadas: pronto do lado do PvP, espera o sistema de pets
+- [x] Torneio de fadas: formação, desafio com os pets gravados, pontos, recompensas e encerrar já com VIP ([pvp.md](pvp.md)); pets que o jogador ganha são do sistema de pets
 - [ ] Senhores, campo de batalha, mina de ametista: respondem como fechados
 - [ ] Atividades (SumActive): login e presente online
 - [ ] Boss mundial: agenda (8271 -> 4182) e recusas prontas; falta o mapa do chefe ([boss-eventos.md](boss-eventos.md))
 - [ ] Amigos, times, mina de ouro
 - [ ] Guilda, boss de guilda, ataque a castelo
-- [ ] Amigos, times, mina de ouro, torneio de fadas
+- [ ] Amigos, times, mina de ouro
 - [x] Guilda: criar, entrar, cargos, contribuição, melhorias, habilidades, mercado, bênção, baú ([guilda.md](guilda.md))
 - [ ] Boss de guilda (altar), terra secreta, guerra de guildas: falta o mapa de campanha; ataque a castelo

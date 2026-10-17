@@ -778,9 +778,9 @@ def _buy_result(s: GameSession, buy: pb.BuyInfo, result: int) -> None:
 async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     """Compra no mercado da guilda (``ShopTempInfos.ShopType`` 2), paga com a contribuição pessoal.
 
-    Não tem opcode próprio: o cliente usa a compra genérica 5154 (``ShopManager.sendShoping``),
-    cujo handler (sistema de loja) deve chamar esta função. Devolve False se o ``goodId`` não é
-    do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83.
+    Não tem opcode próprio: o cliente usa a compra genérica 5154 (``ShopManager.sendShoping``), e o
+    handler dele (``handlers/shop.py``) chama esta função primeiro. Devolve False se o ``goodId`` não
+    é do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83.
     """
     row = s.ctx.templates.get("ShopTempInfos", buy.goodId, key="Id")
     if row is None or row.get("ShopType") != GUILD_SHOP:
