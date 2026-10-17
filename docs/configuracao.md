@@ -16,7 +16,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_WEBSOCKET_PORT` | `5001` | ponte para o Ruffle |
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
 | `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | cópia local dos templates |
-| `WARTUNE_TEMPLATES_URL` | vazio | ex.: `https://cdn.exemplo.com/xml/tempinfos.xml`. Ao subir, baixa da CDN (a mesma que o cliente usa) e regrava o `TEMPLATES_FILE`; se a CDN falhar, usa a cópia local. Mudou o arquivo na CDN: reinicie o servidor |
+| `WARTUNE_TEMPLATES_URL` | vazio | ex.: `https://cdn.exemplo.com/xml/tempinfos.xml`, usada pelo `templates update` |
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |
 | `WARTUNE_SKIP_TUTORIAL` | `false` | faz o tutorial ([tutorial.md](tutorial.md)); `true` mantém o `noviceProcess` em no mínimo 19000 (cena do castelo) |
 | `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |
@@ -38,6 +38,7 @@ O portal tem a própria configuração em `D:\xampp\htdocs\wartune-reborn\portal
 uv run wartune-server run                          # sobe o servidor (Ctrl+C encerra com limpeza)
 uv run wartune-server db init                      # cria as tabelas
 uv run wartune-server character novice 2 0          # refaz o tutorial do personagem 2
+uv run wartune-server templates update [url]       # baixa o tempinfos.xml da CDN (a do cliente); reinicie depois
 ```
 
 ## Logs

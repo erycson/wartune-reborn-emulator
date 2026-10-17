@@ -1,5 +1,6 @@
 import zlib
 from pathlib import Path
+from xml.etree import ElementTree
 
 import aiohttp
 import pytest
@@ -40,7 +41,7 @@ async def test_real_file_has_the_six_starting_heroes() -> None:
     assert [t.hero(i).sex for i in range(1, 7)] == [1, 1, 1, 0, 0, 0]
 
 
-async def test_load_downloads_from_cdn_and_falls_back_to_cache(tmp_path: Path) -> None:
+async def test_download_replaces_local_file_only_when_valid(tmp_path: Path) -> None:
     cache = tmp_path / "xml" / "tempinfos.xml"
 
     async def good(_: web.Request) -> web.Response:
@@ -53,12 +54,10 @@ async def test_load_downloads_from_cdn_and_falls_back_to_cache(tmp_path: Path) -
     app.router.add_get("/xml/tempinfos.xml", good)
     app.router.add_get("/broken.xml", broken)
     async with TestServer(app) as cdn:
-        t = await GameTemplates.load(cache, str(cdn.make_url("/xml/tempinfos.xml")))
+        t = await GameTemplates.download(str(cdn.make_url("/xml/tempinfos.xml")), cache)
         assert t.hero(6).intellect == 5 and zlib.decompress(cache.read_bytes()) == XML
-        # arquivo quebrado na CDN não sobrescreve a cópia boa
-        assert (await GameTemplates.load(cache, str(cdn.make_url("/broken.xml")))).hero(6).intellect == 5
-        assert zlib.decompress(cache.read_bytes()) == XML
-        url = str(cdn.make_url("/xml/tempinfos.xml"))
-    assert (await GameTemplates.load(cache, url)).hero(6).intellect == 5  # CDN fora do ar
-    with pytest.raises(aiohttp.ClientError):
-        await GameTemplates.load(tmp_path / "nada.xml", url)  # sem CDN e sem cópia
+        with pytest.raises(ElementTree.ParseError):  # arquivo quebrado não substitui o bom
+            await GameTemplates.download(str(cdn.make_url("/broken.xml")), cache)
+        with pytest.raises(aiohttp.ClientResponseError):
+            await GameTemplates.download(str(cdn.make_url("/nada.xml")), cache)
+    assert zlib.decompress(cache.read_bytes()) == XML

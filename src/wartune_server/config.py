@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     policy_port: int | None = 843  # None desliga o servidor de policy dedicado
 
     templates_file: Path = Path("data/overlay/xml/tempinfos.xml")
-    # CDN de onde o cliente baixa (TEMPLATE_PATH + tempinfos.xml); vazio usa só o arquivo local
+    # URL do tempinfos.xml na CDN (TEMPLATE_PATH + tempinfos.xml), para ``templates update``
     templates_url: str | None = None
     rsa_key_file: Path = Path("data/rsa_private.pem")
 
