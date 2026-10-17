@@ -29,7 +29,8 @@ RE_READ_NEW = re.compile(r"readBody\(\s*new\s+([\w.]+)\(\)\s*\)")
 RE_READ_VAR = re.compile(r"readBody\(\s*(\w+)\s*\)")
 RE_PKG_OUT = re.compile(r"new\s+PackageOut\(\s*(\d+)")
 RE_SEND = re.compile(r"send[Pp]roto[Bb]uffer\(\s*\w+\s*,\s*(new\s+[\w.]+\(\)|\w+|null)")
-RE_CONST = re.compile(r"public\s+static\s+const\s+(\w+)\s*:\s*uint\s*=\s*(\d+)\s*;")
+RE_DELEGATE = re.compile(r"(\w+)\(\s*param1\s*\)")
+RE_CONST =re.compile(r"public\s+static\s+const\s+(\w+)\s*:\s*uint\s*=\s*(\d+)\s*;")
 
 
 def split_functions(src: str) -> dict[str, str]:
@@ -85,7 +86,12 @@ class Scanner:
 
         for code, handler in RE_LISTEN.findall(src):
             body = funcs.get(handler, "")
-            for t in self._read_types(body):
+            types = self._read_types(body)
+            if not types:  # handler que só repassa o evento: segue um nível
+                for callee in RE_DELEGATE.findall(body):
+                    if callee != handler:
+                        types += self._read_types(funcs.get(callee, ""))
+            for t in types:
                 self.s2c[int(code)].add(self.resolve(t, imports, package))
             self.s2c.setdefault(int(code), set())
 

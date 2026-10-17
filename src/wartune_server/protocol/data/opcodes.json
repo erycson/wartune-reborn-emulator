@@ -1351,7 +1351,9 @@
    "U_C_SERIAL_ARMY"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "ArmyArmyMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },

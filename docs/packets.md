@@ -88,7 +88,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 147 | 0x0093 | U_C_TREEINFO_UPDATE |  | TreeUpdateRsp |
 | 148 | 0x0094 | U_C_NEW_MAIL |  | MailMsg |
 | 149 | 0x0095 | U_C_HERO_BROAD_EQUIPMENT |  | HeroEquUpdatedMsg |
-| 150 | 0x0096 | U_C_SERIAL_ARMY |  | (não lê corpo) |
+| 150 | 0x0096 | U_C_SERIAL_ARMY |  | ArmyArmyMsg |
 | 151 | 0x0097 | U_C_BUILDING_ORDER_INFO |  | OrderInfoMsg |
 | 152 | 0x0098 | U_C_SECURITY_INFO_UPDATE |  | CastleYieldMsg |
 | 158 | 0x009E | U_B_USE_ITEM_RESULT |  | ItemUseResultMsg |
