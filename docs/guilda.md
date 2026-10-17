@@ -24,7 +24,8 @@ migração `0018`), não na memória.
 Todo handler valida e muda a memória sem `await` no meio, e grava tudo numa `characters.save`. O
 baú lê as mochilas dos destinatários offline antes de validar (só leitura). A criação grava com
 `characters.write`, porque o membro precisa do id da guilda, e só põe a guilda na memória depois
-do commit.
+do commit; as candidaturas dele saem da memória antes do `await` (outra guilda não o aceita no
+meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou enquanto lia.
 
 ## Regras do cliente
 

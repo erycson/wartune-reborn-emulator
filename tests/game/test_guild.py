@@ -394,3 +394,28 @@ async def test_box_item_goes_by_mail_when_the_bag_is_full(tmp_path: Path) -> Non
         mails = await s.ctx.characters.read(lambda uow: uow.mails.by_receiver(b.user_id))
         annexes = await s.ctx.characters.read(lambda uow: uow.mails.annexes([m.id or 0 for m in mails]))
         assert [(x.template_id, x.count) for x in annexes if x.template_id == 2060044] == [(2060044, 2)]
+
+
+async def test_creating_hides_own_applications_before_the_write(tmp_path: Path) -> None:
+    """Durante a gravação da criação, a candidatura dele já saiu da memória: outra guilda não o aceita (5134)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await a.join("bruxa")
+        _rich(b)
+        b.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(a).id))
+        apply_id = _one(await b.idle(), 35, pb.ConsortiaMsg).applyId
+        s = _session(b)
+        chars = s.ctx.characters
+        real, seen = chars.write, []
+
+        async def spy(change):  # type: ignore[no-untyped-def]
+            seen.append(s.ctx.guilds.invite(apply_id))
+            return await real(change)
+
+        chars.write = spy  # type: ignore[method-assign]
+        try:
+            b.client.send(5130, pb.ConsortiaMsg(consortiaName="Corvos"))
+            assert _one(await b.idle(), 117, pb.ConsortiaMsg).consortiaId
+        finally:
+            chars.write = real  # type: ignore[method-assign]
+        assert seen == [None]

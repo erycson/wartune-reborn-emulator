@@ -148,7 +148,7 @@ Outros eventos:
 - Canal de time (6) no chat: recusado.
 - VIP ainda ignorado em: cota de cornetas, limite de amigos (`MAX_FRIENDS`), acelerar construção índice 0 (5172).
 - Presentes do VIP/contrato do rei para amigo (8513/8540): recusados (gravar outro personagem).
-- Mochila de 42 espaços base (sem os comprados/alugados) em: guilda, coliseu, fazenda, caixa por tempo, correio.
+- Mochila de 42 espaços base (sem os comprados/alugados) em: coliseu, fazenda, caixa por tempo, correio.
 
 ## Simplificações marcadas no código
 

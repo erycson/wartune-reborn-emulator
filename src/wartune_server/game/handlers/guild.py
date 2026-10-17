@@ -189,8 +189,10 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     c.gold -= CREATE_GOLD
     guild = Consortia(c.server_id, name, s.player_id, c.nickname or "", s.player_id, now)
     member = ConsortiaMember(0, s.player_id, now, duty_id=gd.CHAIRMAN)
-    event = ConsortiaEvent(0, now, f"{c.nickname} birliği kurdu.")
+    event = ConsortiaEvent(0, now, f"{c.nickname} birliği kurdu."[:255])
     gone = g.invites_of(s.player_id)
+    # tira as candidaturas da memória antes do await: outra guilda não aceita (5134) no meio da criação
+    g.invites = [i for i in g.invites if i.user_id != s.player_id]
 
     async def change(uow: UnitOfWork) -> None:
         # uma transação: guilda, membro, evento e as candidaturas dele (o membro precisa do id da guilda)
@@ -212,7 +214,6 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     g.guilds[gid] = guild
     g.members[s.player_id] = member
     g.events[gid].append(event)
-    g.invites = [i for i in g.invites if i.user_id != s.player_id]
     g.profiles[s.player_id] = c
     castle_yield(s)
     _joined(s, guild, s.player_id)
@@ -1038,6 +1039,10 @@ async def box_send(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
     for uid, _ in wanted:
         if uid in g.members:
             snaps[uid] = await _snapshot(s, uid)
+    for uid in snaps:  # quem logou durante as leituras: a sessão dele é a dona da mochila agora
+        other = s.ctx.online.get(uid)
+        if other is not None and other.snapshot is not None:
+            snaps[uid] = other.snapshot
     box = g.box.get(guild.id or 0, [])
     stored = next((i for i in box if i.template_id == msg.templateId), None)
     total = sum(n for _, n in wanted)
