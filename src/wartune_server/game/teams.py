@@ -20,6 +20,7 @@ class Team:
     captain: int
     members: list[int]
     fight_pos: dict[int, int] = field(default_factory=dict)  # userId -> posição no combate
+    away: set[int] = field(default_factory=set)  # saíram por ora (8740): continuam no time
 
 
 class Teams:
@@ -78,6 +79,7 @@ class Teams:
         team.members.remove(player_id)
         del self._of[player_id]
         team.fight_pos.pop(player_id, None)
+        team.away.discard(player_id)
         if player_id == team.captain and team.members:
             team.captain = team.members[0]
         if len(team.members) >= 2:
@@ -97,6 +99,14 @@ class Teams:
         if team is None:
             return None
         return team, self.remove(team, player_id)
+
+    def toggle_away(self, team: Team, player_id: int) -> bool:
+        """Alterna "saiu por ora" de um membro. Devolve o novo estado (``True`` = ausente)."""
+        if player_id in team.away:
+            team.away.discard(player_id)
+            return False
+        team.away.add(player_id)
+        return True
 
     def set_positions(self, team: Team, positions: dict[int, int]) -> None:
         team.fight_pos = {p: pos for p, pos in positions.items() if p in team.members}

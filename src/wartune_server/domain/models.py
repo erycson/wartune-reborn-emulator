@@ -118,6 +118,11 @@ class Character:
     vehicles: str = "1"  # templateIds de VehicleObjectTempInfos possuídos, separados por vírgula
     last_login_at: datetime | None = None
     refuse_friend: bool = False  # PlayerMsg.refuseFriend: recusa pedidos de amizade (8285)
+    refuse_invite: bool = False  # PlayerMsg.refuseInvite: recusa convites de guilda (8286)
+    refuse_team_invite: bool = False  # PlayerMsg.refuseTeamInvite: recusa convites de time (8746)
+    seminary_effect: int = 0  # PlayerMsg.blessingBuff: bênção do seminário, 0..200 (8489)
+    seminary_count: int = 0  # bênçãos feitas em ``seminary_day`` (PlayerMsg.blessingCount, tarefa do dia)
+    seminary_day: str = ""  # "YYYY-MM-DD"; outro dia zera a contagem
     bugle_free_used: int = 0  # cornetas pequenas grátis usadas em ``bugle_free_day``
     bugle_free_day: str = ""  # "YYYY-MM-DD"; outro dia = cota cheia de novo
     # guilda: só o que o próprio jogador muda (a filiação fica em ``ConsortiaMember``)
@@ -147,6 +152,10 @@ class Character:
     def icon(self) -> int:
         """O cliente usa o mesmo número para ``pic``/``icon`` e ``job``."""
         return self.job
+
+    def bless_count_today(self, now: datetime) -> int:
+        """Bênçãos do seminário no dia (``PlayerMsg.blessingCount``, tarefa do dia). Outro dia = zero."""
+        return self.seminary_count if self.seminary_day == now.date().isoformat() else 0
 
 
 @dataclass(eq=False)

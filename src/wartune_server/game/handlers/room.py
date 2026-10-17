@@ -16,6 +16,7 @@ from ..session import GameSession
 
 S_ROOM, S_ROOM_LIST, S_PLACE, S_EDIT, S_MEMBERS = 12, 13, 17, 32, 120
 S_EXIT, S_KILL, S_MASTER = 15, 28, 121
+S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
 PLAYER_READY = 2  # playerState do dono na captura; os demais ainda não foram vistos, usam o mesmo valor
 
 
@@ -204,3 +205,20 @@ async def exit_room(s: GameSession, _: pb.RoomExitMsg) -> None:
 async def multi_campaign(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     # campanha multi (4913 SimplePropertyMsg): o pedido e o formato da resposta não foram identificados
     s.log.info("9504 sem resposta (dependência)", p1=msg.param1)
+
+
+@router.on(5027)
+async def invite_hall(s: GameSession, _: object) -> None:
+    # FreedomTeamInviteFrame: o botão de atualizar só lista na aba 2, mas a aba de guilda é 0 e a de amigos 1,
+    # então a aba 2 não existe na tela. Nada no cliente escuta resposta: só registramos.
+    s.log.info("5027 sem efeito (aba inexistente no cliente)")
+
+
+@router.on(8286)
+async def refuse_invite(s: GameSession, _: object) -> None:
+    """Alterna a recusa de convites (``PlayerMsg.refuseInvite``). Quem recusa não recebe convite de guilda."""
+    assert s.snapshot is not None
+    c = s.snapshot.character
+    c.refuse_invite = not c.refuse_invite
+    await s.ctx.characters.save(c)
+    s.send(S_REFUSE_INVITE, pb.RefuseFriendRspMsg(result=c.refuse_invite))

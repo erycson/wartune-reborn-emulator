@@ -28,6 +28,8 @@ from .login import army, player_info
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 150, 140
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
 S_PET_LIST, S_PET_TOP, S_PET_REWARD, S_PET_INFO, S_BATTLE_REPORT = 4611, 4619, 4613, 4540, 4103
+S_MATCH = 4201  # MatchStateMsg: liga o botão de PvP (playerInfo.isPVPStart)
+PVP_GRADE = 22  # TopToolsBar: o botão de PvP só aparece a partir do nível 22
 ARMY_IDLE, ARMY_FIGHTING = 0, 2
 WON, LOST = 1, 2  # BattleReportMsg.battleResult e ChallengeLogMsg.result
 OPPONENTS = 4
@@ -44,7 +46,7 @@ def _arena(s: GameSession) -> Any:
     snap = s.snapshot
     assert snap is not None and snap.arena is not None
     if A.roll_day(snap.arena, s.ctx.clock.now()):
-        s.send(S_RESET, A.data_reset(snap))
+        s.send(S_RESET, A.data_reset(snap, s.ctx.clock.now()))
     return snap.arena
 
 
@@ -579,3 +581,11 @@ async def pet_rank_reward(s: GameSession, msg: pb.RankRewardMsg) -> None:
     for item in new:
         s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
     s.send(S_PET_REWARD, pb.RankRewardMsg(type=kind, status=CLAIMED, rank=order, opType=1))
+
+
+@router.on(8294)
+async def match_state(s: GameSession, _: object) -> None:
+    """Estado do botão de PvP (``TopToolsBar.sendMatch``: no login com nível 22 e ao chegar nele). O login comum
+    manda 4201 falso abaixo do nível 22 (captura de login); o cliente só pede daí em diante."""
+    assert s.snapshot is not None
+    s.send(S_MATCH, b.complete(pb.MatchStateMsg(matchState=s.snapshot.character.grades >= PVP_GRADE)))

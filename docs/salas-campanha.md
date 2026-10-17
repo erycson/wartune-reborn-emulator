@@ -35,6 +35,7 @@ Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o própr
 | 5023 | ROOM_CREATE | completo | visto | Capacidade do cliente, limitada a 1..4. Senha opcional. |
 | 5024 | ROOM_ENTER | completo | visto (sequência) | Recusa sala cheia, senha errada ou quem já está numa sala. |
 | 5026 | ROOM_LIST | completo | visto (13 vazio) | Lista todas as salas. |
+| 5027 | U_C_CAMPAIGN_INVITE_PLAYER_LIST | só registra | cliente (`FreedomTeamInviteFrame`, aba 2) | Inalcançável: o botão de atualizar só manda o 5027 na aba 2, e a lista tem só as abas 0 e 1. Sem resposta. |
 | 8465 | ROOM_FIND | completo na forma | dedução | Filtra por `roomId`. Sem captura do pedido. |
 | 5029 | PLACESTATE | completo | dedução (quem pode) | Só o dono abre ou fecha lugar livre, fora do dono. Recusa devolve 17. |
 | 5030 | MASTER_CHANGE | completo | cliente (121) | `paraInt1` é o novo dono; só o dono atual pode passar. |
@@ -48,6 +49,7 @@ Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o própr
 | 5122 | CAMPAIGN_TAKE_CARD | parcial | replay | Não muda estado. Depende da tabela de cartas. |
 | 5126 | CAMPAIGN_FOG_UPDATE | parcial | replay | Névoa não é guardada. O 130 volta só no próximo ENTER. |
 | 5180 | CAMPAIGN_FINISH | parcial | replay | Replay mostra 140, 131, 128 e 157. Depende de progresso de campanha. |
+| 8286 | C_ROOM_REFUSE | completo | cliente (`sendRefuseInvite`, 4194) | Alterna "recusar convites". Responde 4194. O bloqueio do 5142 da guilda é *(dedução)*, ver [guilda.md](guilda.md). Não há convite de sala no servidor. |
 | 8297 | TOWER_INFO | parcial | cliente (4205) | 4205 com `maxIndex=60` (visto no labirinto 8001) e entradas zeradas. Sem progresso. |
 | 8300 | TOWER_LIVE | parcial | sem captura | Sem efeito. Custo da torre não modelado. |
 | 8526 | OPRATE_REPLACEMENTS | parcial | cliente (4424/4423) | Sem efeito. Depende do chefe mundial ([boss-eventos.md](boss-eventos.md)). |
@@ -57,7 +59,10 @@ Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o própr
 | 8737 | EDIT_TEAM_FIGHT_POS | completo | dedução (quem pode) | Qualquer membro muda as posições do time (4628). |
 | 8738 | INVITE_TEAM | completo | cliente (4620) | Só amigo online (`RelationType.FRIEND`). Até 4 membros. Um convite pendente por vez. |
 | 8739 | KICK_TEAM_MEMBER | completo | cliente (4630, 4625) | Só o capitão. Com dois membros sobrando o time acaba (4625). |
+| 8740 | C_LEAVE_TEAM_FOR_NOW | completo | dedução (`sendAFK` sem chamador) | Alterna "sair por ora": o jogador fica no time, com `hasLeftForNow` no 4624. Responde 4621 (o cliente só atualiza a tela) e 4624. |
+| 8741 | C_QUIT_TEAM | completo | cliente (`FreedomTeamManageFrame`, sair com confirmação) | Sai de vez. Quem sai recebe 4625 (o time acaba) ou 4629 com o próprio id, e o cliente limpa o time. Ver Times. |
 | 8742 | BATTLEGUARD_OP | parcial | cliente (4631) | Operação recusada, responde 4631 vazio. Depende do inventário de gemas. |
+| 8746 | C_TEAM_REFUSE | completo | cliente (`sendRefuseTeamInvite`, 4635) | Alterna "recusar convites de time". Com ele ligado, o 8738 não chega ao alvo. Responde 4635. |
 | 8752 | TOLLGATE_GET_REWARD | parcial | cliente (4645) | Responde evento fechado. Não há agenda do evento. |
 | 8753 | TOLLGATE_REQUEST | parcial | cliente (4645) | Idem. |
 | 8754 | TOLLGATE_SCORE | parcial | cliente (4645) | Idem. `TollgateReward.ScoreRewards` é descartado pelo parser. |
@@ -68,11 +73,14 @@ Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o própr
 Só amigos entram: o cliente oferece convite só para quem tem `relation == 1`, e o servidor confere de
 novo. O convite só chega se o alvo estiver online.
 
-Quem sai pela desconexão avisa os demais (4629). Com dois membros, o time acaba e os demais recebem
-4625. Se era o capitão, o novo capitão é enviado (4627).
+Quem sai avisa os demais com 4629, com o id de quem saiu. Com dois membros, o time acaba e os demais
+recebem 4625. Se era o capitão, o novo capitão é enviado (4627). Na desconexão, quem caiu não recebe nada.
 
-Sair por pedido não tem opcode no lote: 8740 é `C_LEAVE_TEAM_FOR_NOW` e 8741 é `C_QUIT_TEAM`, ambos
-fora da lista. Até lá, só a desconexão tira o jogador do time.
+Sair de vez (8741) segue a mesma regra, e quem pediu recebe a própria resposta: 4625 se o time acaba, ou
+4629 com o próprio id, que o cliente trata como saída (`FreedomTeamManager`). Sair por ora (8740) não tira o
+jogador do time: alterna `hasLeftForNow`, que vem no `memberDetail` do 4624, e responde 4621, que o cliente
+só usa para atualizar a tela. O cliente não envia o 8740 (`sendAFK` não tem chamador), então esse efeito é
+dedução do campo.
 
 ## Dependências que faltam
 
@@ -97,3 +105,6 @@ fora da lista. Até lá, só a desconexão tira o jogador do time.
 - `tests/game/test_salas_campanha.py`: os 29 opcodes têm handler (e 5025); corpo vazio não derruba a
   sessão; fluxo completo da sala com dois jogadores (criar, entrar, recusar, expulsar, passar o dono,
   sair, dissolver e queda por desconexão); convite sem amizade não chega.
+- `tests/game/test_convites_times_bencao.py`: os 10 opcodes sem corpo do lote (registro e corpo vazio);
+  sair de vez com dois e três jogadores; sair por ora; recusa de convite de time e de guilda; recusas e
+  bênção voltam no login; bênção do seminário; gancho, PvP e transporte.

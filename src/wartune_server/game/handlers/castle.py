@@ -26,6 +26,7 @@ S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 
 S_IMPOSE, S_TRANSFER, S_UNOCCUPY, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 108, 4452, 100
 BUY_ORDER_PRICE = 100  # "mainBar.QueueBar.content" (QueueBar.buyQueueItem)
 IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; captura: 151 com remainTime 3600
+S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
 
 
 def _send_player(s: GameSession) -> None:
@@ -268,3 +269,27 @@ async def unoccupy_wild_land(s: GameSession, _: pb.BuildingReqMsg) -> None:
 async def castle_time_cancel(s: GameSession, _: object) -> None:
     """Cancela a trégua do castelo (buff 2001). ponytail: trégua ainda não existe; zera e confirma."""
     s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))
+
+
+@router.on(8489)
+async def seminary_bless(s: GameSession, _: object) -> None:
+    """Bênção do seminário (``SeminaryBlessFrame``): gasta cristais e soma ``Blessing_Buffer`` até ``Blessing_Max``.
+
+    Sempre responde 4391, também na recusa, com o valor atual: sem ele o cliente não reabre fechar e confirmar.
+    O custo (``Blessing_Cast``) é do ConfigInfos; o ``Blessing_ItemId`` não entra, o botão só confere cristais."""
+    assert s.snapshot is not None
+    c, now = s.snapshot.character, s.ctx.clock.now()
+    cost = _config(s, "Blessing_Cast", 2000)
+    step = _config(s, "Blessing_Buffer", 10)
+    top = _config(s, "Blessing_Max", 200)
+    count = c.bless_count_today(now)
+    if c.seminary_effect >= top or c.crystals < cost:
+        s.log.info("8489 recusado", bencao=c.seminary_effect, cristais=c.crystals)
+        s.send(S_BLESSING, pb.BlessingMsg(increase=c.seminary_effect, usedCount=count))
+        return
+    c.crystals -= cost
+    c.seminary_effect = min(top, c.seminary_effect + step)
+    c.seminary_count, c.seminary_day = count + 1, now.date().isoformat()
+    await s.ctx.characters.save(c)
+    s.send(S_BLESSING, b.complete(pb.BlessingMsg(increase=c.seminary_effect, usedCount=c.seminary_count)))
+    castle_yield(s)  # 109: o contador de cristais do cliente

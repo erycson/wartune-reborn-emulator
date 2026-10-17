@@ -417,6 +417,9 @@ async def invite(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     if mine is None or target is None or not target.active or g.of(msg.otherId) is not None:
         _refuse(s, 5142, "sem direito ou alvo já em guilda", alvo=msg.otherId)
         return
+    if target.refuse_invite:  # 8286: quem recusa convites não recebe o 41
+        _refuse(s, 5142, "alvo recusa convites", alvo=msg.otherId)
+        return
     if any(i.consortia_id == mine[0].id and i.from_type for i in g.invites_of(msg.otherId)):
         return  # já convidado
     g.profiles.setdefault(msg.otherId, target)

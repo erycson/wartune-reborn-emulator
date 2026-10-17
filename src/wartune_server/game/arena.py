@@ -96,7 +96,7 @@ def cool_time(arena: Arena, kind: int, now: datetime, templates: GameTemplates) 
     )
 
 
-def data_reset(snap: PlayerSnapshot) -> pb.DataResetMsg:
+def data_reset(snap: PlayerSnapshot, now: datetime) -> pb.DataResetMsg:
     """4202: o cliente sobrescreve vigor, ataques e afins com estes valores, então vão os atuais."""
     c = snap.character
     return pb.DataResetMsg(
@@ -108,8 +108,8 @@ def data_reset(snap: PlayerSnapshot) -> pb.DataResetMsg:
         leftHangupWeary=0,
         tower1EnterCount=0,
         tower2EnterCount=0,
-        blessingCount=0,
-        blessingBuff=0,
+        blessingCount=c.bless_count_today(now),
+        blessingBuff=c.seminary_effect,
         buyCount=0,
         king_Buff=False,
         serverName=snap.server.name,

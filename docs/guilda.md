@@ -57,7 +57,7 @@ Todo handler muda a memória antes do primeiro `await` e grava tudo numa `charac
 | 8214 | candidatos da guilda | 4140, `parameter1` = id da candidatura | *(cliente)* m6 |
 | 5134 | aceitar/recusar candidatura (direito 9/33) | 40; 117+3 para o candidato; 164 | *(cliente)* m2 |
 | 5149 | abrir/fechar candidaturas | 164 | *(cliente)* m6 |
-| 5142 | convidar (direito 6) | 41 para o alvo online sem guilda | *(cliente)* m2 |
+| 5142 | convidar (direito 6) | 41 para o alvo online sem guilda; alvo com "recusar convites" (8286) ligado: nada, sem aviso ao convidante (só log) | *(cliente)* m2; o bloqueio pelo 8286 é *(dedução)*: o botão não tem texto no cliente |
 | 8197 | convite automático no nível 15 | 41 | *(cliente)* m2; ponytail: o oficial tinha guildas-robô, aqui é a guilda aberta com mais membros |
 | 5143 | responder convite | 37 `{result, applyId}` antes de apagar; 117+3; 164 | *(cliente)* m2 |
 | 5146 | sair | 117 com id 0, 3; 115 se gastou o cartão | *(cliente)* m6 `ConsortiaStaffPage` |

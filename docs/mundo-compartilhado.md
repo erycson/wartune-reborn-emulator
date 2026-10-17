@@ -100,8 +100,8 @@ Clicar num castelo dá estas opções:
   - 8734: aceita.
   - 8736: líder.
   - 8739: expulsar.
-  - 8740: ausente.
-  - 8741: sair.
+  - 8740: sair por ora (alterna `hasLeftForNow`; sem chamador no cliente).
+  - 8741: sair de vez (sem chamador no cliente; mesma regra da desconexão).
   - 8737: posições.
 - Respostas do servidor:
   - 4620: convite.
