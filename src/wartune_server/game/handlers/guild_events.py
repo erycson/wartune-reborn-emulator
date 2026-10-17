@@ -55,7 +55,7 @@ async def altar_open(s: GameSession, msg: pb.ConsortiaAltarOpenReqMsg) -> None:
         pop=True,
     )
     for o in gd.online_members(s.ctx, guild.id or 0):
-        o.send(S_ALTAR_OPEN, out)
+        o.send(S_ALTAR_OPEN, b.complete(out))
     _push_info(s, guild)
 
 
@@ -113,12 +113,12 @@ async def gvg_groups(s: GameSession, _: object) -> None:
 
 @router.on(8472)
 async def gvg_challenge(s: GameSession, _: object) -> None:
-    s.send(S_GVG_CHALLENGE, pb.GuildChallengeOrderListMsg())
+    s.send(S_GVG_CHALLENGE, b.complete(pb.GuildChallengeOrderListMsg()))
 
 
 @router.on(8477)
 async def gvg_list(s: GameSession, _: object) -> None:
-    s.send(S_GVG_LIST, pb.GuildChallengeOrderListMsg())
+    s.send(S_GVG_LIST, b.complete(pb.GuildChallengeOrderListMsg()))
 
 
 @router.on(8471)
@@ -143,14 +143,14 @@ async def gvg_buff(s: GameSession, msg: pb.GuildMsg) -> None:
 @router.on(8782)
 async def cross_group(s: GameSession, msg: pb.CrossGuildMsg) -> None:
     """Grupos da guerra entre servidores: 4682 sem ``info`` = guilda não inscrita."""
-    s.send(S_CROSS_GROUP, pb.CrossGuildMsg())
+    s.send(S_CROSS_GROUP, b.complete(pb.CrossGuildMsg()))
 
 
 @router.on(8779)
 async def cross_signup(s: GameSession, _: object) -> None:
     """Inscrição: precisa de outros servidores; responde "não inscrita" para a janela não travar."""
     _refuse(s, 8779, "guerra entre servidores não implementada")
-    s.send(S_CROSS_GROUP, pb.CrossGuildMsg())
+    s.send(S_CROSS_GROUP, b.complete(pb.CrossGuildMsg()))
 
 
 @router.on(8778)

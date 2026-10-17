@@ -29,7 +29,7 @@ S_RENAME, S_DUTY, S_STATE, S_INFO_PUSH = 49, 50, 117, 164
 S_MEMBERS, S_OFFERS, S_INVITES, S_EVENTS, S_DUTIES, S_INFO = 4133, 4134, 4135, 4136, 4137, 4138
 S_SEARCH, S_RECRUIT, S_ALTAR_INFO, S_ALTAR_ITEM, S_ADDFRESH, S_SITE = 4139, 4140, 4141, 4142, 4143, 4144
 S_NEW_APPLY, S_LINK, S_VOTERS, S_VOTED, S_BOX_ALLOT, S_BOX = 4266, 4267, 4389, 4390, 4465, 4466
-S_SHOP_BUY, S_PLAYER_SEARCH = 90, 4170
+S_SHOP_BUY = 90
 
 MIN_GRADE = 12  # CreatConsortiaFrame / ConsortiaSocektSendManager.checkApply
 CREATE_GOLD = 200000  # CreatConsortiaFrame.command05
@@ -79,7 +79,7 @@ def _player(o: GameSession) -> None:
 
 
 def _alert(s: GameSession, text: str) -> None:
-    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    s.send(S_ALERT, b.complete(pb.ChatChannelMsg(channel=7, encodeMsg=text)))
 
 
 def _push_info(s: GameSession, guild: Consortia) -> None:
@@ -116,7 +116,7 @@ def _joined(s: GameSession, guild: Consortia, player_id: int) -> None:
     """Avisa quem entrou (117 + 3; o cliente pede 8211/8207/8212) e os membros (164)."""
     other = s.ctx.online.get(player_id)
     if other is not None and other.snapshot is not None:
-        other.send(S_STATE, pb.ConsortiaMsg(consortiaId=guild.id))
+        other.send(S_STATE, b.complete(pb.ConsortiaMsg(consortiaId=guild.id)))
         _player(other)
     _push_info(s, guild)
 
@@ -176,6 +176,8 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     finally:
         g.reserved.discard(name.lower())
     g.guilds[guild.id or 0] = guild
+    # ponytail: duas transações (o membro precisa do id da guilda); se a segunda falhar fica uma
+    # guilda sem membros e o ouro gasto. Uma só quando o mapeamento tiver relação guilda->membro.
     member, gone = _join(s, guild, s.player_id, gd.CHAIRMAN)
     event = _event(s, guild, f"{c.nickname} birliği kurdu.")
     await s.ctx.characters.save(member, event, delete=tuple(gone))
@@ -200,7 +202,7 @@ async def search(s: GameSession, msg: pb.SearchConditionMsg) -> None:
     out = pb.ConsortiaSearchRspMsg(totalRows=len(found), isReset=reset)
     for x in found[(page - 1) * gd.PAGE : page * gd.PAGE]:
         out.consortiaInfo.append(gd.info_msg(g, x, now))
-    s.send(S_SEARCH, out)
+    s.send(S_SEARCH, b.complete(out))
 
 
 @router.on(8212)
@@ -210,7 +212,7 @@ async def info(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     if guild is None:
         _refuse(s, 8212, "guilda não existe", guilda=msg.consortiaId)
         return
-    s.send(S_INFO, gd.info_msg(s.ctx.guilds, guild, _now(s)))
+    s.send(S_INFO, b.complete(gd.info_msg(s.ctx.guilds, guild, _now(s))))
 
 
 @router.on(8343)
@@ -231,7 +233,7 @@ async def link(s: GameSession, msg: pb.ConsortiaLinkReqMsg) -> None:
         honor=0,
         description=guild.description,
     )
-    s.send(S_LINK, out)
+    s.send(S_LINK, b.complete(out))
 
 
 @router.on(8211)
@@ -239,7 +241,7 @@ async def duty_list(s: GameSession, _: object) -> None:
     out = pb.ConsortiaDutyListRspMsg()
     for duty in sorted(gd.RIGHTS, reverse=True):  # o oficial manda do 5 ao 1
         out.dutyInfo.add(levels=duty, dutyName="", rights=gd.RIGHTS[duty].ljust(gd.RIGHTS_LEN, b"\0"))
-    s.send(S_DUTIES, out)
+    s.send(S_DUTIES, b.complete(out))
 
 
 @router.on(8207)
@@ -262,7 +264,7 @@ async def member_list(s: GameSession, _: object) -> None:
     for i in range(0, max(len(rows), 1), MEMBER_CHUNK):
         part = pb.SimplePlayerListRspMsg(totalRows=len(rows), uuid=key)
         part.playerInfo.extend(rows[i : i + MEMBER_CHUNK])
-        s.send(S_MEMBERS, part)
+        s.send(S_MEMBERS, b.complete(part))
 
 
 @router.on(8210)
@@ -273,7 +275,7 @@ async def event_list(s: GameSession, _: object) -> None:
         out.eventInfo.add(
             id=e.id or 0, consortiaId=e.consortia_id, remark=e.remark, createDate=b.fmt_time(e.created_at), type=e.type
         ).isExist = True
-    s.send(S_EVENTS, out)
+    s.send(S_EVENTS, b.complete(out))
 
 
 # ---- candidaturas e convites -----------------------------------------------------------------
@@ -306,7 +308,7 @@ async def invite_list(s: GameSession, _: object) -> None:
     out = pb.ConsortiaUserInviteInfoListRspMsg()
     for i in s.ctx.guilds.invites_of(s.player_id):
         out.inviteInfo.append(_invite_msg(s, i))
-    s.send(S_INVITES, out)
+    s.send(S_INVITES, b.complete(out))
 
 
 def _notify_recruiters(s: GameSession, guild: Consortia) -> None:
@@ -336,7 +338,7 @@ async def apply(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     await s.ctx.characters.save(c, app)
     if msg.isPay:
         _player(s)
-    s.send(S_JOINED, pb.ConsortiaMsg(applyId=app.id))
+    s.send(S_JOINED, b.complete(pb.ConsortiaMsg(applyId=app.id)))
     _notify_recruiters(s, guild)
 
 
@@ -422,7 +424,7 @@ async def invite(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     await s.ctx.characters.save(inv)
     other = s.ctx.online.get(msg.otherId)
     if other is not None:
-        other.send(S_INVITED, pb.ConsortiaMsg(applyId=inv.id))
+        other.send(S_INVITED, b.complete(pb.ConsortiaMsg(applyId=inv.id)))
 
 
 @router.on(8197)
@@ -442,7 +444,7 @@ async def robot_join(s: GameSession, _: object) -> None:
     inv = ConsortiaInvite(guild.id or 0, s.player_id, _now(s), invite_id=guild.chairman_id, from_type=True)
     g.invites.append(inv)
     await s.ctx.characters.save(inv)
-    s.send(S_INVITED, pb.ConsortiaMsg(applyId=inv.id))
+    s.send(S_INVITED, b.complete(pb.ConsortiaMsg(applyId=inv.id)))
 
 
 @router.on(5143)
@@ -454,7 +456,7 @@ async def invite_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         _refuse(s, 5143, "convite inexistente", convite=msg.applyId)
         return
     # o cliente mostra "entrou em X" procurando o convite na lista: o 37 vai antes de apagar
-    s.send(S_INVITE_RESULT, pb.ConsortiaMsg(result=msg.result, applyId=inv.id))
+    s.send(S_INVITE_RESULT, b.complete(pb.ConsortiaMsg(result=msg.result, applyId=inv.id)))
     full = len(g.members_of(guild.id or 0)) >= gd.max_members(guild)
     if not msg.result or _mine(s) is not None or full or not _clear_cooldown(s, False):
         g.invites.remove(inv)
@@ -563,7 +565,7 @@ async def duty_update(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     await s.ctx.characters.save(target)
     out = pb.ConsortiaMsg(otherId=msg.otherId, positionId=msg.positionId)
     for o in gd.online_members(s.ctx, mine[0].id or 0):
-        o.send(S_DUTY, out)
+        o.send(S_DUTY, b.complete(out))
 
 
 # ---- textos ----------------------------------------------------------------------------------
@@ -610,11 +612,11 @@ async def rename(s: GameSession, msg: pb.ConsortiaRenameReqMsg) -> None:
     ok = mine is not None and name and not g.name_taken(name) and gd.pay_points(c, RENAME_POINTS, msg.payType == 0)
     if not ok or mine is None:
         _refuse(s, 5148, "sem direito, nome inválido/em uso ou sem diamantes", nome=msg.newName)
-        s.send(S_RENAME, pb.ConsortiaRenameRspMsg(result=False))
+        s.send(S_RENAME, b.complete(pb.ConsortiaRenameRspMsg(result=False)))
         return
     mine[0].name = name
     await s.ctx.characters.save(c, mine[0])
-    s.send(S_RENAME, pb.ConsortiaRenameRspMsg(result=True))
+    s.send(S_RENAME, b.complete(pb.ConsortiaRenameRspMsg(result=True)))
     _player(s)
     _push_info(s, mine[0])
     for o in gd.online_members(s.ctx, mine[0].id or 0):
@@ -656,7 +658,7 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
         castle_yield(s)
     _player(s)
     _alert(s, "Başarıyla katkı yapıldı!")
-    s.send(S_OFFER, pb.ConsortiaMsg(result=True))
+    s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))
     _push_info(s, guild)
 
 
@@ -767,7 +769,7 @@ def _buy_result(s: GameSession, buy: pb.BuyInfo, result: int) -> None:
     out = pb.BuyInfo(
         isDiscount=False, goodId=buy.goodId, count=buy.count, receiveId=s.player_id, result=result, type=buy.type
     )
-    s.send(S_SHOP_BUY, pb.ShopMsg(buyInfo=out))
+    s.send(S_SHOP_BUY, b.complete(pb.ShopMsg(buyInfo=out)))
 
 
 async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
@@ -813,7 +815,7 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} başarıyla alındı!"
     _alert(s, text)
     _buy_result(s, buy, 1)
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
     return True
 
 
@@ -833,7 +835,7 @@ def _sites(s: GameSession) -> list[int]:
 async def altar_info(s: GameSession, _: object) -> None:
     """4141 ``blessLeftTime`` = bênçãos já usadas hoje; 4142 o prêmio que falta pegar."""
     mine = _mine(s)
-    s.send(S_ALTAR_INFO, pb.ConsortiaMsg(blessLeftTime=_bless_used(mine[1], _now(s)) if mine else 0))
+    s.send(S_ALTAR_INFO, b.complete(pb.ConsortiaMsg(blessLeftTime=_bless_used(mine[1], _now(s)) if mine else 0)))
     pending = s.ctx.guilds.blessed.get(s.player_id)
     if pending is not None:
         s.send(S_ALTAR_ITEM, b.complete(pb.ItemInfoMsg(templateId=pending[0], count=pending[1], userId=s.player_id)))
@@ -841,7 +843,7 @@ async def altar_info(s: GameSession, _: object) -> None:
 
 @router.on(8217)
 async def altar_site(s: GameSession, _: object) -> None:
-    s.send(S_SITE, pb.ConsortiaInfoMsg(site=_sites(s)))
+    s.send(S_SITE, b.complete(pb.ConsortiaInfoMsg(site=_sites(s))))
 
 
 @router.on(5145)
@@ -873,11 +875,11 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         or c.consortia_offer < int(row["Property1"])
     ):
         _refuse(s, 5145, "sem altar, limite do dia, contribuição, rápida ou prêmio por pegar", usadas=used)
-        s.send(S_BLESS, pb.ConsortiaMsg(blessSite=-1, blessLeftTime=used))
+        s.send(S_BLESS, b.complete(pb.ConsortiaMsg(blessSite=-1, blessLeftTime=used)))
         return
     if not pool or 1 not in sites:
         _refuse(s, 5145, "templates sem prêmio")
-        s.send(S_BLESS, pb.ConsortiaMsg(blessSite=-1, blessLeftTime=used))
+        s.send(S_BLESS, b.complete(pb.ConsortiaMsg(blessSite=-1, blessLeftTime=used)))
         return
     prize = int(random.choice(pool)["ItemId"])
     c.consortia_offer -= int(row["Property1"])
@@ -885,7 +887,10 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     g.blessed[s.player_id] = (prize, 1)  # ponytail: só na memória; reiniciar o servidor perde o prêmio
     await s.ctx.characters.save(c, mine[1])
     _player(s)
-    s.send(S_BLESS, pb.ConsortiaMsg(blessLeftTime=used + 1, blessSite=sites.index(1), blessTempId=prize, blessCount=1))
+    s.send(
+        S_BLESS,
+        b.complete(pb.ConsortiaMsg(blessLeftTime=used + 1, blessSite=sites.index(1), blessTempId=prize, blessCount=1)),
+    )
 
 
 @router.on(8216)
@@ -895,7 +900,7 @@ async def altar_take(s: GameSession, _: object) -> None:
     assert snap is not None
     pending = g.blessed.get(s.player_id)
     if pending is None or sum(i.bag_type == BagType.BAG for i in snap.items) >= BAG_SIZE:
-        s.send(S_ADDFRESH, pb.ConsortiaMsg(result=False))
+        s.send(S_ADDFRESH, b.complete(pb.ConsortiaMsg(result=False)))
         return
     del g.blessed[s.player_id]
     item = Item(snap.character.id or 0, pending[0], count=pending[1])
@@ -903,7 +908,7 @@ async def altar_take(s: GameSession, _: object) -> None:
     snap.items.append(item)
     await s.ctx.characters.save(item)
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
-    s.send(S_ADDFRESH, pb.ConsortiaMsg(result=True))
+    s.send(S_ADDFRESH, b.complete(pb.ConsortiaMsg(result=True)))
 
 
 # ---- baú de prêmios --------------------------------------------------------------------------
@@ -919,7 +924,7 @@ def _box_msg(s: GameSession, guild_id: int) -> pb.ConsortiaStorageInfoMsg:
 @router.on(8577)
 async def box_check(s: GameSession, _: object) -> None:
     mine = _mine(s)
-    s.send(S_BOX, _box_msg(s, mine[0].id or 0) if mine else pb.ConsortiaStorageInfoMsg())
+    s.send(S_BOX, b.complete(_box_msg(s, mine[0].id or 0) if mine else pb.ConsortiaStorageInfoMsg()))
 
 
 @router.on(8579)
@@ -949,7 +954,7 @@ async def box_info(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
                 count=0,
                 isReceived=False,
             )
-    s.send(S_BOX_ALLOT, out)
+    s.send(S_BOX_ALLOT, b.complete(out))
 
 
 @router.on(8578)
@@ -977,7 +982,7 @@ async def box_send(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
         await s.ctx.characters.save(stored)
     for uid, n in wanted:
         await _give(s, uid, msg.templateId, n)
-    s.send(S_BOX, _box_msg(s, guild.id or 0))
+    s.send(S_BOX, b.complete(_box_msg(s, guild.id or 0)))
 
 
 async def _give(s: GameSession, player_id: int, template_id: int, count: int) -> None:
@@ -1041,7 +1046,7 @@ async def voting_list(s: GameSession, _: object) -> None:
                 votingTime=0,
                 votingData=votes if guild.voting_id > 0 else 0,
             )
-    s.send(S_VOTERS, out)
+    s.send(S_VOTERS, b.complete(out))
 
 
 @router.on(8481)
@@ -1052,35 +1057,17 @@ async def vote(s: GameSession, msg: pb.ConsortiaVotingReqMsg) -> None:
     ok = mine is not None and mine[0].voting_state == 1 and mine[1].voted_id != mine[0].voting_id
     if not ok or mine is None or target is None or target.consortia_id != mine[0].id or target.duty_id > gd.ELDER:
         _refuse(s, 8481, "sem eleição, já votou ou candidato inválido", alvo=msg.votingUser)
-        s.send(S_VOTED, pb.ConsortiaVotingRspMsg(result=False))
+        s.send(S_VOTED, b.complete(pb.ConsortiaVotingRspMsg(result=False)))
         return
     mine[1].voted_for, mine[1].voted_id = msg.votingUser, mine[0].voting_id
     await s.ctx.characters.save(mine[1])
-    s.send(S_VOTED, pb.ConsortiaVotingRspMsg(result=True))
+    s.send(S_VOTED, b.complete(pb.ConsortiaVotingRspMsg(result=True)))
 
 
-# ---- recrutamento e busca de jogador ---------------------------------------------------------
+# ---- recrutamento ----------------------------------------------------------------------------
 
 
 @router.on(8335)
 async def speak(s: GameSession, msg: pb.ConditionSpeakMsg) -> None:
     """Anúncio de recrutamento: o cliente só deixa com ``speakTimes > 0``, e aqui é sempre 0."""
     _refuse(s, 8335, "sem anúncios de recrutamento", texto=msg.speak[:40])
-
-
-@router.on(8257)
-async def player_search(s: GameSession, msg: pb.SimplePlayerSearchReqMsg) -> None:
-    """Busca por apelido (transferir chefia, recrutar, correio). Sem ``info`` = não achou."""
-    nick = msg.otherNickname.strip()
-    online = (o.snapshot.character for o in s.ctx.online.sessions() if o.snapshot is not None)
-    found = next((c for c in online if c.nickname == nick), None)
-    if found is None and nick:
-        found = await s.ctx.characters.by_nickname(_char(s).server_id, nick)
-    out = pb.SimplePlayerSearchRspMsg()
-    if found is not None and found.active:
-        theirs = s.ctx.guilds.of(found.id or 0)
-        is_online = s.ctx.online.get(found.id or 0) is not None
-        out.info.CopyFrom(
-            gd.member_msg(s.ctx.guilds, found, theirs[1] if theirs else None, is_online, theirs[0] if theirs else None)
-        )
-    s.send(S_PLAYER_SEARCH, out)

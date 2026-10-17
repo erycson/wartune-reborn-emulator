@@ -164,10 +164,6 @@ class CharacterService:
         async with self._uow() as uow:
             return await uow.guilds.load(server_id)
 
-    async def by_nickname(self, server_id: int, nickname: str) -> Character | None:
-        async with self._uow() as uow:
-            return await uow.characters.by_nickname(server_id, nickname)
-
     async def characters(self, ids: list[int]) -> list[Character]:
         if not ids:
             return []

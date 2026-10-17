@@ -81,7 +81,7 @@ Todo handler muda a memória antes do primeiro `await` e grava tudo numa `charac
 | 8241 | eleição: candidatos | 4389 | *(cliente)* m2 `__setVotingUsers` |
 | 8481 | votar | 4390 `{result}` | *(cliente)* m2 |
 | 8335 | anúncio de recrutamento | nada (o cliente só deixa com `speakTimes > 0`, sempre 0) | *(cliente)* m6 |
-| 8257 | buscar jogador por apelido | 4170, sem `info` = não achou | *(cliente)* m6 (chefia, recrutar), m2 (correio) |
+| 8257 | buscar jogador por apelido | 4170, sem `info` = não achou; fica no sistema social (`handlers/friends.py`), que o correio também usa | *(cliente)* m6 (chefia, recrutar), m2 (correio) |
 | 15005 canal 5 | chat da guilda | 83 para os membros online | [chat.md](chat.md) |
 | 8541 | abrir o altar do demônio | 4436 `{result: 1, pop}` para os membros, 164 | *(cliente)* m6 `sendOpenDemon`, m2 `ConsortiaManager.__demonSwitchHandler` |
 | 8542 | entrar no altar | nada (ver pendências) | *(cliente)* m2 |
@@ -123,7 +123,10 @@ do 5154 (sistema de loja) precisa chamar `shop_buy` primeiro.** Atenção: o 515
 
 - **Mapas das atividades**: altar do demônio (7601), terra secreta (7501), guerra (4501) e entre
   servidores (4601) abrem com o 125 e os nós do mapa. O servidor só tem o mapa do tutorial
-  (`game/campaign.py`), então 8542/8537/8471/8783 são recusados e os pacotes de dentro do mapa
+  (`game/campaign.py`). Os nós de 7601 e 7501 não estão nos `.maps` do CDN (só 13 mapas têm; os
+  das atividades ficavam no banco do oficial), então falta uma captura de cada atividade. Por isso
+  8542/8537/8471/8783 são recusados; o cliente não trava (só envia, com intervalo entre cliques,
+  m2 `ConsortiaSocketOutManager`) e os pacotes de dentro do mapa
   (4437 relatório, 4448, 4449 fim, 4485, 4432/4632, 4440/4439/4457/4462/4460) não saem. Com o mapa
   pronto, a luta usa o fluxo PvE de `game/battle.py`, e o ranking por dano vai no `hurtOrder` do
   4437; os prêmios vão para o baú com `handlers.guild.add_to_box`.
@@ -135,4 +138,3 @@ do 5154 (sistema de loja) precisa chamar `shop_buy` primeiro.** Atenção: o 515
   muda pelo banco.
 - **Baú**: membro offline com mochila cheia perde o item (falta correio).
 - 8335 recrutamento, guildas-robô e o renomear grátis (`same`) não existem.
-- 8257 também é usado pelo correio: se outro sistema registrar o 8257, use este.

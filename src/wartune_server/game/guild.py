@@ -281,7 +281,7 @@ def on_login(s: GameSession) -> None:
     if mine is not None:
         for o in online_members(s.ctx, mine[0].id or 0):
             if o is not s:
-                o.send(162, pb.ConsortiaMsg(otherId=s.player_id))
+                o.send(162, b.complete(pb.ConsortiaMsg(otherId=s.player_id)))
 
 
 def on_logout(s: GameSession, fighting_capacity: int) -> None:
@@ -293,4 +293,4 @@ def on_logout(s: GameSession, fighting_capacity: int) -> None:
     if mine is not None:
         for o in online_members(s.ctx, mine[0].id or 0):
             if o is not s:
-                o.send(163, pb.ConsortiaMsg(otherId=s.player_id))
+                o.send(163, b.complete(pb.ConsortiaMsg(otherId=s.player_id)))
