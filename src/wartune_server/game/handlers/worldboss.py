@@ -75,6 +75,7 @@ async def revive_or_fight(s: GameSession, msg: pb.PayTypeMsg) -> None:
 
 @router.on(8470)
 async def buy_buff(s: GameSession, msg: pb.WorldBossBufferMsg) -> None:
-    """Buff de Moral do chefe: só se compra dentro do mapa do chefe. Nada é cobrado."""
+    """Buff do chefe (``CampaignBufferTemps`` ``Types=4``, ``WorldBossBuyBuffModel.BUFFER_TYPE``): só se compra
+    dentro do mapa do chefe. Nada é cobrado."""
     s.log.info("buff do chefe recusado (sem mapa do chefe)", pedido=str(msg))
     alert(s, UNAVAILABLE)
