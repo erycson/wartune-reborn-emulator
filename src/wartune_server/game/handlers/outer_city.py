@@ -150,7 +150,7 @@ async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     assert snap is not None and snap.arena is not None
     c, arena, now = snap.character, snap.arena, s.ctx.clock.now()
     if A.roll_day(arena, now):
-        s.send(S_RESET, A.data_reset(snap))
+        s.send(S_RESET, A.data_reset(snap, now))
     if arena.attack_left >= A.ATTACK_FREE:
         s.log.info("9506 recusado", motivo="cheio")
         return
