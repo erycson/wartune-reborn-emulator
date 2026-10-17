@@ -15,7 +15,10 @@
 
 - Pacotes extras do login oficial (4434, 83, 100, 4224, 4900, 4922, 4590 e as respostas a 8320/8466/8530/8218/8209/8625/8322), conforme o cliente pedir
 - Prédios do castelo (`BuildingInfoListMsg` a partir de `BuildingTempInfos`) e produção de recursos
-- Bolsa e itens, missões
-- Tutorial (`noviceProcess < 19000`): 5127 e a campanha de treino (125/140/21/127/130/143)
-- Batalhas
+- [x] Tutorial completo: mapas 10001/10002, batalhas, missões 10–45, baú e equipar, chefe da cidade externa ([tutorial.md](tutorial.md))
+- [x] Batalha PvE em tempo real ([batalha.md](batalha.md))
+- [ ] **Validar o tutorial no cliente** (`WARTUNE_SKIP_TUTORIAL=false`)
+- Fórmulas reais de dano, iniciativa e poder de combate
+- Cidade externa de verdade: terras selvagens, castelos vizinhos, outros jogadores
+- Atividades (4476), títulos (4484), moda (8625), patrulha dos monstros (4122)
 - Alembic, quando a primeira coluna existente mudar

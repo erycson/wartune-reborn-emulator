@@ -19,6 +19,8 @@ accounts 1───* characters *───1 game_servers
    │              │ 1
    │              ├──* heroes
    │              ├──* buildings
+   │              ├──* quests
+   │              ├──* items
    │              └──1 castles
    └──* play_tickets *───1 game_servers
 ```
@@ -73,11 +75,20 @@ são gravados os prédios centrais de nível 1: 90101 (conselho, 901), 10101 (mi
 e busca vários deles por `sonType` sem checar null. Os prédios 1501–1511 são do próprio cliente e
 não ficam no banco.
 
+### quests
+`character_id`, `template_id` (único por personagem), `completed`, `progress` (`condition_1`),
+`added_at`, `completed_at`. As concluídas viram o bitmap `questSite`; não há tabela para ele.
+
+### items
+`character_id`, `template_id`, `bag_type` (1 mochila, 4 herói), `object_id` (id do herói quando
+equipado), `pos`, `count`, `random_skill` (`randomSkill_1`, o atributo sorteado) e `is_new`.
+
 ## Transações
 
 Os serviços usam `async with uow_factory() as uow: …; await uow.commit()`. Sem `commit()`, o
 bloco descarta as alterações. Os objetos carregados continuam utilizáveis depois do bloco
-(`expire_on_commit=False`).
+(`expire_on_commit=False`). Em jogo, a sessão altera o snapshot em memória e grava com
+`CharacterService.save(*entidades)`: nova entra com `add`, já gravada com `merge`.
 
 ## Migrações
 
