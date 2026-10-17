@@ -78,6 +78,22 @@ De `chat/utils/ChatHelper.as` e `chat/view/ChatInputViewII.as` *(cliente)*:
 Amigos, lista negra, correio, nome e casamento: [social.md](social.md). Guilda: 5130 criar, 5142
 convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207 membros, 8212 info; respostas
 4138/164 info, 4133 membros, 162/163 entrou/saiu (o canal 5 depende dela).
+| C>S | | S>C | |
+|---|---|---|---|
+| 15003 | FriendRelationMsg `{nickName, relation}` 1 amigo, 2 lista negra | 78 | FriendInfoMsg (resultado / amigo novo) |
+| 15004 | `{otherId}` remover | 79 | remoção |
+| 15013 | recomendados | 84 | pedido recebido `{nickName, noticeMsg}`; aceitar = 15003 relation 1 de volta |
+| 15042 | busca | 160 / 161 | amigo entrou / saiu |
+| | | 4156 | lista paginada `relationList[]` (hoje vai vazia no login) |
+
+*(visto)* `arkadas_istegi_gonderme.json` 1–3: 78 com `relation:3` (pendente), 111 "Eklendi,
+yanıtını bekleyin", 83 canal 3. `login.json #68/#79`: 4156 em 2 páginas, relations 1 e 3.
+
+## Correio e guilda
+
+- Correio: a lista é HTTP (`maillist`, XML zlib); hoje responde vazio (`http/app.py`). Socket:
+  8205 enviar, 8206 apagar, 5022 anexo; 148 avisa correio novo.
+- Guilda: em [guilda.md](guilda.md). O canal 5 vai só para os membros online da guilda.
 
 ## No servidor
 
@@ -93,5 +109,9 @@ convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207 membros, 8212 i
 - Lista negra: quem me bloqueou não recebe meus 83/4541; no privado eu vejo `result -1`.
 - 15005: canal 8 para todos online fora de batalha. Os canais 5 e 6 são recusados até existirem
   guilda e time.
+- 8198: mundo, para todos online. ponytail: grátis; item 208003, cota e 4500 depois.
+- 15005: canal 8 para todos online fora de batalha; canal 5 para os membros online da guilda
+  (ponytail: 1 s entre mensagens). O canal 6 é recusado até existir time.
+- Todo 83 leva `consortiaId`/`consortiaName` de quem falou.
 - 15023: privado, com 4231 para o alvo e 4236 para quem enviou (`result -1` se offline).
 - 15038: 4256 com nome, nível e classe do jogador pedido.

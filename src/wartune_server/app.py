@@ -12,6 +12,7 @@ from aiohttp import web
 from .config import Settings
 from .domain.models import GameServer
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
+from .game.guild import Guilds
 from .game.router import router
 from .game.session import GameContext, GameSession, OnlinePlayers
 from .http.app import HttpDeps, build_http_app
@@ -37,6 +38,7 @@ class Services:
     templates: GameTemplates
     keys: LoginKeyPair
     clock: Clock
+    guilds: Guilds
 
 
 async def build_services(settings: Settings, clock: Clock | None = None) -> Services:
@@ -53,13 +55,15 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
         return SqlAlchemyUnitOfWork(database.sessions)
 
     sessions = InMemoryLoginSessionStore(clock, settings.socket_session_ttl_seconds)
+    characters = CharacterService(uow, templates, GridCastlePlacement())
     return Services(
         database=database,
         login=LoginService(uow, keys, sessions, clock, settings.server_id),
-        characters=CharacterService(uow, templates, GridCastlePlacement()),
+        characters=characters,
         templates=templates,
         keys=keys,
         clock=clock,
+        guilds=await Guilds.load(characters, settings.server_id),
     )
 
 
@@ -93,7 +97,14 @@ class GameServerApp:
         self.online = OnlinePlayers()
         registry = MessageRegistry.load_default()
         ctx = GameContext(
-            registry, router, services.login, services.characters, services.templates, services.clock, self.online
+            registry,
+            router,
+            services.login,
+            services.characters,
+            services.templates,
+            services.clock,
+            self.online,
+            services.guilds,
         )
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds

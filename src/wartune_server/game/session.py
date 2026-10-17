@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -18,6 +18,7 @@ from ..services.characters import CharacterService
 from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
+from .guild import Guilds
 from .router import PacketRouter
 
 if TYPE_CHECKING:
@@ -41,6 +42,7 @@ class GameContext:
     templates: GameTemplates
     clock: Clock
     online: OnlinePlayers
+    guilds: Guilds = field(default_factory=Guilds)
 
 
 class OnlinePlayers:
@@ -134,9 +136,11 @@ class GameSession:
         if self.battle is not None:
             self.battle.cancel()
         if self.snapshot is not None:
-            from . import social, space  # importam este módulo
+            from . import guild, rules, social, space  # importam este módulo
 
             space.leave(self)
+            if self.snapshot.leader is not None:
+                guild.on_logout(self, rules.leader_stats(self.snapshot, self.ctx.templates).fighting_capacity)
             if self.snapshot.character.novice_process >= space.POST_TUTORIAL:  # posição no space (8690 só na memória)
                 try:
                     await self.ctx.characters.save(self.snapshot.character)

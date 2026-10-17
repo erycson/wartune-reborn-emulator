@@ -9,7 +9,22 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from ..domain.errors import ConflictError, NotFoundError, ValidationError
-from ..domain.models import Arena, ArenaRank, Building, Castle, ChallengeLog, Character, Hero, Job, PlayerSnapshot
+from ..domain.models import (
+    Arena,
+    ArenaRank,
+    Building,
+    Castle,
+    ChallengeLog,
+    Character,
+    Consortia,
+    ConsortiaEvent,
+    ConsortiaInvite,
+    ConsortiaItem,
+    ConsortiaMember,
+    Hero,
+    Job,
+    PlayerSnapshot,
+)
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
 
@@ -175,6 +190,20 @@ class CharacterService:
             result = await change(uow)
             await uow.commit()
             return result
+
+    async def guild_state(
+        self, server_id: int
+    ) -> tuple[
+        list[Consortia], list[ConsortiaMember], list[ConsortiaInvite], list[ConsortiaEvent], list[ConsortiaItem]
+    ]:
+        async with self._uow() as uow:
+            return await uow.guilds.load(server_id)
+
+    async def characters(self, ids: list[int]) -> list[Character]:
+        if not ids:
+            return []
+        async with self._uow() as uow:
+            return await uow.guilds.characters(ids)
 
     async def save(self, *entities: object, delete: tuple[object, ...] = (), ranks: tuple[ArenaRank, ...] = ()) -> None:
         """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens) e

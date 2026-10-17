@@ -1434,6 +1434,11 @@ message ComprehendMsg {
   optional int32 templateId = 1;
 }
 
+// com.road.yishi.proto.consortia.ConditionSpeakMsg
+message ConditionSpeakMsg {
+  optional string speak = 1;
+}
+
 // com.road.yishi.proto.consortia.ConsortiaAltarOpenReqMsg
 message ConsortiaAltarOpenReqMsg {
   optional int32 altarType = 1;
@@ -1697,6 +1702,11 @@ message ConsortiaUserOfferReqMsg {
   optional int32 offerGold = 1;
   optional int32 offerPoint = 2;
   optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaVotingReqMsg
+message ConsortiaVotingReqMsg {
+  optional int32 votingUser = 1;
 }
 
 // com.road.yishi.proto.consortia.ConsortiaVotingRspMsg

@@ -16,6 +16,11 @@ from ..domain.models import (
     Castle,
     ChallengeLog,
     Character,
+    Consortia,
+    ConsortiaEvent,
+    ConsortiaInvite,
+    ConsortiaItem,
+    ConsortiaMember,
     FriendGroup,
     GameServer,
     Hero,
@@ -268,6 +273,33 @@ class SqlArenaRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlGuildRepository(_Repo):
+    """Leitura de tudo da guilda de um servidor (fica em memória no ``Guilds``; grava pelo ``save``)."""
+
+    async def load(
+        self, server_id: int
+    ) -> tuple[
+        list[Consortia], list[ConsortiaMember], list[ConsortiaInvite], list[ConsortiaEvent], list[ConsortiaItem]
+    ]:
+        guilds = list(await self._s.scalars(select(Consortia).where(Consortia.server_id == server_id)))  # type: ignore[arg-type]
+        ids = [g.id for g in guilds]
+
+        async def rows[T](cls: type[T]) -> list[T]:
+            query = select(cls).where(cls.consortia_id.in_(ids)).order_by(cls.id)  # type: ignore[attr-defined]
+            return list(await self._s.scalars(query))
+
+        return (
+            guilds,
+            await rows(ConsortiaMember),
+            await rows(ConsortiaInvite),
+            await rows(ConsortiaEvent),
+            await rows(ConsortiaItem),
+        )
+
+    async def characters(self, ids: list[int]) -> list[Character]:
+        return list(await self._s.scalars(select(Character).where(Character.id.in_(ids))))  # type: ignore[union-attr]
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -289,6 +321,7 @@ class SqlAlchemyUnitOfWork:
         self.mails = SqlMailRepository(self._session)
         self.marriages = SqlMarriageRepository(self._session)
         self.arena = SqlArenaRepository(self._session)
+        self.guilds = SqlGuildRepository(self._session)
         return self
 
     async def __aexit__(

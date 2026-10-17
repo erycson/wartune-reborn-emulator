@@ -36,6 +36,11 @@ from ..domain.models import (
     Castle,
     ChallengeLog,
     Character,
+    Consortia,
+    ConsortiaEvent,
+    ConsortiaInvite,
+    ConsortiaItem,
+    ConsortiaMember,
     FriendGroup,
     GameServer,
     Hero,
@@ -161,6 +166,16 @@ characters = Table(
     Column("refuse_friend", Boolean, nullable=False, default=False, server_default="0"),
     _int("bugle_free_used"),
     Column("bugle_free_day", String(10), nullable=False, default="", server_default=""),
+    _int("consortia_offer"),
+    _int("consortia_total_offer"),
+    _int("skill_attack"),
+    _int("skill_agility"),
+    _int("skill_ability"),
+    _int("skill_captain"),
+    _int("skill_gold"),
+    _int("skill_physique"),
+    Column("is_auto", Boolean, nullable=False, default=False, server_default="0"),
+    Column("last_out_consortia", UTCDateTime),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -433,6 +448,86 @@ challenge_logs = Table(
     _int("target_job"),
 )
 
+
+consortias = Table(
+    "consortias",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("server_id", Integer, ForeignKey("game_servers.id"), nullable=False),
+    Column("name", String(32), nullable=False),
+    _int("creator_id"),
+    _str("creator_name", 32),
+    _int("chairman_id"),
+    Column("created_at", UTCDateTime, nullable=False),
+    _int("levels", 1),
+    *(_int(f"{k}_level") for k in ("shop", "altar", "school", "store", "attack", "defence", "agility")),
+    *(_int(f"{k}_level") for k in ("ability", "captain", "gold", "physique")),
+    _int("offer"),
+    _int("total_offer"),
+    _str("placard", 255),
+    _str("description", 255),
+    _str("group_placard", 255),
+    Column("open_app", Boolean, nullable=False, default=True, server_default="1"),
+    _int("code_type"),
+    _int("code_need"),
+    Column("code_begin_at", UTCDateTime),
+    _int("kick_count"),
+    Column("kick_at", UTCDateTime),
+    _int("altar_state"),
+    Column("altar_at", UTCDateTime),
+    _int("max_wave"),
+    _int("voting_state"),
+    _int("voting_id"),
+    Column("voting_at", UTCDateTime),
+    UniqueConstraint("server_id", "name"),
+)
+
+consortia_members = Table(
+    "consortia_members",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("consortia_id", Integer, ForeignKey("consortias.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, unique=True),
+    Column("joined_at", UTCDateTime, nullable=False),
+    _int("duty_id", 5),
+    _int("today_offer"),
+    _str("offer_day", 10),
+    _int("bless_count"),
+    _str("bless_day", 10),
+    _int("voted_for"),
+    _int("voted_id"),
+)
+
+consortia_invites = Table(
+    "consortia_invites",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("consortia_id", Integer, ForeignKey("consortias.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("user_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    _int("invite_id"),
+    Column("from_type", Boolean, nullable=False, default=False, server_default="0"),
+)
+
+consortia_events = Table(
+    "consortia_events",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("consortia_id", Integer, ForeignKey("consortias.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    _str("remark", 255),
+    _int("type", 1),
+)
+
+consortia_items = Table(
+    "consortia_items",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("consortia_id", Integer, ForeignKey("consortias.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("template_id", Integer, nullable=False),
+    _int("count", 1),
+)
+
 _mapped = False
 
 
@@ -463,6 +558,11 @@ def map_entities() -> None:
         (Arena, arenas),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
+        (Consortia, consortias),
+        (ConsortiaMember, consortia_members),
+        (ConsortiaInvite, consortia_invites),
+        (ConsortiaEvent, consortia_events),
+        (ConsortiaItem, consortia_items),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

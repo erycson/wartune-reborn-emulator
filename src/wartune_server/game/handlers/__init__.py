@@ -5,6 +5,8 @@ from . import (  # noqa: F401  (registra os handlers no router)
     campaign,
     chat,
     friends,
+    guild,
+    guild_events,
     login,
     lords,
     mail,

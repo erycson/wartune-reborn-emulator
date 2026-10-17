@@ -13,6 +13,11 @@ from .models import (
     Castle,
     ChallengeLog,
     Character,
+    Consortia,
+    ConsortiaEvent,
+    ConsortiaInvite,
+    ConsortiaItem,
+    ConsortiaMember,
     FriendGroup,
     GameServer,
     Hero,
@@ -112,6 +117,15 @@ class ArenaRepository(Protocol):
     async def logs(self, character_id: int, kind: int, limit: int) -> list[ChallengeLog]: ...
 
 
+class GuildRepository(Protocol):
+    async def load(
+        self, server_id: int
+    ) -> tuple[
+        list[Consortia], list[ConsortiaMember], list[ConsortiaInvite], list[ConsortiaEvent], list[ConsortiaItem]
+    ]: ...
+    async def characters(self, ids: list[int]) -> list[Character]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -148,6 +162,8 @@ class UnitOfWork(Protocol):
     def marriages(self) -> MarriageRepository: ...
     @property
     def arena(self) -> ArenaRepository: ...
+    @property
+    def guilds(self) -> GuildRepository: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""

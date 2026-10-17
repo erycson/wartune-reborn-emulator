@@ -13,17 +13,18 @@ from datetime import timedelta
 
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
-from .. import items, social
+from .. import guild, items, social
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
 
 S_CHAT, S_PRIVATE, S_PRIVATE_REPLY, S_USER_INFO = 83, 4231, 4236, 4256
 S_ITEMS, S_FREE_BUGLES, S_CROSS_BUGLE = 115, 4500, 4541
-BIG_BUGLE, CURRENT, WORLD, CROSS = 1, 8, 10, 13
+BIG_BUGLE, GUILD, CURRENT, WORLD, CROSS = 1, 5, 8, 10, 13
 MIN_GRADE, MAX_LEN = 6, 76  # ChatHelper / ChatInputViewII
 BUGLE = timedelta(seconds=2)
-COOLDOWN = {CURRENT: timedelta(seconds=10), WORLD: BUGLE, BIG_BUGLE: BUGLE, CROSS: BUGLE}
+# ponytail: o cliente não limita a guilda (ChatHelper); 1 s contra spam
+COOLDOWN = {GUILD: timedelta(seconds=1), CURRENT: timedelta(seconds=10), WORLD: BUGLE, BIG_BUGLE: BUGLE, CROSS: BUGLE}
 PRIVATE_COOLDOWN = timedelta(seconds=1)  # ponytail: o cliente não limita o privado; 1 s contra spam
 OFFLINE = -1  # 4236.result: "o jogador não está online"
 SMALL_BUGLE, BIG_BUGLE_ITEM, CROSS_BUGLE_ITEM = 208003, 208002, 208025  # ShopGoodsInfo.*_BUGLE_TEMP_ID
@@ -55,7 +56,11 @@ def _broadcast(s: GameSession, code: int, msg: pb.ChatChannelMsg | pb.CrossBigBu
 def _channel_msg(s: GameSession, channel: int, text: str) -> pb.ChatChannelMsg:
     assert s.snapshot is not None
     c = s.snapshot.character
-    return b.complete(pb.ChatChannelMsg(channel=channel, encodeMsg=text, otherId=c.id, name=c.nickname or ""))
+    out = pb.ChatChannelMsg(channel=channel, encodeMsg=text, otherId=c.id, name=c.nickname or "")
+    mine = s.ctx.guilds.of(s.player_id)
+    if mine is not None:
+        out.consortiaId, out.consortiaName = mine[0].id or 0, mine[0].name
+    return b.complete(out)
 
 
 async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
@@ -63,7 +68,14 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
     if text is None:
         s.log.info("chat recusado", canal=channel, tamanho=len(msg.encodeMsg))
         return
-    _broadcast(s, S_CHAT, _channel_msg(s, channel, text))
+    out = _channel_msg(s, channel, text)
+    if channel == GUILD:  # só os membros online da guilda (quem falou também)
+        mine = s.ctx.guilds.of(s.player_id)
+        for o in guild.online_members(s.ctx, mine[0].id or 0) if mine is not None else []:
+            if not social.blocks(o, s.player_id):
+                o.send(S_CHAT, out)
+        return
+    _broadcast(s, S_CHAT, out)
 
 
 def free_bugles(s: GameSession) -> int:
@@ -142,14 +154,14 @@ async def cross_bugle(s: GameSession, msg: pb.CrossBigBugleMsg) -> None:
 
 @router.on(15005)
 async def channel_chat(s: GameSession, msg: pb.ChatChannelMsg) -> None:
-    """Canal da cena (8). Guilda (5) e time (6) ficam recusados até existirem.
+    """Canal da cena (8) e da guilda (5, só membros online). Time (6) fica recusado até existir.
 
     ponytail: "cena" = todos online até existir o registro de cenas (cidade do céu).
     """
-    if msg.channel != CURRENT:
+    if msg.channel not in (CURRENT, GUILD):
         s.log.info("canal de chat não suportado", canal=msg.channel)
         return
-    await _say(s, msg, CURRENT)
+    await _say(s, msg, msg.channel)
 
 
 @router.on(25024)

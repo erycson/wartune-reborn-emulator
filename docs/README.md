@@ -17,4 +17,5 @@
 | [diversos.md](diversos.md) | Veículos, anti-vício, senha secundária, captcha, acelerador e os pacotes do login que faltam |
 | [social.md](social.md) | Amigos, lista negra, correio (socket + `maillist`), troca de nome, casamento |
 | [pvp.md](pvp.md) | Coliseu, torneio de fadas e os eventos PvP fechados (Senhores, campo de batalha, mina) |
+| [guilda.md](guilda.md) | Guilda: opcodes, regras do cliente, estado em memória, o que falta (altar, guerra) |
 | [roadmap.md](roadmap.md) | O que está pronto e os próximos marcos |
