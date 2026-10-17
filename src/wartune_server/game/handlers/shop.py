@@ -89,7 +89,7 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
         return GONE
     if not 1 <= count <= MAX_COUNT or price(row) is None:
         return NO_ITEM
-    if int(row.get("NeedMinVip") or 0) > 0:  # ponytail: não há VIP; libera quando houver
+    if int(row.get("NeedMinVip") or 0) > 0:  # ponytail: nenhuma loja tem NeedMinVip hoje; regra não conferida
         return VIP
     if int(row.get("NeedConsortiaLevels") or 0) > 0:  # depende da guilda
         return GUILD

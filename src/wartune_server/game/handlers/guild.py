@@ -869,7 +869,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 
     ponytail: a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item
     do mercado da guilda liberado pelo nível do altar, na casa "Market Eşyası" (Site 1). A
-    bênção rápida (``param1`` > 1, VIP 6) fica recusada até existir VIP.
+    bênção rápida (``param1`` > 1, VIP 6) fica recusada: o custo e a quantidade do x10 estão só no m6.
     """
     g = s.ctx.guilds
     mine = _mine(s)

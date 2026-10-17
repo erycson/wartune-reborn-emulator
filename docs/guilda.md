@@ -138,7 +138,8 @@ primeiro.
 - O altar abre e o estado (`altarState` 0/1/2, 21 min) aparece no 164/4138.
 - **Prêmio da bênção**: a tabela do oficial não está nos templates. ponytail: sempre um item do
   mercado liberado pelo nível do altar, na casa 1; fica na memória até o 8216. A bênção rápida
-  (x10, VIP 6) é recusada.
+  (x10, VIP 6) é recusada: o VIP já existe (`handlers/vip.py`), mas o custo e a quantidade do x10
+  estão só no m6, que não está na árvore decompilada; conferir antes de implementar.
 - **Eleição**: a regra que abre a votação (chefe sumido) não está no cliente; `voting_state` só
   muda pelo banco.
 - **Baú**: membro offline com mochila cheia perde o item (falta correio).
