@@ -90,3 +90,21 @@ def items_msg(items: Sequence[Item], player_id: int) -> pb.ItemMovedListMsg:
     for item in items:
         msg.moved.extend(item_moved(BagType.BAG, 0, item.pos, item, player_id).moved)
     return msg
+
+
+def take_one(snap: PlayerSnapshot, template_id: int) -> tuple[Item, bool] | None:
+    """Consome uma unidade do item ``template_id`` da mochila. Devolve (item, apagado?): grave o item
+    ou passe-o em ``delete=`` na mesma ``save`` da recompensa. ``None`` se não tiver."""
+    item = next((i for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id), None)
+    if item is None:
+        return None
+    if item.count > 1:
+        item.count -= 1
+        return item, False
+    snap.items.remove(item)
+    return item, True
+
+
+def taken_msg(item: Item, gone: bool, player_id: int) -> pb.ItemMovedListMsg:
+    """115 do item consumido por ``take_one`` (posição vazia se acabou)."""
+    return item_moved(BagType.BAG, 0, item.pos, None if gone else item, player_id)

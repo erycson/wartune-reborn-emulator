@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ..domain.models import EventState, PlayerSnapshot
+from ..templates.repository import GameTemplates
 
 TIME_FMT = "%Y-%m-%d %H:%M:%S"
 
@@ -40,6 +41,12 @@ def daily(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
     if st.updated_at.date() != now.date():
         st.value, st.text, st.updated_at = 0, "", now
     return st
+
+
+def config(templates: GameTemplates, name: str, default: str = "") -> str:
+    """``ConfigInfos.ConfigValue`` de ``name``."""
+    row = templates.get("ConfigInfos", name, key="ConfigName")
+    return row["ConfigValue"] if row else default
 
 
 @dataclass(frozen=True, slots=True)
