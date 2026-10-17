@@ -112,6 +112,10 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     now = s.ctx.clock.now()
     timebox.on_login(snap.character, now)  # antes do PlayerMsg: timeRun e tempo offline
     changed = castle.ensure(snap, s.ctx.templates, now)
+    # o dia vira antes do PlayerMsg (o attackLeftCount dele já é o do dia) e grava junto: senão o 8224
+    # recarrega o arena do banco com o dia de ontem
+    if snap.arena is not None and A.roll_day(snap.arena, now):
+        changed.append(snap.arena)
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
     s.ctx.online.bind(s.player_id, s)  # antes do primeiro await: o segundo 20001 junto já vê a sessão
@@ -121,9 +125,6 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     social.announce(s, online=True)
     from . import events
 
-    # o dia vira antes do PlayerMsg: o attackLeftCount dele já é o do dia (o arena.login só zera na carga)
-    if snap.arena is not None:
-        A.roll_day(snap.arena, s.ctx.clock.now())
     # primeiro login do dia (login acumulado, atividades de login) antes do PlayerMsg que mostra isso
     if touched := events.touch_login(snap, s.ctx.clock.now(), s.ctx.events):
         await s.ctx.characters.save(*touched)
