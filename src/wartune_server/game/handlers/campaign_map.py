@@ -12,6 +12,12 @@ from ..router import router
 from ..session import GameSession
 
 S_SYSTEM_ARMY = 20
+# exército do sistema por mapa (SystemArmyMsg): só os mapas com resposta na captura; os demais ficam vazios
+SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplated, soldierTemplated)
+    1011: ([], [2011]),  # (visto) replay #924: 5038 com paraInt1=1011 -> 20 com soldierTemplated 2011
+    1021: ([1011], [2011]),  # (visto) replay #1321: 20 do mapa 1021 (o 5038 dele é o #1219)
+    2011: ([3011], [4012, 4011]),  # (visto) peri_uyanis #89-90: 5038 paraInt1=2011 -> 20
+}
 
 
 @router.on(5033)
@@ -22,9 +28,16 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
 @router.on(5038)
 async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    # exército do sistema do nó (replay: 20 SystemArmyMsg). Sem tabela de nó, a lista vai vazia
-    s.log.info("5038 exército do sistema vazio (dependência)", p1=msg.paraInt1)
-    s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg())
+    """Pré-carga de batalha do mapa (``PreLoadNextCampaign``, ``paraInt1`` = mapa): 20 a cada pedido.
+
+    (cliente) o 20 só alimenta ``BattleResPreloadManager``; o oficial respondeu a cada 5038 do replay com a
+    mesma lista do mapa.
+    """
+    heroes, soldiers = SYSTEM_ARMY.get(msg.paraInt1, ([], []))
+    if msg.paraInt1 not in SYSTEM_ARMY:
+        # ponytail: mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado
+        s.log.info("5038 mapa sem captura (lista vazia)", mapa=msg.paraInt1)
+    s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg(heroTemplated=heroes, soldierTemplated=soldiers))
 
 
 @router.on(5121)

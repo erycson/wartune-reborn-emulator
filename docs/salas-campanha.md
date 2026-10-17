@@ -1,8 +1,8 @@
 # Salas de campanha, times e pedidos do lote
 
 Estado em memória do processo, como as guildas: `GameContext.rooms` (`game/rooms.py`) e
-`GameContext.teams` (`game/teams.py`). Nada disto vai ao banco, então reiniciar o servidor esvazia as
-salas e os times. Não há migração nova neste lote.
+`GameContext.teams` (`game/teams.py`). Nada disto vai ao banco ainda; a decisão de persistência está na
+seção [Persistência](#persistência-decisão). Não há migração nova neste lote.
 
 Os handlers estão em `game/handlers/room.py` (salas), `team.py` (times), `campaign_map.py` (mapa de
 campanha), `tower.py`, `dungeon.py` e `tollgate.py`. O 5025 é registrado em `handlers/space.py`, que
@@ -11,9 +11,18 @@ primeiro trata a ilha dos pets e só depois consulta a sala.
 ## Fontes
 
 - **Visto**: captura `exp_kitabi_kullanim_kahraman_sarayi_ve_ek_sahne_giris_ek_sahne_mob.json` (sala
-  "Büyük Kristal", #10 a #41) e `replay_packets.json` (C>S 5033, 5038, 5122, 5126, 5180 com as respostas).
-- **Cliente**: `RoomManager.as` (listeners 15, 17, 28, 32, 120, 121), `FreedomTeamManager.as`
-  (convite só a amigo, limite de 4 em `:527`), `MopupManager.as`, `WorldBossHelper.checkMaze`.
+  "Büyük Kristal", #10 a #41); `replay_packets.json` (C>S 5033, 5038, 5039, 5122, 5126, 5180 com as
+  respostas; os índices citados abaixo como "replay #N" são desse arquivo); `peri_uyanis.json` (5038 #89 e
+  20 #90); `labirent_sandik_toplama_odulu.json` e `yeralti_labirenti_ve_ilk_mob.json` (4205 e 4425);
+  `savasa_baskin_ve_elmas_ile_hizlandirma.json` (4425 da varredura); `buyuk_sefer_kullanimi_grup_sahne_yarari_1.json`
+  (4240 e aviso 111); `login.json` (4631 com `watchInfo` #35).
+- **Cliente**: `RoomManager.as` (listeners 15, 17, 28, 32, 120, 121), `RoomListSocketOutManager.as` (5023,
+  5024, 5026, 8465, 9504), `BaseManager.as` (`__mulityCampaignRequestHandler`, 4913), `PreLoadNextCampaign.as`
+  (5038), `CampaignSocketOutManager.as` (5122, 5126, 5180), `MapSocketOuterManager.as` (5121, 5033),
+  `FreedomTeamManager.as` (convite só a amigo, limite de 4 em `:527`), `MopupManager.as` (status da
+  varredura), `WorldBossHelper.checkMaze`.
+- **Templates**: `ConfigInfos` (`MultiCampaign_MaxCount`, `tollgate_*`, `Campaign_Sweep_*`, `Tower_Sweep_*`),
+  `PawnTempInfos` (2011), `MapInfos` (1011, 1021, 2011), `ItemTempInfos` (2032101).
 - **Dedução**: marcada na coluna "Fonte". Vale até uma captura confirmar.
 
 ## Salas PvE (roomType 0)
@@ -28,32 +37,37 @@ saída (o cliente volta à lista quando recebe o próprio id); 28 `KillPlayerRsp
 
 Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o próprio id.
 
+Tipo de sala (`RoomReqMsg.roomType`): o cliente usa 0 para campanha (PvE), 1 para PvP e 2 para veículo
+(`RoomListSocketOutManager.sendCreateRoom`). Aqui só existem as de campanha: 5023 e 5024 de outro tipo são
+recusados, e 5026/8465 de outro tipo voltam vazios. Antes, uma sala PvP virava sala PvE.
+
 ## Opcodes
 
 | Opcode | Nome | Estado | Fonte | Observação |
 |---|---|---|---|---|
-| 5023 | ROOM_CREATE | completo | visto | Capacidade do cliente, limitada a 1..4. Senha opcional. |
-| 5024 | ROOM_ENTER | completo | visto (sequência) | Recusa sala cheia, senha errada ou quem já está numa sala. |
-| 5026 | ROOM_LIST | completo | visto (13 vazio) | Lista todas as salas. |
+| 5023 | ROOM_CREATE | completo | visto | Capacidade do cliente, limitada a 1..4. Senha opcional. Tipo diferente de 0 é recusado. |
+| 5024 | ROOM_ENTER | completo | visto (sequência) | Recusa sala cheia, senha errada, tipo diferente de 0 ou quem já está numa sala. |
+| 5026 | ROOM_LIST | completo | visto (13 vazio) | Lista as salas de campanha (tipo 0). Outros tipos vêm vazios. |
 | 5027 | U_C_CAMPAIGN_INVITE_PLAYER_LIST | só registra | cliente (`FreedomTeamInviteFrame`, aba 2) | Inalcançável: o botão de atualizar só manda o 5027 na aba 2, e a lista tem só as abas 0 e 1. Sem resposta. |
-| 8465 | ROOM_FIND | completo na forma | dedução | Filtra por `roomId`. Sem captura do pedido. |
+| 8465 | ROOM_FIND | completo na forma | dedução | Filtra por `roomId` e tipo 0. Sem captura do pedido. |
 | 5029 | PLACESTATE | completo | dedução (quem pode) | Só o dono abre ou fecha lugar livre, fora do dono. Recusa devolve 17. |
 | 5030 | MASTER_CHANGE | completo | cliente (121) | `paraInt1` é o novo dono; só o dono atual pode passar. |
 | 5031 | KILLPLAYER | completo | cliente (28) | Só o dono expulsa; o expulso recebe o 28 e sai. |
 | 5120 | CAMPAIGN_EXIT | completo para sala | cliente (15) | Sai da sala. Não tira o jogador de um mapa de campanha. |
 | 5025 | ROOM_EXIT | completo para sala | cliente (15) | Ilha dos pets primeiro; fora dela, sai da sala. |
-| 9504 | MULITY_CAMPAIGN_REQUEST | parcial | cliente (4913) | Sem resposta. O formato do pedido não foi identificado. |
-| 5033 | CAMPAIGN_CONFIRM | parcial | replay | Replay mostra 140, 131, 128 e 157. Depende do mapa de nós 1011/2011. |
-| 5038 | CAMPAIGN_SYSTEM_ARMY | parcial | replay | Responde 20 `SystemArmyMsg` vazio. Origem de `soldierTemplated` não resolvida. |
-| 5121 | CAMPAIGN_ARMY | parcial | sem captura | Não muda estado. `paraInt1` conflita com `NpcInfoFrame` (`paraInt1=2`). |
-| 5122 | CAMPAIGN_TAKE_CARD | parcial | replay | Não muda estado. Depende da tabela de cartas. |
-| 5126 | CAMPAIGN_FOG_UPDATE | parcial | replay | Névoa não é guardada. O 130 volta só no próximo ENTER. |
-| 5180 | CAMPAIGN_FINISH | parcial | replay | Replay mostra 140, 131, 128 e 157. Depende de progresso de campanha. |
+| 9504 | MULITY_CAMPAIGN_REQUEST | completo na forma | cliente (`BaseManager.__mulityCampaignRequestHandler`, 4913) | Link de sala no chat: pedido `SimplePropertyMsg` com o roomId. Responde 4913 com `param1` = sala, `param2` = campanha (0 = sem campanha) e `param7` = quem pediu está numa campanha (`s.campaign`, *dedução*). Sala inexistente: sem resposta (*dedução*). |
+| 5033 | CAMPAIGN_CONFIRM | parcial | replay (#1120, #1563) | Corpo visto: `paraInt1` 879, `paraInt2` 101107, `paraBool1` true (significado não identificado; não é o mapa). Replay mostra 140, 131, 128 e 157. Depende do mapa de nós 1011/2011. |
+| 5038 | CAMPAIGN_SYSTEM_ARMY | parcial | replay (#923 a #1321), peri_uyanis (#89 e #90) | `paraInt1` é o mapa (cliente: `PreLoadNextCampaign`). Responde 20 `SystemArmyMsg` com a lista do mapa para 1011, 1021 e 2011 (`SYSTEM_ARMY`); mapa fora da tabela: lista vazia. A lista de cada mapa deve sair dos nós do `.maps` (*dedução*). |
+| 5121 | CAMPAIGN_ARMY | parcial | cliente (`NpcInfoFrame`) | Não muda estado. Único remetente: `NpcInfoFrame`, com `paraInt1=2` fixo e `paraInt2` = id do NPC. Precisa de captura da resposta. |
+| 5122 | CAMPAIGN_TAKE_CARD | parcial | replay (#1166, #1651) | Corpo visto: `paraInt1` 58073072 (o id do exército), `paraInt2` 2, `paraBool1` false. Resposta vista: 19 (névoa) e 4105 (NPC corre atrás). A carta concedida não está modelada; a lista de cartas vem no 135 (`CampaignCards`, 5 cartas, preço 0). |
+| 5126 | CAMPAIGN_FOG_UPDATE | parcial | replay | Névoa não é guardada. O 130 volta só no próximo ENTER. O oficial também manda 19 com névoa própria. |
+| 5180 | CAMPAIGN_FINISH | parcial | replay (#1169, #1653) | `paraInt1` = 1. Replay mostra 140, 131, 128 e 157 com o próximo nó. Depende de progresso de campanha. |
+| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | parcial, sem handler | replay (#908) | Corpo `{1: 1, 2: 1001}` (campanha 1001). Respostas: 125 `RoomCreatedMsg` (campaignId 1011), 140 (exército no mapa) e 21 `RoomEnterMsg`. Sem remetente no cliente decompilado. Falta o mapa 1011 (posição inicial e nós). |
 | 8286 | C_ROOM_REFUSE | completo | cliente (`sendRefuseInvite`, 4194) | Alterna "recusar convites". Responde 4194. O bloqueio do 5142 da guilda é *(dedução)*, ver [guilda.md](guilda.md). Não há convite de sala no servidor. |
-| 8297 | TOWER_INFO | parcial | cliente (4205) | 4205 com `maxIndex=60` (visto no labirinto 8001) e entradas zeradas. Sem progresso. |
+| 8297 | TOWER_INFO | parcial | captura (4205) | 4205 com `maxIndex=60`, `campaignId=8001`, 0 entradas feitas e 1 livre de 1 (visto em `labirent_sandik` #17 e `yeralti` #1). `totalGp`, `itemTempIds` e `order` dependem de progresso. |
 | 8300 | TOWER_LIVE | parcial | sem captura | Sem efeito. Custo da torre não modelado. |
 | 8526 | OPRATE_REPLACEMENTS | parcial | cliente (4424/4423) | Sem efeito. Depende do chefe mundial ([boss-eventos.md](boss-eventos.md)). |
-| 8528 | CAMPAIGN_SWEEP | parcial | cliente (4425) | Sem efeito. Depende do progresso. A UI não espera resposta: o 4425 só abre a janela (status 1) ou mostra aviso (status 2, 3, 4); os textos dos avisos não foram identificados, então não há recusa a mandar. |
+| 8528 | CAMPAIGN_SWEEP | parcial | cliente (4425), captura (4425) | Sem efeito: falta o pedido (`CampaignSweepReq`, sem captura C>S) e o progresso. Respostas vistas: status 1 abre a janela (`sweepType` 1 campanha, 2 labirinto); status 11 é o fim com `result`; status 5 não tem efeito no `MopupManager`. Custo em `ConfigInfos`: campanha `Campaign_Sweep_Gold` 5000 e `Campaign_Sweep_Time` 300 s; labirinto `Tower_Sweep_Gold` 1000 e `Tower_Sweep_Time` 30 s por andar. |
 | 8734 | APPLY_INVITE_TEAM | completo | cliente (4620, 4622, 4626) | `param1` é quem convidou, `param7` aceitou. Aceitar cria o time se preciso. |
 | 8736 | CHANGE_CAPTAIN | completo | cliente (4627) | Só o capitão troca. |
 | 8737 | EDIT_TEAM_FIGHT_POS | completo | dedução (quem pode) | Qualquer membro muda as posições do time (4628). |
@@ -61,7 +75,7 @@ Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o própr
 | 8739 | KICK_TEAM_MEMBER | completo | cliente (4630, 4625) | Só o capitão. Com dois membros sobrando o time acaba (4625). |
 | 8740 | C_LEAVE_TEAM_FOR_NOW | completo | dedução (`sendAFK` sem chamador) | Alterna "sair por ora": o jogador fica no time, com `hasLeftForNow` no 4624. Responde 4621 (o cliente só atualiza a tela) e 4624. |
 | 8741 | C_QUIT_TEAM | completo | cliente (`FreedomTeamManageFrame`, sair com confirmação) | Sai de vez. Quem sai recebe 4625 (o time acaba) ou 4629 com o próprio id, e o cliente limpa o time. Ver Times. |
-| 8742 | BATTLEGUARD_OP | parcial | cliente (4631) | Operação recusada, responde 4631 vazio. Depende do inventário de gemas. |
+| 8742 | BATTLEGUARD_OP | parcial | cliente (4631), captura (login #35) | Operação recusada, responde 4631 vazio. O login oficial manda 4631 com `watchInfo` {gridType 2, gridPos 1, jion1 3120101}; o servidor ainda não manda isso no login. Depende do inventário de gemas. |
 | 8746 | C_TEAM_REFUSE | completo | cliente (`sendRefuseTeamInvite`, 4635) | Alterna "recusar convites de time". Com ele ligado, o 8738 não chega ao alvo. Responde 4635. |
 | 8752 | TOLLGATE_GET_REWARD | parcial | cliente (4645) | Responde evento fechado. Não há agenda do evento. |
 | 8753 | TOLLGATE_REQUEST | parcial | cliente (4645) | Idem. |
@@ -82,22 +96,54 @@ jogador do time: alterna `hasLeftForNow`, que vem no `memberDetail` do 4624, e r
 só usa para atualizar a tela. O cliente não envia o 8740 (`sendAFK` não tem chamador), então esse efeito é
 dedução do campo.
 
+## Persistência (decisão)
+
+Hoje nada de salas e times vai ao banco. A decisão abaixo segue o oficial; onde falta captura, diz o que
+capturar.
+
+- **Salas: não persistem.** Lugares, dono e campanha ficam presos às sessões vivas. O oficial manda o
+  estado ao vivo (12, 17, 32, 120) e dissolve a sala quando o dono sai (15 para todos). Nenhuma captura
+  mostra sala restaurada no login.
+- **Times: não persistem por enquanto.** Nenhuma captura tem 4620 a 4630 no login, então não dá para
+  provar que o oficial restaura o time depois de relogar. Para decidir: formar um time com dois amigos,
+  desconectar, logar de novo e gravar o login. Se o 4624 voltar no login, persistir membros, capitão,
+  posições de combate (`fight_pos`) e `hasLeftForNow` numa tabela nova (migração).
+- **Recusas de convite (8286, 8746): persistem** no personagem (`refuse_invite`, `refuse_team_invite`) e
+  voltam no login (visto).
+- **Contador de campanha multi (4240, `campaignCount` e `campaignMaxcount`): deve persistir.** A captura
+  `buyuk_sefer_kullanimi_grup_sahne_yarari_1` mostra o item "Büyük Sefer" (`ItemTempInfos` 2032101,
+  `Property1` 15) subindo o contador: 4240 com 2/2 e o aviso 111 "Grup Ek Sahne yararı 1 kez arttı". Hoje o
+  item não tem efeito (`_use_resource` só conhece os tipos de `USE_KINDS`) e o cliente nunca recebe o 4240.
+  Falta: o valor inicial (`MultiCampaign_MaxCount` = 1 em `ConfigInfos`, mas a captura mostra máximo 2),
+  quando o contador gasta (ao entrar? ao concluir?) e se zera por dia (o cliente calcula
+  `MaxCount - multiCopyCount` na missão diária, `DayGuideManager`). Quando houver isso, é uma coluna nova no
+  personagem, com migração.
+
 ## Dependências que faltam
 
-- **Escolher campanha da sala e começar**: o pedido que escolhe a campanha (`startCampaignId`, 32) e o
-  que começa a campanha da sala (125 e 21) não foram identificados. `InstanceSelectFrame` não está
-  decompilado. Até lá a sala fica "Savaş seçilmedi".
-- **5039**: não tem remetente `PackageOut` no cliente decompilado, só `ProtocolType` e a captura.
-  Fica como dependência, fora da lista.
-- **Mapa de nós 1011/2011 e progresso de campanha**: 5033, 5038, 5180 e a varredura (8528) precisam
-  disso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
-- **Origem de `soldierTemplated 2011`**: a tabela `PawnTempInfos` ainda não foi conferida.
-- **Torre**: sem progresso salvo e sem tabela de limites. O 8001 tem `maxIndex=60`; a torre real
-  ainda não tem o seu.
-- **Gemas da guarda de batalha**: `WorldBossHelper.checkMaze` pede inventário de gemas do labirinto.
-- **Pedágio**: sem agenda do evento; `TollgateReward.ScoreRewards` está descartado no parser.
-- **Protocolo**: `PropertyMsg` (4913) e `ArmyMsg` não estão em `wartune.proto`. O 4913 aparece no
-  `opcodes.json` com `SimplePropertyMsg`.
+- **Começar a campanha da sala**: o 5039 (visto no replay, corpo `{1: 1, 2: 1001}`) responde 125, 140 e 21.
+  Falta o mapa 1011: posição inicial do exército (no 140) e os nós. O `InstanceSelectFrame` não está
+  decompilado, então a escolha da campanha antes do 5039 ainda não foi capturada. Até lá a sala fica
+  "Savaş seçilmedi".
+- **Mapa de nós 1011/2011 e progresso de campanha**: 5033, 5180 e a varredura (8528) precisam disso. Ver
+  [mundo-compartilhado.md](mundo-compartilhado.md).
+- **Lista de soldados por mapa (5038)**: só 1011, 1021 e 2011 estão na captura. `PawnTempInfos` confere
+  para 2011 ("Otlak Kurdu", nível 5, no mapa 1011 de nível 5 a 7). Os demais mapas precisam de captura do
+  5038 de cada um.
+- **Varredura (8528)**: falta a captura do pedido C>S. As respostas 4425 estão nas capturas, mas nenhuma
+  tem o pedido. Além disso, o progresso de campanha (vitória) não é salvo.
+- **Torre**: sem progresso salvo. Os limites vistos (1 de 1, `maxIndex` 60) estão no 8297; a torre real
+  ainda não tem o seu `maxIndex`.
+- **Gemas da guarda de batalha**: `WorldBossHelper.checkMaze` pede inventário de gemas do labirinto. O
+  login oficial manda o 4631 com `watchInfo`; falta captura de jogador sem gema e com gema, e saber o que
+  `jion1` (3120101) é.
+- **Pedágio**: sem agenda do evento. O template tem a configuração (`tollgate_count` 5 tentativas base,
+  `tollgate_attack_count` 10 (desafio com diamantes), `tollgate_add_count` 1000 de limite de compras extras) e as tabelas
+  `ScoreRewards` (28), `BossRewards` (370), `AreaRewards` (30) e `LuckyRewards`, que o parser descarta
+  (filhos aninhados). Sem a agenda, fica fechado.
+- **Contador de campanha multi (4240)**: ver Persistência.
+- **Protocolo**: o cliente usa `com.road.yishi.proto.simple.PropertyMsg` para 9504 e 4913, que é o
+  `SimplePropertyMsg` do `wartune.proto`. `ArmyMsg` não está em `wartune.proto`.
 
 ## Testes
 
@@ -105,6 +151,9 @@ dedução do campo.
 - `tests/game/test_salas_campanha.py`: os 29 opcodes têm handler (e 5025); corpo vazio não derruba a
   sessão; fluxo completo da sala com dois jogadores (criar, entrar, recusar, expulsar, passar o dono,
   sair, dissolver e queda por desconexão); convite sem amizade não chega.
+- `tests/game/test_salas_tipos.py`: sala de outro tipo não existe aqui (5023, 5024, 5026, 8465); link de
+  sala no chat (9504 com 4913, e sala inexistente sem resposta); pré-carga do mapa (5038 com a lista da
+  captura e mapa vazio); info da torre (8297 com 4205).
 - `tests/game/test_convites_times_bencao.py`: os 10 opcodes sem corpo do lote (registro e corpo vazio);
   sair de vez com dois e três jogadores; sair por ora; recusa de convite de time e de guilda; recusas e
   bênção voltam no login; bênção do seminário; gancho, PvP e transporte.

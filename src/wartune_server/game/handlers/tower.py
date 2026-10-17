@@ -1,7 +1,7 @@
 """Torre (8297/8300) e guarda de batalha (8742).
 
-Estado parcial, documentado em docs/salas-campanha.md: não há progresso de torre nem tabela de limites
-(entradas, gemas equipadas), então as respostas mostram "sem progresso" em vez de inventar números.
+Estado parcial, documentado em docs/salas-campanha.md: o limite de entradas vem das capturas (visto), mas o
+progresso da torre (totalGp, itemTempIds, order) não é salvo, e as gemas da guarda não são modeladas.
 """
 
 from __future__ import annotations
@@ -12,14 +12,24 @@ from ..session import GameSession
 
 S_TOWER_INFO, S_BATTLEGUARD = 4205, 4631
 MAZE_MAX_INDEX = 60  # maxIndex visto no labirinto 8001 (captura); a torre de referência ainda não tem o seu
+MAZE_CAMPAIGN = 8001  # campaignId do labirinto (visto: 4205 em labirent_sandik e yeralti_labirenti)
 
 
 @router.on(8297)
 async def tower_info(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
-    """Info de uma torre (4205). Sem progresso salvo: nenhuma entrada feita, nenhum limite conhecido."""
+    """Info de uma torre (4205). (visto) capturas yeralti_labirenti #1 e labirent_sandik #17: sem entrada feita,
+    1 entrada livre de 1. Sem progresso salvo, então ``totalGp`` fica 0 (o que o oficial mostra para quem
+    ainda não avançou)."""
     s.send(
         S_TOWER_INFO,
-        pb.TowerInfoMsg(towerIndex=msg.index, maxIndex=MAZE_MAX_INDEX, enterCount=0, freeEnterCount=0, maxEnterCount=0),
+        pb.TowerInfoMsg(
+            towerIndex=msg.index,
+            maxIndex=MAZE_MAX_INDEX,
+            campaignId=MAZE_CAMPAIGN,
+            enterCount=0,
+            freeEnterCount=1,
+            maxEnterCount=1,
+        ),
     )
 
 

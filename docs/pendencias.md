@@ -69,13 +69,15 @@ Outros eventos:
 
 ## Salas, times e masmorras ([salas-campanha.md](salas-campanha.md))
 
-- Salas e times só em memória: somem ao reiniciar o servidor.
-- Escolher a campanha da sala e começar (125/21): pedido não identificado (`InstanceSelectFrame` não está no decompilado).
-- Confirmar/terminar campanha (5033, 5180), exército do sistema (5038), carta (5122), névoa (5126, não é guardada), exército na campanha (5121). **depende de**: mapa de nós 1011/2011 e progresso.
-- Torre (8297/8300), varredura (8528): **depende de** progresso da torre/campanha.
-- Guarda de batalha (8742): **depende de** inventário de gemas.
-- Pedágio (8752–8755): fechado, sem agenda.
-- Campanha multi (9504): formato do pedido não identificado.
+- Salas e times só em memória. Decisão: salas não persistem; times não persistem até haver captura de login com time; o contador de campanha multi (4240) deve persistir, mas falta o efeito do item "Büyük Sefer" e o reset (ver Persistência em salas-campanha.md).
+- Começar a campanha da sala (5039, visto no replay): responde 125, 140 e 21, mas precisa do mapa 1011 (exército inicial e nós). **depende de**: mapa de nós.
+- Confirmar/terminar campanha (5033, 5180), carta (5122), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
+- Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
+- Torre (8297/8300): limites vistos na captura; totalGp e itens **dependem de** progresso da torre.
+- Varredura (8528): falta captura do pedido C>S. Custos em `ConfigInfos` (campanha 5000 ouro e 300 s; labirinto 1000 e 30 s por andar). **depende de** progresso de campanha.
+- Guarda de batalha (8742): o login oficial manda 4631 com `watchInfo` e o servidor não manda. **depende de** modelar gemas.
+- Pedágio (8752–8755): fechado, sem agenda. Configuração e tabelas de recompensa existem no template, mas o parser descarta as tabelas aninhadas.
+- Link de sala no chat (9504): feito (4913). Sala inexistente: sem resposta (dedução).
 - 5027 só registra (aba de convite que não existe no cliente); 8740 sem remetente no cliente (efeito deduzido).
 
 ## Cidade externa e mapa do mundo ([cidade-externa.md](cidade-externa.md), [mundo-compartilhado.md](mundo-compartilhado.md))
@@ -177,6 +179,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/army.py:301](../src/wartune_server/game/handlers/army.py#L301) | só a posição do próprio herói é gravada; |
 | [game/handlers/army.py:321](../src/wartune_server/game/handlers/army.py#L321) | a posição do exército no mapa externo não é gravada (sistema do mapa externo). |
 | [game/handlers/battle.py:35](../src/wartune_server/game/handlers/battle.py#L35) | a postura não muda o dano (a fórmula real não é conhecida) |
+| [game/handlers/campaign_map.py:38](../src/wartune_server/game/handlers/campaign_map.py#L38) | mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado |
 | [game/handlers/castle.py:280](../src/wartune_server/game/handlers/castle.py#L280) | trégua ainda não existe; zera e confirma. |
 | [game/handlers/chat.py:26](../src/wartune_server/game/handlers/chat.py#L26) | o cliente não limita a guilda (ChatHelper); 1 s contra spam |
 | [game/handlers/chat.py:28](../src/wartune_server/game/handlers/chat.py#L28) | o cliente não limita o privado; 1 s contra spam |
