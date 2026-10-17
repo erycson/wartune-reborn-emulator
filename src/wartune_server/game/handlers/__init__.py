@@ -16,6 +16,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     login,
     lords,
     mail,
+    mall,
     marriage,
     offer,
     outer_city,
