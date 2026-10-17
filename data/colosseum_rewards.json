@@ -1,0 +1,23 @@
+{
+  "_doc": [
+    "Recompensas do coliseu. O tempinfos nao tem tabela por posicao para o coliseu (so PetChallengeReward,",
+    "do torneio de fadas), e o cliente so mostra o que o servidor manda no 4243: posicao, ouro, Ruh",
+    "(strategy) e dias ate o proximo resgate. Valores escolhidos pelo operador; ver docs/pvp.md.",
+    "period_days: de quantos em quantos dias o resgate (8329) volta a valer (leftDay=3 na captura).",
+    "rank_rewards: faixas [primeira, ultima] posicao; a primeira faixa que contem a posicao vale.",
+    "win_gp_per_grade / lose_gp_per_grade: EXP da luta = valor x nivel do jogador (4103 gpBonus)."
+  ],
+  "period_days": 3,
+  "win_gp_per_grade": 60,
+  "lose_gp_per_grade": 20,
+  "rank_rewards": [
+    {"ranks": [1, 1], "gold": 300000, "strategy": 3000},
+    {"ranks": [2, 3], "gold": 200000, "strategy": 2000},
+    {"ranks": [4, 10], "gold": 120000, "strategy": 1200},
+    {"ranks": [11, 50], "gold": 80000, "strategy": 800},
+    {"ranks": [51, 100], "gold": 50000, "strategy": 500},
+    {"ranks": [101, 500], "gold": 30000, "strategy": 300},
+    {"ranks": [501, 2000], "gold": 15000, "strategy": 150},
+    {"ranks": [2001, 1000000], "gold": 8000, "strategy": 80}
+  ]
+}

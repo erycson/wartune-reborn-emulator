@@ -26,7 +26,20 @@ from sqlalchemy import (
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Arena,
+    ArenaRank,
+    Building,
+    Castle,
+    ChallengeLog,
+    Character,
+    GameServer,
+    Hero,
+    Item,
+    PlayTicket,
+    Quest,
+)
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -208,6 +221,60 @@ items = Table(
     Column("is_new", Boolean, nullable=False, default=True, server_default="1"),
 )
 
+
+def _str(name: str, size: int) -> Column[str]:
+    return Column(name, String(size), nullable=False, default="", server_default="")
+
+
+def _owner(**kw: Any) -> Column[int]:
+    return Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, **kw)
+
+
+arenas = Table(
+    "arenas",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(unique=True),
+    _str("day", 10),
+    _int("challenge_count"),
+    Column("cool_until", UTCDateTime),
+    _int("win_streak"),
+    _str("reward_day", 10),
+    _int("pet_count"),
+    _int("pet_buy_count"),
+    Column("pet_cool_until", UTCDateTime),
+    _int("pet_score", 1000),
+    _str("pet_formation", 128),
+    _str("pet_reward_day", 10),
+    _str("pet_reward_week", 10),
+)
+
+# posição do coliseu; trocas entre dois jogadores acontecem sob a trava de game/arena.py, por isso
+# sem UNIQUE em "rank" (a troca passaria por um estado repetido no meio da transação)
+arena_ranks = Table(
+    "arena_ranks",
+    metadata,
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), primary_key=True),
+    _int("rank"),
+)
+
+challenge_logs = Table(
+    "challenge_logs",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    _int("kind"),
+    Column("created_at", UTCDateTime, nullable=False),
+    _int("target_id"),
+    _str("target_name", 32),
+    Column("is_attack", Boolean, nullable=False, default=False, server_default="0"),
+    Column("won", Boolean, nullable=False, default=False, server_default="0"),
+    _int("rank"),
+    _int("forward"),
+    _int("target_grades"),
+    _int("target_job"),
+)
+
 _mapped = False
 
 
@@ -226,6 +293,9 @@ def map_entities() -> None:
         (Building, buildings),
         (Quest, quests),
         (Item, items),
+        (Arena, arenas),
+        (ArenaRank, arena_ranks),
+        (ChallengeLog, challenge_logs),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

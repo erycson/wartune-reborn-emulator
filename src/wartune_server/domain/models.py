@@ -197,6 +197,56 @@ class Item:
     is_new: bool = True
 
 
+@dataclass(eq=False)
+class Arena:
+    """Coliseu e torneio de fadas do personagem: contadores do dia, espera, pontos, formação.
+
+    A posição no ranking do coliseu fica fora do snapshot (``ArenaRank``): ela muda quando outro
+    jogador vence este, e a sessão dele gravaria por cima.
+    """
+
+    character_id: int
+    id: int | None = None
+    day: str = ""  # AAAA-MM-DD dos contadores; noutro dia eles zeram (4202)
+    challenge_count: int = 0  # coliseu: tentativas usadas hoje (as além das grátis foram compradas)
+    cool_until: datetime | None = None  # coliseu: espera depois de lutar
+    win_streak: int = 0  # ChallengeInfoMsg.lastWinCount
+    reward_day: str = ""  # dia em que a recompensa do coliseu foi resgatada
+    pet_count: int = 0  # torneio de fadas: tentativas usadas hoje
+    pet_buy_count: int = 0
+    pet_cool_until: datetime | None = None
+    pet_score: int = 1000  # pontos iniciais da captura
+    pet_formation: str = ""  # chaPos: "petId,-1,..."
+    pet_reward_day: str = ""  # dia da recompensa diária resgatada
+    pet_reward_week: str = ""  # semana ISO (AAAA-Wnn) da recompensa semanal resgatada
+
+
+@dataclass(eq=False)
+class ArenaRank:
+    """Posição única no coliseu (1 = primeiro). Só existe depois da primeira vitória."""
+
+    character_id: int
+    rank: int
+
+
+@dataclass(eq=False)
+class ChallengeLog:
+    """Uma luta no histórico de quem atacou e de quem foi atacado (``ChallengeLogMsg``)."""
+
+    character_id: int
+    kind: int  # 0 coliseu, 1 torneio de fadas
+    created_at: datetime
+    target_id: int
+    target_name: str
+    is_attack: bool
+    won: bool
+    rank: int = 0  # coliseu: posição depois da luta; fadas: pontos ganhos/perdidos
+    forward: int = 0  # coliseu: 0 posição igual, 1 subiu, 2 desceu (ChallengeLogMsg.forward)
+    target_grades: int = 0
+    target_job: int = 0
+    id: int | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -209,6 +259,7 @@ class PlayerSnapshot:
     buildings: list[Building] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
+    arena: Arena | None = None  # None até a primeira visita ao coliseu/torneio
 
     @property
     def leader(self) -> Hero | None:

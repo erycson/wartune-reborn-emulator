@@ -102,6 +102,9 @@ class GameSession:
         self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
         self.space_pos: tuple[int, int] | None = None  # tile na cidade do céu; None = fora dela
         self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
+        # oponentes da última lista do coliseu/torneio (4169/4611): só esses podem ser desafiados
+        self.arena_offer: dict[int, int] = {}
+        self.pet_offer: dict[int, int] = {}
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 

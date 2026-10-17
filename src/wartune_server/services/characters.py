@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from ..domain.errors import ConflictError, NotFoundError, ValidationError
-from ..domain.models import Building, Castle, Character, Hero, Job, PlayerSnapshot
+from ..domain.models import Arena, ArenaRank, Building, Castle, ChallengeLog, Character, Hero, Job, PlayerSnapshot
 from ..domain.repositories import UnitOfWorkFactory
 from ..templates.repository import GameTemplates
 
@@ -140,16 +140,46 @@ class CharacterService:
             buildings = await uow.buildings.by_character(character_id)
             quests = await uow.quests.by_character(character_id)
             items = await uow.items.by_character(character_id)
+            arena = await uow.arena.by_character(character_id) or Arena(character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
-        return PlayerSnapshot(account, server, character, heroes, castle, buildings, quests, items)
+        return PlayerSnapshot(account, server, character, heroes, castle, buildings, quests, items, arena)
 
-    async def save(self, *entities: object, delete: tuple[object, ...] = ()) -> None:
+    async def save(self, *entities: object, delete: tuple[object, ...] = (), ranks: tuple[ArenaRank, ...] = ()) -> None:
         """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens) e
-        apaga ``delete``, tudo numa transação: consumir um item e dar a recompensa é atômico."""
+        apaga ``delete``, tudo numa transação: consumir um item e dar a recompensa é atômico.
+        ``ranks``: posições do coliseu (de qualquer jogador) trocadas na mesma transação."""
         async with self._uow() as uow:
             for entity in delete:
                 await uow.delete(entity)
             for entity in entities:
                 await uow.save(entity)
+            for r in ranks:
+                await uow.arena.set_rank(r.character_id, r.rank)
             await uow.commit()
+
+    # -- coliseu e torneio de fadas (leituras fora do snapshot: dados de outros jogadores) --------
+
+    async def arena_rank(self, character_id: int) -> int:
+        async with self._uow() as uow:
+            return await uow.arena.rank(character_id)
+
+    async def arena_last_rank(self, server_id: int) -> int:
+        async with self._uow() as uow:
+            return await uow.arena.last_rank(server_id)
+
+    async def arena_ranks(self, server_id: int, low: int, high: int) -> list[ArenaRank]:
+        async with self._uow() as uow:
+            return await uow.arena.ranks(server_id, low, high)
+
+    async def pet_order(self, server_id: int, score: int) -> int:
+        async with self._uow() as uow:
+            return await uow.arena.pet_order(server_id, score)
+
+    async def pet_board(self, server_id: int, limit: int, below: int | None = None) -> list[Arena]:
+        async with self._uow() as uow:
+            return await uow.arena.pet_board(server_id, limit, below)
+
+    async def challenge_logs(self, character_id: int, kind: int, limit: int) -> list[ChallengeLog]:
+        async with self._uow() as uow:
+            return await uow.arena.logs(character_id, kind, limit)

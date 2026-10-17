@@ -5,7 +5,20 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
-from .models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from .models import (
+    Account,
+    Arena,
+    ArenaRank,
+    Building,
+    Castle,
+    ChallengeLog,
+    Character,
+    GameServer,
+    Hero,
+    Item,
+    PlayTicket,
+    Quest,
+)
 
 
 class AccountRepository(Protocol):
@@ -58,6 +71,17 @@ class ItemRepository(Protocol):
     async def by_character(self, character_id: int) -> list[Item]: ...
 
 
+class ArenaRepository(Protocol):
+    async def by_character(self, character_id: int) -> Arena | None: ...
+    async def rank(self, character_id: int) -> int: ...
+    async def last_rank(self, server_id: int) -> int: ...
+    async def ranks(self, server_id: int, low: int, high: int) -> list[ArenaRank]: ...
+    async def set_rank(self, character_id: int, rank: int) -> None: ...
+    async def pet_order(self, server_id: int, score: int) -> int: ...
+    async def pet_board(self, server_id: int, limit: int, below: int | None = None) -> list[Arena]: ...
+    async def logs(self, character_id: int, kind: int, limit: int) -> list[ChallengeLog]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -82,6 +106,8 @@ class UnitOfWork(Protocol):
     def quests(self) -> QuestRepository: ...
     @property
     def items(self) -> ItemRepository: ...
+    @property
+    def arena(self) -> ArenaRepository: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""

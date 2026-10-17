@@ -17,5 +17,6 @@ logs/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-data/
+data/*
+!data/*.json
 captures/
