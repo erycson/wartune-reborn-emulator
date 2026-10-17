@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import structlog
@@ -61,6 +62,15 @@ class OnlinePlayers:
             old.connection.close()
         self._by_id[player_id] = session
 
+    def sessions(self) -> list[GameSession]:
+        return list(self._by_id.values())
+
+    def broadcast(self, code: int, message: Message, *, exclude: GameSession | None = None) -> None:
+        """Manda para todos os jogadores online (sessões saindo só descartam)."""
+        for session in self.sessions():
+            if session is not exclude:
+                session.send(code, message)
+
     def unbind(self, player_id: int, session: GameSession) -> None:
         if self._by_id.get(player_id) is session:
             del self._by_id[player_id]
@@ -90,6 +100,7 @@ class GameSession:
         self.battle: Battle | None = None
         self.hero_sp = 0  # SP do herói entre batalhas (o oficial carrega de uma para a outra)
         self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
+        self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 

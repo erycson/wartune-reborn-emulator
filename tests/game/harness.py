@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 import os
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +29,7 @@ class Game:
     client: FakeFlashClient
     server: GameServerApp
     user_id: int
+    join: Callable[[str], Awaitable[Game]]
 
     async def until(self, code: int) -> list[Packet]:
         return await self.client.until(code)
@@ -60,6 +61,7 @@ class Game:
 
 @asynccontextmanager
 async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIterator[Game]:
+    """Servidor no ar e a conta "maga" logada. ``game.join("outro")`` loga mais um jogador."""
     settings = Settings(
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'game.db'}",
         rsa_key_file=tmp_path / "rsa.pem",
@@ -73,29 +75,37 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIter
     tcp = await start_tcp(server.acceptor, "127.0.0.1", 0)
     http = TestClient(TestServer(server.http_app))
     await http.start_server()
-    try:
-        account = await portal.account("maga")
-        ticket = await portal.ticket(account.id)
+    clients: list[FakeFlashClient] = []
+
+    async def join(username: str, icon: int = job_icon) -> Game:
+        account = await portal.account(username)
+        ticket = await portal.ticket(account.id)  # type: ignore[arg-type]
         temp = "7654321"
-        plain = f"{quote_from_bytes(b'maga', safe='')}|{ticket}|{temp}|0".encode()
+        plain = f"{quote_from_bytes(username.encode(), safe='')}|{ticket}|{temp}|0".encode()
         form = {"p": services.keys.encrypt_b64(plain), "site": settings.site}
         login = await (await http.post("/login", data=form)).text()
         user_id = int(re.search(r'userId="(\d+)"', login).group(1))  # type: ignore[union-attr]
         key = hashlib.md5(temp.encode()).hexdigest()
-        reg = {"userid": user_id, "username": "maga", "nickname": "Maga", "sex": 0, "camp": 1, "icon": job_icon}
+        nick = username.capitalize()
+        reg = {"userid": user_id, "username": username, "nickname": nick, "sex": 0, "camp": 1, "icon": icon}
         await http.post("/visualizeregister", data=reg | {"key": key})
         await services.characters.set_novice_process(user_id, novice)
 
         client = FakeFlashClient(*await asyncio.open_connection("127.0.0.1", tcp.sockets[0].getsockname()[1]))
+        clients.append(client)
         ekeys = os.urandom(8)
         client.send(20001, pb.LoginReqMsg(key=key, ekeys=list(ekeys)))
         client.rekey(ekeys)
         await client.until(150)
         client.send(8224, pb.PlayerDataMsg(user=True))
         await client.until(6)
-        yield Game(client, server, user_id)
-        client.writer.close()
+        return Game(client, server, user_id, join)
+
+    try:
+        yield await join("maga")
     finally:
+        for client in clients:
+            client.writer.close()
         await http.close()
         tcp.close()
         server.acceptor.close_all()
