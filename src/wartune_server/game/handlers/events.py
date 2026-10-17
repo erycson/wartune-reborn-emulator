@@ -18,21 +18,14 @@ from ..session import GameSession
 from .login import army
 from .player import alert, granted
 
-S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_SERVEN = (
-    4475,
-    4476,
-    4177,
-    4152,
-    4150,
-    4412,
-    4638,
-)
+S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
+S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK = 83, 4152, 4150, 4412
 PAGE = 10  # atividades por 4475 (o oficial manda ~11 por página)
 LOGIN_DAYS, ONLINE = 13, 14  # activeType com regra no servidor
 CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
 GIFT_OK = "Hediye Paketi başarıyle alındı"  # texto do oficial (com o erro de digitação)
 LEED_BOX = (10, 40, 60, 80, 100)  # DayGuideCatecory.canPick: atividade mínima de cada baú 1..5
-LOGIN_LEED = 1  # LeedTemp 1 "Günlük Giriş"
+LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Günlük Giriş", "Dünya Kanalında Sohbet"
 RELOGIN_DAYS = 7  # ReloginDrops.Times 1..7
 # ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (login.json #93)
 SERVEN: dict[int, tuple[int, ...]] = {1: (1, 2, 3, 4), 2: (5, 6, 7, 8), 3: (9, 10, 11, 12), 4: (13, 14, 15, 16)}
@@ -207,12 +200,13 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
         st = ev.daily(snap, f"sum:{a.active_id}", now)
         st.value, st.updated_at = 0, now
     new, text = rewards.grant(snap, s.ctx.templates, p.items, style="active")
-    await s.ctx.characters.save(snap.character, mark, *changed, *new)
+    await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new)
 
-    alert(s, GIFT_OK)
+    alert(s, GIFT_OK)  # ordem do oficial (captura online_odul... #38-46)
     s.send(S_SUM_DATA, _active_data(s, [a]))
-    granted(s, p.items, new, text)
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_SUM_DATA, _active_data(s, running))
+    granted(s, p.items, new, text, chat=False)
 
 
 # ---------------------------------------------------------------- assinatura (8266)
@@ -242,7 +236,7 @@ async def sign(s: GameSession, _: object) -> None:
         return
     st.value, st.updated_at = st.value | bit, now
     new, text = rewards.grant(snap, s.ctx.templates, drops)
-    await s.ctx.characters.save(snap.character, st, *new)
+    await s.ctx.characters.save(*rewards.owners(snap), st, *new)
 
     s.send(S_SIGN, pb.PlayerSignRspMsg(signDate=b.fmt_time(now), signTimes=times, signSite=st.value))
     if drops:
@@ -274,7 +268,7 @@ async def relogin_reward(s: GameSession, msg: pb.TakeLoginReward) -> None:
         return
     st.value, st.updated_at = st.value | bit, now
     new, text = rewards.grant(snap, s.ctx.templates, drops)
-    await s.ctx.characters.save(snap.character, st, *new)
+    await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     alert(s, text)
     granted(s, drops, new, text)
 
@@ -317,24 +311,23 @@ def _send_leeds(s: GameSession) -> None:
     s.send(S_LEED_UPDATE, msg)
 
 
-@router.on(8234)
-async def leed_add(s: GameSession, _: object) -> None:
-    _send_leeds(s)  # o cliente atual não chama; responde o estado
-
-
-@router.on(8322)
-async def leed_client(s: GameSession, msg: pb.ClientReqMsg) -> None:
-    """Ação que só o cliente vê (C_LEED_CLIENT): +1 no ``LeedTemp`` até o PassCount."""
+async def leed_done(s: GameSession, template_id: int) -> None:
+    """A ação do ``LeedTemp`` aconteceu (o sistema dela chama): +1 até o PassCount, grava e manda o 4152."""
     snap = s.snapshot
     assert snap is not None
-    row = s.ctx.templates.get("LeedTemp", msg.templateId)
+    row = s.ctx.templates.get("LeedTemp", template_id)
     now = s.ctx.clock.now()
-    # ponytail: confia no cliente (é o que o opcode faz); só vale atividade, nada de item
-    if row is None or ev.daily(snap, f"leed:{msg.templateId}", now).value >= int(row["PassCount"]):
-        s.log.info("8322 recusado", leed=msg.templateId)
+    if row is None or ev.daily(snap, f"leed:{template_id}", now).value >= int(row["PassCount"]):
         return
-    st = leed_progress(snap, msg.templateId, now)
-    await s.ctx.characters.save(st)
+    await s.ctx.characters.save(leed_progress(snap, template_id, now))
+    _send_leeds(s)
+
+
+@router.on(8234, 8322)
+async def leed_client(s: GameSession, msg: object) -> None:
+    """C_LEED_ADD / C_LEED_CLIENT: nenhuma tela do cliente manda (só existem no SocketOutManager).
+    O progresso vem do que o servidor vê (``leed_done``); aqui só devolve o estado."""
+    s.log.info("leed pedido pelo cliente; só estado", pedido=str(msg))
     _send_leeds(s)
 
 
@@ -359,7 +352,7 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
         return
     box.value, box.updated_at = box.value | bit, now
     new, text = rewards.grant(snap, s.ctx.templates, drops)
-    await s.ctx.characters.save(snap.character, box, *new)
+    await s.ctx.characters.save(*rewards.owners(snap), box, *new)
     alert(s, text)
     s.send(S_LEED_RECEIVE, pb.LeedFinishedRspMsg(result=True, site=msg.site, leedProcess=box.value))
     granted(s, drops, new, text)
@@ -425,7 +418,7 @@ async def serven_reward(s: GameSession, msg: pb.GetRewardMsg) -> None:
         return
     st.value, st.updated_at = st.value | 1 << msg.day, now
     new, text = rewards.grant(snap, s.ctx.templates, drops)
-    await s.ctx.characters.save(snap.character, st, *new)
+    await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     alert(s, text)
     _send_serven(s)
     granted(s, drops, new, text)

@@ -39,7 +39,7 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         pkg = "B0000013-0000-0000-0000-000000000001"
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=pkg, count=1))
         got = await g.idle()
-        assert [p.code for p in got] == [111, 4476, 3, 109, 115, 83, 4476]
+        assert [p.code for p in got] == [111, 4476, 83, 4476, 3, 109, 115]
         assert _alerts(got) == ["Hediye Paketi başarıyle alındı"]
         assert _packs(got, LOGIN)[0] == (2, 0)
         assert s.snapshot.character.gold == gold + 200000  # type: ignore[union-attr]
@@ -84,7 +84,10 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         # atividade diária: o login (leed 1) vale 5; o baú 1 precisa de 10
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))
         assert pb.LeedFinishedRspMsg.FromString((await g.until(4150))[-1].body).result is False
-        g.client.send(8322, pb.ClientReqMsg(templateId=4))  # "Tek Kişilik Sahneyi Geç", Num 5
+        g.client.send(8322, pb.ClientReqMsg(templateId=4))  # o cliente não conta: só devolve o estado
+        assert pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body).totalNum == 5
+        snap.character.grades = 6
+        g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Dünya Kanalında Sohbet"
         leeds = pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body)
         assert leeds.totalNum == 10
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))

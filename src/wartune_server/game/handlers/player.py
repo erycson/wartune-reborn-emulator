@@ -36,14 +36,17 @@ def castle_yield(s: GameSession) -> None:
     s.send(S_CASTLE_YIELD, msg)
 
 
-def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str) -> None:
-    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 109 (ouro), 115 (itens) e o 83 no chat."""
+def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True) -> None:
+    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro), 115 (itens) e o 83."""
     _player(s)
+    if any(t == rewards.EXP for t, _ in drops):
+        _army(s)
     if any(t == -100 for t, _ in drops):
         castle_yield(s)
     if new:
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if chat:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 def alert(s: GameSession, text: str) -> None:
@@ -162,7 +165,7 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
 
     snap.items.remove(box)  # antes de qualquer await: o próximo pacote já não acha a caixa
     new, _ = rewards.grant(snap, templates, drops)
-    await s.ctx.characters.save(c, *new, delete=(box,))
+    await s.ctx.characters.save(*rewards.owners(snap), *new, delete=(box,))
 
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
     _army(s)

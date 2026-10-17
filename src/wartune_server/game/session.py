@@ -134,8 +134,10 @@ class GameSession:
             from . import space  # space importa este módulo
             from .handlers import events  # idem
 
-            space.leave(self)
-            await events.leave(self)  # grava o tempo online (presente online)
-            self.ctx.online.unbind(self.player_id, self)
-            self.log.info("jogador saiu", player=self.player_id)
+            try:
+                space.leave(self)
+                await events.leave(self)  # grava o tempo online (presente online)
+            finally:  # mesmo se a gravação falhar: senão o próximo login fica esperando o kick
+                self.ctx.online.unbind(self.player_id, self)
+                self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()

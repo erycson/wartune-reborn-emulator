@@ -49,6 +49,10 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
     out = pb.ChatChannelMsg(channel=channel, encodeMsg=text, otherId=c.id, name=c.nickname or "")
     # o cliente não mostra a própria mensagem ao enviar: quem falou também recebe o 83
     s.ctx.online.broadcast(S_CHAT, b.complete(out))
+    if channel == WORLD:
+        from . import events  # events importa login, que importa este pacote
+
+        await events.leed_done(s, events.WORLD_CHAT_LEED)
 
 
 @router.on(8198)

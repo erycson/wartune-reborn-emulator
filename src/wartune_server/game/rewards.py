@@ -21,7 +21,6 @@ EXP = -700  # ItemTempInfo -700 "EXP": soma no jogador (rules.add_gp)
 # handlers/player.py): é aceito e descartado, fora do texto. Gravar quando o castelo tiver cristal.
 SKIPPED = {-600}
 BAG_SIZE = 42  # PlayerInfo.bagDefaultCount; ponytail: sem espaços comprados (bagCount) ainda
-S_PLAYER, S_ITEMS, S_ALERT, S_CHAT, S_CASTLE_YIELD = 3, 115, 111, 83, 109
 
 Drop = tuple[int, int]  # (TemplateId, quantidade)
 
@@ -78,6 +77,11 @@ def grant(
             snap.items.append(item)
             new.append(item)
     return new, text(templates, drops, style)
+
+
+def owners(snap: PlayerSnapshot) -> list[object]:
+    """O que um ``grant`` pode alterar além dos itens novos: personagem e líder (EXP sobe nível)."""
+    return [e for e in (snap.character, snap.leader) if e is not None]
 
 
 def items_msg(items: Sequence[Item], player_id: int) -> pb.ItemMovedListMsg:
