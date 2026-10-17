@@ -1,8 +1,8 @@
 """Pedidos do mapa de campanha (PvE) que não são o movimento nem a batalha (esses estão em ``campaign.py``).
 
-5033 (caixa Pandora) e 5180 (solta a última luta) estão em ``handlers/campaign.py``, junto da masmorra.
-Estado parcial, documentado em docs/salas-campanha.md: 5121 não tem captura do pedido; o 5122 guarda a carta
-escolhida (masmorra) e o 5126 devolve a névoa (19) só na masmorra. Sem mudança de estado onde não há dado.
+5033 (caixa Pandora), 5122 (vira a carta) e 5180 (fecha o quadro das cartas) estão em ``handlers/campaign.py``,
+junto da masmorra. Estado parcial, documentado em docs/salas-campanha.md: 5121 não tem captura do pedido; o
+5126 devolve a névoa (19) só na masmorra. Sem mudança de estado onde não há dado.
 """
 
 from __future__ import annotations
@@ -43,16 +43,6 @@ async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 async def campaign_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     # sem captura do pedido: paraInt1 conflita com o NpcInfoFrame (paraInt1=2). Não muda estado
     s.log.info("5121 sem efeito (sem captura do pedido)", p1=msg.paraInt1)
-
-
-@router.on(5122)
-async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    # carta escolhida: paraInt2 é o index. Chega antes do fim do mapa (replay #1166 -> #1241): guarda e
-    # o fim (``_dungeon_end``) entrega a carta. Fora da masmorra, sem efeito (cartas do tutorial não existem)
-    if s.campaign is not None and s.campaign.dungeon:
-        s.campaign.card = msg.paraInt2
-    else:
-        s.log.info("5122 sem efeito fora da masmorra", p1=msg.paraInt1)
 
 
 @router.on(5126)

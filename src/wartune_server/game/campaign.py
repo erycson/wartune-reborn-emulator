@@ -64,8 +64,7 @@ class CampaignMap:
     talked: set[int] = field(default_factory=set)  # nós cujo diálogo de chegada já saiu
     dungeon: bool = False  # masmorra 1001 (``dungeon_1001.json``): sem Tina, com 130 da captura
     fog_data: dict[str, Any] | None = None  # 130 da captura (só masmorra)
-    card: int | None = None  # index do 5122: carta escolhida, usada no fim do mapa
-    waiting: int = 0  # campDataId de uma luta que espera o 5180 (último nó, replay #1169)
+    card: int | None = None  # index do 5122 já virado (uma carta por mapa, depois do 135)
     finished: bool = False  # mapa vencido: o fim (137 ... 134) já saiu
     buffs: list[int] = field(default_factory=list)  # buffs da Pandora, zerados no fim
 

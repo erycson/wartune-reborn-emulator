@@ -942,7 +942,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1011,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1037,7 +1036,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1011,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1132,7 +1130,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1011,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1227,7 +1224,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1011,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1338,7 +1334,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": true,
    "map": 1011,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1433,7 +1428,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1021,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1528,7 +1522,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1021,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1639,7 +1632,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1021,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1750,7 +1742,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": false,
    "map": 1021,
    "gpBonus": 35,
    "strategyBonus": 0,
@@ -1860,7 +1851,6 @@
     "livingId": 3,
     "pos": 4
    },
-   "await_finish": true,
    "map": 1021,
    "gpBonus": 0,
    "strategyBonus": 72,

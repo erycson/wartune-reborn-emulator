@@ -58,26 +58,20 @@ def extract(packets: list[dict[str, Any]]) -> dict[str, Any]:
     battles: dict[str, dict[str, Any]] = {}
     plots: list[dict[str, Any]] = []
     runtime_to_camp: dict[int, int] = {}
-    arrivals: dict[int, int] = {}  # campDataId -> índice do último 5125 (chegada)
     current_map = 0
     player_id = 0
     fighting_node = 0
     battle: dict[str, Any] | None = None
-    last_finish = -1  # índice do último 5180 (C>S)
     pandora_map = 0  # mapa cujo 5033 (confirma a caixa) ainda espera o buff e o alerta
     exp_wait = False  # o 137 já saiu: o próximo 83 de EXP é o do fim do mapa
     entering = False  # o 138 só conta na entrada do mapa 1011 (o 5039 que inicia a masmorra)
 
     for p in packets:
-        code, body, idx = p["code"], bytes.fromhex(p["bodyHex"]), p["index"]
+        code, body = p["code"], bytes.fromhex(p["bodyHex"])
         if p["isClient"]:
-            if code == 5125:
-                msg = registry.decode(code, Direction.CLIENT_TO_SERVER, body)
-                if msg is not None:
-                    arrivals[msg.paraInt1] = idx
-            elif code == 5180:
-                last_finish = idx
-            elif code == 5033 and current_map in MAPS:
+            # a ordem C>S x S>C do relay não vale (o S>C chega ~30 pacotes atrasado: 10007 de 4c4d40c7 no
+            # #1153, o 157 dele no #1186): daqui só o 5033 marca a Pandora, e a ordem S>C entre si
+            if code == 5033 and current_map in MAPS:
                 pandora_map = current_map
             continue
         msg = registry.decode(code, Direction.SERVER_TO_CLIENT, body) if body else None
@@ -124,9 +118,6 @@ def extract(packets: list[dict[str, Any]]) -> dict[str, Any]:
                 # o herói do jogador sai do banco; aqui ficam só os heróis NPC (aliados e inimigos)
                 "heroes": [_dict(h) for h in msg.heros if h.userId != player_id],
                 "player": next({"livingId": h.livingId, "pos": h.pos} for h in msg.heros if h.userId == player_id),
-                # o oficial só começa a luta do último nó depois do 5180 (replay #1148 -> #1169 -> #1186 e
-                # #1635 -> #1653 -> #1657): a chegada veio antes do 5180, e a luta antes do próximo pacote
-                "await_finish": arrivals.get(camp, 0) < last_finish < idx,
                 "map": current_map,
             }
             fighting_node = 0
