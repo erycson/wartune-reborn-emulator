@@ -23,6 +23,7 @@ from ...domain.models import (
     Mail,
     MailType,
     PlayerSnapshot,
+    Quest,
 )
 from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
@@ -30,7 +31,7 @@ from ...services.characters import normalize_nickname
 from .. import bag, rules
 from .. import guild as gd
 from ..builders import login as b
-from ..builders.player import item_moved
+from ..builders.player import item_moved, quest_update
 from ..castle import castle_yield
 from ..mail import SYSTEM_SENDER
 from ..mail import notify as notify_mail
@@ -46,6 +47,7 @@ S_MEMBERS, S_OFFERS, S_INVITES, S_EVENTS, S_DUTIES, S_INFO = 4133, 4134, 4135, 4
 S_SEARCH, S_RECRUIT, S_ALTAR_INFO, S_ALTAR_ITEM, S_ADDFRESH, S_SITE = 4139, 4140, 4141, 4142, 4143, 4144
 S_NEW_APPLY, S_LINK, S_VOTERS, S_VOTED, S_BOX_ALLOT, S_BOX = 4266, 4267, 4389, 4390, 4465, 4466
 S_SHOP_BUY = 90
+S_QUESTS = 112  # QuestUpdatedRspMsg
 
 MIN_GRADE = 12  # CreatConsortiaFrame / ConsortiaSocektSendManager.checkApply
 CREATE_GOLD = 200000  # CreatConsortiaFrame.command05
@@ -187,6 +189,9 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         return
     now = _now(s)
     c.gold -= CREATE_GOLD
+    snap = s.snapshot
+    assert snap is not None
+    quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22: criar
     guild = Consortia(c.server_id, name, s.player_id, c.nickname or "", s.player_id, now)
     member = ConsortiaMember(0, s.player_id, now, duty_id=gd.CHAIRMAN)
     event = ConsortiaEvent(0, now, f"{c.nickname} birliği kurdu."[:255])
@@ -202,6 +207,8 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         member.consortia_id = event.consortia_id = guild.id or 0
         await uow.save(member)
         await uow.save(event)
+        for q in quests:
+            await uow.save(q)
         for invite in gone:
             await uow.delete(invite)
 
@@ -217,6 +224,8 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     g.profiles[s.player_id] = c
     castle_yield(s)
     _joined(s, guild, s.player_id)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8213)
@@ -425,9 +434,15 @@ async def apply_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     member, gone = _join(s, guild, app.user_id)
     who = _profile(s, app.user_id)
     event = _event(s, guild, f"{who.nickname if who else app.user_id} birliğe katıldı.")
-    await s.ctx.characters.save(member, event, delete=tuple(gone))
+    # offline: a missão 22 dele avança no 5014 (rules.social_state_quests)
+    other = s.ctx.online.get(app.user_id)
+    snap = other.snapshot if other is not None else None
+    quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1) if snap is not None else []
+    await s.ctx.characters.save(member, event, *quests, delete=tuple(gone))
     s.send(S_PASS)
     _joined(s, guild, app.user_id)
+    if other is not None and snap is not None and quests:
+        other.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5149)
@@ -501,8 +516,13 @@ async def invite_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         return
     member, gone = _join(s, guild, s.player_id)
     event = _event(s, guild, f"{_char(s).nickname} birliğe katıldı.")
-    await s.ctx.characters.save(member, event, delete=tuple(gone))
+    snap = s.snapshot
+    assert snap is not None
+    quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22
+    await s.ctx.characters.save(member, event, *quests, delete=tuple(gone))
     _joined(s, guild, s.player_id)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 # ---- sair / expulsar / cargos ----------------------------------------------------------------
@@ -690,11 +710,17 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     guild.offer += offer
     guild.total_offer += offer
     member.today_offer, member.offer_day = _today(member, now) + offer, _day(now)
-    await s.ctx.characters.save(c, guild, member)
+    snap = s.snapshot
+    assert snap is not None
+    # missão 29: o total acumulado (cliente checkConsortiaOffer), não o valor desta doação
+    quests = rules.quest_event(snap, s.ctx.templates, rules.OFFER_CONDITION, 0, c.consortia_total_offer)
+    await s.ctx.characters.save(c, guild, member, *quests)
     if gold:
         castle_yield(s)
     _player(s)
     _alert(s, "Başarıyla katkı yapıldı!")
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))
     _push_info(s, guild)
 
@@ -755,8 +781,17 @@ async def upgrade(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     if kind <= 5 and int(row.get("CodeTime") or 0) > 0:
         guild.code_type, guild.code_begin_at, guild.code_need = kind, now, int(row["CodeTime"])
     event = _event(s, guild, f"{row.get('LevelName', kind)} Lv.{level}")
-    await s.ctx.characters.save(guild, event)
+    # missão de nível da guilda (51) vale para todos os membros online, não só para quem melhorou
+    changed: list[tuple[GameSession, PlayerSnapshot, list[Quest]]] = []
+    for o in gd.online_members(s.ctx, guild.id or 0):
+        member_snap = o.snapshot
+        assert member_snap is not None
+        if quests := rules.quest_event(member_snap, templates, rules.GUILD_LEVEL_CONDITION, kind, level):
+            changed.append((o, member_snap, quests))
+    await s.ctx.characters.save(guild, event, *(q for _, _, qs in changed for q in qs))
     _push_info(s, guild)
+    for o, member_snap, qs in changed:
+        o.send(S_QUESTS, quest_update(qs, rules.quest_bitmap(member_snap)))
 
 
 @router.on(8545)
@@ -928,12 +963,17 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     member = mine[1]
     member.bless_count, member.bless_day = used + 1, _day(now)
     member.bless_item, member.bless_item_count = prize, 1
-    await s.ctx.characters.save(c, member)
+    snap = s.snapshot
+    assert snap is not None
+    quests = rules.quest_event(snap, s.ctx.templates, rules.BLESS_CONDITION, 0, 1)  # missão 30
+    await s.ctx.characters.save(c, member, *quests)
     _player(s)
     s.send(
         S_BLESS,
         b.complete(pb.ConsortiaMsg(blessLeftTime=used + 1, blessSite=sites.index(1), blessTempId=prize, blessCount=1)),
     )
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8216)

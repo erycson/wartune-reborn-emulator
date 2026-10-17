@@ -11,17 +11,18 @@ import re
 from sqlalchemy.exc import IntegrityError
 
 from ...domain.errors import NotFoundError, ValidationError
-from ...domain.models import Character, FriendGroup, Relation, RelationType, SnsProfile
+from ...domain.models import Character, FriendGroup, Quest, Relation, RelationType, SnsProfile
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.characters import normalize_nickname
 from .. import items, rules, social
 from ..builders import login as b
+from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
 
 S_ADD, S_REMOVE, S_REQUEST, S_RECOMMEND, S_UPDATE = 78, 79, 84, 85, 165
-S_CHAT, S_ALERT, S_PLAYER, S_ARMY, S_ITEMS = 83, 111, 3, 150, 115
+S_CHAT, S_ALERT, S_PLAYER, S_ARMY, S_ITEMS, S_QUESTS = 83, 111, 3, 150, 115, 112
 S_GROUP_ADD, S_GROUP_DEL, S_GROUP_RENAME, S_MOVE = 4227, 4228, 4229, 4230
 S_CHAT_STATE, S_RECENT_STATE, S_SEARCH, S_SNS_UPDATED = 4232, 4272, 4273, 4239
 S_INFO, S_SEARCH_NICK, S_CHECK_NICK, S_REFUSE, S_RENAME, S_HERO_INFO = 4128, 4170, 4148, 4193, 4271, 4464
@@ -114,10 +115,17 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
         changed.append(theirs)
     else:
         mine.relation, mine.group_id = RelationType.PENDING, social.NO_GROUP
-    await s.ctx.characters.save(*changed)
+    # pedido pendente ou aceito conta: (cliente) FriendManager.as __addFriend dispara ADD_FRIEND;
+    # (visto) captura arkadas_istegi_gonderme #1 (78 com relation 3, pendente)
+    quests: list[Quest] = []
+    if relation == RelationType.FRIEND:
+        quests = rules.quest_event(snap, s.ctx.templates, rules.FRIEND_CONDITION, 0, len(snap.relations))
+    await s.ctx.characters.save(*changed, *quests)
 
     sns = await s.ctx.characters.read(lambda uow: uow.sns.by_character(target.id or 0))
     s.send(S_ADD, social.friend_info(s.ctx, target, mine, sns))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     other = s.ctx.online.get(target.id)
     if theirs in changed and other is not None and theirs is not None:
         other.send(S_UPDATE, social.friend_info(s.ctx, me, theirs, snap.sns))

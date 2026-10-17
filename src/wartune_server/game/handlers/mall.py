@@ -20,17 +20,18 @@ from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates
-from .. import bag
+from .. import bag, rules
 from .. import mail as mailbox
 from .. import mall as market
 from ..builders import login as b
-from ..builders.player import item_info, item_moved
+from ..builders.player import item_info, item_moved, quest_update
 from ..router import router
 from ..session import GameSession
 from .items import _copy
 from .player import _player
 
 S_ITEMS = 115  # ItemMovedListMsg (a bolsa muda)
+S_QUESTS = 112  # QuestUpdatedRspMsg (missão 56)
 S_SOLD, S_LIST_SELL, S_LIST_MARKET, S_BID = 4352, 4353, 4354, 4355
 S_LIST_BIDS, S_FIX, S_CANCEL, S_SEARCH = 4356, 4357, 4358, 4359
 
@@ -253,7 +254,16 @@ async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
         )
         await uow.save(listing)
         await uow.flush()
-        return Reply([(S_ITEMS, moved), (S_SOLD, pb.SellItemRspMsg(result=OK, item=_listing_msg(listing, listed)))])
+        quests = rules.quest_event(snap, templates, rules.SELL_CONDITION, 0, 1)  # missão 56, "İhale"
+        for q in quests:
+            await uow.save(q)
+        out: list[tuple[int, Message]] = [
+            (S_ITEMS, moved),
+            (S_SOLD, pb.SellItemRspMsg(result=OK, item=_listing_msg(listing, listed))),
+        ]
+        if quests:
+            out.append((S_QUESTS, quest_update(quests, rules.quest_bitmap(snap))))
+        return Reply(out)
 
     await _transact(s, op)
 
