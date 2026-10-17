@@ -27,14 +27,14 @@ o tira) e pelo mercado ([mercado.md](mercado.md)), posição 0. Não são movív
 (guilda), 22–26 (mascote) e 32 (depósito) dependem de sistemas que não existem e são recusados no 5005.
 
 Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros furos ficam −1
-(fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates).
+(fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates). *(visto)* o Kronos’un Yetkisi (1991017, `RandomSkillCount` 5) comprado na loja do labirinto chegou no 115 com `join_1` 0 e cinco `randomSkill` (70407, 71123, 70509, 70719, 70209); aqui sai só o `DefaultSkill`. Falta a regra do sorteio.
 
 ## Mochila e uso — `items.py`
 
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
 | 5005 ItemReqMsg | move entre os bags 0–4; destino ocupado: empilha (mesmo item, mochila/bancada) ou troca (o outro precisa caber na origem). Da bancada para a mochila o cliente manda `endPos` 0: o servidor escolhe o primeiro livre. Vestir moda pela primeira vez põe no livro (4542) | 3, 150, 115 origem, 115 destino (+4542) | *(visto)* ordem; validações *(cliente)* |
-| 5006 ItemUseMsg | 298 pacote: troca pelo `GradeDrop`; 203 recurso: Property1 1 ouro, 3 elmas, 4 elmas vinculado, 5 Beden (até `weary_limit`), 6 prestígio, 7 EXP, 10 Ruh × Property2 × `count`; 206 "Değerli Taş Kutusu Lv.N"/"Lv.A-B": pedra aleatória do nível (`TransformInfos`); 209 poção de HP: `blood` += Property1 | 203: 115, 111 "Tebrikler! Kazanılan:Altın x1000", 109 (ouro) ou 3 (+83 "5,000 EXP kazanıldı" na EXP); 206: 115, 115, 111, 3, 83; 209: 115, 113, 150, 3 | *(visto)* |
+| 5006 ItemUseMsg | 298 pacote: troca pelo `GradeDrop`; 203 recurso: Property1 1 ouro, 3 elmas, 4 elmas vinculado, 5 Beden (até `weary_limit`), 6 prestígio, 7 EXP, 10 Ruh × Property2 × `count`; **15 entrada de campanha em grupo** (Büyük Sefer: `times` = Property2 × `count`, ver salas-campanha.md); 206 "Değerli Taş Kutusu Lv.N"/"Lv.A-B": pedra aleatória do nível (`TransformInfos`); 209 poção de HP: `blood` += Property1 | 203: 115, 111 "Tebrikler! Kazanılan:Altın x1000", 109 (ouro) ou 3 (+83 "5,000 EXP kazanıldı" na EXP); 206: 115, 115, 111, 3, 83; 15: 115, 4240, 111, 3; 209: 115, 113, 150, 3 | *(visto)* |
 | 5007 ItemReqMsg.beginPos | vende a pilha toda | 115, 109 | preço `GoodsHelp.getSellGold` *(cliente)* |
 | 8624 ItemSellReqMsg | venda em lote (pos, count) | 115, 109 | *(cliente)* |
 | 8220 ArrangeReq | aplica a ordem que o cliente calculou (`BaseBagListView.sort`: cada item `oldplace`→índice), sem colisão nem fora da mochila; `isStackItem` junta pilhas incompletas (mesmo item e mesmo cadeado) e fecha os buracos | 115 com a mochila | *(cliente)*; pilhas *(dedução)* |
@@ -79,6 +79,17 @@ correio, 12).
 Misteriosa: 8 itens sorteados pelo peso `Rands` entre os do nível do jogador; troca sozinha uma vez
 por dia (`# ponytail:`, a tela não está no cliente decompilado). Limite diário por item em
 `shop_buys` (zera quando muda o dia).
+
+Loja do labirinto (ShopType 4, 119 linhas, todas com preço só em `MazeCoin`): paga com Labirent Parası (208009). *(visto)*
+`yeralti_labirent_marketi_alisveris`: o 105 (Altın Kutusu, 1 moeda, andar 5) tirou 1 (118 → 117) e o 110 (Kronos’un
+Yetkisi, 25 moedas, andar 15) tirou 25 (117 → 92). A resposta é a da loja comum: 115 da moeda, 115 do item, 111, 83 e 90
+(o 4476, 4426 e 4484 da mesma captura são de outros sistemas, não da compra). O andar (`MazeLayers`, `MazeLayers2`): o
+cliente esconde o botão quando o andar passa de `towerInfo1.maxIndex` (`GoodsItem.as:380`) ou de `towerInfo2.maxIndex`
+(`:384`). O servidor manda `maxIndex` 60 fixo no 4205 (`MAZE_MAX_INDEX`) e nunca manda o segundo labirinto; por isso
+recusa (`FAIL`, *(dedução)*) os 23 produtos com `MazeLayers` > 60 e os 22 com `MazeLayers2` > 0. Isso **não é o progresso
+do labirinto**: todos os 4205 das capturas têm `maxIndex` 60 (com `towerIndex` 1, 2, 3 e 5), e a compra do andar 15 foi
+feita entre um 4205 com `towerIndex` 3 e outro com 5. Falta: o `maxIndex` que o oficial manda depois de avançar no
+labirinto (captura de 4205 com o labirinto mais fundo).
 
 ## Forja — `forge.py`
 
@@ -133,5 +144,5 @@ Quem chama passa o registro para a mesma `CharacterService.save` da operação. 
 - Eventos do operador (4238): descontos, ofertas relâmpago (8632), compra coletiva (8645).
 - Conquistas: títulos (8597).
 - Casamento: `saveBook` (8595).
-- Campanha: drop dos baús (5129).
+- Campanha: drop dos baús (5129). Campanha em grupo: o gasto da entrada (4240), ver [salas-campanha.md](salas-campanha.md).
 - Mascote: bags 22–26 e cadeado opType 2.

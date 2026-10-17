@@ -22,7 +22,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 | Limite diário `VIP0Count` (o cliente chama de `OneDayCount`; não existe limite "uma vez na vida" na tabela) | 22 | ok na loja comum; **corrigido** no mercado da guilda (antes comprava sem limite) |
 | `NeedMinVip`, `VIP1Count`..`VIP6Count` | todos 0 / -1 | nada a fazer hoje |
 | Loja de honra (ShopType 3): medalhas com `ValidDate` (7, 15 e 30 dias) | 10 | **falta**: item com validade. Hoje a medalha comprada fica para sempre. Precisa de `begin_date`/`valid_date` no item, mandar no 115 e expirar (o cliente já some com o item vencido: `BaseBagListView`) |
-| Loja do labirinto (ShopType 4): `MazeLayers`/`MazeLayers2` (andar mínimo) | 97 / 22 | **falta**: conferir o andar. **depende de**: progresso do labirinto/torre. Hoje vende para quem tiver Labirent Parası |
+| Loja do labirinto (ShopType 4): moeda e preço (Labirent Parası, `MazeCoin`) conferidos na captura (105 e 110). Andar: o cliente esconde o botão com `MazeLayers` > `maxIndex` (60 fixo) ou `MazeLayers2` > 0, e o servidor recusa o mesmo | 119 (23 e 22 bloqueadas) | **dedução** no código. **falta**: o `maxIndex` depois de avançar no labirinto (captura de 4205 com o labirinto mais fundo). O progresso real do labirinto não existe aqui |
 | Loja misteriosa (ShopType 5): peso `Rands` | 110 | **dedução**: sorteio uniforme de 8 itens, sem o peso |
 | Presente para outro jogador (`receiveId`) | — | recusado. **depende de**: entrega pelo correio na compra |
 | Mochila cheia | — | recusa (o oficial manda pelo correio, resultado 12) |
@@ -31,7 +31,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 Itens fora da loja:
 - Refino da forja (8336): sorteio uniforme entre os 1584 atributos com `Grades` > 0 (visto: os 42 das capturas têm Grades 1–10). Falta o peso por nível e o custo do cadeado: **precisa de captura** 8336 → 4258 com cadeado e itens de NeedGrades baixo e alto.
 - Decomposição (8340), avaliação de moda (8781), moldagem (8644), composição de moda (8594), troca na bancada (8595). **sem dado**.
-- Itens novos ganham só o `DefaultSkill` como atributo sorteado (o oficial sorteia `RandomSkillCount`). **sem dado**.
+- Itens novos ganham só o `DefaultSkill` como atributo sorteado (o oficial sorteia `RandomSkillCount`). *(visto)* o Kronos’un Yetkisi da loja do labirinto (`yeralti_labirent_marketi_alisveris`) chegou com cinco `randomSkill`; falta a regra do sorteio (**precisa de captura** de mais compras de equipamento com `RandomSkillCount`).
 - Sem teto diário para Beden e EXP vindos de itens. **dedução**.
 - Títulos (8597): lista vazia. **depende de**: conquistas.
 
@@ -75,7 +75,7 @@ Outros eventos:
 
 ## Salas, times e masmorras ([salas-campanha.md](salas-campanha.md))
 
-- Salas e times só em memória. Decisão: salas não persistem; times não persistem até haver captura de login com time; o contador de campanha multi (4240) deve persistir, mas falta o efeito do item "Büyük Sefer" e o reset (ver Persistência em salas-campanha.md).
+- Salas e times só em memória. Decisão: salas não persistem; times não persistem até haver captura de login com time; o contador de campanha multi (4240) persiste (migração `0021`); o item "Büyük Sefer" soma 1 no dia; falta o gasto da entrada (**precisa de captura**, ver Persistência em salas-campanha.md).
 - Começar a campanha da sala (5039, visto no replay): responde 125, 140 e 21, mas precisa do mapa 1011 (exército inicial e nós). **depende de**: mapa de nós.
 - Caixa Pandora (5033 com S>C 29, mapId 879/880, nodeId 101107/102107): o 5033 só ecoa a escolha; falta a recompensa e a resposta do servidor (captura de abrir a caixa). Confirmar/terminar campanha (5180), carta (5122: o sorteio da `Campaigns.Item` está pronto em `game/drops.py`, falta o fim de masmorra que chama; chance de cada item sem fonte, ver docs/drops-masmorras.md), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
 - Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
@@ -233,8 +233,9 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/guild_events.py:66](../src/wartune_server/game/handlers/guild_events.py#L66) | falta o sistema de mapas de campanha (só existe o do tutorial) e as ondas de |
 | [game/handlers/hero.py:127](../src/wartune_server/game/handlers/hero.py#L127) | a EXP gasta sai da EXP do nível atual (c.gp); conferir com captura se o oficial |
 | [game/handlers/hero.py:290](../src/wartune_server/game/handlers/hero.py#L290) | o preço sobe com diamondIndex (usos no dia); sem contador diário fica no primeiro |
-| [game/handlers/items.py:215](../src/wartune_server/game/handlers/items.py#L215) | sem o teto diário de poções de Beden; só o limite do personagem |
-| [game/handlers/items.py:381](../src/wartune_server/game/handlers/items.py#L381) | depois de juntar pilhas, fecha os buracos na mesma ordem (dedução) |
+| [game/handlers/items.py:219](../src/wartune_server/game/handlers/items.py#L219) | sem o teto diário de poções de Beden; só o limite do personagem |
+| [game/handlers/items.py:260](../src/wartune_server/game/handlers/items.py#L260) | sem teto de uso por dia (a captura tem um uso só); o gasto da entrada não existe aqui, falta captura de entrar numa campanha em grupo (5039 não tem handler) |
+| [game/handlers/items.py:407](../src/wartune_server/game/handlers/items.py#L407) | depois de juntar pilhas, fecha os buracos na mesma ordem (dedução) |
 | [game/handlers/mail.py:38](../src/wartune_server/game/handlers/mail.py#L38) | correio de guilda (sendType 2) recusado até existir guilda. |
 | [game/handlers/mall.py:45](../src/wartune_server/game/handlers/mall.py#L45) | a tela oferece 8, 24 e 48 h (Auction.SubmitHour1..3); o valor enviado não está no decompilado |
 | [game/handlers/mall.py:48](../src/wartune_server/game/handlers/mall.py#L48) | a lista pede 9 por página (8449, 8452); o teto de 50 é dedução, a tela de leilão não está no decompilado |
@@ -256,10 +257,11 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/pets.py:218](../src/wartune_server/game/handlers/pets.py#L218) | só jogador online |
 | [game/handlers/rewards.py:10](../src/wartune_server/game/handlers/rewards.py#L10) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/rewards.py:84](../src/wartune_server/game/handlers/rewards.py#L84) | x1,5 e x2 custam diamante no oficial, mas o preço não está no cliente; recusados |
-| [game/handlers/shop.py:38](../src/wartune_server/game/handlers/shop.py#L38) | a tela da loja misteriosa não está no cliente decompilado; 8 é palpite |
-| [game/handlers/shop.py:92](../src/wartune_server/game/handlers/shop.py#L92) | nenhuma loja tem NeedMinVip hoje; regra não conferida |
-| [game/handlers/shop.py:156](../src/wartune_server/game/handlers/shop.py#L156) | presente depende do correio |
-| [game/handlers/shop.py:328](../src/wartune_server/game/handlers/shop.py#L328) | troca os itens e zera as compras uma vez por dia |
+| [game/handlers/shop.py:40](../src/wartune_server/game/handlers/shop.py#L40) | a tela da loja misteriosa não está no cliente decompilado; 8 é palpite |
+| [game/handlers/shop.py:94](../src/wartune_server/game/handlers/shop.py#L94) | nenhuma loja tem NeedMinVip hoje; regra não conferida |
+| [game/handlers/shop.py:98](../src/wartune_server/game/handlers/shop.py#L98) | o cliente esconde o botão se o andar passa do maxIndex (o 4205 manda 60 fixo) ou é do segundo labirinto; progresso real do labirinto não existe. Código: dedução |
+| [game/handlers/shop.py:163](../src/wartune_server/game/handlers/shop.py#L163) | presente depende do correio |
+| [game/handlers/shop.py:335](../src/wartune_server/game/handlers/shop.py#L335) | troca os itens e zera as compras uma vez por dia |
 | [game/handlers/space.py:75](../src/wartune_server/game/handlers/space.py#L75) | o outro teleporte (mina de ametista, 30000) depende do sistema de minas |
 | [game/handlers/space.py:84](../src/wartune_server/game/handlers/space.py#L84) | mapa por sessão com os nós da captura; pets selvagens, coleta e o chefe (4686) |
 | [game/handlers/stars.py:27](../src/wartune_server/game/handlers/stars.py#L27) | o oficial não publica as chances do sorteio; pesos por qualidade (Profile) e cristal |
