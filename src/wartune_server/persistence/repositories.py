@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from types import TracebackType
 from typing import Any, Self
 
@@ -30,6 +31,8 @@ from ..domain.models import (
     Item,
     Mail,
     MailAnnex,
+    MallBid,
+    MallListing,
     Marriage,
     Pawn,
     Pet,
@@ -174,6 +177,11 @@ class SqlItemRepository(_Repo):
         query = select(Item).where(Item.character_id == character_id).order_by(Item.id)  # type: ignore[arg-type]
         return list(await self._s.scalars(query))
 
+    async def by_ids(self, ids: list[int]) -> list[Item]:
+        if not ids:
+            return []
+        return list(await self._s.scalars(select(Item).where(Item.id.in_(ids))))  # type: ignore[union-attr]
+
 
 class SqlRelationRepository(_Repo):
     async def by_character(self, character_id: int) -> list[Relation]:
@@ -217,6 +225,44 @@ class SqlMailRepository(_Repo):
         if not mail_ids:
             return []
         query = select(MailAnnex).where(MailAnnex.mail_id.in_(mail_ids)).order_by(MailAnnex.mail_id, MailAnnex.slot)  # type: ignore[attr-defined, arg-type]
+        return list(await self._s.scalars(query))
+
+
+class SqlMallRepository(_Repo):
+    """Mercado: anúncios e lances. Anúncio encerrado é apagado (com os lances) na mesma transação."""
+
+    async def listing(self, listing_id: int) -> MallListing | None:
+        return await self._s.get(MallListing, listing_id)
+
+    async def open_listings(self, server_id: int) -> list[MallListing]:
+        query = select(MallListing).where(MallListing.server_id == server_id).order_by(MallListing.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+    async def by_seller(self, seller_id: int) -> list[MallListing]:
+        query = select(MallListing).where(MallListing.seller_id == seller_id).order_by(MallListing.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+    async def expired(self, server_id: int, now: datetime) -> list[MallListing]:
+        query = (
+            select(MallListing)
+            .where(MallListing.server_id == server_id, MallListing.ends_at <= now)  # type: ignore[arg-type]
+            .order_by(MallListing.id)  # type: ignore[arg-type]
+        )
+        return list(await self._s.scalars(query))
+
+    async def bid(self, listing_id: int, bidder_id: int) -> MallBid | None:
+        query = select(MallBid).where(
+            MallBid.listing_id == listing_id,  # type: ignore[arg-type]
+            MallBid.bidder_id == bidder_id,  # type: ignore[arg-type]
+        )
+        return await self._s.scalar(query)
+
+    async def bids_of(self, listing_id: int) -> list[MallBid]:
+        query = select(MallBid).where(MallBid.listing_id == listing_id).order_by(MallBid.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+    async def bids_by(self, bidder_id: int) -> list[MallBid]:
+        query = select(MallBid).where(MallBid.bidder_id == bidder_id).order_by(MallBid.id)  # type: ignore[arg-type]
         return list(await self._s.scalars(query))
 
 
@@ -353,6 +399,7 @@ class SqlAlchemyUnitOfWork:
         self.friend_groups = SqlFriendGroupRepository(self._session)
         self.sns = SqlSnsRepository(self._session)
         self.mails = SqlMailRepository(self._session)
+        self.mall = SqlMallRepository(self._session)
         self.marriages = SqlMarriageRepository(self._session)
         self.arena = SqlArenaRepository(self._session)
         self.guilds = SqlGuildRepository(self._session)

@@ -22,6 +22,7 @@
 | [administracao.md](administracao.md) | Painel GM do portal, `/gm/kick` e `/gm/ban`, banimento, históricos de login, cash e itens |
 | [diversos.md](diversos.md) | Veículos, anti-vício, senha secundária, captcha, acelerador e os pacotes do login que faltam |
 | [social.md](social.md) | Amigos, lista negra, correio (socket + `maillist`), troca de nome, casamento |
+| [mercado.md](mercado.md) | Mercado entre jogadores: anunciar, lances, preço fixo, cancelar, busca e encerramento pelo correio |
 | [pvp.md](pvp.md) | Coliseu, torneio de fadas e os eventos PvP fechados (Senhores, campo de batalha, mina) |
 | [boss-eventos.md](boss-eventos.md) | Chefe do mundo: agenda (4182), recusas de entrada, reviver e buff, e o que falta do mapa do chefe |
 | [guilda.md](guilda.md) | Guilda: opcodes, regras do cliente, estado em memória, o que falta (altar, guerra) |

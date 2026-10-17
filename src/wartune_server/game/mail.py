@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from xml.sax.saxutils import quoteattr
 
-from ..domain.models import Mail, MailAnnex, MailType
+from ..domain.models import BagType, Item, Mail, MailAnnex, MailType
 from ..domain.repositories import UnitOfWork
 from ..protocol.messages import wartune_pb2 as pb
 from ..services.characters import CharacterService
@@ -48,6 +48,30 @@ async def deliver(
     if (receiver := online.get(mail.receiver_id)) is not None:
         receiver.send(S_NEW_MAIL, pb.MailMsg(playerId=mail.receiver_id, mailId=mail.id))
     return annexes
+
+
+async def stage(uow: UnitOfWork, mail: Mail, goods: Sequence[tuple[int, int]] = (), items: Sequence[Item] = ()) -> None:
+    """Põe o correio na transação de quem chama (sem ``commit``): anexos por template e itens que já têm
+    linha, que passam para a bolsa MAIL do destinatário. Quem chama manda o 148 com ``notify`` depois."""
+    if len(goods) + len(items) > MAX_ANNEXES:
+        raise ValueError("no máximo 5 anexos por correio")
+    await uow.save(mail)
+    await uow.flush()  # o anexo precisa do id do correio
+    slot = 0
+    for item in items:
+        item.character_id, item.bag_type, item.object_id, item.pos = mail.receiver_id, BagType.MAIL, 0, 0
+        await uow.save(item)
+        slot += 1
+        await uow.save(MailAnnex(mail.id or 0, slot, item.template_id, item.count, item_id=item.id or 0))
+    for template_id, count in goods:
+        slot += 1
+        await uow.save(MailAnnex(mail.id or 0, slot, template_id, count))
+
+
+def notify(online: OnlinePlayers, mail: Mail) -> None:
+    """148 para o destinatário, se estiver online. Depois do commit."""
+    if (receiver := online.get(mail.receiver_id)) is not None:
+        receiver.send(S_NEW_MAIL, pb.MailMsg(playerId=mail.receiver_id, mailId=mail.id))
 
 
 async def send_system_mail(

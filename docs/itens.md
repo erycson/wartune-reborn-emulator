@@ -22,8 +22,9 @@ resposta só quando o cliente não espera nenhuma; senão vai o resultado de err
 Espaços do herói: 101→0, 103→1, 104→2, 106→3, 107→4/5, 108→6/7, 109 asa→8, 110 chapéu→9,
 112 roupa de moda→10, 111 arma de moda→11, 117→12, 118→13. Equipar confere `Job` (lista com 0 ou o
 job do herói), `Sexs` (2 ou o sexo) e `NeedGrades` (`GoodsCheck.checkGoodsCanEquip`) *(cliente)*.
-Os bags 6 (guilda), 10 (correio), 11 (leilão), 22–26 (mascote) e 32 (depósito) dependem de sistemas
-que não existem e são recusados no 5005.
+Os bags 10 (correio) e 11 (leilão) são do servidor: o item entra neles pelo correio (anexo de item, 5022
+o tira) e pelo mercado ([mercado.md](mercado.md)), posição 0. Não são movíveis pelo 5005. Os bags 6
+(guilda), 22–26 (mascote) e 32 (depósito) dependem de sistemas que não existem e são recusados no 5005.
 
 Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros furos ficam −1
 (fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates).

@@ -274,6 +274,12 @@ class BagType(IntEnum):
     RUNE = 2  # runas de batalha do herói (SonType 214)
     HONOR = 3  # medalha de honra do herói (MasterType 3)
     HERO = 4  # equipado; ``object_id`` = id do herói
+    MAIL = 10  # item anexado a um correio, esperando o 5022 (``BagType.mail`` do cliente)
+    AUCTION = 11  # item à venda no mercado (``BagType.auction`` do cliente)
+
+
+# bolsas que não ficam no snapshot: o item só volta a ele quando é retirado (5022, cancelamento)
+OUT_OF_SNAPSHOT = (BagType.MAIL, BagType.AUCTION)
 
 
 @dataclass(eq=False)
@@ -471,6 +477,36 @@ class MailAnnex:
     count: int
     id: int | None = None
     taken: bool = False
+    item_id: int = 0  # item de verdade (linha de ``Item`` na bolsa MAIL) em vez de template; 0 = nenhum
+
+
+@dataclass(eq=False)
+class MallListing:
+    """Item à venda no mercado (8448). O item fica na bolsa AUCTION do vendedor até sair; ``point`` é o
+    lance inicial ou o último lance; ``fix_point`` 0 = sem compra imediata; ``bidder_id`` 0 = sem lance."""
+
+    server_id: int
+    seller_id: int
+    item_id: int
+    seller_nick: str
+    point: int
+    fix_point: int
+    hour: int
+    started_at: datetime
+    ends_at: datetime
+    bidder_id: int = 0
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class MallBid:
+    """Lances de um jogador num anúncio aberto (8452). Um por (anúncio, jogador): o último lance."""
+
+    listing_id: int
+    bidder_id: int
+    price: int
+    bid_at: datetime
+    id: int | None = None
 
 
 class MarriageState(IntEnum):

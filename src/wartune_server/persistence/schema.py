@@ -53,6 +53,8 @@ from ..domain.models import (
     LoginHistory,
     Mail,
     MailAnnex,
+    MallBid,
+    MallListing,
     Marriage,
     MysteryShop,
     Pawn,
@@ -506,7 +508,35 @@ mail_annexes = Table(
     Column("template_id", Integer, nullable=False),
     Column("count", Integer, nullable=False),
     Column("taken", Boolean, nullable=False, default=False, server_default="0"),
+    _int("item_id"),  # linha de items (bolsa MAIL) quando o anexo é um item; 0 = template
     UniqueConstraint("mail_id", "slot"),
+)
+
+mall_listings = Table(
+    "mall_listings",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("server_id", Integer, ForeignKey("game_servers.id"), nullable=False, index=True),
+    Column("seller_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("item_id", Integer, ForeignKey("items.id", ondelete="CASCADE"), nullable=False, unique=True),
+    Column("seller_nick", String(32), nullable=False, default="", server_default=""),
+    _int("point"),
+    _int("fix_point"),
+    _int("hour", 1),
+    Column("started_at", UTCDateTime, nullable=False, server_default=func.current_timestamp()),
+    Column("ends_at", UTCDateTime, nullable=False, index=True, server_default=func.current_timestamp()),
+    _int("bidder_id"),  # 0 = sem lance; não é FK para o cancelamento do lance ser só apagar a linha
+)
+
+mall_bids = Table(
+    "mall_bids",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("listing_id", Integer, ForeignKey("mall_listings.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("bidder_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("price"),
+    Column("bid_at", UTCDateTime, nullable=False, server_default=func.current_timestamp()),
+    UniqueConstraint("listing_id", "bidder_id"),
 )
 
 marriages = Table(
@@ -766,6 +796,8 @@ def map_entities() -> None:
         (SnsProfile, sns_profiles),
         (Mail, mails),
         (MailAnnex, mail_annexes),
+        (MallListing, mall_listings),
+        (MallBid, mall_bids),
         (Marriage, marriages),
         (Arena, arenas),
         (TreasureMap, treasure_maps),

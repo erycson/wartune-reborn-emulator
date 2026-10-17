@@ -33,6 +33,7 @@ Levantamento e ordem em [multiplayer.md](multiplayer.md).
 - [x] Chat: mundo, cena, privado, cornetas pagas ([chat.md](chat.md)); guilda e time depois
 - [x] Social: amigos, lista negra, correio, troca de nome, casamento sem cerimônia ([social.md](social.md))
 - [x] Salas PvE e times livres: criar, entrar, expulsar, passar o dono, convite só a amigo; campanha da sala, varredura, torre e pedágio com progresso ficam parciais ([salas-campanha.md](salas-campanha.md))
+- [x] Mercado entre jogadores: anunciar, lances, preço fixo, cancelar, busca; sem captura, regras de tela deduzidas ([mercado.md](mercado.md))
 - [x] Chat: mundo, cena, privado, guilda ([chat.md](chat.md)); time e cornetas pagas depois
 - [x] Cidade do céu: ver outros jogadores andando ([mundo-compartilhado.md](mundo-compartilhado.md)); relogin espera a sessão anterior
 - [x] Cidade do céu, fatia 2: nós (4601), posição gravada, visual (149), entrada e volta da ilha dos pets. Também: garagem de veículos, conta e segurança ([diversos.md](diversos.md))
