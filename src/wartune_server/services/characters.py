@@ -30,6 +30,7 @@ from ..domain.models import (
     PlayerSystems,
     ShopBuy,
     TreasureMap,
+    WildLand,
 )
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
@@ -56,11 +57,13 @@ class CastlePlacement(Protocol):
 class GridCastlePlacement:
     """Distribui castelos numa grade fixa de um mapa.
 
-    ponytail: não consulta ocupação real nem terreno; troque por uma busca em
-    MapNodeInfos/MapPhysicsTempInfos quando o mapa-múndi for implementado.
+    O padrão põe todo castelo novo em (26,46), como o oficial (replay e cevre: exército em 24,44): o
+    guia do tutorial procura o castelo no pixel (520,920) e as minas em volta (outer_city.MINES).
+    ponytail: cada jogador só vê o próprio castelo, então dividir o ponto não colide; com mapa
+    compartilhado, uma instância 100000xxx por grupo de jogadores, como o oficial.
     """
 
-    def __init__(self, map_id: int = 100000313, origin: tuple[int, int] = (10, 10), cols: int = 20) -> None:
+    def __init__(self, map_id: int = 100000313, origin: tuple[int, int] = (26, 46), cols: int = 1) -> None:
         self._map_id, self._origin, self._cols = map_id, origin, cols
 
     def place(self, character_id: int) -> tuple[int, int, int]:
@@ -179,6 +182,7 @@ class CharacterService:
             pets = await uow.pets.by_character(character_id)
             systems = next(iter(await uow.systems.by_character(character_id)), None)
             treasure = await uow.by_character(TreasureMap, character_id)
+            wild_lands = await uow.by_character(WildLand, character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
         # linha nova só em memória: vai para o banco na primeira save() que a incluir
@@ -208,6 +212,7 @@ class CharacterService:
             pets,
             systems,
             treasure,
+            wild_lands,
         )
 
     async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:

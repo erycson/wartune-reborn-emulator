@@ -48,6 +48,7 @@ ENTER, PORTAL_ENTER = 1, 3  # RoomCreatedMsg.createdType
 ARMY_IDLE, ARMY_FIGHTING = 0, 2
 SCENE = "CAMPAIGN_MAP_SCENE"
 BACK_TO_MAP = 4  # LoginStateMsg.state que o cliente manda ao voltar para o mapa
+OUTER_CITY = 3  # LoginStateMsg.state: entrou na cidade externa
 CAMPAIGN_SCENE = 3  # BattleReportMsg.battleScene
 WON, LOST = 1, 2
 TILE = 20  # PosMoveMsg.routes vem em pixels
@@ -487,6 +488,9 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
     if msg.state == BACK_TO_MAP and s.battle_gp:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0
+    if msg.state == OUTER_CITY and s.outer_fight_over:  # replay #750 e #803: depois da luta da mina
+        _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=0))
+        s.outer_fight_over = False
 
 
 # -- progresso do guia -------------------------------------------------------------------------

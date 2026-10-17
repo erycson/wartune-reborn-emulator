@@ -67,6 +67,7 @@ from ..domain.models import (
     SnsProfile,
     Star,
     TreasureMap,
+    WildLand,
 )
 
 NAMING = {
@@ -567,6 +568,16 @@ treasure_maps = Table(
     _int("reward_count"),
 )
 
+wild_lands = Table(
+    "wild_lands",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    _int("wild_id"),
+    Column("occupied_at", UTCDateTime, nullable=False),
+    UniqueConstraint("character_id", "wild_id"),
+)
+
 arenas = Table(
     "arenas",
     metadata,
@@ -806,6 +817,7 @@ def map_entities() -> None:
         (Marriage, marriages),
         (Arena, arenas),
         (TreasureMap, treasure_maps),
+        (WildLand, wild_lands),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
         (Consortia, consortias),

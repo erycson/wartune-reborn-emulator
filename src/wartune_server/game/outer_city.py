@@ -8,8 +8,11 @@ próprio jogador: não há outros exércitos, terras nem castelos (ver docs/cida
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
+from datetime import datetime
 
-from ..domain.models import Castle
+from ..domain.models import Castle, PlayerSnapshot, WildLand
+from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
@@ -77,3 +80,143 @@ def energy_diamonds(castle: Castle, top: int, need: int) -> int:
     if castle.energy >= need:
         return 0
     return math.ceil((top - castle.energy) / 5)
+
+
+# -- minas de ouro ---------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Mine:
+    """Mina de ouro do mapa 100 (``WildLandMsg`` type 20). O guarda é um soldado só (``ownPawns`` 1)."""
+
+    id: int
+    x: int
+    y: int
+    template: int  # MapPhysicsTempInfos: Grades = nível, Property4 = ouro por hora
+    guard: int  # PawnTempInfos
+
+
+# As 4 minas do mapa 100 nas capturas (replay #706, cevre #11): mesmos ids e posições para contas
+# diferentes, então são do modelo do mapa, não do jogador. Nível e guarda do replay. O guia do tutorial
+# (m8 NewbieBaseActionMediator, alvo 80) procura as duas primeiras pelos pixels (320,680) e (720,680).
+# ponytail: o oficial sorteia o nível de novo a cada RefreshTime (43200 s) e a ocupação vence nesse
+# prazo; aqui o nível é fixo e a mina ocupada fica com o jogador.
+MINES = (
+    Mine(853876, 16, 34, 200409, 6505),
+    Mine(853877, 36, 34, 200410, 6505),
+    Mine(853874, 71, 54, 200408, 6504),
+    Mine(853875, 54, 64, 200410, 6505),
+)
+MINE_TYPE, MINE_SON_TYPE = 20, 2006  # WildLandMsg.type; MapPhysicsTempInfos.SonType (missão 60, Para1)
+MINE_FREE, MINE_FIGHTING = 1, 4  # WildLandMsg.state
+MINE_CAPACITY = 324  # fightCapaity da mina livre nas capturas
+MINE_CREATED = "2026-05-21 12:19:54"  # createDate do replay: quando o mapa gerou as minas
+
+
+def mine_at(map_id: int, x: int, y: int) -> Mine | None:
+    if template_of(map_id) != BASE_MAP:
+        return None
+    return next((m for m in MINES if (m.x, m.y) == (x, y)), None)
+
+
+def occupied(snap: PlayerSnapshot, mine: Mine) -> WildLand | None:
+    return next((w for w in snap.wild_lands if w.wild_id == mine.id), None)
+
+
+def mine_msg(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine, state: int, capacity: int) -> pb.WildLandMsg:
+    """Como no 4129 e no 140 do oficial: a livre não tem ``occupyPlayerName``; a ocupada leva o nome
+    e o poder do jogador em ``fightCapaity``."""
+    row = templates.get("MapPhysicsTempInfos", mine.template) or {}
+    msg = pb.WildLandMsg(
+        id=mine.id,
+        mapId=BASE_MAP,
+        posX=mine.x,
+        posY=mine.y,
+        templateId=mine.template,
+        type=MINE_TYPE,
+        occupyPlayerId=0,
+        level=int(row.get("Grades", 0)),
+        refreshTime=int(row.get("RefreshTime", 0)) * 1000,
+        state=state,
+        createDate=MINE_CREATED,
+        fightCapaity=MINE_CAPACITY,
+        bossType=0,
+        size=0,
+    )
+    if occupied(snap, mine) is not None:
+        msg.occupyPlayerId, msg.occupyPlayerName = snap.character.id or 0, snap.character.nickname or ""
+        msg.fightCapaity = capacity
+    msg.armyPawn.add(id=mine.id, armyId=mine.id, tempateId=mine.guard, ownPawns=1)
+    return msg
+
+
+def mines_in(grids: set[str]) -> list[Mine]:
+    return [m for m in MINES if grid_of(m.x, m.y) in grids]
+
+
+def mine_yield(snap: PlayerSnapshot, templates: GameTemplates) -> list[pb.WildYieldMsg]:
+    """152: uma linha por mina ocupada (replay #743, #794)."""
+    out = []
+    for mine in MINES:
+        if occupied(snap, mine) is None:
+            continue
+        row = templates.get("MapPhysicsTempInfos", mine.template) or {}
+        grade = int(row.get("Grades", 0))
+        out.append(
+            pb.WildYieldMsg(
+                wildPoxName=f"({mine.x},{mine.y})",
+                wildPox=f"{mine.x},{mine.y}",
+                wildGrade=grade,
+                wildName=f"{row.get('MapPhysicsTempName', '')} {grade} seviye",
+                wildYield=int(row.get("Property4", 0)),
+                wildRefreshTime=int(row.get("RefreshTime", 0)),
+                mapId=BASE_MAP,
+                createTime=MINE_CREATED,
+            )
+        )
+    return out
+
+
+def mine_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
+    """Ouro por hora das minas ocupadas (replay: o goldYield do 109 vai de 280 para 960 com a 1ª)."""
+    return sum(y.wildYield for y in mine_yield(snap, templates))
+
+
+def mine_battle(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine) -> dict[str, object]:
+    """Spec da luta da mina (replay #718): battleType 1 no mapa 100, as tropas do exército em duas
+    pilhas (pos 3 e 9), o herói na 4 e o guarda na 5. Vida da pilha = Live × soldados / 100."""
+    soldiers: list[dict[str, object]] = []
+    pawn = next((p for p in snap.pawns if p.army_count > 0), None)
+    tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
+    if pawn is not None and tpl is not None:
+        half = (pawn.army_count + 1) // 2
+        for living, pos, count in ((1, 3, half), (2, 9, pawn.army_count - half)):
+            if count <= 0:
+                continue
+            hp = max(1, int(tpl["Live"]) * count // 100)
+            soldiers.append(
+                {"livingId": living, "tempId": pawn.template_id, "type": 1, "side": 1, "pos": pos,
+                 "initHp": hp, "hp": hp, "qteTime": 0, "castTime": 4000,
+                 "skillId": [int(tpl["DefaultSkill"])]}
+            )  # fmt: skip
+    guard = templates.get("PawnTempInfos", mine.guard) or {}
+    hp = max(1, int(guard.get("Live", 100)) // 100)
+    soldiers.append(
+        {"livingId": 4, "tempId": mine.guard, "type": 1, "side": 2, "pos": 5,
+         "initHp": hp, "hp": hp, "qteTime": 0, "castTime": 6000}
+    )  # fmt: skip
+    return {
+        "battleType": 1,
+        "mapTempId": BASE_MAP,
+        "attackModel": 2,
+        "battleScene": 4,
+        "soldiers": soldiers,
+        "heroes": [],
+        "player": {"livingId": 3, "pos": 4},
+    }
+
+
+def occupy(snap: PlayerSnapshot, mine: Mine, now: datetime) -> WildLand:
+    land = WildLand(snap.character.id or 0, mine.id, now)
+    snap.wild_lands.append(land)
+    return land

@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
-from . import rules
+from . import outer_city, rules
 from .builders import login as b
 from .session import GameSession
 
@@ -77,9 +77,9 @@ def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
         elif row["MasterType"] in GOLD_TECH:
             effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
             total += int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
-    # ponytail: sem terras selvagens (goldWildLandYield) nem bônus de guilda/efeitos; o oficial soma +30
-    # que não sabemos de onde vem (login.json: 8550 = 8220 dos prédios + 300 da tecnologia + 30)
-    return total
+    # ponytail: sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem
+    # (login.json: 8550 = 8220 dos prédios + 300 da tecnologia + 30)
+    return total + outer_city.mine_gold(snap, templates)
 
 
 def gold_max(snap: PlayerSnapshot, templates: GameTemplates) -> int:
@@ -140,10 +140,12 @@ def castle_yield(s: GameSession) -> None:
 
 
 def politics_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.CastleYieldMsg:
-    """152 (conselho): o rendimento dos prédios, sem terras selvagens."""
-    total = gold_yield(snap, templates)
+    """152 (conselho): o rendimento dos prédios e uma linha por mina ocupada. Como no replay (#743,
+    #794), ``goldYield`` e ``goldTotalCount`` ficam só com os prédios e ``goldWildLandYield`` em 0."""
+    total = gold_yield(snap, templates) - outer_city.mine_gold(snap, templates)
     msg = pb.CastleYieldMsg(goldYield=total, goldWildLandYield=0, goldTechnology=0, goldWonder=0)
     msg.goldTotalCount = total
+    msg.wildYield.extend(outer_city.mine_yield(snap, templates))
     return msg
 
 

@@ -13,8 +13,8 @@ Fontes: *(visto)* captura oficial (`captures/transfer_kampi_sistemi.json`, `capt
 
 ## O que o servidor tem
 
-O mundo do servidor tem só o castelo do próprio jogador: não há outros exércitos, terras selvagens, minas
-nem castelos. Pedido que depende de outro jogador ou de terra é recusado ou respondido vazio, do jeito que o
+O mundo do servidor tem o castelo do próprio jogador e as 4 minas de ouro do mapa 100 (ver *Minas de ouro*).
+Não há outros exércitos, outras terras selvagens nem castelos alheios. Pedido que depende de outro jogador ou de terra é recusado ou respondido vazio, do jeito que o
 cliente espera para não travar.
 
 ## Opcodes C>S
@@ -23,10 +23,10 @@ cliente espera para não travar.
 |---|---|---|---|
 | 5004 | Registra. Sem resposta | *(cliente)* o cliente não lê resposta do 5004 | — (os exércitos da tela chegam pelo 169) |
 | 5181 | Sem resposta própria. A grade vem no 169 do 8201 | *(visto)* transfer #12-15, cevre #11-12: sem S>C | — |
-| 8201 | 4129 com o próprio castelo, depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* transfer #15; *(cliente)* `OuterCityController` | terras selvagens e castelos vizinhos |
-| 8254 | Guarda o último ponto andado (pixels // 20). Sem resposta; rota vazia, outro exército ou fora do mapa são ignorados | *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
+| 8201 | 4129 com as minas das grades pedidas (mapa modelo 100) e o próprio castelo, depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* transfer #15, replay #706 | outras terras selvagens e castelos vizinhos |
+| 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,134 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* replay #761-#767 (18 tiles em 2,43 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Sem alvo: 140 com o exército parado (state 0) | *(dedução)*: parar sem alvo é escolha nossa; a sequência do 140 é a da mina (*(visto)* cevre, state 1 para 0) | terras, minas, tesouros e castelos alheios (batalha) |
+| 5160 | Mina livre: luta com o guarda (ver *Minas de ouro*). Sem alvo, ou mina já do jogador: 140 com o exército parado (state 0) | *(visto)* replay #713-#795; *(dedução)* parar sem alvo | outras terras, tesouros e castelos alheios |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Registra. Sem resposta | *(cliente)* ação a46 do guia do tutorial (m8) | nó de coleta que o passo abre (ausente nas capturas) |
 | 9506 | Ataque extra: 100 diamantes (vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount` | *(cliente)* `AttackAlertFrame` (`setAddAttackCount`); preço em `ConfigInfos` `AddAttck_Point` | — |
@@ -55,6 +55,27 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - Tamanho do mapa: `MapInfos` `Width` e `Height` em pixels, divididos por 20. O mapa do castelo
   (100000xxx) usa o modelo 100 (Loş Sahil).
 
+## Minas de ouro (missão 60, `game/outer_city.py`)
+
+- **Layout** *(visto)*: as 4 minas vêm das capturas, com os mesmos ids e posições para contas diferentes
+  (replay e cevre), então são do mapa modelo 100: 853876 (16,34) nível 9, 853877 (36,34) nível 10,
+  853874 (71,54) nível 8, 853875 (54,64) nível 10. Guarda: um soldado 6505 (6504 na de nível 8). O arquivo
+  `maps/100/100.maps` não tem minas.
+- **Guia do tutorial** *(cliente)*: o m8 (`NewbieBaseActionMediator`, alvo 80) procura as minas pelos pixels
+  (320,680) e (720,680), e o castelo em (520,920). Sem elas a máscara escura do passo 22500 nunca sai. Por
+  isso o castelo novo nasce em (26,46), como no oficial (`GridCastlePlacement`), e a migração 0017 move
+  quem ainda estava na grade antiga.
+- **Luta** *(visto)* #713-#744: 140 ×2 do exército lutando, 140 da mina em luta (state 4), 157 (battleType 1,
+  mapa 100, as tropas do exército em duas pilhas nas posições 3 e 9, o herói na 4, o guarda na 5; vida da
+  pilha = Live × soldados / 100). Fim: 150, 4103 (cena 4), 150, 100, 140 ×2. Vencendo: a mina fica do
+  jogador, 112 da missão (condição 7, Para1 2006), 4152 (Leed 9), 109, 152 com o rendimento, 140 da mina
+  ocupada e 169. Perdendo: 140 da mina livre. Os soldados não morrem, como no replay (150 antes e depois).
+- **Volta** *(visto)* #750: o primeiro 5035 com state 3 depois da luta recebe o 4382.
+- **Ouro** *(visto)*: cada mina ocupada soma `Property4` por hora no 109 (280 para 960). O 152 lista as minas
+  em `wildYield` e mantém `goldYield` só com os prédios e `goldWildLandYield` em 0, como no replay.
+- **0017** `wild_lands`: mina ocupada por personagem (`wild_id`, `occupied_at`), carregada em
+  `PlayerSnapshot.wild_lands`. Relogar mantém a mina.
+
 ## Tabelas e migrações
 
 - **0012** `arenas.attack_left` (padrão 5): ataques extras do dia. A virada do dia é gravada no login
@@ -65,8 +86,10 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 
 ## Dependências em aberto
 
-1. **Mapa-múndi compartilhado.** Terras selvagens, minas, castelos de outros jogadores e de robôs. Com isso:
-   o 8201 completo (`wildLand`, outros `baseCastle`), o 5160 com alvo e o 8488.
+1. **Mapa-múndi compartilhado.** Outras terras selvagens, castelos de outros jogadores e de robôs. Com isso:
+   o 8201 completo (outros `baseCastle`), o 5160 contra castelos e o 8488. As minas do mapa 100 existem, mas
+   cada jogador vê só a própria ocupação; o refresh de 12 h (nível sorteado de novo, ocupação que vence) não
+   existe.
 2. **Gancho da campanha** (8292, 8293, 8295, 8525). O servidor responde o gancho zerado (4200) e a lista
    de ganchos vazia (4204); o cancelar (8292) não muda nada. O ganho de tempo offline da campanha precisa do
    sistema de gancho, e os ganchos de outros jogadores não existem.

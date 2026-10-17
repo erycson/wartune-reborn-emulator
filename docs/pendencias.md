@@ -80,8 +80,13 @@ Outros eventos:
 
 ## Cidade externa e mapa do mundo ([cidade-externa.md](cidade-externa.md), [mundo-compartilhado.md](mundo-compartilhado.md))
 
-- Mapa do mundo compartilhado (terras, minas, castelos de outros): **não existe**. Por isso:
-  8201 só mostra o próprio castelo, 5160 (atacar) não tem alvo, 8488 (PvP no mapa) e 5004 só registram.
+- Mapa do mundo compartilhado (terras, castelos de outros): **não existe**. Por isso:
+  8201 mostra só o próprio castelo e as 4 minas do mapa 100; 5160 só luta contra mina; 8488 (PvP no mapa) e 5004 só registram.
+- Minas de ouro: nível fixo e ocupação permanente. Faltam o refresh de 12 h (`RefreshTime`: nível sorteado de
+  novo, ocupação que vence), outro jogador tomar a mina e a perda de soldados na luta.
+- "Emek oranınız ..." (83, taxa de trabalho): o sistema não existe.
+- Subida de nível: o oficial manda também 139, 100 e 4640 (replay #625-#628); aqui só o 150.
+- Presente da atividade de soma (8586 tipo 2, replay #678): recusado.
 - Ataque a castelo: 9506 compra tentativas, mas nada as gasta.
 - Gancho (8293, 8525, 8292, 8295): respondem zerado; o ganho offline do gancho não existe.
 - Passe de progresso (8636/8637): área 1 fixa, prêmio recusado. **depende de**: 8753/8755.
@@ -159,8 +164,8 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/battle.py:345](../src/wartune_server/game/battle.py#L345) | fórmula de dano desconhecida. PvE calibrado na captura do tutorial (herói mata os |
 | [game/builders/login.py:76](../src/wartune_server/game/builders/login.py#L76) | bate com o oficial no nível 1 (199); nível 3 dá 291 contra 278. Falta a fórmula real. |
 | [game/builders/login.py:243](../src/wartune_server/game/builders/login.py#L243) | 1 exército por personagem; tabela própria quando houver tropas extras |
-| [game/castle.py:80](../src/wartune_server/game/castle.py#L80) | sem terras selvagens (goldWildLandYield) nem bônus de guilda/efeitos; o oficial soma +30 |
-| [game/castle.py:152](../src/wartune_server/game/castle.py#L152) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
+| [game/castle.py:80](../src/wartune_server/game/castle.py#L80) | sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem |
+| [game/castle.py:154](../src/wartune_server/game/castle.py#L154) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
 | [game/farm.py:19](../src/wartune_server/game/farm.py#L19) | sem upgrade de terra (opType 9 não tem sender) |
 | [game/guild.py:162](../src/wartune_server/game/guild.py#L162) | só os 50 últimos na memória; o banco guarda todos |
 | [game/handlers/account.py:20](../src/wartune_server/game/handlers/account.py#L20) | prazo do reset não está no cliente nem nas capturas; ajustar se aparecer |
@@ -172,11 +177,11 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/army.py:301](../src/wartune_server/game/handlers/army.py#L301) | só a posição do próprio herói é gravada; |
 | [game/handlers/army.py:321](../src/wartune_server/game/handlers/army.py#L321) | a posição do exército no mapa externo não é gravada (sistema do mapa externo). |
 | [game/handlers/battle.py:35](../src/wartune_server/game/handlers/battle.py#L35) | a postura não muda o dano (a fórmula real não é conhecida) |
-| [game/handlers/castle.py:270](../src/wartune_server/game/handlers/castle.py#L270) | trégua ainda não existe; zera e confirma. |
+| [game/handlers/castle.py:280](../src/wartune_server/game/handlers/castle.py#L280) | trégua ainda não existe; zera e confirma. |
 | [game/handlers/chat.py:26](../src/wartune_server/game/handlers/chat.py#L26) | o cliente não limita a guilda (ChatHelper); 1 s contra spam |
 | [game/handlers/chat.py:28](../src/wartune_server/game/handlers/chat.py#L28) | o cliente não limita o privado; 1 s contra spam |
 | [game/handlers/chat.py:84](../src/wartune_server/game/handlers/chat.py#L84) | cota fixa do ConfigInfo; o VIP do oficial pode aumentar (sem VIP ainda). |
-| [game/handlers/chat.py:165](../src/wartune_server/game/handlers/chat.py#L165) | cena" = todos online até existir o registro de cenas (cidade do céu). |
+| [game/handlers/chat.py:165](../src/wartune_server/game/handlers/chat.py#L165) | "cena" = todos online até existir o registro de cenas (cidade do céu). |
 | [game/handlers/events.py:164](../src/wartune_server/game/handlers/events.py#L164) | só os tipos 13 e 14 têm regra; os outros ficam "ainda não" até alguém implementar |
 | [game/handlers/events.py:369](../src/wartune_server/game/handlers/events.py#L369) | nenhum desses sistemas conta ainda; lista vazia = tudo zerado no painel. |
 | [game/handlers/farm.py:15](../src/wartune_server/game/handlers/farm.py#L15) | só os 42 base; comprados via bag.capacity |
@@ -214,7 +219,8 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/offer.py:224](../src/wartune_server/game/handlers/offer.py#L224) | depende do sistema de batalha abrir a luta com o NPC da tarefa; só registra. |
 | [game/handlers/offer.py:330](../src/wartune_server/game/handlers/offer.py#L330) | as condições (enviar mensagem, batalhas...) dependem de outros sistemas avisarem; |
 | [game/handlers/offer.py:342](../src/wartune_server/game/handlers/offer.py#L342) | sem compra de vagas extras |
-| [game/handlers/outer_city.py:86](../src/wartune_server/game/handlers/outer_city.py#L86) | só o próprio castelo; terras selvagens e castelos vizinhos quando houver mapa compartilhado |
+| [game/handlers/outer_city.py:36](../src/wartune_server/game/handlers/outer_city.py#L36) | velocidade fixa, sem montaria nem efeitos |
+| [game/handlers/outer_city.py:103](../src/wartune_server/game/handlers/outer_city.py#L103) | o próprio castelo e as minas; castelos vizinhos quando houver mapa compartilhado |
 | [game/handlers/pets.py:21](../src/wartune_server/game/handlers/pets.py#L21) | pontos livres por nível do pet; o oficial não publica a regra |
 | [game/handlers/pets.py:53](../src/wartune_server/game/handlers/pets.py#L53) | atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real |
 | [game/handlers/pets.py:59](../src/wartune_server/game/handlers/pets.py#L59) | mesma aproximação |
@@ -253,7 +259,8 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/worldboss.py:69](../src/wartune_server/game/handlers/worldboss.py#L69) | o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição); |
 | [game/items.py:12](../src/wartune_server/game/items.py#L12) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
 | [game/items.py:54](../src/wartune_server/game/items.py#L54) | um item novo por entrada, sem empilhar (igual ao 5006); empilhar quando o |
-| [game/outer_city.py:67](../src/wartune_server/game/outer_city.py#L67) | o oficial escolhe um ponto livre; sem outros castelos no servidor, usamos o centro |
+| [game/outer_city.py:70](../src/wartune_server/game/outer_city.py#L70) | o oficial escolhe um ponto livre; sem outros castelos no servidor, usamos o centro |
+| [game/outer_city.py:102](../src/wartune_server/game/outer_city.py#L102) | o oficial sorteia o nível de novo a cada RefreshTime (43200 s) e a ocupação vence nesse |
 | [game/rewards.py:20](../src/wartune_server/game/rewards.py#L20) | -600 "Kristal" (cristal do castelo) ainda não existe no banco (CRYSTALS fixo em |
 | [game/rewards.py:23](../src/wartune_server/game/rewards.py#L23) | sem espaços comprados (bagCount) ainda |
 | [game/rewards.py:72](../src/wartune_server/game/rewards.py#L72) | o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela |
@@ -264,4 +271,4 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/worldboss.py:17](../src/wartune_server/game/worldboss.py#L17) | fuso fixo (UTC+3, sem horário de verão); outro fuso vira config |
 | [game/worldboss.py:37](../src/wartune_server/game/worldboss.py#L37) | janela que cruza a meia-noite não existe nos templates; não é tratada. |
 | [http/app.py:242](../src/wartune_server/http/app.py#L242) | respostas do suporte sempre vazias até existir o atendimento |
-| [services/characters.py:59](../src/wartune_server/services/characters.py#L59) | não consulta ocupação real nem terreno; troque por uma busca em |
+| [services/characters.py:62](../src/wartune_server/services/characters.py#L62) | cada jogador só vê o próprio castelo, então dividir o ponto não colide; com mapa |

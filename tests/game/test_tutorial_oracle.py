@@ -11,18 +11,20 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from tests.game.harness import logged_in
+from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import DATA
 from wartune_server.game import battle as battle_mod
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.protocol.registry import Direction, MessageRegistry
+from wartune_server.services.clock import FakeClock
 
 CAPTURE = Path("D:/wartune/server-relay/replay_packets.json")
-FIRST, LAST = 116, 580  # 5127 (entra no tutorial) .. respostas do 8281 (prédios do castelo)
+FIRST, LAST = 116, 813  # 5127 (entra no tutorial) .. 4129 com as duas minas ocupadas (missão 60)
 TIMING = {153, 75, 156, 69}  # golpes e confirmações saem no ritmo da batalha
 NOT_IMPLEMENTED = {
     4476,  # SumActiveDataMsg (atividades)
@@ -32,9 +34,15 @@ NOT_IMPLEMENTED = {
     4122,  # patrulha dos monstros no mapa 10002
     4152,  # LeedUpdatedRspMsg (guia de metas)
 }
-# respostas do oficial que não reproduzimos de propósito: "Emek oranınız 10'a ulaştı" (taxa de
-# trabalho, sistema que não existe aqui) e o 150 repetido, idêntico, na saída do mapa 10002
-KNOWN_GAPS = Counter({83: 1, 150: 1})
+# diferenças conhecidas, todas fora do tutorial em si (docs/pendencias.md):
+# - "Emek oranınız ..." (83, taxa de trabalho: sistema que não existe aqui), uma no tutorial e uma por mina;
+# - presente da atividade de soma no 8586 (#678: 3, 109, 115, 111, 83): pacote não implementado;
+# - subida de nível na missão 51 (#625-#628: 139, 100, 4640): aqui só o 150, e o nível sobe uma
+#   missão depois (EXP das lutas diferente), daí o 150 a mais; a missão 50 avança no 5017 20000 (112 a mais);
+# - 11 (salas de outros jogadores) e 4248 (estado do chefe mundial) ao aceitar missão;
+# - 140 ×2 da chegada do exército (#766): o timer é de 2,4 s reais e o próximo pacote chega antes.
+KNOWN_GAPS = Counter({83: 3, 140: 2, 11: 2, 109: 1, 3: 1, 100: 1, 115: 1, 111: 1, 4248: 1, 139: 1, 4640: 1})
+KNOWN_EXTRA = Counter({112: 2, 150: 1})
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
 
@@ -57,13 +65,33 @@ def _capture() -> list[dict]:  # type: ignore[type-arg]
     return [p for p in json.loads(CAPTURE.read_text(encoding="utf-8")) if FIRST <= p["index"] <= LAST]
 
 
+def _building_id(g: Game, son_type: int) -> int:
+    session = g.server.online.get(g.user_id)
+    assert session is not None and session.snapshot is not None
+    templates = session.ctx.templates
+    return next(
+        b.id or 0
+        for b in session.snapshot.buildings
+        if int((templates.get("BuildingTempInfos", b.template_id) or {}).get("SonType", 0)) == son_type
+    )
+
+
 async def test_tutorial_matches_capture(tmp_path: Path) -> None:
     registry = MessageRegistry.load_default()
     packets = _capture()
     official_army = 58073072
     expected = _filtered([p["code"] for p in packets if not p["isClient"]])
+    # prédio oficial (4130) -> SonType, para trocar o buildingId do 8203 pelo nosso do mesmo tipo
+    official_son = {
+        b.buildingId: b.sonType
+        for p in packets
+        if not p["isClient"] and p["code"] == 4130
+        for b in pb.BuildingInfoListMsg.FromString(bytes.fromhex(p["bodyHex"])).building
+    }
 
-    async with logged_in(tmp_path, novice=11000) as g:
+    # o relógio anda como na captura: obras (10 s) e produção terminam no mesmo ponto que no oficial
+    clock = FakeClock(datetime.fromtimestamp(packets[0]["time"], UTC))
+    async with logged_in(tmp_path, novice=11000, clock=clock) as g:
         g.client.send(5012, pb.QuestAddedMsg(questId=[10]))  # #97 na captura, antes do 5127
         await g.until(112)
         got: list[int] = []
@@ -92,6 +120,8 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
                 collect(await g.fight(pb.BattlePrepareMsg(battleId=battle_id, heros=[me])))
             msg = registry.decode(p["code"], Direction.CLIENT_TO_SERVER, bytes.fromhex(p["bodyHex"]))
             if msg is not None:
+                if "buildingId" in msg.DESCRIPTOR.fields_by_name and msg.buildingId in official_son:
+                    msg.buildingId = _building_id(g, official_son[msg.buildingId])
                 for field in ("armyId", "battleId", "endObjId"):
                     if field in msg.DESCRIPTOR.fields_by_name and msg.HasField(field):
                         value = getattr(msg, field)
@@ -101,9 +131,10 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
                             setattr(msg, field, hero_id)
                         elif value == official_army:
                             setattr(msg, field, g.user_id)
+            clock.advance(max(0.0, p["time"] - clock.now().timestamp()))
             g.client.send(p["code"], msg)
             collect(await g.idle(0.1))
 
     ours, official = Counter(_filtered(got)), Counter(expected)
     missing, extra = official - ours, ours - official
-    assert (missing, extra) == (KNOWN_GAPS, Counter()), f"faltando {missing}, sobrando {extra}"
+    assert (missing, extra) == (KNOWN_GAPS, KNOWN_EXTRA), f"faltando {missing}, sobrando {extra}"

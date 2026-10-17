@@ -10,11 +10,11 @@ from __future__ import annotations
 from ...domain.models import Building, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
-from ...templates.repository import Row
+from ...templates.repository import GameTemplates, Row
 from .. import castle as cs
 from .. import rules
 from ..builders import login as b
-from ..builders.army import castle_pawns
+from ..builders.army import castle_pawns, unlocked_pawns
 from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
@@ -124,12 +124,20 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
         s.send(cs.S_CASTLE_YIELD, after)
     s.send(S_ORDER_USE, cs.order_info(order, now))
     s.send(S_BUILDINGS, _buildings(s, [building, *unlocked]))
-    if any(b.template_id // 100 == int(rules.BARRACKS) for b in (building, *unlocked)):
-        s.send(S_ARMY_PAWN, castle_pawns(snap, templates))  # tipo novo liberado no quartel
+    # tipo de tropa que este nível do quartel libera (NeedBuilding = o template novo) vem com 0; subir
+    # sem liberar nada não manda o 100 (replay #649-#653, Kışla Lv.2)
+    fresh = [p for p in unlocked_pawns(snap, templates) if _need_building(templates, p.template_id) in {
+        b.template_id for b in (building, *unlocked)}]  # fmt: skip
+    if fresh:
+        s.send(S_ARMY_PAWN, castle_pawns(snap, templates, fresh))
     text = f"Geliştirilen Seviye: {target['BuildingName']} Lv.{target['BuildingGrade']}"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+
+
+def _need_building(templates: GameTemplates, pawn_template: int) -> int:
+    return int((templates.get("PawnTempInfos", pawn_template) or {}).get("NeedBuilding") or 0)
 
 
 @router.on(8203)

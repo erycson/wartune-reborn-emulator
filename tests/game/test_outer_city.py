@@ -2,11 +2,16 @@
 lugar (docs/cidade-externa.md). Sem outros jogadores no mapa: os pedidos que dependem deles são
 recusados sem resposta, como o cliente espera."""
 
+from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import PlayerSnapshot
+from wartune_server.domain.models import Pawn, PlayerSnapshot, Quest
 from wartune_server.game import arena as A
+from wartune_server.game import battle as battle_mod
+from wartune_server.game import castle as castle_mod
 from wartune_server.game import outer_city as oc
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
@@ -158,3 +163,62 @@ async def test_pedidos_que_dependem_de_outro_jogador(tmp_path: Path) -> None:
         g.client.send(5160)  # corpo vazio: também para o exército, sem derrubar a sessão
         await g.until(140)
         assert await g.idle() == []
+
+
+async def test_castelo_novo_no_ponto_do_guia(tmp_path: Path) -> None:
+    """O guia do tutorial procura o castelo no pixel (520,920) = tile (26,46), como o oficial."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        castle = _snap(g).castle
+        assert castle is not None and (castle.pos_x, castle.pos_y) == (26, 46)
+
+
+async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Missão 60 (replay #706-#795): as minas vêm no 4129, o 5160 numa livre abre a luta com o guarda
+    e a vitória deixa a mina do jogador, conta na missão e soma o ouro dela no castelo."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = _snap(g)
+        castle = snap.castle
+        assert castle is not None
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        snap.quests.append(Quest(g.user_id, 60, datetime.now(UTC)))
+        before = castle_mod.gold_yield(snap, g.server.services.templates)
+
+        got = await _grid(g, "-1_0,-1_1,0_0,0_1,1_0,1_1")
+        lands = pb.PhysicListUpdateMsg.FromString(got[0].body).wildLand
+        assert [(w.posX, w.posY, w.state, w.occupyPlayerId) for w in lands] == [
+            (16, 34, 1, 0), (36, 34, 1, 0), (71, 54, 1, 0), (54, 64, 1, 0)
+        ]  # fmt: skip
+        assert not lands[0].HasField("occupyPlayerName")  # livre: como o oficial
+
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=16, posY=34))
+        got = await g.until(157)
+        assert [p.code for p in got] == [140, 140, 140, 157]
+        assert pb.MapUpdatedMsg.FromString(got[2].body).wildLand.state == oc.MINE_FIGHTING
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert prepare.battleType == 1 and [(x.tempId, x.side, x.hp) for x in prepare.soldiers] == [
+            (10101, 1, 242), (10101, 1, 242), (6505, 2, 175)
+        ]  # fmt: skip
+
+        got = await g.fight(prepare)
+        got += await g.idle()
+        report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
+        assert (report.battleResult, report.battleScene) == (1, 4)
+        after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
+        assert after == [150, 4103, 150, 100, 140, 140, 112, 4152, 109, 152, 140, 169]
+        quest = pb.QuestUpdatedRspMsg.FromString(next(p for p in got if p.code == 112).body).quest[0]
+        assert (quest.templateId, quest.condition_1) == (60, 1)
+        land = pb.MapUpdatedMsg.FromString([p for p in got if p.code == 140][-1].body).wildLand
+        assert (land.occupyPlayerId, land.state) == (g.user_id, 1)
+        politics = pb.CastleYieldMsg.FromString(next(p for p in got if p.code == 152).body)
+        assert [(y.wildPox, y.wildYield) for y in politics.wildYield] == [("16,34", 680)]
+        assert castle_mod.gold_yield(snap, g.server.services.templates) == before + 680
+
+        # já é dele: atacar de novo só para o exército; e relogar mantém a mina ocupada
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=16, posY=34))
+        assert [p.code for p in await g.until(140)] == [140]
+        again = await g.connect()
+        again.client.send(8201, pb.PhysicUpdateReqMsg(mapId=castle.map_id, reqGrid="0_0"))
+        got = await again.until(4129)
+        lands = pb.PhysicListUpdateMsg.FromString(got[-1].body).wildLand
+        assert [(w.posX, w.occupyPlayerId) for w in lands] == [(16, g.user_id), (36, 0)]

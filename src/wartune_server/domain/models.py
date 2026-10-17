@@ -585,6 +585,16 @@ class TreasureMap:
 
 
 @dataclass(eq=False)
+class WildLand:
+    """Mina de ouro (``WildLandMsg`` type 20) do mapa do castelo que o personagem ocupou (5160)."""
+
+    character_id: int
+    wild_id: int  # outer_city.MINES
+    occupied_at: datetime
+    id: int | None = None
+
+
+@dataclass(eq=False)
 class ChallengeLog:
     """Uma luta no histórico de quem atacou e de quem foi atacado (``ChallengeLogMsg``)."""
 
@@ -822,6 +832,7 @@ class PlayerSnapshot:
     pets: list[Pet] = field(default_factory=list)
     systems: PlayerSystems | None = None  # o serviço cria em memória quando não existe
     treasure: list[TreasureMap] = field(default_factory=list)  # zero ou um: mapa do tesouro (8744)
+    wild_lands: list[WildLand] = field(default_factory=list)  # minas de ouro ocupadas (5160)
 
     @property
     def leader(self) -> Hero | None:

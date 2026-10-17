@@ -118,6 +118,8 @@ class GameSession:
         self.arena_offer: dict[int, int] = {}
         # exército na cidade externa (mapa, x, y em tiles) depois de andar; None = parado no castelo
         self.outer_army: tuple[int, int, int] | None = None
+        self.outer_walk: asyncio.Task[None] | None = None  # chegada do exército andando (140 parado)
+        self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
         self.pet_offer: dict[int, int] = {}
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
@@ -154,6 +156,8 @@ class GameSession:
     async def on_disconnect(self) -> None:
         if self.battle is not None:
             self.battle.cancel()
+        if self.outer_walk is not None:
+            self.outer_walk.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
             from .handlers import events, room, team  # idem

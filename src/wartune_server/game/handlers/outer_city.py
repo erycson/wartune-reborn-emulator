@@ -1,26 +1,43 @@
 """Cidade externa (mapa do castelo): grade de exércitos, andar, voltar ao castelo, ataques extras,
 mudar o castelo de lugar e a volta para a cidade no fim do tutorial.
 
-Regras e fontes em ``game/outer_city.py`` e ``docs/cidade-externa.md``. O mundo do servidor tem só o
-castelo do próprio jogador: quando o cliente pede algo que depende de outro jogador, terra selvagem
-ou castelo alheio, o pedido é recusado com log e o que o cliente precisa para não travar é mandado.
+Regras e fontes em ``game/outer_city.py`` e ``docs/cidade-externa.md``. O mundo do servidor tem o
+castelo do próprio jogador e as 4 minas de ouro do mapa 100 (``outer_city.MINES``): quando o cliente
+pede algo que depende de outro jogador, outra terra selvagem ou castelo alheio, o pedido é recusado
+com log e o que o cliente precisa para não travar é mandado.
 """
 
 from __future__ import annotations
+
+import asyncio
+import math
 
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
 from .. import castle as cs
 from .. import outer_city as oc
+from .. import rules
+from ..battle import Battle
 from ..builders import login as b
+from ..builders.army import castle_pawns
+from ..builders.player import quest_update
+from ..castle import castle_yield, politics_msg
 from ..router import router
 from ..session import GameSession
+from . import events
+from .campaign import player_hero
 from .login import army, player_info
 
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
-ARMY_IDLE = 0  # MapUpdatedMsg/ArmyArmyMsg.state: parado
+S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
+ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
+# replay #761-#767: 18 tiles em 2,43 s. ponytail: velocidade fixa, sem montaria nem efeitos
+WALK_SECONDS_PER_TILE = 0.134
+MAP_ARMY, MAP_WILD = 3, 1  # MapUpdatedMsg.updatedType
+OCCUPY = 7  # QuestCondictionInfos.CondictionType: ocupar terra (Para1 = SonType, missão 60)
+LEED_MINE = 9  # LeedTemp: ocupar mina (replay #741)
 
 
 def _army_now(s: GameSession, state: int = ARMY_IDLE) -> pb.ArmyArmyMsg:
@@ -83,18 +100,22 @@ async def army_grid(s: GameSession, msg: pb.OutercityReqMsg) -> None:
 async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    # ponytail: só o próprio castelo; terras selvagens e castelos vizinhos quando houver mapa compartilhado
+    # ponytail: o próprio castelo e as minas; castelos vizinhos quando houver mapa compartilhado
+    grids = {g for g in msg.reqGrid.split(",") if g}
     reply = pb.PhysicListUpdateMsg(reqGrid=msg.reqGrid)
+    if oc.template_of(msg.mapId) == oc.BASE_MAP:  # replay #706: as minas vêm antes do castelo
+        for mine in oc.mines_in(grids):
+            reply.wildLand.append(oc.mine_msg(snap, s.ctx.templates, mine, oc.MINE_FREE, _capacity(s)))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
     s.send(S_PHYSICS, reply)
-    grids = {g for g in msg.reqGrid.split(",") if g}
     s.send(S_GRID_ARMY, _grid_msg(s, grids, msg.mapId))
 
 
 @router.on(8254)
 async def army_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
-    """O exército andou: guarda o último ponto (pixels // 20). Sem outro jogador no mapa não há o que
-    avisar (4167). Outro exército, mapa diferente, rota vazia ou fora do mapa: ignorado."""
+    """O exército andou: guarda o último ponto (pixels // 20). Como no replay (#761-#767): 140 ×2
+    andando no ponto de saída e, na chegada, 140 ×2 parado no destino. Sem outro jogador no mapa não
+    há o que avisar (4167). Outro exército, mapa diferente, rota vazia ou fora do mapa: ignorado."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     castle = snap.castle
@@ -105,7 +126,24 @@ async def army_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
     if not oc.inside(s.ctx.templates, castle.map_id, x, y):
         s.log.info("8254 fora do mapa", x=x, y=y)
         return
+    _stop_walk(s)
+    _map, x0, y0 = oc.position(castle, s.outer_army)
+    _army_sync(s, ARMY_MOVING)
     s.outer_army = (castle.map_id, x, y)
+    s.outer_walk = asyncio.create_task(_arrive(s, WALK_SECONDS_PER_TILE * math.dist((x0, y0), (x, y))))
+
+
+async def _arrive(s: GameSession, seconds: float) -> None:
+    await asyncio.sleep(seconds)
+    s.outer_walk = None
+    if s.battle is None:
+        _army_sync(s, ARMY_IDLE)
+
+
+def _stop_walk(s: GameSession) -> None:
+    if s.outer_walk is not None:
+        s.outer_walk.cancel()
+        s.outer_walk = None
 
 
 @router.on(5161)
@@ -118,14 +156,75 @@ async def return_home(s: GameSession, _: pb.PayTypeMsg) -> None:
     s.send(S_RETURN, pb.OutercityRspMsg(result=snap.character.id, curPosX=x, curPosY=y))
 
 
+def _capacity(s: GameSession) -> int:
+    assert s.snapshot is not None
+    return rules.leader_stats(s.snapshot, s.ctx.templates).fighting_capacity
+
+
+def _mine_sync(s: GameSession, mine: oc.Mine, state: int) -> None:
+    assert s.snapshot is not None
+    land = oc.mine_msg(s.snapshot, s.ctx.templates, mine, state, _capacity(s))
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
+
+
+def _army_sync(s: GameSession, state: int) -> None:
+    for _ in range(2):  # o oficial manda o 140 do exército sempre duas vezes
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s, state)))
+
+
 @router.on(5160)
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
-    """Atacar uma posição do mapa (castelo, terra, mina ou tesouro). O servidor não tem nenhum desses
-    alvos fora do castelo do próprio jogador, então não há batalha: o exército só para (140 parado)."""
+    """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (replay #713-#795): 140 do
+    exército lutando, 140 da mina em luta (state 4) e a 157. Outros alvos (castelo, terra, tesouro)
+    não existem no servidor: o exército só para (140 parado)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    s.log.info("5160 sem alvo", mapa=msg.mapId, x=msg.posX, y=msg.posY)
-    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_now(s)))
+    _stop_walk(s)
+    mine = oc.mine_at(msg.mapId, msg.posX, msg.posY)
+    if mine is None or oc.occupied(snap, mine) is not None or s.battle is not None:
+        s.log.info("5160 sem alvo", mapa=msg.mapId, x=msg.posX, y=msg.posY)
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s)))
+        return
+    _army_sync(s, ARMY_FIGHTING)
+    _mine_sync(s, mine, oc.MINE_FIGHTING)
+    spec = oc.mine_battle(snap, s.ctx.templates, mine)
+
+    async def finished(battle: Battle, won: bool) -> None:
+        await _mine_over(s, battle, mine, won)
+
+    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.log.info("batalha da mina", mina=mine.id, battle=s.battle.id)
+    s.battle.start()
+
+
+async def _mine_over(s: GameSession, battle: Battle, mine: oc.Mine, won: bool) -> None:
+    """Fim da luta da mina, na ordem do replay (#734-#744): 150, 4103, 150, 100, 140 ×2; vencendo,
+    a mina fica do jogador: 112 da missão 60, 4152, 109, 152 com o rendimento e 140 da mina ocupada."""
+    snap = s.snapshot
+    assert snap is not None
+    templates = s.ctx.templates
+    s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
+    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
+    report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    s.send(S_REPORT, report)
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
+    _army_sync(s, ARMY_IDLE)
+    if not won or oc.occupied(snap, mine) is not None:
+        _mine_sync(s, mine, oc.MINE_FREE)
+        return
+    land = oc.occupy(snap, mine, s.ctx.clock.now())
+    quests = rules.quest_event(snap, templates, OCCUPY, oc.MINE_SON_TYPE, 1)
+    await s.ctx.characters.save(land, *quests)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    await events.leed_done(s, LEED_MINE)
+    castle_yield(s)
+    s.send(S_POLITICS, politics_msg(snap, templates))
+    _mine_sync(s, mine, oc.MINE_FREE)
+    map_id, x, y = oc.position(snap.castle, s.outer_army)  # type: ignore[arg-type]
+    s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # replay #749
 
 
 @router.on(8488)
@@ -212,4 +311,4 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
 @router.on(8747)
 async def enter_castle(s: GameSession, _: pb.SimplePropertyMsg) -> None:
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
-    s.battle_gp = 0
+    s.battle_gp, s.outer_fight_over = 0, False
