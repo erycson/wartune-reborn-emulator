@@ -44,7 +44,7 @@ def rewards() -> dict[str, Any]:
 
 
 def config(templates: GameTemplates, name: str, default: int) -> int:
-    row = templates.get("ConfigInfos", name, key="ConfigName")  # type: ignore[arg-type]
+    row = templates.get("ConfigInfos", name, key="ConfigName")
     return int(row["ConfigValue"]) if row is not None else default
 
 

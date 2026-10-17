@@ -42,6 +42,7 @@ from ..domain.models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    EventState,
     FarmLand,
     FashionBook,
     FriendGroup,
@@ -629,6 +630,18 @@ consortia_items = Table(
     _int("count", 1),
 )
 
+event_states = Table(
+    "event_states",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("key", String(96), nullable=False),
+    _int("value"),
+    Column("text", Text, nullable=False, default="", server_default=""),
+    Column("updated_at", UTCDateTime, nullable=False),
+    UniqueConstraint("character_id", "key"),
+)
+
 _mapped = False
 
 
@@ -669,6 +682,7 @@ def map_entities() -> None:
         (MysteryShop, mystery_shops),
         (BuildOrder, build_orders),
         (FarmLand, farm_lands),
+        (EventState, event_states),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

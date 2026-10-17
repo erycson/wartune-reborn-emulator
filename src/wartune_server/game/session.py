@@ -19,6 +19,7 @@ from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
 from . import timebox
+from .events import EventCatalog
 from .guild import Guilds
 from .router import PacketRouter
 
@@ -44,6 +45,7 @@ class GameContext:
     clock: Clock
     online: OnlinePlayers
     guilds: Guilds = field(default_factory=Guilds)
+    events: EventCatalog = EventCatalog()
 
 
 class OnlinePlayers:
@@ -111,6 +113,7 @@ class GameSession:
         # oponentes da última lista do coliseu/torneio (4169/4611): só esses podem ser desafiados
         self.arena_offer: dict[int, int] = {}
         self.pet_offer: dict[int, int] = {}
+        self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
@@ -147,13 +150,17 @@ class GameSession:
             self.battle.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
+            from .handlers import events  # idem
 
-            space.leave(self)
-            if self.snapshot.leader is not None:
-                guild.on_logout(self, rules.leader_stats(self.snapshot, self.ctx.templates).fighting_capacity)
-            await self._save_logout()
-            self.ctx.online.unbind(self.player_id, self)
-            if self.ctx.online.get(self.player_id) is None:  # relogin: a sessão nova já avisou o 160
-                social.announce(self, online=False)
-            self.log.info("jogador saiu", player=self.player_id)
+            try:
+                space.leave(self)
+                if self.snapshot.leader is not None:
+                    guild.on_logout(self, rules.leader_stats(self.snapshot, self.ctx.templates).fighting_capacity)
+                await self._save_logout()
+                await events.leave(self)  # grava o tempo online (presente online)
+            finally:  # mesmo se a gravação falhar: senão o próximo login fica esperando o kick
+                self.ctx.online.unbind(self.player_id, self)
+                if self.ctx.online.get(self.player_id) is None:  # relogin: a sessão nova já avisou o 160
+                    social.announce(self, online=False)
+                self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()

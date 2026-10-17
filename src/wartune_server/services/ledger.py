@@ -35,5 +35,12 @@ def pay(c: Character, cost: int, *, bind: bool, reason: str, ref: str, now: date
     return record_cash(c, -(cost - gift), -gift, reason, ref, now)
 
 
+def spend(c: Character, cost: int, reason: str, now: datetime, *, bound: bool, ref: str = "") -> CashLedger | None:
+    """Como ``pay``, para custos que o cliente já validou como positivos (eventos, VIP)."""
+    if cost <= 0:
+        raise ValueError("custo deve ser positivo")
+    return pay(c, cost, bind=bound, reason=reason, ref=ref, now=now)
+
+
 def item_entry(character_id: int, template_id: int, count: int, action: str, ref: str) -> ItemLog:
     return ItemLog(character_id, template_id, count, action, ref, datetime.now(UTC))

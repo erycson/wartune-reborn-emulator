@@ -34,7 +34,7 @@ Levantamento e ordem em [multiplayer.md](multiplayer.md).
 - [x] Cidade do céu: ver outros jogadores andando ([mundo-compartilhado.md](mundo-compartilhado.md)); relogin espera a sessão anterior
 - [x] Cidade do céu, fatia 2: nós (4601), posição gravada, visual (149), entrada e volta da ilha dos pets. Também: garagem de veículos, conta e segurança ([diversos.md](diversos.md))
 - [ ] Coliseu contra robôs e cópias de jogadores
-- [ ] Atividades (SumActive): login e presente online
+- [x] Atividades (SumActive), assinatura, leed, VIP, recompensas e minigames ([eventos.md](eventos.md)); condições que dependem de outros sistemas listadas lá
 - [ ] Boss mundial
 - [ ] Times, mina de ouro, torneio de fadas
 - [x] Coliseu contra robôs e cópias de jogadores, ranking e recompensas ([pvp.md](pvp.md))

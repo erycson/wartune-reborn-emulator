@@ -19,6 +19,7 @@ from .models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    EventState,
     FarmLand,
     FriendGroup,
     GameServer,
@@ -136,6 +137,10 @@ class FarmLandRepository(Protocol):
     async def by_character(self, character_id: int) -> list[FarmLand]: ...
 
 
+class EventStateRepository(Protocol):
+    async def by_character(self, character_id: int) -> list[EventState]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -182,6 +187,8 @@ class UnitOfWork(Protocol):
     def orders(self) -> BuildOrderRepository: ...
     @property
     def lands(self) -> FarmLandRepository: ...
+    @property
+    def events(self) -> EventStateRepository: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""

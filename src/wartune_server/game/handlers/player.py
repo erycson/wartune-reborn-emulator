@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rules
+from .. import rewards, rules
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
 from ..castle import castle_yield
@@ -24,6 +27,24 @@ def _player(s: GameSession) -> None:
 def _army(s: GameSession) -> None:
     assert s.snapshot is not None
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
+
+
+def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True) -> None:
+    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro), 115 (itens) e o 83."""
+    _player(s)
+    if any(t == rewards.EXP for t, _ in drops):
+        _army(s)
+    if any(t == -100 for t, _ in drops):
+        castle_yield(s)
+    if new:
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+    if chat:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+def alert(s: GameSession, text: str) -> None:
+    """Aviso no meio da tela (111, canal 7)."""
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
 
 
 @router.on(20008)

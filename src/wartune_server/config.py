@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # URL do tempinfos.xml na CDN (TEMPLATE_PATH + tempinfos.xml), para ``templates update``
     templates_url: str | None = None
     rsa_key_file: Path = Path("data/rsa_private.pem")
+    # atividades do operador (SumActive 4475): ver docs/eventos.md; arquivo ausente = nenhuma
+    events_file: Path = Path("data/events.json")
 
     # true pula o tutorial: o noviceProcess salvo nunca fica abaixo de 19000 (cena do castelo)
     skip_tutorial: bool = False

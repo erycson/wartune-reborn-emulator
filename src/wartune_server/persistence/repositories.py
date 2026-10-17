@@ -22,6 +22,7 @@ from ..domain.models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    EventState,
     FarmLand,
     FriendGroup,
     GameServer,
@@ -314,6 +315,12 @@ class SqlFarmLandRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlEventStateRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[EventState]:
+        query = select(EventState).where(EventState.character_id == character_id).order_by(EventState.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -338,6 +345,7 @@ class SqlAlchemyUnitOfWork:
         self.guilds = SqlGuildRepository(self._session)
         self.orders = SqlBuildOrderRepository(self._session)
         self.lands = SqlFarmLandRepository(self._session)
+        self.events = SqlEventStateRepository(self._session)
         return self
 
     async def __aexit__(

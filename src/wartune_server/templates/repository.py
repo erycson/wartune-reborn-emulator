@@ -107,7 +107,7 @@ class GameTemplates:
             if all(row.get(k) == v for k, v in wanted.items()):
                 yield row
 
-    def get(self, category: str, template_id: int, key: str = "TemplateId") -> Row | None:
+    def get(self, category: str, template_id: int | str, key: str = "TemplateId") -> Row | None:
         """Busca indexada pela chave (a primeira linha vence se houver repetição)."""
         index = self._index.get((category, key))
         if index is None:

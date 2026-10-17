@@ -627,6 +627,19 @@ class ConsortiaItem:
     count: int = 1
 
 
+@dataclass(eq=False)
+class EventState:
+    """Contador/marca de evento do personagem (``key`` única por personagem, ex. ``sign``,
+    ``leed:16``, ``sum:<activeId>:<packageId>``). ``updated_at`` decide os zerados diários."""
+
+    character_id: int
+    key: str
+    updated_at: datetime
+    id: int | None = None
+    value: int = 0
+    text: str = ""
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -649,6 +662,7 @@ class PlayerSnapshot:
     mystery: list[MysteryShop] = field(default_factory=list)  # zero ou um
     orders: list[BuildOrder] = field(default_factory=list)
     lands: list[FarmLand] = field(default_factory=list)
+    events: list[EventState] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:
