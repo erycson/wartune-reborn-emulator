@@ -35,6 +35,7 @@ NOT_IMPLEMENTED = {
 # respostas do oficial que não reproduzimos de propósito: "Emek oranınız 10'a ulaştı" (taxa de
 # trabalho, sistema que não existe aqui) e o 150 repetido, idêntico, na saída do mapa 10002
 KNOWN_GAPS = Counter({83: 1, 150: 1})
+BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
 
 pytestmark = [
@@ -45,7 +46,7 @@ pytestmark = [
 
 @pytest.fixture(autouse=True)
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0)
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
 
 
 def _filtered(codes: list[int]) -> list[int]:
@@ -66,10 +67,29 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
         g.client.send(5012, pb.QuestAddedMsg(questId=[10]))  # #97 na captura, antes do 5127
         await g.until(112)
         got: list[int] = []
-        battle_id, hero_id = "", 0
+        battle_id, hero_id, hero_living, fighting = "", 0, 0, False
+
+        def collect(replies: list) -> None:  # type: ignore[type-arg]
+            nonlocal battle_id, hero_id, hero_living, fighting
+            for reply in replies:
+                got.append(reply.code)
+                if reply.code == 157:
+                    prepare = pb.BattlePrepareMsg.FromString(reply.body)
+                    battle_id, fighting = prepare.battleId, True
+                    hero_living = next(h.livingId for h in prepare.heros if h.userId == g.user_id)
+                elif reply.code == 4103:
+                    fighting = False
+                elif reply.code == 150 and not hero_id:
+                    hero_id = pb.ArmyArmyMsg.FromString(reply.body).simpleHeroInfo.heroId
+
         for p in packets:
             if not p["isClient"] or p["code"] in SKIPPED_CLIENT:
                 continue
+            if fighting and p["code"] not in BATTLE_CLIENT:
+                # o nosso herói pode precisar de mais ordens que o da captura: termina a luta antes
+                g.client.send(10022, pb.BattleReqMsg(battleId=battle_id))
+                me = pb.HeroMsg(userId=g.user_id, livingId=hero_living)
+                collect(await g.fight(pb.BattlePrepareMsg(battleId=battle_id, heros=[me])))
             msg = registry.decode(p["code"], Direction.CLIENT_TO_SERVER, bytes.fromhex(p["bodyHex"]))
             if msg is not None:
                 for field in ("armyId", "battleId", "endObjId"):
@@ -82,12 +102,7 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
                         elif value == official_army:
                             setattr(msg, field, g.user_id)
             g.client.send(p["code"], msg)
-            for reply in await g.idle(0.1):
-                got.append(reply.code)
-                if reply.code == 157:
-                    battle_id = pb.BattlePrepareMsg.FromString(reply.body).battleId
-                elif reply.code == 150 and not hero_id:
-                    hero_id = pb.ArmyArmyMsg.FromString(reply.body).simpleHeroInfo.heroId
+            collect(await g.idle(0.1))
 
     ours, official = Counter(_filtered(got)), Counter(expected)
     missing, extra = official - ours, ours - official

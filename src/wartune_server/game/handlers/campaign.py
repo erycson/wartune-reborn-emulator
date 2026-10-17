@@ -47,8 +47,10 @@ FLICKER_PLOT = 1  # 1º 5032 do gatilho 1000110: câmera na Tina, urso pisca, di
 CHASE_TRIGGER = 1000110  # 2º 5032: jogador anda até param4 sozinho
 WALK_TRIGGER = 1000208  # chegada: anda até param4 com a câmera
 TINA = 1000107
-BATTLE_CALLBACK = {1000106: 1, 1000205: 1}  # 5032 nº 1 abre a batalha
-ESCORT_CALLBACK = (1000106, 2)  # 5032 nº 2 (depois do 15300): Tina passa a seguir o jogador
+# 5032 nesses nós: ainda de pé abre a batalha; já derrotado (só o 1000106, depois do 15300) faz a
+# Tina seguir o jogador. Pelo estado, não pela contagem: depois de relogar a contagem recomeça.
+BATTLE_CALLBACK = {1000106, 1000205}
+ESCORT_CALLBACK = 1000106
 WIN_UNLOCKS = {1000106: [1000109], 1000205: [1000206, 1000207]}
 NOVICE_UNLOCKS = {14000: [1000108]}  # portal aparece quando o guia chega nesse ponto
 PORTAL = {1000108: SECOND_MAP}
@@ -302,9 +304,9 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
         _plot(s, FLICKER_PLOT)
     elif camp == CHASE_TRIGGER and n == 2:
         _player_move(s, camp, camera=False)
-    elif BATTLE_CALLBACK.get(camp) == n and c.node(camp)["state"] == NORMAL:  # type: ignore[index]
+    elif camp in BATTLE_CALLBACK and c.node(camp)["state"] == NORMAL:  # type: ignore[index]
         _start_battle(s, camp)
-    elif (camp, n) == ESCORT_CALLBACK:
+    elif camp == ESCORT_CALLBACK and c.node(camp)["state"] == DONE:  # type: ignore[index]
         tina = c.node(TINA)
         assert tina is not None
         _node_update(s, TINA, 2)
@@ -324,11 +326,14 @@ async def _open_chest(s: GameSession, node: dict[str, object]) -> None:
     template_id = int(weapons[(snap.character.job - 1) % len(weapons)])
     row = s.ctx.templates.get("ItemTempInfos", template_id)
     assert row is not None
-    item = Item(s.player_id, template_id, pos=rules.free_bag_pos(snap), random_skill=int(row.get("DefaultSkill", 0)))
-    snap.items.append(item)
-    await s.ctx.characters.save(item)
-    _send(s, S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
-    _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Kazanılan {row.get('TemplateName', '')}"))
+    # reaberto depois de relogar antes do 16700: o baú volta, a arma não
+    if not any(i.template_id == template_id for i in snap.items):
+        skill = int(row.get("DefaultSkill", 0))
+        item = Item(s.player_id, template_id, pos=rules.free_bag_pos(snap), random_skill=skill)
+        snap.items.append(item)
+        await s.ctx.characters.save(item)
+        _send(s, S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
+        _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Kazanılan {row.get('TemplateName', '')}"))
     _node_update(s, CHEST, DONE)
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
 

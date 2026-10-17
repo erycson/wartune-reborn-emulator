@@ -22,6 +22,7 @@ from ..protocol.messages import wartune_pb2 as pb
 
 FIRST_MAP, SECOND_MAP = 10001, 10002
 SECOND_MAP_FROM = 15500  # noviceProcess a partir do qual o jogador já passou pelo portal
+ESCORT_FROM = 15300  # a Tina segue o jogador desde aqui (mapa 10001) até o fim
 FOG_ROWS, FOG_COLS = 18, 19
 
 NORMAL, FIGHTING, DONE = 1, 4, 8  # CampaignNodeMsg.state (2 = NPC parado, 16 = escondido)
@@ -67,7 +68,8 @@ class CampaignMap:
                 for camp, state in states.items():
                     nodes[camp]["state"] = state
         escort = next((n["nodeId"] for n in nodes.values() if n["heroTempId"] > 0), 0)
-        return cls(map_id, nodes, tuple(data["start"]), escort=escort if map_id == SECOND_MAP else 0)
+        following = map_id == SECOND_MAP or novice >= ESCORT_FROM
+        return cls(map_id, nodes, tuple(data["start"]), escort=escort if following else 0)
 
     def node(self, camp: int) -> dict[str, Any] | None:
         return self.nodes.get(camp)

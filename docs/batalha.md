@@ -23,14 +23,17 @@ Na campanha, depois do 154 vêm 3, 4103, 83 (EXP), 150, 100, 140, 131 e 128 (nó
 
 ## Relógio e turnos
 
-- Quadros de 40 ms (25 fps), começando em 0 no 156. A pausa congela o relógio.
+- Quadros de 40 ms (25 fps), começando em 0 no 156, calculados pelo relógio (`time.monotonic`),
+  não pela soma dos `sleep` (no Windows o `sleep` anda de 15,6 ms). A pausa congela o relógio;
+  pausa antes do 156 não conta.
 - `153.frame = execFrame = quadro atual`. Mandar adiantado faz o cliente saltar o relógio.
 - Rodadas: cada unidade viva age uma vez (`curturn` conta por unidade). Ordem: aliados NPC,
   inimigos, herói do jogador (a iniciativa real não foi decifrada).
 - A primeira ação sai no quadro 100. Do mesmo lado, uma ação começa 12 quadros depois da
   anterior. Troca de lado e rodada nova vêm 9 quadros depois do fim da animação anterior.
-- O herói espera a ordem do 10008 e golpeia 25 quadros depois dela. Sem ordem por 75 quadros (ou
-  em modo automático), usa a primeira skill que o SP permite.
+- O herói espera a ordem do 10008 sem prazo e golpeia 25 quadros depois dela (o guia pausa no meio
+  da luta para ensinar a 30811; golpear sozinho poderia acabar a luta antes). Em modo automático
+  usa a primeira skill que o SP permite.
 - `frameNum = ActionTempInfo.FrameNum + 5`; `damages` agrupado por alvo, `AttackTimes` entradas
   por alvo; `sp`/`spAdded` pelo `Cost` da skill (só o herói do jogador gasta SP); `attackMillis`
   em `YYYY-MM-DD hh:mm:ss`.
@@ -42,7 +45,9 @@ Na campanha, depois do 154 vêm 3, 4103, 83 (EXP), 150, 100, 140, 131 e 128 (nó
 `livingId`). Curas e buffs de NPC (4 e 5) ficam de fora da rotação por enquanto. A fórmula de dano
 do oficial é desconhecida: o golpe usa `ataque × Parameter1 / 100 + Parameter2`, com 65% para o
 lado do jogador (mata os soldados do tutorial com um golpe, como na captura) e 30–40% para os
-inimigos (os 6–19 de dano observados).
+inimigos (os 6–19 de dano observados). O lado do jogador nunca cai abaixo de 1 de vida: todas as
+batalhas daqui são do tutorial, que na captura são vitórias roteirizadas, e uma derrota no chefe
+deixaria o guia preso.
 
 ## Regras que travam o cliente em silêncio
 

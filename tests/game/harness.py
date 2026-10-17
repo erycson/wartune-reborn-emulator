@@ -33,6 +33,16 @@ class Game:
     async def until(self, code: int) -> list[Packet]:
         return await self.client.until(code)
 
+    async def fight(self, prepare: pb.BattlePrepareMsg, skill: int = 30711) -> list[Packet]:
+        """10007 e uma ordem por vez (como o cliente em modo manual) até o 4103."""
+        me = next(h for h in prepare.heros if h.userId == self.user_id)
+        self.client.send(10007, pb.LoadOverMsg(armyId=self.user_id, battleId=prepare.battleId))
+        got: list[Packet] = []
+        while not any(p.code == 4103 for p in got):
+            self.client.send(10008, pb.UseSkillMsg(battleId=prepare.battleId, heroId=me.livingId, skillId=skill))
+            got += await self.idle(0.05)
+        return got
+
     async def idle(self, seconds: float = 0.15) -> list[Packet]:
         """Tudo que chegar até o servidor ficar ``seconds`` sem mandar nada."""
         got: list[Packet] = []

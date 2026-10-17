@@ -42,7 +42,7 @@ Roteiro dos nós (constantes no topo de `game/handlers/campaign.py`):
 |---|---|
 | 1000103, 1000104 (Avcı) | chegada: batalha |
 | 1000110 (gatilho) | chegada: diálogo 0. 1º 5032: câmera na Tina, o urso pisca, diálogo 1. 2º 5032: o jogador anda até `param4` e o gatilho some |
-| 1000106 (urso) | chegada: diálogo 2. 1º 5032: batalha. Vitória: 1000109 aparece. 2º 5032 (no 15300): a Tina passa a seguir |
+| 1000106 (urso) | chegada: diálogo 2. 5032 com o urso de pé: batalha; vitória: 1000109 aparece. 5032 com o urso derrotado (no 15300): a Tina passa a seguir |
 | 1000108 (portal) | aparece no `noviceProcess` 14000. Chegada: 4208 e mapa 10002 (`createdType:3`) |
 | 1000202 (baú) | chegada: arma da classe (`param3`, índice `job-1`) com o atributo sorteado `DefaultSkill`, 115, 111, 128, 150 |
 | 1000203 (urso) | chegada: batalha tipo 18 com a Tina |
@@ -57,7 +57,9 @@ Cidade externa (`handlers/outer_city.py`): 9525 → 4938; 8201 → 4129 (o próp
 
 O cliente só grava o `noviceProcess` em pontos de retomada (`newbie.xml`, nós `a24`). Ao reentrar,
 o 5127 escolhe o mapa (10002 a partir de 15500) e `CampaignMap.enter` recoloca os nós como
-estavam naquele ponto (`RESUME` em `game/campaign.py`); o guia do cliente continua dali.
+estavam naquele ponto (`RESUME` em `game/campaign.py`); o guia do cliente continua dali. Por
+isso as reações ao 5032 dependem do estado do nó, não de quantos 5032 vieram (a contagem recomeça
+ao relogar), e o baú não dá a arma de novo se ela já está na mochila.
 
 | `noviceProcess` | mapa | já mudou |
 |---|---|---|
@@ -65,6 +67,7 @@ estavam naquele ponto (`RESUME` em `game/campaign.py`); o guia do cliente contin
 | ≥ 12000 | 10001 | 1000104 derrotado |
 | ≥ 13500 | 10001 | gatilho 1000110 usado, 1000106 derrotado, 1000109 visível |
 | ≥ 14000 | 10001 | portal 1000108 visível |
+| ≥ 15300 | 10001 e 10002 | a Tina segue o jogador (4124 ao entrar) |
 | ≥ 16700 | 10002 | baú 1000202 aberto |
 | ≥ 17500 | 10002 | 1000203 derrotado |
 | ≥ 18500 | 10002 | gatilho 1000208 usado, 1000205 derrotado, 1000206/1000207 visíveis |

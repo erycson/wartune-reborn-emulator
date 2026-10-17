@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reaso
 
 @pytest.fixture(autouse=True)
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0)
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
 
 
 def codes(packets: list) -> list[int]:  # type: ignore[type-arg]
@@ -52,9 +52,7 @@ async def test_first_map_battle_and_quest(tmp_path: Path) -> None:
         me = next(h for h in prepare.heros if h.userId == g.user_id)
         assert (me.livingId, me.maxHp, list(me.skillId)) == (1, 200, [30711, 30811])
 
-        c.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
-        c.send(10008, pb.UseSkillMsg(battleId=prepare.battleId, heroId=1, skillId=30711))
-        got = await g.until(128)
+        got = await g.fight(prepare)
         assert set(codes(got)[:2]) == {156, 75} and 153 in codes(got)
         tail = [x for x in codes(got) if x not in (153, 75, 156)]
         assert tail == [154, 3, 4103, 83, 150, 100, 140, 131, 128]
@@ -87,8 +85,7 @@ async def test_portal_chest_and_equip(tmp_path: Path) -> None:
         c = g.client
         c.send(5127, pb.NoviceReqMsgMsg(type=1))
         await g.until(143)
-        c.send(5032, pb.CallBackReqMsg(mapId=10001, nodeId=1000106, cmd=2))  # 1º: batalha já vencida
-        c.send(5032, pb.CallBackReqMsg(mapId=10001, nodeId=1000106, cmd=2))  # 2º: Tina segue
+        c.send(5032, pb.CallBackReqMsg(mapId=10001, nodeId=1000106, cmd=2))  # urso já vencido: Tina segue
         assert codes(await g.until(4122)) == [128, 4124, 4122]
 
         c.send(5125, pb.CampaignReqMsg(paraInt1=1000108, paraBool1=True))
@@ -120,15 +117,6 @@ def test_resume_states() -> None:
     assert second.escort == 9548 and second.node(1000206)["state"] == NORMAL  # type: ignore[index]
 
 
-async def _win(g, prepare: pb.BattlePrepareMsg, end: int) -> list:  # type: ignore[no-untyped-def,type-arg]
-    g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
-    g.client.send(10008, pb.UseSkillMsg(battleId=prepare.battleId, heroId=prepare.heros[-1].livingId, skillId=30711))
-    got = await g.until(4103)
-    report = pb.BattleReportMsg.FromString(got[-1].body)
-    assert report.battleResult == 1, codes(got)
-    return got + await g.until(end)
-
-
 async def test_second_map_to_castle(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=18000) as g:
         c = g.client
@@ -149,8 +137,7 @@ async def test_second_map_to_castle(tmp_path: Path) -> None:
         got = await g.until(157)
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
         assert prepare.battleType == 18 and any(h.tempId == 1005 for h in prepare.heros)  # Tina aliada
-        got = await _win(g, prepare, 128)
-        got += await g.idle()
+        got = await g.fight(prepare)
         updates = [pb.CampaignNodeUpdateMsg.FromString(p.body) for p in got if p.code == 128]
         assert [(u.nodeId, u.nodeState) for u in updates] == [(9555, 8), (9556, 1), (9557, 1)]
 
@@ -170,15 +157,35 @@ async def test_second_map_to_castle(tmp_path: Path) -> None:
         assert codes(got) == [140, 140, 157]
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
         assert prepare.battleType == 15
-        me = next(h for h in prepare.heros if h.userId == g.user_id)
-        c.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
-        for _ in range(12):
-            c.send(10008, pb.UseSkillMsg(battleId=prepare.battleId, heroId=me.livingId, skillId=30711))
-        got = await g.until(4103)
-        assert pb.BattleReportMsg.FromString(got[-1].body).battleScene == 1
-        assert [x for x in codes(await g.until(140) + await g.until(140)) if x not in (153, 75)][-2:] == [140, 140]
+        got = await g.fight(prepare)
+        report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
+        assert (report.battleResult, report.battleScene) == (1, 1)
+        assert [x for x in codes(got) if x not in (153, 75, 156)][-4:] == [154, 4103, 140, 140]
 
         c.send(8747, pb.SimplePropertyMsg(param7=True))
         assert codes(await g.until(4382)) == [4382]
         c.send(8281)
         assert codes(await g.until(104)) == [109, 109, 100, 4130, 104]
+
+
+@pytest.mark.parametrize("callbacks", [0, 1])
+async def test_escort_survives_relog(tmp_path: Path, callbacks: int) -> None:
+    """Relogou no 15300: a Tina já vem seguindo, com ou sem o cliente repetir o 5032."""
+    async with logged_in(tmp_path, novice=15300) as g:
+        g.client.send(5127, pb.NoviceReqMsgMsg(type=1))
+        got = await g.until(143)
+        assert codes(got) == [125, 140, 21, 127, 130, 4124, 143]
+        assert pb.NPCFollowMsg.FromString(got[5].body).escortId == 9548
+        for _ in range(callbacks):
+            g.client.send(5032, pb.CallBackReqMsg(mapId=10001, nodeId=1000106, cmd=2))
+            assert codes(await g.until(4122)) == [128, 4124, 4122]
+
+
+async def test_chest_gives_weapon_once(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=16500) as g:
+        for _ in range(2):  # relogar antes do 16700 reabre o baú
+            g.client.send(5127, pb.NoviceReqMsgMsg(type=1))
+            await g.until(143)
+            g.client.send(5125, pb.CampaignReqMsg(paraInt1=1000202, paraBool1=True))
+            got = await g.until(150)
+        assert codes(got) == [128, 150]

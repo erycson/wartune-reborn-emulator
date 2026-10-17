@@ -7,13 +7,14 @@ acontece; mandar adiantado faz o cliente saltar o relógio. Detalhes do protocol
 Modelo observado na captura: rodadas em que cada unidade viva age uma vez; ações do mesmo lado
 começam com 12 quadros de diferença, a troca de lado e a rodada seguinte vêm ~9 quadros depois do
 fim da última animação (``frameNum``); a primeira ação sai por volta do quadro 100. O herói do
-jogador espera a ordem (10008) do cliente.
+jogador espera a ordem (10008) do cliente; o lado dele não morre (são todas batalhas do tutorial).
 """
 
 from __future__ import annotations
 
 import asyncio
 import random
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -37,7 +38,6 @@ FIRST_ACTION = 100
 SAME_SIDE_GAP = 12  # entre inícios de ações do mesmo lado
 NEXT_GAP = 9  # depois do fim da animação: troca de lado ou rodada nova
 ORDER_DELAY = 25  # ordem recebida -> golpe
-ORDER_WAIT = 75  # sem ordem por 3 s: golpe padrão do herói
 END_DELAY = 90  # último golpe -> 154
 COUNTDOWN_MS = 60000
 DAMAGE_HP = 6  # DamageMsg.damageType: vida (bloodA)
@@ -87,8 +87,9 @@ class Battle:
         self.id = str(uuid.uuid4())
         self.spec, self.templates, self.clock = spec, templates, clock
         self._send, self._on_end = send, on_end
-        self.frame = 0
-        self.paused = False
+        self._t0: float | None = None  # time.monotonic() do 156
+        self._paused_at: float | None = None
+        self._paused_total = 0.0
         self.loaded = False
         self.auto = spec["attackModel"] == AUTO
         self._order: tuple[int, int] | None = None  # (skillId, quadro em que chegou)
@@ -97,6 +98,18 @@ class Battle:
         self._player_msg = player.msg
         self.units = self._units(player)
         self.player = next(u for u in self.units if u.is_player)
+
+    @property
+    def frame(self) -> int:
+        """Quadro atual, pelo relógio (somar sleeps acumula erro; no Windows o sleep anda de 15,6 ms)."""
+        if self._t0 is None:
+            return 0
+        now = self._paused_at if self._paused_at is not None else time.monotonic()
+        return int((now - self._t0 - self._paused_total) / FRAME_SECONDS)
+
+    @property
+    def paused(self) -> bool:
+        return self._paused_at is not None
 
     # -- montagem --------------------------------------------------------------------------
 
@@ -157,11 +170,16 @@ class Battle:
         self.loaded = True
 
     def pause(self) -> None:
-        self.paused = True
+        if self._paused_at is None:
+            self._paused_at = time.monotonic()
         self._send(S_STOP, pb.UserStopMsg(type=1, order=0))
 
     def resume(self) -> None:
-        self.paused = False
+        if self._paused_at is None:
+            return
+        if self._t0 is not None:  # pausa antes do 156 não conta: o relógio nem começou
+            self._paused_total += time.monotonic() - self._paused_at
+        self._paused_at = None
 
     def set_auto(self, auto: bool) -> None:
         self.auto = auto
@@ -181,8 +199,6 @@ class Battle:
 
     async def _tick(self) -> None:
         await asyncio.sleep(FRAME_SECONDS)
-        if not self.paused:
-            self.frame += 1
 
     async def _until(self, frame: int) -> None:
         while self.frame < frame:
@@ -192,6 +208,7 @@ class Battle:
         try:
             while not self.loaded or self.paused:  # noqa: ASYNC110  (dois sinalizadores; 40 ms não importam)
                 await asyncio.sleep(FRAME_SECONDS)
+            self._t0 = time.monotonic()
             self._send(S_START, pb.BattleStartMsg(frame=0, mainType=self.spec["battleType"], countDown=COUNTDOWN_MS))
             won = await self._fight()
             winners = [u for u in self.units if u.alive and (u.side == PLAYER_SIDE) == won]
@@ -237,10 +254,9 @@ class Battle:
 
     async def _player_skill(self, due: int) -> int:
         self._order_frame = None
-        if self.auto and self._order is None:
-            return self._auto_skill()
-        deadline = max(due, self.frame) + ORDER_WAIT
-        while self._order is None and (self.frame < deadline or self.paused):
+        # manual: espera a ordem sem prazo (o guia pausa no meio da batalha para ensinar a 30811;
+        # golpear sozinho poderia acabar a luta antes). O oficial sem ordem não foi observado.
+        while self._order is None and not self.auto:
             await self._tick()
         if self._order is None:
             return self._auto_skill()
@@ -304,6 +320,9 @@ class Battle:
                 # do tutorial com um golpe, soldados tiram ~35% do ataque). Trocar quando houver a real.
                 factor = 0.65 if unit.side == PLAYER_SIDE else random.uniform(0.3, 0.4)
                 value = max(1, int(raw * factor / hits))
+                if target.side == PLAYER_SIDE:
+                    # as batalhas do tutorial são vitórias roteirizadas: o lado do jogador não morre
+                    value = min(value, max(0, target.hp - 1))
                 target.hp = max(0, target.hp - value)
                 msg.damages.add(
                     livingId=target.living_id, damageType=DAMAGE_HP, damageValue=value, leftValue=target.hp, parry=False
