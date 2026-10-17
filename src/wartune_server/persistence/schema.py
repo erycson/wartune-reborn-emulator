@@ -26,7 +26,19 @@ from sqlalchemy import (
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    BuildOrder,
+    CashEntry,
+    Castle,
+    Character,
+    GameServer,
+    Hero,
+    Item,
+    PlayTicket,
+    Quest,
+)
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -117,6 +129,7 @@ characters = Table(
     _int("point"),
     _int("gift_token"),
     _int("strategy"),
+    _int("crystals", 1000),
     _int("weary", 200),
     _int("weary_limit", 200),
     _int("novice_process"),
@@ -169,6 +182,36 @@ castles = Table(
     _int("grade", 1),
     _int("energy", 500),
     _int("state", 1),
+    Column("produced_at", UTCDateTime),
+    _int("impose_used"),
+    Column("imposed_at", UTCDateTime),
+)
+
+build_orders = Table(
+    "build_orders",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("order_id", Integer, nullable=False),
+    Column("order_type", Integer, nullable=False),
+    Column("begin_at", UTCDateTime, nullable=False),
+    _int("need_time"),
+    UniqueConstraint("character_id", "order_id"),
+)
+
+cash_ledger = Table(
+    "cash_ledger",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _int("delta_point"),
+    _int("delta_gift_token"),
+    _int("balance_point"),
+    _int("balance_gift_token"),
+    Column("reason", String(64), nullable=False, default="", server_default=""),
+    Column("ref", String(128), nullable=False, default="", server_default=""),
+    Column("gm", String(64)),
+    Column("created_at", UTCDateTime, nullable=False),
 )
 
 buildings = Table(
@@ -226,6 +269,8 @@ def map_entities() -> None:
         (Building, buildings),
         (Quest, quests),
         (Item, items),
+        (BuildOrder, build_orders),
+        (CashEntry, cash_ledger),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

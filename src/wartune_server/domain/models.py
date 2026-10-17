@@ -99,6 +99,7 @@ class Character:
     point: int = 0  # moeda premium
     gift_token: int = 0
     strategy: int = 0  # "Ruh" (alma), moeda -300
+    crystals: int = 1000  # cristais (-600): custo das tecnologias; o oficial começa com 1000
     weary: int = 200
     weary_limit: int = 200
     novice_process: int = 0
@@ -153,6 +154,42 @@ class Castle:
     grade: int = 1
     energy: int = 500
     state: int = 1
+    # ouro produzido até este instante; None = produção ainda parada (antes do 8281 do tutorial)
+    produced_at: datetime | None = None
+    impose_used: int = 0  # cobranças de ouro (8327) feitas no dia de ``imposed_at``
+    imposed_at: datetime | None = None
+
+
+@dataclass(eq=False)
+class BuildOrder:
+    """Fila de construção (``OrderInfoMsg``): o upgrade é imediato, a ordem só fica ocupada até
+    ``begin_at + need_time``. ``order_type``: 1 prédio, 2 tecnologia, 3 cobrança de ouro."""
+
+    character_id: int
+    order_id: int  # número da fila do jogador (1, 2...), não o id do banco
+    order_type: int
+    begin_at: datetime
+    need_time: int = 0  # segundos
+    id: int | None = None
+
+    def remain(self, now: datetime) -> int:
+        return max(0, int((self.begin_at - now).total_seconds()) + self.need_time)
+
+
+@dataclass(eq=False)
+class CashEntry:
+    """Movimento de diamante (``point``) e diamante vinculado (``gift_token``), com o saldo depois."""
+
+    character_id: int
+    delta_point: int
+    delta_gift_token: int
+    balance_point: int
+    balance_gift_token: int
+    reason: str
+    ref: str
+    created_at: datetime
+    gm: str | None = None  # quem lançou, quando for ajuste manual
+    id: int | None = None
 
 
 @dataclass(eq=False)
@@ -209,6 +246,7 @@ class PlayerSnapshot:
     buildings: list[Building] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
+    orders: list[BuildOrder] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:

@@ -8,16 +8,16 @@ from ...templates.repository import Row
 from .. import rules
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
-S_CHAT, S_ALERT, S_CASTLE_YIELD, S_FAST_KEY, S_TIME = 83, 111, 109, 64, 4234
-GOLD_MAX, CRYSTALS = 10000, 1000  # ponytail: armazém e cristais fixos até existirem no banco
+S_CHAT, S_ALERT, S_FAST_KEY, S_TIME = 83, 111, 64, 4234
 BOX = "298"  # ItemTempInfo.SonType do pacote que abre um GradeDrop (Property1 = DropId)
 BAG_SIZE = 42  # PlayerInfo.bagDefaultCount; ponytail: sem espaços comprados (bagCount) ainda
-CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token"}  # TemplateId < 0
+CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
 
 
 def _player(s: GameSession) -> None:
@@ -28,18 +28,6 @@ def _player(s: GameSession) -> None:
 def _army(s: GameSession) -> None:
     assert s.snapshot is not None
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
-
-
-def castle_yield(s: GameSession) -> None:
-    assert s.snapshot is not None
-    msg = pb.CastleYieldMsg(goldYield=0, goldTotalCount=s.snapshot.character.gold, goldMax=GOLD_MAX)
-    msg.curPopulation, msg.maxPopulation, msg.crystalsCount = 0, 0, CRYSTALS
-    s.send(S_CASTLE_YIELD, msg)
-
-
-@router.on(5015)
-async def castle_update(s: GameSession, _: object) -> None:
-    castle_yield(s)
 
 
 @router.on(20008)
@@ -166,7 +154,7 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
 
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
     _army(s)
-    if -100 in ids:
+    if -100 in ids or -600 in ids:
         castle_yield(s)
     moved = pb.ItemMovedListMsg()
     for item in new:

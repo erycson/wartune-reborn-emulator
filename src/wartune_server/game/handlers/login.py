@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rules, space
+from .. import castle, rules, space
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
@@ -33,6 +33,7 @@ S_CASTLE = 4153
 S_CASTLE_TIME = 4452
 S_BUILDINGS = 4154
 S_BUILD_ORDERS = 4155
+S_POLITICS = 152
 S_FRIENDS = 4156
 S_FARM = 4157
 S_SYS_PROPERTY = 4160
@@ -95,6 +96,8 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         s.log.warning("login simultâneo do mesmo personagem; recusado", player=character.id)
         s.connection.close()
         return
+    if changed := castle.ensure(snap, s.ctx.templates, s.ctx.clock.now()):
+        await s.ctx.characters.save(*changed)
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
     s.ctx.online.bind(s.player_id, s)
@@ -119,8 +122,13 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_SYS_PROPERTY, b.system_property(now, snap.server.opened_at))
         _send(s, S_CHALLENGE_TIME, pb.ChallengeCoolTimeMsg(totalCount=10, type=0, totalBuyCount=10))
     if msg.build:
-        _send(s, S_BUILDINGS, b.buildings_msg(snap, snap.castle, s.ctx.templates))
-        _send(s, S_BUILD_ORDERS, pb.BuildOrderList())
+        _send(
+            s,
+            S_BUILDINGS,
+            b.buildings_msg(snap, snap.castle, s.ctx.templates, impose_used=castle.impose_used(snap.castle, now)),
+        )
+        _send(s, S_BUILD_ORDERS, castle.order_list(snap, now))
+        _send(s, S_POLITICS, castle.politics_msg(snap, s.ctx.templates))
     if msg.castle:
         _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))
         s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))  # oficial manda só este campo
