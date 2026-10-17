@@ -177,6 +177,12 @@ Código: `game/arena.py` (regras), `game/handlers/arena.py` (coliseu e torneio),
 Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado (`m2/scripts/...`);
 *(dedução)* escolha nossa.
 
+### Botão de PvP
+
+| C>S | O servidor faz / responde | Fonte |
+|---|---|---|
+| 8294 | 4201 `MatchStateMsg{matchState}`: `true` a partir do nível 22 (`PVP_GRADE`), `false` antes. Sem corpo, nada cobrado, nada guardado | *(cliente)* `TopToolsBar.sendMatch`; o botão só aparece com `grades >= 22` e `isPVPStart` |
+
 ### Coliseu
 
 | C>S | O servidor faz / responde | Fonte |

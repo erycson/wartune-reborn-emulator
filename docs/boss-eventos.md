@@ -53,6 +53,7 @@ Handlers em `game/handlers/worldboss.py`. Recusa = 111 (aviso no meio da tela) e
 | 8259 | `C_WORLD_BOSS_REQ` | `WorldBossMsg{mapId}` | nada (log) | *(cliente)* `reqWorldBossCmd` existe, mas nenhum arquivo o chama |
 | 8264 | `C_WORLDBOSS_PLAYER_LIVE` | `PayTypeMsg{payType}` | 111, sem cobrança | *(cliente)* `WorldBossRiverMediator` → `RiverView()` tipo 1: entrar na luta com `Live_Fight_Pay`=3; payType 0 = vinculado primeiro, 1 = só diamante (como `cash.split`) |
 | 8470 | `C_WORLDBOSS_BUFFER` | `WorldBossBufferMsg{op=2, type}` | 111, sem cobrança | *(cliente)* `buyWorldBossBufferWithPointOrGiftToken` → `MapSocketOuterManager`; `type` 2 = vinculado, 1 = só diamante; preço `WorldBoss_Buffer_Diamond_Price` / `WorldBoss_Buffer_Gift_Price` = 5 |
+| 8535 | `C_CANCEL_TRANS` | vazio | nada (log). Cancela o transporte do jogador morto no mapa de PvP do chefe, que não existe aqui. O cliente não espera resposta | *(cliente)* `SocketSendManager.sendCancelTransport` |
 
 **Dependências (por que cada recusa):**
 - **Mapa do chefe.** `Campaigns` 5001/5003 não têm `CampaignData` nos templates, e esses mapas

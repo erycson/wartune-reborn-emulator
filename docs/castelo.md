@@ -37,6 +37,7 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 8203 | upgrade de prédio/tecnologia (`buildingId` do próprio jogador → `NextGradeTemplateId`). Valida nível máximo (`BUILD_MAX_GRADE`), nível do jogador, `PreTemplateId`, fila livre do tipo e ouro (com a produção pendente) e cristais. Libera `NextTemplateId` (academia → tecnologia nível 0, quartel 2 → casa) e avança missões tipo 2 | 109 (pago), 109 (se rendimento/teto/população mudaram), 151, 4130 (prédio + liberados), 83 "Geliştirilen Seviye: …", 112 se missão mudou | visto (city_city_upgrade_academy_upgrade, teknoloji_upgrade) |
 | 8202 | constrói o nível 1 de uma tecnologia que ainda não existe (`sonType`); só MasterType 13/14 | igual ao 8203 | cliente (SeminaryFrameBottomView) |
 | 8279 | lista as filas | 4187 BuildOrderList | cliente |
+| 8489 | Bênção do seminário (sem corpo). Gasta `Blessing_Cast` cristais (2000 sem o template) e soma `Blessing_Buffer` (10) à bênção, até `Blessing_Max` (200). No teto ou sem cristais, recusa sem cobrar e responde com o valor atual. Conta as bênçãos do dia (`seminary_count`, pela data do `arena.today`), sem limite diário no servidor; `maxCount` fica 0 porque o cliente não lê. | 4391 `BlessingMsg` (`increase`, `usedCount`); 109 com os cristais novos, só quando cobra | cliente (`SeminaryBlessFrame`) |
 | 5172 | acelera: 1 diamante por 10 min ou fração (`QueueBar.coolItem`). `index` 1 = só diamante, 2 = vinculado primeiro, 0 = VIP grátis (recusado: sem VIP). `orderId` 0 = todas as filas de prédio | 3, 111 "Bekleme Süresi kaldırıldı.", 102 | visto (savasa_baskin_ve_elmas_ile_hizlandirma) |
 | 5175 | compra a 2ª fila de prédio: 100 diamantes, `payType` 0 = pode usar vinculado | 3, 104 | cliente |
 | 8327 | cobrança de ouro: nível ≥ 14, 5 por dia, fila 3 livre; ouro = 901.P1×6 + 101.P1×3; fila 3 ocupada 1 h | 109, 111, 151 (antes do 4242: a LevyView redesenha nele), 4242 (`leftImpose` = usadas), 83 | visto + cliente |
@@ -83,3 +84,5 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
 - **Caixa por tempo**: o dia vira à meia-noite UTC *(dedução)*.
 - **Trégua** (8562) e **terras selvagens** (5179): só confirmam; dependem do mapa-múndi.
 - **Árvore da guilda** (8565, resposta 4432) e **reforço** (8255): sistemas de guilda e batalha em grupo.
+- **Bênção do seminário**: o `blessingBuff` (o bônus que o cliente mostra) ainda não entra nos atributos do
+  personagem. `Blessing_ItemId` (208026) não é usado pelo servidor.
