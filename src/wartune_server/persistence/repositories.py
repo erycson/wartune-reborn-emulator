@@ -8,7 +8,7 @@ from typing import Self
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, PlayTicket
+from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
 
 
 class _Repo:
@@ -117,6 +117,28 @@ class SqlBuildingRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlQuestRepository(_Repo):
+    async def add(self, quest: Quest) -> Quest:
+        self._s.add(quest)
+        await self._s.flush()
+        return quest
+
+    async def by_character(self, character_id: int) -> list[Quest]:
+        query = select(Quest).where(Quest.character_id == character_id).order_by(Quest.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
+class SqlItemRepository(_Repo):
+    async def add(self, item: Item) -> Item:
+        self._s.add(item)
+        await self._s.flush()
+        return item
+
+    async def by_character(self, character_id: int) -> list[Item]:
+        query = select(Item).where(Item.character_id == character_id).order_by(Item.id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -130,6 +152,8 @@ class SqlAlchemyUnitOfWork:
         self.heroes = SqlHeroRepository(self._session)
         self.castles = SqlCastleRepository(self._session)
         self.buildings = SqlBuildingRepository(self._session)
+        self.quests = SqlQuestRepository(self._session)
+        self.items = SqlItemRepository(self._session)
         return self
 
     async def __aexit__(
@@ -138,6 +162,13 @@ class SqlAlchemyUnitOfWork:
         # close() desfaz a transação pendente sem expirar os objetos já carregados/commitados,
         # que continuam utilizáveis (destacados) depois do bloco.
         await self._session.close()
+
+    async def save(self, entity: object) -> None:
+        # nova: add (o próprio objeto ganha o id); já gravada e destacada: merge copia o estado
+        if getattr(entity, "id", None) is None:
+            self._session.add(entity)
+        else:
+            await self._session.merge(entity)
 
     async def commit(self) -> None:
         await self._session.commit()

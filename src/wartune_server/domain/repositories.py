@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
-from .models import Account, Building, Castle, Character, GameServer, Hero, PlayTicket
+from .models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
 
 
 class AccountRepository(Protocol):
@@ -48,6 +48,16 @@ class BuildingRepository(Protocol):
     async def by_character(self, character_id: int) -> list[Building]: ...
 
 
+class QuestRepository(Protocol):
+    async def add(self, quest: Quest) -> Quest: ...
+    async def by_character(self, character_id: int) -> list[Quest]: ...
+
+
+class ItemRepository(Protocol):
+    async def add(self, item: Item) -> Item: ...
+    async def by_character(self, character_id: int) -> list[Item]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -68,6 +78,13 @@ class UnitOfWork(Protocol):
     def castles(self) -> CastleRepository: ...
     @property
     def buildings(self) -> BuildingRepository: ...
+    @property
+    def quests(self) -> QuestRepository: ...
+    @property
+    def items(self) -> ItemRepository: ...
+
+    async def save(self, entity: object) -> None:
+        """Grava uma entidade nova ou carregada antes (já destacada da transação)."""
 
     async def __aenter__(self) -> Self: ...
     async def __aexit__(

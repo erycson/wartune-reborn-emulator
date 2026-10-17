@@ -5,8 +5,8 @@ Sequência (ver ``docs/startup-sequence.md``):
 1. 20001 ``LoginReqMsg`` -> troca de chave, 3841, 3 ``PlayerMsg``, 150 ``ArmyArmyMsg``.
    O primeiro ``PlayerMsg`` dispara LOGIN_SUCCESS e o cliente carrega os recursos.
 2. 8224 com vários flags -> os 10 pacotes que ``LoginInitDataAccept`` espera.
-3. 8224 ``user=true`` -> 4598, 150 e 6 ``LoginStateMsg``; o cliente escolhe a cena
-   pelo ``noviceProcess`` (>= 19000 vai para o castelo).
+3. 8224 ``user=true`` -> 112 (missões), 115 (itens, se houver), 4598, 150 e 6 ``LoginStateMsg``;
+   o cliente escolhe a cena pelo ``noviceProcess`` (>= 19000 vai para o castelo).
 """
 
 from __future__ import annotations
@@ -16,7 +16,9 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from .. import rules
 from ..builders import login as b
+from ..builders import player as pb_player
 from ..router import router
 from ..session import LOGIN_CODE, GameSession
 
@@ -38,15 +40,22 @@ S_AAS = 4173
 S_CHALLENGE_TIME = 4176
 S_VERSION = 4233
 S_SNS = 4245
+S_QUESTS = 112
+S_ITEMS = 115
 
 
-def _army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
+def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     leader, castle = snap.leader, snap.castle
     assert leader is not None and castle is not None and snap.character.id is not None
-    tpl = s.ctx.templates.hero(leader.template_id)
-    stats = b.HeroStats.of(leader, tpl.force_hit, tpl.parry, tpl.live)
+    stats = rules.leader_stats(snap, s.ctx.templates)
     hero = b.hero_info(leader, snap.character.id, stats)
-    return b.army_msg(snap, castle, hero, stats.fighting_capacity), stats.fighting_capacity
+    arm = rules.arm_avatar(snap, s.ctx.templates)
+    return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm), stats.fighting_capacity
+
+
+def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
+    fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
+    return b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap))
 
 
 def _send(s: GameSession, code: int, msg: Message | None = None) -> None:
@@ -81,10 +90,9 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     s.log = s.log.bind(player=s.player_id)
     s.log.info("jogador entrou", nick=snap.character.nickname, novice=snap.character.novice_process)
 
-    army, fighting = _army(s, snap)
     s.send(S_LOGIN_OK)
-    _send(s, S_PLAYER_INFO, b.player_msg(snap, fighting, s.ctx.clock.now()))
-    _send(s, S_ARMY, army)
+    _send(s, S_PLAYER_INFO, player_info(s, snap))
+    _send(s, S_ARMY, army(s, snap)[0])
 
 
 @router.on(8224)
@@ -114,13 +122,20 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.aas:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
-        _send(s, S_ARMY, _army(s, snap)[0])
+        _send(s, S_ARMY, army(s, snap)[0])
 
 
 async def _login_state(s: GameSession) -> None:
     # recarrega: o noviceProcess pode ter mudado via HTTP (updateplayernovice) depois do 20001
     s.snapshot = snap = await s.ctx.characters.snapshot(s.player_id)
     assert snap.castle is not None
+    active = [q for q in snap.quests if not q.completed]
+    s.send(S_QUESTS, pb_player.quest_update(active, rules.quest_bitmap(snap)))
+    if snap.items:
+        bag = pb.ItemMovedListMsg()
+        for item in snap.items:
+            bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
+        s.send(S_ITEMS, bag)
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
-    _send(s, S_ARMY, _army(s, snap)[0])
+    _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

@@ -6,6 +6,7 @@ Valores fixos vêm do que o servidor oficial manda para um personagem novo
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -14,7 +15,7 @@ from google.protobuf.message import Message
 
 from ...domain.models import Castle, Character, Hero, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from ...templates.repository import GameTemplates
+from ...templates.repository import GameTemplates, HeroTemplate, Row
 
 NEVER = "2000-01-01 00:00:00"
 QUEST_SITE_LEN = 200
@@ -43,38 +44,62 @@ def complete(msg: Message) -> Message:
     return msg
 
 
+ATTRS = ("Power", "Agility", "Intellect", "Captain", "Physique")
+# atributo derivado -> coluna de ItemTempInfo/SkillPropertyTempInfo que soma direto no total
+ITEM_BONUS = {
+    "PhyAttack": "Attack",
+    "PhyDefence": "Defence",
+    "MagicAttack": "MagicAttack",
+    "MagicDefence": "MagicDefence",
+    "ForceHit": "ForceHit",
+    "Parry": "Parry",
+    "ConatArmy": "Conat",
+    "Live": "Live",
+}
+
+
 @dataclass(frozen=True, slots=True)
 class HeroStats:
-    phy_attack: int
-    phy_defence: int
-    magic_attack: int
-    magic_defence: int
-    force_hit: int
-    parry: int
-    conat_army: int
-    live: int
+    """Atributos ``base*`` (herói + atributos dos equipamentos) e ``total*`` (+ bônus fixos dos itens)."""
+
+    base: dict[str, int]
+    total: dict[str, int]
+
+    @property
+    def live(self) -> int:
+        return self.total["Live"]
 
     @property
     def fighting_capacity(self) -> int:
-        # AttackProrertyInfo.totalAttribute + parcela da vida; bate com o oficial (199 na maga nível 1)
+        # ponytail: bate com o oficial no nível 1 (199); nível 3 dá 291 contra 278. Falta a fórmula real.
+        t = self.total
         return (
-            self.phy_attack + self.phy_defence + int(self.magic_attack * 1.05) + self.magic_defence + self.force_hit
-        ) + int(self.live * 0.75)
+            t["PhyAttack"] + t["PhyDefence"] + int(t["MagicAttack"] * 1.05) + t["MagicDefence"] + t["ForceHit"]
+        ) + int(t["Live"] * 0.75)
 
     @classmethod
-    def of(cls, hero: Hero, force_hit: int, parry: int, base_live: int) -> HeroStats:
-        # ponytail: fórmulas calibradas só com a maga nível 1 da captura (o cliente não calcula
-        # isso, o servidor manda pronto). Trocar pela tabela real quando houver mais capturas.
-        return cls(
-            phy_attack=2 * hero.power + 2 * hero.agility,
-            phy_defence=hero.physique,
-            magic_attack=4 * hero.intellect,
-            magic_defence=int((hero.intellect + hero.physique) * 0.9),
-            force_hit=force_hit,
-            parry=parry,
-            conat_army=hero.captain,
-            live=base_live + 22 * hero.physique,
-        )
+    def of(cls, hero: Hero, tpl: HeroTemplate, bonuses: Sequence[Row] = ()) -> HeroStats:
+        """``bonuses``: linhas de template dos equipamentos e dos atributos sorteados deles.
+
+        Fórmulas tiradas da captura (maga níveis 1, 3 e 5, com e sem arma); o cliente não calcula
+        nada disso, o servidor manda pronto.
+        """
+        own = {"Power": hero.power, "Agility": hero.agility, "Intellect": hero.intellect}
+        own |= {"Captain": hero.captain, "Physique": hero.physique}
+        attrs = {k: own[k] + sum(int(r.get(k, 0)) for r in bonuses) for k in ATTRS}
+        level = 3 * (hero.grades - 1)
+        derived = {
+            "PhyAttack": 4 * attrs["Power"],
+            "PhyDefence": attrs["Physique"] + level,
+            "MagicAttack": 4 * attrs["Intellect"],
+            "MagicDefence": attrs["Intellect"] + attrs["Physique"] + level - 1,
+            "ForceHit": tpl.force_hit,
+            "Parry": tpl.parry,
+            "ConatArmy": attrs["Captain"],
+            "Live": tpl.live + 20 * attrs["Physique"] + 10 * hero.grades,
+        }
+        total = {k: v + sum(int(r.get(ITEM_BONUS[k], 0)) for r in bonuses) for k, v in derived.items()}
+        return cls(own | derived, attrs | total)
 
 
 def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfoMsg:
@@ -96,27 +121,14 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfo
         physiquePoint=hero.physique_point,
         fightPos=hero.fight_pos,
     )
-    for prefix in ("total", "base"):
-        for name, value in (
-            ("Power", hero.power),
-            ("Agility", hero.agility),
-            ("Intellect", hero.intellect),
-            ("Captain", hero.captain),
-            ("Physique", hero.physique),
-            ("PhyAttack", stats.phy_attack),
-            ("PhyDefence", stats.phy_defence),
-            ("MagicAttack", stats.magic_attack),
-            ("MagicDefence", stats.magic_defence),
-            ("ForceHit", stats.force_hit),
-            ("Parry", stats.parry),
-            ("ConatArmy", stats.conat_army),
-            ("Live", stats.live),
-        ):
-            setattr(msg, prefix + name, value)
+    for name, value in stats.base.items():
+        setattr(msg, "base" + name, value)
+    for name, value in stats.total.items():
+        setattr(msg, "total" + name, value)
     return msg
 
 
-def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime) -> pb.PlayerMsg:
+def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, quest_site: bytes) -> pb.PlayerMsg:
     c: Character = snap.character
     msg = pb.PlayerMsg(
         playerId=c.id,
@@ -128,7 +140,7 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime) -> p
         giftToken=c.gift_token,
         state=7,
         questSiteLen=QUEST_SITE_LEN,
-        questSite=bytes(QUEST_SITE_LEN),
+        questSite=quest_site,
         grades=c.grades,
         gp=c.gp,
         totalGp=c.total_gp,
@@ -161,7 +173,7 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime) -> p
 
 
 def army_msg(
-    snap: PlayerSnapshot, castle: Castle, hero: pb.SimpleHeroInfoMsg, fighting_capacity: int
+    snap: PlayerSnapshot, castle: Castle, hero: pb.SimpleHeroInfoMsg, fighting_capacity: int, arm: str = ""
 ) -> pb.ArmyArmyMsg:
     c = snap.character
     msg = pb.ArmyArmyMsg(
@@ -174,6 +186,7 @@ def army_msg(
         type=2,
         fightingCapacity=fighting_capacity,
         grades=c.grades,
+        arm=arm,
     )
     msg.simpleHeroInfo.CopyFrom(hero)
     return msg

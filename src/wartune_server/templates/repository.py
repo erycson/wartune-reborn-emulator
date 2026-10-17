@@ -57,6 +57,7 @@ class HeroTemplate:
 class GameTemplates:
     def __init__(self, categories: dict[str, list[Row]]) -> None:
         self._categories = categories
+        self._index: dict[tuple[str, str], dict[str, Row]] = {}
         self._heroes = {
             t.template_id: t for t in (HeroTemplate.from_row(r) for r in categories.get("GameHeroTemp", []))
         }
@@ -88,6 +89,16 @@ class GameTemplates:
         for row in self.rows(category):
             if all(row.get(k) == v for k, v in wanted.items()):
                 yield row
+
+    def get(self, category: str, template_id: int, key: str = "TemplateId") -> Row | None:
+        """Busca indexada pela chave (a primeira linha vence se houver repetição)."""
+        index = self._index.get((category, key))
+        if index is None:
+            index = {}
+            for row in self.rows(category):
+                index.setdefault(row.get(key, ""), row)
+            self._index[(category, key)] = index
+        return index.get(str(template_id))
 
     def hero(self, template_id: int) -> HeroTemplate:
         try:

@@ -165,6 +165,37 @@ class Building:
     property2: int = 0
 
 
+@dataclass(eq=False)
+class Quest:
+    """Missão aceita (``QuestInfo``). As concluídas também formam o bitmap ``questSite``."""
+
+    character_id: int
+    template_id: int
+    added_at: datetime
+    id: int | None = None
+    completed: bool = False
+    progress: int = 0  # condition_1
+    completed_at: datetime | None = None
+
+
+class BagType(IntEnum):
+    BAG = 1
+    HERO = 4  # equipado; ``object_id`` = id do herói
+
+
+@dataclass(eq=False)
+class Item:
+    character_id: int
+    template_id: int
+    id: int | None = None
+    bag_type: int = BagType.BAG
+    object_id: int = 0
+    pos: int = 0
+    count: int = 1
+    random_skill: int = 0  # randomSkill_1 (atributo extra sorteado, ex. 70302 "Zeka+2")
+    is_new: bool = True
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -175,6 +206,8 @@ class PlayerSnapshot:
     heroes: list[Hero] = field(default_factory=list)
     castle: Castle | None = None
     buildings: list[Building] = field(default_factory=list)
+    quests: list[Quest] = field(default_factory=list)
+    items: list[Item] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:

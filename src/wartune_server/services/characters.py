@@ -138,6 +138,15 @@ class CharacterService:
             heroes = await uow.heroes.by_character(character_id)
             castle = await uow.castles.by_character(character_id)
             buildings = await uow.buildings.by_character(character_id)
+            quests = await uow.quests.by_character(character_id)
+            items = await uow.items.by_character(character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
-        return PlayerSnapshot(account, server, character, heroes, castle, buildings)
+        return PlayerSnapshot(account, server, character, heroes, castle, buildings, quests, items)
+
+    async def save(self, *entities: object) -> None:
+        """Grava entidades do snapshot alteradas em memória (personagem, herói, missões, itens)."""
+        async with self._uow() as uow:
+            for entity in entities:
+                await uow.save(entity)
+            await uow.commit()

@@ -26,7 +26,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import registry
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, PlayTicket
+from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
 
 NAMING = {
     "ix": "ix_%(column_0_label)s",
@@ -180,6 +180,33 @@ buildings = Table(
     _int("property2"),
 )
 
+quests = Table(
+    "quests",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("template_id", Integer, nullable=False),
+    Column("completed", Boolean, nullable=False, default=False, server_default="0"),
+    _int("progress"),
+    Column("added_at", UTCDateTime, nullable=False),
+    Column("completed_at", UTCDateTime),
+    UniqueConstraint("character_id", "template_id"),
+)
+
+items = Table(
+    "items",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("template_id", Integer, nullable=False),
+    _int("bag_type", 1),
+    _int("object_id"),
+    _int("pos"),
+    _int("count", 1),
+    _int("random_skill"),
+    Column("is_new", Boolean, nullable=False, default=True, server_default="1"),
+)
+
 _mapped = False
 
 
@@ -196,6 +223,8 @@ def map_entities() -> None:
         (Hero, heroes),
         (Castle, castles),
         (Building, buildings),
+        (Quest, quests),
+        (Item, items),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True
