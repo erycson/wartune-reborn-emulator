@@ -55,11 +55,15 @@ from ..domain.models import (
     MailAnnex,
     Marriage,
     MysteryShop,
+    Pawn,
+    Pet,
+    PlayerSystems,
     PlayTicket,
     Quest,
     Relation,
     ShopBuy,
     SnsProfile,
+    Star,
 )
 
 NAMING = {
@@ -95,6 +99,18 @@ class UTCDateTime(TypeDecorator[datetime]):
 
 def _int(name: str, default: int = 0) -> Column[int]:
     return Column(name, Integer, nullable=False, default=default, server_default=str(default))
+
+
+def _str(name: str, size: int = 255, default: str = "") -> Column[str]:
+    return Column(name, String(size), nullable=False, default=default, server_default=default)
+
+
+def _bool(name: str, default: bool = False) -> Column[bool]:
+    return Column(name, Boolean, nullable=False, default=default, server_default=str(int(default)))
+
+
+def _owner(name: str = "character_id", **kw: Any) -> Column[int]:
+    return Column(name, Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, **kw)
 
 
 accounts = Table(
@@ -225,6 +241,14 @@ heroes = Table(
     Column("hide_fashion", Boolean, nullable=False, default=False, server_default="0"),
     _int("blood"),
     _int("blood_id"),
+    _int("talent_grade"),
+    _str("talent_script"),
+    _str("runes", 1024),
+    _str("rune_key"),
+    _str("skill_script2"),
+    _str("fast_key2"),
+    _int("skill_index"),
+    _bool("active_second"),
 )
 
 castles = Table(
@@ -410,10 +434,6 @@ item_log = Table(
 )
 
 
-def _owner(name: str = "character_id", **kw: Any) -> Column[int]:
-    return Column(name, Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, **kw)
-
-
 relations = Table(
     "relations",
     metadata,
@@ -499,10 +519,6 @@ marriages = Table(
     Column("since", UTCDateTime, nullable=False),
     Column("married_at", UTCDateTime),
 )
-
-
-def _str(name: str, size: int) -> Column[str]:
-    return Column(name, String(size), nullable=False, default="", server_default="")
 
 
 arenas = Table(
@@ -642,6 +658,76 @@ event_states = Table(
     UniqueConstraint("character_id", "key"),
 )
 
+pawns = Table(
+    "pawns",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    Column("template_id", Integer, nullable=False),
+    _int("castle_count"),
+    _int("army_count"),
+    _str("specials"),
+    _str("comprehend"),
+    _int("bless"),
+    _int("fight_pos", 3),
+)
+
+stars = Table(
+    "stars",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    Column("template_id", Integer, nullable=False),
+    _int("bag_type"),
+    _int("pos"),
+    _int("grade", 1),
+    _int("gp"),
+    _bool("locked"),
+)
+
+pets = Table(
+    "pets",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    Column("template_id", Integer, nullable=False),
+    _str("name", 32),
+    _int("grade", 1),
+    _int("gp"),
+    *(_int(n) for n in ("power", "intel", "physi", "armor")),
+    *(_int(f"{n}_apti") for n in ("power", "intel", "physi", "armor")),
+    _int("growth_rate"),
+    _int("quality"),
+    _bool("is_fight"),
+    _str("follow_skills"),
+    _str("change_skills"),
+    _str("fast_key"),
+    _int("pos"),
+)
+
+player_systems = Table(
+    "player_systems",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, unique=True),
+    _int("mount_template"),
+    _str("mount_gp", 64, "0,0,0,0"),
+    _str("mount_avatars", 1024),
+    _int("dragon_type"),
+    _int("dragon_grade"),
+    _int("dragon_gp"),
+    _str("fate"),
+    _int("fate_turns"),
+    _str("fate_day", 16),
+    _str("star_sites", 32, "1,0,0,0,0"),
+    _int("star_bag"),
+    _int("star_point"),
+    _int("star_free", 1),
+    _str("star_day", 16),
+    _str("powcards", 1024),
+    _int("pet_slots"),
+)
+
 _mapped = False
 
 
@@ -683,6 +769,10 @@ def map_entities() -> None:
         (BuildOrder, build_orders),
         (FarmLand, farm_lands),
         (EventState, event_states),
+        (Pawn, pawns),
+        (Star, stars),
+        (Pet, pets),
+        (PlayerSystems, player_systems),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

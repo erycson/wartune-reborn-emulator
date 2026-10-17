@@ -26,6 +26,7 @@ from ..domain.models import (
     Job,
     MysteryShop,
     PlayerSnapshot,
+    PlayerSystems,
     ShopBuy,
 )
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
@@ -170,8 +171,14 @@ class CharacterService:
             orders = await uow.orders.by_character(character_id)
             lands = await uow.lands.by_character(character_id)
             events = await uow.events.by_character(character_id)
+            pawns = await uow.pawns.by_character(character_id)
+            stars = await uow.stars.by_character(character_id)
+            pets = await uow.pets.by_character(character_id)
+            systems = next(iter(await uow.systems.by_character(character_id)), None)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
+        # linha nova só em memória: vai para o banco na primeira save() que a incluir
+        systems = systems or PlayerSystems(character_id)
         return PlayerSnapshot(
             account,
             server,
@@ -192,6 +199,10 @@ class CharacterService:
             orders,
             lands,
             events,
+            pawns,
+            stars,
+            pets,
+            systems,
         )
 
     async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:

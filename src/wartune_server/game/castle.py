@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
+from . import rules
 from .builders import login as b
 from .session import GameSession
 
@@ -126,8 +127,7 @@ def yield_msg(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> 
         goldYield=gold_yield(snap, templates),
         goldTotalCount=snap.character.gold + gain,
         goldMax=gold_max(snap, templates),
-        # ponytail: população ocupada = soldados do exército (sistema de tropas); 0 até ele existir
-        curPopulation=0,
+        curPopulation=rules.population(snap, templates)[0],
         maxPopulation=max_population(snap, templates),
         crystalsCount=snap.character.crystals,
     )

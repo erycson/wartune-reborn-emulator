@@ -28,10 +28,14 @@ from .models import (
     Mail,
     MailAnnex,
     Marriage,
+    Pawn,
+    Pet,
+    PlayerSystems,
     PlayTicket,
     Quest,
     Relation,
     SnsProfile,
+    Star,
 )
 
 
@@ -141,6 +145,12 @@ class EventStateRepository(Protocol):
     async def by_character(self, character_id: int) -> list[EventState]: ...
 
 
+class OwnedRepository[T](Protocol):
+    """Entidades que só pertencem a um personagem (tropas, estrelas, pets...)."""
+
+    async def by_character(self, character_id: int) -> list[T]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -189,6 +199,14 @@ class UnitOfWork(Protocol):
     def lands(self) -> FarmLandRepository: ...
     @property
     def events(self) -> EventStateRepository: ...
+    @property
+    def pawns(self) -> OwnedRepository[Pawn]: ...
+    @property
+    def stars(self) -> OwnedRepository[Star]: ...
+    @property
+    def pets(self) -> OwnedRepository[Pet]: ...
+    @property
+    def systems(self) -> OwnedRepository[PlayerSystems]: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""

@@ -14,6 +14,7 @@ from ...templates.repository import Row
 from .. import castle as cs
 from .. import rules
 from ..builders import login as b
+from ..builders.army import castle_pawns
 from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
@@ -64,7 +65,7 @@ async def building_init(s: GameSession, _: object) -> None:
     await s.ctx.characters.save(snap.castle, *new)
     castle_yield(s)
     castle_yield(s)
-    s.send(S_ARMY_PAWN, pb.ArmyPawnUpdatedMsg())
+    s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     s.send(S_BUILDINGS, _buildings(s, snap.buildings))
     for order in new:  # o cliente acrescenta sem checar repetição: só a ordem recém-criada
         s.send(S_ORDER_ADD, cs.order_info(order, now))

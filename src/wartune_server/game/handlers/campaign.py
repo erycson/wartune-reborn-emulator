@@ -18,6 +18,7 @@ from ...protocol.registry import Direction
 from .. import rules, space
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
+from ..builders.army import castle_pawns
 from ..builders.player import item_moved, quest_update
 from ..campaign import (
     AGGRESSIVE,
@@ -431,7 +432,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if gp:
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp} EXP kazanıldı"))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
-    _send(s, S_ARMY_PAWN, pb.ArmyPawnUpdatedMsg())
+    _send(s, S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     if s.campaign is None:
         return
     s.campaign.fighting = 0

@@ -31,10 +31,14 @@ from ..domain.models import (
     Mail,
     MailAnnex,
     Marriage,
+    Pawn,
+    Pet,
+    PlayerSystems,
     PlayTicket,
     Quest,
     Relation,
     SnsProfile,
+    Star,
 )
 
 
@@ -321,6 +325,15 @@ class SqlEventStateRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlOwnedRepository[T]:
+    def __init__(self, session: AsyncSession, entity: type[T]) -> None:
+        self._s, self._entity = session, entity
+
+    async def by_character(self, character_id: int) -> list[T]:
+        e: Any = self._entity
+        return list(await self._s.scalars(select(e).where(e.character_id == character_id).order_by(e.id)))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -346,6 +359,10 @@ class SqlAlchemyUnitOfWork:
         self.orders = SqlBuildOrderRepository(self._session)
         self.lands = SqlFarmLandRepository(self._session)
         self.events = SqlEventStateRepository(self._session)
+        self.pawns = SqlOwnedRepository(self._session, Pawn)
+        self.stars = SqlOwnedRepository(self._session, Star)
+        self.pets = SqlOwnedRepository(self._session, Pet)
+        self.systems = SqlOwnedRepository(self._session, PlayerSystems)
         return self
 
     async def __aexit__(

@@ -19,6 +19,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from .. import castle, farm, guild, rules, social, space, timebox
 from ..builders import login as b
 from ..builders import player as pb_player
+from ..builders.army import army_pawn_msg, castle_pawns
 from ..router import router
 from ..session import LOGIN_CODE, GameSession
 from . import account, vehicle
@@ -46,25 +47,35 @@ S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
 S_PET_ISLAND_BOSS = 4686
+S_CASTLE_PAWNS = 100
 
 
 def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     leader, castle = snap.leader, snap.castle
     assert leader is not None and castle is not None and snap.character.id is not None
-    stats = rules.leader_stats(snap, s.ctx.templates)
-    hero = b.hero_info(leader, snap.character.id, stats)
-    t = s.ctx.templates
+    templates = s.ctx.templates
+    stats = rules.leader_stats(snap, templates)
+    rules.refresh_skill_point(leader, templates)  # derivado do nível e das skills (cache na coluna)
+    hero = b.hero_info(leader, snap.character.id, stats, rules.talent_points(leader, templates))
+    t = templates
     hero.wing, hero.hat = rules.avatar(snap, t, rules.WING), rules.avatar(snap, t, rules.HAT)
     hero.fashionArm = rules.avatar(snap, t, rules.FASHION_ARM)
     hero.fashionCloth = rules.avatar(snap, t, rules.FASHION_CLOTH)
-    arm = rules.arm_avatar(snap, s.ctx.templates)
-    return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm), stats.fighting_capacity
+    arm = rules.arm_avatar(snap, templates)
+    pawn = army_pawn_msg(snap, templates, snap.character.id)
+    mount = rules.systems(snap).mount_template
+    msg = b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount)
+    if pet := next((p for p in snap.pets if p.is_fight), None):  # login #5: o pet em batalha
+        msg.petTempId, msg.petQuqlity, msg.petName = pet.template_id, pet.quality, pet.name
+    return msg, stats.fighting_capacity
 
 
 def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     from . import events  # events importa este módulo
 
     fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
+    if snap.systems is not None:  # startFree certo mesmo para quem estava offline às 5h
+        rules.refresh_star_day(snap.systems, s.ctx.clock.now())
     mine = s.ctx.guilds.of(snap.character.id or 0)
     msg = b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap), mine[0] if mine else None)
     events.fill_player(msg, snap, s.ctx.clock.now())
@@ -166,6 +177,18 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+        if snap.pets:  # login #30; sem pet o oficial não manda
+            from .pets import S_PETS, pets_msg
+
+            s.send(S_PETS, pets_msg(snap, s.ctx.templates))
+    if msg.star:
+        from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
+
+        login_stars(s)
+    if msg.powcardInfo:  # login #76
+        from .systems import S_POWCARD, powcard_msg
+
+        s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates))
     if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
         _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
     if msg.challReward or msg.petChallengeReward or msg.crossScoreReward:
@@ -197,6 +220,9 @@ async def _login_state(s: GameSession) -> None:
     from . import events
 
     events.login_push(s)
+    # tropas do castelo (oficial: login.json #6); personagem sem tropas não recebe
+    if snap.pawns:
+        s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

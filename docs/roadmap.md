@@ -18,6 +18,7 @@
 - [x] Prédios do castelo, tecnologia, filas, aceleração com ledger, produção, cobrança, fazenda, árvore, caixa por tempo e offline ([castelo.md](castelo.md)); fazenda de amigo, fruto da árvore e população ocupada pendentes
 - [x] Tutorial completo: mapas 10001/10002, batalhas, missões 10–45, baú e equipar, chefe da cidade externa ([tutorial.md](tutorial.md))
 - [x] Batalha PvE em tempo real ([batalha.md](batalha.md))
+- [x] Herói e exército: tropas, skills, talento, runas, montaria, estrelas, destino, dragão, cartas e pets ([heroi-exercito.md](heroi-exercito.md))
 - [ ] **Validar o tutorial no cliente**
 - Fórmulas reais de dano, iniciativa e poder de combate
 - Cidade externa de verdade: terras selvagens, castelos vizinhos, outros jogadores
