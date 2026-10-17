@@ -48,7 +48,7 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
     c = snap.character
     out = pb.ChatChannelMsg(channel=channel, encodeMsg=text, otherId=c.id, name=c.nickname or "")
     # o cliente não mostra a própria mensagem ao enviar: quem falou também recebe o 83
-    s.ctx.online.broadcast(S_CHAT, out)
+    s.ctx.online.broadcast(S_CHAT, b.complete(out))
 
 
 @router.on(8198)

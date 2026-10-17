@@ -91,6 +91,10 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         s.connection.close()
         return
 
+    if s.ctx.online.get(snap.character.id or 0) is not None:  # dois 20001 juntos: o primeiro vence
+        s.log.warning("login simultâneo do mesmo personagem; recusado", player=character.id)
+        s.connection.close()
+        return
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
     s.ctx.online.bind(s.player_id, s)

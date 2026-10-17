@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 
 from tests.game.harness import logged_in
@@ -50,3 +51,23 @@ async def test_tutorial_players_are_not_in_the_sky_city(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=0) as a:
         b = await a.join("bruxa")
         assert _of(await b.idle(), 4595) == [] and _of(await a.idle(), 4597) == []
+
+
+async def test_two_logins_at_once_only_one_loads_the_character(tmp_path: Path) -> None:
+    """Os dois 20001 passam pelo kick juntos; o segundo não pode virar sessão com snapshot velho."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        online = a.server.online
+        bound: list[int] = []
+        bind = online.bind
+        online.bind = lambda pid, s: (bound.append(pid), bind(pid, s))[1]  # type: ignore[method-assign]
+        characters = a.server.services.characters
+        load = characters.snapshot
+
+        async def slow_snapshot(character_id: int):  # type: ignore[no-untyped-def]
+            await asyncio.sleep(0.2)  # os dois logins ficam carregando ao mesmo tempo
+            return await load(character_id)
+
+        characters.snapshot = slow_snapshot  # type: ignore[method-assign]
+        results = await asyncio.gather(a.connect(), a.connect(), return_exceptions=True)
+        assert sum(not isinstance(r, BaseException) for r in results) == 1
+        assert bound == [a.user_id] and len(online) == 1
