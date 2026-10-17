@@ -315,7 +315,9 @@ async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None
     clock = FakeClock(oc.MINE_EPOCH + oc.MINE_PERIOD - timedelta(seconds=60))  # ciclo 0, a 1 min do refresh
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         await g.server.services.characters.save(WildLand(g.user_id, oc.MINES[0].id, clock.now()))
+        gold_before = (await g.server.services.characters.snapshot(g.user_id)).character.gold
         clock.advance(120)  # passou o refresh; a chave do login (30 min) ainda vale
         await g.connect()
         fresh = await g.server.services.characters.snapshot(g.user_id)
         assert fresh.wild_lands == []
+        assert fresh.character.gold >= gold_before  # o settle do refresh nunca tira ouro

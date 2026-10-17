@@ -73,7 +73,10 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - **Expiração** *(dedução)*: ocupação com `occupied_at` antes do começo do ciclo vence. Quem roda o refresh é o
   login, o 8201 e o 5160 (`handlers/outer_city.refresh`); não há tarefa periódica, então quem fica online só vê
   a mina cair no próximo pedido. Antes de sair, o ouro até o refresh sai na taxa antiga (`castle.expire_mines`
-  chama `settle`), e as linhas vencidas saem com `delete=` (a unique é `character_id, wild_id`).
+  chama `settle`), e as linhas vencidas saem com `delete=` (a unique é `character_id, wild_id`). *(ponytail)*
+  ouro cobrado depois do começo do ciclo por handler que não passa pelo refresh (5015, 8202, 8327, farm) ainda
+  paga a taxa da mina até o próximo 8201, 5160 ou login; subir: refresh antes de cada `settle`. Duas sessões
+  que vencem a mesma mina no mesmo instante passam juntas na checagem de dono (sem trava por mina).
 - **Dono de outro jogador**: o castelo alheio no 4129 leva `occupyPlayerId`, `occupyPlayerName` e
   `occupyLeagueName` *(visto)* transfer #15 (`asiesat`, mapa 2). Para a mina, *(dedução)* o 4129 leva o dono
   pelo mesmo campo e o poder em `fightCapaity`; nas capturas as minas do mapa 2 vêm com `occupyPlayerId` 0.

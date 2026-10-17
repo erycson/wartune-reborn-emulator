@@ -294,6 +294,8 @@ async def _mine_over(s: GameSession, battle: Battle, mine: oc.Mine, won: bool) -
     s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
     _army_sync(s, ARMY_IDLE)
     now = s.ctx.clock.now()
+    # ponytail: a checagem de dono e o save não são atômicos; duas sessões que vencem a mesma mina no mesmo
+    # instante passam juntas. Subir: trava por mina ou unique (wild_id, ciclo).
     if not won or oc.occupied(snap, mine) is not None or await _held_by_other(s, mine, oc.cycle_start(now)):
         _mine_sync(s, mine, oc.MINE_FREE)
         return

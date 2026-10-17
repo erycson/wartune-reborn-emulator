@@ -119,6 +119,8 @@ def settle(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> Non
 def expire_mines(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[WildLand]:
     """Ocupação de mina do ciclo anterior sai do snapshot: no refresh de 12 h a mina volta livre. O ouro
     até o refresh sai na taxa antiga (``settle`` no começo do ciclo). Quem chama grava com ``delete=``."""
+    # ponytail: ouro cobrado depois do começo do ciclo por handler que não passa aqui (5015, 8202, 8327,
+    # farm) ainda paga a taxa da mina até o próximo 8201, 5160 ou login. Subir: chamar o refresh antes de cada settle.
     start = outer_city.cycle_start(now)
     stale = [w for w in snap.wild_lands if w.occupied_at < start]
     if stale:
