@@ -154,7 +154,12 @@ def rune_msg(hero: Hero, player_id: int) -> pb.HeroRuneMsg:
 
 
 def player_msg(
-    snap: PlayerSnapshot, fighting_capacity: int, now: datetime, quest_site: bytes, guild: Consortia | None = None
+    snap: PlayerSnapshot,
+    fighting_capacity: int,
+    now: datetime,
+    quest_site: bytes,
+    copies: tuple[int, int],
+    guild: Consortia | None = None,
 ) -> pb.PlayerMsg:
     c: Character = snap.character
     msg = pb.PlayerMsg(
@@ -185,13 +190,13 @@ def player_msg(
         job=c.job,
         signDate=fmt_time(now),
         startFree=1,
-        campaignCount=1,
+        campaignCount=copies[0],
         reloginCount=1,
         matchRoomCount=15,
         serverName=snap.server.name,
         warFieldCount=2,
         trialMaxCount=1,
-        campaignMaxcount=1,
+        campaignMaxcount=copies[1],
         lastFreeSkillLearnTime=NEVER,
         rentalBagTime=fmt_time(c.rental_bag_until) if c.rental_bag_until else NEVER,
         status=1 if c.rental_bag_until is not None and c.rental_bag_until > now else -1,
