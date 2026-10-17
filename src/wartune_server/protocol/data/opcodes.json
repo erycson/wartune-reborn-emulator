@@ -8077,7 +8077,9 @@
   "names": [
    "C_PLAYER_NODE_STATE"
   ],
-  "c2s": [],
+  "c2s": [
+   "?Message"
+  ],
   "s2c": [],
   "client_sends": true,
   "client_listens": false
@@ -9249,6 +9251,7 @@
    "C_CC"
   ],
   "c2s": [
+   "?Message",
    "SimplePropertyMsg"
   ],
   "s2c": [],
@@ -9494,7 +9497,9 @@
   "names": [
    "C_FLASH_SALE_FRESH"
   ],
-  "c2s": [],
+  "c2s": [
+   "?Message"
+  ],
   "s2c": [],
   "client_sends": true,
   "client_listens": false

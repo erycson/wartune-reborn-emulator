@@ -12,7 +12,10 @@ Gera ``proto/opcodes.json`` e ``docs/packets.md``.
 
 Uso::
 
-    uv run python tools/scan_opcodes.py D:/wartune/decompiled/{m2,m3,m4,m5,m8,m10,m11,m15,m16}/scripts
+    uv run python tools/scan_opcodes.py D:/wartune/decompiled/m2/scripts D:/wartune/decompiled/m3/scripts \
+        D:/wartune/decompiled/m4/scripts D:/wartune/decompiled/m5/scripts D:/wartune/decompiled/m8/scripts \
+        D:/wartune/decompiled/m10/scripts D:/wartune/decompiled/m11/scripts \
+        D:/wartune/decompiled/m15/scripts D:/wartune/decompiled/m16/scripts
 """
 
 from __future__ import annotations
@@ -136,6 +139,8 @@ class Scanner:
                         self.c2s[code].add(self.resolve(arg[3:].strip()[:-2], imports, package))
                     elif t := var_type(body, arg):
                         self.c2s[code].add(self.resolve(t, imports, package))
+                    else:  # corpo existe, mas o tipo não é estático (ex.: param1:Message)
+                        self.c2s[code].add("?Message")
 
     @staticmethod
     def _read_types(body: str) -> list[str]:
@@ -188,6 +193,8 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("src/wartune_server/protocol/data/opcodes.json"))
     parser.add_argument("--doc", type=Path, default=Path("docs/packets.md"))
     args = parser.parse_args()
+    if missing := [str(r) for r in args.roots if not r.is_dir()]:
+        parser.error(f"diretório inexistente: {', '.join(missing)}")
 
     scanner = Scanner(json.loads(args.index.read_text(encoding="utf-8")))
     for root in args.roots:

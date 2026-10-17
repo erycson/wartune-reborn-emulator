@@ -665,7 +665,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8297 | 0x2069 | C_TOWER_INFO | TowerInfoReqMsg |  |
 | 8298 | 0x206A | C_REWARD_ARREST | RewardArrestMsg |  |
 | 8300 | 0x206C | C_TOWER_LIVE | PayTypeMsg |  |
-| 8301 | 0x206D | C_PLAYER_NODE_STATE | (sem corpo) |  |
+| 8301 | 0x206D | C_PLAYER_NODE_STATE | ?Message |  |
 | 8302 | 0x206E | C_GUIDE_FINISHED | (sem corpo) |  |
 | 8320 | 0x2080 | C_LUCKY_FRFRESH | PlayerLuckyMsg |  |
 | 8321 | 0x2081 | C_LUCKY_SWAP | PlayerLuckyMsg |  |
@@ -759,7 +759,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8594 | 0x2192 | C_FASHION_COMPOSE | StoreReqMsg |  |
 | 8595 | 0x2193 | C_FASHION_SWITCH | FashionMsg, StoreReqMsg |  |
 | 8597 | 0x2195 | C_APPELL_EXCHANGE | AppellExchangeMsg |  |
-| 8598 | 0x2196 | C_CC | SimplePropertyMsg |  |
+| 8598 | 0x2196 | C_CC | ?Message, SimplePropertyMsg |  |
 | 8604 | 0x219C | C_BOTTLE_OP | BottleOpMsg |  |
 | 8605 | 0x219D | U_C_HERO_RUNE_OP | HeroRuneOpMsg |  |
 | 8608 | 0x21A0 | C_VEHICLE_QUICK_PLAY | (sem corpo) |  |
@@ -777,7 +777,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8629 | 0x21B5 | C_GAME_STORY_REQUEST | GameStoryMsg |  |
 | 8630 | 0x21B6 | C_GAME_STORY_REWARD | (vazio) |  |
 | 8631 | 0x21B7 | C_FASHION_SPECIAL | FashionMsg |  |
-| 8632 | 0x21B8 | C_FLASH_SALE_FRESH | (sem corpo) |  |
+| 8632 | 0x21B8 | C_FLASH_SALE_FRESH | ?Message |  |
 | 8633 | 0x21B9 | C_ENTER_MINE_FIELD | (vazio), ChallengeRankRewardMsg |  |
 | 8634 | 0x21BA | C_BACK_PLAYER_REWARD | (vazio), ChallengeRankRewardMsg |  |
 | 8635 | 0x21BB | C_CHALLENGE_SELF | QuestInfo |  |
