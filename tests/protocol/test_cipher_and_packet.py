@@ -31,7 +31,10 @@ def test_encrypt_then_decrypt_keeps_state_across_packets() -> None:
     wire = b"".join(sender.encrypt(p.encode()) for p in packets)
 
     decoder = PacketDecoder(receiver)
-    out = [p for i in range(0, len(wire), 7) for p in decoder.feed(wire[i : i + 7])]
+    out = []
+    for i in range(0, len(wire), 7):
+        decoder.feed(wire[i : i + 7])
+        out += decoder.drain()
     assert out == packets
     assert sender.key == receiver.key  # as duas pontas avançaram igual
 
@@ -59,5 +62,23 @@ def test_high_opcode_is_unsigned_after_decode() -> None:
 
 
 def test_decoder_rejects_garbage() -> None:
+    decoder = PacketDecoder(StreamCipher())
+    decoder.feed(b"\x00" * 20)
     with pytest.raises(PacketError):
-        PacketDecoder(StreamCipher()).feed(b"\x00" * 20)
+        decoder.next_packet()
+
+
+def test_key_switch_between_packets_in_same_chunk() -> None:
+    """20001 e o pacote seguinte chegam juntos, mas o segundo já usa a chave nova."""
+    new_key = bytes(range(1, 9))
+    client = StreamCipher()
+    wire = client.encrypt(Packet(20001, b"login").encode())
+    client.reset(new_key)
+    wire += client.encrypt(Packet(8224, b"next").encode())
+
+    decoder = PacketDecoder(StreamCipher())
+    decoder.feed(wire)
+    assert decoder.next_packet() == Packet(20001, b"login")
+    decoder.cipher.reset(new_key)
+    assert decoder.next_packet() == Packet(8224, b"next")
+    assert decoder.next_packet() is None
