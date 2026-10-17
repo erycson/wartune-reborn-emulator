@@ -9,7 +9,8 @@ import pytest
 from tests.game.harness import logged_in
 from tests.test_end_to_end import DATA
 from wartune_server.domain.models import Item, Pet
-from wartune_server.game.handlers import forge, pets
+from wartune_server.game import bag
+from wartune_server.game.handlers import pets
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.templates.repository import GameTemplates
 
@@ -113,10 +114,10 @@ def test_receita_so_vale_se_o_pet_resultante_tem_template() -> None:
 
 def test_refino_sorteia_so_atributos_com_grade() -> None:
     templates = GameTemplates.parse((DATA / "xml/tempinfos.xml").read_bytes())
-    forge._refine_pool.clear()
-    pool = set(forge._pool(templates))
+    bag._random_pool.clear()
+    pool = set(bag.random_skill_pool(templates))
     # atributos vistos nas capturas (login, ciftlik, atolye_item_basma_ve_mozaik): todos com Grades 1-10
     assert {70941, 71157, 72141, 70218, 71033, 70302} <= pool
     # +0 com valor 500000 (Güç+0), Sihirli Saldırı de Grades 0 e "Asker Miktarı" (Conat) nunca saem
     assert not pool & {70100, 70800, 71200}
-    forge._refine_pool.clear()
+    bag._random_pool.clear()

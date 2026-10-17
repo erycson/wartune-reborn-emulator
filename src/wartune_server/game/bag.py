@@ -18,6 +18,8 @@ from .builders.player import item_moved
 BAG_BASE = 42  # PlayerInfo.bagDefaultCount
 RENTAL_SIZE = 217  # PlayerInfo.PLAYER_BAG_MAX_1 (mochila alugada)
 STORE_SIZE = 12  # bancada: 0 equipamento, 1 pedra da sorte; 0..11 na decomposição
+RANDOM_SKILLS = range(70000, 77200)  # SkillTempInfos dos atributos sorteados (randomSkill)
+_random_pool: list[int] = []
 # GoodsSonType.getSonTypePos: posições do equipamento do herói (bagType 4)
 HERO_SLOTS = {
     101: (0,),
@@ -61,6 +63,21 @@ def free_positions(snap: PlayerSnapshot, now: datetime) -> list[int]:
 
 def count_of(snap: PlayerSnapshot, template_id: int) -> int:
     return sum(i.count for i in in_bag(snap) if i.template_id == template_id)
+
+
+def random_skill_pool(templates: GameTemplates) -> list[int]:
+    """Atributos que o refino (8336) e a carta da masmorra sorteiam."""
+    # Grades 0 são placeholders (+0 com valor 500000, "Asker Miktarı" inteiro): nenhum dos 42 atributos
+    # sorteados nas capturas tem Grades 0; os demais têm 1 a 10
+    if not _random_pool:
+        _random_pool.extend(
+            int(r["TemplateId"])
+            for r in templates.rows("SkillTempInfos")
+            if int(r["TemplateId"]) in RANDOM_SKILLS
+            and int(r.get("Grades") or 0) > 0
+            and templates.get("SkillPropertyTempInfos", int(r["TemplateId"]))
+        )
+    return _random_pool
 
 
 def max_count(templates: GameTemplates, template_id: int) -> int:

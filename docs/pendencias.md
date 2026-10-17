@@ -77,7 +77,7 @@ Outros eventos:
 
 - Salas e times só em memória. Decisão: salas não persistem; times não persistem até haver captura de login com time; o contador de campanha multi (4240) deve persistir, mas falta o efeito do item "Büyük Sefer" e o reset (ver Persistência em salas-campanha.md).
 - Começar a campanha da sala (5039, visto no replay): responde 125, 140 e 21, mas precisa do mapa 1011 (exército inicial e nós). **depende de**: mapa de nós.
-- Caixa Pandora (5033 com S>C 29, mapId 879/880, nodeId 101107/102107): o 5033 só ecoa a escolha; falta a recompensa e a resposta do servidor (captura de abrir a caixa). Confirmar/terminar campanha (5180), carta (5122), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
+- Caixa Pandora (5033 com S>C 29, mapId 879/880, nodeId 101107/102107): o 5033 só ecoa a escolha; falta a recompensa e a resposta do servidor (captura de abrir a caixa). Confirmar/terminar campanha (5180), carta (5122: o sorteio da `Campaigns.Item` está pronto em `game/drops.py`, falta o fim de masmorra que chama; chance de cada item sem fonte, ver docs/drops-masmorras.md), névoa (5126, não é guardada), exército na campanha (5121, falta captura da resposta). **depende de**: mapa de nós 1011/2011 e progresso.
 - Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
 - Torre (8297/8300): limites vistos na captura; totalGp e itens **dependem de** progresso da torre.
 - Varredura (8528): falta captura do pedido C>S. Custos em `ConfigInfos` (campanha 5000 ouro e 300 s; labirinto 1000 e 30 s por andar). **depende de** progresso de campanha.
@@ -176,13 +176,14 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/arena.py:361](../src/wartune_server/game/arena.py#L361) | perda não observada, não tira pontos |
 | [game/arena.py:365](../src/wartune_server/game/arena.py#L365) | fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura |
 | [game/arena.py:406](../src/wartune_server/game/arena.py#L406) | ~ o dano da captura (golpe básico ≈ vida/40) |
-| [game/bag.py:75](../src/wartune_server/game/bag.py#L75) | o oficial sorteia randomSkill_1..N (RandomSkillCount); a tabela do sorteio não está nos |
+| [game/bag.py:92](../src/wartune_server/game/bag.py#L92) | o oficial sorteia randomSkill_1..N (RandomSkillCount); a tabela do sorteio não está nos |
 | [game/battle.py:267](../src/wartune_server/game/battle.py#L267) | a iniciativa do oficial não foi decifrada; aliados NPC, inimigos e o herói por último |
 | [game/battle.py:345](../src/wartune_server/game/battle.py#L345) | fórmula de dano desconhecida. PvE calibrado na captura do tutorial (herói mata os |
 | [game/builders/login.py:76](../src/wartune_server/game/builders/login.py#L76) | bate com o oficial no nível 1 (199); nível 3 dá 291 contra 278. Falta a fórmula real. |
 | [game/builders/login.py:243](../src/wartune_server/game/builders/login.py#L243) | 1 exército por personagem; tabela própria quando houver tropas extras |
 | [game/castle.py:80](../src/wartune_server/game/castle.py#L80) | sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem |
 | [game/castle.py:165](../src/wartune_server/game/castle.py#L165) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
+| [game/drops.py:32](../src/wartune_server/game/drops.py#L32) | sorteio uniforme e sem filtro de classe (o mesmo mago tirou 1080013, Job 3, e 1080002, |
 | [game/farm.py:19](../src/wartune_server/game/farm.py#L19) | sem upgrade de terra (opType 9 não tem sender) |
 | [game/gemmaze.py:90](../src/wartune_server/game/gemmaze.py#L90) | o período (dia, UTC) não foi capturado; os movimentos comprados não somem (fica o maior). |
 | [game/gemmaze.py:196](../src/wartune_server/game/gemmaze.py#L196) | 5 ou mais em linha segue a conta de 3 e 4 (não foi capturado) |
@@ -210,10 +211,10 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/farm.py:171](../src/wartune_server/game/handlers/farm.py#L171) | o texto do oficial (farm.view.FarmOperMenu.accelerateTip) não está decompilado; |
 | [game/handlers/farm.py:205](../src/wartune_server/game/handlers/farm.py#L205) | sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado) |
 | [game/handlers/farm.py:238](../src/wartune_server/game/handlers/farm.py#L238) | ações em fazenda de amigo ainda recusadas (lista de amigos), então tudo falso |
-| [game/handlers/forge.py:29](../src/wartune_server/game/handlers/forge.py#L29) | o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar) |
-| [game/handlers/forge.py:199](../src/wartune_server/game/handlers/forge.py#L199) | autoBuy (comprar o que falta) não |
-| [game/handlers/forge.py:211](../src/wartune_server/game/handlers/forge.py#L211) | o espaço é conferido antes de consumir (pode recusar quando os materiais liberariam lugar) |
-| [game/handlers/forge.py:268](../src/wartune_server/game/handlers/forge.py#L268) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos |
+| [game/handlers/forge.py:28](../src/wartune_server/game/handlers/forge.py#L28) | o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar) |
+| [game/handlers/forge.py:197](../src/wartune_server/game/handlers/forge.py#L197) | autoBuy (comprar o que falta) não |
+| [game/handlers/forge.py:209](../src/wartune_server/game/handlers/forge.py#L209) | o espaço é conferido antes de consumir (pode recusar quando os materiais liberariam lugar) |
+| [game/handlers/forge.py:252](../src/wartune_server/game/handlers/forge.py#L252) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos |
 | [game/handlers/friends.py:30](../src/wartune_server/game/handlers/friends.py#L30) | limites do cliente não achados (módulo de UI ausente) |
 | [game/handlers/friends.py:312](../src/wartune_server/game/handlers/friends.py#L312) | ``pageIndex`` tratado como 1-based (UI ausente). |
 | [game/handlers/gemmaze.py:71](../src/wartune_server/game/handlers/gemmaze.py#L71) | o oficial manda 0 para personagem novo; o contador não foi capturado |

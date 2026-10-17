@@ -23,12 +23,10 @@ S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89
 S_REFRESH, S_REPLACE, S_RESOLVE, S_REFRESH_PROPERTY = 4258, 4259, 4260, 4368
 LUCK, GEM, DRILL = "204", "205", 208004  # SonType da pedra da sorte e das pedras; Elmas Delici
 EQUIP = "1"  # MasterType dos equipamentos
-REFINE_SKILLS = range(70000, 77200)  # SkillTempInfos dos atributos sorteados (randomSkill)
 MAX_COMPOSE = 999
 
 # ponytail: o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar)
 _pending: dict[int, list[int]] = {}
-_refine_pool: list[int] = []
 
 
 def _store(snap: PlayerSnapshot, pos: int = 0) -> Item | None:
@@ -238,20 +236,6 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
 # --- refino dos atributos sorteados ---
 
 
-def _pool(templates: GameTemplates) -> list[int]:
-    # Grades 0 são placeholders (+0 com valor 500000, "Asker Miktarı" inteiro): nenhum dos 42 atributos
-    # sorteados nas capturas tem Grades 0; os demais têm 1 a 10
-    if not _refine_pool:
-        _refine_pool.extend(
-            int(r["TemplateId"])
-            for r in templates.rows("SkillTempInfos")
-            if int(r["TemplateId"]) in REFINE_SKILLS
-            and int(r.get("Grades") or 0) > 0
-            and templates.get("SkillPropertyTempInfos", int(r["TemplateId"]))
-        )
-    return _refine_pool
-
-
 @router.on(8336)
 async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
     """Sorteia os atributos do item da bancada gastando 1 pedra de refino (``ItemTempInfo.Refresh``);
@@ -267,7 +251,7 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
     item = found[0]
     # ponytail: a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos
     # com Grades > 0 (sem peso por nível: precisa de captura 8336 -> 4258); cadeados de graça (custo não achado)
-    pool, locks = _pool(s.ctx.templates), list(msg.lock) + [False] * 5
+    pool, locks = bag.random_skill_pool(s.ctx.templates), list(msg.lock) + [False] * 5
     skills = [cur if locks[i] else random.choice(pool) for i, cur in enumerate(item.random_skills[:slots])]
     changed, gone = bag.take(snap, stone, 1)
     _pending[item.id or 0] = skills
