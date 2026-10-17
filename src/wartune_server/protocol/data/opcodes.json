@@ -1,0 +1,11008 @@
+{
+ "0": {
+  "names": [
+   "U_C_PET_REMOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "1": {
+  "names": [
+   "U_C_PLAYER_NOVICE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "3": {
+  "names": [
+   "U_C_PLAYER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "BoxBoxMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "5": {
+  "names": [
+   "U_C_QUEST_ADD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "6": {
+  "names": [
+   "U_C_PLAYER_LOGINSTATEE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LoginStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "7": {
+  "names": [
+   "U_C_PLAYER_ADD_ATTACKCOUNT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8": {
+  "names": [
+   "U_C_USER_DISPLAY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "9": {
+  "names": [
+   "U_C_CAMPAIGN_ARRIVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "10": {
+  "names": [
+   "U_C_CAMPAIGN_SYNCPOS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "11": {
+  "names": [
+   "U_C_CAMPAIGN_WAITING_PLAYER_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomPlayerListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "12": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_CREATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "13": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "14": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_ENTER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "15": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_EXIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomExitRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "16": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_INVITE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomInviteMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "17": {
+  "names": [
+   "U_C_CAMPAGIN_ROOM_PLACESTATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlaceStateRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "18": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_MASTER_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "19": {
+  "names": [
+   "U_C_CAMPAIGN_FOG_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignFogUpdateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "20": {
+  "names": [
+   "U_C_CAMPAIGN_SYSTEM_ARMY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SystemArmyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "21": {
+  "names": [
+   "U_C_CAMPAIGN_ENTER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomEnterMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "22": {
+  "names": [
+   "U_C_CAMPAIGN_EXIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignExitMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "23": {
+  "names": [
+   "U_CAMPAIGN_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "24": {
+  "names": [
+   "U_C_PLAYER_READY_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerReadyRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "25": {
+  "names": [
+   "U_C_ROOM_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomStateRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "26": {
+  "names": [
+   "U_C_CAMPAIGN_TAKE_CARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignTakeCardsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "27": {
+  "names": [
+   "U_C_CAMPAIGN_ARMY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "28": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_KILLPLAYER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "KillPlayerRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "29": {
+  "names": [
+   "U_C_CAMPAIGN_CONFIRM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignConfirmMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "31": {
+  "names": [
+   "U_C_CAMPAIGN_CALLBACK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "32": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_EDIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "EditRoomRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "33": {
+  "names": [
+   "U_C_MAILITEM_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "34": {
+  "names": [
+   "U_C_CONSORTIA_CREATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "35": {
+  "names": [
+   "U_C_CONSORTIA_USERINVITE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "36": {
+  "names": [
+   "U_C_CONSORTIA_INVITEDEL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "37": {
+  "names": [
+   "U_C_CONSORTIA_USERPASS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "38": {
+  "names": [
+   "U_C_CONSORTIA_MODIFYBBS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "39": {
+  "names": [
+   "U_C_CONSORTIA_MODIFYDESC"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "40": {
+  "names": [
+   "U_C_CONSORTIA_PASS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "41": {
+  "names": [
+   "U_C_CONSORTIA_INVITE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "42": {
+  "names": [
+   "U_C_CONSORTIA_OFF"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "43": {
+  "names": [
+   "U_C_CONSORTIA_LEVEL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "44": {
+  "names": [
+   "U_C_CONSORTIA_DUTYEDIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "45": {
+  "names": [
+   "U_C_CONSORTIA_FRESHALTAR"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "47": {
+  "names": [
+   "U_C_CONSORTIA_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "48": {
+  "names": [
+   "U_C_CONSORTIA_LEARN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "49": {
+  "names": [
+   "U_C_CONSORTIA_RENAME"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "50": {
+  "names": [
+   "U_C_CONSORTIA_DUTYUPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "51": {
+  "names": [
+   "U_C_CONSORTIA_OPENAPP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "52": {
+  "names": [
+   "U_C_QUEST_FINISH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "QuestFinishedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "53": {
+  "names": [
+   "U_C_ARMY_ISSUPPORT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "54": {
+  "names": [
+   "U_C_BAG_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "55": {
+  "names": [
+   "U_C_BAG_USEITEM"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "56": {
+  "names": [
+   "U_C_BAG_SELL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "57": {
+  "names": [
+   "U_C_DROPITEM_TAKE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "58": {
+  "names": [
+   "U_C_BAG_BUY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "59": {
+  "names": [
+   "U_C_HERO_UPDATE_EQUIPMENT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "60": {
+  "names": [
+   "U_C_HERO_SKILL_UPGRADE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "UpdatedSkillMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "61": {
+  "names": [
+   "U_C_HERO_SKILLPOINT_RESET"
+  ],
+  "c2s": [],
+  "s2c": [
+   "UpdatedSkillMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "64": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "HeroFastKeyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "66": {
+  "names": [
+   "U_C_HERO_RESETPOINT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "67": {
+  "names": [
+   "U_C_HERO_ADDPOINT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "69": {
+  "names": [
+   "U_B_USER_STOP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "72": {
+  "names": [
+   "U_B_USER_REINFORCE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "74": {
+  "names": [
+   "U_B_USR_GUIDE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "75": {
+  "names": [
+   "U_B_HERO_ORDER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HeroOrderMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "76": {
+  "names": [
+   "U_B_QTE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "77": {
+  "names": [
+   "U_B_FIGHT_MODE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "78": {
+  "names": [
+   "U_CH_ADD_RELATIONSHIP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "79": {
+  "names": [
+   "U_CH_REMOVE_RELATIONSHIP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendRelationMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "83": {
+  "names": [
+   "U_CH_CHANNEL_CHA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChatChannelMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "84": {
+  "names": [
+   "U_CH_FRIENDADD_CONFIRM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendRelationMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "85": {
+  "names": [
+   "U_CH_RECOMMENDLIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RecommendListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "86": {
+  "names": [
+   "U_C_ITEM_STRENGTHEN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "87": {
+  "names": [
+   "U_C_ITEM_INLAY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "88": {
+  "names": [
+   "U_C_ITEM_INLAYJOIN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "89": {
+  "names": [
+   "U_C_ITEM_COMPOSE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StoreRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "90": {
+  "names": [
+   "U_C_SHOP_BUY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "91": {
+  "names": [
+   "U_C_GUID_STRENGY_ADDITEM"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "92": {
+  "names": [
+   "U_C_ARMY_RECRUITED"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyPawnUpdatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "93": {
+  "names": [
+   "U_C_ARMY_EDIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyEditRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "95": {
+  "names": [
+   "U_C_ARMY_UPGRADEPAWN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "97": {
+  "names": [
+   "U_C_ARMY_ATTACK_CASTLE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "98": {
+  "names": [
+   "U_C_ARMY_RETURNHOME"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OutercityRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "99": {
+  "names": [
+   "U_C_ARMY_RECALL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "100": {
+  "names": [
+   "U_C_ARMY_UPDATE_ARMYPAWN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyPawnUpdatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "101": {
+  "names": [
+   "U_C_BUIDLING_TRANS_COOL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "102": {
+  "names": [
+   "U_C_BUILDING_ORDER_QUICK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OrderQuickRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "103": {
+  "names": [
+   "U_C_BUILDING_UPENERGY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TransInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "104": {
+  "names": [
+   "U_C_BUILDING_ORDERADD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OrderInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "105": {
+  "names": [
+   "U_C_BUILDING_TRANSCASTLE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CastleReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "106": {
+  "names": [
+   "U_C_TREE_PICK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "108": {
+  "names": [
+   "U_C_UNOCCPWILDLAND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GiveupWildLandMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "109": {
+  "names": [
+   "U_C_CASTLE_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CastleYieldMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "110": {
+  "names": [
+   "U_C_PLAYER_EFFECT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PropertyUpdatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "111": {
+  "names": [
+   "U_C_CHANNEL_ALERT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChatChannelMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "112": {
+  "names": [
+   "U_C_QUEST_UPDAT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "QuestUpdatedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "113": {
+  "names": [
+   "U_C_HERO_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimpleHeroInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "114": {
+  "names": [
+   "U_C_MAILITEM_MOVE_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MailPickupRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "115": {
+  "names": [
+   "U_C_BAG_MOVE_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ItemMovedListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "116": {
+  "names": [
+   "U_C_PAWN_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyPawnInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "117": {
+  "names": [
+   "U_C_CONSORTIA_STATIC"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "118": {
+  "names": [
+   "U_C_CASTLE_DEFENSE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CastleDefenseRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "120": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_MEMBER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomPlayerListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "121": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_MASTER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChangeMasterRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "122": {
+  "names": [
+   "U_C_CAMPAIGN_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "123": {
+  "names": [
+   "U_C_CAMPAIGN_LOGIN_OUT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignLoginMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "124": {
+  "names": [
+   "U_C_CAMPAIGN_LOGIN_IN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignLoginMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "125": {
+  "names": [
+   "U_C_CAMPAIGN_CREATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomCreatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "126": {
+  "names": [
+   "U_C_MSG"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignNotifyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "127": {
+  "names": [
+   "U_C_CAMPAIGN_NODE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignNodeListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "128": {
+  "names": [
+   "U_C_CAMPAIGN_NODE_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignNodeUpdateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "129": {
+  "names": [
+   "U_C_NODE_SUCCESS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignNodeSuccMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "130": {
+  "names": [
+   "U_C_CAMPAIGN_FOG"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignFogMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "131": {
+  "names": [
+   "U_C_CAMPAIGN_ARMY_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyArmyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "132": {
+  "names": [
+   "U_C_CAMPAIGN_BOSS_ARMY_INVITE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BossInviteMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "133": {
+  "names": [
+   "U_C_CAMPAIGN_BOSS_ARMY_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BossArmyListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "134": {
+  "names": [
+   "U_C_CAMPAIGN_FINISH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "135": {
+  "names": [
+   "U_C_CAMPAIGN_CARDS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignCardsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "136": {
+  "names": [
+   "U_C_WIN_CONDITIONS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "137": {
+  "names": [
+   "U_C_CAMPAIGN_REPORT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "138": {
+  "names": [
+   "U_C_GAME_PLOT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlotMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "139": {
+  "names": [
+   "U_C_ARMY_SUPPROT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "140": {
+  "names": [
+   "U_C_MAPDATA_SYNC"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "141": {
+  "names": [
+   "U_C_LOCK_SCREEN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LockScreenRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "142": {
+  "names": [
+   "U_C_CAMERA_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerMoveCameraMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "143": {
+  "names": [
+   "U_C_PLAY_MOVIE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "144": {
+  "names": [
+   "U_C_BATTLE_ARMY_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "145": {
+  "names": [
+   "U_C_WATERLOG_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FarmLogRsp"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "146": {
+  "names": [
+   "U_C_HARVEST_MSG"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "147": {
+  "names": [
+   "U_C_TREEINFO_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TreeUpdateRsp"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "148": {
+  "names": [
+   "U_C_NEW_MAIL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MailMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "149": {
+  "names": [
+   "U_C_HERO_BROAD_EQUIPMENT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HeroEquUpdatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "150": {
+  "names": [
+   "U_C_SERIAL_ARMY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "151": {
+  "names": [
+   "U_C_BUILDING_ORDER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OrderInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "152": {
+  "names": [
+   "U_C_SECURITY_INFO_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CastleYieldMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "153": {
+  "names": [
+   "U_B_ATTACKING"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "154": {
+  "names": [
+   "U_B_PREPARE_OVER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "156": {
+  "names": [
+   "U_B_START"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "157": {
+  "names": [
+   "U_B_PREPARE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "158": {
+  "names": [
+   "U_B_USE_ITEM_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ItemUseResultMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "159": {
+  "names": [
+   "U_B_GAME_OVER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "160": {
+  "names": [
+   "U_CH_FRIEND_LOGIN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendRelationMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "161": {
+  "names": [
+   "U_CH_FRIEND_LOGOUT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendRelationMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "162": {
+  "names": [
+   "U_CH_CONSORTIA_USERLOGIN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "163": {
+  "names": [
+   "U_CH_CONSORTIA_USERLOGOUT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "164": {
+  "names": [
+   "U_CH_CONSORTIA_FRESHINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "165": {
+  "names": [
+   "U_CH_FRIEND_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "169": {
+  "names": [
+   "U_C_ARMY_UPDATE_GRID"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OutercityArmyUpdatedGridMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "170": {
+  "names": [
+   "U_C_FAST_USE_BLOOD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FastUseBloodMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "171": {
+  "names": [
+   "U_C_BATTLE_TALK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "187": {
+  "names": [
+   "U_C_ORE_MINE_RESP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OreMineRespMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "188": {
+  "names": [
+   "U_C_ORE_MINE_BASE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OreActiveBaseInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "189": {
+  "names": [
+   "U_C_ORE_WINDOW_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OreWindowMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "190": {
+  "names": [
+   "U_C_ORE_ACTIVE_OPEN_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "295": {
+  "names": [
+   "U_C_BOTTLE_DROP_DATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BottleDropListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "300": {
+  "names": [
+   "U_C_GOLDENROAD_CLOSE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "301": {
+  "names": [
+   "U_C_FASHION_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FashionInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "337": {
+  "names": [
+   "U_C_MAIL_CHECK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MailCheckMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "338": {
+  "names": [
+   "U_C_GROUPON_DROPITEM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VipRouletteMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "345": {
+  "names": [
+   "U_C_CONSUM_RANK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChargeRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "357": {
+  "names": [
+   "U_C_MARRIAGE_DATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageDataMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "358": {
+  "names": [
+   "U_C_MARRIAGE_DEAL_DIVORCE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "359": {
+  "names": [
+   "U_C_MARRIAGE_RECOMMENDLIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RecommendListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "363": {
+  "names": [
+   "U_C_LUCK_EXCHANGE_TEMP_MSG"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LuckExchangeTempListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "364": {
+  "names": [
+   "U_C_LUCK_EXCHANGE_DATA_MSG"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LuckExchangeInfoListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "365": {
+  "names": [
+   "U_C_MATE_SKILL_SHOP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AltarShopListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "414": {
+  "names": [
+   "U_C_CHAIRS_OPENSTATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "415": {
+  "names": [
+   "U_C_CHAIRS_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChairsListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "439": {
+  "names": [
+   "U_C_SNOW_ARM_LIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "513": {
+  "names": [
+   "U_C_SUPER_SIGNIN_CARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SuperSigninCardRespMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "514": {
+  "names": [
+   "U_C_SUPER_SIGNIN_CARD_TEMP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SuperSigninRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "3841": {
+  "names": [
+   "U_G_LOGIN_GATEWAY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "3842": {
+  "names": [
+   "U_G_LOGIN_OTHER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GatewayMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4103": {
+  "names": [
+   "U_BATTLE_REPORT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BattleReportMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4104": {
+  "names": [
+   "U_C_ARMY_POS_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyPosUpdatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4105": {
+  "names": [
+   "U_C_NPC_CHASE_ARMY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "NPCChaseMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4122": {
+  "names": [
+   "U_C_NPC_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "NPCMoveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4123": {
+  "names": [
+   "U_C_ESCORT_NPC_ADD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4124": {
+  "names": [
+   "U_C_ESCORT_NPC_FOLLOW"
+  ],
+  "c2s": [],
+  "s2c": [
+   "NPCFollowMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4125": {
+  "names": [
+   "U_C_BAG_EQUIPLOOK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4126": {
+  "names": [
+   "U_C_SEND_STANDPOS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StandPosMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4127": {
+  "names": [
+   "U_C_SMALL_MAPFOG"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4128": {
+  "names": [
+   "U_C_SIMPLEUSER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "InfoRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4129": {
+  "names": [
+   "U_C_PHYSIC_LIST_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PhysicListUpdateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4130": {
+  "names": [
+   "U_C_BUILDINGINFO_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BuildingInfoListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4131": {
+  "names": [
+   "U_C_MAIL_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ReceiveMailMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4132": {
+  "names": [
+   "U_C_MAIL_DEL_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MailDelReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4133": {
+  "names": [
+   "U_C_CONSORTIAUSER_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePlayerListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4134": {
+  "names": [
+   "U_C_CONSORTIA_OFFER_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaContributeRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4135": {
+  "names": [
+   "U_C_INVITEINFO_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaUserInviteInfoListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4136": {
+  "names": [
+   "U_C_EVENT_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaEventListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4137": {
+  "names": [
+   "U_C_DUTY_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaDutyListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4138": {
+  "names": [
+   "U_C_CONSORTIA_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4139": {
+  "names": [
+   "U_C_CONSORTIA_SEARCH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaSearchRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4140": {
+  "names": [
+   "U_C_CONSORTIA_INVITE_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePlayerListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4141": {
+  "names": [
+   "U_C_CONSORTIA_ALTERINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4142": {
+  "names": [
+   "U_C_CONSORTIA_ALTERITEM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ItemInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4143": {
+  "names": [
+   "U_C_CONSORTIA_ADDFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4144": {
+  "names": [
+   "U_C_CONSORTIA_SITE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4145": {
+  "names": [
+   "U_C_SHOP_HASBUY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4146": {
+  "names": [
+   "U_C_TREE_FRIEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendTreeRsp"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4148": {
+  "names": [
+   "U_C_CHECK_NICK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CheckNickMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4149": {
+  "names": [
+   "U_B_LOAD_RES"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4150": {
+  "names": [
+   "U_C_LEED_RECEIVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LeedFinishedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4151": {
+  "names": [
+   "U_C_RANK_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RankListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4152": {
+  "names": [
+   "U_C_LEED_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LeedUpdatedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4153": {
+  "names": [
+   "U_C_LOAD_CASTLE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BaseCastleMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4154": {
+  "names": [
+   "U_C_LOAD_BUILD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BuildingInfoListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4155": {
+  "names": [
+   "U_C_LOAD_BUILD_ORDER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BuildOrderList"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4156": {
+  "names": [
+   "U_C_LOAD_FRIEND_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendRelationList"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4157": {
+  "names": [
+   "U_C_LOAD_WATER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LoadFarmRsp"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4158": {
+  "names": [
+   "U_C_SEND_WATER_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FarmLogRsp"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4159": {
+  "names": [
+   "U_C_TRASNBUILDING_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CastleReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4160": {
+  "names": [
+   "U_C_SEND_SYSPROPERTY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SystemPropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4161": {
+  "names": [
+   "U_C_INVITE_PLAYER_LIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4162": {
+  "names": [
+   "U_C_PLAYER_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4163": {
+  "names": [
+   "U_C_NPC_CHAT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "NPCChatMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4164": {
+  "names": [
+   "U_C_ARMY_CHANGESHARP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyChangeSharpMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4165": {
+  "names": [
+   "U_C_BUFFER_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignBufferMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4166": {
+  "names": [
+   "U_B_FIGHT_CANCELED"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4167": {
+  "names": [
+   "U_C_BROAD_POS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PosMoveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4168": {
+  "names": [
+   "U_C_ARMY_REMOVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyRemoveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4169": {
+  "names": [
+   "U_C_CHALLENGE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChallengeInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4170": {
+  "names": [
+   "U_C_PLAYER_SEARCH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4171": {
+  "names": [
+   "U_C_WORLD_BOSSINFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4172": {
+  "names": [
+   "U_C_PLAYER_AASCHANGE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerAASRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4173": {
+  "names": [
+   "U_C_PLAYER_AASREFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerAASRefreshMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4174": {
+  "names": [
+   "U_C_SYNC_BOSS_HP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4175": {
+  "names": [
+   "U_C_PLAYER_DIE_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerStateListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4176": {
+  "names": [
+   "U_C_CHALLENGE_TIME"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChallengeCoolTimeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4177": {
+  "names": [
+   "U_C_PLAYER_SIGN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerSignRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4178": {
+  "names": [
+   "U_C_START_MOVE_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StarMoveRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4179": {
+  "names": [
+   "U_C_STAR_PICK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StarRandRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4180": {
+  "names": [
+   "U_C_STAR_RAND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StarRandRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4182": {
+  "names": [
+   "U_C_CAMPAIGN_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4183": {
+  "names": [
+   "U_C_MULTI_HPSYNC"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MultiCampaignHpSyncMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4184": {
+  "names": [
+   "U_C_ITEM_SMITH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ItemSmithyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4185": {
+  "names": [
+   "U_C_ARMYPOS_BROAD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PosMoveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4186": {
+  "names": [
+   "U_C_CAMPAIGN_ARMYPOS_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyFightPosEditListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4187": {
+  "names": [
+   "U_C_BUILDING_ORDER_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BuildOrderList"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4188": {
+  "names": [
+   "U_C_ITEM_BUFFER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ItemBufferRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4189": {
+  "names": [
+   "U_C_PICK_HARVEST_MSG"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4190": {
+  "names": [
+   "U_C_CANWATER_USERS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4191": {
+  "names": [
+   "U_C_ACTIVE_CHECK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4192": {
+  "names": [
+   "U_C_SINGLEROOM_FAIL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4193": {
+  "names": [
+   "U_C_REFUSEFRIEND_REFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RefuseFriendRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4194": {
+  "names": [
+   "U_C_REFUSEINVITE_REFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RefuseFriendRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4195": {
+  "names": [
+   "U_C_OFFLINE_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OfflineRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4197": {
+  "names": [
+   "U_C_REWARD_FRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RewardFreshRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4198": {
+  "names": [
+   "U_C_REWARD_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RewardUpdatedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4199": {
+  "names": [
+   "U_C_LEFT_WEARY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HangupInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4200": {
+  "names": [
+   "U_C_HANGUP_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HangupInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4201": {
+  "names": [
+   "U_C_MATCH_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MatchStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4202": {
+  "names": [
+   "U_C_DATARESET"
+  ],
+  "c2s": [],
+  "s2c": [
+   "DataResetMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4203": {
+  "names": [
+   "U_C_WORLDBOSS_REPORT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossReportMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4204": {
+  "names": [
+   "U_C_HANGUP_ROOM_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HangupStateListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4205": {
+  "names": [
+   "U_C_TOWERINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TowerInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4206": {
+  "names": [
+   "U_C_PLAYER_HANGUPSTATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerHangupStateListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4207": {
+  "names": [
+   "U_C_TOWER_DIED"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4208": {
+  "names": [
+   "U_C_PLAYER_NODE_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerNodeStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4224": {
+  "names": [
+   "U_C_LUCKY_REFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerLuckyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4227": {
+  "names": [
+   "U_CH_ADD_GROUP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendGroupMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4228": {
+  "names": [
+   "U_CH_DEL_GROUP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendGroupMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4229": {
+  "names": [
+   "U_CH_RENAME_GROUP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendGroupMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4230": {
+  "names": [
+   "U_CH_FRIEND_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MoveFriendReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4231": {
+  "names": [
+   "U_CH_PRIVATE_CHAT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChatFriendMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4232": {
+  "names": [
+   "U_CH_EXCHANGE_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChatStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4233": {
+  "names": [
+   "U_C_SEND_VERSION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VersionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4234": {
+  "names": [
+   "U_C_SYNCHRONIZED_TIME"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SynchronizedTimeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4235": {
+  "names": [
+   "U_C_HANGUP_SYNC"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HangupInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4236": {
+  "names": [
+   "U_CH_PRIVATE_CHAT_REPLY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChatFriendMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4237": {
+  "names": [
+   "U_C_ARMY_POSATION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyPositionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4238": {
+  "names": [
+   "U_C_SHOP_MAIN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopMainRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4239": {
+  "names": [
+   "U_CH_SNS_UPDATED"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SNSUpdatedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4240": {
+  "names": [
+   "U_C_ENTER_COPY_NUM_REFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MultiCampaignEnterCountMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4241": {
+  "names": [
+   "U_C_ARMYPOS_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyPositionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4242": {
+  "names": [
+   "U_C_GOLD_IMPOSERESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GoldImposeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4243": {
+  "names": [
+   "U_C_TAKECHALLENGE_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChallengeRankRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4244": {
+  "names": [
+   "U_C_ISTAKE_CHALLENGEREWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChallengeRankRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4245": {
+  "names": [
+   "U_CH_SNS_REQ"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SNSInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4246": {
+  "names": [
+   "U_CH_FRIEND_ADDED"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendAddedMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4247": {
+  "names": [
+   "U_C_RATE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RateUpdateReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4248": {
+  "names": [
+   "U_C_WARFIELD_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4250": {
+  "names": [
+   "U_C_PLAYER_TIMESTAR"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4251": {
+  "names": [
+   "U_C_ACTIVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ActiveRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4252": {
+  "names": [
+   "U_C_WARFIELD_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WarFightInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4253": {
+  "names": [
+   "U_C_NODEPOS_REFERSH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignNodePosRefershListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4254": {
+  "names": [
+   "U_C_WARREPORT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4255": {
+  "names": [
+   "U_C_ORDERREQUEST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WarReportListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4256": {
+  "names": [
+   "U_CH_SIMPLEUSER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RelationPlayerMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4258": {
+  "names": [
+   "U_C_REFRESHFORRANDOM"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4259": {
+  "names": [
+   "U_C_REFRESHFORREPLACE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4260": {
+  "names": [
+   "U_C_RESOLVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4261": {
+  "names": [
+   "U_C_STARSHOP_BUY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4262": {
+  "names": [
+   "U_C_BROADBUFFER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ArmyBufferListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4263": {
+  "names": [
+   "U_C_ARMYPOS_FAIL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4264": {
+  "names": [
+   "U_C_CAMPAIGN_NODE_ADD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignNodeListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4265": {
+  "names": [
+   "U_C_RELOADDIRTY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4266": {
+  "names": [
+   "U_C_CONSORTIA_PASS_USER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4267": {
+  "names": [
+   "U_C_CONSORTIA_LINK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaLinkRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4268": {
+  "names": [
+   "U_C_TAKEDROP_FAIL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BattleReportMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4269": {
+  "names": [
+   "U_C_WARMOVIE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4270": {
+  "names": [
+   "U_C_ROOM_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4271": {
+  "names": [
+   "U_C_PLAYER_RENAME_RSP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerRenameRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4272": {
+  "names": [
+   "U_CH_CHAT_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChatStateListRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4273": {
+  "names": [
+   "U_CH_FRIEND_SEARCH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FriendSearchRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4352": {
+  "names": [
+   "U_C_MALL_SELL_ITEM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SellItemRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4353": {
+  "names": [
+   "U_C_MALL_LIST_SELL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AuctionItemsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4354": {
+  "names": [
+   "U_C_MALL_PLAYER_ITEMS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AuctionItemsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4355": {
+  "names": [
+   "U_C_MALL_AUCTION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AuctionItemRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4356": {
+  "names": [
+   "U_C_MALL_LIST_AUCTION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AuctionItemsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4357": {
+  "names": [
+   "U_C_MALL_FIX_AUCTION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FixAuctionItemRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4358": {
+  "names": [
+   "U_C_MALL_CANCEL_SELL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CanceltemRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4359": {
+  "names": [
+   "U_C_MALL_SEARCH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AuctionItemsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4360": {
+  "names": [
+   "U_C_REWARD_COUNT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RewardCountUpdateRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4361": {
+  "names": [
+   "U_B_BATTLE_NOTICE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4368": {
+  "names": [
+   "U_C_ITEM_REFRESHPROPERTY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4369": {
+  "names": [
+   "C_WORLDBOSSWOUND_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossWoundRewardListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4370": {
+  "names": [
+   "U_C_ROOM_FIND_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4371": {
+  "names": [
+   "U_C_TIME_JUDGE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TimeJudgeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4372": {
+  "names": [
+   "U_C_REFININGSOUL_FRFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerRefiningSoulMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4373": {
+  "names": [
+   "U_C_TOWERLIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TowerListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4374": {
+  "names": [
+   "U_C_WORLDBOSS_BUFFER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4375": {
+  "names": [
+   "U_C_SHOP_DISCOUNT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MainDiscountInfo"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4376": {
+  "names": [
+   "U_C_QUESTION_REPLAY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ReplayListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4377": {
+  "names": [
+   "U_C_REQUEST_GUILDCHALLENGE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildChallengeOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4379": {
+  "names": [
+   "U_C_REQUEST_GUILDLIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildChallengeOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4380": {
+  "names": [
+   "U_C_SEND_NEEDOFFER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4381": {
+  "names": [
+   "U_C_WORLDBOSS_LOAD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossInfoLoadMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4382": {
+  "names": [
+   "U_C_PLAY_GETMOIVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4383": {
+  "names": [
+   "U_C_SHOPITEM_BUY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopItemBuyRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4384": {
+  "names": [
+   "U_C_SHOPITEM_FRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopFreshRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4386": {
+  "names": [
+   "U_C_FARM_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FarmInfoRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4387": {
+  "names": [
+   "U_C_FARMLAND_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FarmInfoRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4388": {
+  "names": [
+   "U_C_SNSINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SnsRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4389": {
+  "names": [
+   "U_C_CONSORTIA_VOTING_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaVotingUsersMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4390": {
+  "names": [
+   "U_C_CONSORTIA_VOTING"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaVotingRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4391": {
+  "names": [
+   "U_C_BLESS_REFRESH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4392": {
+  "names": [
+   "U_C_OPEN_CUSTOMER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FastOpenCustomerMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4393": {
+  "names": [
+   "U_C_DAYACTION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "DayActiveRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4401": {
+  "names": [
+   "U_C_SEND_CHECKSUCC"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4402": {
+  "names": [
+   "U_C_SECURITY_CODE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CheckImageMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4404": {
+  "names": [
+   "U_C_TEAMEDIT_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4410": {
+  "names": [
+   "U_C_VIP_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VipInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4412": {
+  "names": [
+   "U_C_CLICKDATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ClickDatasRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4413": {
+  "names": [
+   "U_C_CLICKADD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4414": {
+  "names": [
+   "U_C_OPENVIPROULETTE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VipRouletteMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4415": {
+  "names": [
+   "U_C_VIPROULETTE_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VipRouletteMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4416": {
+  "names": [
+   "U_C_VIP_OPENTIPS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4419": {
+  "names": [
+   "U_C_TOWER_REPORT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TowerInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4420": {
+  "names": [
+   "U_C_CHECK_SEND"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4421": {
+  "names": [
+   "U_C_HANGUP_PVP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HangupAttackMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4422": {
+  "names": [
+   "U_C_SWITCH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SwitchInfoListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4423": {
+  "names": [
+   "U_C_REPLACEMENT_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ReplacementMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4424": {
+  "names": [
+   "U_C_OPRATE_REPLACEMENT_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "OprateReplacemntMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4425": {
+  "names": [
+   "U_C_CAMPAIGN_SWEEP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignSweepRsp"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4426": {
+  "names": [
+   "U_C_MOUNT_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4427": {
+  "names": [
+   "U_C_MOUNT_AVATARLIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4428": {
+  "names": [
+   "U_C_QUESTIONNARIE_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "QuestionnarieInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4429": {
+  "names": [
+   "U_C_QUESTIONNARIE_ANSWER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "QuestionDataRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4430": {
+  "names": [
+   "U_C_TALENT_GRADE_UP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TalentUpGradeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4431": {
+  "names": [
+   "U_C_TALENT_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HeroTalentMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4432": {
+  "names": [
+   "U_C_FAM_TREE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FamInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4433": {
+  "names": [
+   "U_C_ACTIVE_EXCHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4434": {
+  "names": [
+   "U_C_KING_CONTRACTE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "KingContractMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4435": {
+  "names": [
+   "U_C_ADD_BOSS_HP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BossHpMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4436": {
+  "names": [
+   "U_C_OPEN_CONSORTIA__ALTAR"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaAltarOpenRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4437": {
+  "names": [
+   "U_C_CONSORTIA_ALTAR_REPORT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AltarCampaignReportMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4438": {
+  "names": [
+   "U_C_WORLD_PROSPERITY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4439": {
+  "names": [
+   "U_C_GUILDWAR_SCORE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildWarInfoListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4440": {
+  "names": [
+   "U_C_GUILDWAR_BUFFER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildBufferListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4441": {
+  "names": [
+   "U_C_GUILDWAR_TEAM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildGroupListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4448": {
+  "names": [
+   "U_C_ALTARNPC_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4449": {
+  "names": [
+   "U_C_ALTAROVER_MSG"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4450": {
+  "names": [
+   "U_C_NODE_HP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "NodeHpListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4451": {
+  "names": [
+   "U_C_GUILDWAR_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4452": {
+  "names": [
+   "U_C_CASTLE_TIME"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BaseCastleMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4453": {
+  "names": [
+   "U_C_FAM_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FamInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4454": {
+  "names": [
+   "U_C_CONSORTIA_EVENT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4455": {
+  "names": [
+   "U_C_CONSORTIA_VIP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VipToConsortiaMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4456": {
+  "names": [
+   "U_C_CAMPIAGN_OPEN_MV"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4457": {
+  "names": [
+   "U_C_GUILDWAR_OPEN_LEFTTIME"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4458": {
+  "names": [
+   "U_C_GUILDLAST_WEEK_ORDER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildGroupListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4459": {
+  "names": [
+   "U_C_MOUNT_INFO_SEND"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4460": {
+  "names": [
+   "U_C_GUILDWAR_WOUND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "WorldBossInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4461": {
+  "names": [
+   "U_C_REBATE_ACTIVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RebateInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4462": {
+  "names": [
+   "U_C_GUILDWAR_JOIN_PLAYER_COUNT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildJoinPlayerInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4463": {
+  "names": [
+   "U_C_REBATE_DATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "UserRebateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4464": {
+  "names": [
+   "U_C_CROSS_USER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimpleHeroInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4465": {
+  "names": [
+   "U_C_CONSORTIA_TREASURE_BOX"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaTreasureBoxMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4466": {
+  "names": [
+   "U_C_CONSORTIA_BOX_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ConsortiaStorageInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4467": {
+  "names": [
+   "U_BUY_TRIAL_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TrialInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4468": {
+  "names": [
+   "U_HERO_TRIAL_IFNO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerTrialMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4470": {
+  "names": [
+   "U_C_MYSTERYEVENT_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MysteryEventListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4471": {
+  "names": [
+   "U_C_DAYGESTE_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4474": {
+  "names": [
+   "U_C_VEHICLE_NPC_NODE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4475": {
+  "names": [
+   "U_C_SUM_ACTIVE_TEMP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SumActivesMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4476": {
+  "names": [
+   "U_C_SUMACTIVE_DATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SumActiveDataMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4477": {
+  "names": [
+   "U_C_VEHICLE_SYNC_POSITION"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4478": {
+  "names": [
+   "U_C_VEHICLE_SWITCH_MONITOR"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4479": {
+  "names": [
+   "U_C_STAR_COMPOSE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StarRandRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4481": {
+  "names": [
+   "U_C_ISTAKE_CROSS_SCORE_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChallengeRankRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4482": {
+  "names": [
+   "U_C_CROSS_SCORE_REWARD_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChallengeRankRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4483": {
+  "names": [
+   "U_WARFIELD_FORCE_QUIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4484": {
+  "names": [
+   "U_APPELL_DATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AppellsMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4485": {
+  "names": [
+   "U_CONSORTIA_ALTAR_USE_SKILL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AltarCampaignSkillMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4486": {
+  "names": [
+   "U_C_FASHION_SHOP_BUY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4487": {
+  "names": [
+   "U_C_FASHION_COMPOSE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "StoreRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4488": {
+  "names": [
+   "U_C_FASHION_SWITCH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4490": {
+  "names": [
+   "U_CCC"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4491": {
+  "names": [
+   "U_APPELL_GET"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4492": {
+  "names": [
+   "U_C_GAMETIMES_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4493": {
+  "names": [
+   "U_CHECK_WARFIELD_COUNT_RS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4494": {
+  "names": [
+   "U_C_CROSS_ARMY_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CrossArmyListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4495": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "HeroRuneOpMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4497": {
+  "names": [
+   "U_C_BOTTLE_PASS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BottlePassMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4500": {
+  "names": [
+   "U_C_SMALL_BUGLE_FREE_COUNT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4501": {
+  "names": [
+   "U_C_VEHICLE_TECH_RSP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4512": {
+  "names": [
+   "U_C_VEHICLE_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MatchStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4513": {
+  "names": [
+   "U_C_VEHICLE_JOIN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4514": {
+  "names": [
+   "U_C_VEHICLE_END"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4515": {
+  "names": [
+   "U_C_VEHICLE_PROFILE_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerVehicleProfileMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4516": {
+  "names": [
+   "U_C_VEHICLE_LIST_RSP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerVehicleListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4517": {
+  "names": [
+   "U_C_VEHICLE_CAMPAIGN_LIST_RSP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4518": {
+  "names": [
+   "U_C_VEHICLE_DETAILE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4519": {
+  "names": [
+   "U_C_VEHICLE_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4520": {
+  "names": [
+   "U_C_VEHICLE_ATTACK_RSP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VehicleAttackRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4521": {
+  "names": [
+   "U_C_VEHICLE_SYNC_SKILL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4522": {
+  "names": [
+   "U_C_VEHICLE_SYNC_BUFF"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4523": {
+  "names": [
+   "U_C_VEHICLE_EXIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4524": {
+  "names": [
+   "U_C_VEHICLE_BOSS_ATTACK_TIP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4525": {
+  "names": [
+   "U_C_VEHICLE_ROOM_START_COUNT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4526": {
+  "names": [
+   "U_C_BOTTLE_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BottleScoreMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4527": {
+  "names": [
+   "U_C_RUNE_RESET"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4529": {
+  "names": [
+   "U_C_LORDS_LOAD_MAINBORAD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LordsOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4530": {
+  "names": [
+   "U_C_LORDS_ENTER_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LordsOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4531": {
+  "names": [
+   "U_C_LORDS_FINAL_ORDERLIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LordsOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4532": {
+  "names": [
+   "U_C_REQUEST_BET_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LordsOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4533": {
+  "names": [
+   "U_C_SEND_FINALRWARD_STATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4534": {
+  "names": [
+   "U_C_TAKEFINALREWARD_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4535": {
+  "names": [
+   "U_C_LORDS_OPENSTATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4536": {
+  "names": [
+   "U_C_LORDS_CLOSE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4537": {
+  "names": [
+   "U_C_LORDS_LOCAL_FIANL_ORDER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LordsOrderListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4538": {
+  "names": [
+   "U_C_LORDS_FINAL_TIPS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4539": {
+  "names": [
+   "U_C_VIP_FIRST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4540": {
+  "names": [
+   "U_C_PLAYER_PETINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerPetMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4541": {
+  "names": [
+   "U_C_CROSS_BIGBUGLE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CrossBigBugleMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4542": {
+  "names": [
+   "U_C_FASHION_BOOK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FashionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4543": {
+  "names": [
+   "U_C_REQUEST_360_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PrivilegeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4544": {
+  "names": [
+   "U_C_FATE_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FateListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4545": {
+  "names": [
+   "U_C_FATE_TURNREQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4546": {
+  "names": [
+   "U_C_GAME_STORY_DROP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4547": {
+  "names": [
+   "U_C_FLASHSALE_FRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4548": {
+  "names": [
+   "U_C_SYNC_MINE_TRAMCAR"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TramcarInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4549": {
+  "names": [
+   "U_C_MINE_ACTIVE_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4550": {
+  "names": [
+   "U_C_NEW_PLAYER_GIFT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4551": {
+  "names": [
+   "U_C_UPDATE_AREA"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4552": {
+  "names": [
+   "U_C_RES_SINGLEPASS_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4553": {
+  "names": [
+   "U_C_BUGLE_REQ"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4554": {
+  "names": [
+   "U_C_BUGLE_REWARDS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4555": {
+  "names": [
+   "U_C_DRAGON_REQ"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4556": {
+  "names": [
+   "U_C_TRANSFER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4557": {
+  "names": [
+   "U_C_TRANS_GRADE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4558": {
+  "names": [
+   "U_C_MOULD_ITEM"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4559": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "GrouponShopMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4560": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "GrouponShopMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4590": {
+  "names": [
+   "U_C_TOP_TOOL_BTN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4592": {
+  "names": [
+   "U_C_PLAYER_SPACE_ENTER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomEnterMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4593": {
+  "names": [
+   "U_C_PLAYER_SPACE_LEAVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CampaignExitMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4594": {
+  "names": [
+   "U_C_PLAYER_SPACE_SYNC_POS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4595": {
+  "names": [
+   "U_C_PLAYER_SPACE_CREATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomEnterMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4597": {
+  "names": [
+   "U_C_PLAYER_SPACE_SEND_EXSIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomEnterMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4598": {
+  "names": [
+   "U_C_PLAYER_LOGIN_SYNC_MAPID"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4599": {
+  "names": [
+   "U_C_BUY_DISCOUNT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ShopMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4600": {
+  "names": [
+   "U_C_UPDATE_AWAKE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4601": {
+  "names": [
+   "U_C_PLAYER_SPACE_EVENT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4606": {
+  "names": [
+   "U_C_PLAYER_RETURN_TO_SPACE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RoomEnterMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4607": {
+  "names": [
+   "U_C_PLAYER_REMOVE_IN_SPACE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SpacePlayerMoveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4608": {
+  "names": [
+   "U_C_RECEIVE_PET_DATA"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerPetMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4609": {
+  "names": [
+   "U_C_NPC_LOCK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "NodeLockReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4610": {
+  "names": [
+   "U_C_VIPMOUNT_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4611": {
+  "names": [
+   "U_C_PET_CHALLENGE_LIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4612": {
+  "names": [
+   "U_C_ACTIVE_DEPOSIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "DepositActiveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4613": {
+  "names": [
+   "U_C_PET_RANK_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RankRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4614": {
+  "names": [
+   "U_C_REPEAT_REWARD_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RewardUpdatedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4615": {
+  "names": [
+   "U_C_REPEAT_REWARD_END"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4616": {
+  "names": [
+   "U_C_REPEAT_REWARD_FNISHED_SUM_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4617": {
+  "names": [
+   "U_C_REPEAT_REWARD_FINISH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4618": {
+  "names": [
+   "U_C_PLAYER_ADDITION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "AdditionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4619": {
+  "names": [
+   "U_C_TOP_CHALLENGE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4620": {
+  "names": [
+   "U_C_TEAM_INVITE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4621": {
+  "names": [
+   "U_C_TEAM_LEAVE_FOR_NOW"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4622": {
+  "names": [
+   "U_C_TEAM_CREATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4624": {
+  "names": [
+   "U_C_TEAM_PLAYER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4625": {
+  "names": [
+   "U_C_TEAM_DISMISS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4626": {
+  "names": [
+   "U_C_TEAM_ADD_MEMBER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4627": {
+  "names": [
+   "U_C_TEAM_CAPTAIN_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4628": {
+  "names": [
+   "U_C_TEAM_FIGHT_POS_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4629": {
+  "names": [
+   "U_C_TEAM_MEMBER_LEFT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4630": {
+  "names": [
+   "U_C_TEAM_KICK_MEMBER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4631": {
+  "names": [
+   "U_C_BATTLEGUARD_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4632": {
+  "names": [
+   "U_C_SENDFAMLORDS_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FamLordsInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4633": {
+  "names": [
+   "U_C_TREASUREMAP_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4634": {
+  "names": [
+   "U_C_TREASUREMAP_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4635": {
+  "names": [
+   "U_C_REFUSETEAMINVITE_REFRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RefuseFriendRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4636": {
+  "names": [
+   "U_C_LOTTERY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LotteryMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4637": {
+  "names": [
+   "U_C_LOTTERY_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LotteryMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4638": {
+  "names": [
+   "U_C_SERVEN_LEAD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ServenDayLeadMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4639": {
+  "names": [
+   "U_C_LOTTERY_NOTICE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "LotteryMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4640": {
+  "names": [
+   "U_C_FRESHMAN_DEPOSIT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "DepositActiveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4641": {
+  "names": [
+   "U_C_LOTTERY_ITEMS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "VipRouletteMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4642": {
+  "names": [
+   "U_C_LOTTERY_RESULT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4643": {
+  "names": [
+   "U_C_TOLLGAGEINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TollgateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4644": {
+  "names": [
+   "U_C_TOLLGAGE_GETREWARD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4645": {
+  "names": [
+   "U_C_TOLLGATE_IS_OPEN"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TollgateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4646": {
+  "names": [
+   "U_C_TOLLGATE_SCORE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TollgateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4647": {
+  "names": [
+   "U_C_TOLLGATE_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TollgateRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4648": {
+  "names": [
+   "U_C_VIPCUSTOM_NOTIFY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4656": {
+  "names": [
+   "U_C_ENGAGE_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "EngageMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4657": {
+  "names": [
+   "U_C_MARRIAGE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4658": {
+  "names": [
+   "U_C_SPECIFICATION_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageProMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4659": {
+  "names": [
+   "U_C_ENGAGED_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageProMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4660": {
+  "names": [
+   "U_C_MARRIAGE_CAMPAING_OATH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageProMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4662": {
+  "names": [
+   "U_C_MARRIAGE_CAMPAING_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "EngageMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4672": {
+  "names": [
+   "U_C_MARRIAGE_RIDE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageProMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4673": {
+  "names": [
+   "U_C_MARRIAGE_CAMPAING_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "EngageMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4674": {
+  "names": [
+   "U_C_MARRIAGE_CAMPAING"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageProMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4675": {
+  "names": [
+   "U_C_MARRIAGE_TASK_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RewardUpdatedRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4676": {
+  "names": [
+   "U_C_MARRIAGE_CAMPAIGN_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageProMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4678": {
+  "names": [
+   "U_C_MARRIAGE_TREE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageTreeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4679": {
+  "names": [
+   "U_C_MOUNT_UPGRADESTAR"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4681": {
+  "names": [
+   "U_C_CROSSGUILD_GROUP_SEND"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CrossGuildMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4682": {
+  "names": [
+   "U_C_CROSSGUILD_GROUP_OWNER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CrossGuildMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4683": {
+  "names": [
+   "U_C_CROSSGUILD_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GuildMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4684": {
+  "names": [
+   "U_C_CROSSGUILD_SCORE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4685": {
+  "names": [
+   "U_C_CROSSGUILD_FIRST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4686": {
+  "names": [
+   "U_C_PETISLAND_BOSS_START"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PetIslandDefendStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4690": {
+  "names": [
+   "U_C_MARRIAGE_HEART_START"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4691": {
+  "names": [
+   "U_C_MARRIAGE_HEART_QUESTION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MarriageHeartMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4696": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "VicePasswordMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4709": {
+  "names": [
+   "U_C_RENTAL_BAG"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RentalBagOpResMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4725": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "PlayerTokenInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4741": {
+  "names": [
+   "U_C_CROSSGUILD_ICON"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4745": {
+  "names": [
+   "U_C_CHARGE_RANK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "ChargeRewardMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4758": {
+  "names": [
+   "U_C_QUERY_CHILD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerChildInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4776": {
+  "names": [
+   "U_C_PVP_TIMER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TimerInfoListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4798": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "MateLordsListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4799": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "MateLordsListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4801": {
+  "names": [],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4811": {
+  "names": [
+   "U_C_SELECT_NEW_YEAR_BOX_NODE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "QueryCollectCampaignNodeRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4825": {
+  "names": [
+   "U_C_BOTTLE_ACTIVE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "BottleMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4900": {
+  "names": [
+   "U_C_KING_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "KingTowerInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4901": {
+  "names": [
+   "U_C_SLOTINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SlotActiveMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4902": {
+  "names": [
+   "U_C_POWCARD_Fight_ADD"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PowcardFightAddMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4903": {
+  "names": [
+   "U_C_POWCARD_BUF_ON"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PowCardBufListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4904": {
+  "names": [
+   "U_C_POWCARD_BUF"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4905": {
+  "names": [
+   "U_C_POWCARD_ALL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PowCardSuiteListMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4906": {
+  "names": [
+   "U_C_FBEVENT"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FbEventMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4907": {
+  "names": [
+   "U_C_ANSWER_PLAYER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "playeranswerquestionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4908": {
+  "names": [
+   "U_C_ANSWER_SYSTEM_STATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SysAnswerQuestionStateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4909": {
+  "names": [
+   "U_C_ANSWER_SINGLER_QUESTION"
+  ],
+  "c2s": [],
+  "s2c": [
+   "singleranswerquestionMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4910": {
+  "names": [
+   "U_C_ANSWER_RANK_LIST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "TenAnswerQuestionOrderMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4911": {
+  "names": [
+   "U_C_ACTIVE_CODE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "UseConvertCodeMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4912": {
+  "names": [
+   "U_C_RECOVER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "RecoverInfosMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4913": {
+  "names": [
+   "U_C_MULITY_CAMPAIGN_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4914": {
+  "names": [
+   "U_C_SEEK_LOADNODEINFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "PlayerSeekInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4915": {
+  "names": [
+   "U_C_SEEK_MESSAGE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MessageForSeekMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4916": {
+  "names": [
+   "U_C_FISH_POOL"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FishPoolMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4917": {
+  "names": [
+   "U_C_FISH_CHECK"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FishResultMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4918": {
+  "names": [
+   "U_C_FISH_INFOS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FishInfosMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4919": {
+  "names": [
+   "U_C_FISH_HELPOVER"
+  ],
+  "c2s": [],
+  "s2c": [
+   "HelpOverMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4920": {
+  "names": [
+   "U_C_FISH_CRAZY"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CrazyFishInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4921": {
+  "names": [
+   "U_C_FBEVENT2"
+  ],
+  "c2s": [],
+  "s2c": [
+   "FbShareMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4922": {
+  "names": [
+   "U_C_GEMMAZE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GemMazeInfoMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4923": {
+  "names": [
+   "U_C_GEMMAZE_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GemInfoUpdateMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4924": {
+  "names": [
+   "U_GEMMAZE_OPRST"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GemInviteOpMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4925": {
+  "names": [
+   "U_GEMMAZE_INVIDE_NOTICE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GemMoveInviteReqMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4927": {
+  "names": [
+   "U_GEMMAZE_BUYTIMES_RSP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4928": {
+  "names": [
+   "U_GEMMAZE_GETBOX_RSP"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GetRewardBoxRspMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4933": {
+  "names": [
+   "U_C_GOLDENROAD_FRESH"
+  ],
+  "c2s": [],
+  "s2c": [
+   "GoldenRoadMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4934": {
+  "names": [
+   "U_C_GOLDENROAD_CASTDICE"
+  ],
+  "c2s": [],
+  "s2c": [
+   "CastDiceMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4935": {
+  "names": [
+   "U_C_GOLDENROAD_SELECT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4936": {
+  "names": [
+   "U_C_LEAD_EXTRACT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "4938": {
+  "names": [
+   "U_C_MAPBOSS_DATAS"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MapBossMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4939": {
+  "names": [
+   "U_C_MAPBOSS_FOG"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MapBossMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4940": {
+  "names": [
+   "U_C_MAPBOSS_BOX"
+  ],
+  "c2s": [],
+  "s2c": [
+   "MapBoxMsg"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "4980": {
+  "names": [
+   "U_C_ICON_NUM"
+  ],
+  "c2s": [],
+  "s2c": [
+   "IconNumMsgList"
+  ],
+  "client_sends": false,
+  "client_listens": true
+ },
+ "5004": {
+  "names": [
+   "U_C_USER_DISPLAY"
+  ],
+  "c2s": [
+   "OutercityReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5005": {
+  "names": [
+   "U_C_BAG_MOVE"
+  ],
+  "c2s": [
+   "ItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5006": {
+  "names": [
+   "U_C_BAG_USEITEM"
+  ],
+  "c2s": [
+   "ItemUseMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5007": {
+  "names": [
+   "U_C_BAG_SELL"
+  ],
+  "c2s": [
+   "ItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5008": {
+  "names": [
+   "C_HERO_UPDATE_EQUIPMENT",
+   "U_C_HERO_UPDATE_EQUIPMENT"
+  ],
+  "c2s": [
+   "HeroHideFashionReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5009": {
+  "names": [
+   "U_C_GUID_STRENGY_ADDITEM"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5010": {
+  "names": [
+   "U_C_BAG_BUY"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5011": {
+  "names": [
+   "C_BAG_USEBIGBUGLE"
+  ],
+  "c2s": [
+   "ChatChannelMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5012": {
+  "names": [
+   "U_C_QUEST_ADD"
+  ],
+  "c2s": [
+   "QuestAddedMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5014": {
+  "names": [
+   "U_C_QUEST_FINISH"
+  ],
+  "c2s": [
+   "QuestFinishedReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5015": {
+  "names": [
+   "U_C_CASTLE_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5016": {
+  "names": [
+   "U_C_PLAYER_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5017": {
+  "names": [
+   "U_C_PLAYER_NOVICE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5018": {
+  "names": [],
+  "c2s": [
+   "BoxBoxMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5019": {
+  "names": [],
+  "c2s": [
+   "BoxBoxMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5020": {
+  "names": [
+   "U_C_PLAYER_LOGINSTATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5021": {
+  "names": [
+   "U_C_PLAYER_ADD_ATTACKCOUNT"
+  ],
+  "c2s": [
+   "PlayerChallengeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5022": {
+  "names": [
+   "U_C_MAILITEM_MOVE"
+  ],
+  "c2s": [
+   "MailMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5023": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_CREATE"
+  ],
+  "c2s": [
+   "RoomReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5024": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_ENTER"
+  ],
+  "c2s": [
+   "RoomReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5025": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_EXIT"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5026": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_LIST"
+  ],
+  "c2s": [
+   "RoomReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5027": {
+  "names": [
+   "U_C_CAMPAIGN_INVITE_PLAYER_LIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5028": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_INVITE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5029": {
+  "names": [
+   "U_C_CAMPAGIN_ROOM_PLACESTATE"
+  ],
+  "c2s": [
+   "RoomReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5030": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_MASTER_CHANGE"
+  ],
+  "c2s": [
+   "CampaignReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5031": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_KILLPLAYER"
+  ],
+  "c2s": [
+   "RoomReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5032": {
+  "names": [
+   "U_C_CAMPAIGN_CALLBACK"
+  ],
+  "c2s": [
+   "CallBackReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5033": {
+  "names": [
+   "U_C_CAMPAIGN_CONFIRM"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5034": {
+  "names": [
+   "U_C_CAMPAIGN_ROOM_EDIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5035": {
+  "names": [
+   "U_PLAYER_CLIENT_STATE"
+  ],
+  "c2s": [
+   "LoginStateMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5036": {
+  "names": [
+   "U_C_PLAYER_READY_STATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5037": {
+  "names": [
+   "U_C_ROOM_STATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5038": {
+  "names": [
+   "U_C_CAMPAIGN_SYSTEM_ARMY"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5039": {
+  "names": [
+   "U_C_CAMPAIGN_ENTER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5041": {
+  "names": [
+   "C_MICRO_CLIENT_INFO"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5120": {
+  "names": [
+   "U_C_CAMPAIGN_EXIT"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5121": {
+  "names": [
+   "U_C_CAMPAIGN_ARMY"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5122": {
+  "names": [
+   "U_C_CAMPAIGN_TAKE_CARD"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5123": {
+  "names": [
+   "U_CAMPAIGN_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5124": {
+  "names": [
+   "U_C_CAMPAIGN_SYNCPOS"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5125": {
+  "names": [
+   "U_C_CAMPAIGN_ARRIVE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5126": {
+  "names": [
+   "U_C_CAMPAIGN_FOG_UPDATE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5127": {
+  "names": [
+   "U_C_CAMPAIGN_TRAINING"
+  ],
+  "c2s": [
+   "NoviceReqMsgMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5128": {
+  "names": [
+   "U_C_ARMY_ISSUPPORT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5129": {
+  "names": [
+   "U_C_DROPITEM_TAKE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5130": {
+  "names": [
+   "U_C_CONSORTIA_CREATE"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5131": {
+  "names": [
+   "U_C_CONSORTIA_CHANGE"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5132": {
+  "names": [
+   "U_C_CONSORTIA_DELUSER"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5133": {
+  "names": [
+   "U_C_CONSORTIA_LEVEL"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5134": {
+  "names": [
+   "U_C_CONSORTIA_PASS"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5135": {
+  "names": [
+   "U_C_CONSORTIA_USERINVITE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5137": {
+  "names": [
+   "U_C_CONSORTIA_DUTYUPDATE"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5139": {
+  "names": [
+   "U_C_CONSORTIA_MODIFYBBS"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5140": {
+  "names": [
+   "U_C_CONSORTIA_MODIFYDESC"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5141": {
+  "names": [
+   "U_C_CONSORTIA_INVITEDEL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5142": {
+  "names": [
+   "U_C_CONSORTIA_INVITE"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5143": {
+  "names": [
+   "U_C_CONSORTIA_USERPASS"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5144": {
+  "names": [
+   "U_C_CONSORTIA_OFF"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5145": {
+  "names": [
+   "U_C_CONSORTIA_FRESHALTAR"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5146": {
+  "names": [
+   "U_C_CONSORTIA_QUIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5147": {
+  "names": [
+   "U_C_CONSORTIA_LEARN"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5148": {
+  "names": [
+   "U_C_CONSORTIA_RENAME"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5149": {
+  "names": [
+   "U_C_CONSORTIA_OPENAPP"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5150": {
+  "names": [
+   "U_C_ITEM_STRENGTHEN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5151": {
+  "names": [
+   "U_C_ITEM_INLAY"
+  ],
+  "c2s": [
+   "StoreReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5152": {
+  "names": [
+   "U_C_ITEM_INLAYJOIN"
+  ],
+  "c2s": [
+   "StoreReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5153": {
+  "names": [
+   "U_C_ITEM_COMPOSE"
+  ],
+  "c2s": [
+   "StoreReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5154": {
+  "names": [
+   "U_C_SHOP_BUY"
+  ],
+  "c2s": [
+   "FashionShopMsg",
+   "ShopMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5155": {
+  "names": [
+   "U_C_ARMY_RECRUITED"
+  ],
+  "c2s": [
+   "ArmyPawnInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5156": {
+  "names": [
+   "U_C_ARMY_EDIT"
+  ],
+  "c2s": [
+   "ArmyPawnInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5157": {
+  "names": [
+   "U_C_ARMY_DEMOBPAWN"
+  ],
+  "c2s": [
+   "ArmyPawnInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5158": {
+  "names": [
+   "U_C_ARMY_UPGRADEPAWN"
+  ],
+  "c2s": [
+   "ArmyPawnInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5159": {
+  "names": [
+   "U_C_ARMY_ATTACK_CASTLE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5160": {
+  "names": [
+   "U_C_ARMY_ATTACK"
+  ],
+  "c2s": [
+   "MapPhysicAttackMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5161": {
+  "names": [
+   "U_C_ARMY_RETURNHOME"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5162": {
+  "names": [
+   "U_C_ARMY_RECALL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5163": {
+  "names": [
+   "U_C_ARMY_UPDATE_ARMYPAWN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5167": {
+  "names": [],
+  "c2s": [
+   "HeroFastKeyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5170": {
+  "names": [
+   "U_C_HERO_RESETPOINT"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5171": {
+  "names": [
+   "U_C_HERO_ADDPOINT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "5172": {
+  "names": [
+   "U_C_BUILDING_ORDER_QUICK"
+  ],
+  "c2s": [
+   "BuildingReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5173": {
+  "names": [
+   "U_C_BUIDLING_TRANS_COOL"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5174": {
+  "names": [
+   "U_C_BUILDING_UPENERGY"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5175": {
+  "names": [
+   "U_C_BUILDING_ORDERADD"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5176": {
+  "names": [
+   "U_C_BUILDING_TRANSCASTLE"
+  ],
+  "c2s": [
+   "CastleReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5178": {
+  "names": [
+   "U_C_TREE_PICK"
+  ],
+  "c2s": [
+   "BuildingReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5179": {
+  "names": [
+   "U_C_UNOCCPWILDLAND"
+  ],
+  "c2s": [
+   "BuildingReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5180": {
+  "names": [
+   "U_C_CAMPAIGN_FINISH"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5181": {
+  "names": [
+   "U_C_ARMY_UPDATE_GRID"
+  ],
+  "c2s": [
+   "OutercityReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5184": {
+  "names": [],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5185": {
+  "names": [],
+  "c2s": [
+   "HeroAddPointReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5187": {
+  "names": [
+   "C_TALENT_GRADE_UP"
+  ],
+  "c2s": [
+   "TalentUpGradeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "5633": {
+  "names": [
+   "C_FAST_USE_BLOOD"
+  ],
+  "c2s": [
+   "ShopMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8194": {
+  "names": [
+   "C_ARMY_POS_UPDATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8195": {
+  "names": [
+   "C_TASK_CAMPAIGN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8196": {
+  "names": [
+   "C_NODE_LOCKSTATE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8197": {
+  "names": [
+   "U_C_CONSORTIA_ROBOTJOIN"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8198": {
+  "names": [
+   "C_BAG_USESMALLBUGLE"
+  ],
+  "c2s": [
+   "ChatChannelMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8199": {
+  "names": [
+   "C_BAG_EQUIPLOOK"
+  ],
+  "c2s": [
+   "DetailReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8200": {
+  "names": [
+   "C_SIMPLEUSER_INFO"
+  ],
+  "c2s": [
+   "InfoReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8201": {
+  "names": [
+   "C_PHYSICLIST_BYGRID"
+  ],
+  "c2s": [
+   "PhysicUpdateReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8202": {
+  "names": [
+   "C_BUILDING_CREATE"
+  ],
+  "c2s": [
+   "BuildingOptionReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8203": {
+  "names": [
+   "C_BUILDING_UPGRADE"
+  ],
+  "c2s": [
+   "BuildingOptionReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8204": {
+  "names": [
+   "U_C_MAIL_LIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8205": {
+  "names": [
+   "U_C_MAIL_SEND"
+  ],
+  "c2s": [
+   "MailSendReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8206": {
+  "names": [
+   "U_C_MAIL_DEL"
+  ],
+  "c2s": [
+   "MailDelReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8207": {
+  "names": [
+   "U_C_CONSORTIAUSER_LIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8208": {
+  "names": [
+   "U_C_CONSORTIA_OFFER_LIST"
+  ],
+  "c2s": [
+   "ConsortiaOfferReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8209": {
+  "names": [
+   "U_C_INVITEINFO_LIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8210": {
+  "names": [
+   "U_C_EVENT_LIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8211": {
+  "names": [
+   "U_C_DUTY_LIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8212": {
+  "names": [
+   "U_C_CONSORTIA_INFO"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8213": {
+  "names": [
+   "U_C_CONSORTIA_SEARCH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8214": {
+  "names": [
+   "U_C_CONSORTIA_INVITE_LIST"
+  ],
+  "c2s": [
+   "SearchConditionMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8215": {
+  "names": [
+   "U_C_CONSORTIA_ALTERINFO"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8216": {
+  "names": [
+   "U_C_CONSORTIA_ADDFRESH"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8217": {
+  "names": [
+   "U_C_CONSORTIA_SITE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8218": {
+  "names": [
+   "U_C_SHOP_HASBUY"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8219": {
+  "names": [
+   "C_TREE_FRIEND"
+  ],
+  "c2s": [
+   "FriendTreeReq"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8220": {
+  "names": [
+   "C_BAG_ARRANGE"
+  ],
+  "c2s": [
+   "ArrangeReq"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8223": {
+  "names": [
+   "U_C_CHECK_NICK"
+  ],
+  "c2s": [
+   "CheckNickMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8224": {
+  "names": [
+   "C_LONIG_LOAD_REQ"
+  ],
+  "c2s": [
+   "PlayerDataMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8231": {
+  "names": [
+   "C_REQ_FRIEND_FARM_STATE"
+  ],
+  "c2s": [
+   "FriendUserIdsMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8234": {
+  "names": [
+   "C_LEED_ADD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8235": {
+  "names": [
+   "C_LEED_FINISH"
+  ],
+  "c2s": [
+   "LeedFinishedReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8241": {
+  "names": [
+   "C_CONSORTIA_VOTING_LIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8251": {
+  "names": [
+   "C_FIGHT_SPECIAL_BOSS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8253": {
+  "names": [
+   "C_CHALLENGE"
+  ],
+  "c2s": [
+   "PlayerChallengeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8254": {
+  "names": [
+   "C_MOVE_POS"
+  ],
+  "c2s": [
+   "PosMoveMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8255": {
+  "names": [
+   "C_PLAYER_REINFORCE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8256": {
+  "names": [
+   "C_CHALLENGEINFO_REQUEST"
+  ],
+  "c2s": [
+   "ChallengeRequestMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8257": {
+  "names": [
+   "C_PLAYER_SEARCH"
+  ],
+  "c2s": [
+   "SimplePlayerSearchReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8258": {
+  "names": [
+   "C_WORLD_BOSS_CMD"
+  ],
+  "c2s": [
+   "WorldBossMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8259": {
+  "names": [
+   "C_WORLD_BOSS_REQ"
+  ],
+  "c2s": [
+   "WorldBossMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8260": {
+  "names": [
+   "C_PLAYER_AASCHANGE"
+  ],
+  "c2s": [
+   "PlayerAASReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8261": {
+  "names": [
+   "C_PLAYER_AASREFRESH"
+  ],
+  "c2s": [
+   "PlayerAASRefreshMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8264": {
+  "names": [
+   "C_WORLDBOSS_PLAYER_LIVE"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8265": {
+  "names": [
+   "C_QUICKCOOL_CHALLENGE_TIME"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8266": {
+  "names": [
+   "C_PLAYER_SIGN_CMD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8267": {
+  "names": [
+   "C_STAR_MOVE"
+  ],
+  "c2s": [
+   "StarMoveReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8268": {
+  "names": [
+   "C_STAR_PICK"
+  ],
+  "c2s": [
+   "StarPickReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8269": {
+  "names": [
+   "C_STAR_RAND"
+  ],
+  "c2s": [
+   "StarRandReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8270": {
+  "names": [
+   "C_STAR_BUY"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8271": {
+  "names": [
+   "C_WORLDBOSS_STATE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8276": {
+  "names": [
+   "C_ARMYPOS_EDIT"
+  ],
+  "c2s": [
+   "ArmyFightPosEditMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8277": {
+  "names": [
+   "C_CAMPIAGN_ARMYPOS_EDIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8278": {
+  "names": [
+   "C_CAMPIAGN_ARMYPOS_REQ"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8279": {
+  "names": [
+   "C_LOAD_BUILD_ORDER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8281": {
+  "names": [
+   "C_BUILDING_INIT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8282": {
+  "names": [
+   "C_BATTER_COUNT"
+  ],
+  "c2s": [
+   "BatterLastInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8283": {
+  "names": [
+   "C_EFFECT_STOP"
+  ],
+  "c2s": [
+   "EffectRemoveReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8285": {
+  "names": [
+   "C_FRIEND_REFUSE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8286": {
+  "names": [
+   "C_ROOM_REFUSE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8287": {
+  "names": [
+   "C_TAKE_OFFLINE_REWARD"
+  ],
+  "c2s": [
+   "OfflineRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8288": {
+  "names": [
+   "C_REWARD_ADD"
+  ],
+  "c2s": [
+   "RewardAddedMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8289": {
+  "names": [
+   "C_REWARD_REMOVE"
+  ],
+  "c2s": [
+   "RewardRemovedMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8290": {
+  "names": [
+   "C_REWARD_FRESH"
+  ],
+  "c2s": [
+   "RewardFreshReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8291": {
+  "names": [
+   "C_REWARD_FINISH"
+  ],
+  "c2s": [
+   "RewardFinishedReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8292": {
+  "names": [
+   "C_CANCEL_HANGUP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8293": {
+  "names": [
+   "C_QUICK_HANGUP_TIME"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8294": {
+  "names": [
+   "C_MATCH_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8295": {
+  "names": [
+   "C_HANGUP_ROOM_STATE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8296": {
+  "names": [
+   "C_ENTER_TOWER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8297": {
+  "names": [
+   "C_TOWER_INFO"
+  ],
+  "c2s": [
+   "TowerInfoReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8298": {
+  "names": [
+   "C_REWARD_ARREST"
+  ],
+  "c2s": [
+   "RewardArrestMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8299": {
+  "names": [
+   "C_TOWER_RESET"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8300": {
+  "names": [
+   "C_TOWER_LIVE"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8301": {
+  "names": [
+   "C_PLAYER_NODE_STATE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8302": {
+  "names": [
+   "C_GUIDE_FINISHED"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8320": {
+  "names": [
+   "C_LUCKY_FRFRESH"
+  ],
+  "c2s": [
+   "PlayerLuckyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8321": {
+  "names": [
+   "C_LUCKY_SWAP"
+  ],
+  "c2s": [
+   "PlayerLuckyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8322": {
+  "names": [
+   "C_LEED_CLIENT"
+  ],
+  "c2s": [
+   "ClientReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8325": {
+  "names": [
+   "C_STAR_DATA_RESET"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8326": {
+  "names": [
+   "C_ARMY_POSATION"
+  ],
+  "c2s": [
+   "ArmyPositionMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8327": {
+  "names": [
+   "C_GOLD_IMPOSE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8328": {
+  "names": [
+   "C_ARMYPOS_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8329": {
+  "names": [
+   "C_TAKE_CHALLENGEREWARD"
+  ],
+  "c2s": [
+   "(vazio)",
+   "ChallengeRankRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8330": {
+  "names": [
+   "C_STAR_LOCK"
+  ],
+  "c2s": [
+   "StarLockReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8331": {
+  "names": [
+   "C_STAR_COMPOSE"
+  ],
+  "c2s": [
+   "StarComposeReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8332": {
+  "names": [
+   "C_ENTER_WARFIELD"
+  ],
+  "c2s": [
+   "WorldBossMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8333": {
+  "names": [
+   "C_LEAVE_WARFIELD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8334": {
+  "names": [
+   "C_WARFIELD_ATTACK"
+  ],
+  "c2s": [
+   "WarFieldAttackMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8335": {
+  "names": [
+   "C_CONSORTIA_SPEAK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8336": {
+  "names": [
+   "C_ITEM_REFRESHFORRANDOM"
+  ],
+  "c2s": [
+   "SmithFreshReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8337": {
+  "names": [
+   "C_WARORDER_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8338": {
+  "names": [
+   "C_WAR_MAXHP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8339": {
+  "names": [
+   "C_ITEM_REFRESHFORREPLACE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8340": {
+  "names": [
+   "C_ITEM_RESOLVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8341": {
+  "names": [
+   "C_STARSHOP_BUY"
+  ],
+  "c2s": [
+   "StarShopMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8343": {
+  "names": [
+   "C_CONSORTIA_LINK"
+  ],
+  "c2s": [
+   "ConsortiaLinkReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8344": {
+  "names": [
+   "C_ROOM_PWDCHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8345": {
+  "names": [
+   "C_PLAYER_RENAME_REQ"
+  ],
+  "c2s": [
+   "PlayerRenameReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8346": {
+  "names": [
+   "C_BAG_REMOVE"
+  ],
+  "c2s": [
+   "ItemRemoveMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8352": {
+  "names": [
+   "C_USER_PIN_CHECK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8353": {
+  "names": [
+   "C_CAPTAIN_SPEAK"
+  ],
+  "c2s": [
+   "CaptainSpeakMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8448": {
+  "names": [
+   "C_MALL_SELL_ITEM"
+  ],
+  "c2s": [
+   "SellItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8449": {
+  "names": [
+   "C_MALL_LIST_SELL"
+  ],
+  "c2s": [
+   "MallItemViewReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8450": {
+  "names": [
+   "C_MALL_PLAYER_ITEMS"
+  ],
+  "c2s": [
+   "MallItemViewReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8451": {
+  "names": [
+   "C_MALL_AUCTION"
+  ],
+  "c2s": [
+   "AuctionItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8452": {
+  "names": [
+   "C_MALL_LIST_AUCTION"
+  ],
+  "c2s": [
+   "MallItemViewReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8453": {
+  "names": [
+   "C_MALL_FIX_AUCTION"
+  ],
+  "c2s": [
+   "AuctionItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8454": {
+  "names": [
+   "C_MALL_CANCEL_SELL"
+  ],
+  "c2s": [
+   "AuctionItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8455": {
+  "names": [
+   "C_COMPREHEND"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8456": {
+  "names": [
+   "C_SAVESPECIAL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8457": {
+  "names": [
+   "C_MALL_SEARCH"
+  ],
+  "c2s": [
+   "SearchItemReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8464": {
+  "names": [
+   "C_ITEM_REFRESHPROPERTY"
+  ],
+  "c2s": [
+   "RefreshPropertyReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8465": {
+  "names": [
+   "U_C_ROOM_FIND"
+  ],
+  "c2s": [
+   "RoomReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8466": {
+  "names": [
+   "C_REFININGSOUL_FRFRESH"
+  ],
+  "c2s": [
+   "PlayerRefiningSoulMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8467": {
+  "names": [
+   "C_REFININGSOUL_SWAP"
+  ],
+  "c2s": [
+   "PlayerRefiningSoulMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8468": {
+  "names": [
+   "C_ATTACK_CONSTIA"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8470": {
+  "names": [
+   "C_WORLDBOSS_BUFFER"
+  ],
+  "c2s": [
+   "WorldBossBufferMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8471": {
+  "names": [
+   "C_ENTER_GUILDCAMPAIGN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8472": {
+  "names": [
+   "C_REQUEST_GUILDCHALLENGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8473": {
+  "names": [
+   "C_GUILDTEAM_PLAYER_EDIT"
+  ],
+  "c2s": [
+   "TeamEditMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8477": {
+  "names": [
+   "C_REQUEST_GUILDLIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8478": {
+  "names": [
+   "C_REQUEST_CHALLENGE_NEEDOFFER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8479": {
+  "names": [
+   "C_ACTIVE_SECONDSKILL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8480": {
+  "names": [
+   "C_CHANGE_SKILL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8481": {
+  "names": [
+   "C_CONSORTIA_VOTING"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8482": {
+  "names": [
+   "C_SHOPITEM_BUY"
+  ],
+  "c2s": [
+   "ShopItemBuyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8483": {
+  "names": [
+   "C_SHOPITEM_FRESH"
+  ],
+  "c2s": [
+   "ShopFreshReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8484": {
+  "names": [
+   "C_BAG_USESTORE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8485": {
+  "names": [
+   "C_BLESSING_WATCH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8488": {
+  "names": [
+   "C_WORLDMAP_PVPFIGHT"
+  ],
+  "c2s": [
+   "PlayerChallengeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8489": {
+  "names": [
+   "C_BLESSING_ALTER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8496": {
+  "names": [
+   "C_PLAYER_RELOGIN_CMD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8505": {
+  "names": [
+   "C_VIP_BOX_DROP"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8513": {
+  "names": [
+   "C_VIP_OPEN"
+  ],
+  "c2s": [
+   "VipOpenInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8514": {
+  "names": [
+   "C_CHECK_CODE"
+  ],
+  "c2s": [
+   "CheckImageMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8516": {
+  "names": [
+   "C_CHECK_SHOW_CODE"
+  ],
+  "c2s": [
+   "CheckImageMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8518": {
+  "names": [
+   "C_CLICKDATALIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8519": {
+  "names": [
+   "C_VIPROULETTE"
+  ],
+  "c2s": [
+   "VipRouletteMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8521": {
+  "names": [
+   "C_VIP_COIN_OPEN"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8524": {
+  "names": [
+   "C_CHECK_SEND"
+  ],
+  "c2s": [
+   "CheckSend"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8525": {
+  "names": [
+   "C_HANGUP_PVP"
+  ],
+  "c2s": [
+   "HangupAttackMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8526": {
+  "names": [
+   "C_OPRATE_REPLACEMENTS"
+  ],
+  "c2s": [
+   "OprateReplacemntMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8527": {
+  "names": [
+   "C_MOUNT_BUY_FLY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8528": {
+  "names": [
+   "C_CAMPAIGN_SWEEP"
+  ],
+  "c2s": [
+   "CampaignSweepReq"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8529": {
+  "names": [
+   "C_MOUNT_EDIT",
+   "C_MOUNT_OP"
+  ],
+  "c2s": [
+   "MountEditMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8530": {
+  "names": [
+   "C_MOUNT_AVATARLIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8532": {
+  "names": [
+   "C_MOUNT_CHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8533": {
+  "names": [
+   "C_ARMYMOUNT_AVATARCHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8534": {
+  "names": [
+   "C_QUESTIONNARIE_ANSWER"
+  ],
+  "c2s": [
+   "QuestionDataRspMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8535": {
+  "names": [
+   "C_CANCEL_TRANS"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8536": {
+  "names": [
+   "C_MOUNTAVATAR_ACTIVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8537": {
+  "names": [
+   "C_ENTER_CONSORTIA_FAM"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8538": {
+  "names": [
+   "C_ITEM_TRANSFORM"
+  ],
+  "c2s": [
+   "StoreReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8539": {
+  "names": [
+   "C_ACTIVE_EXCHANGE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8540": {
+  "names": [
+   "C_KING_CONTRACT"
+  ],
+  "c2s": [
+   "KingContractBuyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8541": {
+  "names": [
+   "C_OPEN_CONSORTIA__ALTAR"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8542": {
+  "names": [
+   "C_ENTER_CONSORTIA_ALTAR"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8544": {
+  "names": [
+   "U_C_CONSORTIA_GROUP_PLACARD"
+  ],
+  "c2s": [
+   "ConsortiaMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8545": {
+  "names": [
+   "C_CONSORTIA_QUICK"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8546": {
+  "names": [
+   "C_GUILD_GROUP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8547": {
+  "names": [
+   "C_GUILD_BUYBUFFER"
+  ],
+  "c2s": [
+   "GuildMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8548": {
+  "names": [
+   "C_PLAYER_REFAIRE"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8549": {
+  "names": [
+   "ARRIVE_ALTAR"
+  ],
+  "c2s": [
+   "?PackageOut"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8550": {
+  "names": [
+   "C_CONSORTIA_ALTAR_GETBUFF"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8551": {
+  "names": [
+   "C_CONSORTIA_FAM_BATTLE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8562": {
+  "names": [
+   "C_CASTLE_TIME_CANCEL"
+  ],
+  "c2s": [
+   "EffectRemoveReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8565": {
+  "names": [
+   "C_CALL_TREE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8566": {
+  "names": [
+   "C_FAM_BUFFER"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8567": {
+  "names": [
+   "C_MOUNT_INFO_SEND"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8574": {
+  "names": [
+   "C_REBATE_DATA"
+  ],
+  "c2s": [
+   "RebateOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8577": {
+  "names": [
+   "C_CONSORTIA_BOX_CHECK"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8578": {
+  "names": [
+   "C_CONSORTIA_BOX_SEND_CONFIRM"
+  ],
+  "c2s": [
+   "ConsortiaTreasureBoxMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8579": {
+  "names": [
+   "C_CONSORTIA_BOX_SEND_INFO"
+  ],
+  "c2s": [
+   "ConsortiaTreasureBoxMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8580": {
+  "names": [
+   "C_PAWN_CHANGE"
+  ],
+  "c2s": [
+   "PawnChangeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8582": {
+  "names": [
+   "C_BUY_TRIAL"
+  ],
+  "c2s": [
+   "TrialInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8583": {
+  "names": [
+   "C_CAR_CAMPAIGN_START"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8586": {
+  "names": [
+   "C_SUMACTIVE_GATE"
+  ],
+  "c2s": [
+   "SumActiveGetPackageMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8587": {
+  "names": [
+   "C_VEHICLE_SYNC_POSITION"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8588": {
+  "names": [
+   "C_VEHICLE_SWITCH_MONITOR"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8590": {
+  "names": [
+   "C_TAKE_CROSS_SCORE_REWARD"
+  ],
+  "c2s": [
+   "(vazio)",
+   "ChallengeRankRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8592": {
+  "names": [
+   "C_FASHION_SHOP_BUY"
+  ],
+  "c2s": [
+   "FashionShopMsg",
+   "ShopMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8593": {
+  "names": [
+   "C_CONSORTIA_ALTAR_BUY_SCENE"
+  ],
+  "c2s": [
+   "ConsortiaAltarOpenReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8594": {
+  "names": [
+   "C_FASHION_COMPOSE"
+  ],
+  "c2s": [
+   "StoreReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8595": {
+  "names": [
+   "C_FASHION_SWITCH"
+  ],
+  "c2s": [
+   "FashionMsg",
+   "StoreReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8597": {
+  "names": [
+   "C_APPELL_EXCHANGE"
+  ],
+  "c2s": [
+   "AppellExchangeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8598": {
+  "names": [],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8599": {
+  "names": [
+   "C_CHECK_WARFIELD_COUNT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8604": {
+  "names": [
+   "C_BOTTLE_OP"
+  ],
+  "c2s": [
+   "BottleOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8605": {
+  "names": [],
+  "c2s": [
+   "HeroRuneOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8608": {
+  "names": [
+   "C_VEHICLE_QUICK_PLAY"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8609": {
+  "names": [
+   "C_VEHICLE_QUICK_PLAY_CANCEL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8610": {
+  "names": [
+   "C_VEHICLE_LEAVE_CAMPAIGN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8611": {
+  "names": [
+   "C_VEHICLE_CHOOSE_VEHICLE"
+  ],
+  "c2s": [
+   "CampaignReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8615": {
+  "names": [
+   "C_VEHICLE_MOVE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8616": {
+  "names": [
+   "C_VEHICLE_ATTACK"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8617": {
+  "names": [
+   "C_VEHICLE_PICK_PROP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8618": {
+  "names": [
+   "C_VEHICLE_LIST_REQ"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8619": {
+  "names": [
+   "C_ACTIVE_VEHICLE"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8620": {
+  "names": [
+   "C_PLAYER_AAS_SWITCH_CHANGE"
+  ],
+  "c2s": [
+   "PlayerAASRefreshMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8621": {
+  "names": [
+   "C_PLAYER_PET_OP"
+  ],
+  "c2s": [
+   "PlayerPetOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8623": {
+  "names": [
+   "C_SEND_CROSS_BIGBUGLE"
+  ],
+  "c2s": [
+   "CrossBigBugleMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8624": {
+  "names": [
+   "C_BAG_BATCH_SELL"
+  ],
+  "c2s": [
+   "ItemSellReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8625": {
+  "names": [
+   "C_FASHION_INFO"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8626": {
+  "names": [
+   "U_C_FATE_TRAIN"
+  ],
+  "c2s": [
+   "FateEditMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8627": {
+  "names": [
+   "C_FATE_TURN"
+  ],
+  "c2s": [
+   "FateEditMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8628": {
+  "names": [
+   "C_FATE_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8629": {
+  "names": [
+   "C_GAME_STORY_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8630": {
+  "names": [
+   "C_GAME_STORY_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8631": {
+  "names": [
+   "C_FASHION_SPECIAL"
+  ],
+  "c2s": [
+   "FashionMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8632": {
+  "names": [
+   "C_FLASH_SALE_FRESH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8633": {
+  "names": [
+   "C_ENTER_MINE_FIELD"
+  ],
+  "c2s": [
+   "(vazio)",
+   "ChallengeRankRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8634": {
+  "names": [
+   "C_BACK_PLAYER_REWARD"
+  ],
+  "c2s": [
+   "(vazio)",
+   "ChallengeRankRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8635": {
+  "names": [
+   "C_CHALLENGE_SELF"
+  ],
+  "c2s": [
+   "QuestInfo"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8636": {
+  "names": [
+   "C_UPDATE_AREA"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8637": {
+  "names": [
+   "C_GET_AREA_REWARD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8638": {
+  "names": [
+   "C_GET_BUGLE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8639": {
+  "names": [
+   "C_BUGLE_ROULETTE"
+  ],
+  "c2s": [
+   "VipRouletteMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8640": {
+  "names": [
+   "C_BUGLE_OPEN"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8641": {
+  "names": [
+   "C_DRAGON_FEED"
+  ],
+  "c2s": [
+   "FateEditMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8642": {
+  "names": [
+   "C_DRAGON_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8643": {
+  "names": [
+   "C_DRAGON_TRANSFER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8644": {
+  "names": [
+   "C_MOULD_ITEM"
+  ],
+  "c2s": [
+   "PayTypeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8645": {
+  "names": [
+   "C_GROUPON"
+  ],
+  "c2s": [
+   "ShopMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8688": {
+  "names": [
+   "C_PLAYER_SPACE_ENTER"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8689": {
+  "names": [
+   "C_PLAYER_SPACE_LEAVE"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8690": {
+  "names": [
+   "C_PLAYER_SPACE_MOVE"
+  ],
+  "c2s": [
+   "SpacePlayerMoveMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8692": {
+  "names": [
+   "C_PLAYER_SPACE_NODE_TRIGGER"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8693": {
+  "names": [
+   "C_BUY_DISCOUNT"
+  ],
+  "c2s": [
+   "ShopMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8694": {
+  "names": [
+   "C_ENTER_PETISLAND"
+  ],
+  "c2s": [
+   "CampaignReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8699": {
+  "names": [
+   "C_NEW_GUILD_FIGHT"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8700": {
+  "names": [
+   "C_CHECK_MOVEABLE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8701": {
+  "names": [
+   "C_GET_SPACE_PLAYER_ARMY_INFO"
+  ],
+  "c2s": [
+   "SpacePlayerArmyInfoReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8702": {
+  "names": [
+   "C_GET_PLAYER_PET_INFO"
+  ],
+  "c2s": [
+   "PlayerPetOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8703": {
+  "names": [
+   "C_U_ACTIVE_DEPOSIT"
+  ],
+  "c2s": [
+   "DepositActiveMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8705": {
+  "names": [
+   "C_SMALL_BUGLE_FREE_COUNT"
+  ],
+  "c2s": [
+   "CampaignReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8710": {
+  "names": [
+   "C_ENTER_REQUEST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8711": {
+  "names": [
+   "C_LOAD_LORDS_MAINBORAD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8714": {
+  "names": [
+   "C_REQUEST_START"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8715": {
+  "names": [
+   "C_REQUEST_FINAL_ORDERLIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8716": {
+  "names": [
+   "C_BET_ADDLORDS"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8717": {
+  "names": [
+   "C_LEAVE_LORDS"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8718": {
+  "names": [
+   "C_REQUEST_BET_LIST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8720": {
+  "names": [
+   "C_TAKE_FINAL_REWARD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8721": {
+  "names": [
+   "C_REQUEST_LOCAL_FINAL_ORDER"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8722": {
+  "names": [
+   "C_TAKE_360_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8723": {
+  "names": [
+   "C_REQUEST_360_REWARD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8724": {
+  "names": [
+   "C_CHALLENGE_PET"
+  ],
+  "c2s": [
+   "PlayerChallengeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8725": {
+  "names": [
+   "C_PET_CHALLENGE_FORMATION"
+  ],
+  "c2s": [
+   "PlayerPetMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8726": {
+  "names": [
+   "C_PET_CHALLENGE_SKILL"
+  ],
+  "c2s": [
+   "PetInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8727": {
+  "names": [
+   "C_PET_CHALLENGE_END_BATTLE"
+  ],
+  "c2s": [
+   "BattleReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8728": {
+  "names": [
+   "C_PET_RANK_REWARD"
+  ],
+  "c2s": [
+   "RankRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8729": {
+  "names": [
+   "C_REPEAT_REWARD_FINISH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8730": {
+  "names": [
+   "C_REPEAT_REWARD_FINISH_IMMEDIATELY"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8731": {
+  "names": [
+   "C_REPEAT_REWARD_UPDATE_FINISH"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8732": {
+  "names": [
+   "C_TAKE_REPEAT_REWARD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8733": {
+  "names": [
+   "C_SPACE_COLLECTION_FINISHED"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8734": {
+  "names": [
+   "C_APPLY_INVITE_TEAM"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8736": {
+  "names": [
+   "C_CHANGE_CAPTAIN"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8737": {
+  "names": [
+   "C_EDIT_TEAM_FIGHT_POS"
+  ],
+  "c2s": [
+   "MemberFightPosListMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8738": {
+  "names": [
+   "C_INVITE_TEAM"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8739": {
+  "names": [
+   "C_KICK_TEAM_MEMBER"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8740": {
+  "names": [
+   "C_LEAVE_TEAM_FOR_NOW"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8741": {
+  "names": [
+   "C_QUIT_TEAM"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8742": {
+  "names": [
+   "C_BATTLEGUARD_OP"
+  ],
+  "c2s": [
+   "HeroWatchOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8743": {
+  "names": [
+   "C_CONSORTIAFARM_OPEN_LORDSNODE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8744": {
+  "names": [
+   "C_TREASUREMAP_OP"
+  ],
+  "c2s": [
+   "PlayerTreasureMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8745": {
+  "names": [
+   "C_TREASUREMAP_BATTLE_REINFORCE"
+  ],
+  "c2s": [
+   "GuildMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8746": {
+  "names": [
+   "C_TEAM_REFUSE",
+   "C_TREASUREMAP_REQUEST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8747": {
+  "names": [
+   "C_ENTER_CASTLE"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8748": {
+  "names": [
+   "C_LOTTERY_REWARD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8749": {
+  "names": [
+   "C_SERVEN_LEAD"
+  ],
+  "c2s": [
+   "GetRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8750": {
+  "names": [
+   "C_LOTTERY_REQUEST"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8751": {
+  "names": [
+   "C_FRESHMAN_DEPOSIT"
+  ],
+  "c2s": [
+   "DepositActiveMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8752": {
+  "names": [
+   "C_TOLLGATE_GET_REWARD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8753": {
+  "names": [
+   "C_TOLLGATE_REQUEST"
+  ],
+  "c2s": [
+   "PlayerChallengeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8754": {
+  "names": [
+   "C_TOLLGATE_SCORE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8755": {
+  "names": [
+   "C_TOLLGATE_REQUEST_ATTACK"
+  ],
+  "c2s": [
+   "PlayerChallengeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8756": {
+  "names": [
+   "C_VIPCUSTOM_ADD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8759": {
+  "names": [
+   "C_marriage_REQUEST"
+  ],
+  "c2s": [
+   "MarriageOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8760": {
+  "names": [
+   "C_MARRIAGE_CAMPAIGN_REQUEST"
+  ],
+  "c2s": [
+   "MarriageOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8773": {
+  "names": [
+   "C_MARRIAGE_TREE_REQUEST"
+  ],
+  "c2s": [
+   "MarriageOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8774": {
+  "names": [
+   "C_MARRIAGE_TASK_REQUEST"
+  ],
+  "c2s": [
+   "MarriageOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8778": {
+  "names": [
+   "C_CROSSGUILD_TEAM_EDIT"
+  ],
+  "c2s": [
+   "CrossGuildMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8779": {
+  "names": [
+   "C_CROSSGUILD_SIGNUP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8781": {
+  "names": [
+   "C_FASHION_APPLRAISAL"
+  ],
+  "c2s": [
+   "FashionMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8782": {
+  "names": [
+   "C_CROSSGUILD_GROUP"
+  ],
+  "c2s": [
+   "CrossGuildMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8783": {
+  "names": [
+   "C_ENTER_CROSSGUILD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8785": {
+  "names": [
+   "C_DEPOT_OP"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "8802": {
+  "names": [
+   "C_MARRIAGE_HEART"
+  ],
+  "c2s": [
+   "MarriageOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8806": {
+  "names": [
+   "C_VICEPASSWORD"
+  ],
+  "c2s": [
+   "VicePasswordMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8809": {
+  "names": [
+   "C_LOCK_OR_UNLOCK"
+  ],
+  "c2s": [
+   "LockAndUnlockMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8819": {
+  "names": [
+   "C_RENTAL_BAG_OP"
+  ],
+  "c2s": [
+   "RentalBagOpReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8843": {
+  "names": [],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8866": {
+  "names": [
+   "C_REQUEST_CHARGE_REWARD"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8975": {
+  "names": [
+   "C_MATE_LORDS_SIGNUP"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8976": {
+  "names": [
+   "C_MATE_LORDS_ROOM_CREATE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8979": {
+  "names": [
+   "C_MATE_LORDS_MAININFO"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8981": {
+  "names": [
+   "C_MATE_LORDS_INSPIRE"
+  ],
+  "c2s": [
+   "(vazio)"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8985": {
+  "names": [
+   "C_BATTLE_VIEW"
+  ],
+  "c2s": [
+   "BattleViewMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "8994": {
+  "names": [
+   "C_NEW_YEAR_BOX_ACTIVE"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9500": {
+  "names": [
+   "C_SLOT_ACTIVE_REQ"
+  ],
+  "c2s": [
+   "SlotActiveRequest"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9501": {
+  "names": [
+   "C_ANSWER_REQUEST_OPTION"
+  ],
+  "c2s": [
+   "AnswerquestionReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9502": {
+  "names": [
+   "C_SEEK_REQ"
+  ],
+  "c2s": [
+   "PlayerSeekInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9503": {
+  "names": [
+   "C_RECOVER"
+  ],
+  "c2s": [
+   "RecoverReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9504": {
+  "names": [
+   "C_MULITY_CAMPAIGN_REQUEST"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9505": {
+  "names": [
+   "C_POWCARD_REQ"
+  ],
+  "c2s": [
+   "PowCardReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9506": {
+  "names": [
+   "C_CASTLE_ATTACK"
+  ],
+  "c2s": [
+   "OutercityReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9507": {
+  "names": [
+   "C_FISH_POOL"
+  ],
+  "c2s": [
+   "FreshPoolMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9508": {
+  "names": [
+   "C_GET_GEMMAZE_INFO"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9509": {
+  "names": [
+   "C_GEMMAZE_GEMMOVE"
+  ],
+  "c2s": [
+   "GemMoveMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9510": {
+  "names": [
+   "C_GEMMAZE_INVITE"
+  ],
+  "c2s": [
+   "GemMoveInviteMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9513": {
+  "names": [
+   "C_GEMMAZE_GETREWARDBOX"
+  ],
+  "c2s": [
+   "GetRewardBoxMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9515": {
+  "names": [
+   "C_GEMMAZE_INVITE_OP"
+  ],
+  "c2s": [
+   "GemInviteOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9516": {
+  "names": [
+   "C_GEMMAZE_BUYTIMES"
+  ],
+  "c2s": [
+   "GemMazeBuyTimesMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9517": {
+  "names": [
+   "C_GEMMAZE_GETALL"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9520": {
+  "names": [
+   "C_GOLDENROAD_FRESH"
+  ],
+  "c2s": [
+   "GoldenRoadClientRequestMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9521": {
+  "names": [
+   "C_GOLDENROAD_CASTDICE"
+  ],
+  "c2s": [
+   "GoldenRoadClientRequestMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9522": {
+  "names": [
+   "C_GOLDENROAD_BROADCAST"
+  ],
+  "c2s": [
+   "GoldenRoadClientRequestMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9523": {
+  "names": [
+   "C_LEAD_EXTRACT"
+  ],
+  "c2s": [
+   "LeadRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9525": {
+  "names": [
+   "C_MAPBOSS_DATAS"
+  ],
+  "c2s": [
+   "MapBossQuestMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9526": {
+  "names": [
+   "C_MAPBOX_PICK"
+  ],
+  "c2s": [
+   "ArmyBoxMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9550": {
+  "names": [
+   "C_ICON_NUM"
+  ],
+  "c2s": [
+   "IconNumMsgList"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9591": {
+  "names": [
+   "C_MAIL_CHECK"
+  ],
+  "c2s": [
+   "MailCheckMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9602": {
+  "names": [
+   "C_REQUEST_CONSUM_REWARD"
+  ],
+  "c2s": [
+   "ChargeRewardMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9610": {
+  "names": [
+   "C_LUCK_EXCHANGE"
+  ],
+  "c2s": [
+   "LuckExchangeOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9611": {
+  "names": [
+   "C_MATE_SKILL_SHOP"
+  ],
+  "c2s": [
+   "AltarShopListMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9638": {
+  "names": [
+   "C_CHAIRS_CLIENT_OP"
+  ],
+  "c2s": [
+   "ChairsListMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "9645": {
+  "names": [
+   "C_CCCACTIVE_CLIENTOP"
+  ],
+  "c2s": [
+   "OreActiveClientOpMsg",
+   "SuperSigninCardReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10003": {
+  "names": [
+   "DEBUG_BATTLE"
+  ],
+  "c2s": [
+   "BattleCreateMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10004": {
+  "names": [
+   "U_B_JOIN"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "10007": {
+  "names": [
+   "U_B_USER_LOADOVER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "10008": {
+  "names": [
+   "U_B_HERO_ORDER"
+  ],
+  "c2s": [
+   "UseSkillMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10009": {
+  "names": [
+   "U_B_USR_GUIDE"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "10010": {
+  "names": [
+   "U_B_USR_STOP_CMD"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "10015": {
+  "names": [
+   "U_B_QTE"
+  ],
+  "c2s": [
+   "QteMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10016": {
+  "names": [
+   "U_B_FIGHT_MODE"
+  ],
+  "c2s": [
+   "AttackModeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10018": {
+  "names": [
+   "B_REINFORCE_LOADOVER"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": false,
+  "client_listens": false
+ },
+ "10020": {
+  "names": [
+   "B_SET_ATUO_ATTACK"
+  ],
+  "c2s": [
+   "AttackModeMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10022": {
+  "names": [
+   "B_PAUSE_FINISHED"
+  ],
+  "c2s": [
+   "BattleReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10497": {
+  "names": [
+   "B_REMOVE_BATTLE"
+  ],
+  "c2s": [
+   "BattleReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10499": {
+  "names": [
+   "B_USE_ITEM"
+  ],
+  "c2s": [
+   "BattleItemMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10507": {
+  "names": [
+   "B_USE_TRIAL"
+  ],
+  "c2s": [
+   "BattleItemMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10509": {
+  "names": [
+   "B_USE_MARRSKILL"
+  ],
+  "c2s": [
+   "BattleItemMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "10516": {
+  "names": [
+   "B_CHILD_ORDER"
+  ],
+  "c2s": [
+   "UseSkillMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15003": {
+  "names": [
+   "U_CH_ADD_RELATIONSHIP"
+  ],
+  "c2s": [
+   "FriendRelationMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15004": {
+  "names": [
+   "U_CH_REMOVE_RELATIONSHIP"
+  ],
+  "c2s": [
+   "FriendRelationMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15005": {
+  "names": [
+   "U_CH_CHANNEL_CHA"
+  ],
+  "c2s": [
+   "ChatChannelMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15012": {
+  "names": [
+   "U_CH_FRIENDADD_CONFIRM"
+  ],
+  "c2s": [
+   "FriendRelationMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15013": {
+  "names": [
+   "U_CH_RECOMMENDLIST"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15017": {
+  "names": [
+   "CH_TREE_WATER"
+  ],
+  "c2s": [
+   "BuildingReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15023": {
+  "names": [
+   "CH_PRIVATE_CHAT"
+  ],
+  "c2s": [
+   "ChatFriendMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15025": {
+  "names": [
+   "CH_ADD_GROUP"
+  ],
+  "c2s": [
+   "FriendGroupMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15026": {
+  "names": [
+   "CH_DEL_GROUP"
+  ],
+  "c2s": [
+   "FriendGroupMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15027": {
+  "names": [
+   "CH_RENAME_GROUP"
+  ],
+  "c2s": [
+   "FriendGroupMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15028": {
+  "names": [
+   "CH_FRIEND_MOVE"
+  ],
+  "c2s": [
+   "MoveFriendReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15029": {
+  "names": [
+   "CH_EXCHANGE_STATE"
+  ],
+  "c2s": [
+   "ChatStateMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15033": {
+  "names": [
+   "CH_SNS_UPDATE"
+  ],
+  "c2s": [
+   "SNSInfoMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15036": {
+  "names": [
+   "CH_SNSINFO_RESET"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15038": {
+  "names": [
+   "CH_SIMPLEUSER_INFO"
+  ],
+  "c2s": [
+   "InfoReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15042": {
+  "names": [
+   "CH_FRIEND_SEARCH"
+  ],
+  "c2s": [
+   "FriendSearchConditionReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15043": {
+  "names": [
+   "CH_CHAT_STATE"
+  ],
+  "c2s": [
+   "RecentContractsStateReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15044": {
+  "names": [
+   "CH_FARM_OPER_CHECK"
+  ],
+  "c2s": [
+   "FarmOperReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "15049": {
+  "names": [
+   "CH_MARRIAGE_BUY_SPEC"
+  ],
+  "c2s": [
+   "MarriageOpMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "20001": {
+  "names": [
+   "U_G_LOGIN_GATEWAY"
+  ],
+  "c2s": [
+   "LoginReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "20008": {
+  "names": [
+   "C_SYNCHRONIZED_TIME"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "20009": {
+  "names": [
+   "G_ACCELERATOR"
+  ],
+  "c2s": [
+   "SimplePropertyMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "20010": {
+  "names": [
+   "C_CHECK_ACCELERATOR"
+  ],
+  "c2s": [],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "25024": {
+  "names": [
+   "CR_CHANNEL_CHAT"
+  ],
+  "c2s": [
+   "ChatChannelMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "25096": {
+  "names": [
+   "CR_WARFIELD_CHAT"
+  ],
+  "c2s": [
+   "ChatChannelMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "25097": {
+  "names": [
+   "CR_WARFIELD_USER_INFO"
+  ],
+  "c2s": [
+   "DetailReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "25111": {
+  "names": [
+   "C_EXIT_VEHICLE_NODE"
+  ],
+  "c2s": [
+   "WarFieldAttackMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ },
+ "25112": {
+  "names": [
+   "C_MAP_VEHICLE_ATTACK"
+  ],
+  "c2s": [
+   "VehicleAttackReqMsg"
+  ],
+  "s2c": [],
+  "client_sends": true,
+  "client_listens": false
+ }
+}

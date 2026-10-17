@@ -1,0 +1,6893 @@
+// GERADO por tools/as3_to_proto.py a partir do cliente decompilado. Nao edite.
+syntax = "proto2";
+package wartune;
+
+// com.road.yishi.proto.active.ActiveData
+message ActiveData {
+  repeated PackageData packdata = 1;
+  optional int32 value = 2;
+  optional string activeId = 3;
+  optional bool isShow = 4;
+  optional int32 type = 5;
+  optional int32 activeCharge = 6;
+  repeated ConsumeInfoMsg consumeMsg = 7;
+}
+
+// com.road.yishi.proto.active.ActiveParamMsg
+message ActiveParamMsg {
+  optional int32 level = 1;
+  optional int32 costDiamond = 2;
+  optional int32 costContract = 3;
+  optional int32 getBindingDia = 4;
+  optional int32 harvestCount = 5;
+  repeated GItemInfoMsg itemInfos = 6;
+  repeated GetItemInfosMsg getInfos = 7;
+}
+
+// com.road.yishi.proto.active.ActiveRspInfo
+message ActiveRspInfo {
+  optional string activeId = 1;
+  optional string title = 2;
+  optional string contents = 3;
+  optional string awardContent = 4;
+  optional string description = 5;
+  optional string actionTimeContent = 6;
+  optional int32 consortia = 7;
+  optional int32 grades = 8;
+  optional int32 sort = 9;
+  optional string endDate = 10;
+  optional string startDate = 11;
+}
+
+// com.road.yishi.proto.active.ActiveRspMsg
+message ActiveRspMsg {
+  repeated ActiveRspInfo activeRspInfo = 1;
+}
+
+// com.road.yishi.proto.player.AdditionMsg
+message AdditionMsg {
+  optional int32 masterType = 1;
+  optional int32 power = 2;
+  optional int32 agility = 3;
+  optional int32 intellect = 4;
+  optional int32 physique = 5;
+  optional string createDate = 6;
+  optional string expirtDate = 7;
+  optional string description = 8;
+  optional bool isExist = 9;
+}
+
+// com.road.yishi.proto.campaign.AltarCampaignReportMsg
+message AltarCampaignReportMsg {
+  optional int32 altarDurability = 1;
+  optional int32 waveNum = 2;
+  optional int32 monsterCount = 3;
+  optional int32 buffType = 4;
+  repeated HurtOrderMsg hurtOrder = 5;
+  optional int32 leftStartTime = 6;
+  optional int32 userBuffType = 7;
+  repeated AltarCampaignSkillMsg skill = 8;
+}
+
+// com.road.yishi.proto.campaign.AltarCampaignSkillMsg
+message AltarCampaignSkillMsg {
+  optional int32 templateId = 1;
+  optional int32 cDTimer = 2;
+  optional int32 userId = 3;
+  optional string nickName = 4;
+  optional int32 consortiaId = 5;
+}
+
+// com.road.yishi.proto.matelords.AltarShopInfoMsg
+message AltarShopInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 price = 2;
+  optional int32 leftCount = 3;
+  optional int32 maxCount = 4;
+  optional int32 skillTempId = 5;
+}
+
+// com.road.yishi.proto.matelords.AltarShopListMsg
+message AltarShopListMsg {
+  optional int32 op = 1;
+  optional int32 altarScore = 2;
+  optional int32 templateId = 3;
+  optional int32 skillTempId = 4;
+  repeated AltarShopInfoMsg info = 5;
+}
+
+// com.road.yishi.proto.answerquestion.AnswerquestionReqMsg
+message AnswerquestionReqMsg {
+  optional int32 type = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.player.AppellExchangeMsg
+message AppellExchangeMsg {
+  optional int32 appellId = 1;
+  optional bool look = 2;
+}
+
+// com.road.yishi.proto.player.AppellInfoMsg
+message AppellInfoMsg {
+  optional int32 appellId = 1;
+  optional bool isGet = 2;
+  optional string value = 3;
+  optional string validDate = 4;
+}
+
+// com.road.yishi.proto.player.AppellsMsg
+message AppellsMsg {
+  repeated AppellInfoMsg appells = 1;
+}
+
+// com.road.yishi.proto.army.ArmyMsg
+message ArmyArmyMsg {
+  optional int32 armyId = 1;
+  optional int32 playerId = 2;
+  optional string nickName = 3;
+  optional int32 mapId = 4;
+  optional int32 curPosX = 5;
+  optional int32 curPosY = 6;
+  optional int32 state = 7;
+  optional int32 type = 8;
+  repeated ArmyPawnInfoMsg armyPawn = 9;
+  optional SimpleHeroInfoMsg simpleHeroInfo = 10;
+  optional int32 consortiaId = 11;
+  optional string consortiaName = 12;
+  optional int32 fightingCapacity = 13;
+  optional int32 gpOrder = 14;
+  optional int32 grades = 15;
+  optional string arm = 16;
+  optional string cloth = 17;
+  optional int32 job = 18;
+  optional int32 changeSharp = 19;
+  optional int32 heroTempId = 20;
+  repeated int32 userIds = 21;
+  optional int32 geste = 22;
+  optional bool isVip = 23;
+  optional int32 vipType = 24;
+  optional int32 mountTempId = 25;
+  optional int32 mountGrade = 26;
+  optional string wing = 27;
+  optional string serverName = 28;
+  optional string hat = 29;
+  optional string fashionArm = 30;
+  optional string fashionCloth = 31;
+  optional bool hide = 32;
+  optional int32 appellid = 33;
+  optional string fateSkills = 34;
+  optional int32 petTempId = 35;
+  optional int32 petQuqlity = 36;
+  optional string petName = 37;
+}
+
+// com.road.yishi.proto.army.ArmyUpdatedGridMsg
+message ArmyArmyUpdatedGridMsg {
+  repeated ArmyArmyMsg updatedArmy = 1;
+}
+
+// com.road.yishi.proto.army.BoxMsg
+message ArmyBoxMsg {
+  optional string boxId = 1;
+  optional int32 userId = 2;
+  optional int32 grade = 3;
+  optional int32 mapId = 4;
+  optional int32 x = 5;
+  optional int32 y = 6;
+  optional int32 type = 7;
+}
+
+// com.road.yishi.proto.army.ArmyBufferListMsg
+message ArmyBufferListMsg {
+  repeated ArmyBufferMsg armyBuffer = 1;
+}
+
+// com.road.yishi.proto.army.ArmyBufferMsg
+message ArmyBufferMsg {
+  optional int32 userId = 1;
+  optional int32 bufferTempId = 2;
+}
+
+// com.road.yishi.proto.army.ArmyChangeSharpMsg
+message ArmyChangeSharpMsg {
+  optional int32 armyId = 1;
+  optional int32 changeSharpId = 2;
+  optional string serverName = 3;
+}
+
+// com.road.yishi.proto.army.ArmyEditRspMsg
+message ArmyEditRspMsg {
+  repeated ArmyPawnInfoMsg armyPawn = 1;
+}
+
+// com.road.yishi.proto.army.ArmyFightPosEditListMsg
+message ArmyFightPosEditListMsg {
+  repeated ArmyFightPosEditMsg armyFightPos = 1;
+}
+
+// com.road.yishi.proto.army.ArmyFightPosEditMsg
+message ArmyFightPosEditMsg {
+  optional int32 userId = 1;
+  optional int32 heroPos = 2;
+  optional int32 pawnPos = 3;
+}
+
+// com.road.yishi.proto.army.ArmyListRspMsg
+message ArmyListRspMsg {
+  repeated ArmyArmyMsg armyList = 1;
+}
+
+// com.road.yishi.proto.army.ArmyPawnInfoMsg
+message ArmyPawnInfoMsg {
+  optional int32 id = 1;
+  optional int32 armyId = 2;
+  optional int32 sites = 3;
+  optional int32 sonType = 4;
+  optional int32 tempateId = 5;
+  optional int32 ownPawns = 6;
+  repeated ArmyPropertyMsg pawnLive = 7;
+  optional int32 fightPos = 8;
+  optional string specialTempIds = 9;
+  optional string comprehednTempIds = 10;
+  optional int32 blessNum = 11;
+}
+
+// com.road.yishi.proto.army.ArmyPawnUpdatedMsg
+message ArmyPawnUpdatedMsg {
+  repeated ArmyPawnInfoMsg armyPawn = 1;
+}
+
+// com.road.yishi.proto.battle.ArmyPlayerInfoMsg
+message ArmyPlayerInfoMsg {
+  optional float aasFactor = 1;
+  optional bool isVip = 2;
+  optional int32 vipType = 3;
+  optional int32 gesteDecCount = 4;
+  optional int32 consortiaId = 5;
+  optional string consortiaName = 6;
+  optional int32 changeShapeId = 7;
+  optional string arm = 8;
+  optional int32 geste = 9;
+  optional int32 mountTempId = 10;
+  optional int32 mountGrade = 11;
+  optional string wing = 12;
+  optional string hat = 13;
+  optional string fashionArm = 14;
+  optional string fashionCloth = 15;
+  optional bool hide = 16;
+  optional bool isMaxCount = 17;
+  optional int32 vipGrade = 18;
+  optional string fateSkills = 19;
+  optional int32 petTempId = 20;
+}
+
+// com.road.yishi.proto.army.ArmyPosUpdatedMsg
+message ArmyPosUpdatedMsg {
+  optional int32 armyId = 1;
+  optional int32 curPosX = 2;
+  optional int32 curPosY = 3;
+  optional int32 endPosX = 4;
+  optional int32 endPosY = 5;
+  repeated int32 userIds = 6;
+  optional string serverName = 7;
+}
+
+// com.road.yishi.proto.army.ArmyPositionMsg
+message ArmyPositionMsg {
+  optional int32 posX = 1;
+  optional int32 posY = 2;
+  optional int32 mapId = 3;
+  optional int32 payType = 4;
+  optional int32 leftEnergy = 5;
+}
+
+// com.road.yishi.proto.army.PropertyMsg
+message ArmyPropertyMsg {
+  optional int32 tempData = 1;
+  optional int32 effect_Per = 2;
+  optional int32 effect_Data = 3;
+  optional int32 bag_Per = 4;
+  optional int32 bag_Data = 5;
+  optional int32 star_Per = 6;
+  optional int32 star_Data = 7;
+  optional int32 powcard_Per = 8;
+  optional int32 powcard_Data = 9;
+  optional int32 skill_Per = 10;
+  optional int32 skill_Data = 11;
+  optional int32 base_Join = 12;
+}
+
+// com.road.yishi.proto.army.ArmyRemoveMsg
+message ArmyRemoveMsg {
+  optional int32 armyId = 1;
+}
+
+// com.road.yishi.proto.battle.ArmyResMsg
+message ArmyResMsg {
+  repeated PreLoadResMsg loadRes = 1;
+  optional int32 reinforceCount = 2;
+  optional int32 reinforceType = 3;
+}
+
+// com.road.yishi.proto.item.ArrangeInfo
+message ArrangeInfo {
+  optional int32 oldplace = 1;
+  optional int32 newplace = 2;
+}
+
+// com.road.yishi.proto.item.ArrangeReq
+message ArrangeReq {
+  optional bool isStackItem = 1;
+  optional int32 bagType = 2;
+  repeated ArrangeInfo arrangeInfo = 3;
+}
+
+// com.road.yishi.proto.campaign.ArriveAltarReqMsg
+message ArriveAltarReqMsg {
+  optional string uuId = 1;
+  optional int32 nodeId = 2;
+}
+
+// com.road.yishi.proto.battle.AttackModeMsg
+message AttackModeMsg {
+  optional int32 userId = 1;
+  optional string battleId = 2;
+  optional string serverName = 3;
+  optional int32 armyId = 4;
+  optional int32 mode = 5;
+  optional int32 fmTurn = 6;
+  optional int32 heroSp = 7;
+}
+
+// com.road.yishi.proto.battle.AttackOrderMsg
+message AttackOrderMsg {
+  optional string battleId = 1;
+  optional int32 frame = 2;
+  optional int32 orderId = 3;
+  optional bool isPassive = 4;
+  optional int32 livingId = 5;
+  optional int32 sp = 6;
+  optional int32 spAdded = 7;
+  repeated DamageMsg damages = 8;
+  optional int32 execFrame = 9;
+  optional int32 frameNum = 10;
+  optional string attackMillis = 11;
+  repeated BufferMsg buffers = 12;
+  repeated SoldierMsg awakenSoldiers = 13;
+  optional int32 attackOrderSeq = 14;
+  optional int32 cdTime = 15;
+  optional int32 awake = 16;
+  optional int32 awakeAdd = 17;
+  repeated WaitReviveMsg waitRevives = 18;
+  optional int32 curturn = 19;
+}
+
+// com.road.yishi.proto.mall.AuctionItemReqMsg
+message AuctionItemReqMsg {
+  optional int32 id = 1;
+  optional int32 point = 2;
+}
+
+// com.road.yishi.proto.simple.AuctionItemRspMsg
+message AuctionItemRspMsg {
+  optional int32 result = 1;
+  optional MallItemBuyMsg itemBuy = 2;
+}
+
+// com.road.yishi.proto.simple.AuctionItemsMsg
+message AuctionItemsMsg {
+  optional int32 pageIdx = 1;
+  optional int32 pageCount = 2;
+  repeated MallItemBuyMsg itemBuy = 3;
+  repeated MallItemMsg sellItem = 4;
+}
+
+// com.road.yishi.proto.campaign.AvatarInfoMsg
+message AvatarInfoMsg {
+  optional int32 mountTempId = 1;
+  optional bool isExist = 2;
+  optional string expairDate = 3;
+  optional string activeDate = 4;
+  optional int32 validity = 5;
+  optional int32 starLevel = 6;
+  optional int32 blessing = 7;
+  optional int32 param1 = 8;
+  optional int32 param2 = 9;
+  optional bool isBuyFly = 10;
+}
+
+// com.road.yishi.proto.simple.AvaterMsg
+message AvaterMsg {
+  optional int32 userId = 1;
+  optional int32 armTempId = 2;
+  optional int32 clothTempId = 3;
+  optional int32 fashionArmTempId = 4;
+  optional int32 fashionClothTempId = 5;
+  optional int32 fashionWingTempId = 6;
+  optional int32 fashionHeadTempId = 7;
+}
+
+// com.road.yishi.proto.battle.AwakeInfoMsg
+message AwakeInfoMsg {
+  optional int32 livingId = 1;
+  optional int32 awake = 2;
+}
+
+// com.road.yishi.proto.battle.AwakeMsg
+message AwakeMsg {
+  repeated AwakeInfoMsg awake = 1;
+}
+
+// com.road.yishi.proto.army.BaseCastleMsg
+message BaseCastleMsg {
+  optional int32 id = 1;
+  optional int32 mapId = 2;
+  optional int32 posX = 3;
+  optional int32 posY = 4;
+  optional int32 templateId = 5;
+  optional int32 type = 6;
+  optional int32 occupyPlayerId = 7;
+  optional string occupyPlayerName = 8;
+  optional string occupyLeagueName = 9;
+  optional int32 state = 10;
+  optional int32 defenceLefttime = 11;
+  optional string castleName = 12;
+  optional int32 leftEnergy = 13;
+  optional int32 grade = 14;
+  optional bool isDefenceBuffer = 15;
+  optional int32 vipCastleView = 16;
+  optional int32 vipType = 17;
+}
+
+// com.road.yishi.proto.battle.BaseItemMsg
+message BaseItemMsg {
+  optional int32 templateId = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.campaign.BatterLastInfoMsg
+message BatterLastInfoMsg {
+  optional int32 count = 1;
+}
+
+// com.road.yishi.proto.battle.ArmyMsg
+message BattleArmyMsg {
+  optional int32 id = 1;
+  optional int32 userId = 2;
+  optional string name = 3;
+  optional int32 type = 4;
+  optional int32 side = 5;
+  optional int32 formation = 6;
+  repeated HeroMsg hero = 7;
+  repeated SoldierMsg soldier = 8;
+  optional int32 result = 9;
+  optional bool isJoin = 10;
+  optional int32 armyType = 11;
+  optional bool isRobot = 12;
+  optional int32 failedCount = 13;
+  optional string serverName = 14;
+  optional ArmyPlayerInfoMsg armyPlayerInfo = 15;
+  optional int32 curWave = 16;
+  repeated HeroMsg pet = 17;
+}
+
+// com.road.yishi.proto.battle.BattleCreateMsg
+message BattleCreateMsg {
+  optional int32 mapTempId = 1;
+  optional string proxyId = 2;
+  optional int32 type = 3;
+  optional int32 attackerNum = 4;
+  optional int32 userSide = 5;
+  repeated BattleArmyMsg army = 6;
+  optional int32 reinforceCount = 7;
+  optional int32 campaignId = 8;
+  optional int32 capity = 9;
+  optional int32 lastWound = 10;
+  optional int32 nodeId = 11;
+  optional int32 castleRoomId = 12;
+  optional string serverName = 13;
+}
+
+// com.road.yishi.proto.battle.BattleItemMsg
+message BattleItemMsg {
+  optional int32 userId = 1;
+  optional string battleId = 2;
+  optional string serverName = 3;
+  optional int32 uItemId = 4;
+  optional int32 count = 5;
+  optional int32 tempId = 6;
+  optional int32 bagPos = 7;
+  optional int32 skillTempId = 8;
+  optional int32 sonType = 9;
+}
+
+// com.road.yishi.proto.battle.BattleNoticeMsg
+message BattleNoticeMsg {
+  optional string battleId = 1;
+  optional int32 countDown = 2;
+  optional int32 damageImprove = 3;
+}
+
+// com.road.yishi.proto.battle.BattlePrepareMsg
+message BattlePrepareMsg {
+  optional string battleId = 1;
+  optional int32 battleType = 2;
+  optional int32 mapTempId = 3;
+  optional bool needAnimation = 4;
+  optional int32 side = 5;
+  optional bool hasAssault = 6;
+  optional int32 useWay = 7;
+  optional int32 attackModel = 8;
+  optional int32 reinforceCount = 9;
+  optional int32 currentReinforce = 10;
+  optional int32 battleCapity = 11;
+  optional int32 countDown = 12;
+  optional int32 damageImprove = 13;
+  repeated SoldierMsg soldiers = 14;
+  repeated HeroMsg heros = 15;
+  repeated int32 soldierTemplated = 16;
+  repeated CoolDownMsg coolDown = 17;
+  optional int32 currentWave = 18;
+  repeated HeroMsg pets = 19;
+}
+
+// com.road.yishi.proto.battle.BattleReportMsg
+message BattleReportMsg {
+  optional int32 battleResult = 1;
+  optional int32 strategyBonus = 2;
+  optional int32 gpBonus = 3;
+  optional int32 posX = 4;
+  optional int32 posY = 5;
+  optional string signId = 6;
+  repeated BaseItemMsg baseItem = 7;
+  optional int32 battleScene = 8;
+  optional int32 failCount = 9;
+  optional int32 goldBonus = 10;
+  optional int32 petGpBonus = 11;
+  optional int32 param1 = 12;
+  optional int32 param2 = 13;
+}
+
+// com.road.yishi.proto.battle.BattleReqMsg
+message BattleReqMsg {
+  optional int32 userId = 1;
+  optional string battleId = 2;
+  optional int32 armyId = 3;
+  optional int32 otherObj = 4;
+}
+
+// com.road.yishi.proto.battle.BattleStartMsg
+message BattleStartMsg {
+  optional int32 frame = 1;
+  optional int32 mainType = 2;
+  optional int32 countDown = 3;
+}
+
+// com.road.yishi.proto.battle.BattleViewMsg
+message BattleViewMsg {
+  optional int32 type = 1;
+  optional int32 userId = 2;
+  optional string serverName = 3;
+  optional string teamUuid = 4;
+  optional int32 sonType = 5;
+}
+
+// com.road.yishi.proto.player.BlessingMsg
+message BlessingMsg {
+  optional int32 increase = 1;
+  optional int32 usedCount = 2;
+  optional int32 maxCount = 3;
+}
+
+// com.road.yishi.proto.army.BossArmyListMsg
+message BossArmyListMsg {
+  optional int32 leftFightTime = 1;
+  optional string bossName = 2;
+  optional int32 level = 3;
+  optional int32 bossTemplateId = 4;
+  repeated FightPlayerMsg fightPlayer = 5;
+}
+
+// com.road.yishi.proto.battle.BossHpMsg
+message BossHpMsg {
+  optional int32 campaignId = 1;
+  optional int32 value = 2;
+  optional int32 nodeId = 3;
+  optional int32 livingId = 4;
+}
+
+// com.road.yishi.proto.campaign.BossInviteMsg
+message BossInviteMsg {
+  optional string nickName = 1;
+  optional string bossNick = 2;
+  optional int32 level = 3;
+  optional int32 templateId = 4;
+  optional int32 leftFightTime = 5;
+  optional int32 posX = 6;
+  optional int32 posY = 7;
+}
+
+// com.road.yishi.proto.army.BossMsg
+message BossMsg {
+  optional string bossName = 1;
+  optional int32 grade = 2;
+  optional int32 type = 3;
+  optional int32 x = 4;
+  optional int32 y = 5;
+}
+
+// com.road.yishi.proto.item.BottleDropListMsg
+message BottleDropListMsg {
+  repeated BottleItemInfoMsg dropItem = 1;
+  repeated BottlePackage score = 2;
+  repeated BottlePackage storey = 3;
+  optional bool open = 4;
+  optional int64 endTime = 5;
+}
+
+// com.road.yishi.proto.item.BottleItemInfoMsg
+message BottleItemInfoMsg {
+  optional int32 tempId = 1;
+  optional int32 count = 2;
+  optional bool isShow = 3;
+  optional bool isNewItems = 4;
+}
+
+// com.road.yishi.proto.bottle.BottleMsg
+message BottleMsg {
+  repeated PlayerBottleMsg playerBottle = 1;
+  optional int32 total = 2;
+}
+
+// com.road.yishi.proto.item.BottleOpMsg
+message BottleOpMsg {
+  optional int32 alterType = 1;
+  optional int32 opType = 2;
+  optional int32 stickFirst = 3;
+}
+
+// com.road.yishi.proto.item.BottlePackage
+message BottlePackage {
+  optional int32 param = 1;
+  repeated BottleItemInfoMsg item = 2;
+}
+
+// com.road.yishi.proto.item.BottlePassMsg
+message BottlePassMsg {
+  optional int32 passType = 1;
+  repeated string infos = 2;
+  optional int32 count = 3;
+  optional int32 dropId = 4;
+}
+
+// com.road.yishi.proto.bottle.BottleScoreMsg
+message BottleScoreMsg {
+  optional string treeStatus = 1;
+  optional int32 count = 2;
+  optional bool openView = 3;
+  optional bool alterBottle = 4;
+}
+
+// com.road.yishi.proto.box.BoxMsg
+message BoxBoxMsg {
+  optional int32 time = 1;
+  optional int32 grade = 2;
+  optional bool operate = 3;
+  optional int32 timerun = 4;
+}
+
+// com.road.yishi.proto.item.BufferDataMsg
+message BufferDataMsg {
+  optional int32 templateId = 1;
+  optional int32 validityDate = 2;
+  optional int32 grade = 3;
+  optional int32 type = 4;
+  optional int32 typeTemplateid = 5;
+  optional bool isCancel = 6;
+}
+
+// com.road.yishi.proto.campaign.BufferInfoMsg
+message BufferInfoMsg {
+  optional int32 bufferTempId = 1;
+  optional int32 leftTime = 2;
+}
+
+// com.road.yishi.proto.battle.BufferMsg
+message BufferMsg {
+  optional int32 bufferId = 1;
+  optional int32 templateId = 2;
+  optional int32 sourceId = 3;
+  optional int32 targetId = 4;
+  optional int32 curTurn = 5;
+  optional int32 execFrame = 7;
+  optional int32 seeType = 8;
+  optional int32 exeWay = 9;
+  optional int32 pressedNum = 10;
+  repeated DamageMsg damage = 11;
+  optional int32 maxTurn = 12;
+  repeated int32 unSkillIds = 13;
+}
+
+// com.road.yishi.proto.building.BuildOrderList
+message BuildOrderList {
+  repeated OrderInfoMsg buildOrder = 1;
+}
+
+// com.road.yishi.proto.building.BuildingInfoListMsg
+message BuildingInfoListMsg {
+  optional bool result = 1;
+  repeated BuildingInfoMsg building = 2;
+}
+
+// com.road.yishi.proto.building.BuildingInfoMsg
+message BuildingInfoMsg {
+  optional int32 userId = 1;
+  optional int32 buildingId = 2;
+  optional int32 castleId = 3;
+  optional string createdDate = 4;
+  optional bool isExist = 5;
+  optional int32 templateId = 6;
+  optional int32 sonType = 7;
+  optional int32 propterty1 = 8;
+  optional int32 propterty2 = 9;
+}
+
+// com.road.yishi.proto.building.BuildingOptionReqMsg
+message BuildingOptionReqMsg {
+  optional int32 buildingId = 1;
+  optional int32 sonType = 2;
+}
+
+// com.road.yishi.proto.building.BuildingReqMsg
+message BuildingReqMsg {
+  optional int32 orderId = 1;
+  optional string position = 2;
+  optional int32 index = 3;
+  optional int32 userId = 4;
+}
+
+// com.road.yishi.proto.shop.BuyInfo
+message BuyInfo {
+  optional bool isDiscount = 1;
+  optional int32 goodId = 2;
+  optional int32 count = 3;
+  optional int32 receiveId = 4;
+  optional int32 result = 5;
+  optional int32 type = 6;
+}
+
+// com.road.yishi.proto.campaign.CallBackReqMsg
+message CallBackReqMsg {
+  optional int32 mapId = 1;
+  optional int32 nodeId = 2;
+  optional int32 cmd = 3;
+}
+
+// com.road.yishi.proto.campaign.CampaignBufferMsg
+message CampaignBufferMsg {
+  optional int32 armyId = 1;
+  repeated BufferInfoMsg bufferInfo = 2;
+  optional int32 property1 = 3;
+  optional int32 property2 = 4;
+  optional int32 property3 = 5;
+}
+
+// com.road.yishi.proto.item.CampaignCardsMsg
+message CampaignCardsMsg {
+  optional string sceneType = 1;
+  optional int32 cardCount = 2;
+  optional int32 payCardCount = 3;
+  optional int32 price = 4;
+  repeated ItemInfoMsg dropItems = 5;
+}
+
+// com.road.yishi.proto.campaign.CampaignConfirmMsg
+message CampaignConfirmMsg {
+  optional string title = 1;
+  optional string body = 2;
+  optional int32 mapId = 3;
+  optional int32 nodeId = 4;
+  optional int32 itemTempId = 5;
+  optional int32 itemCount = 6;
+  optional int32 type = 7;
+}
+
+// com.road.yishi.proto.campaign.CampaignExitMsg
+message CampaignExitMsg {
+  optional int32 result = 1;
+  optional int32 playerId = 2;
+  optional int32 armyId = 3;
+  optional string serverName = 4;
+}
+
+// com.road.yishi.proto.campaign.CampaignFogDataListReqMsg
+message CampaignFogDataListReqMsg {
+  repeated CampaignFogDataReqMsg dataList = 1;
+}
+
+// com.road.yishi.proto.campaign.CampaignFogDataReqMsg
+message CampaignFogDataReqMsg {
+  optional int32 index = 1;
+  optional int32 fogByte = 2;
+}
+
+// com.road.yishi.proto.campaign.CampaignFogMsg
+message CampaignFogMsg {
+  optional int32 row = 1;
+  optional int32 col = 2;
+  repeated bytes forArray = 3;
+  optional int32 mapTempId = 4;
+}
+
+// com.road.yishi.proto.campaign.CampaignFogUpdateMsg
+message CampaignFogUpdateMsg {
+  repeated FogUpdateMsg fogUpdate = 1;
+}
+
+// com.road.yishi.proto.campaign.CampaignLoginMsg
+message CampaignLoginMsg {
+  optional int32 playerId = 1;
+  optional string serverName = 2;
+}
+
+// com.road.yishi.proto.campaign.CampaignNodeListMsg
+message CampaignNodeListMsg {
+  repeated CampaignNodeMsg node = 1;
+}
+
+// com.road.yishi.proto.campaign.CampaignNodeMsg
+message CampaignNodeMsg {
+  optional int32 nodeId = 1;
+  optional int32 campDataId = 2;
+  optional string nodeName = 3;
+  optional int32 masterType = 4;
+  optional int32 sonType = 5;
+  optional string preNodeIds = 6;
+  optional string nextNodeIds = 7;
+  optional int32 state = 8;
+  optional int32 refreshSpeed = 9;
+  optional int32 posX = 10;
+  optional int32 posY = 11;
+  optional int32 curX = 12;
+  optional int32 curY = 13;
+  optional int32 level = 14;
+  optional int32 styleType = 15;
+  optional int32 attackTypes = 16;
+  optional int32 nameColor = 17;
+  optional int32 sizeType = 18;
+  optional int32 toward = 19;
+  optional int32 resource = 20;
+  optional int32 resetX = 21;
+  optional int32 resetY = 22;
+  repeated int32 visitUserIds = 23;
+  optional int32 fixType = 24;
+  optional int32 fixX = 25;
+  optional int32 fixY = 26;
+  optional int32 heroTempId = 27;
+  optional int32 handlerRange = 28;
+  optional int32 fightCapaity = 29;
+  optional int32 param1 = 30;
+  optional int32 param2 = 31;
+  optional string param3 = 32;
+  optional string param4 = 33;
+  optional string param5 = 34;
+}
+
+// com.road.yishi.proto.campaign.CampaignNodePosRefershListMsg
+message CampaignNodePosRefershListMsg {
+  repeated CampaignNodePosRefershMsg node = 1;
+}
+
+// com.road.yishi.proto.campaign.CampaignNodePosRefershMsg
+message CampaignNodePosRefershMsg {
+  optional int32 mapId = 1;
+  optional int32 nodeId = 2;
+  optional int32 posX = 3;
+  optional int32 posY = 4;
+  optional int32 state = 5;
+}
+
+// com.road.yishi.proto.campaign.CampaignNodeSuccMsg
+message CampaignNodeSuccMsg {
+  optional int32 nodeId = 1;
+}
+
+// com.road.yishi.proto.campaign.CampaignNodeUpdateMsg
+message CampaignNodeUpdateMsg {
+  optional int32 nodeId = 1;
+  optional int32 nodeState = 2;
+  optional int32 userId = 3;
+  repeated int32 visitUserIds = 4;
+  repeated int32 userIds = 5;
+  optional string uuId = 6;
+  optional int32 param1 = 7;
+  optional int32 sonType = 8;
+  optional int32 posX = 9;
+  optional int32 posY = 10;
+  optional int32 param2 = 11;
+  optional int32 param3 = 12;
+}
+
+// com.road.yishi.proto.campaign.CampaignNotifyMsg
+message CampaignNotifyMsg {
+  optional int32 id = 1;
+  optional string scene = 2;
+  optional int32 mapId = 3;
+  optional string body = 4;
+  optional int32 delay = 5;
+}
+
+// com.road.yishi.proto.campaign.CampaignNpcMoveListMsg
+message CampaignNpcMoveListMsg {
+  repeated CampaignNpcMoveMsg campaignNpcMove = 1;
+}
+
+// com.road.yishi.proto.campaign.CampaignNpcMoveMsg
+message CampaignNpcMoveMsg {
+  optional int32 nodeId = 1;
+  optional int32 startX = 2;
+  optional int32 startY = 3;
+  optional int32 endX = 4;
+  optional int32 endY = 5;
+  optional string showTime = 6;
+  optional string uuId = 7;
+  optional int32 centerX = 8;
+  optional int32 centerY = 9;
+  optional bool isMove = 10;
+}
+
+// com.road.yishi.proto.campaign.CampaignReportMsg
+message CampaignReportMsg {
+  optional int32 time = 1;
+  optional int32 woundValue = 2;
+  optional int32 hurtValue = 3;
+  optional int32 failedCount = 4;
+  optional int32 woundAppraisal = 5;
+  optional int32 hurtAppraisal = 6;
+  optional int32 failedAppraisal = 7;
+  optional int32 totalAppraisal = 8;
+  optional int32 batter = 9;
+  optional int32 teamJoin = 10;
+  optional int32 friendJoin = 11;
+  optional int32 vipJoin = 12;
+  optional int32 propJoin = 13;
+  optional int32 otherJoin = 14;
+  optional int32 totalGp = 15;
+  optional int32 petGp = 16;
+}
+
+// com.road.yishi.proto.campaign.CampaignReqMsg
+message CampaignReqMsg {
+  optional int32 paraInt1 = 1;
+  optional int32 paraInt2 = 2;
+  optional int32 paraInt3 = 3;
+  optional int32 paraInt4 = 4;
+  optional int32 paraInt5 = 5;
+  optional string paraString1 = 6;
+  optional bool paraBool1 = 7;
+  optional string serverName = 8;
+}
+
+// com.road.yishi.proto.campaign.CampaignSweepReq
+message CampaignSweepReq {
+  optional int32 sweepType = 1;
+  optional int32 opType = 2;
+  optional int32 campaignId = 3;
+  optional int32 count = 4;
+  optional int32 eIndex = 5;
+  optional int32 enterType = 6;
+  optional bool openSilverBox = 7;
+  optional bool openSecretBox = 8;
+  optional int32 payType = 9;
+}
+
+// com.road.yishi.proto.campaign.CampaignSweepRsp
+message CampaignSweepRsp {
+  repeated SweepResult result = 1;
+  optional int32 status = 2;
+  optional int32 sweepType = 3;
+  optional int32 totalGp = 4;
+  repeated ItemTemplate dropItems = 5;
+  optional int32 campaignId = 6;
+}
+
+// com.road.yishi.proto.campaign.CampaignTakeCardsMsg
+message CampaignTakeCardsMsg {
+  optional int32 playerId = 1;
+  optional string name = 2;
+  optional bool pay = 3;
+  optional int32 index = 4;
+  optional int32 templateId = 5;
+  optional int32 count = 6;
+  optional bool bind = 7;
+  optional int32 randomSkill_1 = 8;
+  optional int32 randomSkill_2 = 9;
+  optional int32 randomSkill_3 = 10;
+  optional int32 randomSkill_4 = 11;
+  optional int32 randomSkill_5 = 12;
+}
+
+// com.road.yishi.proto.simple.CanceltemRspMsg
+message CanceltemRspMsg {
+  optional int32 result = 1;
+  optional int32 id = 2;
+  optional MallItemMsg item = 3;
+}
+
+// com.road.yishi.proto.campaign.CaptainSpeakMsg
+message CaptainSpeakMsg {
+  optional string cmapaignName = 1;
+  optional int32 roomId = 2;
+  optional int32 isLock = 3;
+  repeated string inviteContent = 4;
+  optional int32 type = 5;
+}
+
+// com.road.yishi.proto.campaign.CarInfo
+message CarInfo {
+  optional int32 userId = 1;
+  optional int32 minerals = 2;
+  optional int32 quality = 3;
+  optional int32 tramcarCount = 4;
+  optional int32 handCount = 5;
+  optional int32 isOwn = 6;
+  optional int32 pickCount = 7;
+  optional int32 armyId = 8;
+}
+
+// com.road.yishi.proto.goldenroad.CastDiceMsg
+message CastDiceMsg {
+  optional int32 curPos = 1;
+  optional int32 diceNumber = 2;
+  optional int32 score = 3;
+  optional string tempIds = 4;
+}
+
+// com.road.yishi.proto.outercity.CastleDefenseRspMsg
+message CastleDefenseRspMsg {
+  optional int32 posX = 1;
+  optional int32 posY = 2;
+  optional int32 leftTime = 3;
+}
+
+// com.road.yishi.proto.castle.CastleReqMsg
+message CastleReqMsg {
+  optional int32 magId = 1;
+  optional int32 posX = 2;
+  optional int32 posY = 3;
+  optional int32 leftTime = 4;
+  optional int32 leftEnergy = 5;
+  optional int32 payType = 6;
+}
+
+// com.road.yishi.proto.castle.CastleYieldMsg
+message CastleYieldMsg {
+  optional int32 goldYield = 1;
+  optional int32 goldWildLandYield = 2;
+  optional int32 goldTechnology = 3;
+  optional int32 goldWonder = 4;
+  optional int32 goldDower = 5;
+  optional int32 goldTotalCount = 6;
+  optional int32 goldMax = 7;
+  optional int32 curPopulation = 8;
+  optional int32 maxPopulation = 9;
+  repeated WildYieldMsg wildYield = 10;
+  optional int32 crystalsCount = 11;
+}
+
+// com.road.yishi.proto.goldenroad.CellInfoMsg
+message CellInfoMsg {
+  optional int32 itemID = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.active.ChairsChargeMsg
+message ChairsChargeMsg {
+  optional int32 userId = 1;
+  optional int32 totalPoint = 2;
+  optional int32 currentPoint = 3;
+  optional int32 tokenCount = 4;
+  optional string uuid = 5;
+  optional string site = 6;
+  optional string serverName = 7;
+  optional int32 param1 = 8;
+  optional int32 param2 = 9;
+}
+
+// com.road.yishi.proto.active.ChairsListMsg
+message ChairsListMsg {
+  optional int32 op = 1;
+  optional int32 totalChairsCount = 2;
+  repeated ChairsRewardMsg reward = 3;
+  repeated ChairsChargeMsg charge = 4;
+  optional int32 userId = 5;
+  repeated string luckyNickName = 6;
+  optional int32 currentChairs = 7;
+  optional int32 rewardCounts = 8;
+  optional int32 rewardNeedChairs = 9;
+  optional int32 chairsNeedPoints = 10;
+  optional string openTime = 11;
+  optional string stopTime = 12;
+  optional string chairsNum = 13;
+  repeated string luckyItems = 14;
+  repeated string comfortItems = 15;
+  optional int32 leftPoint = 16;
+}
+
+// com.road.yishi.proto.active.ChairsRewardMsg
+message ChairsRewardMsg {
+  optional string cCCActiveUUID = 1;
+  optional string uUID = 2;
+  optional int32 userId = 3;
+  optional string tokenChairs = 4;
+  optional int32 rewardTypes = 5;
+  optional int32 rewardState = 6;
+  optional string serverName = 7;
+}
+
+// com.road.yishi.proto.player.ChallengeCoolTimeMsg
+message ChallengeCoolTimeMsg {
+  optional int32 leftTime = 1;
+  optional int32 challengeCount = 2;
+  optional int32 totalCount = 3;
+  optional int32 type = 4;
+  optional int32 totalBuyCount = 5;
+}
+
+// com.road.yishi.proto.guildcampaign.ChallengeGuildMsg
+message ChallengeGuildMsg {
+  optional int32 giveOffer = 1;
+  optional int32 tarGuildId = 2;
+}
+
+// com.road.yishi.proto.simple.ChallengeInfoMsg
+message ChallengeInfoMsg {
+  optional int32 lastWinCount = 1;
+  optional int32 challengeCount = 2;
+  optional int32 curRank = 3;
+  repeated SimplePlayerInfoMsg simplePlayer = 4;
+  repeated ChallengeLogMsg challengeLog = 5;
+  optional string noticMsg = 6;
+  repeated AvaterMsg avater = 7;
+  optional int32 leftDay = 8;
+  optional int32 totalCount = 9;
+  optional int32 totalBuyCount = 10;
+}
+
+// com.road.yishi.proto.simple.ChallengeLogMsg
+message ChallengeLogMsg {
+  optional int32 userId = 1;
+  optional int32 result = 2;
+  optional int32 tarUserId = 3;
+  optional string tarNickName = 4;
+  optional bool isAttack = 5;
+  optional string logDate = 6;
+  optional int32 curRankResult = 7;
+  optional int32 grades = 8;
+  optional int32 gpOrder = 9;
+  optional int32 gp = 10;
+  optional int32 job = 11;
+  optional int32 forward = 12;
+}
+
+// com.road.yishi.proto.player.ChallengeRankRewardMsg
+message ChallengeRankRewardMsg {
+  optional bool isTake = 1;
+  optional int32 param1 = 2;
+  optional int32 param2 = 3;
+  optional int32 param3 = 4;
+  optional int32 param4 = 5;
+}
+
+// com.road.yishi.proto.pet.ChallengeRequestMsg
+message ChallengeRequestMsg {
+  optional int32 type = 1;
+}
+
+// com.road.yishi.proto.tollgate.ChallengeRewardMsg
+message ChallengeRewardMsg {
+  optional int32 userId = 1;
+  optional string message = 2;
+  optional string items = 3;
+}
+
+// com.road.yishi.proto.tollgate.ChallengeScoreMsg
+message ChallengeScoreMsg {
+  optional int32 userId = 1;
+  optional int32 tollgateId = 2;
+  optional int32 score = 3;
+  optional int32 order = 4;
+  optional bool isLucky = 5;
+  optional string nickName = 6;
+  optional bool isVip = 7;
+  optional int32 grade = 8;
+  optional string consortiaName = 9;
+  optional int32 fightCapacity = 10;
+}
+
+// com.road.yishi.proto.room.ChangeMasterRspMsg
+message ChangeMasterRspMsg {
+  optional int32 roomId = 1;
+  optional int32 masterId = 2;
+}
+
+// com.road.yishi.proto.active.ChargeRewardMsg
+message ChargeRewardMsg {
+  optional int32 totalCount = 1;
+  optional int32 topThreeCount = 2;
+  optional int32 myTotalCount = 3;
+  optional int32 dayTotalCount = 4;
+}
+
+// com.road.yishi.proto.chat.ChatChannelMsg
+message ChatChannelMsg {
+  optional int32 channel = 1;
+  optional int32 type = 2;
+  optional string encodeMsg = 3;
+  optional int32 otherId = 4;
+  optional string name = 5;
+  repeated int32 team = 6;
+  optional int32 consortiaId = 7;
+  optional string consortiaName = 8;
+  optional int32 userType = 9;
+  optional int32 limitGrade = 10;
+  optional int32 maxGrade = 11;
+  optional bool isCenterTip = 12;
+  optional bool isBigTip = 13;
+  optional int32 vipGrade = 14;
+  repeated int32 expUserIds = 15;
+  optional int32 bigBugleType = 16;
+  repeated ChatItemInfoMsg items = 17;
+  repeated ChatStarInfoMsg stars = 18;
+  repeated ChatPowCardInfoMsg powcards = 19;
+  optional string serverName = 20;
+  optional string battleId = 21;
+  optional bool isImportant = 22;
+  optional int32 appellid = 23;
+  optional int32 job = 24;
+  optional string receiveName = 25;
+  optional int32 vipType = 26;
+}
+
+// com.road.yishi.proto.chat.ChatFriendMsg
+message ChatFriendMsg {
+  optional int32 fromId = 1;
+  optional string fromNick = 2;
+  optional int32 toId = 3;
+  optional string encodeMsg = 4;
+  optional string sendDate = 5;
+  optional int32 result = 6;
+}
+
+// com.road.yishi.proto.chat.ChatItemInfoMsg
+message ChatItemInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 pos = 3;
+  optional bool exist = 4;
+  optional int32 objectId = 5;
+  optional int32 bagType = 6;
+  optional bool bind = 7;
+  optional bool used = 8;
+  optional int32 validDate = 9;
+  optional bytes beginDate = 10;
+  optional int32 count = 11;
+  optional int32 attack = 12;
+  optional int32 defence = 13;
+  optional int32 agility = 14;
+  optional int32 ability = 15;
+  optional int32 captain = 16;
+  optional int32 strengthenGrade = 17;
+  optional int32 join_1 = 18;
+  optional int32 join_2 = 19;
+  optional int32 join_3 = 20;
+  optional int32 randomSkill_1 = 21;
+  optional int32 randomSkill_2 = 22;
+  optional int32 randomSkill_3 = 23;
+  optional int32 randomSkill_4 = 24;
+  optional int32 randomSkill_5 = 25;
+  optional bool isNew = 26;
+  optional int32 userId = 27;
+  optional string itemName = 28;
+  optional int32 join_4 = 29;
+  optional string property1 = 30;
+  optional int32 mouldGrade = 31;
+  optional int32 appraisalSkill = 32;
+}
+
+// com.road.yishi.proto.chat.ChatPowCardInfoMsg
+message ChatPowCardInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 userId = 3;
+  optional int32 objectId = 4;
+  optional int32 pos = 5;
+  optional bool exist = 6;
+  optional int32 bagType = 7;
+  optional int32 grade = 8;
+  optional int32 gp = 9;
+  optional bool isLock = 10;
+  optional string powcardName = 11;
+  optional int32 buffId = 12;
+  optional int32 sonType = 13;
+  optional int32 fixValue = 14;
+  optional int32 percent = 15;
+}
+
+// com.road.yishi.proto.chat.ChatStarInfoMsg
+message ChatStarInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 userId = 3;
+  optional int32 objectId = 4;
+  optional int32 pos = 5;
+  optional bool exist = 6;
+  optional int32 bagType = 7;
+  optional int32 grade = 8;
+  optional int32 gp = 9;
+  optional bool isLock = 10;
+  optional string starName = 11;
+}
+
+// com.road.yishi.proto.chat.ChatStateListRspMsg
+message ChatStateListRspMsg {
+  repeated ChatStateMsg chatState = 1;
+}
+
+// com.road.yishi.proto.chat.ChatStateMsg
+message ChatStateMsg {
+  optional int32 userId = 1;
+  optional int32 chatState = 2;
+  optional int32 result = 3;
+  optional string replayStr = 4;
+}
+
+// com.road.yishi.proto.simple.CheckImageMsg
+message CheckImageMsg {
+  optional int32 leftCount = 1;
+  optional int32 leftTime = 2;
+  optional bytes images1 = 3;
+  optional bytes images2 = 4;
+  optional bytes images3 = 5;
+  optional bytes images4 = 6;
+  optional string result = 7;
+  optional string property1 = 8;
+  optional string property2 = 9;
+}
+
+// com.road.yishi.proto.player.CheckNickMsg
+message CheckNickMsg {
+  optional int32 playerId = 1;
+  optional string nickName = 2;
+}
+
+// com.road.yishi.proto.player.CheckSend
+message CheckSend {
+  optional int32 canSend = 1;
+}
+
+// com.road.yishi.proto.children.ChildEquipmentMsg
+message ChildEquipmentMsg {
+  optional int32 templateId = 1;
+  optional int32 pos = 2;
+  optional int32 join1 = 3;
+  optional int32 join2 = 4;
+  optional int32 join3 = 5;
+  optional int32 join4 = 6;
+  optional int32 randomSkill1 = 7;
+  optional int32 randomSkill2 = 8;
+  optional int32 randomSkill3 = 9;
+  optional int32 randomSkill4 = 10;
+  optional int32 randomSkill5 = 11;
+  optional int32 mouldGrade = 12;
+  optional bool isBind = 13;
+  optional int32 strengthenGrade = 14;
+}
+
+// com.road.yishi.proto.children.ChildrenInfoMsg
+message ChildrenInfoMsg {
+  optional int32 childId = 1;
+  optional string name = 2;
+  optional int32 job = 3;
+  optional int32 sex = 4;
+  optional int32 userIdA = 5;
+  optional int32 userIdB = 6;
+  optional int32 growthGrade = 7;
+  optional int32 mood = 8;
+  optional int32 growthGp = 9;
+  optional int32 growthCount = 10;
+  optional int32 fightCapacity = 11;
+  optional int32 state = 12;
+  repeated ChildEquipmentMsg equipmets = 13;
+  optional int32 emblem = 14;
+}
+
+// com.road.yishi.proto.leed.ClickDataRspMsg
+message ClickDataRspMsg {
+  optional string keys = 1;
+  optional int32 keyData = 2;
+  optional string changeTime = 3;
+}
+
+// com.road.yishi.proto.leed.ClickDatasRspMsg
+message ClickDatasRspMsg {
+  repeated ClickDataRspMsg info = 1;
+}
+
+// com.road.yishi.proto.leed.ClientReqMsg
+message ClientReqMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.player.CollectCampaignNodeMsg
+message CollectCampaignNodeMsg {
+  optional int32 mastType = 1;
+  optional int32 item = 2;
+  optional int32 campaignDataId = 3;
+  optional int32 sonType = 4;
+  optional string name = 5;
+}
+
+// com.road.yishi.proto.army.ComprehendMsg
+message ComprehendMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaAltarOpenReqMsg
+message ConsortiaAltarOpenReqMsg {
+  optional int32 altarType = 1;
+  optional int32 waveNum = 2;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaAltarOpenRspMsg
+message ConsortiaAltarOpenRspMsg {
+  optional int32 consortiaId = 1;
+  optional int32 chairmanId = 2;
+  optional string chairmanName = 3;
+  optional int32 result = 4;
+  optional string altarDate = 5;
+  optional bool pop = 6;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaBoxInfoMsg
+message ConsortiaBoxInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 consortiaId = 2;
+  optional int32 count = 3;
+  optional bytes addTime = 4;
+  optional bytes removeTime = 5;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaContributeMsg
+message ConsortiaContributeMsg {
+  optional string nickName = 1;
+  optional int32 totalOffer = 2;
+  optional int32 todayOffer = 3;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaContributeRspMsg
+message ConsortiaContributeRspMsg {
+  optional int32 totalRows = 1;
+  repeated ConsortiaContributeMsg contributeInfo = 2;
+  optional ConsortiaContributeMsg selfInfo = 3;
+  optional int32 selfOrder = 4;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaDutyInfoMsg
+message ConsortiaDutyInfoMsg {
+  optional int32 levels = 1;
+  optional string dutyName = 2;
+  optional bytes rights = 3;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaDutyListRspMsg
+message ConsortiaDutyListRspMsg {
+  repeated ConsortiaDutyInfoMsg dutyInfo = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaEventInfoMsg
+message ConsortiaEventInfoMsg {
+  optional int32 id = 1;
+  optional int32 consortiaId = 2;
+  optional string remark = 3;
+  optional string createDate = 4;
+  optional int32 type = 5;
+  optional bool isExist = 6;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaEventListRspMsg
+message ConsortiaEventListRspMsg {
+  repeated ConsortiaEventInfoMsg eventInfo = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaInfoMsg
+message ConsortiaInfoMsg {
+  optional int32 consortiaId = 1;
+  optional int32 creatorId = 2;
+  optional int32 chairmanId = 3;
+  optional int32 levels = 4;
+  optional int32 addCount = 5;
+  optional int32 currentCount = 6;
+  optional int32 kickCount = 7;
+  optional int32 shopLevel = 8;
+  optional int32 storeLevel = 9;
+  optional int32 altarLevel = 10;
+  optional int32 schoolLevel = 11;
+  optional int32 attackLevel = 12;
+  optional int32 defenceLevel = 13;
+  optional int32 agilityLevel = 14;
+  optional int32 abilityLevel = 15;
+  optional int32 captainLevel = 16;
+  optional int32 goldLevel = 17;
+  optional int32 fightPower = 18;
+  optional int32 ownWildlands = 19;
+  optional int32 offer = 20;
+  optional int32 honor = 21;
+  optional int32 blessTempId = 22;
+  optional int32 blessCount = 23;
+  optional int32 codeType = 24;
+  optional int32 totalOffer = 25;
+  optional int32 op = 26;
+  optional string placard = 27;
+  optional string description = 28;
+  optional string consortiaName = 29;
+  optional string creatorName = 30;
+  optional string chairmanName = 31;
+  optional string renames = 32;
+  optional string quitResult = 33;
+  optional bool openApp = 34;
+  optional bool isExist = 35;
+  optional string createDate = 36;
+  optional string kickDate = 37;
+  optional string deductDate = 38;
+  optional string warnDate = 39;
+  optional string quitDate = 40;
+  optional string codeBeginDate = 41;
+  optional string currentDate = 42;
+  optional int32 codeNeedDate = 43;
+  optional ConsortiaOrderInfoMsg orderInfo = 44;
+  optional int32 physiqueLevel = 45;
+  optional bool isRobot = 46;
+  repeated int32 site = 47;
+  optional int32 speakTimes = 48;
+  optional string votingDate = 49;
+  optional int32 votingStatic = 50;
+  optional int32 votingId = 51;
+  optional int32 activeData = 52;
+  optional string groupPlacard = 53;
+  optional string altarDate = 54;
+  optional int32 altarState = 55;
+  optional int32 maxMave = 56;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaLinkReqMsg
+message ConsortiaLinkReqMsg {
+  optional int32 consortiaId = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaLinkRspMsg
+message ConsortiaLinkRspMsg {
+  optional int32 consortiaId = 1;
+  optional string consortiaName = 2;
+  optional string creatorName = 3;
+  optional int32 levels = 4;
+  optional int32 offer = 5;
+  optional int32 currentCount = 6;
+  optional int32 honor = 7;
+  optional string description = 8;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaMembersInfoMsg
+message ConsortiaMembersInfoMsg {
+  optional int32 job = 1;
+  optional string nickName = 2;
+  optional int32 level = 3;
+  optional int32 fightCapacity = 4;
+  optional int32 userId = 5;
+  optional int32 count = 6;
+  optional bool isReceived = 7;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaMsg
+message ConsortiaMsg {
+  optional int32 consortiaId = 1;
+  optional int32 applyId = 2;
+  optional int32 otherId = 3;
+  optional int32 contributeGold = 4;
+  optional int32 upgradeType = 5;
+  optional int32 studySkill = 6;
+  optional int32 positionId = 7;
+  optional int32 blessSite = 8;
+  optional int32 blessTempId = 9;
+  optional int32 blessCount = 10;
+  optional string placard = 11;
+  optional string description = 12;
+  optional string consortiaName = 13;
+  optional bool result = 14;
+  optional int32 blessLeftTime = 15;
+  optional bool returnItem = 16;
+  optional bool isPay = 17;
+  optional string groupPlacard = 18;
+  optional int32 payType = 19;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaOfferReqMsg
+message ConsortiaOfferReqMsg {
+  optional int32 pageIndex = 1;
+  optional bool isHistory = 2;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaOrderInfoMsg
+message ConsortiaOrderInfoMsg {
+  optional int32 consortiaId = 1;
+  optional int32 gradeOrder = 2;
+  optional int32 fightPowerOrder = 3;
+  optional int32 lastDayOffer = 4;
+  optional int32 lastDayOrder = 5;
+  optional int32 lastWeekOffer = 6;
+  optional int32 lastWeekOrder = 7;
+  optional int32 offer = 8;
+  optional string lastDayDate = 9;
+  optional string lastWeekDate = 10;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaQuitReqMsg
+message ConsortiaQuitReqMsg {
+  optional int32 clear_CDType = 1;
+  optional int32 payType = 2;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaRenameReqMsg
+message ConsortiaRenameReqMsg {
+  optional bool same = 1;
+  optional string newName = 2;
+  optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaRenameRspMsg
+message ConsortiaRenameRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaSearchRspMsg
+message ConsortiaSearchRspMsg {
+  optional int32 totalRows = 1;
+  repeated ConsortiaInfoMsg consortiaInfo = 2;
+  optional bool isReset = 3;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaStorageInfoMsg
+message ConsortiaStorageInfoMsg {
+  repeated ConsortiaBoxInfoMsg storageInfo = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaTreasureBoxMsg
+message ConsortiaTreasureBoxMsg {
+  optional int32 consortiaId = 1;
+  optional int32 chairmanId = 2;
+  optional int32 templateId = 3;
+  optional int32 count = 4;
+  repeated ConsortiaMembersInfoMsg playerInfo = 6;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaUserInviteInfoListRspMsg
+message ConsortiaUserInviteInfoListRspMsg {
+  repeated ConsortiaUserInviteInfoMsg inviteInfo = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaUserInviteInfoMsg
+message ConsortiaUserInviteInfoMsg {
+  optional int32 id = 1;
+  optional int32 consortiaId = 2;
+  optional string consortiaName = 3;
+  optional string createDate = 4;
+  optional int32 userId = 5;
+  optional string userNickname = 6;
+  optional int32 inviteId = 7;
+  optional string inviteNickname = 8;
+  optional string chairmanNickname = 9;
+  optional string inviteDate = 10;
+  optional bool fromType = 11;
+  optional bool isexist = 12;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaUserOfferReqMsg
+message ConsortiaUserOfferReqMsg {
+  optional int32 offerGold = 1;
+  optional int32 offerPoint = 2;
+  optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaVotingRspMsg
+message ConsortiaVotingRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaVotingUserMsg
+message ConsortiaVotingUserMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 votingId = 3;
+  optional bool isVotingman = 4;
+  optional int32 votingTime = 5;
+  optional int32 votingData = 6;
+}
+
+// com.road.yishi.proto.consortia.ConsortiaVotingUsersMsg
+message ConsortiaVotingUsersMsg {
+  repeated ConsortiaVotingUserMsg info = 1;
+}
+
+// com.road.yishi.proto.active.ConsumeInfoMsg
+message ConsumeInfoMsg {
+  optional int32 userId = 1;
+  optional int32 order = 2;
+  optional int32 point = 3;
+  optional string nickName = 4;
+  optional bool isVip = 5;
+}
+
+// com.road.yishi.proto.battle.CoolDownMsg
+message CoolDownMsg {
+  optional int32 templatedId = 1;
+  optional int32 coolDown = 2;
+  optional int32 coolType = 3;
+  optional int32 appearCoolDown = 4;
+}
+
+// com.road.yishi.proto.fish.CrazyFishInfoMsg
+message CrazyFishInfoMsg {
+  optional int32 fishId = 1;
+  optional int64 angle = 2;
+  optional int32 frame = 3;
+}
+
+// com.road.yishi.proto.army.CrossArmyListMsg
+message CrossArmyListMsg {
+  repeated CrossArmyMsg armyList = 1;
+}
+
+// com.road.yishi.proto.army.CrossArmyMsg
+message CrossArmyMsg {
+  optional int32 armyId = 1;
+  optional int32 playerId = 2;
+  optional int32 curPosX = 3;
+  optional int32 curPosY = 4;
+  optional int32 state = 5;
+  optional string serverName = 6;
+}
+
+// com.road.yishi.proto.cross.CrossBigBugleMsg
+message CrossBigBugleMsg {
+  optional int32 serverId = 1;
+  optional string serverName = 2;
+  optional string uid = 4;
+  optional int32 userId = 5;
+  optional string nickName = 6;
+  optional bool isLookInfo = 7;
+  optional string content = 8;
+  optional int32 param1 = 9;
+  optional string param2 = 10;
+}
+
+// com.road.yishi.proto.crossguild.CrossGuildMsg
+message CrossGuildMsg {
+  optional int32 eventType = 1;
+  repeated GuildInfoMsg info = 2;
+  optional int32 param1 = 3;
+  optional int32 param2 = 4;
+  optional int32 param3 = 5;
+  optional string param4 = 6;
+  optional string param5 = 7;
+  optional string param6 = 8;
+  repeated int32 propertys1 = 9;
+  repeated string propertys2 = 10;
+  optional string param7 = 11;
+  optional bool isOver = 12;
+  optional int32 totalCount = 13;
+  optional string uuid = 14;
+  optional int32 curNum = 15;
+  optional int32 totalNum = 16;
+}
+
+// com.road.yishi.proto.vehicle.CrossVehicleAttackReqMsg
+message CrossVehicleAttackReqMsg {
+  optional int32 skillId = 1;
+  optional int32 attackType = 2;
+  repeated int32 suffererNpcId = 3;
+  repeated int32 suffererId = 4;
+  repeated string suffererServerName = 5;
+  optional int32 effectX = 6;
+  optional int32 effectY = 7;
+}
+
+// com.road.yishi.proto.battle.DamageMsg
+message DamageMsg {
+  optional int32 livingId = 1;
+  optional int32 damageType = 2;
+  optional bool hasIcon = 3;
+  optional bool isHarmful = 4;
+  optional int32 damageValue = 5;
+  optional int32 leftValue = 6;
+  optional int32 extraData = 7;
+  optional bool parry = 8;
+  repeated DropInfoMsg dropInfos = 9;
+  optional int32 order = 10;
+  optional int32 hpLimit = 11;
+  optional int32 resistValue = 12;
+  optional int32 resistType = 13;
+}
+
+// com.road.yishi.proto.player.DataResetMsg
+message DataResetMsg {
+  optional int32 weary = 1;
+  optional int32 hangupCount = 2;
+  optional int32 transEnergy = 3;
+  optional int32 attackCount = 4;
+  optional int32 challengeCount = 5;
+  optional int32 leftHangupWeary = 6;
+  optional int32 tower1EnterCount = 7;
+  optional int32 tower2EnterCount = 8;
+  optional int32 blessingCount = 9;
+  optional int32 blessingBuff = 10;
+  optional int32 buyCount = 11;
+  optional bool king_Buff = 12;
+  optional string serverName = 13;
+  optional int32 upRuneByPointTimes = 14;
+}
+
+// com.road.yishi.proto.active.DayActiveRspInfo
+message DayActiveRspInfo {
+  optional string activeId = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string contents = 4;
+  optional string awardContent = 5;
+  optional string startDate = 6;
+  optional string endDate = 7;
+  optional string actionTimeContent = 8;
+  optional int32 sort = 9;
+}
+
+// com.road.yishi.proto.active.DayActiveRspMsg
+message DayActiveRspMsg {
+  repeated DayActiveRspInfo dayActiveRspInfo = 1;
+}
+
+// com.road.yishi.proto.active.DepositActiveMsg
+message DepositActiveMsg {
+  optional string activeId = 1;
+  optional string title = 2;
+  optional string contents = 3;
+  optional int32 activeType = 4;
+  optional string description = 5;
+  optional int64 actionTimeContent = 6;
+  optional int32 consortia = 7;
+  optional int32 grades = 8;
+  optional string setStartDate = 9;
+  optional string setEndDate = 10;
+  optional string getStartDate = 11;
+  optional string getEndDate = 12;
+  optional int32 depositLevel = 13;
+  optional string depositTime = 14;
+  optional int32 opType = 15;
+  optional int32 opParam = 16;
+  repeated GItemInfoMsg harvestedInfos = 17;
+  repeated ActiveParamMsg activeParams = 18;
+  repeated GetLogMsg logs = 19;
+}
+
+// com.road.yishi.proto.simple.DetailReqMsg
+message DetailReqMsg {
+  optional int32 userId = 1;
+  optional string serverName = 2;
+  optional int32 otherId = 3;
+  optional string otherName = 4;
+  optional bool itemInfo = 5;
+  optional bool armyInfo = 6;
+  optional bool heroInfo = 7;
+  optional bool pawnInfo = 8;
+}
+
+// com.road.yishi.proto.simple.DetailRspMsg
+message DetailRspMsg {
+  optional int32 otherId = 1;
+  optional string serverName = 2;
+  repeated SimpleItemInfoMsg item = 3;
+  optional SimpleArmyMsg army = 4;
+  repeated SimpleStarInfoMsg star = 5;
+  optional bool hideFashion = 6;
+  repeated SimpleWatchMsg watch = 7;
+  repeated SimplePowCardFightInfoMsg powcardfight = 8;
+}
+
+// com.road.yishi.proto.battle.DropInfoMsg
+message DropInfoMsg {
+  optional int32 dropId = 1;
+  optional int32 dropCount = 2;
+  repeated int32 winnerIds = 3;
+  optional int32 param1 = 4;
+  optional int32 param2 = 5;
+}
+
+// com.road.yishi.proto.room.EditRoomRspMsg
+message EditRoomRspMsg {
+  optional int32 roomId = 1;
+  optional int32 startCampaignId = 2;
+  optional int32 masterId = 3;
+  optional int32 count = 4;
+  optional int32 capacity = 5;
+  optional string passWord = 6;
+  optional string roomName = 7;
+}
+
+// com.road.yishi.proto.player.EffectRemoveReqMsg
+message EffectRemoveReqMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.marriage.EngageMsg
+message EngageMsg {
+  repeated MarriageProMsg engageInfos = 1;
+}
+
+// com.road.yishi.proto.item.EquipLookDataMsg
+message EquipLookDataMsg {
+  optional int32 otherId = 1;
+  repeated ItemInfoMsg item = 2;
+}
+
+// com.road.yishi.proto.item.EquipLookMsg
+message EquipLookMsg {
+  optional int32 otherId = 1;
+}
+
+// com.road.yishi.proto.universalActive.ExchangeActive
+message ExchangeActive {
+  optional string startTime = 1;
+  optional string endTime = 2;
+  optional int32 bagId = 3;
+  optional string bagName = 4;
+  repeated ExchangeItemInfo rewardItem = 5;
+  repeated ExchangeItemInfo needItem = 6;
+}
+
+// com.road.yishi.proto.universalActive.ExchangeItemInfo
+message ExchangeItemInfo {
+  optional int32 templateId = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.universalActive.ExchangeMsg
+message ExchangeMsg {
+  repeated ExchangeActive activeInfo = 1;
+}
+
+// com.road.yishi.proto.universalActive.ExchangeReq
+message ExchangeReq {
+  optional int32 bagId = 1;
+}
+
+// com.road.yishi.proto.consortia.FamInfoMsg
+message FamInfoMsg {
+  optional int32 consortiaId = 1;
+  optional int32 treeGrades = 2;
+  optional int32 treeGp = 3;
+  optional int32 treeWaterCount = 4;
+  optional int32 treeState = 5;
+  optional int32 personNum = 6;
+  optional float rate = 7;
+  optional int32 opreate = 8;
+  repeated int32 userId = 9;
+  optional string pickTime = 10;
+}
+
+// com.road.yishi.proto.consortia.FamLordsInfoMsg
+message FamLordsInfoMsg {
+  optional bool isCanCall = 1;
+  optional int32 order = 2;
+  optional string expairtDate = 3;
+  optional bool isOpenLordsNode = 4;
+  optional int32 currentTurns = 5;
+  optional int32 leftTime = 6;
+  repeated int32 userIds = 7;
+}
+
+// com.road.yishi.proto.farm.FarmInfoRspMsg
+message FarmInfoRspMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 grades = 3;
+  optional int32 landGrades = 4;
+  optional int32 gp = 5;
+  optional int32 totalGp = 6;
+  optional int32 todayFromFriendGp = 7;
+  repeated FarmLandInfoMsg farmLandInfo = 8;
+  optional TreeInfoMsg treeInfo = 9;
+  optional int32 todayStolenCount = 10;
+  repeated FarmPetInfoMsg petInfo = 11;
+  optional FarmPetInfoMsg guardPetInfo = 12;
+  optional MarriageTreeMsg marriageTree = 13;
+}
+
+// com.road.yishi.proto.farm.FarmLandInfoMsg
+message FarmLandInfoMsg {
+  optional int32 userId = 1;
+  optional int32 type = 2;
+  optional int32 pos = 3;
+  optional int32 itemTemplateId = 4;
+  optional string plantingTime = 5;
+  optional string matureTime = 6;
+  optional int32 cropState = 7;
+  optional int32 accelerateCount = 8;
+  optional int32 stolenCount = 9;
+  optional bool isWormParam1 = 10;
+  optional bool isWormParam2 = 11;
+  optional bool isGrassParam1 = 12;
+  optional bool isGrassParam2 = 13;
+  repeated int32 stolenUsers = 14;
+  optional int32 rewardCount = 15;
+  optional int32 opType = 16;
+  optional int32 result = 17;
+  optional string param1 = 18;
+  optional string param2 = 19;
+}
+
+// com.road.yishi.proto.farm.FarmLogReq
+message FarmLogReq {
+  optional int32 playerId = 1;
+  optional int32 operUserId = 2;
+  optional string operNickName = 3;
+  optional string desc = 4;
+  optional bytes operDate = 5;
+  optional int32 operCount = 6;
+  optional bool isAddFavGp = 7;
+}
+
+// com.road.yishi.proto.farm.FarmLogRsp
+message FarmLogRsp {
+  optional int32 playerId = 1;
+  optional int32 operUserId = 2;
+  optional string operNickName = 3;
+  optional string desc = 4;
+  optional string operDate = 5;
+  optional int32 operCount = 6;
+  optional bool isAddFavGp = 7;
+  optional int32 type = 8;
+}
+
+// com.road.yishi.proto.farm.FarmOperReqMsg
+message FarmOperReqMsg {
+  optional int32 userId = 1;
+  optional int32 friendId = 2;
+  optional int32 opType = 3;
+  optional int32 pos = 4;
+  optional int32 templateId = 5;
+  optional int32 payType = 6;
+  optional int32 bagPos = 7;
+}
+
+// com.road.yishi.proto.farm.FarmPetInfoMsg
+message FarmPetInfoMsg {
+  optional int32 userId = 1;
+  optional int32 petId = 2;
+  optional int32 pos = 3;
+  optional string beginTime = 4;
+  optional string endTime = 5;
+  optional int32 petTemplateId = 6;
+  optional int32 state = 7;
+  optional string petName = 8;
+  optional int32 quality = 9;
+}
+
+// com.road.yishi.proto.farm.FarmRepMsg
+message FarmRepMsg {
+  optional FarmLandInfoMsg farmLandInfo = 1;
+  repeated FarmPetInfoMsg petInfo = 2;
+}
+
+// com.road.yishi.proto.fashion.FashionBook
+message FashionBook {
+  optional int32 tempId = 1;
+  optional bool isSwitch = 2;
+  optional int32 appraisalSkill = 3;
+}
+
+// com.road.yishi.proto.fashion.FashionInfoMsg
+message FashionInfoMsg {
+  optional int32 gp = 1;
+  optional int32 grades = 2;
+  optional int32 wingAvata = 3;
+  optional int32 hatAvata = 4;
+  optional int32 armAvata = 5;
+  optional int32 clothAvata = 6;
+  optional bool isHidenWingAvata = 7;
+  optional bool isHidenHatAvat = 8;
+  optional bool isHidenArmAvata = 9;
+  optional bool isHidenClothAvata = 10;
+  optional int32 dragonWingAvata = 11;
+  optional int32 dragonHatAvata = 12;
+  optional int32 dragonArmAvata = 13;
+  optional int32 dragonClothAvata = 14;
+  optional bool isHidendDragonWingAvata = 15;
+  optional bool isHidenDragonHatAvat = 16;
+  optional bool isHidenDragonArmAvata = 17;
+  optional bool isHidenDragonClothAvata = 18;
+  optional int32 defaultFashion = 19;
+}
+
+// com.road.yishi.proto.fashion.FashionMsg
+message FashionMsg {
+  optional int32 templateId = 1;
+  repeated FashionBook info = 2;
+  repeated int32 fashionIds = 3;
+}
+
+// com.road.yishi.proto.fashion.FashionPolishMsg
+message FashionPolishMsg {
+  repeated PolishInfoMsg polishs = 1;
+}
+
+// com.road.yishi.proto.fashion.FashionPolishRequestMsg
+message FashionPolishRequestMsg {
+  optional int32 op = 1;
+  optional int32 sontype = 2;
+  optional int32 count = 3;
+}
+
+// com.road.yishi.proto.shop.FashionShopMsg
+message FashionShopMsg {
+  repeated BuyInfo buyInfos = 1;
+  optional bool result = 2;
+  optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.customer.FastOpenCustomerMsg
+message FastOpenCustomerMsg {
+  optional int32 canOpen = 1;
+}
+
+// com.road.yishi.proto.item.FastUseBloodMsg
+message FastUseBloodMsg {
+  optional int32 result = 1;
+  optional int32 templateId = 2;
+}
+
+// com.road.yishi.proto.fate.FateEditMsg
+message FateEditMsg {
+  optional int32 skillSonType = 1;
+  optional int32 useItemCount = 2;
+  optional bool isDisable = 3;
+  optional int32 turnNum = 4;
+  optional string param1 = 5;
+  optional string param2 = 6;
+  optional bool isSuccess = 7;
+  optional int32 currCount = 8;
+  repeated int32 count = 9;
+  optional int32 payType = 10;
+}
+
+// com.road.yishi.proto.fate.FateInfoMsg
+message FateInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 fateTypes = 2;
+  optional int32 totalGp = 3;
+  optional int32 grades = 4;
+  optional string property1 = 5;
+  optional string property2 = 6;
+  optional int32 turnCount = 7;
+}
+
+// com.road.yishi.proto.fate.FateListMsg
+message FateListMsg {
+  repeated FateInfoMsg fateInfo = 1;
+}
+
+// com.road.yishi.proto.player.FbEventMsg
+message FbEventMsg {
+  optional int32 id = 1;
+  optional string target = 2;
+}
+
+// com.road.yishi.proto.player.FbShareMsg
+message FbShareMsg {
+  optional int32 id = 1;
+}
+
+// com.road.yishi.proto.simple.FightOverMoiveMsg
+message FightOverMoiveMsg {
+  optional int32 gp = 1;
+  optional int32 gold = 2;
+  optional int32 strategy = 3;
+}
+
+// com.road.yishi.proto.army.FightPlayerMsg
+message FightPlayerMsg {
+  optional int32 playerId = 1;
+  optional string nickName = 2;
+  optional int32 pic = 3;
+}
+
+// com.road.yishi.proto.leed.FinishedReqMsg
+message FinishedReqMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.fish.FishInfo
+message FishInfo {
+  optional int32 fishId = 1;
+  optional int32 templateId = 2;
+  optional bool point = 3;
+  optional int64 beginTime = 4;
+  optional int32 channelId = 5;
+  optional int32 state = 6;
+  optional int64 now = 7;
+}
+
+// com.road.yishi.proto.fish.FishInfosMsg
+message FishInfosMsg {
+  optional int32 userId = 1;
+  repeated FishInfo fishs = 2;
+}
+
+// com.road.yishi.proto.fish.FishPlayer
+message FishPlayer {
+  optional int32 helpId = 1;
+  optional string nickName = 2;
+}
+
+// com.road.yishi.proto.fish.FishPoolMsg
+message FishPoolMsg {
+  optional int32 userId = 1;
+  optional int32 level = 2;
+  optional int32 gp = 3;
+  optional int32 score = 4;
+  optional int64 cd = 5;
+  optional int32 count = 6;
+  optional int32 maxCount = 7;
+  optional int32 tool1 = 8;
+  optional int32 tool2 = 9;
+  optional int32 tool3 = 10;
+  optional int32 tool4 = 11;
+  optional int32 hookState = 12;
+  optional int32 order = 13;
+  repeated FishPlayer fishplayers = 14;
+}
+
+// com.road.yishi.proto.fish.FishResultMsg
+message FishResultMsg {
+  optional int32 userId = 1;
+  repeated Result results = 2;
+}
+
+// com.road.yishi.proto.mall.FixAuctionItemRspMsg
+message FixAuctionItemRspMsg {
+  optional int32 result = 1;
+  optional int32 mallItemId = 2;
+}
+
+// com.road.yishi.proto.campaign.FogUpdateMsg
+message FogUpdateMsg {
+  optional int32 index = 1;
+  optional int32 fogByte = 2;
+}
+
+// com.road.yishi.proto.fish.FreshPoolMsg
+message FreshPoolMsg {
+  optional int32 op = 1;
+  repeated int32 paras = 2;
+}
+
+// com.road.yishi.proto.friend.FriendAddedMsg
+message FriendAddedMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 grades = 3;
+  optional int32 sex = 4;
+}
+
+// com.road.yishi.proto.farm.FriendFarmStateMsg
+message FriendFarmStateMsg {
+  optional int32 userId = 1;
+  optional bool isReap = 2;
+  optional bool isChargeEnergy = 3;
+  optional bool isRevive = 4;
+  optional bool isWorm = 5;
+  optional bool isGrass = 6;
+  optional bool isFeed = 7;
+}
+
+// com.road.yishi.proto.simple.FriendGroupMsg
+message FriendGroupMsg {
+  optional int32 groupId = 1;
+  optional string groupName = 2;
+  optional int32 result = 3;
+}
+
+// com.road.yishi.proto.simple.FriendInfoMsg
+message FriendInfoMsg {
+  optional int32 userId = 1;
+  optional int32 relation = 2;
+  optional int32 sex = 3;
+  optional int32 pic = 4;
+  optional int32 grades = 5;
+  optional string nickName = 6;
+  optional int32 onlineState = 7;
+  optional int32 relationGrade = 8;
+  optional int32 relationGp = 9;
+  optional int32 consortiaId = 10;
+  optional string consortiaName = 11;
+  optional bool result = 12;
+  optional string addMsg = 13;
+  optional int32 fightCapacity = 14;
+  optional int32 job = 15;
+  optional int32 groupId = 16;
+  optional int32 expAdded = 17;
+  optional SNSInfoMsg snsInfo = 18;
+  optional int32 chatState = 19;
+  optional int32 vipType = 20;
+  optional bool isVip = 21;
+}
+
+// com.road.yishi.proto.friend.FriendPlayer
+message FriendPlayer {
+  optional int32 playerId = 1;
+  optional string nickName = 2;
+  optional int32 level = 3;
+  optional int32 sex = 4;
+  optional int32 attack = 5;
+  optional string mapName = 6;
+  optional int32 transGrade = 7;
+  optional int32 job = 8;
+  optional int32 changeBranch = 9;
+}
+
+// com.road.yishi.proto.simple.FriendRelationList
+message FriendRelationList {
+  repeated RelationPlayerMsg relationList = 1;
+  repeated FriendGroupMsg group = 2;
+  optional int32 maxPage = 3;
+  optional int32 curPage = 4;
+}
+
+// com.road.yishi.proto.friend.FriendRelationMsg
+message FriendRelationMsg {
+  optional int32 otherId = 1;
+  optional string nickName = 2;
+  optional int32 relation = 3;
+  optional string noticeMsg = 4;
+  optional bool result = 6;
+}
+
+// com.road.yishi.proto.simple.FriendSearchConditionReqMsg
+message FriendSearchConditionReqMsg {
+  optional int32 pageIndex = 1;
+  optional int32 sex = 2;
+  optional int32 birthMonth = 3;
+  optional int32 birthDay = 4;
+  optional int32 starId = 5;
+  optional int32 bloodType = 6;
+  optional int32 country = 7;
+  optional int32 province = 8;
+  optional int32 city = 9;
+}
+
+// com.road.yishi.proto.simple.FriendSearchRspMsg
+message FriendSearchRspMsg {
+  optional int32 totalRows = 1;
+  repeated SNSInfoMsg snsInfo = 2;
+}
+
+// com.road.yishi.proto.farm.FriendTreeReq
+message FriendTreeReq {
+  repeated int32 friendId = 1;
+}
+
+// com.road.yishi.proto.farm.FriendTreeRsp
+message FriendTreeRsp {
+  repeated TreeInfoMsg treeInfo = 1;
+}
+
+// com.road.yishi.proto.farm.FriendUserIdsMsg
+message FriendUserIdsMsg {
+  repeated int32 friendId = 1;
+}
+
+// com.road.yishi.proto.active.GItemInfoMsg
+message GItemInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.active.GameStoryMsg
+message GameStoryMsg {
+  optional bool isAccess = 1;
+  optional int32 index = 2;
+  optional bool isDrop = 3;
+}
+
+// com.road.yishi.proto.gateway.GatewayMsg
+message GatewayMsg {
+  optional string notifyMsg = 1;
+}
+
+// com.road.yishi.proto.minigame.GemInfoMsg
+message GemInfoMsg {
+  optional int32 mark = 1;
+  optional int32 color = 2;
+}
+
+// com.road.yishi.proto.minigame.GemInfoUpdateMsg
+message GemInfoUpdateMsg {
+  repeated GemInfoMsg gemDel = 1;
+  repeated GemInfoMsg gemAdd = 2;
+  repeated int32 score = 4;
+  optional int32 curExp = 5;
+  optional int32 maxExp = 6;
+  optional int32 gemLevel = 7;
+  optional int32 scoreOrder = 8;
+  repeated RewardInfoMsg rewardInfo = 9;
+}
+
+// com.road.yishi.proto.minigame.GemInviteOpMsg
+message GemInviteOpMsg {
+  optional int32 playerId = 1;
+  optional int32 opCode = 2;
+}
+
+// com.road.yishi.proto.minigame.GemMazeBuyTimesMsg
+message GemMazeBuyTimesMsg {
+  optional int32 buyTypes = 1;
+}
+
+// com.road.yishi.proto.minigame.GemMazeBuyTimesRspMsg
+message GemMazeBuyTimesRspMsg {
+  optional int32 moveTimesLeft = 1;
+}
+
+// com.road.yishi.proto.minigame.GemMazeInfoMsg
+message GemMazeInfoMsg {
+  repeated GemInfoMsg allGems = 1;
+  optional int32 score = 2;
+  optional int32 weekScore = 3;
+  optional int32 timesLeft = 4;
+  optional int32 buyTimesLeft = 5;
+  optional int32 helpTimesLeft = 6;
+  optional int32 gemLevel = 7;
+  optional int32 curExp = 8;
+  optional int32 maxExp = 9;
+  optional int32 boxMark = 10;
+  optional int32 scoreOrder = 11;
+  repeated int32 boxesId = 12;
+}
+
+// com.road.yishi.proto.minigame.GemMazeOpRstMsg
+message GemMazeOpRstMsg {
+  optional int32 rstCode = 1;
+}
+
+// com.road.yishi.proto.minigame.GemMoveInviteMsg
+message GemMoveInviteMsg {
+  optional int32 playerIdInvited = 1;
+}
+
+// com.road.yishi.proto.minigame.GemMoveInviteReqMsg
+message GemMoveInviteReqMsg {
+  optional int32 friendId = 1;
+  optional int32 inviteTimes = 2;
+  optional int32 helpNums = 3;
+}
+
+// com.road.yishi.proto.minigame.GemMoveMsg
+message GemMoveMsg {
+  optional int32 beginMark = 1;
+  optional int32 endMark = 2;
+}
+
+// com.road.yishi.proto.active.GetItemInfosMsg
+message GetItemInfosMsg {
+  optional int32 interval = 1;
+  optional int32 times = 2;
+  repeated GItemInfoMsg itemInfo = 3;
+}
+
+// com.road.yishi.proto.active.GetLogMsg
+message GetLogMsg {
+  optional int32 type = 1;
+  optional int64 time = 2;
+}
+
+// com.road.yishi.proto.minigame.GetRewardBoxMsg
+message GetRewardBoxMsg {
+  optional int32 boxId = 1;
+}
+
+// com.road.yishi.proto.minigame.GetRewardBoxRspMsg
+message GetRewardBoxRspMsg {
+  optional int32 boxGetMark = 1;
+  repeated RewardInfoMsg rewardInfo = 2;
+}
+
+// com.road.yishi.proto.leed.GetRewardMsg
+message GetRewardMsg {
+  optional int32 day = 1;
+}
+
+// com.road.yishi.proto.building.GiveupWildLandMsg
+message GiveupWildLandMsg {
+  optional string wildLandPos = 1;
+}
+
+// com.road.yishi.proto.simple.GoldImposeMsg
+message GoldImposeMsg {
+  optional int32 leftImpose = 1;
+  optional int32 maxImpose = 2;
+}
+
+// com.road.yishi.proto.goldenroad.GoldenRoadClientRequestMsg
+message GoldenRoadClientRequestMsg {
+  optional int32 consumeType = 1;
+  optional int32 diceType = 2;
+  optional int32 refreshType = 3;
+  optional bool requestBroadcast = 4;
+  optional int32 bagOPType = 5;
+  optional bool isBatch = 6;
+}
+
+// com.road.yishi.proto.goldenroad.GoldenRoadMsg
+message GoldenRoadMsg {
+  optional int32 playerStatue = 1;
+  optional int32 score = 2;
+  repeated CellInfoMsg cellInfo = 3;
+}
+
+// com.road.yishi.proto.shop.GrouponShopMsg
+message GrouponShopMsg {
+  optional int32 buyCount = 1;
+  optional int32 totalPoint = 2;
+  optional int32 curPrice = 3;
+  optional int32 curCount = 4;
+  optional int32 goodId = 5;
+  optional int32 param1 = 6;
+  optional string param2 = 7;
+  optional int32 count = 8;
+  optional bool isReward = 9;
+  optional int32 frontMoney = 10;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildBufferListMsg
+message GuildBufferListMsg {
+  optional int32 consortiaId = 1;
+  repeated GuildBufferMsg buffers = 2;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildBufferMsg
+message GuildBufferMsg {
+  optional int32 templateId = 1;
+  optional int32 consortiaId = 2;
+  optional string bufferName = 3;
+  optional int32 curreCount = 4;
+  optional int32 maxCdTimer = 5;
+  optional int32 objectData = 6;
+  optional int32 needPay = 7;
+  optional string descr = 8;
+  optional string param1 = 9;
+  optional int32 maxBuyCount = 10;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildChallengeInfoMsg
+message GuildChallengeInfoMsg {
+  optional bool isExist = 1;
+  optional string startTime = 2;
+  optional string endTime = 3;
+  optional int32 attackGuildId = 4;
+  optional int32 defencGuildId = 5;
+  optional string attackName = 6;
+  optional string defencName = 7;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildChallengeOrderListMsg
+message GuildChallengeOrderListMsg {
+  repeated GuildOrderInfoMsg info = 1;
+  optional string guildName = 2;
+  optional int32 guildGrade = 3;
+  optional int32 guildOffer = 4;
+  optional int32 guildOrder = 5;
+  optional int32 guildFighPower = 6;
+  repeated GuildChallengeInfoMsg challenge = 7;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildGroupListMsg
+message GuildGroupListMsg {
+  repeated GuildGroupMsg group = 1;
+  optional string orderTime = 2;
+  optional bool isGuildSize = 3;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildGroupMsg
+message GuildGroupMsg {
+  optional int32 consortiaId = 1;
+  optional string consortiaName = 2;
+  optional int32 group1 = 3;
+  optional int32 group2 = 4;
+  optional int32 group3 = 5;
+  optional int32 group4 = 6;
+  optional int32 result1 = 7;
+  optional int32 result2 = 8;
+  optional int32 result3 = 9;
+  optional int32 result4 = 10;
+  optional int32 score = 11;
+  optional int32 order = 12;
+  optional int32 fightPower = 13;
+}
+
+// com.road.yishi.proto.crossguild.GuildInfoMsg
+message GuildInfoMsg {
+  optional string uid = 1;
+  optional int32 guildId = 2;
+  optional string consortiaName = 3;
+  optional int32 totalScore = 4;
+  optional int32 fightPower = 5;
+  optional string site = 6;
+  optional int32 crossServerId = 7;
+  optional int32 warIndex = 8;
+  optional int32 groupId = 9;
+  optional int32 crossOrder = 10;
+  optional int32 playerCount = 11;
+  optional int32 winCount = 12;
+  optional int32 result1 = 13;
+  optional int32 result2 = 14;
+  optional int32 result3 = 15;
+  optional int32 states = 16;
+  optional int32 finalTeam = 17;
+  optional string serverName = 18;
+  optional string heroInfo = 19;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildJoinPlayerInfoMsg
+message GuildJoinPlayerInfoMsg {
+  optional int32 redConsortiaId = 1;
+  optional int32 redCount = 2;
+  optional int32 redLevel = 3;
+  optional int32 blueConsortiaId = 4;
+  optional int32 blueCount = 5;
+  optional int32 blueLevel = 6;
+  repeated int32 userIds = 7;
+  optional int32 state = 8;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildMsg
+message GuildMsg {
+  optional int32 param1 = 1;
+  optional int32 param2 = 2;
+  optional string param3 = 3;
+  optional string param4 = 4;
+  optional bool param5 = 5;
+  optional bool param6 = 6;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildOrderInfoMsg
+message GuildOrderInfoMsg {
+  optional int32 order = 1;
+  optional int32 id = 2;
+  optional string name = 3;
+  optional int32 count = 4;
+  optional int32 power = 5;
+  optional string chairmanName = 6;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildWarInfoListMsg
+message GuildWarInfoListMsg {
+  repeated GuildWarInfoMsg guildWarInfos = 1;
+  repeated int32 userIds = 2;
+}
+
+// com.road.yishi.proto.guildcampaign.GuildWarInfoMsg
+message GuildWarInfoMsg {
+  optional int32 consortiaId = 1;
+  optional string consrotiaName = 2;
+  optional int32 noviceCount = 3;
+  optional int32 score = 4;
+  optional int32 fightPower = 5;
+  optional int32 param1 = 6;
+  optional int32 param2 = 7;
+}
+
+// com.road.yishi.proto.campaign.HangupAttackMsg
+message HangupAttackMsg {
+  optional int32 attackId = 1;
+  optional string attackName = 2;
+  optional int32 defenceId = 3;
+  optional int32 defenceName = 4;
+  optional int32 op = 5;
+}
+
+// com.road.yishi.proto.campaign.HangupInfoMsg
+message HangupInfoMsg {
+  optional int32 leftWeay = 1;
+  optional bool isStartHangup = 2;
+  optional int32 addWeay = 3;
+}
+
+// com.road.yishi.proto.campaign.HangupStateListMsg
+message HangupStateListMsg {
+  optional int32 maxCount = 1;
+  repeated HangupStateMsg hangupState = 2;
+}
+
+// com.road.yishi.proto.campaign.HangupStateMsg
+message HangupStateMsg {
+  optional int32 curCount = 1;
+  optional int32 campaignId = 2;
+}
+
+// com.road.yishi.proto.shop.HasDataInfo
+message HasDataInfo {
+  optional int32 userId = 1;
+  optional int32 itemId = 2;
+  optional int32 counts = 3;
+  optional string buyDate = 4;
+  optional bool isDiscount = 5;
+}
+
+// com.road.yishi.proto.marriage.HeartMsg
+message HeartMsg {
+  optional int32 order = 1;
+  optional int32 templateId = 2;
+  repeated int32 options = 3;
+  optional int32 result = 4;
+  optional int32 optionA = 5;
+  optional int32 optionB = 6;
+  optional int32 remainTime = 7;
+  optional int32 random = 8;
+}
+
+// com.road.yishi.proto.fish.HelpOverMsg
+message HelpOverMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.army.HeroAddPointReqMsg
+message HeroAddPointReqMsg {
+  optional int32 powerPoint = 1;
+  optional int32 agilityPoint = 2;
+  optional int32 intellectPoint = 3;
+  optional int32 captainPoint = 4;
+  optional int32 physiquePoint = 5;
+  optional int32 skillTempId = 6;
+  optional int32 type = 7;
+}
+
+// com.road.yishi.proto.army.HeroEquUpdatedMsg
+message HeroEquUpdatedMsg {
+  optional int32 playerId = 1;
+  optional string armStr = 2;
+  optional string clothStr = 3;
+  optional string wing = 4;
+  optional string hat = 5;
+  optional string fashionArm = 6;
+  optional string fashionCloth = 7;
+  optional bool hide = 8;
+  optional int32 appellId = 9;
+}
+
+// com.road.yishi.proto.army.HeroFastKeyMsg
+message HeroFastKeyMsg {
+  optional string fastKey = 1;
+  optional bool setResult = 2;
+}
+
+// com.road.yishi.proto.army.HeroHideFashionReqMsg
+message HeroHideFashionReqMsg {
+  optional int32 hide = 1;
+}
+
+// com.road.yishi.proto.battle.HeroMsg
+message HeroMsg {
+  optional int32 heroId = 1;
+  optional int32 livingId = 2;
+  optional int32 userId = 3;
+  optional int32 userPics = 4;
+  optional int32 tempId = 5;
+  optional int32 type = 6;
+  optional string nickName = 7;
+  optional int32 grade = 8;
+  optional int32 side = 9;
+  optional int32 pos = 10;
+  optional int32 maxHp = 11;
+  optional int32 initHp = 12;
+  optional int32 hp = 13;
+  optional int32 initHp2 = 14;
+  optional int32 hp2 = 15;
+  optional int32 sp = 16;
+  optional string slotAvata = 17;
+  optional string clothAvate = 18;
+  optional string cloakPath = 19;
+  optional string hairPath = 20;
+  optional int32 captain = 21;
+  optional string res = 22;
+  optional int32 qteTime = 23;
+  optional int32 castTime = 24;
+  optional int32 pics = 25;
+  optional int32 job = 26;
+  optional int32 phyAttack = 27;
+  optional int32 phyDefence = 28;
+  optional int32 magAttack = 29;
+  optional int32 magDefence = 30;
+  optional int32 forceHit = 31;
+  optional int32 parry = 32;
+  optional int32 sites = 33;
+  optional string skillScript = 34;
+  optional int32 pawnTempId = 35;
+  repeated int32 skillId = 36;
+  optional int32 attackWound = 37;
+  optional int32 hitWound = 38;
+  optional int32 attackModel = 39;
+  repeated StarBufferMsg starBuffer = 40;
+  repeated BattleItemMsg item = 41;
+  optional int32 headId = 42;
+  repeated BufferMsg buffers = 43;
+  optional bool isShow = 44;
+  optional string serverName = 45;
+  optional string wingAvata = 46;
+  repeated TrialInfoMsg trials = 47;
+  repeated BaseItemMsg battleDrop = 48;
+  optional string hatAvata = 49;
+  optional string fashionArmAvata = 50;
+  optional string fashionClothAvata = 51;
+  optional bool hide = 52;
+  optional int32 appellId = 53;
+  optional int32 fireResi = 54;
+  optional int32 waterResi = 55;
+  optional int32 electResi = 56;
+  optional int32 windResi = 57;
+  optional int32 darkResi = 58;
+  optional int32 lightResi = 59;
+  optional string followSkills = 60;
+  optional string changeSkills = 61;
+  optional string defaultSkills = 62;
+  optional int32 awake = 63;
+  optional int32 livingId2 = 64;
+  repeated int32 changeSkillId = 65;
+  optional string fateSkillTempIds = 66;
+  optional bool isChange = 67;
+  optional int32 petQuality = 68;
+  optional int32 fightCapacity = 69;
+  optional int32 reduceResi = 70;
+  optional int32 strength = 71;
+  optional int32 tenacity = 72;
+  optional bool hasShadow = 73;
+  repeated int32 marriageSkills = 74;
+  optional int32 mateId = 75;
+  optional string mateServerName = 76;
+  repeated TrialInfoMsg marSkills = 77;
+  optional int32 curturn = 78;
+}
+
+// com.road.yishi.proto.battle.HeroOrderMsg
+message HeroOrderMsg {
+  optional string battleId = 1;
+  optional int32 heroIndexId = 2;
+  optional int32 skillId = 3;
+  optional int32 result = 4;
+  optional int32 castTime = 5;
+  optional int32 qteTime = 6;
+  repeated int32 targetIndexs = 7;
+}
+
+// com.road.yishi.proto.army.HeroRuneInfoMsg
+message HeroRuneInfoMsg {
+  optional int32 runeId = 1;
+  optional int32 runeGp = 2;
+  optional int32 swallowCount = 3;
+}
+
+// com.road.yishi.proto.army.HeroRuneMsg
+message HeroRuneMsg {
+  optional int32 userId = 1;
+  repeated HeroRuneInfoMsg runeinfo = 2;
+  optional string runeKey = 3;
+}
+
+// com.road.yishi.proto.army.HeroRuneOpMsg
+message HeroRuneOpMsg {
+  optional int32 userId = 1;
+  optional int32 runeId = 2;
+  optional string runeKey = 3;
+  optional int32 learnRunePos = 4;
+  optional int32 learnRuneCount = 5;
+  optional int32 opType = 6;
+  optional bool opResult = 7;
+  optional HeroRuneMsg runeInfo = 8;
+  optional int32 count = 9;
+}
+
+// com.road.yishi.proto.army.HeroSkillChangeMsg
+message HeroSkillChangeMsg {
+  optional int32 index = 1;
+  optional int32 payType = 2;
+  optional bool result = 3;
+}
+
+// com.road.yishi.proto.army.HeroSkillInfoMsg
+message HeroSkillInfoMsg {
+  optional int32 skillPoint = 1;
+  optional string skillScript = 2;
+  repeated int32 skillSet = 3;
+}
+
+// com.road.yishi.proto.army.HeroSkillResetMsg
+message HeroSkillResetMsg {
+  optional int32 payType = 1;
+}
+
+// com.road.yishi.proto.army.HeroTalentMsg
+message HeroTalentMsg {
+  optional int32 userId = 1;
+  optional int32 talentPoint = 2;
+  optional int32 talentGrade = 3;
+}
+
+// com.road.yishi.proto.watch.HeroWatchMsg
+message HeroWatchMsg {
+  optional int32 userId = 1;
+  repeated WatchInfoMsg watchInfo = 2;
+}
+
+// com.road.yishi.proto.watch.HeroWatchOpMsg
+message HeroWatchOpMsg {
+  optional int32 opType = 1;
+  optional int32 gridType = 2;
+  optional int32 gridPos = 3;
+  optional int32 jionPos = 4;
+  optional int32 itemPos = 5;
+}
+
+// com.road.yishi.proto.vehicle.HurtDataMsg
+message HurtDataMsg {
+  optional int32 affecteId = 1;
+  optional int32 value = 2;
+  optional string serverName = 3;
+  optional int32 damageType = 4;
+  optional int32 leftTime = 5;
+}
+
+// com.road.yishi.proto.campaign.HurtOrderMsg
+message HurtOrderMsg {
+  optional int32 userId = 1;
+  optional int32 hurt = 2;
+  optional bool isInAltar = 3;
+}
+
+// com.road.yishi.proto.player.IconNumMsg
+message IconNumMsg {
+  optional int32 type = 1;
+  optional int32 intValue1 = 2;
+}
+
+// com.road.yishi.proto.player.IconNumMsgList
+message IconNumMsgList {
+  optional int32 op = 1;
+  repeated IconNumMsg list = 2;
+}
+
+// com.road.yishi.proto.simple.InfoReqMsg
+message InfoReqMsg {
+  optional int32 otherId = 1;
+  optional int32 from = 2;
+}
+
+// com.road.yishi.proto.simple.InfoRspMsg
+message InfoRspMsg {
+  optional SimplePlayerInfoMsg info = 1;
+  optional int32 from = 2;
+}
+
+// com.road.yishi.proto.team.InviteTeamMsg
+message InviteTeamMsg {
+  optional int32 teamId = 1;
+  optional int32 inviterId = 2;
+  optional string inviterName = 3;
+}
+
+// com.road.yishi.proto.item.ItemBufferRspMsg
+message ItemBufferRspMsg {
+  repeated BufferDataMsg bufferData = 1;
+}
+
+// com.road.yishi.proto.item.ItemInfoMsg
+message ItemInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 pos = 3;
+  optional bool exist = 4;
+  optional int32 objectId = 5;
+  optional int32 bagType = 6;
+  optional bool bind = 7;
+  optional bool used = 8;
+  optional int32 validDate = 9;
+  optional string beginDate = 10;
+  optional int32 count = 11;
+  optional int32 attack = 12;
+  optional int32 defence = 13;
+  optional int32 agility = 14;
+  optional int32 ability = 15;
+  optional int32 captain = 16;
+  optional int32 strengthenGrade = 17;
+  optional int32 join_1 = 18;
+  optional int32 join_2 = 19;
+  optional int32 join_3 = 20;
+  optional int32 join_4 = 21;
+  optional int32 randomSkill_1 = 22;
+  optional int32 randomSkill_2 = 23;
+  optional int32 randomSkill_3 = 24;
+  optional int32 randomSkill_4 = 25;
+  optional int32 randomSkill_5 = 26;
+  optional bool isNew = 27;
+  optional int32 userId = 28;
+  optional string property1 = 29;
+  optional int32 strength = 30;
+  optional int32 tenacity = 31;
+  optional int32 appraisalSkill = 32;
+  optional bool isLocked = 33;
+  optional int32 mouldGrade = 34;
+  optional int32 blessValue = 35;
+}
+
+// com.road.yishi.proto.item.ItemInfoReqMsg
+message ItemInfoReqMsg {
+  repeated int32 id = 1;
+}
+
+// com.road.yishi.proto.item.ItemInfoRspMsg
+message ItemInfoRspMsg {
+  repeated ItemInfoMsg itemInfo = 1;
+}
+
+// com.road.yishi.proto.item.ItemMoveUpdateMsg
+message ItemMoveUpdateMsg {
+  optional int32 changeType = 1;
+  optional int32 changeObjId = 2;
+  optional int32 changePos = 3;
+  optional ItemInfoMsg item = 4;
+}
+
+// com.road.yishi.proto.item.ItemMovedListMsg
+message ItemMovedListMsg {
+  repeated ItemMoveUpdateMsg moved = 1;
+}
+
+// com.road.yishi.proto.item.ItemRemoveMsg
+message ItemRemoveMsg {
+  optional int32 bagType = 1;
+  optional int32 pos = 2;
+}
+
+// com.road.yishi.proto.item.ItemReqMsg
+message ItemReqMsg {
+  optional int32 beginBagType = 1;
+  optional int32 beginObjId = 2;
+  optional int32 beginPos = 3;
+  optional int32 endBagType = 4;
+  optional int32 endObjId = 5;
+  optional int32 endPos = 6;
+  optional int32 count = 7;
+  optional int32 objectId = 8;
+}
+
+// com.road.yishi.proto.item.ItemSellReqMsg
+message ItemSellReqMsg {
+  repeated SelledItemInfo selledItemInfos = 1;
+}
+
+// com.road.yishi.proto.item.ItemSmithyMsg
+message ItemSmithyMsg {
+  repeated int32 composeId = 1;
+}
+
+// com.road.yishi.proto.campaign.ItemTemplate
+message ItemTemplate {
+  optional int32 templateId = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.item.ItemUseMsg
+message ItemUseMsg {
+  optional int32 pos = 1;
+  optional int32 count = 2;
+  optional int32 bagType = 3;
+  optional string battleId = 4;
+  optional int32 friendId = 5;
+}
+
+// com.road.yishi.proto.battle.ItemUseResultMsg
+message ItemUseResultMsg {
+  optional int32 uItemId = 1;
+  optional int32 bagPos = 2;
+  optional int32 count = 3;
+  optional int32 result = 4;
+  optional int32 livingId = 5;
+  optional int32 tempId = 6;
+  optional int32 type = 7;
+}
+
+// com.road.yishi.proto.item.ItemUseStoreReqMsg
+message ItemUseStoreReqMsg {
+  optional int32 count = 1;
+}
+
+// com.road.yishi.proto.item.ItemUseStoreRspMsg
+message ItemUseStoreRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.room.KillPlayerRspMsg
+message KillPlayerRspMsg {
+  optional int32 roomId = 1;
+  optional int32 killedPlayerId = 2;
+}
+
+// com.road.yishi.proto.player.KingContractBuyMsg
+message KingContractBuyMsg {
+  repeated int32 ids = 1;
+  optional bool __use = 2;
+  optional int32 friendId = 3;
+  optional string friendname = 4;
+}
+
+// com.road.yishi.proto.player.KingContractInfoMsg
+message KingContractInfoMsg {
+  optional int32 contractId = 1;
+  optional string endData = 2;
+}
+
+// com.road.yishi.proto.player.KingContractMsg
+message KingContractMsg {
+  repeated KingContractInfoMsg kingContractInfos = 1;
+}
+
+// com.road.yishi.proto.campaign.KingTowerInfoMsg
+message KingTowerInfoMsg {
+  optional int32 enterCount = 1;
+  optional int32 currentIndex = 2;
+  optional int32 maxIndex = 3;
+  optional int32 campaignId = 4;
+  optional int32 currentStep = 5;
+  optional int32 rewardCount = 6;
+}
+
+// com.road.yishi.proto.leed.LeadRewardMsg
+message LeadRewardMsg {
+  optional int32 op = 1;
+  optional int32 templateId = 2;
+  optional int32 leadExtractTimes = 3;
+  optional int32 count = 4;
+}
+
+// com.road.yishi.proto.leed.LeedData
+message LeedData {
+  optional int32 templateId = 1;
+  optional int32 userId = 2;
+  optional int32 currentCount = 3;
+  optional string beginDate = 4;
+  optional bool isComplete = 5;
+}
+
+// com.road.yishi.proto.leed.LeedFinishedReqMsg
+message LeedFinishedReqMsg {
+  optional int32 site = 1;
+}
+
+// com.road.yishi.proto.leed.LeedFinishedRspMsg
+message LeedFinishedRspMsg {
+  optional bool result = 1;
+  optional int32 site = 2;
+  optional int32 leedProcess = 3;
+}
+
+// com.road.yishi.proto.leed.LeedUpdatedRspMsg
+message LeedUpdatedRspMsg {
+  repeated LeedData leed = 1;
+  optional int32 leedProcess = 2;
+  optional int32 totalNum = 3;
+}
+
+// com.road.yishi.proto.farm.LoadFarmRsp
+message LoadFarmRsp {
+  repeated FriendFarmStateMsg friendFarmState = 1;
+  optional FarmInfoRspMsg farm = 2;
+  repeated FarmLogRsp farmLog = 3;
+}
+
+// com.road.yishi.proto.battle.LoadOverMsg
+message LoadOverMsg {
+  optional int32 armyId = 1;
+  optional string battleId = 2;
+  optional string serverName = 3;
+}
+
+// com.road.yishi.proto.player.LockAndUnlockMsg
+message LockAndUnlockMsg {
+  optional int32 opType = 1;
+  optional int32 itemPos = 2;
+  optional int32 petId = 3;
+}
+
+// com.road.yishi.proto.campaign.LockScreenRspMsg
+message LockScreenRspMsg {
+  optional string screen = 1;
+  optional int32 frame = 2;
+}
+
+// com.road.yishi.proto.player.LoginReqMsg
+message LoginReqMsg {
+  optional int32 playerId = 1;
+  optional string key = 2;
+  repeated int32 ekeys = 3;
+}
+
+// com.road.yishi.proto.player.LoginStateMsg
+message LoginStateMsg {
+  optional int32 playerId = 1;
+  optional int32 state = 2;
+}
+
+// com.road.yishi.proto.lucky.LordsBaseInfoMsg
+message LordsBaseInfoMsg {
+  optional int32 userId = 1;
+  optional string serverName = 2;
+  optional string nickName = 3;
+  optional string userKeys = 4;
+  optional int32 job = 5;
+  optional int32 sexJob = 6;
+  optional int32 grades = 7;
+  optional string fashionArm = 8;
+  optional string fashionWing = 9;
+  optional string fashionCloth = 10;
+  optional string fashionHair = 11;
+  optional string fashionHat = 12;
+  optional string arm = 13;
+  optional bool isVip = 14;
+  optional int32 fightPower = 15;
+  optional int32 readyScore = 16;
+  optional int32 readyOrder = 17;
+  optional int32 readyRewad = 18;
+  optional int32 finalScore = 19;
+  optional int32 finalOrder = 20;
+  optional int32 finalRewad = 21;
+  optional int32 readyTurn = 22;
+  optional int32 finalTurn = 23;
+  optional int32 readyWinCount = 24;
+  optional int32 finalWinCount = 25;
+  optional bool isExist = 26;
+  optional string property1 = 27;
+  optional string property2 = 28;
+  optional int32 battleResult = 29;
+  optional int32 bet_Index = 30;
+  optional int32 fightPowerOrder = 31;
+}
+
+// com.road.yishi.proto.lucky.LordsOrderListMsg
+message LordsOrderListMsg {
+  optional int32 leftTime = 1;
+  optional int32 maxTurn = 2;
+  optional int32 currTurn = 3;
+  optional int32 myOrder = 4;
+  optional int32 winCount = 5;
+  optional int32 score = 6;
+  repeated LordsBaseInfoMsg lordsInfo = 7;
+  optional int32 param1 = 8;
+  optional int32 param2 = 9;
+  optional string param3 = 10;
+  optional string param4 = 11;
+}
+
+// com.road.yishi.proto.lottery.LotteryMsg
+message LotteryMsg {
+  optional int32 payedPoint = 1;
+  optional int32 totalCount = 2;
+  optional int32 leftCount = 3;
+  optional int32 dayMaxCount = 4;
+  optional int32 onceNeedPoint = 5;
+  optional int64 leftMillis = 6;
+  optional bool isOpen = 7;
+  optional string property1 = 8;
+  optional string property2 = 9;
+  repeated string property3 = 10;
+  repeated string property4 = 11;
+  optional int32 dayAddCount = 13;
+}
+
+// com.road.yishi.proto.active.LuckExchangeInfoListMsg
+message LuckExchangeInfoListMsg {
+  repeated LuckExchangeInfoMsg luckExchangeInfo = 1;
+}
+
+// com.road.yishi.proto.active.LuckExchangeInfoMsg
+message LuckExchangeInfoMsg {
+  optional string exchangeId = 1;
+  optional int32 currentLuckValue = 2;
+}
+
+// com.road.yishi.proto.active.LuckExchangeItemTempMsg
+message LuckExchangeItemTempMsg {
+  optional int32 itemId = 1;
+  optional int32 itemCount = 2;
+  optional bool rare = 3;
+  optional int32 dropType = 4;
+}
+
+// com.road.yishi.proto.active.LuckExchangeOpMsg
+message LuckExchangeOpMsg {
+  optional string exchangeId = 1;
+  optional int32 exchangeCount = 2;
+}
+
+// com.road.yishi.proto.active.LuckExchangeTempListMsg
+message LuckExchangeTempListMsg {
+  repeated LuckExchangeTempMsg luckExchange = 1;
+}
+
+// com.road.yishi.proto.active.LuckExchangeTempMsg
+message LuckExchangeTempMsg {
+  optional string id = 1;
+  optional string name = 2;
+  optional int32 consumeItemId = 3;
+  optional int32 consumeItemCount = 4;
+  optional int32 luckValue = 5;
+  optional string startTime = 6;
+  optional string endTime = 7;
+  repeated LuckExchangeItemTempMsg dropItems = 8;
+}
+
+// com.road.yishi.proto.player.MailCheckMsg
+message MailCheckMsg {
+  optional int32 op = 1;
+  optional int32 state = 2;
+  optional int32 pin = 3;
+  optional string mail = 4;
+}
+
+// com.road.yishi.proto.mail.MailDelReqMsg
+message MailDelReqMsg {
+  repeated int32 delList = 1;
+}
+
+// com.road.yishi.proto.mail.MailInfoMsg
+message MailInfoMsg {
+  optional int32 id = 1;
+  optional int32 mailType = 2;
+  optional int32 sendId = 3;
+  optional string sendNickName = 4;
+  optional int32 receiveId = 5;
+  optional string receiveNickName = 6;
+  optional string sendDate = 7;
+  optional string readDate = 8;
+  optional string title = 9;
+  optional string contents = 10;
+  optional string removeDate = 11;
+  optional int32 validityDate = 12;
+  optional int32 annex1 = 13;
+  optional int32 annex1Name = 14;
+  optional int32 annex1Count = 15;
+  optional bool isAnnex1 = 16;
+  optional int32 annex2 = 17;
+  optional int32 annex2Name = 18;
+  optional int32 annex2Count = 19;
+  optional bool isAnnex2 = 20;
+  optional int32 annex3 = 21;
+  optional int32 annex3Name = 22;
+  optional int32 annex3Count = 23;
+  optional bool isAnnex3 = 24;
+  optional int32 annex4 = 25;
+  optional int32 annex4Name = 26;
+  optional int32 annex4Count = 27;
+  optional bool isAnnex4 = 28;
+  optional int32 annex5 = 29;
+  optional int32 annex5Name = 30;
+  optional int32 annex5Count = 31;
+  optional bool isAnnex5 = 32;
+  optional bool isExist = 33;
+  optional int32 sendType = 34;
+  optional int32 sendPlayerGrades = 35;
+}
+
+// com.road.yishi.proto.mail.MailListReqMsg
+message MailListReqMsg {
+  optional int32 mailId = 1;
+  optional int32 reqType = 2;
+}
+
+// com.road.yishi.proto.mail.MailMsg
+message MailMsg {
+  optional int32 playerId = 1;
+  optional int32 mailId = 2;
+  repeated int32 position = 3;
+  repeated int32 mailsIdArray = 4;
+}
+
+// com.road.yishi.proto.mail.MailPickupRspMsg
+message MailPickupRspMsg {
+  repeated PickupResult pickupResult = 1;
+}
+
+// com.road.yishi.proto.mail.MailSendReqMsg
+message MailSendReqMsg {
+  repeated int32 receiverUserId = 1;
+  optional string title = 2;
+  optional string contents = 3;
+  optional int32 sendType = 4;
+  optional int32 payType = 5;
+}
+
+// com.road.yishi.proto.shop.MainDiscountInfo
+message MainDiscountInfo {
+  optional int32 id = 1;
+  optional int32 site = 2;
+  optional int32 shopId = 3;
+  optional int32 templateId = 4;
+  optional int32 counts = 5;
+  optional int32 shopId1 = 6;
+  optional int32 templateId1 = 7;
+  optional int32 count1 = 8;
+  optional int32 shopId2 = 9;
+  optional int32 templateId2 = 10;
+  optional int32 count2 = 11;
+  optional int32 shopId3 = 12;
+  optional int32 templateId3 = 13;
+  optional int32 count3 = 14;
+  optional int32 shopId4 = 15;
+  optional int32 templateId4 = 16;
+  optional int32 count4 = 17;
+  optional int32 shopId5 = 18;
+  optional int32 templateId5 = 19;
+  optional int32 count5 = 20;
+  optional int32 shopId6 = 21;
+  optional int32 templateId6 = 22;
+  optional int32 count6 = 23;
+  optional int32 shopId7 = 24;
+  optional int32 templateId7 = 25;
+  optional int32 count7 = 26;
+  optional int32 shopId8 = 27;
+  optional int32 templateId8 = 28;
+  optional int32 count8 = 29;
+  optional int32 sortId = 30;
+  optional int32 discount = 31;
+  optional string beginDate = 32;
+  optional string endDate = 33;
+  optional int32 oneDayCount = 34;
+  optional int32 maxCount = 35;
+  optional int32 currentCount = 36;
+  optional string maxCurrentDate = 37;
+  optional bool isGift = 38;
+  optional string url = 39;
+  optional string names = 40;
+  optional int32 price = 41;
+  optional int32 type = 42;
+  optional int32 limitCount = 43;
+  optional int32 vip = 44;
+  optional int32 level1 = 45;
+  optional int32 price1 = 46;
+  optional int32 level2 = 47;
+  optional int32 price2 = 48;
+  optional int32 level3 = 49;
+  optional int32 price3 = 50;
+  optional string sendDate = 51;
+  optional int32 refreshInterval = 52;
+  optional int32 frontMoney = 53;
+}
+
+// com.road.yishi.proto.shop.MainGoodInfo
+message MainGoodInfo {
+  optional int32 id = 1;
+  optional int32 shopId = 2;
+  optional int32 templateId = 3;
+  optional int32 sortId = 4;
+  optional int32 types = 5;
+}
+
+// com.road.yishi.proto.shop.MainUrlInfo
+message MainUrlInfo {
+  optional int32 id = 1;
+  optional string url = 2;
+  optional int32 site = 3;
+}
+
+// com.road.yishi.proto.simple.MallItemBuyMsg
+message MallItemBuyMsg {
+  optional int32 id = 1;
+  optional int32 userId = 2;
+  optional MallItemMsg mallItem = 3;
+  optional int32 bidupPoint = 4;
+  optional string buyTime = 5;
+}
+
+// com.road.yishi.proto.simple.MallItemMsg
+message MallItemMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 userId = 3;
+  optional string nickName = 4;
+  optional int32 point = 5;
+  optional int32 fixPoint = 6;
+  optional int32 hour = 7;
+  optional int32 itemFrom = 8;
+  optional string startTime = 9;
+  optional int32 maxAuctionId = 10;
+  optional SimpleItemInfoMsg itemInfo = 11;
+}
+
+// com.road.yishi.proto.mall.MallItemViewReqMsg
+message MallItemViewReqMsg {
+  optional int32 page = 1;
+  optional int32 count = 2;
+  optional int32 from = 3;
+  optional int32 orderBy = 4;
+  optional int32 orderType = 5;
+}
+
+// com.road.yishi.proto.army.MapBossMsg
+message MapBossMsg {
+  optional int32 count1 = 1;
+  optional int32 count2 = 2;
+  optional int32 count3 = 3;
+  repeated BossMsg bosslist = 4;
+  optional int32 leftBossTime = 5;
+  optional int32 leftFogTime = 6;
+}
+
+// com.road.yishi.proto.army.MapBossQuestMsg
+message MapBossQuestMsg {
+  optional int32 mapId = 1;
+}
+
+// com.road.yishi.proto.army.MapBoxMsg
+message MapBoxMsg {
+  repeated ArmyBoxMsg boxlist = 1;
+}
+
+// com.road.yishi.proto.worldmap.MapPhysicAttackMsg
+message MapPhysicAttackMsg {
+  optional int32 mapId = 1;
+  optional int32 posX = 2;
+  optional int32 posY = 3;
+}
+
+// com.road.yishi.proto.army.MapUpdatedMsg
+message MapUpdatedMsg {
+  optional int32 updatedType = 1;
+  optional ArmyArmyMsg army = 2;
+  optional WildLandMsg wildLand = 3;
+  optional BaseCastleMsg baseCastle = 4;
+}
+
+// com.road.yishi.proto.marriage.MarriageDataMsg
+message MarriageDataMsg {
+  optional int32 userId = 1;
+  optional int32 type = 2;
+  optional int32 marriageState = 3;
+  optional MarriageHappyMsg happy = 4;
+  optional MarriageHappyMsg mateHappy = 5;
+  optional MarriageRingMsg ring = 6;
+  optional MarriageGodTreeMsg godTree = 7;
+}
+
+// com.road.yishi.proto.marriage.MarriageGodTreeMsg
+message MarriageGodTreeMsg {
+  optional int32 treeGp = 1;
+  optional int32 treeGrade = 2;
+  optional int32 treeGoldWater = 3;
+  optional int32 treeDiamondWater = 4;
+  optional int32 treeState = 5;
+  optional int32 treeStateValue = 6;
+  optional string treeEarningDate = 7;
+  optional int32 treeMateState = 8;
+}
+
+// com.road.yishi.proto.marriage.MarriageHappyMsg
+message MarriageHappyMsg {
+  optional int32 happyGp = 1;
+  optional int32 happyGrade = 2;
+  optional int32 happyHelp = 3;
+}
+
+// com.road.yishi.proto.marriage.MarriageHeartMsg
+message MarriageHeartMsg {
+  optional HeartMsg curQuestion = 1;
+  repeated HeartMsg lastQuestions = 2;
+  optional int32 syncRate = 3;
+  optional int32 maxOrder = 4;
+}
+
+// com.road.yishi.proto.marriage.MarriageMsg
+message MarriageMsg {
+  optional int32 userId = 1;
+  optional int32 state = 2;
+  optional int32 happy = 3;
+  optional int32 templateId = 4;
+  optional string engageTime = 5;
+  optional int32 speTemplateId = 6;
+  optional string marTime = 7;
+  optional int32 questCount = 8;
+  optional int32 ringGrade = 9;
+  optional string nickName = 10;
+  optional int32 ringGp = 11;
+  optional int32 overTime = 12;
+  optional int32 answerNum = 13;
+  optional int32 ringGrade1 = 14;
+  optional int32 logoutDays = 15;
+}
+
+// com.road.yishi.proto.marriage.MarriageOpMsg
+message MarriageOpMsg {
+  optional int32 userId = 1;
+  optional int32 opType = 2;
+  optional int32 payType = 3;
+  optional int32 property1 = 4;
+  optional int32 property2 = 5;
+  optional string property3 = 6;
+  optional string property4 = 7;
+  optional bool property5 = 8;
+  repeated int32 userIds = 9;
+  repeated MarriagePropertyListMsg properties = 10;
+  optional bool isNoGet = 11;
+}
+
+// com.road.yishi.proto.marriage.MarriageProMsg
+message MarriageProMsg {
+  optional int32 userIdA = 1;
+  optional string nickNameA = 2;
+  optional int32 jobA = 3;
+  optional int32 userIdB = 4;
+  optional string nickNameB = 5;
+  optional int32 jobB = 6;
+  optional bool property1 = 7;
+  optional int32 property2 = 8;
+  optional int32 property3 = 9;
+  optional string property4 = 10;
+  optional string property5 = 11;
+  optional int32 property6 = 12;
+  optional int32 property7 = 13;
+  optional int32 property8 = 14;
+  optional int32 property9 = 15;
+  optional int32 property10 = 16;
+}
+
+// com.road.yishi.proto.marriage.PropertyListMsg
+message MarriagePropertyListMsg {
+  optional int32 property1 = 1;
+  optional int32 property2 = 2;
+}
+
+// com.road.yishi.proto.marriage.MarriageRingMsg
+message MarriageRingMsg {
+  optional int32 ringGp = 1;
+  optional int32 ringGrade = 2;
+  optional string ringSkill = 3;
+}
+
+// com.road.yishi.proto.farm.MarriageTreeMsg
+message MarriageTreeMsg {
+  optional int32 userIdA = 1;
+  optional string nickNameA = 2;
+  optional int32 jobA = 3;
+  optional int32 userIdB = 4;
+  optional string nickNameB = 5;
+  optional int32 jobB = 6;
+  optional int32 stateValue = 7;
+  optional int32 feedCount = 8;
+  optional string startTime = 10;
+  optional string endTime = 11;
+  optional int32 trainACount = 12;
+  optional int32 trainBCount = 13;
+  optional int32 trainAType = 14;
+  optional int32 trainBType = 15;
+  optional bool isGetA = 16;
+  optional bool isGetB = 17;
+  optional string treeState = 18;
+  optional int32 feedUser = 19;
+}
+
+// com.road.yishi.proto.room.MatchStateMsg
+message MatchStateMsg {
+  optional bool matchState = 1;
+  optional string param1 = 2;
+  optional string param2 = 3;
+}
+
+// com.road.yishi.proto.matelords.MateLordsInfoMsg
+message MateLordsInfoMsg {
+  optional string uuid = 1;
+  optional string teamUid = 2;
+  optional int32 userId = 3;
+  optional string serverName = 4;
+  optional string nickName = 5;
+  optional string userKeys = 6;
+  optional int32 job = 7;
+  optional int32 sexJob = 8;
+  optional int32 grades = 9;
+  optional int32 fightPower = 10;
+  optional int32 totalWinCount = 11;
+  optional int32 teamType = 12;
+  optional int32 warIndex = 13;
+  optional int32 curreOrder = 14;
+  optional int32 result = 15;
+  optional int32 turnCount = 16;
+  optional int32 addScore = 17;
+  optional int32 totalScore = 18;
+  optional string property1 = 19;
+  repeated int32 clearRateItems = 20;
+  optional int32 descScore = 21;
+}
+
+// com.road.yishi.proto.matelords.MateLordsListMsg
+message MateLordsListMsg {
+  optional bool isSign = 1;
+  optional bool isOpen = 2;
+  optional int32 order = 3;
+  optional int32 eventId = 4;
+  optional int32 teamType = 5;
+  optional string openTime = 6;
+  optional int32 totalScore = 7;
+  optional int32 altarScore = 8;
+  optional int32 inspirLevel = 9;
+  optional int32 maxTurnCount = 10;
+  optional int32 currentTurn = 11;
+  optional int32 leftTime = 12;
+  repeated MateLordsInfoMsg info = 13;
+  optional int32 masterUserId = 14;
+  optional string teamUid = 15;
+  optional string teamName = 16;
+  optional int32 warIndex = 17;
+  optional int32 serverId = 18;
+  optional string fashionArm = 19;
+  optional string fashionWing = 20;
+  optional string fashionCloth = 21;
+  optional string fashionHair = 22;
+  optional string fashionHat = 23;
+  optional string arm = 24;
+  optional int32 job = 25;
+  optional string nickName = 26;
+  optional bool isOver = 27;
+  optional int32 sexJob = 28;
+}
+
+// com.road.yishi.proto.team.MemberFightPos
+message MemberFightPos {
+  optional int32 memberId = 1;
+  optional int32 pos = 2;
+}
+
+// com.road.yishi.proto.team.MemberFightPosListMsg
+message MemberFightPosListMsg {
+  optional bool isGet = 1;
+  repeated MemberFightPos memberPos = 2;
+}
+
+// com.road.yishi.proto.seek.MessageForSeekMsg
+message MessageForSeekMsg {
+  optional string info = 1;
+}
+
+// com.road.yishi.proto.campaign.MountAvatarMsg
+message MountAvatarMsg {
+  repeated AvatarInfoMsg avatarInfo = 1;
+  optional int32 soulScore = 2;
+  optional int32 count = 3;
+  optional int32 stamp = 4;
+  optional int32 totalPage = 5;
+}
+
+// com.road.yishi.proto.campaign.MountEditMsg
+message MountEditMsg {
+  optional int32 propertyType = 1;
+  optional int32 payType = 2;
+  optional int32 param1 = 3;
+  optional int32 param2 = 4;
+  optional int32 op = 5;
+}
+
+// com.road.yishi.proto.campaign.MountInfoMsg
+message MountInfoMsg {
+  optional int32 mountTempId = 1;
+  optional int32 power = 2;
+  optional int32 intellect = 3;
+  optional int32 physique = 4;
+  optional int32 agility = 5;
+  optional int32 speed = 6;
+  optional int32 powerGp = 7;
+  optional int32 intellectGp = 8;
+  optional int32 physiqueGp = 9;
+  optional int32 agilityGp = 10;
+  optional int32 mountTotalGp = 11;
+  optional int32 levelMax = 12;
+  optional int32 discount = 13;
+  optional int32 mountStarLv = 14;
+  optional int32 addPointCount = 15;
+  optional int32 refiningSoulPowerGrade = 16;
+  optional int32 refiningSoulIntellectGrade = 17;
+  optional int32 refiningSoulPhysiqueGrade = 18;
+  optional int32 refiningSoulAgilityGrade = 19;
+  optional int32 refiningSoulExp = 20;
+}
+
+// com.road.yishi.proto.campaign.MountKingInfoMsg
+message MountKingInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 extraStar = 2;
+  optional int32 level = 3;
+  optional int32 gp = 4;
+}
+
+// com.road.yishi.proto.campaign.MountKingListMsg
+message MountKingListMsg {
+  repeated MountKingInfoMsg kingList = 1;
+}
+
+// com.road.yishi.proto.campaign.MountShopItemMsg
+message MountShopItemMsg {
+  optional int32 itemTempId = 1;
+  optional int32 itemCount = 2;
+  optional int32 price = 3;
+  optional bool canBuy = 4;
+}
+
+// com.road.yishi.proto.campaign.MountShopMsg
+message MountShopMsg {
+  repeated MountShopItemMsg itemList = 1;
+}
+
+// com.road.yishi.proto.friend.MoveFriendReqMsg
+message MoveFriendReqMsg {
+  optional int32 firendId = 1;
+  optional int32 groupId = 2;
+  optional int32 result = 3;
+}
+
+// com.road.yishi.proto.player.MultiCampaignEnterCountMsg
+message MultiCampaignEnterCountMsg {
+  optional int32 campaignCount = 1;
+  optional int32 campaignMaxcount = 2;
+}
+
+// com.road.yishi.proto.campaign.MultiCampaignHpSyncMsg
+message MultiCampaignHpSyncMsg {
+  optional string proxyId = 1;
+  optional int32 mapId = 2;
+  optional int32 nodeId = 3;
+  optional int32 nodeHp = 4;
+  optional int32 nodeTotalHp = 5;
+  repeated MultiPlayerHpSyncMsg playerHp = 6;
+}
+
+// com.road.yishi.proto.campaign.MultiPlayerHpSyncMsg
+message MultiPlayerHpSyncMsg {
+  optional int32 armyId = 1;
+  optional int32 curHp = 2;
+  optional int32 totalHp = 3;
+}
+
+// com.road.yishi.proto.mall.MysteryEventInfoMsg
+message MysteryEventInfoMsg {
+  optional int32 id = 1;
+  optional int32 userId = 2;
+  optional string remark = 3;
+  optional string createTime = 4;
+  optional bool isExist = 5;
+}
+
+// com.road.yishi.proto.mall.MysteryEventListMsg
+message MysteryEventListMsg {
+  repeated MysteryEventInfoMsg eventInfo = 1;
+}
+
+// com.road.yishi.proto.campaign.NPCChaseMsg
+message NPCChaseMsg {
+  optional int32 nodeId = 1;
+  optional int32 armyId = 2;
+  optional int32 curPosX = 4;
+  optional int32 curPosY = 5;
+  optional string serverName = 6;
+}
+
+// com.road.yishi.proto.campaign.NPCChatMsg
+message NPCChatMsg {
+  optional int32 id = 1;
+  optional string content = 2;
+}
+
+// com.road.yishi.proto.campaign.NPCFollowMsg
+message NPCFollowMsg {
+  optional int32 escortId = 1;
+  optional int32 followId = 2;
+  optional int32 curPosX = 3;
+  optional int32 curPosY = 4;
+}
+
+// com.road.yishi.proto.campaign.NPCMoveMsg
+message NPCMoveMsg {
+  optional int32 id = 1;
+  optional int32 posX = 2;
+  optional int32 posY = 3;
+  optional int32 curPosX = 4;
+  optional int32 curPosY = 5;
+}
+
+// com.road.yishi.proto.guildcampaign.NodeHpListMsg
+message NodeHpListMsg {
+  optional int32 campaignId = 1;
+  optional int32 campaignType = 2;
+  repeated NodeHpMsg nodeHp = 3;
+  repeated int32 userId = 4;
+}
+
+// com.road.yishi.proto.guildcampaign.NodeHpMsg
+message NodeHpMsg {
+  optional int32 nodeId = 1;
+  optional int32 currentHp = 2;
+  optional int32 totalHp = 3;
+  optional int32 param1 = 4;
+}
+
+// com.road.yishi.proto.campaign.NodeLockReqMsg
+message NodeLockReqMsg {
+  optional int32 nodeId = 1;
+  optional bool lock = 2;
+}
+
+// com.road.yishi.proto.novice.NoviceReqMsgMsg
+message NoviceReqMsgMsg {
+  optional int32 noviceProcess = 1;
+  optional int32 armyId = 2;
+  optional int32 type = 3;
+  optional int32 armsId = 4;
+  optional int32 goodsId = 5;
+  optional string gradeProcess = 6;
+}
+
+// com.road.yishi.proto.player.OfflineRewardMsg
+message OfflineRewardMsg {
+  optional int32 offlineTime = 1;
+  optional int32 gpCount = 2;
+  optional int32 rateCount = 3;
+  optional int32 payType = 4;
+}
+
+// com.road.yishi.proto.campaign.OprateReplacemntMsg
+message OprateReplacemntMsg {
+  optional int32 op = 1;
+  optional int32 campaignId = 2;
+  optional int32 result = 3;
+}
+
+// com.road.yishi.proto.building.OrderInfoMsg
+message OrderInfoMsg {
+  optional int32 orderId = 1;
+  optional int32 orderType = 2;
+  optional int32 remainTime = 3;
+  optional int32 userId = 4;
+  optional string beginTime = 5;
+  optional int32 needTime = 6;
+}
+
+// com.road.yishi.proto.building.OrderQuickRspMsg
+message OrderQuickRspMsg {
+  repeated OrderInfoMsg orderInfo = 1;
+}
+
+// com.road.yishi.proto.active.OreActiveBaseInfoMsg
+message OreActiveBaseInfoMsg {
+  optional string openTime = 1;
+  optional string closeTime = 2;
+  optional int32 mineOncePrice = 3;
+  optional int32 mineTimesPrice = 4;
+  repeated OreRewardTempMsg rewards = 5;
+}
+
+// com.road.yishi.proto.active.OreActiveClientOpMsg
+message OreActiveClientOpMsg {
+  optional int32 opType = 1;
+  optional bool isUseProp = 2;
+}
+
+// com.road.yishi.proto.active.OreCastle2CrossActiveInfoMsg
+message OreCastle2CrossActiveInfoMsg {
+  optional string openTime = 1;
+  optional string closeTime = 2;
+  optional int32 dailyMaxTurns = 3;
+  optional int32 dailyMaxSpecialRewardTimes = 4;
+  optional int32 countDown = 5;
+  optional int32 type = 6;
+  repeated OreRewardTempMsg rewards = 7;
+}
+
+// com.road.yishi.proto.active.OreCross2CastleActiveInfoMsg
+message OreCross2CastleActiveInfoMsg {
+  optional string openTime = 1;
+  optional string closeTime = 2;
+}
+
+// com.road.yishi.proto.active.OreItemInfoMsg
+message OreItemInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 count = 2;
+  optional string name = 3;
+}
+
+// com.road.yishi.proto.active.OreMineReqMsg
+message OreMineReqMsg {
+  optional int32 mineCount = 1;
+  optional string serverName = 2;
+  optional int32 userId = 3;
+  optional string nickName = 4;
+  optional int32 spRewardRemainTimes = 5;
+}
+
+// com.road.yishi.proto.active.OreMineRespMsg
+message OreMineRespMsg {
+  optional int32 passType = 1;
+  optional int32 count = 2;
+  repeated int32 floors = 3;
+  repeated string infos = 4;
+}
+
+// com.road.yishi.proto.active.OreRewardTempMsg
+message OreRewardTempMsg {
+  optional int32 rewardType = 1;
+  optional int32 specialFloorNum = 2;
+  repeated OreItemInfoMsg rewards = 3;
+}
+
+// com.road.yishi.proto.active.OreWindowMsg
+message OreWindowMsg {
+  optional int32 todayRemainTurns = 1;
+  optional int32 curSeq = 2;
+  optional int32 spRewardRemainTimes = 3;
+  optional int32 countDown = 4;
+  optional int32 mineCount = 5;
+}
+
+// com.road.yishi.proto.outercity.ArmyUpdatedGridMsg
+message OutercityArmyUpdatedGridMsg {
+  repeated ArmyArmyMsg updatedArmy = 1;
+}
+
+// com.road.yishi.proto.outercity.OutercityReqMsg
+message OutercityReqMsg {
+  optional int32 mapId = 1;
+  optional string position = 2;
+  optional string files = 3;
+  repeated string pathArray = 4;
+  optional int32 type = 5;
+  optional int32 attackCount = 6;
+}
+
+// com.road.yishi.proto.outercity.OutercityRspMsg
+message OutercityRspMsg {
+  optional int32 result = 1;
+  optional int32 startPosX = 2;
+  optional int32 startPosY = 3;
+  optional int32 curPosX = 4;
+  optional int32 curPosY = 5;
+  optional int32 endPosX = 6;
+  optional int32 endPosY = 7;
+}
+
+// com.road.yishi.proto.active.PackageConditionMsg
+message PackageConditionMsg {
+  optional int32 conditionId = 1;
+  optional int32 conditionValue = 2;
+  optional int32 conditionBak = 3;
+  optional int32 conditionBak2 = 4;
+  optional int32 conditionBak3 = 5;
+  optional int32 conditionBak4 = 6;
+}
+
+// com.road.yishi.proto.active.PackageData
+message PackageData {
+  optional string packId = 1;
+  optional int32 status = 2;
+  optional int32 countDown = 3;
+  optional bool isShow = 4;
+  optional string param1 = 5;
+  optional int32 finishValue = 6;
+  optional int32 getCount = 7;
+}
+
+// com.road.yishi.proto.rebate.PackageInfoMsg
+message PackageInfoMsg {
+  optional string packageId = 1;
+  optional int32 order = 2;
+  optional int32 point = 3;
+  optional int32 price = 4;
+  optional int32 itemid1 = 5;
+  optional int32 count1 = 6;
+  optional int32 itemid2 = 7;
+  optional int32 count2 = 8;
+  optional int32 itemid3 = 9;
+  optional int32 count3 = 10;
+  optional int32 itemid4 = 11;
+  optional int32 count4 = 12;
+  optional int32 itemid5 = 13;
+  optional int32 count5 = 14;
+  optional int32 itemid6 = 15;
+  optional int32 count6 = 16;
+  optional int32 itemid7 = 17;
+  optional int32 count7 = 18;
+  optional int32 count8 = 20;
+  optional int32 itemid8 = 29;
+}
+
+// com.road.yishi.proto.rebate.PackageStateMsg
+message PackageStateMsg {
+  optional string id = 1;
+  optional bool isget = 2;
+}
+
+// com.road.yishi.proto.army.PawnChangeMsg
+message PawnChangeMsg {
+  optional int32 curPawnTempId = 1;
+  optional int32 tarPawnTempId = 2;
+  optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.player.PayTypeMsg
+message PayTypeMsg {
+  optional int32 payType = 1;
+  optional int32 property1 = 2;
+  optional int32 property2 = 3;
+  optional int32 type = 4;
+}
+
+// com.road.yishi.proto.pet.PetChallengeInfoMsg
+message PetChallengeInfoMsg {
+  optional PetChallengePlayerMsg playerInfo = 1;
+  repeated PlayerPetMsg playerPets = 2;
+  repeated PetChallengeLogMsg challengeLog = 3;
+}
+
+// com.road.yishi.proto.pet.PetChallengeLogMsg
+message PetChallengeLogMsg {
+  optional int32 userId = 1;
+  optional int32 tarUserId = 2;
+  optional string tarNickName = 3;
+  optional int32 result = 4;
+  optional bool isAttack = 5;
+  optional string logDate = 6;
+  optional int32 score = 7;
+  optional PlayerPetMsg tarPets = 8;
+}
+
+// com.road.yishi.proto.pet.PetChallengePlayerMsg
+message PetChallengePlayerMsg {
+  optional int32 leftTime = 1;
+  optional int32 challengeCount = 2;
+  optional int32 totalCount = 3;
+  optional int32 score = 4;
+  optional int32 order = 5;
+}
+
+// com.road.yishi.proto.pet.PetEquipmentMsg
+message PetEquipmentMsg {
+  optional int32 templateId = 1;
+  optional int32 pos = 2;
+  optional int32 join1 = 3;
+  optional int32 join2 = 4;
+  optional int32 join3 = 5;
+  optional int32 join4 = 6;
+  optional int32 randomSkill1 = 7;
+  optional int32 randomSkill2 = 8;
+  optional int32 randomSkill3 = 9;
+  optional int32 randomSkill4 = 10;
+  optional int32 randomSkill5 = 11;
+  optional int32 mouldGrade = 12;
+  optional bool isBind = 13;
+}
+
+// com.road.yishi.proto.pet.PetInfoMsg
+message PetInfoMsg {
+  optional int32 petId = 1;
+  optional int32 templateId = 2;
+  optional string petName = 3;
+  optional int32 curGp = 4;
+  optional int32 curGrade = 5;
+  optional int32 power = 6;
+  optional int32 intel = 7;
+  optional int32 physi = 8;
+  optional int32 armor = 9;
+  optional int32 remainPoints = 10;
+  optional int32 initPowerApti = 11;
+  optional int32 initIntelApti = 12;
+  optional int32 initPhysiApti = 13;
+  optional int32 initArmorApti = 14;
+  optional int32 powerApti = 15;
+  optional int32 intelApti = 16;
+  optional int32 physiApti = 17;
+  optional int32 armorApti = 18;
+  optional int32 curQualityGp = 19;
+  optional int32 growthRate = 20;
+  optional int32 maxHp = 21;
+  optional int32 fireResi = 22;
+  optional int32 waterResi = 23;
+  optional int32 electResi = 24;
+  optional int32 windResi = 25;
+  optional int32 darkResi = 26;
+  optional int32 lightResi = 27;
+  optional string followSkills = 28;
+  optional string changeSkills = 29;
+  optional bool isFight = 30;
+  optional bool isPractice = 31;
+  optional bool isBind = 32;
+  optional int64 totalGp = 33;
+  optional int32 fightingCapacity = 34;
+  optional bool isDel = 35;
+  optional int32 quality = 36;
+  optional bool isGuard = 37;
+  optional string chaSkillIndexs = 38;
+  optional string fastKey = 39;
+  optional int32 initQuality = 40;
+  optional bool isLocked = 41;
+  optional int32 bagAttack = 42;
+  optional int32 bagDefence = 43;
+  optional int32 bagMagicattack = 44;
+  optional int32 bagMagicdefence = 45;
+  optional int32 bagLiving = 46;
+  optional int32 nextPowerApti = 47;
+  optional int32 nextIntelApti = 48;
+  optional int32 nextPhysiApti = 49;
+  optional int32 nextArmorApti = 50;
+}
+
+// com.road.yishi.proto.pet.PetIslandDefendStateMsg
+message PetIslandDefendStateMsg {
+  optional int64 leftTime = 1;
+  optional int32 mapId = 2;
+  optional int32 bossId = 3;
+  optional int32 peaceMiddle = 4;
+  optional int32 peaceHigh = 5;
+  optional int32 peaceBoss = 6;
+  optional int32 ragePoint = 7;
+}
+
+// com.road.yishi.proto.army.PhysicListUpdateMsg
+message PhysicListUpdateMsg {
+  optional string reqGrid = 1;
+  repeated WildLandMsg wildLand = 2;
+  repeated BaseCastleMsg baseCastle = 3;
+}
+
+// com.road.yishi.proto.army.PhysicUpdateReqMsg
+message PhysicUpdateReqMsg {
+  optional string reqGrid = 1;
+  optional int32 mapId = 2;
+}
+
+// com.road.yishi.proto.mail.PickupResult
+message PickupResult {
+  optional int32 mailId = 1;
+  optional int32 attachIndex = 2;
+  optional bool result = 3;
+}
+
+// com.road.yishi.proto.room.PlaceStateRspMsg
+message PlaceStateRspMsg {
+  repeated int32 placeState = 1;
+}
+
+// com.road.yishi.proto.player.PlayerAASRefreshMsg
+message PlayerAASRefreshMsg {
+  optional int32 aasOnlineTime = 1;
+  optional bool isCloseAAS = 2;
+  optional bool sysSwitch = 3;
+}
+
+// com.road.yishi.proto.player.PlayerAASReqMsg
+message PlayerAASReqMsg {
+  optional string cardName = 1;
+  optional string cardId = 2;
+}
+
+// com.road.yishi.proto.player.PlayerAASRspMsg
+message PlayerAASRspMsg {
+  optional bool result = 1;
+  optional int32 age = 2;
+  optional string cardId = 3;
+}
+
+// com.road.yishi.proto.player.PlayerActiveReqMsg
+message PlayerActiveReqMsg {
+  optional string key = 1;
+  optional string activeId = 2;
+}
+
+// com.road.yishi.proto.player.PlayerActiveRspMsg
+message PlayerActiveRspMsg {
+  optional int32 result = 1;
+  optional string activeid = 2;
+}
+
+// com.road.yishi.proto.bottle.PlayerBottleMsg
+message PlayerBottleMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional bool isVip = 3;
+  optional int32 state = 4;
+}
+
+// com.road.yishi.proto.player.ChallengeMsg
+message PlayerChallengeMsg {
+  optional int32 tarUserId = 1;
+  optional int32 tarArmyId = 2;
+  optional int32 payType = 3;
+  optional int32 type = 4;
+}
+
+// com.road.yishi.proto.children.PlayerChildInfoMsg
+message PlayerChildInfoMsg {
+  repeated ChildrenInfoMsg child = 1;
+}
+
+// com.road.yishi.proto.player.PlayerDataMsg
+message PlayerDataMsg {
+  optional bool user = 1;
+  optional bool castle = 2;
+  optional bool army = 3;
+  optional bool quest = 4;
+  optional bool build = 5;
+  optional bool tree = 6;
+  optional bool aas = 7;
+  optional bool smith = 8;
+  optional bool bag = 9;
+  optional bool leed = 10;
+  optional bool star = 11;
+  optional bool friend = 12;
+  optional bool effect = 13;
+  optional bool sys = 14;
+  optional bool offline = 15;
+  optional bool reward = 16;
+  optional bool tower = 17;
+  optional bool shop = 18;
+  optional bool challReward = 19;
+  optional bool snsReq = 20;
+  optional bool active = 21;
+  optional bool switches = 22;
+  optional bool sweep = 23;
+  optional bool questionnarie = 24;
+  optional bool kingContract = 25;
+  optional bool rebateCharge = 26;
+  optional bool rebateConsum = 27;
+  optional bool sumActive = 28;
+  optional bool crossScoreReward = 29;
+  optional bool appell = 30;
+  optional bool bottle = 31;
+  optional bool petChallengeReward = 32;
+  optional bool powcardInfo = 33;
+}
+
+// com.road.yishi.proto.campaign.PlayerHangupStateListMsg
+message PlayerHangupStateListMsg {
+  repeated PlayerHangupStateMsg hanupState = 1;
+}
+
+// com.road.yishi.proto.campaign.PlayerHangupStateMsg
+message PlayerHangupStateMsg {
+  optional int32 armyId = 1;
+  optional int32 state = 2;
+}
+
+// com.road.yishi.proto.battle.PlayerInfoNoticeMsg
+message PlayerInfoNoticeMsg {
+  optional int32 affectGeste = 1;
+  optional int32 score = 2;
+  optional bool isAdd = 3;
+  optional int32 playerState = 4;
+  optional bool isTips = 5;
+  optional string serverName = 6;
+  optional bool manualExit = 7;
+  optional int32 mountTemplateId = 8;
+  optional int32 mountGrade = 9;
+  optional string wing = 10;
+  optional string arm = 11;
+  optional string cloth = 12;
+  optional int32 changeShapeId = 13;
+  optional string hat = 14;
+  optional string fashionArm = 15;
+  optional string fashionCloth = 16;
+  optional bool hide = 17;
+  optional int32 crossScore = 18;
+  optional int32 gesteJoin = 19;
+  optional int32 appellId = 20;
+  optional int32 petTemplateId = 21;
+  optional string petName = 22;
+  optional int32 petQuality = 23;
+  optional int32 gestePowcardJoin = 24;
+}
+
+// com.road.yishi.proto.lucky.PlayerLuckyMsg
+message PlayerLuckyMsg {
+  optional int32 luckyCount = 1;
+  optional int32 remainCount = 2;
+  optional bytes lastReceive = 3;
+  optional int32 point = 4;
+  optional int32 gold = 5;
+}
+
+// com.road.yishi.proto.player.PlayerMoveCameraMsg
+message PlayerMoveCameraMsg {
+  optional string scene = 1;
+  optional int32 targetX = 2;
+  optional int32 targetY = 3;
+  optional int32 delay = 4;
+}
+
+// com.road.yishi.proto.campaign.PlayerMoveMsg
+message PlayerMoveMsg {
+  optional int32 userId = 1;
+  optional int32 mapId = 2;
+  optional int32 tarX = 3;
+  optional int32 tarY = 4;
+  optional bool ismoveCamera = 5;
+}
+
+// com.road.yishi.proto.player.PlayerMovieMsg
+message PlayerMovieMsg {
+  optional int32 movieTargetType = 1;
+  optional int32 targetId = 2;
+  optional string movieType = 3;
+  optional int32 delay = 4;
+  optional int32 mapId = 5;
+}
+
+// com.road.yishi.proto.player.PlayerMsg
+message PlayerMsg {
+  optional int32 playerId = 1;
+  optional string nickName = 2;
+  optional int32 sex = 3;
+  optional int32 pic = 4;
+  optional int32 camp = 5;
+  optional int32 point = 6;
+  optional int32 giftToken = 7;
+  optional int32 state = 8;
+  optional string lastAward = 9;
+  optional int32 questSiteLen = 10;
+  optional bytes questSite = 11;
+  optional int32 consortiaId = 12;
+  optional string consortiaName = 13;
+  optional int32 claimId = 14;
+  optional string claimName = 15;
+  optional int32 grades = 16;
+  optional int32 gp = 17;
+  optional int32 repute = 18;
+  optional int32 consortiaOffer = 19;
+  optional int64 strategy = 20;
+  optional int32 weary = 21;
+  optional int32 attackLeftCount = 22;
+  optional int32 noviceProcess = 23;
+  optional int32 consortiaAttack = 24;
+  optional int32 consortiaDefence = 25;
+  optional int32 consortiaAgility = 26;
+  optional int32 consortiaAbility = 27;
+  optional int32 consortiaCaptain = 28;
+  optional int32 gpOrder = 29;
+  optional int32 fightingCapacity = 30;
+  optional string gradeProcess = 31;
+  optional int32 timeProcess = 32;
+  optional bool timeGet = 33;
+  optional string campaignSite = 34;
+  optional int32 bagCount = 35;
+  optional int32 matchWin = 36;
+  optional int32 matchFailed = 37;
+  optional int32 consortiaGold = 38;
+  optional int32 consortiaPhysique = 39;
+  optional int32 right = 40;
+  optional int32 job = 41;
+  optional int32 leedProcess = 42;
+  optional int32 starCount = 43;
+  optional string signDate = 44;
+  optional int32 signTimes = 45;
+  optional int32 signSite = 46;
+  optional PlayerOrderMsg order = 47;
+  optional int32 startFree = 48;
+  optional int64 totalGp = 49;
+  optional bool refuseFriend = 50;
+  optional bool refuseInvite = 51;
+  optional int32 consortiaTotaloffer = 52;
+  optional bool showVersion = 53;
+  optional int32 campaignCount = 54;
+  optional int32 timeRun = 55;
+  optional int32 qteGuide = 56;
+  optional int32 starpoint = 57;
+  optional bool isAuto = 58;
+  optional string lastOutConsortia = 59;
+  optional int32 geste = 60;
+  optional int32 storeGrade = 61;
+  optional int32 storeGp = 62;
+  optional int32 reloginProcess = 63;
+  optional int32 reloginCount = 64;
+  optional int32 blessingCount = 65;
+  optional int32 blessingBuff = 66;
+  optional int32 blessingMaxCount = 67;
+  optional bool firstCharge = 68;
+  optional int32 charm = 69;
+  optional int32 matchRoomCount = 70;
+  optional bool kingBuff = 71;
+  optional int32 leaveGp = 72;
+  optional int32 altarConsortiaId = 73;
+  optional string serverName = 74;
+  optional int32 rewardTimes = 75;
+  optional int32 warFieldCount = 76;
+  optional int32 trialCount = 77;
+  optional int32 appellId = 78;
+  optional int32 crossScore = 79;
+  optional int32 trialMaxCount = 80;
+  optional int32 wearyLimit = 81;
+  optional int32 lordsScore = 82;
+  optional bool isReceived = 83;
+  optional int32 mineScore = 84;
+  optional bool isBackPlayer = 85;
+  optional bool refuseTeamInvite = 86;
+  optional int32 campaignMaxcount = 87;
+  optional int32 expLimit = 88;
+  optional int32 hasVicePassword = 89;
+  optional int32 isDuringToResetTime = 90;
+  optional int32 leadExtractTimes = 91;
+  optional string lastFreeSkillLearnTime = 92;
+  optional string rentalBagTime = 93;
+  optional int32 status = 94;
+}
+
+// com.road.yishi.proto.vehicle.PlayerMutualRspMsg
+message PlayerMutualRspMsg {
+  optional int32 userId = 1;
+  optional string serverName = 2;
+  optional int32 type = 3;
+  optional string param = 4;
+}
+
+// com.road.yishi.proto.campaign.PlayerNodeStateMsg
+message PlayerNodeStateMsg {
+  optional int32 mapId = 1;
+  optional int32 nodeId = 2;
+  optional bool isStand = 3;
+  optional int32 armyId = 4;
+}
+
+// com.road.yishi.proto.player.PlayerOrderMsg
+message PlayerOrderMsg {
+  optional int32 playerId = 1;
+  optional int32 fightCapacityOrder = 2;
+  optional int32 geste_Order = 3;
+  optional int32 charm_Order = 4;
+  optional int32 soulScore_Order = 5;
+}
+
+// com.road.yishi.proto.pet.PlayerPetMsg
+message PlayerPetMsg {
+  optional int32 userId = 1;
+  repeated PetInfoMsg petInfo = 2;
+  optional string nickName = 3;
+  optional int32 order = 4;
+  optional string chaPos = 5;
+  optional int32 score = 6;
+  optional int32 petCount = 7;
+  repeated PetEquipmentMsg equipmets = 8;
+}
+
+// com.road.yishi.proto.pet.PlayerPetOpMsg
+message PlayerPetOpMsg {
+  optional int32 petId = 1;
+  optional int32 opType = 2;
+  optional string petName = 3;
+  repeated int32 attributes = 4;
+  optional int32 value = 5;
+  optional int32 itemPos = 6;
+  optional int32 payType = 7;
+  optional int32 skillId = 8;
+  optional int32 fightType = 9;
+}
+
+// com.road.yishi.proto.room.PlayerReadyRspMsg
+message PlayerReadyRspMsg {
+  repeated PlayerreadyrspmsgPlayerReady readyState = 1;
+}
+
+// com.road.yishi.proto.lucky.PlayerRefiningSoulMsg
+message PlayerRefiningSoulMsg {
+  optional int32 count = 1;
+  optional int32 remainCount = 2;
+  optional int32 point = 3;
+  optional int32 soul = 4;
+}
+
+// com.road.yishi.proto.player.PlayerRenameReqMsg
+message PlayerRenameReqMsg {
+  optional string nickName = 1;
+  optional int32 type = 2;
+  optional int32 pos = 3;
+}
+
+// com.road.yishi.proto.player.PlayerRenameRspMsg
+message PlayerRenameRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.seek.PlayerSeekInfoMsg
+message PlayerSeekInfoMsg {
+  optional int32 seekCount = 1;
+  optional int64 nextAddTime = 2;
+  optional int32 state = 3;
+  optional string eventDesc = 4;
+  optional int32 curNodeId = 5;
+  optional int32 op = 6;
+  optional SeekNodeListMsg seekNodeList = 7;
+}
+
+// com.road.yishi.proto.player.PlayerSignRspMsg
+message PlayerSignRspMsg {
+  optional string signDate = 1;
+  optional int32 signTimes = 2;
+  optional int32 signSite = 4;
+}
+
+// com.road.yishi.proto.simple.PlayerStateListMsg
+message PlayerStateListMsg {
+  repeated WorldBossPlayerStateMsg playerState = 1;
+  repeated int32 userId = 2;
+}
+
+// com.road.yishi.proto.player.PlayerTokenInfoMsg
+message PlayerTokenInfoMsg {
+  repeated TokenInfoMsg tokenInfos = 1;
+}
+
+// com.road.yishi.proto.treasuremap.PlayerTreasureMsg
+message PlayerTreasureMsg {
+  optional int32 userId = 1;
+  optional int32 joinCount = 2;
+  optional int32 rewardCount = 3;
+  optional int32 index = 4;
+  repeated int32 templateIds = 5;
+  optional int32 opType = 6;
+  optional int32 payType = 7;
+  optional bool refreshType = 8;
+  optional bool isReward = 9;
+  optional bool isFirstQuest = 10;
+  optional bool isFirstGet = 11;
+  optional bool isFirstUse = 12;
+}
+
+// com.road.yishi.proto.battle.PlayerTrialMsg
+message PlayerTrialMsg {
+  optional int32 userId = 1;
+  repeated TrialInfoMsg trialInfos = 2;
+  optional int32 param1 = 3;
+  optional int32 param2 = 4;
+  optional int32 param3 = 5;
+  optional int32 param4 = 6;
+}
+
+// com.road.yishi.proto.vehicle.PlayerVehicleListMsg
+message PlayerVehicleListMsg {
+  repeated PlayerVehicleMsg vehicles = 1;
+}
+
+// com.road.yishi.proto.vehicle.PlayerVehicleMsg
+message PlayerVehicleMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 hp = 3;
+  optional int32 team = 4;
+  repeated int32 buffState = 5;
+  optional int32 grade = 6;
+  optional string name = 7;
+  optional int32 head = 8;
+  optional int32 x = 9;
+  optional int32 y = 10;
+  optional int32 playerId = 11;
+  optional string consortia = 12;
+  optional int32 vip = 13;
+  optional int32 appellId = 14;
+  optional int32 rebornTime = 15;
+  optional int32 npcNodeId = 16;
+  optional string serverName = 17;
+  optional int32 transGrade = 18;
+  optional bool isBackPlayer = 19;
+  optional int32 maxHp = 20;
+  optional string defaultSkills = 21;
+  optional bool isHoldKey = 22;
+}
+
+// com.road.yishi.proto.vehicle.PlayerVehicleProfileMsg
+message PlayerVehicleProfileMsg {
+  optional int32 exp = 1;
+  optional int32 score = 2;
+  optional int32 defaultVehicle = 3;
+  optional bool isFirst = 4;
+}
+
+// com.road.yishi.proto.room.PlayerReadyRspMsg.PlayerReady
+message PlayerreadyrspmsgPlayerReady {
+  optional int32 playerId = 1;
+  optional int32 readyState = 2;
+}
+
+// com.road.yishi.proto.gameplot.PlotInfoMsg
+message PlotInfoMsg {
+  optional int32 index = 1;
+  optional int32 direction = 2;
+  optional int32 roleId = 3;
+  optional string roleName = 4;
+  optional string event = 5;
+  optional string param = 6;
+  optional string text = 7;
+  optional int32 delayTime = 8;
+}
+
+// com.road.yishi.proto.gameplot.PlotMsg
+message PlotMsg {
+  optional bool loop = 1;
+  optional int32 sceneType = 2;
+  repeated PlotInfoMsg info = 3;
+}
+
+// com.road.yishi.proto.fashion.PolishInfoMsg
+message PolishInfoMsg {
+  optional int32 sontype = 1;
+  optional int32 level = 2;
+  optional int32 exp = 3;
+}
+
+// com.road.yishi.proto.worldmap.PosMoveMsg
+message PosMoveMsg {
+  optional int32 mapId = 1;
+  optional int32 armyId = 2;
+  repeated RouteMsg routes = 3;
+  optional string gridStr = 4;
+  repeated int32 userId = 5;
+  optional string serverName = 6;
+  repeated RouteStateMsg userStates = 7;
+  optional int32 armyState = 8;
+}
+
+// com.road.yishi.proto.campaign.PosMsg
+message PosMsg {
+  optional int32 x = 1;
+  optional int32 y = 2;
+}
+
+// com.road.yishi.proto.powcard.PowCardBufListMsg
+message PowCardBufListMsg {
+  repeated PowCardBufMsg bufInfos = 1;
+}
+
+// com.road.yishi.proto.powcard.PowCardBufMsg
+message PowCardBufMsg {
+  optional int32 sonType = 1;
+  optional int32 bufId = 2;
+  optional int32 fixValue = 3;
+  optional int32 percent = 4;
+}
+
+// com.road.yishi.proto.powcard.PowCardInfoMsg
+message PowCardInfoMsg {
+  optional int32 tempId = 1;
+  optional int32 grade = 2;
+  optional int32 gp = 3;
+  optional PowCardBufMsg buf = 4;
+  optional int32 isActive = 5;
+}
+
+// com.road.yishi.proto.powcard.PowCardReqMsg
+message PowCardReqMsg {
+  optional int32 op = 1;
+  optional int32 cardId = 2;
+}
+
+// com.road.yishi.proto.powcard.PowCardSuiteListMsg
+message PowCardSuiteListMsg {
+  repeated PowCardSuiteMsg suites = 1;
+}
+
+// com.road.yishi.proto.powcard.PowCardSuiteMsg
+message PowCardSuiteMsg {
+  optional int32 suiteId = 1;
+  repeated PowCardBufMsg bufInfos = 2;
+  repeated PowCardInfoMsg cardInfos = 3;
+}
+
+// com.road.yishi.proto.powcard.PowcardFightAddMsg
+message PowcardFightAddMsg {
+  repeated Singlefightadd singlefightadd = 1;
+}
+
+// com.road.yishi.proto.battle.PreLoadResMsg
+message PreLoadResMsg {
+  optional int32 armyId = 1;
+  repeated int32 heroSkill = 2;
+  repeated int32 soldierTempId = 3;
+  repeated int32 soldierSkill = 4;
+}
+
+// com.road.yishi.proto.battle.PrepareOverLivingMsg
+message PrepareOverLivingMsg {
+  optional int32 calcType = 1;
+  optional int32 livingId = 2;
+  optional int32 sp = 3;
+}
+
+// com.road.yishi.proto.battle.PrepareOverMsg
+message PrepareOverMsg {
+  optional int32 frame = 1;
+  repeated PrepareOverLivingMsg prepareOverLivings = 2;
+}
+
+// com.road.yishi.proto.privilege.PrivilegeMsg
+message PrivilegeMsg {
+  optional bool isPrivilege = 1;
+  repeated int32 list = 2;
+  optional string userName = 3;
+  optional int32 index = 4;
+  optional string param1 = 5;
+  optional string param2 = 6;
+}
+
+// com.road.yishi.proto.player.PropertyUpdatedMsg
+message PropertyUpdatedMsg {
+  optional int32 propertyType = 1;
+  optional int32 value = 2;
+}
+
+// com.road.yishi.proto.battle.QteMsg
+message QteMsg {
+  optional string battleId = 1;
+  optional string serverName = 2;
+}
+
+// com.road.yishi.proto.player.QueryCollectCampaignNodeRspMsg
+message QueryCollectCampaignNodeRspMsg {
+  repeated CollectCampaignNodeMsg collectCampaignNode = 1;
+}
+
+// com.road.yishi.proto.quest.QuestAddedMsg
+message QuestAddedMsg {
+  repeated int32 questId = 1;
+}
+
+// com.road.yishi.proto.quest.QuestFinishedReqMsg
+message QuestFinishedReqMsg {
+  optional int32 templateId = 1;
+  optional int32 rewardItemId = 2;
+  optional bool isPass = 3;
+}
+
+// com.road.yishi.proto.quest.QuestFinishedRspMsg
+message QuestFinishedRspMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.quest.QuestInfo
+message QuestInfo {
+  optional int32 templateId = 1;
+  optional bool isComplete = 2;
+  optional int32 condition_1 = 3;
+  optional int32 condition_2 = 4;
+  optional int32 condition_3 = 5;
+  optional int32 condition_4 = 6;
+  optional string completedDate = 7;
+  optional int32 repeatFinish = 8;
+  optional bool isAccept = 9;
+  optional bool isSelect = 10;
+  optional string addDate = 11;
+}
+
+// com.road.yishi.proto.quest.QuestRemovedMsg
+message QuestRemovedMsg {
+  repeated int32 templateId = 1;
+}
+
+// com.road.yishi.proto.quest.QuestUpdatedRspMsg
+message QuestUpdatedRspMsg {
+  repeated QuestInfo quest = 1;
+  optional int32 statesLength = 2;
+  optional bytes states = 3;
+}
+
+// com.road.yishi.proto.questionnarie.QuestionDataRspInfo
+message QuestionDataRspInfo {
+  optional int32 questId = 1;
+  optional string answer = 2;
+}
+
+// com.road.yishi.proto.questionnarie.QuestionDataRspMsg
+message QuestionDataRspMsg {
+  optional int32 isFirst = 1;
+  optional int32 id = 2;
+  repeated QuestionDataRspInfo infolist = 3;
+}
+
+// com.road.yishi.proto.questionnarie.QuestionInfoMsg
+message QuestionInfoMsg {
+  optional int32 id = 1;
+  optional string title = 2;
+  optional int32 type = 3;
+  optional int32 contenType = 4;
+  optional string a = 5;
+  optional string b = 6;
+  optional string c = 7;
+  optional string d = 8;
+  optional string e = 9;
+  optional string f = 10;
+  optional string g = 11;
+  optional string h = 12;
+  optional string i = 13;
+  optional string j = 14;
+}
+
+// com.road.yishi.proto.customer.QuestionReplayMsg
+message QuestionReplayMsg {
+  optional string questionId = 1;
+  optional int32 type = 2;
+  optional int32 userId = 3;
+  optional string title = 4;
+  optional string content = 5;
+  optional string replayContent = 6;
+  optional bytes commitTime = 7;
+  optional string replayUserName = 8;
+  optional int32 employ = 9;
+  optional int32 stopReply = 10;
+}
+
+// com.road.yishi.proto.questionnarie.QuestionnarieInfoMsg
+message QuestionnarieInfoMsg {
+  optional int32 id = 1;
+  optional string title = 2;
+  optional string content = 3;
+  optional int32 itemId1 = 4;
+  optional int32 count1 = 5;
+  optional int32 itemId2 = 6;
+  optional int32 count2 = 7;
+  optional int32 itemId3 = 8;
+  optional int32 count3 = 9;
+  optional int32 itemId4 = 10;
+  optional int32 count4 = 11;
+  repeated QuestionInfoMsg questiones = 12;
+}
+
+// com.road.yishi.proto.campaign.QuickHangupMsg
+message QuickHangupMsg {
+  optional int32 quickTime = 1;
+  optional int32 payType = 2;
+}
+
+// com.road.yishi.proto.tollgate.RankInfoMsg
+message RankInfoMsg {
+  optional int32 index = 1;
+  optional int32 rank = 2;
+}
+
+// com.road.yishi.proto.campaign.RankListRspMsg
+message RankListRspMsg {
+  repeated RankMsg rankInfo = 1;
+}
+
+// com.road.yishi.proto.campaign.RankMsg
+message RankMsg {
+  optional int32 userId = 1;
+  optional int32 campaignId = 2;
+  optional int32 rank = 3;
+}
+
+// com.road.yishi.proto.pet.RankRewardMsg
+message RankRewardMsg {
+  optional int32 type = 1;
+  optional int32 status = 2;
+  optional int32 rank = 3;
+  optional int32 opType = 4;
+}
+
+// com.road.yishi.proto.player.RateUpdate
+message RateUpdate {
+  optional int32 rate = 1;
+  optional int32 beginTime = 2;
+  optional int32 endTime = 3;
+  optional string beginDay = 4;
+  optional string endDay = 5;
+  optional int32 bufferType = 6;
+  optional string param1 = 7;
+  optional string param2 = 8;
+  optional string rateName = 9;
+  optional string rateDesc = 10;
+}
+
+// com.road.yishi.proto.player.RateUpdateReqMsg
+message RateUpdateReqMsg {
+  repeated RateUpdate rateInfo = 1;
+}
+
+// com.road.yishi.proto.rebate.RebateInfoMsg
+message RebateInfoMsg {
+  optional string id = 1;
+  optional string beginDate = 2;
+  optional string endDate = 3;
+  optional int32 type = 4;
+  repeated PackageInfoMsg packages = 5;
+}
+
+// com.road.yishi.proto.rebate.RebateOpMsg
+message RebateOpMsg {
+  optional string id = 1;
+  optional string packageid = 2;
+  optional int32 op = 3;
+}
+
+// com.road.yishi.proto.mail.ReceiveMailMsg
+message ReceiveMailMsg {
+  repeated MailInfoMsg mailInfos = 1;
+}
+
+// com.road.yishi.proto.chat.RecentContractsStateReqMsg
+message RecentContractsStateReqMsg {
+  repeated int32 userId = 1;
+}
+
+// com.road.yishi.proto.friend.RecommendListMsg
+message RecommendListMsg {
+  repeated FriendPlayer girlList = 1;
+  repeated FriendPlayer boyList = 2;
+}
+
+// com.road.yishi.proto.recover.RecoverInfo
+message RecoverInfo {
+  optional int32 sonType = 1;
+  optional int32 num = 2;
+  optional int32 itemCost = 3;
+  optional int32 itemReward = 4;
+  optional int32 goldCost = 5;
+  optional int32 goldReward = 6;
+}
+
+// com.road.yishi.proto.recover.RecoverInfosMsg
+message RecoverInfosMsg {
+  repeated RecoverInfo recoverInfos = 1;
+}
+
+// com.road.yishi.proto.recover.RecoverReqMsg
+message RecoverReqMsg {
+  optional int32 type = 1;
+  optional int32 count = 2;
+  optional int32 way = 3;
+}
+
+// com.road.yishi.proto.store.RefreshPropertyRepMsg
+message RefreshPropertyRepMsg {
+  repeated int32 randomSkill = 1;
+  repeated bool lockPos = 2;
+  optional int32 result = 3;
+}
+
+// com.road.yishi.proto.store.RefreshPropertyReqMsg
+message RefreshPropertyReqMsg {
+  optional int32 itemId = 2;
+}
+
+// com.road.yishi.proto.player.RefuseFriendRspMsg
+message RefuseFriendRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.battle.ReinforceMsg
+message ReinforceMsg {
+  optional int32 side = 1;
+  repeated HeroMsg hero = 2;
+  repeated SoldierMsg soldiers = 3;
+  optional int32 reinforceWave = 4;
+  repeated HeroMsg pets = 5;
+}
+
+// com.road.yishi.proto.simple.RelationPlayerMsg
+message RelationPlayerMsg {
+  optional int32 relation = 1;
+  optional int32 friendRp = 2;
+  optional int32 friendGrade = 3;
+  optional int32 groupId = 4;
+  optional SimplePlayerInfoMsg player = 5;
+  optional SNSInfoMsg snsInfo = 6;
+  optional int32 from = 7;
+  optional int32 isVip = 8;
+}
+
+// com.road.yishi.proto.active.RentalBagOpReqMsg
+message RentalBagOpReqMsg {
+  optional int32 opType = 1;
+  optional int32 param1 = 2;
+  optional string param2 = 3;
+}
+
+// com.road.yishi.proto.active.RentalBagOpResMsg
+message RentalBagOpResMsg {
+  optional int32 opType = 1;
+  optional string rentalBagTime = 2;
+  optional int32 status = 3;
+  optional string param1 = 4;
+}
+
+// com.road.yishi.proto.campaign.ReplacementMsg
+message ReplacementMsg {
+  optional string stateStr = 1;
+}
+
+// com.road.yishi.proto.customer.ReplayListMsg
+message ReplayListMsg {
+  repeated QuestionReplayMsg questionInfos = 1;
+}
+
+// com.road.yishi.proto.fish.Result
+message Result {
+  optional int32 fishId = 1;
+  optional int32 state = 2;
+  optional int32 tool = 3;
+}
+
+// com.road.yishi.proto.active.ReturnOptionMsg
+message ReturnOptionMsg {
+  optional int32 optionType = 1;
+  optional int32 param1 = 2;
+}
+
+// com.road.yishi.proto.reward.RewardAddedMsg
+message RewardAddedMsg {
+  optional int32 rewardId = 1;
+}
+
+// com.road.yishi.proto.reward.RewardArrestMsg
+message RewardArrestMsg {
+  optional int32 param1 = 1;
+  optional int32 condictionType = 2;
+}
+
+// com.road.yishi.proto.player.RewardCountUpdateRspMsg
+message RewardCountUpdateRspMsg {
+  optional int32 rewardCount = 1;
+}
+
+// com.road.yishi.proto.reward.RewardFinishedReqMsg
+message RewardFinishedReqMsg {
+  optional int32 templateId = 1;
+  optional int32 rewardItemId = 2;
+  optional bool isPass = 3;
+}
+
+// com.road.yishi.proto.reward.RewardFinishedRspMsg
+message RewardFinishedRspMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.reward.RewardFreshReqMsg
+message RewardFreshReqMsg {
+  optional bool isButton = 1;
+  optional int32 payType = 2;
+}
+
+// com.road.yishi.proto.reward.RewardFreshRspMsg
+message RewardFreshRspMsg {
+  repeated int32 templateId = 1;
+  optional string rewardLastdate = 2;
+  repeated int32 isIsValid = 3;
+  repeated int32 qualitys = 4;
+  optional int32 rewardTimes = 5;
+  optional int32 freeTimes = 6;
+}
+
+// com.road.yishi.proto.reward.RewardInfo
+message RewardInfo {
+  optional int32 templateId = 1;
+  optional bool isComplete = 2;
+  optional int32 condition_1 = 3;
+  optional int32 condition_2 = 4;
+  optional int32 condition_3 = 5;
+  optional int32 condition_4 = 6;
+  optional string completedDate = 7;
+  optional int32 repeatFinish = 8;
+  optional bool isAccept = 9;
+  optional bool isSelect = 10;
+  optional int32 quality = 11;
+}
+
+// com.road.yishi.proto.minigame.RewardInfoMsg
+message RewardInfoMsg {
+  optional int32 rewardId = 1;
+}
+
+// com.road.yishi.proto.reward.RewardRemovedMsg
+message RewardRemovedMsg {
+  optional int32 templateId = 1;
+}
+
+// com.road.yishi.proto.reward.RewardUpdatedRspMsg
+message RewardUpdatedRspMsg {
+  repeated RewardInfo reward = 1;
+  optional int32 statesLength = 2;
+  optional bytes states = 3;
+}
+
+// com.road.yishi.proto.room.RoomCreatedMsg
+message RoomCreatedMsg {
+  optional int32 createdType = 1;
+  optional RoomMsg room = 2;
+  optional bool isCross = 3;
+}
+
+// com.road.yishi.proto.room.RoomEnterMsg
+message RoomEnterMsg {
+  optional int32 result = 1;
+  repeated RoomPlayerMsg player = 2;
+}
+
+// com.road.yishi.proto.room.RoomExitMsg
+message RoomExitMsg {
+  optional string msg = 1;
+}
+
+// com.road.yishi.proto.room.RoomExitRspMsg
+message RoomExitRspMsg {
+  optional int32 playerId = 1;
+  optional int32 exitType = 2;
+  optional int32 param1 = 3;
+}
+
+// com.road.yishi.proto.room.RoomInviteMsg
+message RoomInviteMsg {
+  optional int32 roomId = 1;
+  optional int32 playerId = 2;
+  optional string nickName = 3;
+  optional string name = 4;
+  optional string signStr = 5;
+  optional int32 roomType = 6;
+  optional int32 tempId = 7;
+  optional int32 position = 8;
+  optional string userKey = 9;
+  optional int32 bossCount = 10;
+  optional bool isCross = 11;
+}
+
+// com.road.yishi.proto.room.RoomListRspMsg
+message RoomListRspMsg {
+  repeated RoomMsg room = 1;
+}
+
+// com.road.yishi.proto.room.RoomMsg
+message RoomMsg {
+  optional int32 roomId = 1;
+  optional int32 campaignId = 2;
+  optional int32 masterId = 3;
+  optional string name = 4;
+  optional int32 count = 5;
+  optional int32 capacity = 6;
+  optional int32 roomState = 7;
+  optional int32 roomType = 8;
+  optional bool isSetPassword = 9;
+}
+
+// com.road.yishi.proto.room.RoomPlayerListMsg
+message RoomPlayerListMsg {
+  optional int32 state = 1;
+  repeated RoomPlayerMsg roomPlayer = 2;
+}
+
+// com.road.yishi.proto.room.RoomPlayerMsg
+message RoomPlayerMsg {
+  optional int32 roomId = 1;
+  optional int32 count = 2;
+  optional int32 currentRoomIndex = 3;
+  optional int32 playerState = 4;
+  optional int32 heroId = 5;
+  optional int32 playerId = 6;
+  optional int32 grades = 7;
+  optional string nickName = 8;
+  optional int32 sex = 9;
+  optional int32 templateId = 10;
+  optional string arm = 11;
+  optional string cloth = 12;
+  optional int32 armyId = 13;
+  optional int32 fightingCapacity = 14;
+  optional int32 curPosX = 15;
+  optional int32 curPosY = 16;
+  optional int32 campaignId = 17;
+  optional bool onlineState = 18;
+  optional int32 consortiaId = 19;
+  optional string consortiaName = 20;
+  optional int32 changeShapeId = 21;
+  optional int32 armyState = 22;
+  optional int32 teamId = 23;
+  optional int32 bufferTempId = 24;
+  optional int32 geste = 25;
+  optional int32 headId = 26;
+  optional bool isVip = 27;
+  optional int32 vipType = 28;
+  optional int32 mountTempId = 29;
+  optional int32 mountGrade = 30;
+  optional string wing = 31;
+  optional string serverName = 32;
+  optional string hat = 33;
+  optional string fashionArm = 34;
+  optional string fashionCloth = 35;
+  optional bool hide = 36;
+  optional int32 appellid = 37;
+  optional int32 vehicleTemplateId = 38;
+  optional string fateSkills = 39;
+  optional int32 petTemplateId = 40;
+  optional int32 petQuqlity = 41;
+  optional string petName = 42;
+  optional bool isNoGet = 43;
+  optional string dragonGrade = 44;
+  optional int32 transferGrade = 45;
+}
+
+// com.road.yishi.proto.room.PlayerReady
+message RoomPlayerReady {
+  optional int32 playerId = 1;
+  optional int32 readyState = 2;
+}
+
+// com.road.yishi.proto.room.RoomReqMsg
+message RoomReqMsg {
+  optional int32 roomId = 1;
+  optional int32 dungeonId = 2;
+  optional int32 campaignId = 3;
+  optional int32 armyId = 4;
+  optional int32 userId = 5;
+  optional int32 state = 6;
+  optional int32 index = 7;
+  optional bool open = 8;
+  optional int32 roomType = 9;
+  optional string nameKey = 10;
+  optional string password = 11;
+  optional bool isInvite = 12;
+  optional int32 capacity = 13;
+  optional bool isGet = 14;
+}
+
+// com.road.yishi.proto.room.RoomStateRspMsg
+message RoomStateRspMsg {
+  optional int32 roomState = 1;
+}
+
+// com.road.yishi.proto.worldmap.RouteMsg
+message RouteMsg {
+  optional int32 x = 1;
+  optional int32 y = 2;
+  optional int32 param1 = 3;
+}
+
+// com.road.yishi.proto.worldmap.RouteStateMsg
+message RouteStateMsg {
+  optional int32 userId = 1;
+  optional int32 userState = 2;
+  repeated RouteMsg path = 3;
+}
+
+// com.road.yishi.proto.simple.SNSInfoMsg
+message SNSInfoMsg {
+  optional int32 id = 1;
+  optional int32 userId = 2;
+  optional string nickname = 3;
+  optional string signDesc = 4;
+  optional int32 sex = 5;
+  optional int32 birthdayType = 6;
+  optional int32 birthYear = 7;
+  optional int32 birthMonth = 8;
+  optional int32 birthDay = 9;
+  optional int32 starId = 10;
+  optional int32 bloodType = 11;
+  optional int32 country = 12;
+  optional int32 province = 13;
+  optional int32 city = 14;
+  optional int32 headId = 15;
+  optional int32 job = 16;
+}
+
+// com.road.yishi.proto.simple.SNSUpdatedMsg
+message SNSUpdatedMsg {
+  optional SNSInfoMsg snsInfo = 1;
+  optional int32 result = 2;
+}
+
+// com.road.yishi.proto.consortia.SearchConditionMsg
+message SearchConditionMsg {
+  optional int32 pageIndex = 1;
+  optional string consortiaName = 2;
+  optional bool isNewOpen = 3;
+}
+
+// com.road.yishi.proto.mall.SearchItemReqMsg
+message SearchItemReqMsg {
+  optional string itemName = 1;
+  optional int32 minLevel = 2;
+  optional int32 maxLevel = 3;
+  optional int32 quality = 4;
+  optional int32 job = 5;
+  optional int32 type = 6;
+  optional int32 sonType = 7;
+  optional bool usable = 8;
+  optional int32 page = 9;
+  optional int32 orderBy = 10;
+  optional int32 orderType = 11;
+}
+
+// com.road.yishi.proto.seek.SeekNodeListMsg
+message SeekNodeListMsg {
+  repeated SeekNodeMsg seekNode = 1;
+}
+
+// com.road.yishi.proto.seek.SeekNodeListMsg.SeekNodeMsg
+message SeekNodeMsg {
+  optional int32 nodeId = 1;
+  optional string nodeName = 2;
+  optional int32 pointX = 3;
+  optional int32 pointY = 4;
+}
+
+// com.road.yishi.proto.mall.SellItemReqMsg
+message SellItemReqMsg {
+  optional int32 itemId = 1;
+  optional int32 itemPos = 2;
+  optional int32 count = 3;
+  optional int32 point = 4;
+  optional int32 fixPoint = 5;
+  optional int32 hour = 6;
+  optional int32 sellType = 7;
+}
+
+// com.road.yishi.proto.simple.SellItemRspMsg
+message SellItemRspMsg {
+  optional int32 result = 1;
+  optional MallItemMsg item = 2;
+}
+
+// com.road.yishi.proto.item.SelledItemInfo
+message SelledItemInfo {
+  optional int32 pos = 1;
+  optional int32 count = 2;
+  optional int32 bagType = 3;
+}
+
+// com.road.yishi.proto.leed.ServenDayLeadMsg
+message ServenDayLeadMsg {
+  optional string beginTime = 1;
+  optional int32 statu = 2;
+  repeated SingleDayMsg singleDay = 3;
+}
+
+// com.road.yishi.proto.mall.ShopFreshReqMsg
+message ShopFreshReqMsg {
+  optional bool isButton = 1;
+  optional int32 payType = 2;
+}
+
+// com.road.yishi.proto.mall.ShopFreshRspMsg
+message ShopFreshRspMsg {
+  repeated int32 itemId = 1;
+  optional string freshLastdate = 2;
+  repeated int32 isCanBuy = 3;
+  optional int32 buyCount = 4;
+  optional int32 maxBuyCount = 5;
+}
+
+// com.road.yishi.proto.mall.ShopItemBuyMsg
+message ShopItemBuyMsg {
+  optional int32 itemId = 1;
+  optional int32 index = 2;
+  optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.mall.ShopItemBuyRspMsg
+message ShopItemBuyRspMsg {
+  optional int32 result = 1;
+  optional int32 buyCount = 2;
+  optional int32 score = 3;
+}
+
+// com.road.yishi.proto.shop.ShopMainRspMsg
+message ShopMainRspMsg {
+  repeated MainUrlInfo urlInfo = 1;
+  repeated MainGoodInfo goodInfo = 2;
+  repeated MainDiscountInfo discountInfo = 3;
+}
+
+// com.road.yishi.proto.shop.ShopMsg
+message ShopMsg {
+  optional BuyInfo buyInfo = 1;
+  repeated HasDataInfo hasDataInfo = 2;
+  optional string refreshDate = 3;
+  optional int32 payType = 4;
+}
+
+// com.road.yishi.proto.simple.SimpleArmyMsg
+message SimpleArmyMsg {
+  optional int32 armyId = 1;
+  optional int32 playerId = 2;
+  optional string nickName = 3;
+  optional int32 mapId = 4;
+  optional int32 startPosX = 5;
+  optional int32 startPosY = 6;
+  optional int32 curPosX = 7;
+  optional int32 curPosY = 8;
+  optional int32 endPosX = 9;
+  optional int32 endPosY = 10;
+  optional int32 state = 11;
+  optional int32 velocity = 12;
+  optional int32 costTime = 13;
+  optional string departure = 14;
+  optional string destination = 15;
+  optional int32 command = 16;
+  repeated string routeKey = 17;
+  optional int32 type = 18;
+  repeated SimpleArmyPawnMsg armyPawn = 19;
+  optional int32 consortiaId = 20;
+  optional string consortiaName = 21;
+  optional SimpleHeroMsg simpleHero = 22;
+  optional int32 tempTime = 23;
+  optional bool isVip = 24;
+  optional int32 vipType = 25;
+  optional int32 storeGrade = 26;
+  optional int32 appellid = 27;
+  optional int32 fateTotalGp = 28;
+  optional string fateGrades = 29;
+}
+
+// com.road.yishi.proto.simple.SimpleArmyPawnMsg
+message SimpleArmyPawnMsg {
+  optional int32 id = 1;
+  optional int32 armyId = 2;
+  optional int32 sites = 3;
+  optional int32 sonType = 4;
+  optional int32 tempateId = 5;
+  optional int32 ownPawns = 6;
+  optional int32 live = 7;
+  optional int32 attack = 8;
+  optional int32 defence = 9;
+  optional int32 magicAttack = 10;
+  optional int32 magicDefence = 11;
+  optional int32 skill = 12;
+  optional int32 forceHit = 13;
+  optional int32 parry = 14;
+}
+
+// com.road.yishi.proto.army.SimpleHeroInfoMsg
+message SimpleHeroInfoMsg {
+  optional int32 heroId = 1;
+  optional string nickName = 2;
+  optional int32 tempateId = 3;
+  optional int32 playerId = 4;
+  optional int32 remainPoint = 5;
+  optional int32 skillPoint = 6;
+  optional string skillScript = 7;
+  optional string fastKey = 8;
+  optional int32 hp = 9;
+  optional int32 blood = 10;
+  optional int32 bloodId = 11;
+  optional int32 totalPower = 12;
+  optional int32 totalAgility = 13;
+  optional int32 totalIntellect = 14;
+  optional int32 totalCaptain = 15;
+  optional int32 totalPhysique = 16;
+  optional int32 totalPhyAttack = 17;
+  optional int32 totalPhyDefence = 18;
+  optional int32 totalMagicAttack = 19;
+  optional int32 totalMagicDefence = 20;
+  optional int32 totalForceHit = 21;
+  optional int32 totalParry = 22;
+  optional int32 totalConatArmy = 23;
+  optional int32 totalLive = 24;
+  optional int32 basePower = 25;
+  optional int32 baseAgility = 26;
+  optional int32 baseIntellect = 27;
+  optional int32 baseCaptain = 28;
+  optional int32 basePhysique = 29;
+  optional int32 basePhyAttack = 30;
+  optional int32 basePhyDefence = 31;
+  optional int32 baseMagicAttack = 32;
+  optional int32 baseMagicDefence = 33;
+  optional int32 baseForceHit = 34;
+  optional int32 baseParry = 35;
+  optional int32 baseConatArmy = 36;
+  optional int32 baseLive = 37;
+  optional int32 powerPoint = 38;
+  optional int32 agilityPoint = 39;
+  optional int32 intellectPoint = 40;
+  optional int32 captainPoint = 41;
+  optional int32 physiquePoint = 42;
+  optional int32 fightPos = 43;
+  optional int32 skillIndex = 44;
+  optional bool isActiveSecond = 45;
+  optional int32 headId = 46;
+  optional int32 talentPoint = 47;
+  optional int32 talentGrade = 48;
+  optional string talentSkill = 49;
+  optional int32 grade = 50;
+  optional string arm = 51;
+  optional string cloth = 52;
+  optional string wing = 53;
+  optional int32 fightingCapacity = 54;
+  optional string serverName = 55;
+  optional string hat = 56;
+  optional string fashionArm = 57;
+  optional string fashionCloth = 58;
+  optional bool hide = 59;
+  optional HeroRuneMsg rune = 60;
+  optional int32 fireResi = 61;
+  optional int32 waterResi = 62;
+  optional int32 electResi = 63;
+  optional int32 windResi = 64;
+  optional int32 darkResi = 65;
+  optional int32 lightResi = 66;
+  optional int32 reduceResi = 67;
+  optional int32 totalStrength = 68;
+  optional int32 baseStrength = 69;
+  optional int32 totalTenacity = 70;
+  optional int32 baseTenacity = 71;
+}
+
+// com.road.yishi.proto.simple.SimpleHeroMsg
+message SimpleHeroMsg {
+  optional int32 heroId = 1;
+  optional string nickName = 2;
+  optional int32 tempateId = 3;
+  optional int32 playerId = 4;
+  optional int32 totalPower = 5;
+  optional int32 totalAgility = 6;
+  optional int32 totalIntellect = 7;
+  optional int32 totalCaptain = 8;
+  optional int32 totalPhysique = 9;
+  optional int32 totalPhyAttack = 10;
+  optional int32 totalPhyDefence = 11;
+  optional int32 totalMagicAttack = 12;
+  optional int32 totalMagicDefence = 13;
+  optional int32 totalForceHit = 14;
+  optional int32 totalParry = 15;
+  optional int32 totalConatArmy = 16;
+  optional int32 totalLive = 17;
+  optional int32 remainPoint = 18;
+  optional int32 skillPoint = 19;
+  optional string skillScript = 20;
+  optional string bagJoin = 21;
+  optional string consortiaJoin = 22;
+  optional string fastKey = 23;
+  optional int32 hp = 24;
+  optional int32 blood = 25;
+  optional int32 bloodId = 26;
+  optional int32 basePower = 27;
+  optional int32 baseAgility = 28;
+  optional int32 baseIntellect = 29;
+  optional int32 baseCaptain = 30;
+  optional int32 basePhysique = 31;
+  optional int32 basePhyAttack = 32;
+  optional int32 basePhyDefence = 33;
+  optional int32 baseMagicAttack = 34;
+  optional int32 baseMagicDefence = 35;
+  optional int32 baseForceHit = 36;
+  optional int32 baseParry = 37;
+  optional int32 baseConatArmy = 38;
+  optional int32 baseLive = 39;
+  optional int32 powerPoint = 40;
+  optional int32 agilityPoint = 41;
+  optional int32 intellectPoint = 42;
+  optional int32 captainPoint = 43;
+  optional int32 physiquePoint = 44;
+  optional int32 skillIndex = 45;
+  optional bool isActiveSecond = 46;
+  optional int32 headId = 47;
+  optional int32 totalGeste = 48;
+  optional int32 totalCharm = 49;
+  optional int32 fireResi = 50;
+  optional int32 waterResi = 51;
+  optional int32 electResi = 52;
+  optional int32 windResi = 53;
+  optional int32 darkResi = 54;
+  optional int32 lightResi = 55;
+  optional int32 reduceResi = 56;
+  optional int32 totalStrength = 57;
+  optional int32 baseStrength = 58;
+  optional int32 totalTenacity = 59;
+  optional int32 baseTenacity = 60;
+  optional int32 fashionAddPower = 61;
+  optional int32 fashionAddArmor = 62;
+  optional int32 fashionAddIntellect = 63;
+  optional int32 fashionAddLife = 64;
+  optional int32 ringGrade = 65;
+  optional string nickNameB = 66;
+}
+
+// com.road.yishi.proto.simple.SimpleItemInfoMsg
+message SimpleItemInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 pos = 3;
+  optional bool exist = 4;
+  optional int32 objectId = 5;
+  optional int32 bagType = 6;
+  optional bool bind = 7;
+  optional bool used = 8;
+  optional int32 validDate = 9;
+  optional string beginDate = 10;
+  optional int32 count = 11;
+  optional int32 attack = 12;
+  optional int32 defence = 13;
+  optional int32 agility = 14;
+  optional int32 ability = 15;
+  optional int32 captain = 16;
+  optional int32 strengthenGrade = 17;
+  optional int32 join_1 = 18;
+  optional int32 join_2 = 19;
+  optional int32 join_3 = 20;
+  optional int32 join_4 = 21;
+  optional int32 randomSkill_1 = 22;
+  optional int32 randomSkill_2 = 23;
+  optional int32 randomSkill_3 = 24;
+  optional int32 randomSkill_4 = 25;
+  optional int32 randomSkill_5 = 26;
+  optional bool isNew = 27;
+  optional int32 userId = 28;
+  optional bool isShow = 29;
+  optional bool isNewItems = 30;
+  optional string property1 = 31;
+  optional int32 strength = 32;
+  optional int32 tenacity = 33;
+  optional int32 mouldGrade = 34;
+  optional int32 appraisalSkill = 35;
+  optional bool isLocked = 36;
+  optional int32 descTemplateId = 37;
+  optional int32 lifeSkill = 38;
+}
+
+// com.road.yishi.proto.simple.SimplePlayerInfoMsg
+message SimplePlayerInfoMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 isExist = 3;
+  optional int32 sexs = 4;
+  optional int32 pics = 5;
+  optional int32 camp = 6;
+  optional int32 state = 7;
+  optional int32 consortiaID = 8;
+  optional int64 strategy = 9;
+  optional string consortiaName = 10;
+  optional int32 consortiaOffer = 11;
+  optional int32 claimId = 12;
+  optional string claimName = 13;
+  optional int32 grades = 14;
+  optional int32 gp = 15;
+  optional int32 repute = 16;
+  optional string logOutTime = 17;
+  optional int32 dutyId = 18;
+  optional int32 parameter1 = 19;
+  optional int32 gpOrder = 20;
+  optional int32 fightingCapacity = 21;
+  optional int32 matchWin = 22;
+  optional int32 matchFailed = 23;
+  optional int32 right = 24;
+  optional int32 challengeRank = 25;
+  optional int32 job = 26;
+  optional int32 consortiaTotalOffer = 27;
+  optional int32 storeGrade = 28;
+  optional int32 storeGp = 29;
+  optional bool isTeamPlayer = 30;
+  optional int32 role = 31;
+  optional bool isVip = 32;
+  optional int32 vipType = 33;
+  optional int32 isInwar = 34;
+  optional int32 headId = 35;
+  optional int32 crossGuildTeamId = 36;
+}
+
+// com.road.yishi.proto.simple.SimplePlayerListRspMsg
+message SimplePlayerListRspMsg {
+  optional int32 totalRows = 1;
+  repeated SimplePlayerInfoMsg playerInfo = 2;
+  optional string uuid = 3;
+}
+
+// com.road.yishi.proto.simple.SimplePlayerSearchReqMsg
+message SimplePlayerSearchReqMsg {
+  optional string otherNickname = 1;
+}
+
+// com.road.yishi.proto.simple.SimplePlayerSearchRspMsg
+message SimplePlayerSearchRspMsg {
+  optional SimplePlayerInfoMsg info = 1;
+}
+
+// com.road.yishi.proto.simple.SimplePowCardFightInfoMsg
+message SimplePowCardFightInfoMsg {
+  optional int32 op = 1;
+  optional int32 userid = 2;
+  optional int32 campType = 3;
+  optional int32 add = 4;
+}
+
+// com.road.yishi.proto.simple.PropertyListMsg
+message SimplePropertyListMsg {
+  optional int32 param1 = 1;
+  optional int32 param2 = 2;
+  optional string param3 = 3;
+  repeated SimplePropertyMsg property = 4;
+}
+
+// com.road.yishi.proto.simple.PropertyMsg
+message SimplePropertyMsg {
+  optional int32 param1 = 1;
+  optional int32 param2 = 2;
+  optional int32 param3 = 3;
+  optional string param4 = 4;
+  optional string param5 = 5;
+  optional string param6 = 6;
+  optional bool param7 = 7;
+  optional bool param8 = 8;
+  optional bool param9 = 9;
+  optional int32 param10 = 10;
+  optional int32 param11 = 11;
+  optional string param12 = 12;
+}
+
+// com.road.yishi.proto.simple.SimpleStarInfoMsg
+message SimpleStarInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 objectId = 3;
+  optional int32 pos = 4;
+  optional int32 bagType = 5;
+  optional int32 grade = 6;
+  optional int32 gp = 7;
+}
+
+// com.road.yishi.proto.leed.SimpleTaskMsg
+message SimpleTaskMsg {
+  optional int32 taskId = 1;
+  optional int32 isComplete = 2;
+}
+
+// com.road.yishi.proto.simple.SimpleWatchMsg
+message SimpleWatchMsg {
+  optional int32 gridType = 1;
+  optional int32 gridPos = 2;
+  optional int32 jion1 = 3;
+  optional int32 jion2 = 4;
+  optional int32 jion3 = 5;
+  optional int32 jion4 = 6;
+}
+
+// com.road.yishi.proto.leed.SingleDayMsg
+message SingleDayMsg {
+  optional int32 day = 1;
+  optional int32 getReward = 2;
+  repeated SimpleTaskMsg simpleTask = 3;
+}
+
+// com.road.yishi.proto.tollgate.SinglePassMsg
+message SinglePassMsg {
+  optional int32 userId = 1;
+  optional int32 area = 2;
+  optional int32 maxIndex = 3;
+  optional string areaReward = 4;
+  repeated RankInfoMsg rankInfo = 5;
+  optional int32 count = 6;
+  optional int32 itemCount = 7;
+}
+
+// com.road.yishi.proto.powcard.Singlefightadd
+message Singlefightadd {
+  optional int32 op = 1;
+  optional int32 userid = 2;
+  optional int32 campType = 3;
+  optional int32 add = 4;
+}
+
+// com.road.yishi.proto.active.SlotActiveMsg
+message SlotActiveMsg {
+  optional bool open = 1;
+  optional int32 op = 2;
+  optional int32 status = 3;
+  optional string slot = 4;
+  optional int32 type = 5;
+  optional int32 rewarditemtemplateid = 6;
+  optional int32 findcost = 7;
+}
+
+// com.road.yishi.proto.active.SlotActiveRequest
+message SlotActiveRequest {
+  optional int32 op = 1;
+}
+
+// com.road.yishi.proto.room.SmallMapFogListMsg
+message SmallMapFogListMsg {
+  repeated int32 fog = 1;
+}
+
+// com.road.yishi.proto.store.SmithFreshReplaceRspMsg
+message SmithFreshReplaceRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.store.SmithFreshReqMsg
+message SmithFreshReqMsg {
+  repeated bool lock = 1;
+  optional int32 bindType = 2;
+  optional int32 payType = 3;
+}
+
+// com.road.yishi.proto.store.SmithFreshRspMsg
+message SmithFreshRspMsg {
+  repeated int32 randomSkill = 1;
+}
+
+// com.road.yishi.proto.store.SmithResolveRspMsg
+message SmithResolveRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.store.SmithTransformRspMsg
+message SmithTransformRspMsg {
+  optional bool result = 1;
+}
+
+// com.road.yishi.proto.player.SnsRspMsg
+message SnsRspMsg {
+  optional int32 type = 1;
+  optional string data = 2;
+  optional string md5 = 3;
+}
+
+// com.road.yishi.proto.battle.SoldierMsg
+message SoldierMsg {
+  optional int32 livingId = 1;
+  optional int32 tempId = 2;
+  optional int32 type = 3;
+  optional int32 side = 4;
+  optional int32 pos = 5;
+  optional int32 initHp = 6;
+  optional int32 hp = 7;
+  optional int32 qteTime = 8;
+  optional int32 castTime = 9;
+  optional int32 armyPawnId = 10;
+  optional int32 grade = 11;
+  optional int32 phyAttack = 12;
+  optional int32 phyDefence = 13;
+  optional int32 magAttack = 14;
+  optional int32 magDefence = 15;
+  optional int32 forceHit = 16;
+  optional int32 parry = 17;
+  optional int32 sites = 18;
+  repeated int32 skillId = 19;
+  optional int32 attackWound = 20;
+  optional int32 hitWound = 21;
+}
+
+// com.road.yishi.proto.campaign.SpacePlayerArmyInfoReqMsg
+message SpacePlayerArmyInfoReqMsg {
+  repeated int32 userList = 1;
+}
+
+// com.road.yishi.proto.campaign.SpacePlayerMoveMsg
+message SpacePlayerMoveMsg {
+  repeated SpacePlayerMsg players = 1;
+}
+
+// com.road.yishi.proto.campaign.SpacePlayerMsg
+message SpacePlayerMsg {
+  optional int32 playerId = 1;
+  optional int32 state = 2;
+  repeated PosMsg path = 3;
+}
+
+// com.road.yishi.proto.campaign.StandPosMsg
+message StandPosMsg {
+  optional int32 id = 1;
+  optional int32 posX = 2;
+  optional int32 posY = 3;
+  optional string serverName = 4;
+}
+
+// com.road.yishi.proto.battle.StarBufferMsg
+message StarBufferMsg {
+  optional int32 skillId = 1;
+  optional int32 level = 2;
+}
+
+// com.road.yishi.proto.star.StarComposeReqMsg
+message StarComposeReqMsg {
+  optional int32 pos = 1;
+  optional int32 bagType = 2;
+}
+
+// com.road.yishi.proto.star.StarInfoMsg
+message StarInfoMsg {
+  optional int32 id = 1;
+  optional int32 templateId = 2;
+  optional int32 userId = 3;
+  optional int32 objectId = 4;
+  optional int32 pos = 5;
+  optional bool exist = 6;
+  optional int32 bagType = 7;
+  optional int32 grade = 8;
+  optional int32 gp = 9;
+  optional bool isLock = 10;
+}
+
+// com.road.yishi.proto.star.StarLockReqMsg
+message StarLockReqMsg {
+  optional int32 starType = 1;
+  optional int32 pos = 2;
+}
+
+// com.road.yishi.proto.star.StarMoveMsg
+message StarMoveMsg {
+  optional int32 changeType = 1;
+  optional int32 changePos = 2;
+  optional StarInfoMsg star_Info = 3;
+}
+
+// com.road.yishi.proto.star.StarMoveReqMsg
+message StarMoveReqMsg {
+  optional int32 beginStarType = 1;
+  optional int32 beginPos = 2;
+  optional int32 endStarType = 3;
+  optional int32 endPos = 4;
+  optional int32 count = 5;
+  optional bool eat = 6;
+}
+
+// com.road.yishi.proto.star.StarMoveRspMsg
+message StarMoveRspMsg {
+  repeated StarMoveMsg move = 1;
+}
+
+// com.road.yishi.proto.star.StarPickReqMsg
+message StarPickReqMsg {
+  optional int32 dropsite = 1;
+  optional int32 way = 2;
+}
+
+// com.road.yishi.proto.star.StarRandMsg
+message StarRandMsg {
+  optional int32 dropSite = 1;
+  optional StarInfoMsg starInfo = 2;
+}
+
+// com.road.yishi.proto.star.StarRandReqMsg
+message StarRandReqMsg {
+  optional int32 site = 1;
+}
+
+// com.road.yishi.proto.star.StarRandRspMsg
+message StarRandRspMsg {
+  repeated StarRandMsg starRand = 1;
+  repeated int32 site = 3;
+}
+
+// com.road.yishi.proto.star.StarShopMsg
+message StarShopMsg {
+  optional int32 goodId = 1;
+  optional int32 result = 2;
+}
+
+// com.road.yishi.proto.store.StoreReqMsg
+message StoreReqMsg {
+  optional int32 holePos = 1;
+  optional bool operate = 2;
+  optional int32 bagType = 3;
+  optional int32 bagPos = 4;
+  optional int32 mountPos = 5;
+  optional int32 composeId = 6;
+  optional int32 composeNum = 7;
+  optional bool autoBuy = 8;
+  optional int32 srcItemid = 9;
+  optional int32 desItemid = 10;
+  optional int32 count = 11;
+  optional int32 payType = 12;
+}
+
+// com.road.yishi.proto.store.StoreRspMsg
+message StoreRspMsg {
+  optional bool composeResult = 1;
+  optional int32 composeTemplateId = 2;
+  optional bool strengResult = 3;
+  optional int32 strengthenGrade = 4;
+  optional int32 pos = 5;
+  optional int32 objectId = 6;
+  optional int32 bagType = 7;
+}
+
+// com.road.yishi.proto.active.SumActiveDataMsg
+message SumActiveDataMsg {
+  repeated ActiveData datas = 1;
+}
+
+// com.road.yishi.proto.active.SumActiveGetPackageMsg
+message SumActiveGetPackageMsg {
+  optional string activeId = 1;
+  optional string packageId = 2;
+  optional int32 type = 3;
+  optional int32 count = 4;
+}
+
+// com.road.yishi.proto.active.SumActiveItemInfoMsg
+message SumActiveItemInfoMsg {
+  optional int32 templateId = 1;
+  optional int32 templateType = 2;
+  optional int32 count = 3;
+  optional bool isbind = 4;
+  optional int32 length = 5;
+  optional int32 job = 6;
+}
+
+// com.road.yishi.proto.active.SumActivePackageMsg
+message SumActivePackageMsg {
+  optional string packageId = 1;
+  optional int32 order = 2;
+  repeated SumActiveItemInfoMsg items = 3;
+  repeated PackageConditionMsg conditions = 4;
+}
+
+// com.road.yishi.proto.active.SumActiveinfoMsg
+message SumActiveinfoMsg {
+  optional string activeId = 1;
+  optional string beginDate = 2;
+  optional string endDate = 3;
+  optional string title = 4;
+  optional string detail = 5;
+  optional string conditionDetail = 6;
+  optional int32 getway = 7;
+  repeated SumActivePackageMsg packages = 8;
+  optional int32 activeType = 9;
+  optional string startTime = 10;
+  optional string stopTime = 11;
+  optional int32 order = 12;
+  optional string appendParam = 13;
+  optional int32 isInitiate = 14;
+}
+
+// com.road.yishi.proto.active.SumActivesMsg
+message SumActivesMsg {
+  repeated SumActiveinfoMsg actives = 1;
+  optional int32 dataStamp = 2;
+  optional int32 curPage = 3;
+  optional int32 maxPage = 4;
+}
+
+// com.road.yishi.proto.active.SuperSigninCardReqMsg
+message SuperSigninCardReqMsg {
+  optional int32 opType = 1;
+  optional int32 date = 2;
+}
+
+// com.road.yishi.proto.active.SuperSigninCardRespMsg
+message SuperSigninCardRespMsg {
+  repeated SuperSigninDetailMsg details = 1;
+}
+
+// com.road.yishi.proto.active.SuperSigninDetailMsg
+message SuperSigninDetailMsg {
+  optional int32 date = 1;
+  optional int32 state = 2;
+}
+
+// com.road.yishi.proto.active.SuperSigninRewardMsg
+message SuperSigninRewardMsg {
+  optional int32 cardPrice = 1;
+  optional int32 reSigninPrice = 2;
+  repeated SuperSigninTempMsg temp = 3;
+}
+
+// com.road.yishi.proto.active.SuperSigninTempMsg
+message SuperSigninTempMsg {
+  optional int32 date = 1;
+  optional string itemMsg = 2;
+}
+
+// com.road.yishi.proto.campaign.SweepResult
+message SweepResult {
+  optional int32 type = 1;
+  optional int32 gold = 3;
+  optional int32 gp = 4;
+  optional int32 campaignId = 5;
+  optional int32 time = 6;
+  repeated ItemTemplate items = 7;
+  optional int32 cIndex = 8;
+  optional int32 eIndex = 9;
+  optional int32 finishCount = 10;
+  optional int32 count = 11;
+  optional int32 mailIn = 12;
+}
+
+// com.road.yishi.proto.switches.SwitchInfoListMsg
+message SwitchInfoListMsg {
+  repeated SwitchInfoMsg switches = 1;
+}
+
+// com.road.yishi.proto.switches.SwitchInfoMsg
+message SwitchInfoMsg {
+  optional int32 switchId = 1;
+  optional int32 switchType = 2;
+  optional bool isOpen = 3;
+  optional string beginDate = 4;
+  optional string endDate = 5;
+}
+
+// com.road.yishi.proto.player.SynchronizedTimeMsg
+message SynchronizedTimeMsg {
+  optional string sysCurtime = 1;
+  optional int64 sysMillisecond = 2;
+}
+
+// com.road.yishi.proto.answerquestion.SysAnswerQuestionStateMsg
+message SysAnswerQuestionStateMsg {
+  optional int32 sysState = 1;
+  optional int32 sysAnswerCount = 2;
+  optional int32 leftCount = 3;
+  optional string beginDate = 4;
+  optional string lastDate = 5;
+}
+
+// com.road.yishi.proto.campaign.SystemArmyMsg
+message SystemArmyMsg {
+  repeated int32 heroTemplated = 1;
+  repeated int32 soldierTemplated = 2;
+}
+
+// com.road.yishi.proto.player.SystemPropertyMsg
+message SystemPropertyMsg {
+  optional string sysCurtime = 1;
+  optional string sysStarTime = 2;
+  optional int64 sysMillisecond = 3;
+}
+
+// com.road.yishi.proto.player.TakeLoginReward
+message TakeLoginReward {
+  optional int32 index = 1;
+}
+
+// com.road.yishi.proto.army.TalentUpGradeMsg
+message TalentUpGradeMsg {
+  optional bool upresult = 1;
+}
+
+// com.road.yishi.proto.campaign.TaskCampaignReqMsg
+message TaskCampaignReqMsg {
+  optional int32 dungeonId = 1;
+  optional int32 campaignId = 2;
+}
+
+// com.road.yishi.proto.guildcampaign.TeamEditMsg
+message TeamEditMsg {
+  optional int32 userId = 1;
+  optional int32 op = 2;
+  optional int32 param1 = 3;
+  optional int32 param2 = 4;
+}
+
+// com.road.yishi.proto.team.TeamInfoMsg
+message TeamInfoMsg {
+  optional int32 teamId = 1;
+  repeated int32 memberId = 2;
+  optional int32 captainId = 3;
+  repeated TeamPlayerInfoMsg memberDetail = 4;
+}
+
+// com.road.yishi.proto.team.TeamPlayerInfoMsg
+message TeamPlayerInfoMsg {
+  optional int32 count = 2;
+  optional bool hasLeftForNow = 4;
+  optional int32 heroId = 5;
+  optional int32 playerId = 6;
+  optional int32 grades = 7;
+  optional string nickName = 8;
+  optional int32 sex = 9;
+  optional int32 templateId = 10;
+  optional string arm = 11;
+  optional string cloth = 12;
+  optional int32 armyId = 13;
+  optional int32 fightingCapacity = 14;
+  optional int32 curPosX = 15;
+  optional int32 curPosY = 16;
+  optional int32 campaignId = 17;
+  optional bool onlineState = 18;
+  optional int32 consortiaId = 19;
+  optional string consortiaName = 20;
+  optional int32 changeShapeId = 21;
+  optional int32 armyState = 22;
+  optional int32 teamId = 23;
+  optional int32 bufferTempId = 24;
+  optional int32 geste = 25;
+  optional int32 headId = 26;
+  optional bool isVip = 27;
+  optional int32 vipType = 28;
+  optional int32 mountTempId = 29;
+  optional int32 mountGrade = 30;
+  optional string wing = 31;
+  optional string serverName = 32;
+  optional string hat = 33;
+  optional string fashionArm = 34;
+  optional string fashionCloth = 35;
+  optional bool hide = 36;
+  optional int32 appellid = 37;
+  optional int32 vehicleTemplateId = 38;
+  optional string fateSkills = 39;
+  optional int32 petTemplateId = 40;
+  optional int32 petQuqlity = 41;
+  optional string petName = 42;
+}
+
+// com.road.yishi.proto.answerquestion.TenAnswerQuestionOrderMsg
+message TenAnswerQuestionOrderMsg {
+  repeated answerquestionorderMsg tenAQ_Info = 1;
+}
+
+// com.road.yishi.proto.campaign.TimeJudgeMsg
+message TimeJudgeMsg {
+  optional bool isAdd = 1;
+  optional int32 secondCount = 2;
+}
+
+// com.road.yishi.proto.timer.TimerInfoListMsg
+message TimerInfoListMsg {
+  repeated TimerInfoMsg timerInfo = 1;
+}
+
+// com.road.yishi.proto.timer.TimerInfoMsg
+message TimerInfoMsg {
+  optional int32 type = 1;
+  optional int32 index = 2;
+  optional string name = 3;
+  optional string readyOpen = 4;
+  optional string readyStop = 5;
+  optional string finalOpen = 6;
+  optional string finalStop = 7;
+  optional string param1 = 8;
+  optional string param2 = 9;
+  optional string param3 = 10;
+  optional string signupTime = 11;
+}
+
+// com.road.yishi.proto.player.TokenInfoMsg
+message TokenInfoMsg {
+  optional int32 masterType = 1;
+  optional int32 amount = 2;
+  optional string expiredDate = 3;
+}
+
+// com.road.yishi.proto.tollgate.ChallengeMsg
+message TollgateChallengeMsg {
+  optional int32 tollgateId = 1;
+  optional int32 attackUserid = 2;
+  optional string attackName = 3;
+  optional string attackTime = 4;
+  optional int32 remainTime = 5;
+  optional int32 lastHp = 6;
+}
+
+// com.road.yishi.proto.tollgate.TollgateMsg
+message TollgateMsg {
+  optional int32 type = 1;
+  optional int32 userId = 2;
+  optional string endTime = 3;
+  optional int32 order = 4;
+  optional int32 score = 5;
+  optional int32 remainCount = 6;
+  optional int32 remainTime = 7;
+  repeated TollgateChallengeMsg challengeInfo = 8;
+  repeated ChallengeScoreMsg scoreInfo = 9;
+  optional bool isOpen = 10;
+  optional int32 curTollgateId = 11;
+  optional string luckyReward = 12;
+  optional int32 remainBuyCount = 13;
+  optional string startTime = 14;
+  optional int32 addTimeCount = 15;
+}
+
+// com.road.yishi.proto.tollgate.TollgateRewardMsg
+message TollgateRewardMsg {
+  optional int32 userId = 1;
+  optional int32 score = 2;
+  optional int32 order = 3;
+  optional string scoreItems = 4;
+  optional string luckyItems = 5;
+}
+
+// com.road.yishi.proto.campaign.TowerDiedMsg
+message TowerDiedMsg {
+  optional string title = 1;
+  optional string msg = 2;
+}
+
+// com.road.yishi.proto.campaign.TowerInfoMsg
+message TowerInfoMsg {
+  optional int32 enterCount = 1;
+  optional int32 totalGp = 2;
+  optional int32 towerIndex = 3;
+  optional int32 maxIndex = 4;
+  optional int32 order = 5;
+  optional int32 maxEnterCount = 6;
+  optional string itemTempIds = 7;
+  optional int32 freeEnterCount = 8;
+  optional int32 campaignId = 9;
+  optional int32 index = 10;
+  optional int32 firstHitId = 11;
+  optional string firstHitName = 12;
+}
+
+// com.road.yishi.proto.campaign.TowerInfoReqMsg
+message TowerInfoReqMsg {
+  optional int32 index = 1;
+}
+
+// com.road.yishi.proto.campaign.TowerListMsg
+message TowerListMsg {
+  repeated TowerInfoMsg towerInfo = 1;
+}
+
+// com.road.yishi.proto.campaign.TramcarInfoMsg
+message TramcarInfoMsg {
+  repeated CarInfo carInfo = 1;
+  repeated int32 userIds = 2;
+  optional int32 activeTime = 3;
+  optional int32 count = 4;
+  optional int32 multiple = 5;
+}
+
+// com.road.yishi.proto.building.TransInfoMsg
+message TransInfoMsg {
+  optional int32 currentEnergy = 1;
+  optional int32 remainTime = 2;
+}
+
+// com.road.yishi.proto.farm.TreeInfoMsg
+message TreeInfoMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 waterCount = 3;
+  optional int32 fruitCount = 4;
+  optional bool isFirstFruit = 5;
+  optional string nextPickTime = 6;
+  optional int32 property1 = 7;
+  optional int32 property2 = 8;
+  optional string lastWaterTime = 9;
+  optional int32 leftTime = 10;
+  optional int32 leftPickTime = 11;
+}
+
+// com.road.yishi.proto.farm.TreeUpdateReq
+message TreeUpdateReq {
+}
+
+// com.road.yishi.proto.farm.TreeUpdateRsp
+message TreeUpdateRsp {
+  repeated TreeInfoMsg tree = 1;
+  repeated string harvestMsg = 2;
+  repeated string pickMsg = 3;
+  optional bool isUpGrade = 4;
+}
+
+// com.road.yishi.proto.battle.TrialInfoMsg
+message TrialInfoMsg {
+  optional int32 index = 1;
+  optional int32 skillId = 2;
+  optional int32 count = 3;
+  optional int32 param1 = 4;
+  optional int32 param2 = 5;
+  optional int32 param3 = 6;
+  optional int32 param4 = 7;
+}
+
+// com.road.yishi.proto.army.UpdatedSkillMsg
+message UpdatedSkillMsg {
+  optional int32 templateId = 1;
+  optional int32 index = 2;
+  optional bool resetResult = 3;
+  optional int32 type = 4;
+}
+
+// com.road.yishi.proto.item.UseConvertCodeMsg
+message UseConvertCodeMsg {
+  optional string activeId = 1;
+  optional string title = 2;
+  optional string description = 3;
+}
+
+// com.road.yishi.proto.battle.UseSkillMsg
+message UseSkillMsg {
+  optional string battleId = 1;
+  optional int32 heroId = 2;
+  optional int32 skillId = 3;
+}
+
+// com.road.yishi.proto.player.UserPin
+message UserPin {
+  optional int32 pin = 1;
+}
+
+// com.road.yishi.proto.rebate.UserRebateMsg
+message UserRebateMsg {
+  optional string id = 1;
+  optional int32 userid = 2;
+  optional int32 point = 3;
+  optional int32 type = 4;
+  repeated PackageStateMsg packagestates = 5;
+}
+
+// com.road.yishi.proto.battle.UserStopMsg
+message UserStopMsg {
+  optional int32 type = 1;
+  optional int32 order = 2;
+}
+
+// com.road.yishi.proto.vehicle.VehicleAttackReqMsg
+message VehicleAttackReqMsg {
+  optional int32 skillId = 1;
+  optional int32 attackType = 2;
+  optional int32 suffererNpcId = 3;
+  repeated int32 suffererId = 4;
+  optional int32 effectX = 5;
+  optional int32 effectY = 6;
+  repeated string suffererServerName = 7;
+  repeated int32 suffererNpcIdArray = 8;
+  optional string attackServerName = 9;
+}
+
+// com.road.yishi.proto.vehicle.VehicleAttackRspMsg
+message VehicleAttackRspMsg {
+  optional int32 skillId = 1;
+  repeated HurtDataMsg npcHurtDataList = 2;
+  repeated HurtDataMsg playerHurtDataList = 3;
+  optional int32 effectX = 4;
+  optional int32 effectY = 5;
+  optional int32 attackerId = 6;
+  optional string serverName = 7;
+  optional int32 attackTyep = 8;
+}
+
+// com.road.yishi.proto.room.VehicleBuffListMsg
+message VehicleBuffListMsg {
+  repeated VehicleBuffStateMsg playerBuffStates = 1;
+  repeated VehicleBuffStateMsg npcBuffStates = 2;
+}
+
+// com.road.yishi.proto.room.VehicleBuffStateMsg
+message VehicleBuffStateMsg {
+  optional int32 id = 1;
+  optional int32 buffId = 2;
+  optional int32 state = 3;
+  optional int32 playerId = 4;
+  optional int32 effectValue = 5;
+  optional string serverName = 6;
+}
+
+// com.road.yishi.proto.room.VehicleSkillListMsg
+message VehicleSkillListMsg {
+  optional int32 skillId = 1;
+  optional int32 state = 2;
+  optional int32 curSum = 3;
+}
+
+// com.road.yishi.proto.player.VersionMsg
+message VersionMsg {
+  optional bool openVersion = 1;
+  optional int32 versionId = 2;
+  optional bool openStory = 3;
+  optional int32 module = 4;
+}
+
+// com.road.yishi.proto.player.VicePasswordMsg
+message VicePasswordMsg {
+  optional int32 opType = 1;
+  optional string inputPass = 2;
+  optional string prePass = 3;
+  optional string newPass = 4;
+  optional int32 result = 5;
+}
+
+// com.road.yishi.proto.vip.VipBoxDropMsg
+message VipBoxDropMsg {
+  optional bytes weekGiftDate = 1;
+}
+
+// com.road.yishi.proto.vip.VipInfoMsg
+message VipInfoMsg {
+  optional bool isVip = 1;
+  optional int32 vipGp = 2;
+  optional int32 vipGrade = 3;
+  optional string expirtDate = 4;
+  optional bool isTakeGift = 5;
+  optional int32 vipType = 6;
+  optional bool isExpirt = 7;
+  optional string takeGiftDate = 8;
+}
+
+// com.road.yishi.proto.vip.VipItemInfoMsg
+message VipItemInfoMsg {
+  optional int32 tempId = 1;
+  optional int32 count = 2;
+}
+
+// com.road.yishi.proto.vip.VipOpenInfoMsg
+message VipOpenInfoMsg {
+  optional bool isFriend = 1;
+  optional int32 friendId = 2;
+  optional string friendNickName = 3;
+  optional int32 days = 4;
+}
+
+// com.road.yishi.proto.vip.VipRouletteMsg
+message VipRouletteMsg {
+  optional int32 leftCount = 1;
+  optional int32 needVipItem = 2;
+  repeated int32 openIndex = 3;
+  repeated VipItemInfoMsg leftItem = 4;
+  repeated VipItemInfoMsg takeItem = 5;
+  optional bool isStart = 6;
+  optional int32 opType = 7;
+}
+
+// com.road.yishi.proto.vip.VipToConsortiaMsg
+message VipToConsortiaMsg {
+  optional int32 userid = 1;
+  optional bool isVip = 2;
+  optional int32 vipType = 3;
+  optional int32 consortiaId = 4;
+}
+
+// com.road.yishi.proto.battle.WaitReviveMsg
+message WaitReviveMsg {
+  optional string battleId = 1;
+  optional int32 livingId = 2;
+  optional int32 sp = 3;
+  optional int32 hp = 4;
+}
+
+// com.road.yishi.proto.campaign.WarFieldAttackMsg
+message WarFieldAttackMsg {
+  optional int32 userId = 1;
+  optional string serverName = 2;
+  optional string defenceServerName = 3;
+}
+
+// com.road.yishi.proto.campaign.WarFightInfoMsg
+message WarFightInfoMsg {
+  optional int32 teamId = 1;
+  optional int32 score = 2;
+  optional int32 order = 3;
+  optional int32 geste = 4;
+  optional int32 hitCount = 5;
+  optional int32 leftTime = 6;
+  optional int32 oneCount = 7;
+  optional int32 twoCount = 8;
+  optional int32 oneScore = 9;
+  optional int32 twoScore = 10;
+}
+
+// com.road.yishi.proto.campaign.WarMovieMsg
+message WarMovieMsg {
+  optional int32 score = 1;
+  optional int32 geste = 2;
+  optional bool isAdd = 3;
+  optional int32 userId = 4;
+  optional int32 type = 5;
+  optional string serverName = 6;
+}
+
+// com.road.yishi.proto.campaign.WarReportListMsg
+message WarReportListMsg {
+  optional int32 oneTeamId = 1;
+  optional int32 twoTeamId = 2;
+  optional int32 thdTemaId = 3;
+  optional int32 tempId = 4;
+  optional int32 ownCount = 5;
+  optional int32 teamCount = 6;
+  optional int32 oneScore = 7;
+  optional int32 twoScore = 8;
+  optional int32 thdScore = 9;
+  repeated WarReportMsg info = 10;
+}
+
+// com.road.yishi.proto.campaign.WarReportMsg
+message WarReportMsg {
+  optional int32 order = 1;
+  optional string nickName = 2;
+  optional int32 userId = 3;
+  optional int32 score = 4;
+  optional int32 hitCount = 5;
+  optional int32 teamId = 6;
+  optional int32 geste = 7;
+  optional string serverName = 8;
+  optional int32 itemCount = 9;
+  optional int32 winGesteCount = 10;
+  optional int32 seniorStoreCount = 11;
+  optional int32 param1 = 12;
+  optional int32 param2 = 13;
+}
+
+// com.road.yishi.proto.watch.WatchInfoMsg
+message WatchInfoMsg {
+  optional int32 gridType = 1;
+  optional int32 gridPos = 2;
+  optional int32 jion1 = 3;
+  optional int32 jion2 = 4;
+  optional int32 jion3 = 5;
+  optional int32 jion4 = 6;
+}
+
+// com.road.yishi.proto.army.WildLandMsg
+message WildLandMsg {
+  optional int32 id = 1;
+  optional int32 mapId = 2;
+  optional int32 posX = 3;
+  optional int32 posY = 4;
+  optional int32 templateId = 5;
+  optional int32 type = 6;
+  optional int32 occupyPlayerId = 7;
+  optional string occupyPlayerName = 8;
+  optional string occupyLeagueName = 9;
+  optional int32 level = 10;
+  optional int32 refreshTime = 11;
+  optional int32 state = 12;
+  optional string createDate = 13;
+  optional SimpleHeroInfoMsg simpleHeroInfo = 14;
+  repeated ArmyPawnInfoMsg armyPawn = 15;
+  repeated int32 curArmyId = 16;
+  optional int32 fightCapaity = 17;
+  optional int32 bossType = 18;
+  optional int32 size = 19;
+}
+
+// com.road.yishi.proto.castle.CastleYieldMsg.WildYieldMsg
+message WildYieldMsg {
+  optional string wildPoxName = 1;
+  optional string wildPox = 2;
+  optional int32 wildGrade = 3;
+  optional string wildName = 4;
+  optional int32 wildYield = 5;
+  optional int32 wildRefreshTime = 6;
+  optional int32 mapId = 7;
+  optional string createTime = 8;
+}
+
+// com.road.yishi.proto.campaign.WinConditionsMsg
+message WinConditionsMsg {
+  optional int32 conditionsByte = 1;
+}
+
+// com.road.yishi.proto.campaign.WorldBossBufferMsg
+message WorldBossBufferMsg {
+  optional int32 type = 1;
+  optional int32 pointValue = 2;
+  optional int32 giftValue = 3;
+  optional int32 op = 4;
+  optional int32 result = 5;
+  optional int32 wound = 6;
+}
+
+// com.road.yishi.proto.campaign.WorldBossInfoLoadMsg
+message WorldBossInfoLoadMsg {
+  optional int32 campaignId = 1;
+  optional int32 leftTime = 2;
+}
+
+// com.road.yishi.proto.simple.WorldBossInfoMsg
+message WorldBossInfoMsg {
+  optional int32 curHp = 1;
+  optional int32 totalNum = 2;
+  optional int32 campaignId = 3;
+  repeated WoundInfoMsg woundInfo = 4;
+  optional int32 totalHp = 5;
+  optional int32 myWound = 6;
+  optional int32 grades = 7;
+  optional int64 currentMillis = 8;
+  repeated WoundInfoMsg castleWound = 9;
+  optional int32 bufferGrade = 10;
+}
+
+// com.road.yishi.proto.campaign.WorldBossInfoStateMsg
+message WorldBossInfoStateMsg {
+  optional int32 campaignId = 1;
+  optional int32 state = 2;
+}
+
+// com.road.yishi.proto.campaign.WorldBossLiveMsg
+message WorldBossLiveMsg {
+  optional int32 op = 1;
+}
+
+// com.road.yishi.proto.worldmap.WorldBossMsg
+message WorldBossMsg {
+  optional int32 armyId = 1;
+  optional int32 mapId = 2;
+  optional int32 param1 = 3;
+  optional int32 param2 = 4;
+  optional string param3 = 5;
+  optional string param4 = 6;
+}
+
+// com.road.yishi.proto.simple.WorldBossPlayerStateMsg
+message WorldBossPlayerStateMsg {
+  optional int32 armyId = 1;
+  optional int32 state = 2;
+  optional int32 leftTime = 3;
+  optional string serverName = 4;
+  optional int32 resCount = 5;
+  optional int32 npcNodeId = 6;
+  optional int32 templateId = 7;
+  optional int32 isNewBorn = 8;
+  optional int32 posX = 9;
+  optional int32 posY = 10;
+}
+
+// com.road.yishi.proto.campaign.WorldBossReportMsg
+message WorldBossReportMsg {
+  optional int32 campaignId = 1;
+  optional int32 order = 2;
+  optional int32 gold = 3;
+  optional int32 strengy = 4;
+  optional int32 totalWound = 5;
+  optional int32 type = 6;
+}
+
+// com.road.yishi.proto.campaign.WorldBossStateMsg
+message WorldBossStateMsg {
+  repeated WorldBossInfoStateMsg worldBossInfo = 1;
+}
+
+// com.road.yishi.proto.campaign.WorldBossWoundRewardListMsg
+message WorldBossWoundRewardListMsg {
+  repeated WorldBossWoundRewardMsg rewardinfo = 1;
+}
+
+// com.road.yishi.proto.campaign.WorldBossWoundRewardMsg
+message WorldBossWoundRewardMsg {
+  optional int32 campaignId = 1;
+  optional int32 rewardid = 2;
+  optional string woundmsg = 3;
+  optional string rewardmsg = 4;
+  optional int32 state = 5;
+}
+
+// com.road.yishi.proto.simple.WoundInfoMsg
+message WoundInfoMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 wound = 3;
+  optional int32 woundAddation = 4;
+  optional int32 job = 5;
+}
+
+// com.road.yishi.proto.answerquestion.answerquestionorderMsg
+message answerquestionorderMsg {
+  optional int32 userId = 1;
+  optional string nickName = 2;
+  optional int32 curOrder = 3;
+  optional int32 currentScore = 4;
+}
+
+// com.road.yishi.proto.answerquestion.playeranswerquestionMsg
+message playeranswerquestionMsg {
+  optional int32 userId = 1;
+  optional int32 curOrder = 2;
+  optional int32 currentScore = 3;
+  optional int32 getEXP = 4;
+  optional int32 playerAnswerSucCount = 5;
+  optional int32 doubleBlessCount = 6;
+  optional int32 wisdomHeartCount = 7;
+  optional int32 choiceEyesCount = 8;
+  optional int32 extraEXP = 9;
+  optional string goDate = 10;
+}
+
+// com.road.yishi.proto.answerquestion.singleranswerquestionMsg
+message singleranswerquestionMsg {
+  optional int32 id = 1;
+  optional string question = 2;
+  optional string option1 = 3;
+  optional string option2 = 4;
+  optional string option3 = 5;
+  optional string option4 = 6;
+  optional int32 answer = 7;
+}
