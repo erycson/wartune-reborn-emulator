@@ -15,6 +15,8 @@ deixou com ~20 MB de zeros depois do tag End são recomprimidos sem esse enchime
 ignora, o Ruffle carrega o lixo para a memória) e o ``ui/zh_cn/size.xml`` recebe os novos tamanhos.
 Por fim, a lista ``client/resouececheck.sq`` recebe o md5 embutido em cada módulo servido
 (os que só existem no CDN completo são de outro build e seriam descartados em silêncio).
+E as figuras de subida de nível que faltam (``swf/register1/N.swf``) são geradas a partir da que existe,
+e o corpo padrão de batalha que falta para uma classe/sexo é copiado de outro (``fill_default_bodies``).
 
 O que não for asset (páginas, scripts, respostas de endpoints dinâmicos) fica de fora: isso é
 papel do portal ou do servidor do jogo.
@@ -144,6 +146,69 @@ def sync_md5_list(out: Path, cdn: Path) -> int:
     return changed
 
 
+FIGURES = "swf/register1"
+JOBS = range(1, 7)
+
+
+def fill_level_up_figures(out: Path) -> int:
+    """Gera ``swf/register1/N.swf`` para as classes que faltam, a partir de uma que exista.
+
+    Ao subir de nível o ``HeroLeveUpdateAction`` carrega ``register1/<job>.swf`` e procura a classe
+    ``asset.choicefigure.Human_<job>``; sem ela, recarrega para sempre (estouro de pilha). Só a
+    figura da maga (6) veio da captura, então as outras classes ganham uma cópia dela com o nome da
+    classe trocado (mesmo tamanho, um dígito). # ponytail: figura errada até achar as originais
+    """
+    folder = out / FIGURES
+    existing = {job: folder / f"{job}.swf" for job in JOBS if (folder / f"{job}.swf").is_file()}
+    if not existing:
+        return 0
+    source_job, source = next(iter(existing.items()))
+    swf = source.read_bytes()
+    body = zlib.decompress(swf[8:]) if swf[:3] == b"CWS" else swf[8:]
+    made = 0
+    for job in JOBS:
+        if job in existing:
+            continue
+        renamed = body.replace(f"Human_{source_job}".encode(), f"Human_{job}".encode())
+        (folder / f"{job}.swf").write_bytes(b"CWS" + swf[3:8] + zlib.compress(renamed, 9))
+        made += 1
+    return made
+
+
+AVATARS = "swf/avatar"
+CLASSES = ("warrior", "hunter", "wizard")
+
+
+def fill_default_bodies(out: Path, cdn: Path) -> int:
+    """Copia ``swf/avatar/<classe>_default_body/<sexo>.bswf`` quando falta nas duas pastas.
+
+    Na batalha o herói sem roupa usa esse corpo; sem ele o ``HeroRoleView.bossLoadComplete`` acessa
+    um conteúdo nulo e a batalha trava (cabelo e capa só ficam invisíveis). O CDN copiado só tem
+    alguns. Substituto: a primeira roupa da classe naquele sexo, ou o corpo padrão de outra classe.
+    O ``.bswf`` é cifrado pelo cliente, por isso a cópia em vez de um SWF vazio.
+    # ponytail: figura de outra roupa/classe até achar os arquivos originais
+    """
+
+    def find(rel: str) -> Path | None:
+        return next((root / rel for root in (out, cdn) if (root / rel).is_file()), None)
+
+    made = 0
+    for sex in (0, 1):
+        defaults = {job: find(f"{AVATARS}/{job}_default_body/{sex}.bswf") for job in CLASSES}
+        for job in CLASSES:
+            if defaults[job] is not None:
+                continue
+            items = sorted(p for p in (cdn / AVATARS).glob(f"{job}_body0*/{sex}.bswf"))
+            source = items[0] if items else next((d for d in defaults.values() if d is not None), None)
+            if source is None:
+                continue
+            target = out / f"{AVATARS}/{job}_default_body/{sex}.bswf"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            made += 1
+    return made
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("out", type=Path, help="pasta de saída (ex.: D:/xampp/htdocs/wartune-reborn/cdn)")
@@ -152,6 +217,8 @@ def main() -> None:
     stats = build(args.out, SOURCES, args.cdn)
     stats["modulos"] = normalize_modules(args.out)
     stats["md5_corrigidos"] = sync_md5_list(args.out, args.cdn)
+    stats["figuras"] = fill_level_up_figures(args.out)
+    stats["corpos"] = fill_default_bodies(args.out, args.cdn)
     print(stats)
 
 

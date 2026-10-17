@@ -75,7 +75,8 @@ class GameHttpApi:
         r.add_route("*", "/visualizeregister", self.register)
         r.add_post("/updateplayernovice", self.novice)
         r.add_route("*", "/flashversionservlet", self.plain_true)
-        r.add_post("/maillist", self.mail_list)
+        r.add_post("/maillist", self.empty_list)  # EmailManager
+        r.add_post("/questionreplaylist", self.empty_list)  # CustomerServiceManager: respostas do suporte
 
     # -- jogo --------------------------------------------------------------------------
     async def crossdomain(self, _: web.Request) -> web.Response:
@@ -140,9 +141,9 @@ class GameHttpApi:
     async def plain_true(self, _: web.Request) -> web.Response:
         return web.Response(text="true")
 
-    async def mail_list(self, _: web.Request) -> web.Response:
-        # EmailManager faz ByteArray.uncompress() no corpo: o XML vai em zlib
-        # ponytail: caixa sempre vazia; listar `<Info>` quando houver tabela de e-mails
+    async def empty_list(self, _: web.Request) -> web.Response:
+        # o cliente faz ByteArray.uncompress() no corpo: o XML vai em zlib
+        # ponytail: listas sempre vazias; `<Info>` quando houver e-mails e suporte
         xml = '<?xml version="1.0" encoding="UTF-8"?><Result value="true" message="Success"/>'
         return web.Response(body=zlib.compress(xml.encode()), content_type="application/octet-stream")
 
@@ -150,7 +151,11 @@ class GameHttpApi:
 @web.middleware
 async def allow_any_origin(request: web.Request, handler: Handler) -> web.StreamResponse:
     """O Ruffle faz fetch de outra origem (página no Apache); o Flash usa o crossdomain.xml."""
-    response = await handler(request)
+    try:
+        response = await handler(request)
+    except web.HTTPNotFound:
+        log.warning("rota HTTP inexistente", metodo=request.method, caminho=request.path)
+        raise
     response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 

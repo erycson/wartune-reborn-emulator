@@ -49,3 +49,34 @@ def test_sync_md5_list(tmp_path: Path) -> None:
     assert sync_md5_list(out, cdn) == 1
     text = zlib.decompress((out / "client/resouececheck.sq").read_bytes()).decode("utf-8-sig")
     assert 'name="9.png" md5="' + "b" * 32 in text and 'name="8.png" md5="' + "c" * 32 in text
+
+
+def test_fills_missing_level_up_figures(tmp_path: Path) -> None:
+    from build_cdn_overrides import fill_level_up_figures
+
+    folder = tmp_path / "swf/register1"
+    folder.mkdir(parents=True)
+    body = b"\x0a\x00asset.choicefigure.Human_6\x00"
+    (folder / "6.swf").write_bytes(b"CWS\x0a" + struct.pack("<I", len(body) + 8) + zlib.compress(body))
+    assert fill_level_up_figures(tmp_path) == 5
+    one = (folder / "1.swf").read_bytes()
+    assert zlib.decompress(one[8:]) == body.replace(b"Human_6", b"Human_1") and one[:8] == b"CWS\x0a" + one[4:8]
+
+
+def test_fills_missing_default_bodies(tmp_path: Path) -> None:
+    from build_cdn_overrides import fill_default_bodies
+
+    out, cdn = tmp_path / "out", tmp_path / "cdn"
+    for rel, data in {
+        "swf/avatar/warrior_body020/1.bswf": b"w20",
+        "swf/avatar/warrior_body010/1.bswf": b"w10",
+        "swf/avatar/hunter_default_body/0.bswf": b"h0",
+        "swf/avatar/wizard_default_body/1.bswf": b"z1",
+    }.items():
+        (cdn / rel).parent.mkdir(parents=True, exist_ok=True)
+        (cdn / rel).write_bytes(data)
+    fill_default_bodies(out, cdn)
+    body = out / "swf/avatar"
+    assert (body / "warrior_default_body/1.bswf").read_bytes() == b"w10"  # primeira roupa da classe
+    assert (body / "warrior_default_body/0.bswf").read_bytes() == b"h0"  # sem roupa: outra classe
+    assert not (body / "wizard_default_body/1.bswf").exists()  # já existe no CDN

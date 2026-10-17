@@ -78,8 +78,10 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
             row = await uow.servers.get(settings.server_id)
         assert row is not None and row.rsa_modulus == services.keys.modulus_b64 and row.websocket_port == 5001
         assert "allow-access-from" in await (await http.get("/crossdomain.xml")).text()
-        mail = zlib.decompress(await (await http.post("/maillist", data={"userId": "1"})).read())
-        assert b'<Result value="true"' in mail
+        for path in ("/maillist", "/questionreplaylist"):  # o cliente descomprime o corpo
+            assert b'<Result value="true"' in zlib.decompress(
+                await (await http.post(path, data={"user_id": "1"})).read()
+            )
 
         sel = await (await http.get("/loginselectlist", params={"username": "maga", "site": fv["site"]})).text()
         assert "<Item" not in sel
