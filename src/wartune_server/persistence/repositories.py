@@ -14,6 +14,7 @@ from ..domain.models import (
     BuildOrder,
     Castle,
     Character,
+    FarmLand,
     GameServer,
     Hero,
     Item,
@@ -156,6 +157,12 @@ class SqlBuildOrderRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlFarmLandRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[FarmLand]:
+        query = select(FarmLand).where(FarmLand.character_id == character_id).order_by(FarmLand.pos)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -172,6 +179,7 @@ class SqlAlchemyUnitOfWork:
         self.quests = SqlQuestRepository(self._session)
         self.items = SqlItemRepository(self._session)
         self.orders = SqlBuildOrderRepository(self._session)
+        self.lands = SqlFarmLandRepository(self._session)
         return self
 
     async def __aexit__(

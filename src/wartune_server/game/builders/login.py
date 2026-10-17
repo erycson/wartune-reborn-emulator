@@ -16,6 +16,7 @@ from google.protobuf.message import Message
 from ...domain.models import Building, Castle, Character, Hero, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
+from .. import timebox
 
 NEVER = "2000-01-01 00:00:00"
 MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2 nas capturas)
@@ -173,6 +174,8 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         rentalBagTime=NEVER,
         status=-1,
     )
+    msg.timeProcess, msg.timeRun = timebox.box_state(c, now)
+    msg.timeGet = msg.timeProcess > 0  # recebeu o último período alcançado (BoxManager)
     msg.order.playerId = c.id or 0
     return msg
 
@@ -212,16 +215,6 @@ def castle_msg(snap: PlayerSnapshot, castle: Castle) -> pb.BaseCastleMsg:
         leftEnergy=castle.energy,
         grade=castle.grade,
     )
-
-
-def farm_msg(snap: PlayerSnapshot) -> pb.LoadFarmRsp:
-    c = snap.character
-    msg = pb.LoadFarmRsp()
-    farm = msg.farm
-    farm.userId, farm.nickName, farm.grades, farm.landGrades = c.id or 0, c.nickname or "", 1, 1
-    for pos in range(3):
-        farm.farmLandInfo.add(userId=c.id, pos=pos, plantingTime=NEVER, matureTime=NEVER)
-    return msg
 
 
 def system_property(now: datetime, opened_at: datetime) -> pb.SystemPropertyMsg:

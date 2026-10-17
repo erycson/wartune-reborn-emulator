@@ -25,7 +25,6 @@ S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 
 S_IMPOSE, S_TRANSFER, S_UNOCCUPY, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 108, 4452, 100
 BUY_ORDER_PRICE = 100  # "mainBar.QueueBar.content" (QueueBar.buyQueueItem)
 IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; captura: 151 com remainTime 3600
-TRANSFER = 1511  # prédio de transferência (energia de teleporte), criado pelo cliente (id -11)
 
 
 def _send_player(s: GameSession) -> None:
@@ -239,9 +238,7 @@ async def transfer_energy(s: GameSession, msg: pb.PayTypeMsg) -> None:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     c, castle, now = snap.character, snap.castle, s.ctx.clock.now()
-    row = cs.first_grade(s.ctx.templates, TRANSFER)
-    # ponytail: sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition)
-    top = int(row["Property2"]) if row else 500
+    top = cs.energy_max(s.ctx.templates)
     cost = (top - castle.energy) // 5
     entry = pay(c, cost, bind=msg.payType == 2, reason="transfer_energy", ref="castle", now=now) if cost > 0 else None
     if entry is None:

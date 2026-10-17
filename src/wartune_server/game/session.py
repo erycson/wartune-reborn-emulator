@@ -18,6 +18,7 @@ from ..services.characters import CharacterService
 from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
+from . import timebox
 from .router import PacketRouter
 
 if TYPE_CHECKING:
@@ -124,6 +125,15 @@ class GameSession:
         message = self.ctx.registry.decode(packet.code, Direction.CLIENT_TO_SERVER, packet.body)
         await handler(self, message)
 
+    async def _save_logout(self) -> None:
+        """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""
+        assert self.snapshot is not None
+        timebox.on_logout(self.snapshot.character, self.ctx.clock.now())
+        try:
+            await self.ctx.characters.save(self.snapshot.character)
+        except Exception:  # banco fora do ar no desligamento: perde só o tempo desta sessão
+            self.log.exception("falha ao gravar a saída")
+
     async def on_disconnect(self) -> None:
         if self.battle is not None:
             self.battle.cancel()
@@ -131,6 +141,7 @@ class GameSession:
             from . import space  # space importa este módulo
 
             space.leave(self)
+            await self._save_logout()
             self.ctx.online.unbind(self.player_id, self)
             self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()

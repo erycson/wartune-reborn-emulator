@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import castle, rules, space
+from .. import castle, farm, rules, space, timebox
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
@@ -41,6 +41,7 @@ S_AAS = 4173
 S_CHALLENGE_TIME = 4176
 S_VERSION = 4233
 S_SNS = 4245
+S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
 
@@ -96,11 +97,13 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         s.log.warning("login simultâneo do mesmo personagem; recusado", player=character.id)
         s.connection.close()
         return
-    if changed := castle.ensure(snap, s.ctx.templates, s.ctx.clock.now()):
-        await s.ctx.characters.save(*changed)
+    now = s.ctx.clock.now()
+    timebox.on_login(snap.character, now)  # antes do PlayerMsg: timeRun e tempo offline
+    changed = castle.ensure(snap, s.ctx.templates, now)
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
-    s.ctx.online.bind(s.player_id, s)
+    s.ctx.online.bind(s.player_id, s)  # antes do primeiro await: o segundo 20001 junto já vê a sessão
+    await s.ctx.characters.save(snap.character, *changed)
     s.log = s.log.bind(player=s.player_id)
     s.log.info("jogador entrou", nick=snap.character.nickname, novice=snap.character.novice_process)
 
@@ -133,7 +136,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))
         s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))  # oficial manda só este campo
     if msg.tree:
-        _send(s, S_FARM, b.farm_msg(snap))
+        _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, own=True)))
     if msg.friend:
         _send(s, S_FRIENDS, pb.FriendRelationList(maxPage=0, curPage=0))
     if msg.snsReq:
@@ -142,6 +145,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+    if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
+        _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
 
 
 async def _login_state(s: GameSession) -> None:

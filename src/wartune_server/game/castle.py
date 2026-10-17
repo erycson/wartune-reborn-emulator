@@ -26,6 +26,7 @@ TECH = ("13", "14")  # MasterType das tecnologias: usam a fila de tecnologia
 BASE_GOLD_MAX = 10000  # teto sem armazém (captura do tutorial, antes de existir o 301)
 BUILD, TECH_ORDER, IMPOSE = 1, 2, 3  # OrderInfoMsg.orderType
 BUILD_ORDER_LIMIT = 2  # BuildingModel.buildOrderLimit
+TRANSFER = 1511
 CASTLE_READY = 20000  # noviceProcess logo depois do 8281 (prédios e fila iniciais)
 
 
@@ -144,6 +145,13 @@ def politics_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.CastleYie
     msg = pb.CastleYieldMsg(goldYield=total, goldWildLandYield=0, goldTechnology=0, goldWonder=0)
     msg.goldTotalCount = total
     return msg
+
+
+def energy_max(templates: GameTemplates) -> int:
+    """Teto da energia de teleporte: Property2 do prédio de transferência (1511, id -11 no cliente)."""
+    # ponytail: sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition)
+    row = first_grade(templates, TRANSFER)
+    return int(row["Property2"]) if row else 500
 
 
 def impose_used(castle: Castle, now: datetime) -> int:

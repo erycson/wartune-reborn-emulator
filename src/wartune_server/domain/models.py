@@ -108,6 +108,12 @@ class Character:
     geste: int = 0
     charm: int = 0
     last_login_at: datetime | None = None
+    # caixa por tempo (5019): último período recebido hoje e segundos online contados até ``box_counted_at``
+    box_period: int = 0
+    box_seconds: int = 0
+    box_counted_at: datetime | None = None
+    offline_at: datetime | None = None  # saída do jogo (recompensa offline)
+    offline_seconds: int = 0  # tempo offline ainda não resgatado (8287)
 
     @property
     def icon(self) -> int:
@@ -158,6 +164,12 @@ class Castle:
     produced_at: datetime | None = None
     impose_used: int = 0  # cobranças de ouro (8327) feitas no dia de ``imposed_at``
     imposed_at: datetime | None = None
+    farm_grade: int = 1
+    farm_gp: int = 0  # EXP dentro do nível (UpGradeTempInfos tipo 17)
+    tree_water: int = 0  # regas da árvore
+    tree_fruit: int = 0
+    tree_watered_at: datetime | None = None
+    tree_picked_at: datetime | None = None
 
 
 @dataclass(eq=False)
@@ -189,6 +201,23 @@ class CashEntry:
     ref: str
     created_at: datetime
     gm: str | None = None  # quem lançou, quando for ajuste manual
+    id: int | None = None
+
+
+@dataclass(eq=False)
+class FarmLand:
+    """Terra plantada (``FarmLandInfoMsg``). Terra vazia não tem linha. ``worm``/``grass``: qual
+    das duas janelas (1 = 40%/30% do ciclo, 2 = 60%/50%) tem praga; 0 = já tirada."""
+
+    character_id: int
+    pos: int
+    item_template_id: int
+    planted_at: datetime
+    mature_at: datetime
+    reward_count: int = 0
+    worm: int = 0
+    grass: int = 0
+    accelerated: bool = False
     id: int | None = None
 
 
@@ -247,6 +276,7 @@ class PlayerSnapshot:
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
     orders: list[BuildOrder] = field(default_factory=list)
+    lands: list[FarmLand] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:

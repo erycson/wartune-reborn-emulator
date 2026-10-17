@@ -33,6 +33,7 @@ from ..domain.models import (
     CashEntry,
     Castle,
     Character,
+    FarmLand,
     GameServer,
     Hero,
     Item,
@@ -139,6 +140,11 @@ characters = Table(
     _int("charm"),
     Column("created_at", UTCDateTime, nullable=False),
     Column("last_login_at", UTCDateTime),
+    _int("box_period"),
+    _int("box_seconds"),
+    Column("box_counted_at", UTCDateTime),
+    Column("offline_at", UTCDateTime),
+    _int("offline_seconds"),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -185,6 +191,28 @@ castles = Table(
     Column("produced_at", UTCDateTime),
     _int("impose_used"),
     Column("imposed_at", UTCDateTime),
+    _int("farm_grade", 1),
+    _int("farm_gp"),
+    _int("tree_water"),
+    _int("tree_fruit"),
+    Column("tree_watered_at", UTCDateTime),
+    Column("tree_picked_at", UTCDateTime),
+)
+
+farm_lands = Table(
+    "farm_lands",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("pos", Integer, nullable=False),
+    Column("item_template_id", Integer, nullable=False),
+    Column("planted_at", UTCDateTime, nullable=False),
+    Column("mature_at", UTCDateTime, nullable=False),
+    _int("reward_count"),
+    _int("worm"),
+    _int("grass"),
+    Column("accelerated", Boolean, nullable=False, default=False, server_default="0"),
+    UniqueConstraint("character_id", "pos"),
 )
 
 build_orders = Table(
@@ -271,6 +299,7 @@ def map_entities() -> None:
         (Item, items),
         (BuildOrder, build_orders),
         (CashEntry, cash_ledger),
+        (FarmLand, farm_lands),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True
