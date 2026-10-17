@@ -11,8 +11,10 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import Arena, ArenaRank, PlayerSnapshot
+from wartune_server.domain.models import Pet as OwnedPet
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
+from wartune_server.game import events as ev
 from wartune_server.game.battle import Battle
 from wartune_server.game.handlers import arena as arena_handlers
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -203,14 +205,22 @@ async def test_pet_tournament_without_pets(tmp_path: Path) -> None:
         assert body(await g.until(4176), 4176, pb.ChallengeCoolTimeMsg).challengeCount == 11
 
 
+async def give_pet(g: Game, template: int, grade: int, name: str = "Pan") -> int:
+    """Pet gravado no banco (o servidor ainda não cria pets) e no snapshot da sessão, se estiver
+    online. Devolve o id."""
+    pet = OwnedPet(g.user_id, template, name, grade=grade, quality=7)
+    await g.server.services.characters.save(pet)
+    snap_of(g).pets.append(pet)
+    return pet.id or 0
+
+
 async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    pet = A.Pet(77, 104101, 60, 7, "Pan")
-    monkeypatch.setattr(A, "pets_of", lambda snap: [pet])
     monkeypatch.setattr(A, "PET_NOTICE_FRAME", 150)
     async with logged_in(tmp_path, novice=30001) as g:
+        pet_id = await give_pet(g, 104101, 60)
         snap = snap_of(g)
         snap.character.grades = 55
-        g.client.send(8725, pb.PlayerPetMsg(chaPos="77,-1,-1"))
+        g.client.send(8725, pb.PlayerPetMsg(chaPos=f"{pet_id},-1,-1"))
         await g.until(4540)
         g.client.send(8256, pb.ChallengeRequestMsg(type=1))
         listed = body(await g.until(4611), 4611, pb.PetChallengeInfoMsg)
@@ -221,7 +231,8 @@ async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: p
         prepare = body(got, 157, pb.BattlePrepareMsg)
         assert prepare.battleType == 35 and not prepare.heros
         mine = [p for p in prepare.pets if p.side == 1]
-        assert [(p.userId, p.headId) for p in mine] == [(g.user_id, 77)] and len(prepare.pets) == 4
+        assert [(p.userId, p.headId, p.pos, p.tempId, p.grade) for p in mine] == [(g.user_id, pet_id, 1, 104101, 60)]
+        assert len(prepare.pets) == 4
         g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
         got = await g.until(4103)
         assert 75 not in codes(got) and 4361 in codes(got)  # sem ordens; o dano sobe no meio
@@ -232,6 +243,85 @@ async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: p
         assert body(got, 4176, pb.ChallengeCoolTimeMsg).leftTime == 300
         assert snap.arena is not None and snap.arena.pet_count == 1
         assert snap.arena.pet_score == (1005 if report.battleResult == 1 else 1000)
+
+
+@pytest.mark.parametrize("online", [True, False])
+async def test_pet_tournament_fights_the_real_pets_of_the_opponent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, online: bool
+) -> None:
+    """Os pets dos dois lados são os gravados: o do oponente vem da sessão dele ou, offline, do banco."""
+    monkeypatch.setattr(A, "PET_NOTICE_FRAME", 150)
+    async with logged_in(tmp_path, novice=30001) as g:
+        mine_id = await give_pet(g, 104101, 60)
+        snap_of(g).character.grades = 55
+        g.client.send(8725, pb.PlayerPetMsg(chaPos=f"{mine_id},-1,-1"))
+        await g.until(4540)
+
+        other = await g.join("outro")
+        their_id = await give_pet(other, 102102, 42, "Liris")
+        other.client.send(8725, pb.PlayerPetMsg(chaPos=f"{their_id},-1,-1"))
+        await other.until(4540)
+        if not online:
+            session = g.server.online.get(other.user_id)
+            assert session is not None
+            g.server.online.unbind(other.user_id, session)
+            assert g.server.online.get(other.user_id) is None  # daqui para frente lê do banco
+
+        g.client.send(8256, pb.ChallengeRequestMsg(type=1))
+        listed = body(await g.until(4611), 4611, pb.PetChallengeInfoMsg)
+        theirs = next(p for p in listed.playerPets if p.userId == other.user_id)
+        assert [(i.petId, i.templateId, i.curGrade) for i in theirs.petInfo] == [(their_id, 102102, 42)]
+
+        g.client.send(8724, pb.PlayerChallengeMsg(tarUserId=other.user_id))
+        prepare = body(await g.until(157), 157, pb.BattlePrepareMsg)
+        foes = [p for p in prepare.pets if p.side == 2]
+        assert [(p.tempId, p.grade) for p in foes] == [(102102, 42)]
+        g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
+        assert body(await g.until(4103), 4103, pb.BattleReportMsg).battleScene == 19
+
+
+async def test_pet_battle_end_early_needs_an_active_vip_3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """8727 "encerrar já": só VIP ativo com nível >= 3 (``Pet_BattleOver_Grade``). VIP vencido não vale."""
+    ended: list[str] = []
+    finish = Battle.finish
+
+    def spy(self: Battle) -> None:
+        ended.append(self.id)
+        finish(self)
+
+    monkeypatch.setattr(Battle, "finish", spy)
+    async with logged_in(tmp_path, novice=30001) as g:
+        pet_id = await give_pet(g, 104101, 60)
+        snap = snap_of(g)
+        snap.character.grades = 55
+        g.client.send(8725, pb.PlayerPetMsg(chaPos=f"{pet_id},-1,-1"))
+        await g.until(4540)
+        g.client.send(8256, pb.ChallengeRequestMsg(type=1))
+        listed = body(await g.until(4611), 4611, pb.PetChallengeInfoMsg)
+        g.client.send(8724, pb.PlayerChallengeMsg(tarUserId=listed.playerPets[0].userId))
+        prepare = body(await g.until(157), 157, pb.BattlePrepareMsg)  # a luta só anda com o 10007
+
+        def set_vip(value: int, text: str) -> None:
+            state = ev.state(snap, "vip", datetime.now(UTC))
+            state.value, state.text = value, text
+
+        g.client.send(8727, pb.BattleReqMsg(battleId=prepare.battleId))  # sem VIP
+        assert await g.idle() == [] and ended == []
+        set_vip(310, "2000-01-01 00:00:00")  # nível 3, mas vencido
+        g.client.send(8727, pb.BattleReqMsg(battleId=prepare.battleId))
+        assert await g.idle() == [] and ended == []
+        set_vip(0, "2999-01-01 00:00:00")  # ativo, nível 1
+        g.client.send(8727, pb.BattleReqMsg(battleId=prepare.battleId))
+        assert await g.idle() == [] and ended == []
+
+        snap.character.point = 400
+        g.client.send(8513, pb.VipOpenInfoMsg(days=31))  # 310 de vipGp: nível 3 ativo
+        await g.until(4416)
+        g.client.send(8727, pb.BattleReqMsg(battleId=prepare.battleId))
+        await g.idle()
+        assert ended == [prepare.battleId]
+        g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
+        assert body(await g.until(4103), 4103, pb.BattleReportMsg).battleScene == 19
 
 
 async def test_pet_battle_finish_resolves_without_more_attacks() -> None:

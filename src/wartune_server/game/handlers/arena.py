@@ -24,6 +24,7 @@ from ..router import router
 from ..session import GameSession
 from .campaign import map_sync, player_hero
 from .login import army, player_info
+from .vip import is_vip, vip_grade
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 150, 140
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
@@ -461,12 +462,12 @@ async def challenge_pet(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     arena.pet_cool_until = A.cool_until(now, A.PET_COOL)
     me = s.player_id
     units = [
-        A.pet_unit(p.template, p.grade, p.quality, i + 1, 1, i + 1, me, p.id, s.ctx.templates)
+        A.pet_unit(p.template, p.grade, p.quality, i + 1, 1, p.slot + 1, me, p.id, s.ctx.templates, p.skills)
         for i, p in enumerate(mine)
     ]
     if other is not None and other.arena is not None:
         theirs = [
-            A.pet_unit(p.template, p.grade, p.quality, len(units) + i + 1, 2, i + 3, 0, 0, s.ctx.templates)
+            A.pet_unit(p.template, p.grade, p.quality, len(units) + i + 1, 2, i + 3, 0, 0, s.ctx.templates, p.skills)
             for i, p in enumerate(A.formation(other.arena, other))
         ]
         name = other.character.nickname or ""
@@ -546,11 +547,13 @@ async def pet_skills(s: GameSession, msg: pb.PetInfoMsg) -> None:
 
 @router.on(8727)
 async def pet_end_battle(s: GameSession, msg: pb.BattleReqMsg) -> None:
-    """ "Encerrar já" do torneio: o cliente só mostra o botão para VIP >= ``Pet_BattleOver_Grade``."""
-    battle = s.battle
-    vip = 0  # ponytail: não há VIP no servidor; quando houver, ler o nível dele
+    """Botão "Encerrar já" do torneio (``Battle.finish``). O cliente só mostra o botão para VIP ativo
+    com nível >= ``Pet_BattleOver_Grade`` (BattleUIView: ``IsVipAndNoExpirt`` e ``VipGrade`` >= 3)."""
+    snap, battle, now = s.snapshot, s.battle, s.ctx.clock.now()
+    assert snap is not None
     need = A.config(s.ctx.templates, "Pet_BattleOver_Grade", 3)
-    if battle is None or battle.id != msg.battleId or battle.spec["battleType"] != 35 or vip < need:
+    vip = is_vip(snap, now) and vip_grade(s, snap) >= need  # VIP vencido não conta, mesmo com o nível
+    if battle is None or battle.id != msg.battleId or battle.spec["battleType"] != 35 or not vip:
         s.log.info("8727 recusado", vip=vip)
         return
     battle.finish()

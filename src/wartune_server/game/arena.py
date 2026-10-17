@@ -9,7 +9,7 @@ import asyncio
 import json
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from functools import cache
 from pathlib import Path
@@ -377,6 +377,7 @@ def pet_unit(
     user_id: int,
     pet_id: int,
     templates: GameTemplates,
+    skills: str = "",
 ) -> dict[str, Any]:
     """Pet no ``BattlePrepareMsg.pets`` (captura do torneio #7). ``userId`` = dono no lado do jogador
     (o cliente acha "os meus" por ele; sem nenhum a batalha não inicializa) e 0 nos robôs."""
@@ -397,7 +398,7 @@ def pet_unit(
         "hp2": 0,
         "qteTime": 0,
         "castTime": 5000,
-        "skillId": [int(x) for x in row.get("ChangeSkills", "").split(",") if x],
+        "skillId": [int(x) for x in (skills or row.get("ChangeSkills", "")).split(",") if x],
         "headId": pet_id,
         "serverName": "",
         "livingId2": 0,
@@ -460,23 +461,24 @@ def cool_until(now: datetime, seconds: int) -> datetime:
 
 @dataclass(frozen=True, slots=True)
 class Pet:
-    """O que o torneio precisa de um pet do jogador."""
+    """O que o torneio precisa de um pet do jogador. ``slot``: espaço da formação (0 a 5)."""
 
     id: int
     template: int
     grade: int
     quality: int
     name: str
+    skills: str = ""  # ChangeSkills do próprio pet; "" = os do template
+    slot: int = 0
 
 
 def pets_of(snap: PlayerSnapshot) -> list[Pet]:
-    """Pets do jogador. ponytail: o servidor ainda não tem pets (outro sistema); sem eles o cliente
-    nem abre o torneio ("nopet") e o servidor recusa formação e desafio. Ler do snapshot quando houver."""
-    return []
+    """Pets do jogador (``snap.pets``, tabela ``pets``), os que já foram gravados (têm id)."""
+    return [Pet(p.id or 0, p.template_id, p.grade, p.quality, p.name, p.change_skills) for p in snap.pets if p.id]
 
 
 def formation(arena: Arena, snap: PlayerSnapshot) -> list[Pet]:
-    """Pets da formação gravada (``chaPos``) que o jogador ainda tem, na ordem dos espaços."""
+    """Pets da formação gravada (``chaPos``) que o jogador ainda tem, em cada espaço (``slot``)."""
     owned = {p.id: p for p in pets_of(snap)}
     ids = [int(x) for x in arena.pet_formation.split(",") if x.strip().lstrip("-").isdigit()]
-    return [owned[i] for i in ids if i in owned]
+    return [replace(owned[i], slot=n) for n, i in enumerate(ids) if i in owned]
