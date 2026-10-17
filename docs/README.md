@@ -15,6 +15,7 @@
 | [configuracao.md](configuracao.md) | Variáveis de ambiente, logs e CLI |
 | [ferramentas.md](ferramentas.md) | Decompilação, geração do `.proto` e dos opcodes, exportação das capturas |
 | [eventos.md](eventos.md) | Atividades, assinatura, leed, VIP, contrato do rei, alquimia, painel de recompensas, anel e minigames |
+| [cidade-externa.md](cidade-externa.md) | Cidade externa e mapa-múndi: grade, andar, voltar, ataque extra, mudar o castelo; gancho, passe de progresso e mapa do tesouro |
 | [multiplayer.md](multiplayer.md) | Levantamento do multiplayer e ordem de implementação: [chat](chat.md), [mundo compartilhado](mundo-compartilhado.md), [PvP](pvp.md), [boss e eventos](boss-eventos.md) |
 | [administracao.md](administracao.md) | Painel GM do portal, `/gm/kick` e `/gm/ban`, banimento, históricos de login, cash e itens |
 | [diversos.md](diversos.md) | Veículos, anti-vício, senha secundária, captcha, acelerador e os pacotes do login que faltam |

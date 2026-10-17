@@ -142,6 +142,8 @@ servidor troca as duas posições).
 - Proteção depois de ser atacado: 118 `CastleDefenseRspMsg`.
 - Saque: 4382 `FightOverMoiveMsg{gp, gold, strategy}`.
 - PvP contra um exército no mapa: 8488.
+- Hoje o servidor não tem castelo alheio: o 5160 responde só o 140 parado e o 8488 não responde
+  ([cidade-externa.md](cidade-externa.md)).
 
 **Não se sabe:**
 - como o defensor real vai no 157;

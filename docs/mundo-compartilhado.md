@@ -66,9 +66,10 @@ O cliente pede por grade de 50 tiles; a janela visível é de 3×2 células
 (`m3/scripts/map/outercity/manager/OuterCitySocketOutManager.as`):
 
 - 5004 `OutercityReqMsg{mapId, position:"43_38,…"}`.
-- 5181 → **169** `OutercityArmyUpdatedGridMsg`: exércitos da área.
-- 8201 → **4129** `PhysicListUpdateMsg{wildLand[], baseCastle[]}`: castelos e terras. Hoje
-  respondemos só com o próprio castelo (`handlers/outer_city.py`).
+- 5181: sem resposta própria. A captura não tem S>C para ele; a grade chega no 169 do 8201.
+- 8201 → **4129** `PhysicListUpdateMsg{wildLand[], baseCastle[]}` e depois **169**
+  `OutercityArmyUpdatedGridMsg` (exércitos da grade). Hoje o 4129 leva só o próprio castelo
+  (`handlers/outer_city.py`). Detalhes e o restante dos opcodes em [cidade-externa.md](cidade-externa.md).
 
 Atualizações vivas:
 
@@ -85,7 +86,7 @@ Clicar num castelo dá estas opções:
 | Opção | Pacote |
 |---|---|
 | Atacar | 5160 `MapPhysicAttackMsg{mapId,posX,posY}` |
-| Mover castelo | 5176 |
+| Mover castelo | 5176 ([cidade-externa.md](cidade-externa.md)) |
 | Amigo | — |
 | Correio | — |
 | PvP contra um exército | 8488 `{tarUserId}` |
