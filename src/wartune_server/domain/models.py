@@ -69,6 +69,10 @@ class GameServer:
     http_port: int
     socket_port: int
     opened_at: datetime
+    websocket_port: int = 0  # ponte do Ruffle; 0 = sem ponte
+    # chave pública do login (formato Hurlant) que o portal põe no config.xml deste servidor
+    rsa_modulus: str = ""
+    rsa_exponent: str = ""
 
 
 @dataclass(eq=False)

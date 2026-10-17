@@ -2,7 +2,6 @@ import base64
 
 import pytest
 
-from wartune_server.security.passwords import hash_password, verify_password
 from wartune_server.security.rsa_keys import LoginKeyPair, RSAError
 
 
@@ -47,9 +46,3 @@ def test_load_or_create_persists(tmp_path) -> None:  # type: ignore[no-untyped-d
     first = LoginKeyPair.load_or_create(path)
     assert LoginKeyPair.load_or_create(path).modulus_b64 == first.modulus_b64
 
-
-def test_password_hash() -> None:
-    stored = hash_password("s3nh@")
-    assert verify_password("s3nh@", stored)
-    assert not verify_password("errada", stored)
-    assert not verify_password("s3nh@", "lixo")

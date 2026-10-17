@@ -6,7 +6,6 @@ import pytest
 
 from wartune_server.domain.errors import AuthenticationError, ConflictError, ValidationError
 from wartune_server.security.rsa_keys import LoginKeyPair
-from wartune_server.services.accounts import AccountService
 from wartune_server.services.characters import CharacterService, GridCastlePlacement, RegistrationRequest
 from wartune_server.services.clock import FakeClock
 from wartune_server.services.login import LoginPayload, LoginService
@@ -30,13 +29,31 @@ def keys() -> LoginKeyPair:
     return LoginKeyPair.generate()
 
 
+class PortalOnClock:
+    """O portal (PHP) cria contas e tickets; aqui no relógio falso do teste."""
+
+    def __init__(self, portal, clock) -> None:  # type: ignore[no-untyped-def]
+        self._portal, self._clock = portal, clock
+
+    async def register(self, username: str, _password: str):  # type: ignore[no-untyped-def]
+        return await self._portal.account(username)
+
+    async def issue_ticket(self, account_id: int, server_id: int):  # type: ignore[no-untyped-def]
+        return Ticket(await self._portal.ticket(account_id, server_id, now=self._clock.now()))
+
+
+class Ticket:
+    def __init__(self, token: str) -> None:
+        self.token = token
+
+
 @pytest.fixture
-def env(uow_factory, keys):  # type: ignore[no-untyped-def]
+def env(uow_factory, keys, portal):  # type: ignore[no-untyped-def]
     clock = FakeClock()
     sessions = InMemoryLoginSessionStore(clock, ttl_seconds=60)
     return (
         clock,
-        AccountService(uow_factory, clock, ticket_ttl_seconds=300),
+        PortalOnClock(portal, clock),
         LoginService(uow_factory, keys, sessions, clock, server_id=1),
         CharacterService(uow_factory, TEMPLATES, GridCastlePlacement()),
     )
@@ -140,14 +157,3 @@ async def test_registration_rules(env, keys) -> None:  # type: ignore[no-untyped
     with pytest.raises(ValidationError, match="classe"):
         await chars.register(RegistrationRequest(ids[1], "Valido", 1, 1, 9))
 
-
-async def test_account_rules(env) -> None:  # type: ignore[no-untyped-def]
-    _, accounts, _, _ = env
-    await accounts.register("frank", "segredo1")
-    with pytest.raises(ConflictError):
-        await accounts.register("frank", "segredo1")
-    with pytest.raises(ValidationError):
-        await accounts.register("x", "segredo1")
-    with pytest.raises(AuthenticationError):
-        await accounts.authenticate("frank", "errada")
-    assert (await accounts.authenticate("frank", "segredo1")).username == "frank"

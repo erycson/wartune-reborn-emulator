@@ -15,6 +15,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from wartune_server.app import GameServerApp, build_services
 from wartune_server.config import Settings
 from wartune_server.net.servers import start_tcp
+from wartune_server.persistence.repositories import SqlAlchemyUnitOfWork
 from wartune_server.protocol import Packet, PacketDecoder, StreamCipher
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
@@ -52,6 +53,8 @@ class FakeFlashClient:
 
 
 async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
+    from tests.conftest import Portal
+
     settings = Settings(
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'e2e.db'}",
         rsa_key_file=tmp_path / "rsa.pem",
@@ -59,21 +62,20 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         _env_file=None,  # type: ignore[call-arg]
     )
     services = await build_services(settings)
+    portal = Portal(lambda: SqlAlchemyUnitOfWork(services.database.sessions))
     server = GameServerApp(settings, services)
     tcp = await start_tcp(server.acceptor, "127.0.0.1", 0)
     port = tcp.sockets[0].getsockname()[1]
     http = TestClient(TestServer(server.http_app))
     await http.start_server()
     try:
-        # portal
-        assert (await (await http.post("/api/register", data={"username": "maga", "password": "segredo1"})).json())["ok"]
-        portal = await (await http.post("/api/login", data={"username": "maga", "password": "segredo1"})).json()
-        fv = portal["flashvars"]
-        assert "Loading.swf?user=maga&key=" in portal["swf_url"]
-
-        config = await (await http.get("/client/config.xml")).text()
-        assert services.keys.modulus_b64 in config and f"<NODE site='{settings.site}'>" in config
-        assert re.search(r'<SocktPath value="127\.0\.0\.1" SocketPort="5000"', config)
+        # portal (PHP): conta + ticket direto no banco; endereço e chave RSA vêm de game_servers
+        account = await portal.account("maga")
+        fv = {"key": await portal.ticket(account.id), "site": settings.site}
+        async with SqlAlchemyUnitOfWork(services.database.sessions) as uow:
+            row = await uow.servers.get(settings.server_id)
+        assert row is not None and row.rsa_modulus == services.keys.modulus_b64 and row.websocket_port == 5001
+        assert "allow-access-from" in await (await http.get("/crossdomain.xml")).text()
 
         sel = await (await http.get("/loginselectlist", params={"username": "maga", "site": fv["site"]})).text()
         assert "<Item" not in sel
@@ -134,16 +136,3 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         server.acceptor.close_all()
         await services.database.dispose()
 
-
-async def test_static_falls_back_to_client_dir(tmp_path: Path) -> None:
-    from aiohttp import web
-
-    from wartune_server.http.app import StaticFiles
-
-    (tmp_path / "client").mkdir()
-    (tmp_path / "client" / "resouececheck.sq").write_bytes(b"md5")
-    app = web.Application()
-    app.router.add_get("/{path:.+}", StaticFiles([tmp_path]).handle)
-    async with TestClient(TestServer(app)) as http:
-        assert await (await http.get("/resouececheck.sq?rnd=1")).read() == b"md5"
-        assert (await http.get("/nada.swf")).status == 404

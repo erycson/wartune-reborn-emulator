@@ -15,13 +15,11 @@ from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
 from .game.router import router
 from .game.session import GameContext, GameSession, OnlinePlayers
 from .http.app import HttpDeps, build_http_app
-from .http.config_xml import load_template, render_client_config
 from .net.servers import ConnectionAcceptor, start_policy, start_tcp, websocket_app
 from .persistence.database import Database
 from .persistence.repositories import SqlAlchemyUnitOfWork
 from .protocol.registry import MessageRegistry
 from .security.rsa_keys import LoginKeyPair
-from .services.accounts import AccountService
 from .services.characters import CharacterService, GridCastlePlacement
 from .services.clock import Clock, SystemClock
 from .services.login import LoginService
@@ -34,7 +32,6 @@ log = structlog.get_logger(__name__)
 @dataclass
 class Services:
     database: Database
-    accounts: AccountService
     login: LoginService
     characters: CharacterService
     templates: GameTemplates
@@ -46,19 +43,18 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
     clock = clock or SystemClock()
     database = Database(settings.database_url, echo=settings.database_echo)
     await database.create_schema()
-    await _register_server(database, settings, clock)
-
-    def uow() -> SqlAlchemyUnitOfWork:
-        return SqlAlchemyUnitOfWork(database.sessions)
-
     templates, keys = await asyncio.gather(
         GameTemplates.load(settings.templates_file),
         asyncio.to_thread(LoginKeyPair.load_or_create, settings.rsa_key_file),
     )
+    await _register_server(database, settings, keys, clock)
+
+    def uow() -> SqlAlchemyUnitOfWork:
+        return SqlAlchemyUnitOfWork(database.sessions)
+
     sessions = InMemoryLoginSessionStore(clock, settings.socket_session_ttl_seconds)
     return Services(
         database=database,
-        accounts=AccountService(uow, clock, settings.login_ticket_ttl_seconds),
         login=LoginService(uow, keys, sessions, clock, settings.server_id),
         characters=CharacterService(uow, templates, GridCastlePlacement()),
         templates=templates,
@@ -67,14 +63,19 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
     )
 
 
-async def _register_server(database: Database, settings: Settings, clock: Clock) -> None:
-    """Garante a linha deste servidor em ``game_servers`` (preserva a data de abertura)."""
+async def _register_server(database: Database, settings: Settings, keys: LoginKeyPair, clock: Clock) -> None:
+    """Publica este servidor em ``game_servers``: é dali que o portal tira endereço, portas e a
+    chave RSA para montar o config.xml. Preserva a data de abertura."""
     async with SqlAlchemyUnitOfWork(database.sessions) as uow:
         current = await uow.servers.get(settings.server_id)
         opened_at = current.opened_at if current else clock.now()
         await uow.servers.upsert(
-            GameServer(settings.server_id, settings.server_name, settings.site, settings.public_host,
-                       settings.http_port, settings.socket_port, opened_at)
+            GameServer(
+                settings.server_id, settings.server_name, settings.site, settings.public_host,
+                settings.http_port, settings.socket_port, opened_at,
+                websocket_port=settings.websocket_port,
+                rsa_modulus=keys.modulus_b64, rsa_exponent=keys.exponent_b64,
+            )
         )
         await uow.commit()
 
@@ -90,19 +91,7 @@ class GameServerApp:
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds
         )
-        s = settings
-        config_xml = render_client_config(
-            load_template(s.config_template),
-            request_url=s.public_http_url,
-            resource_url=s.public_resource_url,
-            socket_host=s.public_host,
-            socket_port=s.socket_port,
-            site=s.site,
-            keys=services.keys,
-        )
-        self.http_app = build_http_app(
-            HttpDeps(s, services.accounts, services.login, services.characters, config_xml)
-        )
+        self.http_app = build_http_app(HttpDeps(settings, services.login, services.characters))
 
     async def serve(self, stop: asyncio.Event) -> None:
         s = self.settings
@@ -114,7 +103,7 @@ class GameServerApp:
                 await runner.setup()
                 await web.TCPSite(runner, s.bind_host, port).start()
                 runners.append(runner)
-            log.info("HTTP ouvindo", url=s.public_http_url, websocket=s.websocket_port)
+            log.info("HTTP ouvindo", porta=s.http_port, websocket=s.websocket_port)
             servers.append(await start_tcp(self.acceptor, s.bind_host, s.socket_port))
             if s.policy_port and (policy := await start_policy(s.bind_host, s.policy_port)):
                 servers.append(policy)

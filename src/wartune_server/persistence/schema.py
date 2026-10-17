@@ -20,6 +20,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import registry
@@ -93,6 +94,9 @@ game_servers = Table(
     Column("http_port", Integer, nullable=False),
     Column("socket_port", Integer, nullable=False),
     Column("opened_at", UTCDateTime, nullable=False),
+    _int("websocket_port"),
+    Column("rsa_modulus", Text, nullable=False, default="", server_default=""),
+    Column("rsa_exponent", String(32), nullable=False, default="", server_default=""),
 )
 
 characters = Table(

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,36 +27,15 @@ class Settings(BaseSettings):
     websocket_port: int = 5001  # ponte para o Ruffle (socketProxy)
     policy_port: int | None = 843  # None desliga o servidor de policy dedicado
 
-    # URL base dos assets estáticos (CDN). Vazio = o próprio servidor HTTP serve asset_dirs.
-    resource_url: str = ""
-    # Ordem importa: respostas oficiais capturadas, depois o public do relay (os .png de código
-    # validados contra a captura, que diferem dos do CDN) e por fim o CDN completo (~15 mil arquivos).
-    asset_dirs: list[Path] = Field(
-        default_factory=lambda: [
-            Path("data/overlay"),
-            Path("D:/wartune/server-relay/public"),
-            Path("D:/xampp/htdocs/wartune-cdn"),
-        ]
-    )
-    config_template: Path = Path("data/overlay/client/config.xml")
     templates_file: Path = Path("data/overlay/xml/tempinfos.xml")
     rsa_key_file: Path = Path("data/rsa_private.pem")
 
     # Pula o tutorial: o noviceProcess salvo nunca fica abaixo de 19000 (cena do castelo)
     skip_tutorial: bool = True
 
-    login_ticket_ttl_seconds: int = 300
     socket_session_ttl_seconds: int = 1800  # sem uso por esse tempo, o login HTTP precisa ser refeito
     idle_timeout_seconds: int = 300
 
     log_dir: Path = Path("logs")
     log_level: str = "INFO"
     log_packets: bool = True  # logs/packets.log com cada pacote decodificado
-
-    @property
-    def public_http_url(self) -> str:
-        return f"http://{self.public_host}:{self.http_port}/"
-
-    @property
-    def public_resource_url(self) -> str:
-        return self.resource_url or self.public_http_url
