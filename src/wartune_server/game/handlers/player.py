@@ -33,7 +33,8 @@ def _army(s: GameSession) -> None:
 def castle_yield(s: GameSession) -> None:
     assert s.snapshot is not None
     msg = pb.CastleYieldMsg(goldYield=0, goldTotalCount=s.snapshot.character.gold, goldMax=GOLD_MAX)
-    msg.curPopulation, msg.maxPopulation, msg.crystalsCount = 0, 0, CRYSTALS
+    msg.curPopulation, msg.maxPopulation = rules.population(s.snapshot, s.ctx.templates)
+    msg.crystalsCount = CRYSTALS
     s.send(S_CASTLE_YIELD, msg)
 
 

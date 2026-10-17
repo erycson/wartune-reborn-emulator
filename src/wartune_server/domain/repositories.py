@@ -5,7 +5,21 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
-from .models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from .models import (
+    Account,
+    Building,
+    Castle,
+    Character,
+    GameServer,
+    Hero,
+    Item,
+    Pawn,
+    Pet,
+    PlayerSystems,
+    PlayTicket,
+    Quest,
+    Star,
+)
 
 
 class AccountRepository(Protocol):
@@ -58,6 +72,12 @@ class ItemRepository(Protocol):
     async def by_character(self, character_id: int) -> list[Item]: ...
 
 
+class OwnedRepository[T](Protocol):
+    """Entidades que só pertencem a um personagem (tropas, estrelas, pets...)."""
+
+    async def by_character(self, character_id: int) -> list[T]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -82,6 +102,14 @@ class UnitOfWork(Protocol):
     def quests(self) -> QuestRepository: ...
     @property
     def items(self) -> ItemRepository: ...
+    @property
+    def pawns(self) -> OwnedRepository[Pawn]: ...
+    @property
+    def stars(self) -> OwnedRepository[Star]: ...
+    @property
+    def pets(self) -> OwnedRepository[Pet]: ...
+    @property
+    def systems(self) -> OwnedRepository[PlayerSystems]: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""

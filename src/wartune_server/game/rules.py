@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from ..domain.models import BagType, Item, PlayerSnapshot, Quest
+from ..domain.models import BagType, Character, Hero, Item, Pawn, PlayerSnapshot, PlayerSystems, Quest, StarBag
 from ..templates.repository import GameTemplates, Row
 from .builders.login import QUEST_SITE_LEN, HeroStats
 
@@ -41,10 +41,119 @@ def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
     return rows
 
 
+def systems(snap: PlayerSnapshot) -> PlayerSystems:
+    assert snap.systems is not None  # CharacterService.snapshot sempre preenche
+    return snap.systems
+
+
+MOUNT_ATTRS = ("Power", "Intellect", "Physique", "Agility")  # ordem de PlayerSystems.mount_gp
+MOUNT_GRADE = "18"  # UpGradeTempInfo.Types: EXP acumulada de cada atributo da montaria
+
+
+def mount_grade(templates: GameTemplates, gp: int, cap: int) -> int:
+    steps = sorted((int(r["Grades"]), int(r["Data"])) for r in templates.find("UpGradeTempInfos", Types=MOUNT_GRADE))
+    return min(cap, max((g for g, need in steps if gp >= need), default=0))
+
+
+def mount_stats(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, int]:
+    """Atributos da montaria em uso: valor do template + 5 por grau (conferido na captura de login:
+    1610 de EXP = grau 11 = 10 + 55 de força)."""
+    sy = systems(snap)
+    tpl = templates.get("MountTempInfos", sy.mount_template) if sy.mount_template else None
+    if tpl is None:
+        return {}
+    cap = mount_level_max(tpl)
+    gps = [int(x) for x in sy.mount_gp.split(",")]
+    return {a: int(tpl.get(a, 0)) + 5 * mount_grade(templates, gp, cap) for a, gp in zip(MOUNT_ATTRS, gps, strict=True)}
+
+
+def mount_level_max(tpl: Row) -> int:
+    return 20 + int(tpl.get("ExpandLevel", 0))  # 1103: ExpandLevel 5 -> levelMax 25 (visto)
+
+
+def star_bonuses(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
+    """Estrelas equipadas: cada coluna de atributo do template vezes o grau."""
+    rows: list[Row] = []
+    for star in snap.stars:
+        if star.bag_type == StarBag.EQUIP and (tpl := templates.get("starTempInfos", star.template_id)):
+            attrs = {k: v for k, v in tpl.items() if k in STAR_ATTRS and v.lstrip("-").isdigit()}
+            rows.append({k: str(int(v) * star.grade) for k, v in attrs.items()})
+    return rows
+
+
+STAR_ATTRS = {"Power", "Agility", "Intellect", "Captain", "Physique", "Attack", "Defence", "MagicAttack"}
+STAR_ATTRS |= {"MagicDefence", "ForceHit", "Parry", "Live", "Conat"}
+
+
 def leader_stats(snap: PlayerSnapshot, templates: GameTemplates) -> HeroStats:
+    """Atributos do líder: herói + equipamentos + montaria + estrelas equipadas.
+
+    Talento, runas, destino e alma do dragão não somam atributo fixo: nos templates eles são
+    skills/buffs (SkillTempInfos/TalentEffectTempInfos) que agem na batalha.
+    """
     leader = snap.leader
     assert leader is not None
-    return HeroStats.of(leader, templates.hero(leader.template_id), equipment(snap, templates))
+    bonuses = equipment(snap, templates) + star_bonuses(snap, templates)
+    if mount := mount_stats(snap, templates):
+        bonuses.append({k: str(v) for k, v in mount.items()})
+    return HeroStats.of(leader, templates.hero(leader.template_id), bonuses)
+
+
+HOUSE, BARRACKS = "1201", "402"  # BuildingTempInfo.SonType
+
+
+def building_row(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) -> Row | None:
+    """Template do prédio do jogador com esse SonType (casa, quartel...)."""
+    for b in snap.buildings:
+        row = next(templates.find("BuildingTempInfos", TemplateId=b.template_id), None)
+        if row is not None and row["SonType"] == son_type:
+            return row
+    return None
+
+
+def population(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int, int]:
+    """``(ocupada, máxima)``: soldados no castelo + exército x NeedPopulation; teto = Property2 da casa
+    (900 no nível 1, visto no relay #642/#646)."""
+    used = 0
+    for pawn in snap.pawns:
+        tpl = templates.get("PawnTempInfos", pawn.template_id) or {}
+        used += (pawn.castle_count + pawn.army_count) * int(tpl.get("NeedPopulation", 1))
+    house = building_row(snap, templates, HOUSE)
+    return used, int(house["Property2"]) if house else 0
+
+
+def army_pawn(snap: PlayerSnapshot) -> Pawn | None:
+    """Tropa no exército (slot 0), se houver. Para a batalha: ``battle_pawn``."""
+    return next((p for p in snap.pawns if p.army_count > 0), None)
+
+
+def battle_pawn(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[Row, int] | None:
+    """Função pura para a batalha: ``(linha de PawnTempInfos, quantidade)`` da tropa que luta com
+    o herói, ou ``None``. Os atributos de cada soldado são as colunas Attack/Defence/MagicAttack/
+    MagicDefence/Live/ForceHit/Parry do template (o que vai em ``pawnLive``)."""
+    pawn = army_pawn(snap)
+    tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
+    return (tpl, pawn.army_count) if pawn and tpl else None
+
+
+def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1: int, value: int) -> list[Quest]:
+    """Avança missões abertas cuja condição é ``kind`` (QuestCondictionInfos.CondictionType) e cujo
+    Para1 casa (0 = qualquer). Tipos de contagem somam ``value``; os de nível (10) guardam o maior."""
+    changed = []
+    for q in snap.quests:
+        cond = templates.get("QuestCondictionInfos", q.template_id)
+        if q.completed or cond is None or int(cond["CondictionType"]) != kind:
+            continue
+        if int(cond["Para1"]) not in (0, para1):
+            continue
+        new = max(q.progress, value) if kind in LEVEL_CONDITIONS else q.progress + value
+        if new != q.progress:
+            q.progress = new
+            changed.append(q)
+    return changed
+
+
+LEVEL_CONDITIONS = {10}  # evoluir tropa até o nível Para2
 
 
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
@@ -80,10 +189,25 @@ def add_gp(snap: PlayerSnapshot, templates: GameTemplates, gp: int) -> int:
     c.grades, c.gp = grade, c.total_gp - floor
     if leader is not None and gained > 0:
         leader.grades = grade
+        leader.skill_point = skill_points(leader, templates, leader.skill_script)
         for attr, per_level in GROWTH[job_type(c.job)].items():
             setattr(leader, attr, getattr(leader, attr) + per_level * gained)
             setattr(leader, f"{attr}_point", getattr(leader, f"{attr}_point") + per_level * gained)
     return gained
+
+
+def skill_grades(templates: GameTemplates, script: str) -> int:
+    return sum(int((templates.get("SkillTempInfos", int(t)) or {}).get("Grades", 0)) for t in script.split(",") if t)
+
+
+def skill_points(hero: Hero, templates: GameTemplates, script: str) -> int:
+    """1 ponto a cada 2 níveis, já contando as skills iniciais (nível 6 com 2 skills = 1: visto)."""
+    return max(0, hero.grades // 2 - skill_grades(templates, script))
+
+
+def talent_points(hero: Hero, templates: GameTemplates) -> int:
+    """1 ponto por grau de talento menos o que já foi aprendido."""
+    return max(0, hero.talent_grade - skill_grades(templates, hero.talent_script))
 
 
 def quest_bitmap(snap: PlayerSnapshot) -> bytes:
@@ -139,6 +263,22 @@ def quest_rewards(snap: PlayerSnapshot, templates: GameTemplates, template_id: i
         if int(g.get("ToJob", "0")) in (0, jt)
     ]
     return row, goods
+
+
+def pay_point(c: Character, cost: int, bind: bool) -> bool:
+    """Cobra diamantes; com ``bind`` gasta primeiro os vinculados (gift_token). False = sem saldo."""
+    if cost < 0 or c.point + (c.gift_token if bind else 0) < cost:
+        return False
+    from_bind = min(c.gift_token, cost) if bind else 0
+    c.gift_token, c.point = c.gift_token - from_bind, c.point - (cost - from_bind)
+    return True
+
+
+def pay_soul(c: Character, cost: int) -> bool:
+    if cost < 0 or c.strategy < cost:
+        return False
+    c.strategy -= cost
+    return True
 
 
 def free_bag_pos(snap: PlayerSnapshot) -> int:

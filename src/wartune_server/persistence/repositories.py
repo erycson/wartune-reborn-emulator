@@ -3,12 +3,26 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Self
+from typing import Any, Self
 
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    Castle,
+    Character,
+    GameServer,
+    Hero,
+    Item,
+    Pawn,
+    Pet,
+    PlayerSystems,
+    PlayTicket,
+    Quest,
+    Star,
+)
 
 
 class _Repo:
@@ -139,6 +153,15 @@ class SqlItemRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlOwnedRepository[T]:
+    def __init__(self, session: AsyncSession, entity: type[T]) -> None:
+        self._s, self._entity = session, entity
+
+    async def by_character(self, character_id: int) -> list[T]:
+        e: Any = self._entity
+        return list(await self._s.scalars(select(e).where(e.character_id == character_id).order_by(e.id)))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -154,6 +177,10 @@ class SqlAlchemyUnitOfWork:
         self.buildings = SqlBuildingRepository(self._session)
         self.quests = SqlQuestRepository(self._session)
         self.items = SqlItemRepository(self._session)
+        self.pawns = SqlOwnedRepository(self._session, Pawn)
+        self.stars = SqlOwnedRepository(self._session, Star)
+        self.pets = SqlOwnedRepository(self._session, Pet)
+        self.systems = SqlOwnedRepository(self._session, PlayerSystems)
         return self
 
     async def __aexit__(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ...protocol.messages import wartune_pb2 as pb
 from ..builders import login as b
+from ..builders.army import castle_pawns
 from ..router import router
 from ..session import GameSession
 from .campaign import ARMY_IDLE, map_sync
@@ -43,6 +44,6 @@ async def building_init(s: GameSession, _: object) -> None:
     assert snap is not None and snap.castle is not None
     castle_yield(s)
     castle_yield(s)
-    s.send(S_ARMY_PAWN, pb.ArmyPawnUpdatedMsg())
+    s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     s.send(S_BUILDINGS, b.buildings_msg(snap, snap.castle, s.ctx.templates))
     s.send(S_BUILD_ORDER, pb.OrderInfoMsg(orderId=1, orderType=1, remainTime=0))

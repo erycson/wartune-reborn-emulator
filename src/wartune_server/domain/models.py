@@ -140,6 +140,14 @@ class Hero:
     fast_key: str = ""
     fight_pos: int = 1
     is_leader: bool = True
+    talent_grade: int = 0
+    talent_script: str = ""  # talentSkill: templateIds de talento aprendidos
+    runes: str = ""  # "runeId:gp:swallow,..." (HeroRuneInfoMsg)
+    rune_key: str = ""  # runas equipadas, como o cliente lê: "204,-1,"
+    skill_script2: str = ""  # segundo conjunto de skills (8479/8480)
+    fast_key2: str = ""
+    skill_index: int = 0  # conjunto em uso
+    active_second: bool = False
 
 
 @dataclass(eq=False)
@@ -197,6 +205,92 @@ class Item:
     is_new: bool = True
 
 
+@dataclass(eq=False)
+class Pawn:
+    """Tropa (``ArmyPawnInfoMsg``): uma linha por tipo (SonType), no castelo e/ou no exército.
+
+    O exército tem um único slot (``sites`` 0); ``army_count`` > 0 diz que este tipo está nele.
+    """
+
+    character_id: int
+    template_id: int  # muda a cada evolução (NextLevelTemplateId)
+    id: int | None = None
+    castle_count: int = 0
+    army_count: int = 0
+    specials: str = ""  # specialTempIds (especialidade salva)
+    comprehend: str = ""  # comprehednTempIds (sorteada no 8455, ainda não salva)
+    bless: int = 0
+    fight_pos: int = 3  # posição na formação (8276); o oficial manda 3 por padrão
+
+
+class StarBag(IntEnum):
+    TEMP = 0  # sorteadas, ainda não recolhidas
+    BAG = 1
+    EQUIP = 2
+
+
+@dataclass(eq=False)
+class Star:
+    """Estrela (``StarInfoMsg``)."""
+
+    character_id: int
+    template_id: int
+    id: int | None = None
+    bag_type: int = StarBag.TEMP
+    pos: int = 0
+    grade: int = 1
+    gp: int = 0
+    locked: bool = False
+
+
+@dataclass(eq=False)
+class Pet:
+    """Pet (``PetInfoMsg``). Atributos derivados vêm do template + nível; aqui só o que muda."""
+
+    character_id: int
+    template_id: int
+    name: str
+    id: int | None = None
+    grade: int = 1
+    gp: int = 0
+    power: int = 0  # pontos distribuídos
+    intel: int = 0
+    physi: int = 0
+    armor: int = 0
+    power_apti: int = 0
+    intel_apti: int = 0
+    physi_apti: int = 0
+    armor_apti: int = 0
+    growth_rate: int = 0
+    quality: int = 0
+    is_fight: bool = False
+    follow_skills: str = ""
+    change_skills: str = ""
+    fast_key: str = ""
+    pos: int = 0  # ordem na lista (14 = mover para o topo)
+
+
+@dataclass(eq=False)
+class PlayerSystems:
+    """Estado de uma linha por personagem dos sistemas do herói (criada na primeira vez que é usada)."""
+
+    character_id: int
+    id: int | None = None
+    mount_template: int = 0  # montaria em uso (0 = nenhuma)
+    mount_gp: str = "0,0,0,0"  # EXP de força, inteligência, físico, agilidade
+    mount_avatars: str = ""  # montarias possuídas: "1000,1103"
+    dragon_type: int = 0  # 101 alma do dragão, 102 depois da transferência
+    dragon_grade: int = 0
+    dragon_gp: int = 0
+    fate: str = ""  # destino: "sonType:gp,..."
+    fate_turns: int = 0  # giros da roda no dia ``fate_day``
+    fate_day: str = ""
+    star_sites: str = "1,0,0,0,0"  # cristais abertos para sortear estrelas
+    star_bag: int = 0  # espaços comprados na mochila de estrelas
+    powcards: str = ""  # cartas: "tempId:grade:gp,..."
+    pet_slots: int = 0  # limites de pet comprados
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerSnapshot:
     """Tudo que o login precisa de uma vez (carregado numa transação)."""
@@ -209,6 +303,10 @@ class PlayerSnapshot:
     buildings: list[Building] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
+    pawns: list[Pawn] = field(default_factory=list)
+    stars: list[Star] = field(default_factory=list)
+    pets: list[Pet] = field(default_factory=list)
+    systems: PlayerSystems | None = None  # o serviço cria em memória quando não existe
 
     @property
     def leader(self) -> Hero | None:

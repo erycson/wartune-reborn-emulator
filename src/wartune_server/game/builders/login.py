@@ -102,8 +102,10 @@ class HeroStats:
         return cls(own | derived, attrs | total)
 
 
-def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfoMsg:
-    skills = [s for s in hero.skill_script.split(",") if s]
+def hero_info(hero: Hero, player_id: int, stats: HeroStats, talent_point: int = 0) -> pb.SimpleHeroInfoMsg:
+    second = hero.skill_index == 1
+    skills = [s for s in (hero.skill_script2 if second else hero.skill_script).split(",") if s]
+    fast_key = hero.fast_key2 if second else hero.fast_key
     msg = pb.SimpleHeroInfoMsg(
         heroId=hero.id or 0,
         nickName=hero.nickname,
@@ -112,7 +114,7 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfo
         remainPoint=hero.remain_point,
         skillPoint=hero.skill_point,
         skillScript="".join(f"{s}," for s in skills),
-        fastKey=hero.fast_key or "".join(f"{s[:3]}," for s in skills),
+        fastKey=fast_key or "".join(f"{s[:3]}," for s in skills),
         hp=stats.live,
         powerPoint=hero.power_point,
         agilityPoint=hero.agility_point,
@@ -123,11 +125,26 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfo
         # o oficial omite; o complete() mandaria 0 e o cliente zera o nível do herói (hasGrade),
         # aí nenhuma missão com NeedMinLevel 1 fica disponível e o tutorial trava no 12000
         grade=hero.grades,
+        skillIndex=hero.skill_index,
+        isActiveSecond=hero.active_second,
     )
+    if hero.talent_grade:  # o oficial só manda depois de abrir o talento (nível 40)
+        msg.talentPoint, msg.talentGrade, msg.talentSkill = talent_point, hero.talent_grade, hero.talent_script
+    if hero.runes:
+        msg.rune.CopyFrom(rune_msg(hero, player_id))
     for name, value in stats.base.items():
         setattr(msg, "base" + name, value)
     for name, value in stats.total.items():
         setattr(msg, "total" + name, value)
+    return msg
+
+
+def rune_msg(hero: Hero, player_id: int) -> pb.HeroRuneMsg:
+    """``rune``: runas aprendidas e as equipadas (oficial: runeinfo{204,150,0} runeKey "204,-1,")."""
+    msg = pb.HeroRuneMsg(userId=player_id, runeKey=hero.rune_key or "-1,-1,")
+    for entry in filter(None, hero.runes.split(",")):
+        rune_id, gp, swallow = (int(x) for x in entry.split(":"))
+        msg.runeinfo.add(runeId=rune_id, runeGp=gp, swallowCount=swallow)
     return msg
 
 
@@ -177,7 +194,13 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
 
 
 def army_msg(
-    snap: PlayerSnapshot, castle: Castle, hero: pb.SimpleHeroInfoMsg, fighting_capacity: int, arm: str = ""
+    snap: PlayerSnapshot,
+    castle: Castle,
+    hero: pb.SimpleHeroInfoMsg,
+    fighting_capacity: int,
+    arm: str = "",
+    pawn: pb.ArmyPawnInfoMsg | None = None,
+    mount: int = 0,
 ) -> pb.ArmyArmyMsg:
     c = snap.character
     msg = pb.ArmyArmyMsg(
@@ -192,7 +215,11 @@ def army_msg(
         grades=c.grades,
         arm=arm,
     )
+    if pawn is not None:  # sem tropa o oficial não manda armyPawn (o tutorial compara)
+        msg.armyPawn.append(pawn)
     msg.simpleHeroInfo.CopyFrom(hero)
+    if mount:
+        msg.mountTempId = mount
     return msg
 
 

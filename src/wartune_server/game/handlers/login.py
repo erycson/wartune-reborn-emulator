@@ -19,6 +19,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from .. import rules, space
 from ..builders import login as b
 from ..builders import player as pb_player
+from ..builders.army import army_pawn_msg, castle_pawns
 from ..router import router
 from ..session import LOGIN_CODE, GameSession
 
@@ -42,15 +43,19 @@ S_VERSION = 4233
 S_SNS = 4245
 S_QUESTS = 112
 S_ITEMS = 115
+S_CASTLE_PAWNS = 100
 
 
 def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     leader, castle = snap.leader, snap.castle
     assert leader is not None and castle is not None and snap.character.id is not None
-    stats = rules.leader_stats(snap, s.ctx.templates)
-    hero = b.hero_info(leader, snap.character.id, stats)
-    arm = rules.arm_avatar(snap, s.ctx.templates)
-    return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm), stats.fighting_capacity
+    templates = s.ctx.templates
+    stats = rules.leader_stats(snap, templates)
+    hero = b.hero_info(leader, snap.character.id, stats, rules.talent_points(leader, templates))
+    arm = rules.arm_avatar(snap, templates)
+    pawn = army_pawn_msg(snap, templates, snap.character.id)
+    mount = rules.systems(snap).mount_template
+    return b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount), stats.fighting_capacity
 
 
 def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
@@ -147,6 +152,9 @@ async def _login_state(s: GameSession) -> None:
         for item in snap.items:
             bag.MergeFrom(pb_player.item_moved(item.bag_type, item.object_id, item.pos, item, s.player_id))
         s.send(S_ITEMS, bag)
+    # tropas do castelo (oficial: login.json #6); personagem sem tropas não recebe
+    if snap.pawns:
+        s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
