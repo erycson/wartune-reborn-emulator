@@ -8,7 +8,22 @@ from typing import Self
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from ..domain.models import Account, Building, Castle, Character, GameServer, Hero, Item, PlayTicket, Quest
+from ..domain.models import (
+    Account,
+    Building,
+    Castle,
+    Character,
+    Consortia,
+    ConsortiaEvent,
+    ConsortiaInvite,
+    ConsortiaItem,
+    ConsortiaMember,
+    GameServer,
+    Hero,
+    Item,
+    PlayTicket,
+    Quest,
+)
 
 
 class _Repo:
@@ -139,6 +154,33 @@ class SqlItemRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlGuildRepository(_Repo):
+    """Leitura de tudo da guilda de um servidor (fica em memória no ``Guilds``; grava pelo ``save``)."""
+
+    async def load(
+        self, server_id: int
+    ) -> tuple[
+        list[Consortia], list[ConsortiaMember], list[ConsortiaInvite], list[ConsortiaEvent], list[ConsortiaItem]
+    ]:
+        guilds = list(await self._s.scalars(select(Consortia).where(Consortia.server_id == server_id)))  # type: ignore[arg-type]
+        ids = [g.id for g in guilds]
+
+        async def rows[T](cls: type[T]) -> list[T]:
+            query = select(cls).where(cls.consortia_id.in_(ids)).order_by(cls.id)  # type: ignore[attr-defined]
+            return list(await self._s.scalars(query))
+
+        return (
+            guilds,
+            await rows(ConsortiaMember),
+            await rows(ConsortiaInvite),
+            await rows(ConsortiaEvent),
+            await rows(ConsortiaItem),
+        )
+
+    async def characters(self, ids: list[int]) -> list[Character]:
+        return list(await self._s.scalars(select(Character).where(Character.id.in_(ids))))  # type: ignore[union-attr]
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -154,6 +196,7 @@ class SqlAlchemyUnitOfWork:
         self.buildings = SqlBuildingRepository(self._session)
         self.quests = SqlQuestRepository(self._session)
         self.items = SqlItemRepository(self._session)
+        self.guilds = SqlGuildRepository(self._session)
         return self
 
     async def __aexit__(

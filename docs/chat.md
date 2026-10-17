@@ -90,16 +90,15 @@ yanıtını bekleyin", 83 canal 3. `login.json #68/#79`: 4156 em 2 páginas, rel
 
 - Correio: a lista é HTTP (`maillist`, XML zlib); hoje responde vazio (`http/app.py`). Socket:
   8205 enviar, 8206 apagar, 5022 anexo; 148 avisa correio novo.
-- Guilda: 5130 criar, 5142 convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207
-  membros, 8212 info; respostas 4138/164 info, 4133 membros, 162/163 entrou/saiu. Fica para depois
-  do resto (canal 5 depende dela).
+- Guilda: em [guilda.md](guilda.md). O canal 5 vai só para os membros online da guilda.
 
 ## No servidor
 
 `game/handlers/chat.py`:
 
 - 8198: mundo, para todos online. ponytail: grátis; item 208003, cota e 4500 depois.
-- 15005: canal 8 para todos online fora de batalha. Os canais 5 e 6 são recusados até existirem
-  guilda e time.
+- 15005: canal 8 para todos online fora de batalha; canal 5 para os membros online da guilda
+  (ponytail: 1 s entre mensagens). O canal 6 é recusado até existir time.
+- Todo 83 leva `consortiaId`/`consortiaName` de quem falou.
 - 15023: privado, com 4231 para o alvo e 4236 para quem enviou (`result -1` se offline).
 - 15038: 4256 com nome, nível e classe do jogador pedido.

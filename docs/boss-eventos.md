@@ -69,7 +69,8 @@ Visão geral e legenda em [multiplayer.md](multiplayer.md). Não há captura de 
 
 ## Boss de guilda
 
-Depende de guilda, então fica por último.
+A guilda está pronta ([guilda.md](guilda.md)); o altar abre (8541 -> 4436 para os membros, estado
+no 164/4138), mas a entrada (8542) é recusada: falta o mapa de campanha 7601 com as ondas.
 
 - **7601 "Lanetli İbadethane"** é a defesa do altar:
   - abertura: o servidor manda o 4436;
@@ -77,7 +78,8 @@ Depende de guilda, então fica por último.
   - relatório: o servidor manda o 4437 (durabilidade, ondas, `hurtOrder`).
 - **7501 "Birlik Sırrı"**: 8537.
 
-Não se sabe quem abre o altar.
+Quem abre é quem tem o direito 3 (só o chefe), com a guilda no nível 5, pagando 50000 ou 200000
+de riqueza (`Consortia_OpenAltar1_Offer`/`2`); m6 `ConsortiaSocektSendManager.sendOpenDemon`.
 
 ## Atividades ("Sıcak Etkinlik", SumActive)
 

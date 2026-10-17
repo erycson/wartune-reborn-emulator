@@ -11,14 +11,16 @@ from datetime import timedelta
 
 from ...domain.errors import NotFoundError
 from ...protocol.messages import wartune_pb2 as pb
+from .. import guild
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
 
 S_CHAT, S_PRIVATE, S_PRIVATE_REPLY, S_USER_INFO = 83, 4231, 4236, 4256
-CURRENT, WORLD = 8, 10
+GUILD, CURRENT, WORLD = 5, 8, 10
 MIN_GRADE, MAX_LEN = 6, 76  # ChatHelper / ChatInputViewII
-COOLDOWN = {CURRENT: timedelta(seconds=10), WORLD: timedelta(seconds=2)}
+# ponytail: o cliente não limita a guilda (ChatHelper); 1 s contra spam
+COOLDOWN = {GUILD: timedelta(seconds=1), CURRENT: timedelta(seconds=10), WORLD: timedelta(seconds=2)}
 PRIVATE_COOLDOWN = timedelta(seconds=1)  # ponytail: o cliente não limita o privado; 1 s contra spam
 OFFLINE = -1  # 4236.result: "o jogador não está online"
 _TAG = re.compile(r"<[^>]*>")
@@ -46,8 +48,17 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
         s.log.info("chat recusado", canal=channel, tamanho=len(msg.encodeMsg))
         return
     c = snap.character
+    mine = s.ctx.guilds.of(s.player_id)
     out = pb.ChatChannelMsg(channel=channel, encodeMsg=text, otherId=c.id, name=c.nickname or "")
+    if mine is not None:
+        out.consortiaId, out.consortiaName = mine[0].id or 0, mine[0].name
     # o cliente não mostra a própria mensagem ao enviar: quem falou também recebe o 83
+    if channel == GUILD:
+        if mine is None:
+            return
+        for o in guild.online_members(s.ctx, mine[0].id or 0):
+            o.send(S_CHAT, b.complete(out))
+        return
     s.ctx.online.broadcast(S_CHAT, b.complete(out))
 
 
@@ -59,14 +70,14 @@ async def world_chat(s: GameSession, msg: pb.ChatChannelMsg) -> None:
 
 @router.on(15005)
 async def channel_chat(s: GameSession, msg: pb.ChatChannelMsg) -> None:
-    """Canal da cena (8). Guilda (5) e time (6) ficam recusados até existirem.
+    """Canal da cena (8) e da guilda (5, só membros online). Time (6) fica recusado até existir.
 
     ponytail: "cena" = todos online até existir o registro de cenas (cidade do céu).
     """
-    if msg.channel != CURRENT:
+    if msg.channel not in (CURRENT, GUILD):
         s.log.info("canal de chat não suportado", canal=msg.channel)
         return
-    await _say(s, msg, CURRENT)
+    await _say(s, msg, msg.channel)
 
 
 @router.on(15023)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -18,6 +18,7 @@ from ..services.characters import CharacterService
 from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
+from .guild import Guilds
 from .router import PacketRouter
 
 if TYPE_CHECKING:
@@ -41,6 +42,7 @@ class GameContext:
     templates: GameTemplates
     clock: Clock
     online: OnlinePlayers
+    guilds: Guilds = field(default_factory=Guilds)
 
 
 class OnlinePlayers:
@@ -128,9 +130,11 @@ class GameSession:
         if self.battle is not None:
             self.battle.cancel()
         if self.snapshot is not None:
-            from . import space  # space importa este módulo
+            from . import guild, rules, space  # space importa este módulo
 
             space.leave(self)
+            if self.snapshot.leader is not None:
+                guild.on_logout(self, rules.leader_stats(self.snapshot, self.ctx.templates).fighting_capacity)
             self.ctx.online.unbind(self.player_id, self)
             self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()

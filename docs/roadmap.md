@@ -26,10 +26,11 @@
 
 Levantamento e ordem em [multiplayer.md](multiplayer.md).
 
-- [x] Chat: mundo, cena, privado ([chat.md](chat.md)); guilda, time e cornetas pagas depois
+- [x] Chat: mundo, cena, privado, guilda ([chat.md](chat.md)); time e cornetas pagas depois
 - [x] Cidade do céu: ver outros jogadores andando ([mundo-compartilhado.md](mundo-compartilhado.md)); relogin espera a sessão anterior
 - [ ] Coliseu contra robôs e cópias de jogadores
 - [ ] Atividades (SumActive): login e presente online
 - [ ] Boss mundial
 - [ ] Amigos, times, mina de ouro, torneio de fadas
-- [ ] Guilda, boss de guilda, ataque a castelo
+- [x] Guilda: criar, entrar, cargos, contribuição, melhorias, habilidades, mercado, bênção, baú ([guilda.md](guilda.md))
+- [ ] Boss de guilda (altar), terra secreta, guerra de guildas: falta o mapa de campanha; ataque a castelo

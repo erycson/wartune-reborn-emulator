@@ -107,6 +107,17 @@ class Character:
     geste: int = 0
     charm: int = 0
     last_login_at: datetime | None = None
+    # guilda: só o que o próprio jogador muda (a filiação fica em ``ConsortiaMember``)
+    consortia_offer: int = 0  # contribuição disponível (gasta no mercado e nas habilidades)
+    consortia_total_offer: int = 0
+    skill_attack: int = 0  # habilidades aprendidas na guilda (tipos 6, 8-12 do ConsortiaLevelInfos)
+    skill_agility: int = 0
+    skill_ability: int = 0
+    skill_captain: int = 0
+    skill_gold: int = 0
+    skill_physique: int = 0
+    is_auto: bool = False  # saiu por conta própria: 24 h sem entrar em outra (PlayerMsg.isAuto)
+    last_out_consortia: datetime | None = None
 
     @property
     def icon(self) -> int:
@@ -195,6 +206,96 @@ class Item:
     count: int = 1
     random_skill: int = 0  # randomSkill_1 (atributo extra sorteado, ex. 70302 "Zeka+2")
     is_new: bool = True
+
+
+@dataclass(eq=False)
+class Consortia:
+    """Guilda (``ConsortiaInfoMsg``). Níveis por tipo do ``ConsortiaLevelInfos``."""
+
+    server_id: int
+    name: str
+    creator_id: int
+    creator_name: str
+    chairman_id: int
+    created_at: datetime
+    id: int | None = None
+    levels: int = 1  # tipo 1
+    shop_level: int = 0  # 2
+    altar_level: int = 0  # 3
+    school_level: int = 0  # 4
+    store_level: int = 0  # 5
+    attack_level: int = 0  # 6..12: pesquisa das habilidades
+    defence_level: int = 0
+    agility_level: int = 0
+    ability_level: int = 0
+    captain_level: int = 0
+    gold_level: int = 0
+    physique_level: int = 0
+    offer: int = 0  # riqueza (gasta nas melhorias)
+    total_offer: int = 0
+    placard: str = ""
+    description: str = ""
+    group_placard: str = ""
+    open_app: bool = True
+    code_type: int = 0  # tipo da última melhoria (o cliente conta a espera a partir de code_begin_at)
+    code_need: int = 0  # segundos de espera
+    code_begin_at: datetime | None = None
+    kick_count: int = 0
+    kick_at: datetime | None = None
+    altar_state: int = 0
+    altar_at: datetime | None = None
+    max_wave: int = 0
+    voting_state: int = 0
+    voting_id: int = 0
+    voting_at: datetime | None = None
+
+
+@dataclass(eq=False)
+class ConsortiaMember:
+    """Filiação: 1 chefe, 2 vice, 3 ancião, 4 e 5 membros (``dutyId``)."""
+
+    consortia_id: int
+    character_id: int
+    joined_at: datetime
+    id: int | None = None
+    duty_id: int = 5
+    today_offer: int = 0
+    offer_day: str = ""  # YYYY-MM-DD de ``today_offer``
+    bless_count: int = 0
+    bless_day: str = ""
+    voted_for: int = 0  # eleição de chefe: em quem votou na eleição ``Consortia.voting_id``
+    voted_id: int = 0
+
+
+@dataclass(eq=False)
+class ConsortiaInvite:
+    """Candidatura (``from_type`` falso) ou convite da guilda para o jogador (verdadeiro)."""
+
+    consortia_id: int
+    user_id: int
+    created_at: datetime
+    id: int | None = None
+    invite_id: int = 0  # quem convidou
+    from_type: bool = False
+
+
+@dataclass(eq=False)
+class ConsortiaEvent:
+    consortia_id: int
+    created_at: datetime
+    remark: str
+    id: int | None = None
+    type: int = 1
+
+
+@dataclass(eq=False)
+class ConsortiaItem:
+    """Baú de prêmios da guilda (4466), distribuído pelo chefe (8578)."""
+
+    consortia_id: int
+    template_id: int
+    id: int | None = None
+    count: int = 1
 
 
 @dataclass(frozen=True, slots=True)

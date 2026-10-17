@@ -7,7 +7,7 @@ SPACE). Detalhes e capturas em docs/mundo-compartilhado.md.
 
 from __future__ import annotations
 
-from ..domain.models import PlayerSnapshot
+from ..domain.models import Consortia, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import rules
@@ -21,7 +21,13 @@ POST_TUTORIAL = 19000  # noviceProcess da cena do castelo; antes disso o 4595 at
 
 
 def room_player(
-    snap: PlayerSnapshot, templates: GameTemplates, pos: tuple[int, int], campaign_id: int, *, cloth: str = ""
+    snap: PlayerSnapshot,
+    templates: GameTemplates,
+    pos: tuple[int, int],
+    campaign_id: int,
+    *,
+    cloth: str = "",
+    guild: Consortia | None = None,
 ) -> pb.RoomPlayerMsg:
     """Como o cliente desenha um jogador numa cena (``SpaceManager.readMember``)."""
     c, leader = snap.character, snap.leader
@@ -41,6 +47,8 @@ def room_player(
             curPosY=pos[1],
             campaignId=campaign_id,
             onlineState=True,
+            consortiaId=guild.id if guild else 0,
+            consortiaName=guild.name if guild else "",
         )
     )
 
@@ -48,7 +56,9 @@ def room_player(
 def _player(s: GameSession) -> pb.RoomPlayerMsg:
     assert s.snapshot is not None and s.space_pos is not None
     snap, templates = s.snapshot, s.ctx.templates
-    return room_player(snap, templates, s.space_pos, SPACE, cloth=rules.cloth_avatar(snap, templates))
+    mine = s.ctx.guilds.of(s.player_id)
+    cloth = rules.cloth_avatar(snap, templates)
+    return room_player(snap, templates, s.space_pos, SPACE, cloth=cloth, guild=mine[0] if mine else None)
 
 
 def _positions(sessions: list[GameSession]) -> pb.SpacePlayerMoveMsg:

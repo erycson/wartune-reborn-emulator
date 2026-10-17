@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rules, space
+from .. import guild, rules, space
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
@@ -55,7 +55,8 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
 
 def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
-    return b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap))
+    mine = s.ctx.guilds.of(snap.character.id or 0)
+    return b.player_msg(snap, fighting, s.ctx.clock.now(), rules.quest_bitmap(snap), mine[0] if mine else None)
 
 
 def _send(s: GameSession, code: int, msg: Message | None = None) -> None:
@@ -151,3 +152,4 @@ async def _login_state(s: GameSession) -> None:
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
     space.enter(s)  # o oficial cria a cidade do céu logo depois do 6
+    guild.on_login(s)

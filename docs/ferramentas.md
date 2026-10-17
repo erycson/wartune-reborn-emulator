@@ -4,6 +4,7 @@
 
 * O FFDec está em `D:\xampp\htdocs\wartune-cdn\_tools\ffdec-26.2.1\ffdec.jar` e roda com o JRE portátil de `D:\wartune\tools\jdk-21.0.12.1+1-jre`.
 * Os módulos do relay (`2.png`, `3.png`… são SWFs) foram decompilados em `D:\wartune\decompiled\m{2,3,4,5,8,10,11,15,16}\scripts`. O **m2** é o código principal: 2600 classes, 648 delas de protobuf.
+* O **m6** (janelas da guilda) não existe no relay: foi decompilado do CDN, `D:\xampp\htdocs\wartune-cdn\_analysis\decoded_swf\6.swf` (FFDec `-export script`). É de outro build, então confira os protobufs contra o m2; ele entra no `as3_to_proto.py` e no `scan_opcodes.py` só pelas classes que o m2 não tem (`ConditionSpeakMsg`, `ConsortiaVotingReqMsg`).
 * O módulo Loading (login, criação de personagem) está em `D:\wartune\server-relay\decoded client\Loading\scripts`.
 * Use as versões do relay, não as do CDN: os `.png` com código no CDN são diferentes, e os do relay foram validados contra a captura.
 

@@ -13,7 +13,7 @@ from datetime import datetime
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message
 
-from ...domain.models import Castle, Character, Hero, PlayerSnapshot
+from ...domain.models import Castle, Character, Consortia, Hero, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
 
@@ -131,7 +131,9 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats) -> pb.SimpleHeroInfo
     return msg
 
 
-def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, quest_site: bytes) -> pb.PlayerMsg:
+def player_msg(
+    snap: PlayerSnapshot, fighting_capacity: int, now: datetime, quest_site: bytes, guild: Consortia | None = None
+) -> pb.PlayerMsg:
     c: Character = snap.character
     msg = pb.PlayerMsg(
         playerId=c.id,
@@ -171,6 +173,18 @@ def player_msg(snap: PlayerSnapshot, fighting_capacity: int, now: datetime, ques
         lastFreeSkillLearnTime=NEVER,
         rentalBagTime=NEVER,
         status=-1,
+        consortiaId=guild.id if guild else 0,
+        consortiaName=guild.name if guild else "",
+        consortiaOffer=c.consortia_offer,
+        consortiaTotaloffer=c.consortia_total_offer,
+        consortiaAttack=c.skill_attack,
+        consortiaAgility=c.skill_agility,
+        consortiaAbility=c.skill_ability,
+        consortiaCaptain=c.skill_captain,
+        consortiaGold=c.skill_gold,
+        consortiaPhysique=c.skill_physique,
+        isAuto=c.is_auto,
+        lastOutConsortia=fmt_time(c.last_out_consortia) if c.last_out_consortia else NEVER,
     )
     msg.order.playerId = c.id or 0
     return msg
