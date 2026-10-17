@@ -60,6 +60,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'e2e.db'}",
         rsa_key_file=tmp_path / "rsa.pem",
         log_dir=tmp_path / "logs",
+        skip_tutorial=True,
         _env_file=None,  # type: ignore[call-arg]
     )
     services = await build_services(settings)

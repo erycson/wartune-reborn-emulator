@@ -17,7 +17,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
 | `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | |
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |
-| `WARTUNE_SKIP_TUTORIAL` | `true` | `noviceProcess` mínimo de 19000 (cena do castelo); `false` faz o tutorial ([tutorial.md](tutorial.md)) |
+| `WARTUNE_SKIP_TUTORIAL` | `false` | faz o tutorial ([tutorial.md](tutorial.md)); `true` mantém o `noviceProcess` em no mínimo 19000 (cena do castelo) |
 | `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |
 | `WARTUNE_IDLE_TIMEOUT_SECONDS` | `300` | desconecta um socket ocioso |
 | `WARTUNE_LOG_DIR` | `logs` | |
@@ -36,7 +36,7 @@ O portal tem a própria configuração em `D:\xampp\htdocs\wartune-reborn\portal
 ```
 uv run wartune-server run                          # sobe o servidor (Ctrl+C encerra com limpeza)
 uv run wartune-server db init                      # cria as tabelas
-uv run wartune-server character novice 2 0          # refaz o tutorial do personagem 2 (use com SKIP_TUTORIAL=false)
+uv run wartune-server character novice 2 0          # refaz o tutorial do personagem 2
 ```
 
 ## Logs

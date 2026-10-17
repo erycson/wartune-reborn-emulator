@@ -1,6 +1,6 @@
 # Tutorial (campanha de treino)
 
-Personagem novo com `noviceProcess < 19000` (e `WARTUNE_SKIP_TUTORIAL=false`) começa na campanha de
+Personagem novo com `noviceProcess < 19000` (o padrão; `WARTUNE_SKIP_TUTORIAL=true` pula) começa na campanha de
 treino: dois mapas, 10001 e 10002 ("Ryan Yolu"), com cinco batalhas, um baú com a arma da
 classe, a Tina como escolta e, no fim, a batalha do chefe na cidade externa para retomar o
 castelo. Tudo foi reproduzido da captura oficial (`server-relay/replay_packets.json`, pacotes
@@ -113,7 +113,6 @@ no total. O poder de combate ainda é aproximado (bate no nível 1).
 ## Para testar no cliente
 
 ```
-WARTUNE_SKIP_TUTORIAL=false
 uv run wartune-server character novice <id> 0
 ```
 

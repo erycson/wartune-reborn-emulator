@@ -17,7 +17,7 @@
 - Prédios do castelo (`BuildingInfoListMsg` a partir de `BuildingTempInfos`) e produção de recursos
 - [x] Tutorial completo: mapas 10001/10002, batalhas, missões 10–45, baú e equipar, chefe da cidade externa ([tutorial.md](tutorial.md))
 - [x] Batalha PvE em tempo real ([batalha.md](batalha.md))
-- [ ] **Validar o tutorial no cliente** (`WARTUNE_SKIP_TUTORIAL=false`)
+- [ ] **Validar o tutorial no cliente**
 - Fórmulas reais de dano, iniciativa e poder de combate
 - Cidade externa de verdade: terras selvagens, castelos vizinhos, outros jogadores
 - Atividades (4476), títulos (4484), moda (8625), patrulha dos monstros (4122)
