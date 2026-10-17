@@ -25,6 +25,7 @@ from ..router import router
 from ..session import GameSession
 from .guild import shop_buy as guild_shop_buy
 from .player import _army, _player
+from .tower import MAZE_MAX_INDEX
 
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
 S_SHOP_BUY, S_HAS_BUY, S_FASHION_BUY, S_BLOOD = 90, 4145, 4486, 170
@@ -35,6 +36,7 @@ OK, NO_PLAYER, NO_ITEM, NO_MONEY, LIMIT, VIP, GONE, GUILD, LEVEL, FAIL = 1, 2, 3
 CURRENCY_ITEMS = {"Honor": 208001, "MazeCoin": 208009}  # BuyFrameI.PayMoney
 PRICE_COLUMNS = ("Point", "GiftToken", "Gold", "Honor", "ConsortiaOffer", "MazeCoin")
 MYSTERY, BLOOD, MAIN_OFFER = "5", "100", "99"  # ShopType: misteriosa, poção de HP, itens das ofertas da home
+MAZE = "4"  # ShopType: loja do labirinto, preço em Labirent Parası (208009, MazeCoin)
 MYSTERY_GOODS = 8  # ponytail: a tela da loja misteriosa não está no cliente decompilado; 8 é palpite
 MAX_COUNT = 999
 
@@ -91,6 +93,11 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
         return NO_ITEM
     if int(row.get("NeedMinVip") or 0) > 0:  # ponytail: nenhuma loja tem NeedMinVip hoje; regra não conferida
         return VIP
+    maze = row.get("ShopType") == MAZE
+    if maze and (int(row.get("MazeLayers") or 0) > MAZE_MAX_INDEX or int(row.get("MazeLayers2") or 0) > 0):
+        # ponytail: o cliente esconde o botão se o andar passa do maxIndex (GoodsItem.as:380; o 4205 manda 60 fixo)
+        # ou se é do segundo labirinto (towerInfo2 nunca chega). Progresso real do labirinto não existe. Código: dedução
+        return FAIL
     if int(row.get("NeedConsortiaLevels") or 0) > 0:  # depende da guilda
         return GUILD
     low, high = int(row.get("NeedGrades") or 0), int(row.get("NeedMaxGrade") or 0)
