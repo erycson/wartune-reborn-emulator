@@ -14,9 +14,9 @@ from ...domain.models import BagType, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, Row
 from .. import bag
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from .player import castle_yield
 from .shop import alert, send
 
 S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89

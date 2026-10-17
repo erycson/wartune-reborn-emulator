@@ -22,6 +22,7 @@ from wartune_server.net.servers import start_tcp
 from wartune_server.persistence.repositories import SqlAlchemyUnitOfWork
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import Clock
 
 
 @dataclass
@@ -63,7 +64,7 @@ class Game:
 
 
 @asynccontextmanager
-async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIterator[Game]:
+async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6, clock: Clock | None = None) -> AsyncIterator[Game]:
     """Servidor no ar e a conta "maga" logada. ``game.join("outro")`` loga mais um jogador."""
     settings = Settings(
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'game.db'}",
@@ -72,7 +73,7 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6) -> AsyncIter
         skip_tutorial=False,
         _env_file=None,  # type: ignore[call-arg]
     )
-    services = await build_services(settings)
+    services = await build_services(settings, clock)
     portal = Portal(lambda: SqlAlchemyUnitOfWork(services.database.sessions))
     server = GameServerApp(settings, services)
     tcp = await start_tcp(server.acceptor, "127.0.0.1", 0)

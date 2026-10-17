@@ -13,6 +13,7 @@ from ..domain.models import (
     Arena,
     ArenaRank,
     Building,
+    BuildOrder,
     Castle,
     ChallengeLog,
     Character,
@@ -21,6 +22,7 @@ from ..domain.models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    FarmLand,
     FriendGroup,
     GameServer,
     Hero,
@@ -300,6 +302,18 @@ class SqlGuildRepository(_Repo):
         return list(await self._s.scalars(select(Character).where(Character.id.in_(ids))))  # type: ignore[union-attr]
 
 
+class SqlBuildOrderRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[BuildOrder]:
+        query = select(BuildOrder).where(BuildOrder.character_id == character_id).order_by(BuildOrder.order_id)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
+class SqlFarmLandRepository(_Repo):
+    async def by_character(self, character_id: int) -> list[FarmLand]:
+        query = select(FarmLand).where(FarmLand.character_id == character_id).order_by(FarmLand.pos)  # type: ignore[arg-type]
+        return list(await self._s.scalars(query))
+
+
 class SqlAlchemyUnitOfWork:
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -322,6 +336,8 @@ class SqlAlchemyUnitOfWork:
         self.marriages = SqlMarriageRepository(self._session)
         self.arena = SqlArenaRepository(self._session)
         self.guilds = SqlGuildRepository(self._session)
+        self.orders = SqlBuildOrderRepository(self._session)
+        self.lands = SqlFarmLandRepository(self._session)
         return self
 
     async def __aexit__(

@@ -11,10 +11,10 @@ from .. import items, social
 from .. import mail as mailbox
 from ..builders import login as b
 from ..builders.player import item_moved
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import player_info
-from .player import castle_yield
 
 S_PICKUP, S_MAIL_UPDATE, S_DELETED, S_MAIL_CHECK, S_ITEMS, S_PLAYER = 114, 4131, 4132, 337, 115, 3
 SEND_COST = 100  # EmailControler.sendEmail: precisa de 100 de ouro

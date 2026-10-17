@@ -19,10 +19,11 @@ from ...templates.repository import Row
 from .. import bag, rules, space
 from ..builders import login as b
 from ..builders.player import fashion_book, item_info, item_moved
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import fashion
-from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, castle_yield
+from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL = 4125, 4709, 4268

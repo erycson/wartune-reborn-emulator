@@ -20,9 +20,10 @@ from ...services import cash
 from ...templates.repository import Row
 from .. import bag, rules
 from ..builders import login as b
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from .player import _army, _player, castle_yield
+from .player import _army, _player
 
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
 S_SHOP_BUY, S_HAS_BUY, S_FASHION_BUY, S_BLOOD = 90, 4145, 4486, 170

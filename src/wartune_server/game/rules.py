@@ -12,6 +12,7 @@ from .builders.login import QUEST_SITE_LEN, HeroStats
 
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
+BUILDING_CONDITION = 2  # QuestConditionInfo: prédio SonType Para1 no nível Para2 (progresso = nível atual)
 WEAPON, CLOTH = "101", "104"  # ItemTempInfo.SonType
 WING, HAT, FASHION_CLOTH, FASHION_ARM = "109", "110", "112", "111"
 HERO_BAGS = (BagType.RUNE, BagType.HONOR, BagType.HERO)  # bolsas do herói que somam atributos
@@ -143,6 +144,7 @@ def accept_quest(snap: PlayerSnapshot, templates: GameTemplates, template_id: in
     q = Quest(snap.character.id or 0, template_id, now)
     snap.quests.append(q)
     update_novice_quests(snap, templates)
+    update_building_quests(snap, templates)
     return q
 
 
@@ -156,6 +158,25 @@ def update_novice_quests(snap: PlayerSnapshot, templates: GameTemplates) -> list
         novice = cond is not None and int(cond["CondictionType"]) == NOVICE_CONDITION
         if novice and cond is not None and snap.character.novice_process > int(cond["Para1"]):
             q.progress = int(cond["Para2"])
+            changed.append(q)
+    return changed
+
+
+def update_building_quests(snap: PlayerSnapshot, templates: GameTemplates) -> list[Quest]:
+    """Missões "evolua o prédio X" (tipo 2) cujo progresso mudou: vale o nível atual do prédio."""
+    grades: dict[str, int] = {}
+    for building in snap.buildings:
+        row = templates.get("BuildingTempInfos", building.template_id)
+        if row is not None:
+            grades[row["SonType"]] = max(grades.get(row["SonType"], 0), int(row["BuildingGrade"]))
+    changed = []
+    for q in snap.quests:
+        cond = templates.get("QuestCondictionInfos", q.template_id)
+        if q.completed or cond is None or int(cond["CondictionType"]) != BUILDING_CONDITION:
+            continue
+        grade = min(grades.get(cond["Para1"], 0), int(cond["Para2"]))
+        if grade != q.progress:
+            q.progress = grade
             changed.append(q)
     return changed
 

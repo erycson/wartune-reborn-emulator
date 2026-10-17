@@ -143,6 +143,10 @@ class GameHttpApi:
                 if self._skip_tutorial:
                     value = max(value, TUTORIAL_DONE)
                 await self._d.characters.set_novice_process(character_id, value)
+                # a sessão online grava o personagem inteiro (5015, saída...): sem isto, desfaria o valor
+                online = self._d.online.get(character_id)
+                if online is not None and online.snapshot is not None:
+                    online.snapshot.character.novice_process = max(0, value)
             snap = await self._d.characters.snapshot(character_id)
         except DomainError as exc:
             log.info("updateplayernovice recusado", erro=str(exc))

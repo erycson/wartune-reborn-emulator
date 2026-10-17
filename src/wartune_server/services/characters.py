@@ -167,6 +167,8 @@ class CharacterService:
             shop_buys = await uow.by_character(ShopBuy, character_id)
             fashions = await uow.by_character(FashionBook, character_id)
             mystery = await uow.by_character(MysteryShop, character_id)
+            orders = await uow.orders.by_character(character_id)
+            lands = await uow.lands.by_character(character_id)
         if account is None or server is None:
             raise NotFoundError("conta ou servidor do personagem não encontrado")
         return PlayerSnapshot(
@@ -186,6 +188,8 @@ class CharacterService:
             shop_buys,
             fashions,
             mystery,
+            orders,
+            lands,
         )
 
     async def read[T](self, query: Callable[[UnitOfWork], Awaitable[T]]) -> T:

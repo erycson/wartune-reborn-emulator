@@ -6,14 +6,14 @@ from ...protocol.messages import wartune_pb2 as pb
 from .. import rules
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
-S_CHAT, S_ALERT, S_CASTLE_YIELD, S_FAST_KEY, S_TIME = 83, 111, 109, 64, 4234
-GOLD_MAX, CRYSTALS = 10000, 1000  # ponytail: armazém e cristais fixos até existirem no banco
-CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token"}  # TemplateId < 0
+S_CHAT, S_ALERT, S_FAST_KEY, S_TIME = 83, 111, 64, 4234
+CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
 
 
 def _player(s: GameSession) -> None:
@@ -24,18 +24,6 @@ def _player(s: GameSession) -> None:
 def _army(s: GameSession) -> None:
     assert s.snapshot is not None
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
-
-
-def castle_yield(s: GameSession) -> None:
-    assert s.snapshot is not None
-    msg = pb.CastleYieldMsg(goldYield=0, goldTotalCount=s.snapshot.character.gold, goldMax=GOLD_MAX)
-    msg.curPopulation, msg.maxPopulation, msg.crystalsCount = 0, 0, CRYSTALS
-    s.send(S_CASTLE_YIELD, msg)
-
-
-@router.on(5015)
-async def castle_update(s: GameSession, _: object) -> None:
-    castle_yield(s)
 
 
 @router.on(20008)

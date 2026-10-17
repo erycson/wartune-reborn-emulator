@@ -10,6 +10,7 @@ from .models import (
     Arena,
     ArenaRank,
     Building,
+    BuildOrder,
     Castle,
     ChallengeLog,
     Character,
@@ -18,6 +19,7 @@ from .models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    FarmLand,
     FriendGroup,
     GameServer,
     Hero,
@@ -126,6 +128,14 @@ class GuildRepository(Protocol):
     async def characters(self, ids: list[int]) -> list[Character]: ...
 
 
+class BuildOrderRepository(Protocol):
+    async def by_character(self, character_id: int) -> list[BuildOrder]: ...
+
+
+class FarmLandRepository(Protocol):
+    async def by_character(self, character_id: int) -> list[FarmLand]: ...
+
+
 class UnitOfWork(Protocol):
     """Uma transação. Uso: ``async with uow_factory() as uow: ...; await uow.commit()``.
 
@@ -167,6 +177,11 @@ class UnitOfWork(Protocol):
 
     async def by_character[T](self, entity: type[T], character_id: int) -> list[T]:
         """Linhas de uma tabela de estado do jogador (lojas, moda...) em ordem de id."""
+
+    @property
+    def orders(self) -> BuildOrderRepository: ...
+    @property
+    def lands(self) -> FarmLandRepository: ...
 
     async def save(self, entity: object) -> None:
         """Grava uma entidade nova ou carregada antes (já destacada da transação)."""

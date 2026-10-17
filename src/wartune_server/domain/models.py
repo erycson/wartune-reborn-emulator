@@ -99,6 +99,7 @@ class Character:
     point: int = 0  # moeda premium
     gift_token: int = 0
     strategy: int = 0  # "Ruh" (alma), moeda -300
+    crystals: int = 1000  # cristais (-600): custo das tecnologias; o oficial começa com 1000
     weary: int = 200
     weary_limit: int = 200
     novice_process: int = 0
@@ -135,6 +136,12 @@ class Character:
     store_grade: int = 0  # nível do cristal (8484, PlayerMsg.storeGrade)
     store_gp: int = 0
     appell_id: int = 0  # título em uso
+    # caixa por tempo (5019): último período recebido hoje e segundos online contados até ``box_counted_at``
+    box_period: int = 0
+    box_seconds: int = 0
+    box_counted_at: datetime | None = None
+    offline_at: datetime | None = None  # saída do jogo (recompensa offline)
+    offline_seconds: int = 0  # tempo offline ainda não resgatado (8287)
 
     @property
     def icon(self) -> int:
@@ -184,6 +191,49 @@ class Castle:
     grade: int = 1
     energy: int = 500
     state: int = 1
+    # ouro produzido até este instante; None = produção ainda parada (antes do 8281 do tutorial)
+    produced_at: datetime | None = None
+    impose_used: int = 0  # cobranças de ouro (8327) feitas no dia de ``imposed_at``
+    imposed_at: datetime | None = None
+    farm_grade: int = 1
+    farm_gp: int = 0  # EXP dentro do nível (UpGradeTempInfos tipo 17)
+    tree_water: int = 0  # regas da árvore
+    tree_fruit: int = 0
+    tree_watered_at: datetime | None = None
+    tree_picked_at: datetime | None = None
+
+
+@dataclass(eq=False)
+class BuildOrder:
+    """Fila de construção (``OrderInfoMsg``): o upgrade é imediato, a ordem só fica ocupada até
+    ``begin_at + need_time``. ``order_type``: 1 prédio, 2 tecnologia, 3 cobrança de ouro."""
+
+    character_id: int
+    order_id: int  # número da fila do jogador (1, 2...), não o id do banco
+    order_type: int
+    begin_at: datetime
+    need_time: int = 0  # segundos
+    id: int | None = None
+
+    def remain(self, now: datetime) -> int:
+        return max(0, int((self.begin_at - now).total_seconds()) + self.need_time)
+
+
+@dataclass(eq=False)
+class FarmLand:
+    """Terra plantada (``FarmLandInfoMsg``). Terra vazia não tem linha. ``worm``/``grass``: qual
+    das duas janelas (1 = 40%/30% do ciclo, 2 = 60%/50%) tem praga; 0 = já tirada."""
+
+    character_id: int
+    pos: int
+    item_template_id: int
+    planted_at: datetime
+    mature_at: datetime
+    reward_count: int = 0
+    worm: int = 0
+    grass: int = 0
+    accelerated: bool = False
+    id: int | None = None
 
 
 @dataclass(eq=False)
@@ -597,6 +647,8 @@ class PlayerSnapshot:
     shop_buys: list[ShopBuy] = field(default_factory=list)
     fashions: list[FashionBook] = field(default_factory=list)
     mystery: list[MysteryShop] = field(default_factory=list)  # zero ou um
+    orders: list[BuildOrder] = field(default_factory=list)
+    lands: list[FarmLand] = field(default_factory=list)
 
     @property
     def leader(self) -> Hero | None:

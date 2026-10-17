@@ -19,10 +19,10 @@ from .. import rules
 from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from ..builders import login as b
 from ..builders.player import item_moved
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
-from .player import castle_yield
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_ARMY = 3, 83, 111, 115, 150
 S_JOINED, S_APPLY_DEL, S_INVITE_RESULT, S_PASS, S_INVITED, S_OFFER, S_BLESS = 35, 36, 37, 40, 41, 42, 45

@@ -15,7 +15,7 @@
 ## Próximos
 
 - Pacotes extras do login oficial (4434, 83, 100, 4224, 4900, 4922, 4590 e as respostas a 8320/8466/8530/8218/8209/8625/8322), conforme o cliente pedir
-- Prédios do castelo (`BuildingInfoListMsg` a partir de `BuildingTempInfos`) e produção de recursos
+- [x] Prédios do castelo, tecnologia, filas, aceleração com ledger, produção, cobrança, fazenda, árvore, caixa por tempo e offline ([castelo.md](castelo.md)); fazenda de amigo, fruto da árvore e população ocupada pendentes
 - [x] Tutorial completo: mapas 10001/10002, batalhas, missões 10–45, baú e equipar, chefe da cidade externa ([tutorial.md](tutorial.md))
 - [x] Batalha PvE em tempo real ([batalha.md](batalha.md))
 - [ ] **Validar o tutorial no cliente**

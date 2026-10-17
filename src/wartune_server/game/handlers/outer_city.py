@@ -7,10 +7,8 @@ from ..builders import login as b
 from ..router import router
 from ..session import GameSession
 from .campaign import ARMY_IDLE, map_sync
-from .player import castle_yield
 
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
-S_BUILDINGS, S_BUILD_ORDER, S_ARMY_PAWN = 4130, 104, 100
 
 
 @router.on(9525)
@@ -35,14 +33,3 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
 async def enter_castle(s: GameSession, _: pb.SimplePropertyMsg) -> None:
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
     s.battle_gp = 0
-
-
-@router.on(8281)
-async def building_init(s: GameSession, _: object) -> None:
-    snap = s.snapshot
-    assert snap is not None and snap.castle is not None
-    castle_yield(s)
-    castle_yield(s)
-    s.send(S_ARMY_PAWN, pb.ArmyPawnUpdatedMsg())
-    s.send(S_BUILDINGS, b.buildings_msg(snap, snap.castle, s.ctx.templates))
-    s.send(S_BUILD_ORDER, pb.OrderInfoMsg(orderId=1, orderType=1, remainTime=0))

@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import guild, rules, social, space
+from .. import castle, farm, guild, rules, social, space, timebox
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..router import router
@@ -35,12 +35,14 @@ S_CASTLE = 4153
 S_CASTLE_TIME = 4452
 S_BUILDINGS = 4154
 S_BUILD_ORDERS = 4155
+S_POLITICS = 152
 S_FRIENDS = 4156
 S_FARM = 4157
 S_SYS_PROPERTY = 4160
 S_AAS = 4173
 S_VERSION = 4233
 S_SNS = 4245
+S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
 S_PET_ISLAND_BOSS = 4686
@@ -102,9 +104,13 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         s.log.warning("login simultâneo do mesmo personagem; recusado", player=character.id)
         s.connection.close()
         return
+    now = s.ctx.clock.now()
+    timebox.on_login(snap.character, now)  # antes do PlayerMsg: timeRun e tempo offline
+    changed = castle.ensure(snap, s.ctx.templates, now)
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
-    s.ctx.online.bind(s.player_id, s)
+    s.ctx.online.bind(s.player_id, s)  # antes do primeiro await: o segundo 20001 junto já vê a sessão
+    await s.ctx.characters.save(snap.character, *changed)
     s.log = s.log.bind(player=s.player_id)
     s.log.info("jogador entrou", nick=snap.character.nickname, novice=snap.character.novice_process)
     social.announce(s, online=True)
@@ -131,13 +137,18 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         lords.login(s)  # 4776, 4535: Senhores fechados
         warfield.login(s)  # 4248: campos de batalha fechados (o padrão do cliente é aberto)
     if msg.build:
-        _send(s, S_BUILDINGS, b.buildings_msg(snap, snap.castle, s.ctx.templates))
-        _send(s, S_BUILD_ORDERS, pb.BuildOrderList())
+        _send(
+            s,
+            S_BUILDINGS,
+            b.buildings_msg(snap, snap.castle, s.ctx.templates, impose_used=castle.impose_used(snap.castle, now)),
+        )
+        _send(s, S_BUILD_ORDERS, castle.order_list(snap, now))
+        _send(s, S_POLITICS, castle.politics_msg(snap, s.ctx.templates))
     if msg.castle:
         _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))
         s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))  # oficial manda só este campo
     if msg.tree:
-        _send(s, S_FARM, b.farm_msg(snap))
+        _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, own=True)))
     if msg.friend:
         _send(s, S_FRIENDS, await social.friend_list(s))
     if msg.snsReq:
@@ -146,6 +157,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+    if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
+        _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
     if msg.challReward or msg.petChallengeReward or msg.crossScoreReward:
         from . import arena
 

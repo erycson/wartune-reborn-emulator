@@ -9,6 +9,7 @@
 | [tutorial.md](tutorial.md) | Campanha de treino: roteiro dos nós, retomada, missões, nível e atributos |
 | [itens.md](itens.md) | Mochila, uso de itens, lojas, forja, moda e o registro de elmas (`cash_ledger`) |
 | [batalha.md](batalha.md) | Batalha simulada no servidor: pacotes, relógio, turnos, dano |
+| [castelo.md](castelo.md) | Prédios, tecnologia, filas e aceleração, produção, cobrança de ouro, fazenda, árvore, caixa por tempo e offline |
 | [http.md](http.md) | Endpoints HTTP do jogo, portal PHP e CDN |
 | [banco-de-dados.md](banco-de-dados.md) | Modelo de dados, várias contas em vários servidores, SQLite/MySQL/Postgres |
 | [configuracao.md](configuracao.md) | Variáveis de ambiente, logs e CLI |

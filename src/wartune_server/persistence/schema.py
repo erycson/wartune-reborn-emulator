@@ -32,6 +32,7 @@ from ..domain.models import (
     Arena,
     ArenaRank,
     Building,
+    BuildOrder,
     CashLedger,
     Castle,
     ChallengeLog,
@@ -41,6 +42,7 @@ from ..domain.models import (
     ConsortiaInvite,
     ConsortiaItem,
     ConsortiaMember,
+    FarmLand,
     FashionBook,
     FriendGroup,
     GameServer,
@@ -148,6 +150,7 @@ characters = Table(
     _int("point"),
     _int("gift_token"),
     _int("strategy"),
+    _int("crystals", 1000),
     _int("weary", 200),
     _int("weary_limit", 200),
     _int("novice_process"),
@@ -184,6 +187,11 @@ characters = Table(
     _int("store_grade"),
     _int("store_gp"),
     _int("appell_id"),
+    _int("box_period"),
+    _int("box_seconds"),
+    Column("box_counted_at", UTCDateTime),
+    Column("offline_at", UTCDateTime),
+    _int("offline_seconds"),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -230,6 +238,43 @@ castles = Table(
     _int("grade", 1),
     _int("energy", 500),
     _int("state", 1),
+    Column("produced_at", UTCDateTime),
+    _int("impose_used"),
+    Column("imposed_at", UTCDateTime),
+    _int("farm_grade", 1),
+    _int("farm_gp"),
+    _int("tree_water"),
+    _int("tree_fruit"),
+    Column("tree_watered_at", UTCDateTime),
+    Column("tree_picked_at", UTCDateTime),
+)
+
+farm_lands = Table(
+    "farm_lands",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("pos", Integer, nullable=False),
+    Column("item_template_id", Integer, nullable=False),
+    Column("planted_at", UTCDateTime, nullable=False),
+    Column("mature_at", UTCDateTime, nullable=False),
+    _int("reward_count"),
+    _int("worm"),
+    _int("grass"),
+    Column("accelerated", Boolean, nullable=False, default=False, server_default="0"),
+    UniqueConstraint("character_id", "pos"),
+)
+
+build_orders = Table(
+    "build_orders",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("order_id", Integer, nullable=False),
+    Column("order_type", Integer, nullable=False),
+    Column("begin_at", UTCDateTime, nullable=False),
+    _int("need_time"),
+    UniqueConstraint("character_id", "order_id"),
 )
 
 buildings = Table(
@@ -622,6 +667,8 @@ def map_entities() -> None:
         (ShopBuy, shop_buys),
         (FashionBook, fashion_books),
         (MysteryShop, mystery_shops),
+        (BuildOrder, build_orders),
+        (FarmLand, farm_lands),
     ):
         mapper_registry.map_imperatively(entity, table)
     _mapped = True

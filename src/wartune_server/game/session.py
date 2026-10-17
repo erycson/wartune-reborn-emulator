@@ -18,6 +18,7 @@ from ..services.characters import CharacterService
 from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
+from . import timebox
 from .guild import Guilds
 from .router import PacketRouter
 
@@ -132,6 +133,15 @@ class GameSession:
         message = self.ctx.registry.decode(packet.code, Direction.CLIENT_TO_SERVER, packet.body)
         await handler(self, message)
 
+    async def _save_logout(self) -> None:
+        """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""
+        assert self.snapshot is not None
+        timebox.on_logout(self.snapshot.character, self.ctx.clock.now())
+        try:
+            await self.ctx.characters.save(self.snapshot.character)
+        except Exception:  # banco fora do ar no desligamento: perde só o tempo desta sessão
+            self.log.exception("falha ao gravar a saída")
+
     async def on_disconnect(self) -> None:
         if self.battle is not None:
             self.battle.cancel()
@@ -141,11 +151,7 @@ class GameSession:
             space.leave(self)
             if self.snapshot.leader is not None:
                 guild.on_logout(self, rules.leader_stats(self.snapshot, self.ctx.templates).fighting_capacity)
-            if self.snapshot.character.novice_process >= space.POST_TUTORIAL:  # posição no space (8690 só na memória)
-                try:
-                    await self.ctx.characters.save(self.snapshot.character)
-                except Exception:  # banco fora no desligamento: perde só a posição
-                    self.log.exception("posição no space não gravada")
+            await self._save_logout()
             self.ctx.online.unbind(self.player_id, self)
             if self.ctx.online.get(self.player_id) is None:  # relogin: a sessão nova já avisou o 160
                 social.announce(self, online=False)
