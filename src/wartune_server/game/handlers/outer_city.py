@@ -346,13 +346,18 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             _castle_state(s)
             return
         castle.energy = top
+    new_map = target != castle.map_id  # o mesmo mapa só troca o ponto: não conta na missão de mapa (37)
     castle.energy -= need
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
+    region = new_map and target in rules.REGION_MAPS
+    quests = rules.quest_event(snap, templates, rules.MAP_CONDITION, 0, target) if region else []
     _stop_walk(s)
     s.outer_army = None
-    await s.ctx.characters.save(c, castle, *([entry] if entry else []))
+    await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests)
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_now(s)))
     s.send(S_TRANSFER, pb.CastleReqMsg(magId=target, posX=spot[0], posY=spot[1], leftEnergy=castle.energy))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     if entry is not None:
         _send_player(s)
 

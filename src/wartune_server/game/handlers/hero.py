@@ -8,13 +8,14 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, Row
 from .. import rules
 from ..builders import login as b
-from ..builders.player import item_moved
+from ..builders.player import item_moved, quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .player import _army, _player
 
 S_SKILL, S_SKILL_RESET, S_TALENT_UP, S_TALENT, S_RUNE, S_ITEMS = 60, 61, 4430, 4431, 4495, 115
+S_QUESTS = 112  # QuestUpdatedRspMsg
 TALENT = "10"  # SkillTempInfo.MasterType do talento
 TALENT_GRADE = "21"  # UpGradeTempInfo.Types: TemplateId = ouro, Data = EXP para o próximo grau
 FREE_RESET_GRADE = 25  # SkillView: abaixo deste nível o reset de skill é grátis
@@ -258,9 +259,12 @@ async def _rune_learn(
     changed, deleted = rules.take_items(snap, [book], 1)
     learned[int(tpl["TemplateId"])] = [0, 0]
     set_runes(hero, learned)
-    await s.ctx.characters.save(hero, *changed, delete=tuple(deleted))
+    quests = rules.quest_event(snap, templates, rules.RUNE_STUDY, int(tpl["RuneType"]), 1)
+    await s.ctx.characters.save(hero, *changed, *quests, delete=tuple(deleted))
     send_items(s, changed, deleted)
     rune_reply(s, hero, 1, True)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     _army(s)
 
 
@@ -304,9 +308,17 @@ async def _rune_upgrade(
     learned[rune_id] = [gp, swallow]
     hero.rune_key = ",".join(str(rune_id) if k == str(msg.runeId) else k for k in hero.rune_key.split(","))
     set_runes(hero, learned)
-    await s.ctx.characters.save(c, hero, *changed, delete=tuple(deleted))
+    new_tpl = templates.get("RuneTempInfos", rune_id)
+    assert new_tpl is not None
+    # 78: o grau que o símbolo chegou (o maior); 77: pedras da bolsa gastas (o cliente conta por pedra)
+    quests = rules.quest_event(snap, templates, rules.RUNE_GRADE, int(new_tpl["RuneType"]), int(new_tpl["RuneGrade"]))
+    if msg.count > 0:
+        quests += rules.quest_event(snap, templates, rules.RUNE_COMBINE, RUNE_EXP_ITEM, msg.count)
+    await s.ctx.characters.save(c, hero, *changed, *quests, delete=tuple(deleted))
     send_items(s, changed, deleted)
     rune_reply(s, hero, 2, True)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     if not msg.count:
         _player(s)
     _army(s)

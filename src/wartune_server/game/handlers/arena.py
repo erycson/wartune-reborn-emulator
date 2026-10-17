@@ -18,7 +18,7 @@ from .. import rules
 from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
 from ..battle import Battle
 from ..builders import login as b
-from ..builders.player import item_moved
+from ..builders.player import item_moved, quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
@@ -29,6 +29,8 @@ from .vip import is_vip, vip_grade
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 150, 140
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
 S_PET_LIST, S_PET_TOP, S_PET_REWARD, S_PET_INFO, S_BATTLE_REPORT = 4611, 4619, 4613, 4540, 4103
+S_QUESTS = 112  # QuestUpdatedRspMsg
+QUEST_PET_TOURNAMENT = 87  # QuestCondictionInfos: participar do torneio de fadas (Para2 1)
 S_MATCH = 4201  # MatchStateMsg: liga o botão de PvP (playerInfo.isPVPStart)
 PVP_GRADE = 22  # TopToolsBar: o botão de PvP só aparece a partir do nível 22
 ARMY_IDLE, ARMY_FIGHTING = 0, 2
@@ -499,11 +501,14 @@ async def _pet_over(s: GameSession, won: bool, target: int, name: str) -> None:
     logs = [ChallengeLog(me, A.PETS, now, target, name, True, won, delta)]
     if not A.is_robot(target):  # só o histórico do atacado muda; os pontos dele não (não observado)
         logs.append(ChallengeLog(target, A.PETS, now, me, c.nickname or "", False, not won, 0))
-    await s.ctx.characters.save(arena, *logs)
+    quests = rules.quest_event(snap, s.ctx.templates, QUEST_PET_TOURNAMENT, 0, 1)  # participar conta, ganhando ou não
+    await s.ctx.characters.save(arena, *logs, *quests)
     _cool(s, A.PETS)
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=0)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 19, 0, 0, 0
     s.send(S_BATTLE_REPORT, report)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     if delta:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Puan  {delta:+d}"))
