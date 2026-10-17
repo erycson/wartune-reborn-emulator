@@ -16,7 +16,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_WEBSOCKET_PORT` | `5001` | ponte para o Ruffle |
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
 | `WARTUNE_RESOURCE_URL` | vazio | CDN dos assets; vazio usa o próprio HTTP |
-| `WARTUNE_ASSET_DIRS` | `["data/overlay", "D:/wartune/server-relay/public"]` | JSON |
+| `WARTUNE_ASSET_DIRS` | `["data/overlay", "D:/wartune/server-relay/public", "D:/xampp/htdocs/wartune-cdn"]` | JSON; o primeiro que tiver o arquivo vence |
 | `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | |
 | `WARTUNE_CONFIG_TEMPLATE` | `data/overlay/client/config.xml` | |
 | `WARTUNE_RSA_KEY_FILE` | `data/rsa_private.pem` | criado na primeira execução |

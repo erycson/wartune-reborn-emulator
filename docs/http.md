@@ -48,7 +48,8 @@ As senhas são guardadas com scrypt.
 
 Qualquer outro `GET` procura o arquivo em `WARTUNE_ASSET_DIRS`, na ordem:
 1. `data/overlay` (respostas capturadas do servidor oficial, geradas por `tools/export_captures.py`);
-2. `D:/wartune/server-relay/public` (os SWFs e PNGs do relay, que foram validados contra a captura).
+2. `D:/wartune/server-relay/public` (os SWFs e PNGs do relay, que foram validados contra a captura);
+3. `D:/xampp/htdocs/wartune-cdn` (o CDN completo, com mapas, equipamentos, ícones etc.).
 
 Caminhos com `..` que escapam da pasta retornam 404.
 

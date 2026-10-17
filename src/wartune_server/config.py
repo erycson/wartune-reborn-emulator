@@ -30,8 +30,14 @@ class Settings(BaseSettings):
 
     # URL base dos assets estáticos (CDN). Vazio = o próprio servidor HTTP serve asset_dirs.
     resource_url: str = ""
+    # Ordem importa: respostas oficiais capturadas, depois o public do relay (os .png de código
+    # validados contra a captura, que diferem dos do CDN) e por fim o CDN completo (~15 mil arquivos).
     asset_dirs: list[Path] = Field(
-        default_factory=lambda: [Path("data/overlay"), Path("D:/wartune/server-relay/public")]
+        default_factory=lambda: [
+            Path("data/overlay"),
+            Path("D:/wartune/server-relay/public"),
+            Path("D:/xampp/htdocs/wartune-cdn"),
+        ]
     )
     config_template: Path = Path("data/overlay/client/config.xml")
     templates_file: Path = Path("data/overlay/xml/tempinfos.xml")
