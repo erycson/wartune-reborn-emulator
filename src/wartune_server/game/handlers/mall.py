@@ -1,6 +1,6 @@
 """Mercado entre jogadores: anunciar (8448), listas (8449 meus anúncios, 8450 mercado, 8452 meus lances,
 8457 busca), lance (8451), compra pelo preço fixo (8453) e cancelar (8454). Regras e fontes em
-``docs/mall.md``; encerramento dos anúncios vencidos em ``game/mall.py``.
+``docs/mercado.md``; encerramento dos anúncios vencidos em ``game/mall.py``.
 
 Cada pedido roda numa transação só (``characters.write``): a varredura dos vencidos, a operação e os
 correios. Quem pede recebe direto na mochila; quem não pede (vendedor, vencedor, lance devolvido) recebe
@@ -9,7 +9,6 @@ pelo correio, porque o snapshot dele pode não estar carregado aqui.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
@@ -38,13 +37,14 @@ S_LIST_BIDS, S_FIX, S_CANCEL, S_SEARCH = 4356, 4357, 4358, 4359
 # SellResultType do cliente (``Auction.ResultAlert`` = abs(código))
 OK, GONE, COUNT, PRICE, FIX_PRICE, HOUR = 0, -2, -3, -4, -5, -6
 BLOCKED, NO_ITEM, NO_POINT, NOT_AUCTION, FIX_FAIL, CANCEL_FAIL, OWN_FIX, OWN_BID = -7, -8, -11, -12, -14, -15, -16, -17
+SELL_MAX_COUNT = -18  # MALL_SELL_MAX_COUNT: mais de 9 unidades num anúncio
+# -7 aqui é item travado (8809). O texto do cliente para -7 é "eşya bağlı halde" (vinculado): falta o dado de vínculo
 
 GOODS, PET = 1, 2  # SellItemVO.itemType (e MallItemMsg.itemFrom): só item vai ao mercado
-# ponytail: duração livre de 1 a 72 h e página de 9: a tela de leilão não está no cliente decompilado
-MIN_HOUR, MAX_HOUR, PAGE, PAGE_MAX = 1, 72, 9, 50
-
-# ponytail: lock global do processo (um servidor por processo). Por anúncio se a fila pesar.
-MALL_LOCK = asyncio.Lock()
+HOURS = (8, 24, 48)  # (cliente) Auction.SubmitHour1..3: as três durações que a tela oferece
+MAX_COUNT = 9  # (cliente) Auction.ResultAlert18: "o item vendido tem no máximo 9 unidades"
+# ponytail: a lista pede 9 por página (8449, 8452); o teto de 50 é dedução, a tela de leilão não está no decompilado
+PAGE, PAGE_MAX = 9, 50
 
 
 @dataclass
@@ -67,7 +67,7 @@ async def _transact(s: GameSession, op: Callable[[UnitOfWork, datetime], Awaitab
         settled = await market.settle(uow, templates, server, now)
         return await op(uow, now), settled
 
-    async with MALL_LOCK:
+    async with market.MALL_LOCK:
         reply, settled = await s.ctx.characters.write(change)
     for mail in [*settled, *reply.mails]:
         mailbox.notify(s.ctx.online, mail)
@@ -167,7 +167,7 @@ def _label(templates: GameTemplates, item: Item) -> str:
 @router.on(8448)
 async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
     """Põe um item da mochila à venda: ``point`` é o lance inicial (mínimo ``StartingPrice`` × quantidade),
-    ``fixPoint`` 0 = sem compra imediata, ``hour`` a duração. O item sai da mochila na mesma transação
+    ``fixPoint`` 0 = sem compra imediata, ``hour`` a duração (8, 24 ou 48 h). O item sai da mochila na mesma transação
     que cria o anúncio: nunca existe nos dois lugares."""
     snap = s.snapshot
     assert snap is not None
@@ -181,15 +181,19 @@ async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
             code = NOT_AUCTION
         elif item is None or row is None or item.id != msg.itemId:
             code = NO_ITEM
-        elif item.is_locked or int(row.get("StartingPrice") or 0) <= 0:  # 0 = o template não vai a leilão
+        elif int(row.get("StartingPrice") or 0) <= 0:  # 0 = o template não vai a leilão (cliente: -12)
+            code = NOT_AUCTION
+        elif item.is_locked:
             code = BLOCKED
         elif not 1 <= msg.count <= item.count:
             code = COUNT
+        elif msg.count > MAX_COUNT:
+            code = SELL_MAX_COUNT
         elif msg.point < int(row["StartingPrice"]) * msg.count:
             code = PRICE
         elif msg.fixPoint and msg.fixPoint <= msg.point:
             code = FIX_PRICE
-        elif not MIN_HOUR <= msg.hour <= MAX_HOUR:
+        elif msg.hour not in HOURS:
             code = HOUR
         if code != OK or item is None:
             s.log.info("8448 recusado", pedido=str(msg), resultado=code)

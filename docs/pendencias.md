@@ -96,8 +96,9 @@ Outros eventos:
 
 ## Mercado entre jogadores ([mercado.md](mercado.md))
 
-- Sem agendador: um anúncio vencido só é encerrado no próximo pedido ao mercado de qualquer jogador.
-- **dedução**: duração 1–72 h, 9 por página (até 50), preço mínimo `StartingPrice × count`, sem taxa, sem limite de anúncios.
+- Encerramento agendado a cada 60 s (`game/mall.py` `run`): um anúncio vencido sai até 60 s depois do fim, mesmo sem pedido ao mercado. Antes, só o próximo pedido encerrava.
+- Duração (8, 24 ou 48 h) e quantidade (até 9) agora são *(cliente)*. **dedução**: preço mínimo `StartingPrice × count`, sem taxa, teto de página 50, primeiro lance ≥ inicial.
+- **precisa de captura**: vínculo (−7 no cliente é "item vinculado"; o servidor não tem o dado e usa −7 para item travado); ouro cobrado em algum passo (−10); limite diário de compra (−52, sem valor); lance igual ao inicial; líder subindo o próprio lance (−17); cartas oficiais do vencido (título, texto, momento). Detalhe em [mercado.md](mercado.md#dependências).
 - Lance e compra pagam só elmas (sem vinculado), sem prova de que o oficial restrinja.
 - Lista do mercado (8450) e busca (8457) ignoram a ordenação.
 - Cancelar parte de uma pilha não reempilha com a original.
@@ -210,8 +211,9 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/items.py:215](../src/wartune_server/game/handlers/items.py#L215) | sem o teto diário de poções de Beden; só o limite do personagem |
 | [game/handlers/items.py:381](../src/wartune_server/game/handlers/items.py#L381) | depois de juntar pilhas, fecha os buracos na mesma ordem (dedução) |
 | [game/handlers/mail.py:38](../src/wartune_server/game/handlers/mail.py#L38) | correio de guilda (sendType 2) recusado até existir guilda. |
-| [game/handlers/mall.py:43](../src/wartune_server/game/handlers/mall.py#L43) | duração livre de 1 a 72 h e página de 9: a tela de leilão não está no cliente decompilado |
-| [game/handlers/mall.py:46](../src/wartune_server/game/handlers/mall.py#L46) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
+| [game/handlers/mall.py:46](../src/wartune_server/game/handlers/mall.py#L46) | a lista pede 9 por página; o teto de 50 é dedução, a tela de leilão não está no decompilado |
+| [game/mall.py:33](../src/wartune_server/game/mall.py#L33) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
+| [game/mall.py:35](../src/wartune_server/game/mall.py#L35) | o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento |
 | [game/handlers/marriage.py:7](../src/wartune_server/game/handlers/marriage.py#L7) | pedidos, ofertas de casamento e pedidos de divórcio ficam em memória (somem se o |
 | [game/handlers/minigames.py:67](../src/wartune_server/game/handlers/minigames.py#L67) | janela de resgate desconhecida (2099 = sem fim) |
 | [game/handlers/offer.py:28](../src/wartune_server/game/handlers/offer.py#L28) | o sorteio de qualidade do oficial não é conhecido; pesos para 1..5 (5 = ouro, rende x6) |
