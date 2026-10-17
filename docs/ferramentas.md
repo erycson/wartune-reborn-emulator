@@ -37,6 +37,16 @@ Monta `D:\xampp\htdocs\wartune-reborn\cdn`: copia de `data/overlay` e do `public
 arquivos que faltam no CDN completo ou que têm conteúdo diferente (os `.png` de código, por exemplo),
 e ignora o que não é asset (páginas, scripts, respostas de endpoints).
 
+Depois ela ajusta os módulos de código (`N.png`, que começam com `road7` + md5):
+
+* **Enchimento**: os `.png` do relay trazem ~20 MB de zeros depois do tag End do SWF. O Flash
+  ignora isso, mas o Ruffle não carregava o `8.png` (`NewbieModule is not defined` no fim do
+  login). A ferramenta recomprime o SWF sem o enchimento e atualiza `ui/zh_cn/size.xml`, porque o
+  `ModuleLoader` recusa o módulo quando o tamanho difere em 3000 bytes ou mais.
+* **MD5**: o `ModuleLoader` compara os bytes 5..37 do arquivo com `resouececheck.sq` e descarta
+  o módulo **sem erro** se não baterem. Os módulos que só existem no CDN completo (6, 7, 9, 12–14,
+  17, 18) são de outro build, então a lista recebe o md5 embutido em cada arquivo.
+
 ## Capturas de referência
 
 `tests/fixtures/pcap_samples.json` traz até 3 amostras por opcode de uma sessão oficial
