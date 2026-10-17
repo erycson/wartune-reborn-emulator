@@ -13,7 +13,8 @@ import random
 from ...domain.models import BagType, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, Row
-from .. import bag
+from .. import bag, rules
+from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
@@ -21,6 +22,9 @@ from .shop import alert, send
 
 S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89
 S_REFRESH, S_REPLACE, S_RESOLVE, S_REFRESH_PROPERTY = 4258, 4259, 4260, 4368
+S_QUESTS = 112  # QuestUpdatedRspMsg
+STRENGTHEN, GEM_INLAY, GEM_COMPOSE, REFINE = 17, 18, 19, 47  # QuestCondictionInfos.CondictionType
+MOSAIC_PARA1 = 1  # (visto) tempinfos: 281 Para1 1; Detail "herhangi bir değerli taş" = qualquer pedra
 LUCK, GEM, DRILL = "204", "205", 208004  # SonType da pedra da sorte e das pedras; Elmas Delici
 EQUIP = "1"  # MasterType dos equipamentos
 MAX_COMPOSE = 999
@@ -80,7 +84,8 @@ async def strengthen(s: GameSession, _: object) -> None:
     if ok:
         item.strengthen_grade += 1
         changed.append(item)
-    await s.ctx.characters.save(c, *changed, delete=tuple(gone))
+    quests = rules.quest_event(snap, templates, STRENGTHEN, item.strengthen_grade, 1) if ok else []
+    await s.ctx.characters.save(c, *changed, *quests, delete=tuple(gone))
 
     if luck is not None:
         send(s, S_ITEMS, bag.moved([i for i in changed if i is luck], s.player_id, empty=gone))
@@ -89,6 +94,8 @@ async def strengthen(s: GameSession, _: object) -> None:
         send(s, S_ITEMS, bag.moved([item], s.player_id))
     out = pb.StoreRspMsg(strengResult=ok, strengthenGrade=item.strengthen_grade, pos=0, bagType=BagType.STORE)
     send(s, S_STRENGTHEN, out)
+    if quests:
+        send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 # --- engaste ---
@@ -131,12 +138,16 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     back = bag.add(snap, templates, old, 1, now) if old > 0 else []
     joins[msg.mountPos - 1] = stone.template_id
     item.joins = joins
-    await s.ctx.characters.save(c, item, *changed, *back, delete=tuple(gone))
+    # (visto) tempinfos: 281 = tipo 18, Detail "Atölye > Mozaik"; (visto) captura atolye: "mozaik yapıldı"
+    quests = rules.quest_event(snap, templates, GEM_INLAY, MOSAIC_PARA1, 1)
+    await s.ctx.characters.save(c, item, *changed, *back, *quests, delete=tuple(gone))
 
     castle_yield(s)
     send(s, S_ITEMS, bag.moved([*changed, *back], s.player_id, empty=gone))
     send(s, S_ITEMS, bag.moved([item], s.player_id))
     alert(s, "Başarıyla mozaik yapıldı!")
+    if quests:
+        send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5152)
@@ -222,7 +233,13 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     c.gold -= gold
     got = bag.add(snap, templates, product, made, now)
     changed = [i for i in changed if i not in got]
-    await s.ctx.characters.save(c, *changed, *got, delete=tuple(gone))
+    # (visto) tempinfos: 311 = tipo 19, Para1 0, Detail "1 kez Birleştirme"; (visto) captura degerli_tas_birlestirme:
+    # 5153 gera pedras;
+    # só conta pedra (SonType 205); cada receita conta 1 (dedução)
+    product_row = templates.get("ItemTempInfos", product)
+    gem = product_row is not None and product_row.get("SonType") == GEM
+    quests = rules.quest_event(snap, templates, GEM_COMPOSE, 0, 1) if gem else []
+    await s.ctx.characters.save(c, *changed, *got, *quests, delete=tuple(gone))
 
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
@@ -231,6 +248,8 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))  # como o oficial
     send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if quests:
+        send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 # --- refino dos atributos sorteados ---
@@ -255,10 +274,14 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
     skills = [cur if locks[i] else random.choice(pool) for i, cur in enumerate(item.random_skills[:slots])]
     changed, gone = bag.take(snap, stone, 1)
     _pending[item.id or 0] = skills
-    await s.ctx.characters.save(*changed, delete=tuple(gone))
+    # (visto) tempinfos: 769 = tipo 47, Para1 0, Detail "1 kez Arıtma"; conta no 8336, não no 8339 (dedução)
+    quests = rules.quest_event(snap, s.ctx.templates, REFINE, 0, 1)
+    await s.ctx.characters.save(*changed, *quests, delete=tuple(gone))
 
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     send(s, S_REFRESH, pb.SmithFreshRspMsg(randomSkill=skills))
+    if quests:
+        send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8339)

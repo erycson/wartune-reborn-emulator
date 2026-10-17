@@ -11,8 +11,9 @@ from datetime import datetime
 from ...domain.models import EventState, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import events as ev
-from .. import rewards
+from .. import rewards, rules
 from ..builders import login as b
+from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
 from . import minigames, offer, vip
@@ -27,6 +28,7 @@ CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
 GIFT_OK = "Hediye Paketi başarıyle alındı"  # texto do oficial (com o erro de digitação)
 LEED_BOX = (10, 40, 60, 80, 100)  # DayGuideCatecory.canPick: atividade mínima de cada baú 1..5
 LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Günlük Giriş", "Dünya Kanalında Sohbet"
+EMEK, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Emek Oranı"; QuestUpdatedRspMsg
 RELOGIN_DAYS = 7  # ReloginDrops.Times 1..7
 # ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (login.json #93)
 SERVEN: dict[int, tuple[int, ...]] = {1: (1, 2, 3, 4), 2: (5, 6, 7, 8), 3: (9, 10, 11, 12), 4: (13, 14, 15, 16)}
@@ -323,8 +325,14 @@ async def leed_done(s: GameSession, template_id: int) -> None:
     now = s.ctx.clock.now()
     if row is None or ev.daily(snap, f"leed:{template_id}", now).value >= int(row["PassCount"]):
         return
-    await s.ctx.characters.save(leed_progress(snap, template_id, now))
+    st = leed_progress(snap, template_id, now)
+    # (visto) captura savasa_baskin_ve_elmas_ile_hizlandirma #11/#18: "Emek oranı" = totalNum do 4152;
+    # (visto) tempinfos: 863 = tipo 63, Para1 0, Para2 20 "Emek Oranını 20 yap": vale o maior total
+    quests = rules.quest_event(snap, s.ctx.templates, EMEK, 0, _leeds(s, now)[1])
+    await s.ctx.characters.save(st, *quests)
     _send_leeds(s)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8234, 8322)
