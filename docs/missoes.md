@@ -134,3 +134,12 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 90 | Direnç Kristali Mozaiği Yap | 0 / 1 | 1 (926) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 91 | Define Avı | 0 / 1 | 1 (930) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 93 | Gökyüzü Yolunda Zafer Kazan | 0 / 1 | 1 (932) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+
+## Notas para o integrador
+
+- **Migração**: a `0022_progresso_das_condicoes_da_missao.py` tem `down_revision = '0020'`. Outra worktree (`wf_82adc168-ade-2`) tem uma `0021_copias_de_campanha_em_grupo.py` que também desce de `0020`. Ao mesclar, ajustar `0022.down_revision = '0021'`, senão ficam duas heads (hoje este branch tem uma só, a `0022`).
+- **Numeração automática**: `Database.new_revision` conta os arquivos + 1, então no branch com as duas migrações ela gera outra `0022`. Ajustar a numeração junto com a mescla.
+- **Assinatura**: `rules.quest_done(snap, templates, q, now)` agora exige `now`. Chamador novo em outra equipe precisa passar o relógio.
+- **Mudança de comportamento intencional**: a missão 764 (recrutar 200 do tipo 3 e tropa do tipo 10 no nível 5) passou a exigir as duas linhas. Antes concluía só com o recrutamento.
+- **Junção no worktree**: `data\overlay` é uma junção para `D:\wartune\servidor\data\overlay`. Antes de apagar o worktree, desfazer só a junção pelo gerenciador de links do Windows, nunca por exclusão recursiva, que pode atravessar a junção e apagar a pasta real.
+- **Tipos de outra equipe**: as colunas "Contado" e "Onde" das linhas "outra equipe" refletem o código deste branch, então o integrador deve conferir essas linhas depois da mescla.
