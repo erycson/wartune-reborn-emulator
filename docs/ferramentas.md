@@ -40,7 +40,7 @@ e ignora o que não é asset (páginas, scripts, respostas de endpoints).
 Depois ela ajusta os módulos de código (`N.png`, que começam com `road7` + md5):
 
 * **Enchimento**: os `.png` do relay trazem ~20 MB de zeros depois do tag End do SWF. O Flash
-  ignora isso, mas o Ruffle não carregava o `8.png` (`NewbieModule is not defined` no fim do
+  ignora isso; é a única diferença entre o `2.png` (que o Ruffle carrega) e o `8.png` (`NewbieModule is not defined` no fim do
   login). A ferramenta recomprime o SWF sem o enchimento e atualiza `ui/zh_cn/size.xml`, porque o
   `ModuleLoader` recusa o módulo quando o tamanho difere em 3000 bytes ou mais.
 * **MD5**: o `ModuleLoader` compara os bytes 5..37 do arquivo com `resouececheck.sq` e descarta
