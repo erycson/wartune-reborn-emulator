@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import replace
 
-from ...domain.models import Item
+from ...domain.models import Consortia, Item
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rewards, rules
+from .. import bag, rewards, rules
 from ..builders import login as b
-from ..builders.player import item_moved, quest_update
+from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
@@ -18,6 +19,8 @@ from .space import talk
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME = 83, 111, 64, 4234
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
+# (dedução) texto sem fonte: o cliente monta esses avisos com chave de idioma, que não está no decompilado
+BAG_FULL = "Çantanız dolu."
 
 
 def _player(s: GameSession) -> None:
@@ -63,56 +66,97 @@ async def fast_key(s: GameSession, msg: pb.HeroFastKeyMsg) -> None:
     s.send(S_FAST_KEY, pb.HeroFastKeyMsg(fastKey=msg.fastKey, setResult=True))
 
 
+def _unique[T](items: Iterable[T]) -> list[T]:
+    return list(dict.fromkeys(items))  # Quest e Item são por identidade (eq=False)
+
+
 @router.on(5012)
 async def quest_add(s: GameSession, msg: pb.QuestAddedMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
-    added = [q for qid in msg.questId if (q := rules.accept_quest(snap, s.ctx.templates, qid, now)) is not None]
+    mine = s.ctx.guilds.of(s.player_id)
+    guild = mine[0] if mine is not None else None
+    accepted = [
+        r
+        for qid in msg.questId
+        if (r := rules.accept_quest(snap, s.ctx.templates, qid, now, guild is not None)) is not None
+    ]
+    added = [q for q, _ in accepted]
     for node in sorted({n for q in added for n in rules.talk_nodes(s.ctx.templates, q.template_id)}):
         talk(s, node, added)  # missão de conversa: o cliente aceita no último passo do diálogo
-    if added:
-        await s.ctx.characters.save(*added)
-        s.send(S_QUESTS, quest_update(added, rules.quest_bitmap(snap)))
+    # a missão e as que a aceitação mudou (tutorial, prédio), mais as de estado que já valiam (amigos, guilda, bolsa)
+    moved = [c for _, cs in accepted for c in cs]
+    changed = _unique([*moved, *rules.social_state_quests(snap, s.ctx.templates, guild)])
+    if changed:
+        await s.ctx.characters.save(*changed)
+        s.send(S_QUESTS, quest_update(changed, rules.quest_bitmap(snap)))
 
 
 @router.on(5014)
 async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    # missões de estado (amigos, guilda, contribuição, nível): o cliente mostra cumprida quando o estado bate
+    templates, now = s.ctx.templates, s.ctx.clock.now()
     mine = s.ctx.guilds.of(s.player_id)
-    synced = rules.social_state_quests(snap, s.ctx.templates, mine[0] if mine is not None else None)
+    guild = mine[0] if mine is not None else None
     q = rules.quest(snap, msg.templateId)
-    if q is None or q.completed or not rules.quest_done(snap, s.ctx.templates, q, s.ctx.clock.now()):
-        s.log.info("5014 recusado", quest=msg.templateId)
-        if synced:
-            await s.ctx.characters.save(*synced)
-            s.send(S_QUESTS, quest_update(synced, rules.quest_bitmap(snap)))
+    if q is None or q.completed:
+        s.log.info("5014 sem missão aberta", quest=msg.templateId)
         return
-    s.send(S_QUESTS, quest_update(synced if q in synced else [*synced, q], rules.quest_bitmap(snap)))
-    row, goods = rules.quest_rewards(snap, s.ctx.templates, q.template_id)
-    gp, gold = int(row.get("RewardPlayGP", 0)), int(row.get("RewardGold", 0))
-    q.completed, q.completed_at = True, s.ctx.clock.now()
-    rules.add_gp(snap, s.ctx.templates, gp)
-    snap.character.gold += gold
-    for item in goods:
-        item.pos = rules.free_bag_pos(snap)
-        snap.items.append(item)
-    await s.ctx.characters.save(snap.character, snap.leader, q, *goods, *synced)
+    # estado que o cliente confere sozinho (amigos, guilda, contribuição, nível da guilda, bolsa): atualiza antes
+    rules.update_state_quests(snap, templates, [q])
+    refresh = _unique([q, *rules.social_state_quests(snap, templates, guild)])
+    if not rules.quest_done(snap, templates, q, now):
+        s.log.info("5014 recusado", quest=msg.templateId)
+        await s.ctx.characters.save(*refresh)
+        s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))  # resposta: progresso atual, sem concluir
+        return
+    row, goods = rules.quest_rewards(snap, templates, q.template_id)
+    take = rules.goods_to_take(snap, templates, q.template_id)
+    # a recompensa tem que caber depois de tirar o que a entrega consome: conferido numa cópia, sem mexer no snapshot
+    trial = replace(snap, items=[replace(i) for i in snap.items])
+    for template_id, count in take:
+        bag.take(trial, template_id, count)
+    if not bag.fits(trial, templates, goods, now):
+        s.log.info("5014 recusado: mochila cheia", quest=msg.templateId)
+        alert(s, BAG_FULL)
+        await s.ctx.characters.save(*refresh)
+        s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))
+        return
+    # progresso antes da entrega (o oficial manda o 112 do progresso, depois a bolsa, o jogador e a 112 concluída)
+    s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))
+    changed: list[Item] = []
+    gone: list[Item] = []
+    for template_id, count in take:
+        taken, deleted = bag.take(snap, template_id, count)
+        changed += taken
+        gone += deleted
+    for template_id, count in goods:
+        changed += bag.add(snap, templates, template_id, count, now)
+    changed = _unique(changed)  # uma pilha pode ser completada mais de uma vez
+    rules.update_state_quests(snap, templates, [q])  # a bolsa depois da entrega (condition_N volta ao que sobrou)
+    gp, guild_offer = rules.pay_quest_rewards(snap, templates, row)
+    q.completed, q.completed_at = True, now
+    guilds_changed: list[Consortia] = []
+    if guild_offer and guild is not None:  # RewardConsortiaOffer: a riqueza da guilda (sem guilda, não há onde pôr)
+        guild.offer += guild_offer
+        guild.total_offer += guild_offer
+        guilds_changed.append(guild)
+    await s.ctx.characters.save(snap.character, snap.leader, *changed, *refresh, *guilds_changed, delete=tuple(gone))
 
+    if changed or gone:
+        s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     _player(s)
-    s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
-    if gold:
+    s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))  # concluída
+    if int(row.get("RewardGold", 0)) or int(row.get("RewardCrystal", 0)):  # o 109 leva ouro e cristais
         castle_yield(s)
     if gp:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp:,} EXP kazanıldı"))
     _army(s)
     _player(s)
-    for item in goods:
-        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
-        row = s.ctx.templates.get("ItemTempInfos", item.template_id) or {}
-        text = f"Kazanılan:{row.get('TemplateName', item.template_id)} x{item.count}"
+    for template_id, count in goods:
+        text = f"Kazanılan:{bag.name(templates, template_id)} x{count}"
         s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_QUEST_DONE, pb.QuestFinishedRspMsg(templateId=q.template_id))

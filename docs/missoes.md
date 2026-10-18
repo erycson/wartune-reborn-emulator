@@ -4,9 +4,9 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 ## Fluxo no servidor
 
-1. **Aceite (5012)**: `quest_add` chama `rules.accept_quest`, que cria o `Quest` e já roda as condições de tutorial (23) e de prédio (2). Missões de conversa (85) são conferidas aqui também.
+1. **Aceite (5012)**: `quest_add` chama `rules.accept_quest`, que confere o que o cliente confere antes de aceitar (`TaskManage.isAvailableTask`, em `rules.can_accept`): janela `StartDate`..`EndDate`, `NeedMinLevel`..`NeedMaxLevel`, `IsLeague` (exige guilda) e `PreQuestId` (lista com vírgula é E; pré-requisito que não existe nos dados é ignorado). Missão já aberta não reabre. Repetível (`IsRepeat`) concluída reabre na mesma linha, só quando o dia do jogo mudou (o dia vira às 5h, como `checkInRepeatTime`). Depois roda as condições de tutorial (23), de prédio (2) e de estado (bolsa, mapa da cidade, símbolos). Missões de conversa (85) são conferidas aqui também. O aceite devolve também as missões que ele mudou (tutorial, prédio, estado): o 5012 grava e manda o 112 de todas, não só da aceita.
 2. **Progresso**: cada ação chama `rules.quest_event(snap, templates, tipo, para1, valor)`. Em cada missão aberta, cada linha com `CondictionType == tipo` e `Para1` igual (0 = qualquer) avança o contador da sua posição. Depois grava e manda o 112.
-3. **Conclusão (5014)**: `quest_finish` chama `rules.quest_done(snap, templates, q, agora)`. Se alguma condição não bate, recusa sem resposta. Se bate, dá recompensa, manda 112 e 52.
+3. **Conclusão (5014)**: `quest_finish` atualiza o estado de bolsa e `rules.quest_done(snap, templates, q, agora)` confere. Se alguma condição não bate, responde o 112 com o progresso atual (`isComplete` falso, sem 52). Se bate, confere se a recompensa cabe depois de tirar o que a entrega consome, manda o 112 do progresso, consome, paga a recompensa (`rules.pay_quest_rewards`), grava tudo de uma vez e manda 115 (bolsa), 3, 112 (concluída), 109 (ouro ou cristal, se houver), 83 (EXP), 150, 3, os avisos dos itens e 52. Detalhes em "Entrega (5014)" abaixo.
 
 ## Várias condições (condition_1..4)
 
@@ -22,7 +22,22 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - **Estado, lido na conclusão**: tipo 1 (nível do personagem) e 39 (dia do login). Não gravam progresso; `quest_done` lê o snapshot na hora.
 - **Estado, gravado quando muda**: tipo 23 (passo do tutorial, no aceite e quando o guia avança) e tipo 2 (nível do prédio, no aceite e quando o prédio sobe).
 - **Conversa**: tipo 85, marcado uma vez quando o jogador fala com o NPC perto dele.
-- **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O servidor não conta nada desses tipos ainda; ver a tabela.
+- **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O servidor conta a quantidade atual do item na mochila (`rules.goods_count`, só `BagType.BAG`, como `GoodsManager.countGoods`) no aceite, a cada mudança de estado e na entrega. Na entrega, a condição consome o item (abaixo).
+- **Estado de mapa e de símbolo (37, 76, 77, 78)**: `update_state_quests` julga pelo que já existe (`checkMapId`, `checkRuneStudy`, `checkRuneGrade`), então quem aceita depois do fato já nasce com o progresso.
+
+## Entrega (5014)
+
+- **Reavaliação**: os três caminhos do cliente que mandam o 5014 (`TaskFrameII.as:590`, `TaskTraceItem.as:583`, `CompleteTaskTip.as:115`) só agem com `isCompleted` local. Por isso o servidor reavalia no 5014 e conclui quando a condição bate, sem guardar "entrega pendente". (visto) captura: 70, 80 e 82 chegam com o contador cumprido e `isComplete` falso no 112, e a conclusão aparece depois do 5014. A ordem entre pacotes S>C e C>S não é confiável (o S>C atrasa de 2 a 110 linhas), então isso é a ordem observada, não prova de causa.
+- **Recusa**: sem a condição, o 5014 responde o 112 com o progresso atual (`condition_N` = quantidade atual), `isComplete` falso e sem 52. Antes a resposta era silêncio, e o botão de entrega ficava sem retorno.
+- **Consumo de bolsa**: a entrega tira da mochila o `Para1` de cada condição de bolsa (`rules.goods_to_take`). Item de missão (`SonType` 210, como o 2100001) sai inteiro: (visto) replay #1609, a pilha do 2100001 foi de 10 para zero ao entregar a 90, cuja condição pede 8. Os demais tiram só `Para2` (o 2125010, `SonType` 201, da 9): (dedução) a captura não cobre esse caso; se o oficial tirar tudo, muda uma linha em `goods_to_take`. Testes: `test_entrega_gasta_so_a_quantidade_pedida_fora_do_item_de_missao` e `test_entrega_de_item_comum_deixa_o_resto_na_bolsa`.
+- **Mochila**: a conferência é feita numa cópia, depois de tirar o que a entrega consome (`bag.fits`: casa livre ou pilha do mesmo item com espaço). Se a recompensa não couber, aviso 111 "Çantanız dolu." e recusa sem consumir nada. (dedução) O texto não está no decompilado: o cliente monta esse aviso com chave de idioma.
+- **Sem linha de condição**: a missão não conclui (`quest_done` devolve falso). Nenhuma missão dos dados está assim; o caso existe para id inexistente.
+
+## Recompensas (5014)
+
+- **Paga** (`rules.pay_quest_rewards`, como `TaskRewardViewII._rewardList`): EXP `RewardPlayGP` (com o bônus diário `(nível - NeedMinLevel) * 500` quando `TemplateType` é 1), ouro `RewardGold`, `RewardStrategy` (ruh, `Character.strategy`), `RewardCrystal` (`Character.crystals`), `RewardPlayerOffer` (oferta do personagem), `RewardConsortiaOffer` (oferta da guilda, creditada na guilda do jogador; sem guilda não há onde pôr) e os `QuestGoods`, que entram na mochila pelo `bag.add` (empilham até `MaxCount`; equipamento ganha `joins`), não por `pay_quest_rewards`. Ouro ou cristal na recompensa disparam o 109 (`castle_yield`).
+- **Não paga**: `RewardMoney` (só a 1, vencida, e a tela não mostra), `RewardHeroGP` e `RewardDower` (0 em todas as linhas).
+- Exemplo: 241 (diária, `TemplateType` 1) com nível 28 dá 12000 + (28 - 20) * 500 = 16000 de EXP.
 
 ## Tipos ligados nesta rodada (login-diversos-regras)
 
@@ -30,7 +45,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 - Verificado (cliente: `checkPlayerGrades`): `thane.grades >= Para2`. Não usa Para1 e não é "Ödül Al": esse título é só da missão 7. Os 30 tipos 1 são quase todos "Lv.N" (11 Lv.20, 12 Lv.30, 905 Lv.35, 752 e seguintes Lv.40 a Lv.80).
 - Servidor: `quest_done` compara `snap.character.grades >= Para2` na conclusão. Não grava progresso e não precisa de hook no `add_gp`, porque o nível do personagem é o estado real.
-- Missão 7 ("Yılbaşı Gecesi", Para2 = 1): concluível para quem aceitar, porque a condição é trivial no cliente (`grades >= 1`). Os `StartDate` e `EndDate` do template são 2000-01-01 (sem janela), e o servidor não confere `NeedMinLevel` nem `PreQuestId` no aceite (isso já era assim). A 7 é o evento de Ano Novo de 2012 (2012 de GP e ouro, uma vez): com o tipo 1 ligado, qualquer cliente que mande 5012 e 5014 da 7 ganha isso. Falta validar o aceite (`rules.accept_quest`: `NeedMinLevel`, `PreQuestId`, janela do evento).
+- Missão 7 ("Yılbaşı Gecesi", Para2 = 1): antes concluível por quem mandasse 5012 e 5014, porque o servidor não conferia a janela. Agora o aceite confere a janela (`rules.can_accept`): `StartDate` e `EndDate` são 2000-01-01, então o 5012 é recusado, como o cliente, que a esconde. O evento de 2012 não é mais dado.
 - Teste: `test_nivel_do_jogador_conclui_pelo_nivel_de_agora` (missão 11, nível 19 recusa, 20 conclui).
 
 ### Tipo 39: entrar no segundo dia
@@ -58,6 +73,21 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - **33 (Hızlı Giriş Kullan)**: cliente (`checkClientLogin`) lê `DesktopManager.isDesktop`, um valor que a página manda pelo `ExternalInterface` (`IsDesktop`). Nenhum pacote avisa isso, e o `LoginReqMsg` só tem `playerId`, `key` e `ekeys`. Falta decidir como o servidor sabe que o cliente é o desktop.
 - **48 (cadastro de celular)**: existe no template (missão 816), mas o servidor não tem nada de celular. O cliente manda `8524` (`CheckSend`, "já preencheu o celular?") e `8352` (`UserPin`, código do SMS), e nenhum handler responde. Falta: os dois handlers, guardar o número e um provedor de SMS.
 
+## Desbloqueio (revisão 2026-10-17, revisor)
+
+Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bolsa, com a fonte:
+
+- **Fechadas pela janela** (`EndDate` no passado): 8, 9, 13, 14, 15, 19, 770 e 771. O cliente recusa o aceite em `TaskManage.checkIsAchieved` (`TaskManage.as:340-349`: agora maior que `EndDate`), e `rules.can_accept` faz o mesmo. A 770 e a 771 têm `StartDate` igual a `EndDate` (2000-01-01), então a janela é vazia. Sem missão aberta, o item da condição não precisa de fonte.
+- **846 a 856 (208012, Koyu Kristal)**: janela aberta (2000 a 2050), `IsLeague` e `IsRepeat`. Falta fonte servida para 208012. Busca por número isolado em todo o tempinfos e grep em `src` (sem nenhuma referência):
+  - ShopTempInfos 755 (ShopType 7) e 810 (ShopType 10): têm `Score` 18 e `LordsScore` 1 (moeda de pontuação, não verificada no cliente). Todas as colunas de preço que o servidor cobra são 0, então `shop.price` devolve `None` e o 5154 recusa (`NO_ITEM`).
+  - ActiveTempInfos 11 (Deneme Kulesi, `DropList`): `handlers/tower.py` só responde o info da torre (`tower_info`), sem progresso e sem recompensa.
+  - FishTemplateInfos 1004 (`RewardId`): `minigames.fishing` manda pool vazio, então não há pesca.
+  - Drop da cena de guilda (texto da 846: "Birlik ek sahnesinden [Koyu Kristal] toplayın"): não há tabela de drop nos dados e não há código de drop de cena no servidor.
+  - Nenhum handler lê `Score` ou `LordsScore` para vender (`shop.py:46` só ignora essas lojas), nenhum outro handler atende ShopType 7 ou 10, e nenhum arquivo em `data/` (incluindo o `overlay`) cita 208012 fora do tempinfos.
+  - Para desbloquear, o servidor precisa servir uma dessas fontes (moeda de Score na loja, drop na Deneme Kulesi ou drop na cena de guilda). Nada disso foi implementado.
+- **2127001 (770)**: a loja 149 (ShopType 1) pede 1 GiftToken por unidade, e `handlers/shop.py` (`charge`) cobra GiftToken. Os campos de bloqueio que `check()` lê estão zerados ou em -1 (`VIP0Count`), então a fonte existe para o servidor. A 770 continua fechada.
+- **2129001 (771)**: a loja 474 é ShopType 99 (ofertas da home), que o 5154 recusa. A 771 continua fechada.
+
 ## Tabela por CondictionType
 
 - **Nome**: título mais frequente em `CondictionTitle`.
@@ -68,7 +98,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 | Tipo | Nome | Para1 / Para2 (mais comuns) | Missões | Cliente (`getProgress`) | Contado | Onde no código | O que falta | Quem |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Seviyeyi Geliştir | 1 / 1; 1 / 20; 1 / 30 | 30 (7, 11, 12, 752, 772, 773, ...) | `checkPlayerGrades` | sim | rules.quest_done (PLAYER_LEVEL_CONDITION), nível lido na conclusão | nada: ligado. A missão 7 'Yılbaşı Gecesi' (P2=1) vira concluível para qualquer um com nível ≥1 (condição trivial no cliente; StartDate/EndDate do template são 2000). | eu |
+| 1 | Seviyeyi Geliştir | 1 / 1; 1 / 20; 1 / 30 | 30 (7, 11, 12, 752, 772, 773, ...) | `checkPlayerGrades` | sim | rules.quest_done (PLAYER_LEVEL_CONDITION), nível lido na conclusão | nada: ligado. A missão 7 'Yılbaşı Gecesi' (P2=1) deixou de ser aceitável: a janela (2000-01-01) está fechada, como no cliente. | eu |
 | 2 | Meclisi Geliştir | 901 / 2; 402 / 2; 1201 / 3 | 38 (51, 81, 82, 181, 182, 225, ...) | `checkBuildingOrTecGrades` | sim | rules.update_building_quests (castle.py:115, accept_quest) | — | outra equipe |
 | 3 | Asker Çağır | 1 / 200; 2 / 100; 3 / 200 | 5 (52, 110, 764, 785, 786) | `checkCount` | sim | army.py:92 quest_event RECRUIT (soma) | — | outra equipe |
 | 7 | Altın Ocağını İşgal Et | 2006 / 2 | 2 (60, 282) | `checkWilanCount` | sim | outer_city.py:266 quest_event OCCUPY (soma) | — | outra equipe |
@@ -86,17 +116,17 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 23 | Avcıyı Öldür | 13000 / 1; 11600 / 1; 17000 / 1 | 7 (10, 20, 30, 40, 45, 50, ...) | `checkAttack` | sim | rules.update_novice_quests (campaign.py:506, accept_quest) | — | outra equipe |
 | 25 | Ölümsüz Askerleri Öldür | 2041 / 4; 2042 / 3; 2043 / 2 | 34 (240, 450, 480, 490, 510, 560, ...) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 26 | Kurt Çenesini Öldür | 1011 / 1; 1031 / 1; 1041 / 1 | 30 (80, 210, 230, 280, 310, 470, ...) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 27 | “Yeni” Kelimesini Topla | 2125006 / 1; 2125007 / 1; 2125008 / 1 | 15 (8, 9, 13, 14, 90, 190, ...) | `checkGoodsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 28 | Kayıp Taş Topla | 2125011 / 3; 2100005 / 1; 2100007 / 1 | 12 (17, 300, 370, 460, 500, 540, ...) | `checkGoodsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 27 | “Yeni” Kelimesini Topla | 2125006 / 1; 2125007 / 1; 2125008 / 1 | 15 (8, 9, 13, 14, 90, 190, ...) | `checkGoodsCount` | sim | rules.goods_count (só BAG), update_state_quests (GOODS_CONDITIONS), quest_done; a entrega consome (5014) | fonte: vários itens das condições (2100001, 2100003, 2100004, 2100006, 2100008, 2100009, 2100013) não têm fonte nos dados (só ItemTempInfo e a condição); a contagem não depende disso | eu |
+| 28 | Kayıp Taş Topla | 2125011 / 3; 2100005 / 1; 2100007 / 1 | 12 (17, 300, 370, 460, 500, 540, ...) | `checkGoodsCount` | sim | rules.goods_count (só BAG), update_state_quests (GOODS_CONDITIONS), quest_done; a entrega consome (5014) | fonte: 2100005 e 2100007 não têm fonte nos dados; a contagem não depende disso | eu |
 | 29 | Birlik Katkısı | 0 / 10; 0 / 50; 0 / 150 | 4 (221, 222, 223, 224) | `checkConsortiaOffer` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 30 | Birlik Bereketi | 0 / 1 | 1 (241) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 31 | Tek Kişilik Sahneden Geç | 1 / 3; 2 / 1 | 2 (313, 371) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 32 | Kereste Topla | 2100022 / 20; 2100024 / 10; 2100023 / 10 | 7 (55, 102, 140, 170, 171, 172, ...) | `checkGoodsCount` | não | — | fonte dos recursos 2100022/23/24: nenhum código do servidor cria esses itens (grep vazio em src); coleta no espaço (8733) e no tutorial (8699) não é implementada. Depois, contar pela bolsa como o cliente faz (checkGoodsCount): mexe em items.py/drops.py, fora do meu grupo. | eu |
+| 32 | Kereste Topla | 2100022 / 20; 2100024 / 10; 2100023 / 10 | 7 (55, 102, 140, 170, 171, 172, ...) | `checkGoodsCount` | sim | rules.goods_count (só BAG), mesmo caminho da 27 | fonte dos recursos 2100022/23/24: nenhum código do servidor cria esses itens (grep vazio em src); coleta no espaço (8733) e no tutorial (8699) não é implementada | eu |
 | 33 | Hızlı Giriş Kullan | 0 / 1 | 2 (1, 150) | `checkClientLogin` | não | — | sinal de cliente desktop: o cliente lê DesktopManager.isDesktop (JS da página, ExternalInterface 'IsDesktop') e nenhum pacote manda isso (LoginReqMsg só tem playerId, key e ekeys). Decisão de protocolo. | eu |
 | 34 | Asker Modunu Ayarla | 0 / 1 | 1 (160) | `checkSortPawn` | sim | army.py:286 quest_event FORMATION (soma) | — | outra equipe |
 | 35 | Meydan Oku | 1 / 3; 1 / 5; 1 / 1 | 3 (2, 4, 188) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 36 | Kader | 1 / 1; 0 / 1 | 2 (3, 622) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 37 | Özgürlük Otlağına Gir | 0 / 1; 0 / 2; 0 / 3 | 5 (173, 390, 580, 787, 826) | `checkMapId` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 37 | Özgürlük Otlağına Gir | 0 / 1; 0 / 2; 0 / 3 | 5 (173, 390, 580, 787, 826) | `checkMapId` | sim | update_state_quests (MAP_CONDITION, checkMapId); já estava no HEAD | — | outra equipe |
 | 38 | Yeraltı Labirentine Katıl | 8001 / 2 | 1 (6) | `checkMazeRecord` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 39 | İkinci Gün Oyuna Giriş Yap | 0 / 1 | 1 (5) | `checkSencondLogin` | sim | rules.quest_done (LOGIN_DAY_CONDITION), dia UTC | nada: ligado. Compara o dia UTC do aceite com o de agora; o cliente usa o dia local (getDate). Se o fuso importar, trocar por um fuso fixo. | eu |
 | 40 | Dünya Boss’a Katıl | 0 / 10; 0 / 1 | 2 (759, 761) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
@@ -107,7 +137,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 46 | Ekipman Parçala | 0 / 1 | 1 (768) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 47 | Ekipman Arıt | 0 / 1 | 1 (769) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 48 | Cep Numaranı ve Onay Kodunu Gir | 0 / 1 | 1 (816) | `checkCount` | não | — | o servidor não tem nada de celular: o cliente manda 8524 (CheckSend) e 8352 (UserPin, código SMS) e nenhum handler responde. Falta: os dois handlers, guardar o número e um provedor de SMS. | eu |
-| 49 | Koyu Kristal | 2125012 / 5; 2125013 / 50; 2127001 / 10 | 15 (15, 19, 770, 771, 846, 847, ...) | `checkGoodsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 49 | Koyu Kristal | 208012 / 6 a 36 (846 a 856); 2125012 / 5 (15); 2125013 / 50 (19); 2127001 / 10 (770); 2129001 / 5 (771) | 15 (15, 19, 770, 771, 846 a 856) | `checkGoodsCount` | sim | rules.goods_count (só BAG), update_state_quests (GOODS_CONDITIONS), quest_done; a entrega consome (5014) | fonte (número isolado em todo o tempinfos): 208012 só em ShopTempInfos 755/810 (preço em Score/LordsScore, que `shop.price` não cobra), ActiveTempInfos 11 (Deneme Kulesi, sem recompensa no `tower.py`) e FishTemplateInfos 1004 (pesca fechada): nenhuma servida, então 846 a 856 travam (ver "Desbloqueio"). 2125013 sem fonte; 2125012 só como QuestGoods de outra missão; 2127001 na loja 149 (1 GiftToken; sem campo de bloqueio) e receita (só ingrediente); a contagem não depende disso | eu |
 | 50 | Savaş Alanı Zaferi | 0 / 1 | 2 (18, 818) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 51 | Birlik Seviyesi | 1 / 2; 2 / 2 | 2 (819, 820) | `checkConsortuaGrade` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 52 | Asker Özelliği Aydınlat | 0 / 2 | 1 (821) | `checkCount` | sim | army.py:247 quest_event COMPREHEND (soma) | — | outra equipe |
@@ -124,9 +154,9 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 66 | Dünya BOSS'ta Hemen Savaş | 0 / 3 | 1 (183) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 71 | Binek Eğitimi | 0 / 1 | 1 (753) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 74 | Deneme Kulesine Gir | 0 / 1 | 1 (799) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 76 | Saldırma Sembolünü Öğren | 2 / 1; 1 / 1 | 2 (906, 907) | `checkRuneStudy` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 76 | Saldırma Sembolünü Öğren | 2 / 1; 1 / 1 | 2 (906, 907) | `checkRuneStudy` | sim | update_state_quests (RUNE_STUDY); já estava no HEAD | — | outra equipe |
 | 77 | Ufak Sembol Taşını Birleştir | 3020010 / 5; 0 / 10; 3020004 / 20 | 3 (186, 908, 909) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 78 | Sembol Geliştir | 0 / 3; 5 / 150; 0 / 5 | 6 (910, 911, 916, 917, 918, 919) | `checkRuneGrade` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 78 | Sembol Geliştir | 0 / 3; 5 / 150; 0 / 5 | 6 (910, 911, 916, 917, 918, 919) | `checkRuneGrade` | sim | update_state_quests (RUNE_GRADE, LEVEL_CONDITIONS); já estava no HEAD | — | outra equipe |
 | 79 | Top Arabası Etkinliği | 0 / 1; 3001 / 1 | 2 (912, 914) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 80 | Top Arabası Zaferi | 0 / 1; 3001 / 1 | 2 (913, 915) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 85 | Jesi İle Konuş | 0 / 1 | 10 (174, 175, 191, 229, 272, 283, ...) | `checkFinishPetStory` | parcial | space.py talk (8692) e player.py quest_add (aceite), perto do nó | parcial: MasterType 61 (Tina 361, Asina 229, Lili 272, Larry 283, Anna 922, Badin 933) conta no 8692 e no aceite perto do nó. Patrulha (MasterType 1: Jesi 174/191, Koruma 175, Rona 301): o cliente não manda 8692; só conta no aceite se a posição do modelo estiver perto (não validado). O servidor não vê o fim do diálogo. | eu |
@@ -144,3 +174,8 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - **Mudança de comportamento intencional**: a missão 764 (recrutar 200 do tipo 3 e tropa do tipo 10 no nível 5) passou a exigir as duas linhas. Antes concluía só com o recrutamento.
 - **Junção no worktree**: `data\overlay` é uma junção para `D:\wartune\servidor\data\overlay`. Antes de apagar o worktree, desfazer só a junção pelo gerenciador de links do Windows, nunca por exclusão recursiva, que pode atravessar a junção e apagar a pasta real.
 - **Tipos de outra equipe**: as colunas "Contado" e "Onde" das linhas "outra equipe" refletem o código deste branch, então o integrador deve conferir essas linhas depois da mescla.
+- **Aceite e entrega (2026-10-17)**: o 5012 agora recusa o que o cliente também recusa (janela, nível, guilda, pré-requisito, repetição). Missões dos dados que estão vencidas ou com pré-requisito deixaram de nascer pelo 5012. Nos testes, 11, 5, 361, 906, 910, 390 e 173 entram abertas direto na sessão, ou com o pré-requisito concluído (`_done`), porque nos dados estão vencidas ou têm pré-requisito. O teste de conversa no aceite usa a 922 (a 361 venceu em 2000).
+- **Login**: o login manda só as missões abertas (`handlers/login.py:216`, `not q.completed`), então a repetível concluída não aparece lá. Quando o cliente a re-oferece (IsAuto, depois do `RepeatInterval`), o 5012 a reabre na mesma linha (`accept_quest`). A captura citada no código (login.json #89) mostra a 241 aberta com `completedDate` antigo e o bit do `states` ligado. O bit fica ligado (`ever_completed`), mas a missão não vai no login: diferença de exibição, em aberto.
+- **Sem migração nova**: a entrega não guarda estado pendente, então nada muda no banco.
+- **5017 (passo do novice)**: o cliente só manda valor positivo e múltiplo de 100 (cliente: `sendSaveProcess`, m8). A ordem crescente vem do guia (`newbie.xml`). O replay tem 29 avanços positivos, de 100 a 1500, de 11000 a 25500, e um pedido repetido (22800 duas vezes), que o servidor ignora (visto). O teto de 3500 é o maior salto do guia, de 28500 para 32000 (dedução: não há captura de salto maior). O painel de depuração do cliente (m8, `QVKZDKIyIBJ.as`, `__onSaveClick`) manda o id digitado sem esse teto: se ele existir em produção, o servidor recusa saltos acima de 3500 (não verificado).
+- **Revisão**: as linhas de [missoes-revisao.md](missoes-revisao.md) marcadas com "Revisão 2026-10-17" dizem o que mudou por missão.

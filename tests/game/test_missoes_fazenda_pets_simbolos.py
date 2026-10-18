@@ -57,6 +57,12 @@ def _accepted(g: Game, *template_ids: int) -> None:
     snap_of(g).quests.extend(Quest(g.user_id, t, now) for t in template_ids)
 
 
+def _done(g: Game, *template_ids: int) -> None:
+    """Missões já concluídas: pré-requisito da seguinte (TaskManage.checkPreTask), que só então aparece no cliente."""
+    now = datetime.now(UTC)
+    snap_of(g).quests.extend(Quest(g.user_id, t, now, completed=True, completed_at=now) for t in template_ids)
+
+
 # --- fazenda (59, 60, 61) --------------------------------------------------------------------------
 
 
@@ -150,6 +156,8 @@ async def test_quest_76_aprender_simbolo_e_aceitar_depois(tmp_path: Path) -> Non
     aprendida, a missão nasce com 1 (o cliente julga pelo símbolo que o herói tem: checkRuneStudy)."""
     async with logged_in(tmp_path, novice=19000) as g:
         await _learn_attack_rune(g)
+        await _set(g, grades=35)  # 906: nível 35
+        _done(g, 905)  # pré-requisito da 906
         g.client.send(5012, pb.QuestAddedMsg(questId=[906]))
         assert quest_msgs(await g.until(112)) == {906: 1}
 
@@ -174,6 +182,8 @@ async def test_quest_78_grau_do_simbolo_e_aceitar_depois(tmp_path: Path) -> None
         g.client.send(8605, pb.HeroRuneOpMsg(opType=2, runeId=202, count=13))  # 650 EXP: 202 -> 203 (grau 3)
         op = pb.HeroRuneOpMsg.FromString((await g.until(4495))[-1].body)
         assert [r.runeId for r in op.runeInfo.runeinfo] == [203]
+        await _set(g, grades=35)  # 910: nível 35
+        _done(g, 906)  # pré-requisito da 910
         g.client.send(5012, pb.QuestAddedMsg(questId=[910]))
         assert quest_msgs(await g.until(112)) == {910: 3}
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=910))
@@ -191,6 +201,7 @@ async def test_quest_37_cidade_no_mapa_da_missao(tmp_path: Path) -> None:
         castle = snap.castle
         assert castle is not None
         castle.energy = 500
+        _done(g, 360)  # pré-requisito da 390
         g.client.send(5012, pb.QuestAddedMsg(questId=[390]))
         assert quest_msgs(await g.until(112)) == {390: 0}
 
@@ -212,6 +223,7 @@ async def test_quest_37_aceita_depois_de_estar_no_mapa(tmp_path: Path) -> None:
         castle.energy = 500
         g.client.send(5176, pb.CastleReqMsg(magId=2, posX=0, posY=0, payType=1))
         await g.until(105)
+        _done(g, 360)  # pré-requisito da 390
         g.client.send(5012, pb.QuestAddedMsg(questId=[390]))
         assert quest_msgs(await g.until(112)) == {390: 2}
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=390))
@@ -228,6 +240,7 @@ async def test_quest_37_vale_o_mapa_de_agora_nao_o_maior(tmp_path: Path) -> None
         castle.energy = 500
         g.client.send(5176, pb.CastleReqMsg(magId=2, posX=0, posY=0, payType=1))
         await g.until(105)
+        _done(g, 360)  # pré-requisito da 390 (a 173 não tem)
         g.client.send(5012, pb.QuestAddedMsg(questId=[173, 390]))
         assert quest_msgs(await g.until(112)) == {173: 0, 390: 2}
         g.client.send(5176, pb.CastleReqMsg(magId=3, posX=0, posY=0, payType=1))
