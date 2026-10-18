@@ -17,6 +17,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from ..domain import gameday
+
 SIZE = 5
 CELLS = SIZE * SIZE
 COLORS = 5  # cores 1..5; 0 = casa vazia
@@ -90,7 +92,7 @@ def refresh(game: Game, now: datetime) -> None:
     pontos, então algo renova; ``score`` e ``weekScore`` são campos separados, então ``score`` é do dia.
     ponytail: o período (dia, UTC) não foi capturado; os movimentos comprados não somem (fica o maior).
     """
-    today = now.date()
+    today = gameday.game_day(now)
     if game.day == today.isoformat():
         return
     if not game.day or date.fromisoformat(game.day).isocalendar()[:2] != today.isocalendar()[:2]:

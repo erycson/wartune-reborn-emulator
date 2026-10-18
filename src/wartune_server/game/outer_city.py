@@ -14,10 +14,10 @@ import random
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+from ..domain import gameday
 from ..domain.models import Castle, PlayerSnapshot, WildLand
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
-from . import worldboss
 
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
 GRID = 50  # a grade pedida pelo cliente é "x_y" de 50 × 50 tiles (OuterCitySocketOutManager)
@@ -150,7 +150,7 @@ def cycle_end(snap: PlayerSnapshot) -> datetime:
 
 def game_date(at: datetime) -> str:
     """Data como o oficial manda (createDate): no fuso do jogo."""
-    return at.astimezone(worldboss.GAME_TZ).strftime(DATE)
+    return gameday.local(at).strftime(DATE)
 
 
 def draw(snap: PlayerSnapshot, mine: Mine) -> tuple[int, int]:
@@ -362,7 +362,7 @@ BOSS_ALIVE = 1  # BossMsg.type visto; 0 o cliente pinta como morto e esconde o r
 def boss_left(now: datetime) -> int:
     """Segundos até o próximo refresh dos chefes. Nunca 0: com 0 o cliente (``coolDownBossUpdate``) pede
     o 9525 de novo, e a cada segundo se a resposta voltar 0."""
-    local = now.astimezone(worldboss.GAME_TZ)
+    local = gameday.local(now)
     into = (local - local.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() % BOSS_PERIOD
     return max(1, int(BOSS_PERIOD - into))
 

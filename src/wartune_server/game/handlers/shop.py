@@ -14,6 +14,7 @@ from datetime import datetime
 
 from google.protobuf.message import Message
 
+from ...domain import gameday
 from ...domain.models import CashLedger, Item, MysteryShop, PlayerSnapshot, Purchase, ShopBuy
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
@@ -114,7 +115,7 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
 
 
 def day(now: datetime) -> str:
-    return now.strftime("%Y-%m-%d")
+    return gameday.today(now)
 
 
 def today_count(snap: PlayerSnapshot, good_id: int, now: datetime) -> int:

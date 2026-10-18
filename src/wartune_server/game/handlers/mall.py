@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 
 from google.protobuf.message import Message
 
+from ...domain import gameday
 from ...domain.models import BagType, Character, Item, Mail, MallBid, MallListing, PlayerSnapshot, Purchase
 from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
@@ -64,7 +65,7 @@ def daily_limit(grades: int) -> int:
 
 
 def _spent_today(c: Character, now: datetime) -> int:
-    return c.mall_spent if c.mall_day == now.date().isoformat() else 0
+    return c.mall_spent if c.mall_day == gameday.today(now) else 0
 
 
 def _over_limit(c: Character, cost: int, now: datetime) -> bool:
@@ -72,7 +73,7 @@ def _over_limit(c: Character, cost: int, now: datetime) -> bool:
 
 
 def _count_spent(c: Character, cost: int, now: datetime) -> None:
-    c.mall_spent, c.mall_day = _spent_today(c, now) + cost, now.date().isoformat()
+    c.mall_spent, c.mall_day = _spent_today(c, now) + cost, gameday.today(now)
 
 
 @dataclass

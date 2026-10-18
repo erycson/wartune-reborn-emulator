@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import random
 
+from ...domain import gameday
 from ...domain.models import BagType, Item, PlayerSnapshot, PlayerSystems
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
@@ -197,7 +198,7 @@ def open_fate(s: GameSession) -> PlayerSystems | None:
         return None
     if not sy.fate:
         sy.fate = FATE_DEFAULT
-    today = s.ctx.clock.now().strftime("%Y-%m-%d")
+    today = gameday.today(s.ctx.clock.now())
     if sy.fate_day != today:
         sy.fate_day, sy.fate_turns = today, 0
     return sy

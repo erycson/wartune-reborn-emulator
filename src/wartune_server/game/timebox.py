@@ -6,8 +6,9 @@ período recebido; o cliente conta ``próximo*60 - timeRun`` e manda o 5019 quan
 
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime
 
+from ..domain import gameday
 from ..domain.models import Character
 from ..templates.repository import GameTemplates
 
@@ -16,10 +17,9 @@ OFFLINE_MAX = 8 * 3600  # HookRewardFrame: teto de 8 horas
 
 def _box(c: Character, now: datetime, online: bool) -> tuple[int, int]:
     """(período recebido, segundos online hoje) se acumulado até ``now``."""
-    # ponytail: o dia vira à meia-noite UTC; sem o horário de reset do servidor oficial
     since, period, seconds = c.box_counted_at, c.box_period, c.box_seconds
-    if since is not None and since.date() != now.date():
-        period, seconds, since = 0, 0, datetime.combine(now.date(), time(), now.tzinfo)
+    if since is not None and not gameday.same_day(since, now):
+        period, seconds, since = 0, 0, gameday.day_start(now)
     if since is not None and online:
         seconds += max(0, int((now - since).total_seconds()))
     return period, seconds

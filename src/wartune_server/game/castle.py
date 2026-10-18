@@ -13,6 +13,7 @@ import math
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 
+from ..domain import gameday
 from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
@@ -169,7 +170,7 @@ def energy_max(templates: GameTemplates) -> int:
 
 def impose_used(castle: Castle, now: datetime) -> int:
     """Cobranças de ouro (8327) já feitas hoje; o contador zera na virada do dia."""
-    if castle.imposed_at is None or castle.imposed_at.date() != now.date():
+    if not gameday.same_day(castle.imposed_at, now):
         return 0
     return castle.impose_used
 

@@ -165,7 +165,7 @@ async def test_colosseum_refusals(tmp_path: Path) -> None:
 
 async def test_daily_reset_zeroes_counters_and_sends_4202(tmp_path: Path) -> None:
     arena = Arena(1, day="2000-01-01", challenge_count=5, pet_count=2)
-    assert A.roll_day(arena, datetime(2026, 1, 1, tzinfo=UTC)) is True
+    assert A.roll_day(arena, datetime(2026, 1, 1, 5, tzinfo=UTC)) is True  # 08:00 em UTC+3: dia 1
     assert (arena.day, arena.challenge_count, arena.pet_count) == ("2026-01-01", 0, 0)
     assert A.roll_day(arena, datetime(2026, 1, 1, 23, tzinfo=UTC)) is False
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from datetime import timedelta
 
+from ...domain import gameday
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from .. import guild, items, social
@@ -85,7 +86,7 @@ def free_bugles(s: GameSession) -> int:
     """
     assert s.snapshot is not None
     c = s.snapshot.character
-    today = s.ctx.clock.now().date().isoformat()
+    today = gameday.today(s.ctx.clock.now())
     if c.bugle_free_day != today:
         c.bugle_free_day, c.bugle_free_used = today, 0
     return max(0, FREE_SMALL_BUGLES - c.bugle_free_used)

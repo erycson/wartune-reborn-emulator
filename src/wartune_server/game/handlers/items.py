@@ -10,6 +10,7 @@ from datetime import timedelta
 
 from google.protobuf.message import Message
 
+from ...domain import gameday
 from ...domain.models import BagType, Hero, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
@@ -267,7 +268,7 @@ async def _use_copies(s: GameSession, item: Item, n: int, times: int) -> bool:
     assert snap is not None
     c, now = snap.character, s.ctx.clock.now()
     count, top = c.multi_copies(rules.copies_base(s.ctx.templates), now)
-    c.multi_copy_count, c.multi_copy_max, c.multi_copy_day = count + times, top + times, now.date().isoformat()
+    c.multi_copy_count, c.multi_copy_max, c.multi_copy_day = count + times, top + times, gameday.today(now)
     # ponytail: sem teto de uso por dia (a captura tem um uso só); o gasto da entrada não existe aqui, falta
     # captura de entrar numa campanha em grupo (5039 não tem handler)
     changed, gone = _consume(snap, item, n)  # antes de qualquer await

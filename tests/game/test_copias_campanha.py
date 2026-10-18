@@ -1,6 +1,7 @@
 """Campanha em grupo (4240): o Büyük Sefer soma uma entrada no dia (captura
 ``buyuk_sefer_kullanimi_grup_sahne_yarari_1``), e no dia seguinte o login volta ao ``MultiCampaign_MaxCount``."""
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 from tests.game.harness import logged_in
@@ -14,7 +15,7 @@ BUYUK_SEFER = 2032101  # ItemTempInfos: SonType 203, Property1 15, Property2 1 (
 
 
 async def test_buyuk_sefer_adds_one_entry_per_use_and_is_saved(tmp_path: Path) -> None:
-    clock = FakeClock()
+    clock = FakeClock(datetime(2026, 1, 1, 12, tzinfo=UTC))  # depois das 5h do dia 1 no fuso do jogo
     async with logged_in(tmp_path, novice=19000, clock=clock) as g:
         item = Item(g.user_id, BUYUK_SEFER, pos=0, count=2)
         me(g).items.append(item)

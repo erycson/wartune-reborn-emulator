@@ -15,6 +15,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
+from ..domain import gameday
 from ..domain.models import Arena, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
@@ -53,7 +54,7 @@ def config(templates: GameTemplates, name: str, default: int) -> int:
 
 
 def today(now: datetime) -> str:
-    return now.date().isoformat()
+    return gameday.today(now)
 
 
 def week(now: datetime) -> str:
@@ -144,7 +145,7 @@ def pay_diamonds(snap: PlayerSnapshot, cost: int, bind_ok: bool) -> bool:
 def period(now: datetime) -> tuple[str, int]:
     """(chave do período de resgate, dias até o próximo)."""
     days = int(rewards()["period_days"])
-    ordinal = now.date().toordinal()
+    ordinal = gameday.game_day(now).toordinal()
     return str(ordinal // days), days - ordinal % days
 
 

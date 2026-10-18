@@ -11,6 +11,7 @@ import random
 import re
 from datetime import datetime, timedelta
 
+from ...domain import gameday
 from ...domain.models import (
     BagType,
     Character,
@@ -74,7 +75,7 @@ def _now(s: GameSession) -> datetime:
 
 
 def _day(now: datetime) -> str:
-    return now.strftime("%Y-%m-%d")
+    return gameday.today(now)
 
 
 def _char(s: GameSession) -> Character:

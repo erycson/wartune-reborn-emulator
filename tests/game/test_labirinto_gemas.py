@@ -288,11 +288,11 @@ def test_refresh_renews_moves_score_and_boxes_on_a_new_day_and_keeps_the_level()
     game.day = "2026-01-07"  # quarta
     gm.refresh(game, datetime(2026, 1, 7, 23, tzinfo=UTC))  # mesmo dia: nada muda
     assert (game.times, game.score, game.box) == (3, 700, 1)
-    gm.refresh(game, datetime(2026, 1, 8, tzinfo=UTC))  # dia seguinte, mesma semana
+    gm.refresh(game, datetime(2026, 1, 8, 12, tzinfo=UTC))  # dia seguinte, mesma semana
     assert (game.times, game.help, game.score, game.box, game.week) == (20, 5, 0, 0, 900)
     assert (game.level, game.exp, game.board) == (5, 61, CAPTURED_BOARD)
     game.times = 45  # movimentos comprados não somem
-    gm.refresh(game, datetime(2026, 1, 12, tzinfo=UTC))  # segunda: semana nova
+    gm.refresh(game, datetime(2026, 1, 12, 12, tzinfo=UTC))  # segunda: semana nova
     assert (game.times, game.week) == (45, 0)
 
 

@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum
 
+from . import gameday
+
 
 class Sex(IntEnum):
     FEMALE = 0
@@ -162,12 +164,12 @@ class Character:
 
     def bless_count_today(self, now: datetime) -> int:
         """Bênçãos do seminário no dia (``PlayerMsg.blessingCount``, tarefa do dia). Outro dia = zero."""
-        return self.seminary_count if self.seminary_day == now.date().isoformat() else 0
+        return self.seminary_count if self.seminary_day == gameday.today(now) else 0
 
     def multi_copies(self, base: int, now: datetime) -> tuple[int, int]:
         """(sobram, máximo) das entradas de campanha em grupo hoje. Outro dia volta ao ``base``
         (``MultiCampaign_MaxCount``): o item de +1 vale só no dia em que foi usado."""
-        if self.multi_copy_day == now.date().isoformat():
+        if self.multi_copy_day == gameday.today(now):
             return self.multi_copy_count, self.multi_copy_max
         return base, base
 

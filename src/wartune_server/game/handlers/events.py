@@ -8,6 +8,7 @@ import calendar
 from collections.abc import Sequence
 from datetime import datetime
 
+from ...domain import gameday
 from ...domain.models import EventState, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import events as ev
@@ -47,7 +48,7 @@ def touch_login(snap: PlayerSnapshot, now: datetime, catalog: ev.EventCatalog) -
     """Primeiro login do dia: soma um dia de login (8496, atividades tipo 13) e marca o leed 1.
     Devolve as linhas alteradas (quem chama grava)."""
     day = ev.state(snap, "login", now)
-    if day.value and day.updated_at.date() == now.date():
+    if day.value and gameday.same_day(day.updated_at, now):
         return []
     day.value, day.updated_at = day.value + 1, now
     changed = [day, leed_progress(snap, LOGIN_LEED, now)]

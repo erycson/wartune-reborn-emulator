@@ -12,6 +12,7 @@ import pytest
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_social import _create_guild, _guild
 from tests.test_end_to_end import TEMPLATES
+from wartune_server.domain import gameday
 from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
 from wartune_server.protocol import Packet
@@ -245,6 +246,7 @@ async def test_repetivel_reabre_so_com_o_dia_do_jogo_seguinte(tmp_path: Path) ->
     """183 (IsRepeat): concluída às 06:00 UTC (dia do jogo 17). Às 04:59 UTC do dia 18 ainda é o dia 17 (vira às
     5h), então não reabre; às 05:00 reabre, na mesma linha da tabela."""
     async with logged_in(tmp_path, novice=19000) as g:
+        gameday.set_timezone("UTC")  # depois do servidor, que aplica o fuso da configuração ao subir
         templates, snap = g.server.services.templates, _snap(g)
         snap.character.grades = 40
         q = Quest(g.user_id, 183, NOW, completed=True, completed_at=datetime(2026, 10, 17, 6, tzinfo=UTC))

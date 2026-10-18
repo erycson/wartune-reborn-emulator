@@ -7,6 +7,7 @@ dono do prédio, nível do jogador, pré-requisitos, fila livre e custo.
 
 from __future__ import annotations
 
+from ...domain import gameday
 from ...domain.models import Building, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
@@ -311,7 +312,7 @@ async def seminary_bless(s: GameSession, _: object) -> None:
         return
     c.crystals -= cost
     c.seminary_effect = min(top, c.seminary_effect + step)
-    c.seminary_count, c.seminary_day = count + 1, now.date().isoformat()
+    c.seminary_count, c.seminary_day = count + 1, gameday.today(now)
     quests = rules.quest_event(s.snapshot, s.ctx.templates, rules.SEMINARY_CONDITION, 0, 1)  # missão 57 (8489)
     await s.ctx.characters.save(c, *quests)
     s.send(S_BLESSING, b.complete(pb.BlessingMsg(increase=c.seminary_effect, usedCount=c.seminary_count)))

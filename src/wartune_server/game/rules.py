@@ -5,8 +5,9 @@ herói, equipamentos, missões. Quem chama grava as entidades alteradas (``Chara
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 
+from ..domain import gameday
 from ..domain.models import (
     BagType,
     Character,
@@ -102,7 +103,7 @@ def systems(snap: PlayerSnapshot) -> PlayerSystems:
 def refresh_star_day(sy: PlayerSystems, now: datetime) -> None:
     """O dia das estrelas vira às 5h (o cliente manda o 8325 nessa hora); quem estava offline
     recebe o sorteio grátis na próxima leitura. Idempotente: grava junto com a próxima save."""
-    day = (now - timedelta(hours=5)).strftime("%Y-%m-%d")
+    day = gameday.today(now)
     if sy.star_day != day:
         sy.star_day, sy.star_free = day, 1
 
@@ -293,7 +294,6 @@ TALK_CONDITION = 85  # falar com o NPC do nó Para4 ("mapa,nó"): vem do 8692 ou
 PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
 GOODS_CONDITIONS = {27, 28, 32, 49}  # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount)
 QUEST_GOODS_SON = "210"  # SonType do item só de missão (2100001): a entrega tira todas as unidades (goods_to_take)
-GAME_DAY_SHIFT = timedelta(hours=5)  # o dia do jogo vira às 5h (cliente: checkInRepeatTime)
 # (cliente) newbie.xml (overlay/ui/zh_cn), saveId: o maior salto do guia é 28500 -> 32000 (3500)
 # ponytail: teto de salto em vez da lista exata de saveId; a lista seria o próximo passo
 NOVICE_STEP_MAX = 3500
@@ -413,7 +413,7 @@ def _template_time(text: str) -> datetime:
 
 
 def _game_day(value: datetime) -> date:
-    return (_utc(value) - GAME_DAY_SHIFT).date()
+    return gameday.game_day(value if value.tzinfo else value.replace(tzinfo=UTC))
 
 
 def _pre_done(snap: PlayerSnapshot, templates: GameTemplates, pre_id: str) -> bool:
@@ -555,7 +555,7 @@ def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: da
         if kind == PLAYER_LEVEL_CONDITION:
             have = snap.character.grades
         elif kind == LOGIN_DAY_CONDITION:  # dia em UTC, o mesmo fuso do addDate mandado no 112
-            have = int(now.date() > q.added_at.date())
+            have = int(_game_day(now) > _game_day(q.added_at))
         elif kind in GOODS_CONDITIONS:
             have = goods_count(snap, int(cond["Para1"]))
         else:

@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ..domain import gameday
 from ..domain.models import EventState, PlayerSnapshot
 from ..templates.repository import GameTemplates
 
@@ -40,7 +41,7 @@ def peek(snap: PlayerSnapshot, key: str) -> EventState | None:
 def daily(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
     """Como ``state``, mas zera ``value``/``text`` se a última mudança foi em outro dia."""
     st = state(snap, key, now)
-    if st.updated_at.date() != now.date():
+    if not gameday.same_day(st.updated_at, now):
         st.value, st.text, st.updated_at = 0, "", now
     return st
 

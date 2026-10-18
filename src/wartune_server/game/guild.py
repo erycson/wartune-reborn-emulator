@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from ..domain import gameday
 from ..domain.models import Character, Consortia, ConsortiaEvent, ConsortiaInvite, ConsortiaItem, ConsortiaMember
 from ..protocol.messages import wartune_pb2 as pb
 from ..services.characters import CharacterService
@@ -87,7 +88,7 @@ ALTAR_SECONDS = 1260  # duração do altar do demônio (21 min)
 def altar_state(guild: Consortia, now: datetime) -> int:
     """Calculado na hora: aberto por 21 min, encerrado até o fim do dia, fechado no dia seguinte."""
     at = guild.altar_at
-    if at is None or guild.altar_state == ALTAR_CLOSED or at.date() != now.date():
+    if at is None or guild.altar_state == ALTAR_CLOSED or not gameday.same_day(at, now):
         return ALTAR_CLOSED
     return ALTAR_OPEN if (now - at).total_seconds() < ALTAR_SECONDS else ALTAR_ENDED
 
