@@ -15,11 +15,22 @@ execução por `game/drops.py`: esta página é só um retrato dela, para confer
   por jogador?); o prêmio das listas vazias (chefe do mundo 4001+, 5001/5003, 3001, 7501, 7601, labirintos
   8001/8101). Anote na coluna *Visto em* o vídeo ou a captura (ex.: `vídeo X 03:12, caiu 1011104`).
 - **Ligado (1001)**: vencer o último nó do Kurt İni manda 137, 4151, 83, 135, 4165, 150, 150, 140 (`_dungeon_end`); o clique na carta (5122) sorteia com `drops.card` e responde 115, 26, 83, 134 com o item gravado, uma carta por mapa (`take_card`, `game/handlers/campaign.py`).
-- **Loot das lutas (falta)**: no 1021 os lobos deram itens (4103 com `signId` e `baseItem` 2040101, 115 e 111 "Kazanılan:Kurt Dişi x2/x3", 2100001; replay #1355-#1377, #1457, #1536, #1592); no 1011 nenhum lobo deu. Nenhuma tabela do tempinfos liga lobo/nó a item (`CampaignData` só tem 130 linhas, sem os nós 101xxx/102xxx; nenhuma `QuestTemps` pede 2100001), então o servidor não sorteia loot de luta. Só o 1001 tem mapa de nós; as outras masmorras desta lista ainda não rodam no servidor (ver [salas-campanha.md](salas-campanha.md)).
+- **Loot das lutas (ligado, sem chance)**: `content/dungeon_1001.json` (campo `drops`) dá o item de cada luta vencida, por nó (tabela abaixo). Os lobos do 1011 e o chefe 102109 não deram item. Nenhuma tabela do tempinfos liga nó a item (`CampaignData` só tem 130 linhas, sem os nós 101xxx/102xxx), então a lista vem só da captura. O servidor dá o item sempre: a chance não se separa na captura (dedução). As outras masmorras desta lista ainda não rodam no servidor (ver [salas-campanha.md](salas-campanha.md)).
 
 ## 1001 Kurt İni (Lv 5, solo)
 
 Ligado no servidor: mapas 1011 e 1021 em `content/dungeon_1001.json`. A chance de cada item não é conhecida; o sorteio é uniforme (ver acima).
+
+Drops das lutas, por nó (sem chance; visto no replay):
+
+| Nó | Item | Quantidade | Visto em |
+|---|---|---|---|
+| 102102 | Kurt Dişi (2100001) | 2 | 115 #1360 e #1386; 111 #1374 e #1400 |
+| 102102 | Şans Taşı Lv.1 (2040101) | 1 | 4103 #1355 (`baseItem`) |
+| 102103 | Kurt Dişi (2100001) | 2 | #1442 e #1457 |
+| 102105 | Kurt Dişi (2100001) | 3 | #1520 e #1536 |
+| 102106 | Kurt Dişi (2100001) | 3 | #1578 e #1592 |
+| 1011 (101102 a 101109) e 102109 | nenhum | — | sem item na captura |
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|

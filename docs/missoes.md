@@ -22,7 +22,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - **Estado, lido na conclusão**: tipo 1 (nível do personagem) e 39 (dia do login). Não gravam progresso; `quest_done` lê o snapshot na hora.
 - **Estado, gravado quando muda**: tipo 23 (passo do tutorial, no aceite e quando o guia avança) e tipo 2 (nível do prédio, no aceite e quando o prédio sobe).
 - **Conversa**: tipo 85, marcado uma vez quando o jogador fala com o NPC perto dele.
-- **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O servidor não conta nada desses tipos ainda; ver a tabela.
+- **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O tipo 27 já conta (`rules.goods_count`, só itens da bolsa), e a entrega (5014) tira as pilhas dele (`rules.take_quest_goods`). Os tipos 28, 32 e 49 ainda não são contados; ver a tabela.
 
 ## Tipos ligados nesta rodada (login-diversos-regras)
 
@@ -51,6 +51,18 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - Capturas: não há 8692 de conversa. O único 8692 visto é um teleporte (`peri_adasi_tp.json`, nó 5). A ordem 8692 e 5012 vem só do cliente (código, não captura).
 - Teste: `test_falar_com_npc_conta_no_aceite_perto_do_no` e `test_falar_com_npc_pelo_8692_so_perto_e_nao_com_quem_anda`.
 
+### Masmorra Kurt İni (tipos 14, 25, 26, 27 e 31)
+
+Ligados em `handlers/campaign.py` (`_battle_over`, `_dungeon_loot`, `_map_finished`) e em `rules.py`. Só a campanha 1001 tem nós e lutas no servidor. O resto da lista está na seção "Missões bloqueadas para as masmorras 1002+", abaixo.
+
+- **Para1 em lista** (tipos 14 e 26, 17 missões: 760, 783, 784, 842, 843, 844, 845, 893, 894, 895, 896, 901, 902, 903, 904, 923, 924): `rules.para1_ids` separa por vírgula, e 0 = qualquer. Antes, `update_state_quests` fazia `int(Para1)` em toda linha, e `int("9004,9104")` derrubava o aceite da 760 (teste `test_para1_em_lista_nao_derruba_o_aceite`).
+- **Tipo 14 (campanha passada)**: `Para1` = `CampaignId`. Quando um mapa da 1001 acaba (`_map_finished`: no 1011, todo o grupo de lobos caído e sem `param4`; no 1021, o chefe 102109 morto), vale `quest_event(14, 1001, 1)`. Não soma: a condição é 1 por campanha. (visto) replay: relatório de campanha 137 em #1215, antes do 112 com `cond_1` = 1 em #1222 (missão 70).
+- **Tipo 26 (chefe)**: `Para1` = template do chefe (`GameHeroTemp`, 1011 = 'Çene'), `Para3` = campanha. Cada chefe do lado 2 da batalha vencida vale `quest_event(26, heroTempId, 1)`. Casa pelo template, não pelo mapa: o chefe 102109 tem `heroTempId` 1011, e a missão 80 pede 1011 (teste `test_26_chefe_pelo_template_e_nao_pelo_mapa`).
+- **Tipo 25 (matar soldados)**: cada soldado do lado 2 da batalha vencida soma pelo `tempId` (`PAWN_KILL_CONDITION`). A 1001 tem o soldado 2011 do lado 2, mas nenhuma missão de 25 aponta para ela. (dedução) conta todos os soldados do lado 2 da spec, não os que o jogador viu cair.
+- **Tipo 27 (bolsa)**: `goods_count` soma as pilhas do item na bolsa (`BagType.BAG`; item fora da bolsa não conta, teste `test_27_nao_conta_item_que_nao_esta_na_bolsa`). Na entrega (5014), `take_quest_goods` tira todas as unidades de cada item do 27. (visto) replay #1609: 115 com a posição esvaziada depois da entrega da 90, e a pilha tinha 10, enquanto o `Para2` pede 8. Tirar a pilha inteira segue o replay. (dedução) a quantidade a tirar não é o `Para2`; uma segunda entrega ainda não foi vista.
+- **RewardStrategy**: o 5014 agora paga `RewardStrategy` (antes era ignorada). A 90 dá 1000 de Ruh. (dedução) o template manda; a captura não foi conferida para o Ruh.
+- **Tipo 31 (cena solo)**: `Para1` = `Campaigns.Capacity`. A 1001 tem capacidade 1, e cada fim de mapa dela vale `quest_event(31, 1, 1)`. A 313 pede `Para2` 3 ("herhangi bir haritayı [3 kez] geç"): fecha no servidor depois de duas partidas (dedução: cada mapa conta), mas o cliente só a oferece com a pré 310 concluída, e a 310 é do tipo 26 da campanha 1007 (sem nós). A 371 pede capacidade 2 (grupo) e não fecha com a 1001. (visto) captura `savasa_baskin_ve_elmas_ile_hizlandirma.json` #12 mostra progresso 1 em 313.
+
 ### Tipos que não foram ligados
 
 - **8 (Ocak Yağmala)**: missão 100 pede atacar cidade inimiga (`P1 = 0`, `P2 = 1`), 411 pede 2 ataques a cidade de jogador, e 765 é diária com `P1 = 1`. O servidor não tem ataque PvP a castelo: `8488` não tem alvo e só registra. O `5160` ataca mina livre contra o guarda (isso é ocupar, tipo 7), e mina já ocupada é recusada. Falta o ataque PvP a castelo.
@@ -75,7 +87,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 8 | Ocak Yağmala | 0 / 1; 0 / 2; 1 / 1 | 3 (100, 411, 765) | `checkCount` | não | — | PvP contra castelo: 8488 não tem alvo (outer_city.pvp_army só registra) e 5160 só ataca mina livre contra o guarda (isso é ocupar, tipo 7). 100 pede cidade inimiga, 411 pede 2 ataques a cidade de jogador, 765 é diária com P1=1. | eu |
 | 10 | Mızraklı Askeri Geliştir | 1 / 3; 3 / 5 | 2 (101, 764) | `checkPawnGrades` | sim | army.py:178 quest_event PAWN_LEVEL (maior valor) | — | outra equipe |
 | 12 | Bekleme Süresini Kaldır | 1 / 1; 1 / 3; 1 / 7 | 3 (111, 112, 113) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 14 | Vahşiler Düzlüğünü Geç | 1005 / 1; 1002 / 1; 1001 / 1 | 39 (21, 70, 120, 130, 250, 350, ...) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 14 | Vahşiler Düzlüğünü Geç | 1005 / 1; 1002 / 1; 1001 / 1 | 39 (21, 70, 120, 130, 250, 350, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`, `_map_finished`); rules.quest_event (CAMPAIGN_CONDITION) | só a campanha 1001 tem nós no servidor. As outras 38 missões pedem campanhas 1002+ ou 9000+ (lista abaixo) | eu |
 | 16 | Arena Savaşına katıl | 1 / 3; 1 / 5 | 2 (421, 422) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 17 | Bir Ekipmanı 3 Lv’ye Güçlendir | 2 / 1 | 1 (121) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 18 | Değerli Taş İşle | 1 / 1 | 1 (281) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
@@ -84,13 +96,13 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 21 | Arkadaş Ekle | 0 / 1 | 1 (200) | `checkFriendsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 22 | Birliğe Katıl/Birlik kur | 0 / 1 | 1 (220) | `checkJoinConsortia` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 23 | Avcıyı Öldür | 13000 / 1; 11600 / 1; 17000 / 1 | 7 (10, 20, 30, 40, 45, 50, ...) | `checkAttack` | sim | rules.update_novice_quests (campaign.py:506, accept_quest) | — | outra equipe |
-| 25 | Ölümsüz Askerleri Öldür | 2041 / 4; 2042 / 3; 2043 / 2 | 34 (240, 450, 480, 490, 510, 560, ...) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 26 | Kurt Çenesini Öldür | 1011 / 1; 1031 / 1; 1041 / 1 | 30 (80, 210, 230, 280, 310, 470, ...) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 27 | “Yeni” Kelimesini Topla | 2125006 / 1; 2125007 / 1; 2125008 / 1 | 15 (8, 9, 13, 14, 90, 190, ...) | `checkGoodsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 25 | Ölümsüz Askerleri Öldür | 2041 / 4; 2042 / 3; 2043 / 2 | 34 (240, 450, 480, 490, 510, 560, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`); rules.quest_event (PAWN_KILL_CONDITION) | conta por soldado do lado 2 da batalha. A 1001 tem o 2011, mas nenhuma missão de 25 aponta para ela. As 34 missões são de campanhas 1004 a 1602 (sem nós) | eu |
+| 26 | Kurt Çenesini Öldür | 1011 / 1; 1031 / 1; 1041 / 1 | 30 (80, 210, 230, 280, 310, 470, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`); rules.quest_event (HERO_KILL_CONDITION) | o chefe da 1001 (102109, template 1011) conta na 80. Os chefes de campanhas 1002+ e o da ilha dos pets (921) não têm gatilho | eu |
+| 27 | “Yeni” Kelimesini Topla | 2125006 / 1; 2125007 / 1; 2125008 / 1 | 15 (8, 9, 13, 14, 90, 190, ...) | `checkGoodsCount` | sim | rules.goods_count (quest_done); rules.take_quest_goods no 5014 (handlers/player.py) | 28, 32 e 49 seguem sem contagem. 14 missões de 27 pedem itens sem fonte no dado (lista abaixo). A 90 fecha com 2100001 da 1001 | eu |
 | 28 | Kayıp Taş Topla | 2125011 / 3; 2100005 / 1; 2100007 / 1 | 12 (17, 300, 370, 460, 500, 540, ...) | `checkGoodsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 29 | Birlik Katkısı | 0 / 10; 0 / 50; 0 / 150 | 4 (221, 222, 223, 224) | `checkConsortiaOffer` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 30 | Birlik Bereketi | 0 / 1 | 1 (241) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 31 | Tek Kişilik Sahneden Geç | 1 / 3; 2 / 1 | 2 (313, 371) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 31 | Tek Kişilik Sahneden Geç | 1 / 3; 2 / 1 | 2 (313, 371) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`, fim de mapa); rules.quest_event (SOLO_CONDITION) | conta cena com capacidade = Para1 só na 1001 (capacidade 1). 313 fecha no servidor (`Para2` 3), mas a pré 310 bloqueia. 371 (capacidade 2) não tem cena | eu |
 | 32 | Kereste Topla | 2100022 / 20; 2100024 / 10; 2100023 / 10 | 7 (55, 102, 140, 170, 171, 172, ...) | `checkGoodsCount` | não | — | fonte dos recursos 2100022/23/24: nenhum código do servidor cria esses itens (grep vazio em src); coleta no espaço (8733) e no tutorial (8699) não é implementada. Depois, contar pela bolsa como o cliente faz (checkGoodsCount): mexe em items.py/drops.py, fora do meu grupo. | eu |
 | 33 | Hızlı Giriş Kullan | 0 / 1 | 2 (1, 150) | `checkClientLogin` | não | — | sinal de cliente desktop: o cliente lê DesktopManager.isDesktop (JS da página, ExternalInterface 'IsDesktop') e nenhum pacote manda isso (LoginReqMsg só tem playerId, key e ekeys). Decisão de protocolo. | eu |
 | 34 | Asker Modunu Ayarla | 0 / 1 | 1 (160) | `checkSortPawn` | sim | army.py:286 quest_event FORMATION (soma) | — | outra equipe |
@@ -137,10 +149,26 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 91 | Define Avı | 0 / 1 | 1 (930) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 93 | Gökyüzü Yolunda Zafer Kazan | 0 / 1 | 1 (932) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 
+## Missões bloqueadas para as masmorras 1002+
+
+Lista calculada do `tempinfos.xml` do overlay: missões com condição 8, 14, 25, 26, 27 ou 31 que a masmorra 1001 não cumpre. Total: 119 missões. Fecham com a 1001: 70, 80 e 90. A 313 fecha no servidor, mas a pré 310 a deixa travada.
+
+Para as masmorras 1002+ destravarem uma missão, precisam de nós e lutas (`content/dungeon_<id>.json`, a partir de captura; `tools/extract_dungeon.py` só serve à 1001 hoje), do fim de mapa com o grupo caído e dos drops. Sem captura dos nós, nenhuma dessas missões fecha.
+
+- **14, campanha sem nós (38)**: 21 (1005), 120 e 130 (1002), 250 (1005), 350 (9000), 380 (1101), 410 (1102), 430 (1103), 440 (1104), 530 (9002), 650 (9003), 720 (1205), 754 (9104), 760 (9004 e 9104), 784 (9005 e 9105), 801 (1302), 803 (1304), 805 (1306), 807 (1308), 828 (1402), 830 (1404), 832 (1406), 843 (9006 e 9106), 845 (9007 e 9107), 879 a 885 (1501 a 1507), 894 (9008 e 9108), 896 (9009 e 9109), 897 (1601), 898 (1602), 902 (9010 e 9110), 904 (9011 e 9111), 924 (9012 e 9112).
+- **26, chefe de campanha sem nós (29)**: 210 (1003), 230 (1004), 280 (1006), 310 (1007), 470 (1105), 550 (1107), 590 (1201), 620 (1202), 660 (1204), 670 (1203), 740 (1207), 750 (1206), 783 (9005), 800 (1301), 802 (1303), 804 (1305), 806 (1307), 827 (1401), 829 (1403), 831 (1405), 833 (1407), 842 (9006), 844 (9007), 893 (9008), 895 (9009), 901 (9010), 903 (9011), 923 (9012). A 921 (`Para3` 0, chefe 20010 da ilha dos pets) entra aqui também: a ilha tem dados em `petisland.json`, mas o servidor não emite a condição 26 nela.
+- **25, soldados de campanha sem nós (34)**: 240 (1004), 450 (1103), 480 e 490 (1105), 510 (1106), 560 (1107), 600 (1201), 630 (1202), 700 (1204), 730 (1205), 808 a 815 (1301 a 1308), 835 a 841 (1401 a 1407), 886 a 892 (1501 a 1507), 899 (1601), 900 (1602).
+- **8, ataque a castelo (PvP, sem alvo) (3)**: 100, 411 e 765. Não é de masmorra: `8488` não tem alvo (`outer_city.py`). A 100 também pede a 80 e a 81: mesmo com 80 e 90 fechando, a 100 segue travada.
+- **31, cena com capacidade 2 (1)**: 371 (grupo). A 1001 é solo.
+- **27, item sem fonte no dado da 1001 (14)**: 8 (2125006 a 2125009), 9 (2125010), 13 (2125001 a 2125004), 14 (2125005), 190 (2100003), 270 (2100004), 360 (2100006), 400 (2100008), 420 (2100009), 520 (2100013), 570 (2100014), 610 (2100015), 640 (2100016), 710 (2100018). Podem ter fonte em outra campanha (não verificado). A condição 27 conta a bolsa, então um drop que der o item liga a missão sem hook novo.
+
 ## Notas para o integrador
 
 - **Migração**: o branch já mesclou o milestone-1; a `0022_progresso_das_condicoes_da_missao.py` desce da `0021_copias_de_campanha_em_grupo.py` (uma head só).
 - **Assinatura**: `rules.quest_done(snap, templates, q, now)` agora exige `now`. Chamador novo em outra equipe precisa passar o relógio.
 - **Mudança de comportamento intencional**: a missão 764 (recrutar 200 do tipo 3 e tropa do tipo 10 no nível 5) passou a exigir as duas linhas. Antes concluía só com o recrutamento.
 - **Junção no worktree**: `data\overlay` é uma junção para `D:\wartune\servidor\data\overlay`. Antes de apagar o worktree, desfazer só a junção pelo gerenciador de links do Windows, nunca por exclusão recursiva, que pode atravessar a junção e apagar a pasta real.
+- **Mudança de comportamento (5014)**: `RewardStrategy` agora é paga na entrega, antes ignorada. São 20 missões com valor (a 90 dá 1000 de Ruh; o total no template é 875000). Dedução pelo template: não conferido na captura.
+- **Mudança de comportamento (aceite)**: `Para1` em lista (17 missões, tipos 14 e 26) não derruba mais o aceite (`rules.para1_ids`).
+- **Mudança de comportamento (missões 70, 80, 90)**: a 70 vira concluída, e o guia 24007 (c12(70)) libera o guia de habilidade 24000. Passos seguintes não verificados.
 - **Tipos de outra equipe**: as colunas "Contado" e "Onde" das linhas "outra equipe" refletem o código deste branch, então o integrador deve conferir essas linhas depois da mescla.
