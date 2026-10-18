@@ -2,7 +2,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from tests.game.harness import logged_in
-from wartune_server.game import worldboss
+from wartune_server.domain.models import WorldBossFight
+from wartune_server.domain.world import WorldBoss
+from wartune_server.game import boss_fight, worldboss
 from wartune_server.game.router import router
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -95,7 +97,52 @@ async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:
         assert [p.code for p in await g.idle()] == [ALERT, ALERT, ALERT, 4182]
 
 
+async def test_relogio_manda_4182_quando_o_chefe_abre(tmp_path: Path) -> None:
+    clock = FakeClock(datetime(2026, 5, 21, 8, 30, tzinfo=UTC))  # 11:30 em UTC+3: 5001 abre às 11:35
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        c = g.client
+        c.send(8271)
+        [state] = [pb.WorldBossStateMsg.FromString(p.body) for p in await g.idle() if p.code == 4182]
+        assert _states(state) == [(5001, 1), (5003, 1)]
+        c.send(20008)
+        assert 4182 not in [p.code for p in await g.idle()]  # nada mudou
+        clock.advance(6 * 60)
+        c.send(20008)
+        [state] = [pb.WorldBossStateMsg.FromString(p.body) for p in await g.idle() if p.code == 4182]
+        assert _states(state) == [(5001, 0), (5003, 1)]
+
+
+async def test_janela_do_chefe_vida_compartilhada_e_premios(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        ctx, now = session.ctx, OPEN_5001
+        pool = await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, 5001, now)
+        assert pool is not None and pool.fight.id is not None
+        assert pool is await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, 5001, now)  # a mesma janela
+        assert await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, 5003, now) is None  # fechado
+        assert pool.hp == pool.fight.total_hp == 2_000_000
+
+        assert pool.hit(1, "A", 6, 1_500_000, now) == 1_500_000
+        assert pool.inspire() == 3
+        assert pool.hit(2, "B", 7, 900_000, now) == 500_000  # só o que resta
+        assert pool.hit(1, "A", 6, 10, now) == 0  # morto
+        assert (pool.hp, pool.fight.killer_id) == (0, 2)
+        assert boss_fight.next_hp(pool.boss, pool.fight) == 2_400_000  # morreu em menos de 10 min: +20%
+
+        got = boss_fight.end_rewards(ctx.world, pool)
+        # classes diferentes (6 % 3, 7 % 3): os dois são o 1º da classe; 75% e 25% passam do maior degrau
+        assert got[1] == (300_000 + 180_000, 300_000 + 180_000)
+        assert got[2] == (300_000 + 180_000 + 1_500_000, 300_000 + 180_000)
+
+
+def test_vida_cai_se_o_chefe_nao_morre() -> None:
+    boss = WorldBoss(5001, 2001, 2145, 40, 30, 40, 70, 2_000_000, 1_000_000, 600, 20, 10, 6, 30, 5, 10_000_000,
+                     1_500_000, 0)  # fmt: skip
+    fight = WorldBossFight(5001, OPEN_5001, 1_050_000)
+    assert boss_fight.next_hp(boss, fight) == 1_000_000  # -10%, sem passar do mínimo
+
+
 def test_todo_opcode_da_lista_tem_handler() -> None:
     for code in WORLD_BOSS_OPCODES:
         assert router.get(code) is not None, code
-

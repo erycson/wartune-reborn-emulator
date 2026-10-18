@@ -40,6 +40,8 @@ from .models import (
     SnsProfile,
     Star,
     WildMonsterKill,
+    WorldBossFight,
+    WorldBossWound,
 )
 
 
@@ -166,6 +168,13 @@ class WildKillRepository(Protocol):
     async def add(self, kill: WildMonsterKill) -> None: ...
 
 
+class WorldBossRepository(Protocol):
+    async def fight(self, campaign_id: int, opened_at: datetime) -> WorldBossFight | None: ...
+    async def last(self, campaign_id: int) -> WorldBossFight | None: ...
+    async def open_fights(self) -> list[WorldBossFight]: ...
+    async def wounds(self, fight_id: int) -> list[WorldBossWound]: ...
+
+
 class OwnedRepository[T](Protocol):
     """Entidades que só pertencem a um personagem (tropas, estrelas, pets...)."""
 
@@ -224,6 +233,8 @@ class UnitOfWork(Protocol):
     def events(self) -> EventStateRepository: ...
     @property
     def wild_kills(self) -> WildKillRepository: ...
+    @property
+    def world_boss(self) -> WorldBossRepository: ...
     @property
     def pawns(self) -> OwnedRepository[Pawn]: ...
     @property

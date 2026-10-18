@@ -668,6 +668,33 @@ class WildBox:
 
 
 @dataclass(eq=False)
+class WorldBossFight:
+    """Uma janela de um chefe do mundo: vida cheia, quem deu o último golpe e se o fim já foi pago. A vida
+    atual é ``total_hp`` menos a soma dos danos (``WorldBossWound``), então um restart só perde a luta em curso."""
+
+    campaign_id: int
+    opened_at: datetime
+    total_hp: int
+    id: int | None = None
+    killer_id: int = 0
+    killed_at: datetime | None = None
+    settled: bool = False
+    next_hp: int = 0  # vida cheia da próxima janela, decidida no fim desta
+
+
+@dataclass(eq=False)
+class WorldBossWound:
+    """Dano somado de um jogador numa janela (o ranking e os prêmios saem daqui)."""
+
+    fight_id: int
+    character_id: int
+    nickname: str
+    job: int
+    wound: int = 0
+    id: int | None = None
+
+
+@dataclass(eq=False)
 class ChallengeLog:
     """Uma luta no histórico de quem atacou e de quem foi atacado (``ChallengeLogMsg``)."""
 

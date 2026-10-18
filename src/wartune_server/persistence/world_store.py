@@ -8,8 +8,19 @@ from types import MappingProxyType
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from ..domain.world import Mine, MonsterDrop, MonsterTemplate, RobotCastle, RobotName, World
+from ..domain.world import (
+    Mine,
+    MonsterDrop,
+    MonsterTemplate,
+    RobotCastle,
+    RobotName,
+    World,
+    WorldBoss,
+    WorldBossReward,
+)
 from .schema import (
+    world_boss_rewards,
+    world_bosses,
     world_mine_guards,
     world_mines,
     world_monster_counts,
@@ -31,6 +42,8 @@ async def load(engine: AsyncEngine) -> World:
             counts[r.map_id][r.boss_type] = r.quantity
         monsters = await conn.execute(select(world_monsters))
         drops = await conn.execute(select(world_monster_drops).order_by(world_monster_drops.c.id))
+        bosses = await conn.execute(select(world_bosses))
+        boss_rewards = await conn.execute(select(world_boss_rewards).order_by(world_boss_rewards.c.id))
         return World(
             mines=tuple(Mine(r.id, r.map_id, r.pos_x, r.pos_y, r.min_level, r.max_level) for r in mines),
             mine_guards=MappingProxyType({r.level: r.pawn_id for r in guards}),
@@ -46,5 +59,11 @@ async def load(engine: AsyncEngine) -> World:
             monster_drops=tuple(
                 MonsterDrop(r.boss_type, r.min_level, r.max_level, r.template_id, r.chance, r.min_count, r.max_count)
                 for r in drops
+            ),
+            world_bosses=MappingProxyType(
+                {r.campaign_id: WorldBoss(**{k: v for k, v in r._mapping.items() if k != "source"}) for r in bosses}
+            ),
+            world_boss_rewards=tuple(
+                WorldBossReward(r.kind, r.rank_from, r.rank_to, r.share, r.gold, r.daru) for r in boss_rewards
             ),
         )

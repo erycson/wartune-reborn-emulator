@@ -72,6 +72,8 @@ from ..domain.models import (
     WildBox,
     WildLand,
     WildMonsterKill,
+    WorldBossFight,
+    WorldBossWound,
 )
 
 NAMING = {
@@ -691,6 +693,52 @@ world_monster_drops = Table(
     _int("max_count"),
     Column("source", String(255), server_default="", nullable=False),
 )
+# World Boss (0031): config de cada chefe e dos prêmios (catálogo) e o estado de cada janela
+world_bosses = Table(
+    "world_bosses",
+    metadata,
+    Column("campaign_id", Integer, primary_key=True, autoincrement=False),
+    *(_int(name) for name in ("hero_id", "son_type", "node_x", "node_y", "start_x", "start_y", "base_hp", "min_hp",
+                              "fast_seconds", "grow_pct", "shrink_pct", "kill_turn", "revive_seconds",
+                              "damage_per_gold", "battle_cap", "last_hit_gold", "last_hit_daru")),  # fmt: skip
+    Column("source", String(1000), server_default="", nullable=False),
+)
+world_boss_rewards = Table(
+    "world_boss_rewards",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("kind", String(10), nullable=False),  # rank (top 10 da classe) ou share (fração do dano total)
+    _int("rank_from"),
+    _int("rank_to"),
+    Column("share", Float, server_default="0", nullable=False),
+    _int("gold"),
+    _int("daru"),
+    Column("source", String(255), server_default="", nullable=False),
+)
+world_boss_fights = Table(
+    "world_boss_fights",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _int("campaign_id"),
+    Column("opened_at", UTCDateTime, nullable=False),
+    _int("total_hp"),
+    _int("killer_id"),
+    Column("killed_at", UTCDateTime, nullable=True),
+    _bool("settled"),
+    _int("next_hp"),
+    UniqueConstraint("campaign_id", "opened_at"),
+)
+world_boss_wounds = Table(
+    "world_boss_wounds",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _int("fight_id"),
+    _int("character_id"),
+    Column("nickname", String(64), server_default="", nullable=False),
+    _int("job"),
+    _int("wound"),
+    UniqueConstraint("fight_id", "character_id"),
+)
 wild_boxes = Table(
     "wild_boxes",
     metadata,
@@ -973,6 +1021,8 @@ def map_entities() -> None:
         (WildLand, wild_lands),
         (WildMonsterKill, wild_monster_kills),
         (WildBox, wild_boxes),
+        (WorldBossFight, world_boss_fights),
+        (WorldBossWound, world_boss_wounds),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
         (Consortia, consortias),

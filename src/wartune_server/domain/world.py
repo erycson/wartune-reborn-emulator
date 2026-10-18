@@ -70,6 +70,44 @@ class MonsterDrop:
     max_count: int
 
 
+@dataclass(frozen=True, slots=True)
+class WorldBoss:
+    """Config de um chefe do mundo (``world_bosses``, campanha ``Types=1``): herói da luta, desenho e nó no
+    mapa, vida e como ela muda de uma janela para a outra, a luta e os prêmios por golpe e do último golpe."""
+
+    campaign_id: int
+    hero_id: int
+    son_type: int
+    node_x: int
+    node_y: int
+    start_x: int
+    start_y: int
+    base_hp: int
+    min_hp: int
+    fast_seconds: int  # morto em menos que isso: a vida da próxima janela cresce grow_pct
+    grow_pct: int
+    shrink_pct: int  # não morreu na janela: cai shrink_pct (até min_hp)
+    kill_turn: int  # golpe do chefe que mata o lado do jogador (os anteriores não matam)
+    revive_seconds: int
+    damage_per_gold: int  # ouro e daru por luta = dano // isto
+    battle_cap: int
+    last_hit_gold: int
+    last_hit_daru: int
+
+
+@dataclass(frozen=True, slots=True)
+class WorldBossReward:
+    """Prêmio do fim da janela (``world_boss_rewards``): ``rank`` = posição de rank_from a rank_to no dano da
+    classe; ``share`` = fez pelo menos essa fração do dano total (vale o maior degrau alcançado)."""
+
+    kind: str
+    rank_from: int
+    rank_to: int
+    share: float
+    gold: int
+    daru: int
+
+
 @dataclass(frozen=True)
 class World:
     mines: tuple[Mine, ...] = ()
@@ -80,6 +118,8 @@ class World:
     monster_counts: Mapping[int, Mapping[int, int]] = field(default_factory=lambda: MappingProxyType({}))
     monsters: Mapping[int, MonsterTemplate] = field(default_factory=lambda: MappingProxyType({}))
     monster_drops: tuple[MonsterDrop, ...] = ()
+    world_bosses: Mapping[int, WorldBoss] = field(default_factory=lambda: MappingProxyType({}))  # campanha ->
+    world_boss_rewards: tuple[WorldBossReward, ...] = ()
 
     def mines_on(self, map_id: int) -> list[Mine]:
         return [m for m in self.mines if m.map_id == map_id]

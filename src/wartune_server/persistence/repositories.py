@@ -43,6 +43,8 @@ from ..domain.models import (
     SnsProfile,
     Star,
     WildMonsterKill,
+    WorldBossFight,
+    WorldBossWound,
 )
 
 
@@ -390,6 +392,28 @@ class SqlWildKillRepository(_Repo):
         await self._s.flush()
 
 
+class SqlWorldBossRepository(_Repo):
+    """Janelas dos chefes do mundo e o dano de cada jogador nelas."""
+
+    async def fight(self, campaign_id: int, opened_at: datetime) -> WorldBossFight | None:
+        f: Any = WorldBossFight
+        return await self._s.scalar(select(f).where(f.campaign_id == campaign_id, f.opened_at == opened_at))
+
+    async def last(self, campaign_id: int) -> WorldBossFight | None:
+        """A última janela já fechada e paga do chefe (dela sai a vida da próxima)."""
+        f: Any = WorldBossFight
+        query = select(f).where(f.campaign_id == campaign_id, f.settled.is_(True)).order_by(f.opened_at.desc())
+        return await self._s.scalar(query.limit(1))
+
+    async def open_fights(self) -> list[WorldBossFight]:
+        f: Any = WorldBossFight
+        return list(await self._s.scalars(select(f).where(f.settled.is_(False))))
+
+    async def wounds(self, fight_id: int) -> list[WorldBossWound]:
+        w: Any = WorldBossWound
+        return list(await self._s.scalars(select(w).where(w.fight_id == fight_id).order_by(w.id)))
+
+
 class SqlOwnedRepository[T]:
     def __init__(self, session: AsyncSession, entity: type[T]) -> None:
         self._s, self._entity = session, entity
@@ -426,6 +450,7 @@ class SqlAlchemyUnitOfWork:
         self.lands = SqlFarmLandRepository(self._session)
         self.events = SqlEventStateRepository(self._session)
         self.wild_kills = SqlWildKillRepository(self._session)
+        self.world_boss = SqlWorldBossRepository(self._session)
         self.pawns = SqlOwnedRepository(self._session, Pawn)
         self.stars = SqlOwnedRepository(self._session, Star)
         self.pets = SqlOwnedRepository(self._session, Pet)

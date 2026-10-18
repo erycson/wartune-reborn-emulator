@@ -9,7 +9,7 @@ e 5003 ainda não aberto (antes das 21:35). Em UTC o mesmo instante daria 5001 a
 
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import UTC, datetime, time
 
 from ..domain import gameday
 from ..protocol.messages import wartune_pb2 as pb
@@ -42,6 +42,18 @@ def state(row: Row, now: datetime) -> int:
     if local < _hour(row["StopTime"]):
         return OPEN
     return CLOSED
+
+
+def window(row: Row, now: datetime) -> tuple[datetime, datetime]:
+    """Abertura e fechamento de hoje (no fuso do jogo), em UTC."""
+    day = gameday.local(now)
+    opened, stop = (day.replace(hour=h.hour, minute=h.minute, second=0, microsecond=0)
+                    for h in (_hour(row["OpenTime"]), _hour(row["StopTime"])))  # fmt: skip
+    return opened.astimezone(UTC), stop.astimezone(UTC)
+
+
+def states(templates: GameTemplates, now: datetime) -> dict[int, int]:
+    return {int(row["CampaignId"]): state(row, now) for row in bosses(templates)}
 
 
 def states_msg(templates: GameTemplates, now: datetime) -> pb.WorldBossStateMsg:

@@ -30,7 +30,19 @@ async def cancel_transport(s: GameSession, _: object) -> None:
 @router.on(8271)
 async def boss_state(s: GameSession, _: object) -> None:
     """Agenda de hoje dos dois chefes. O cliente pede isso uma vez, no login (``WorldBossManager.setup``)."""
+    s.boss_states = worldboss.states(s.ctx.templates, s.ctx.clock.now())
     s.send(S_BOSS_STATE, worldboss.states_msg(s.ctx.templates, s.ctx.clock.now()))
+
+
+def push_states(s: GameSession) -> None:
+    """No relógio (20008): manda o 4182 de novo quando um chefe abre ou fecha. O 8258 só passa no cliente com
+    ``worldbossState`` ligado, e só o 4182 com ``state`` 0 liga (``WorldBossManager``)."""
+    if s.boss_states is None:
+        return  # o cliente ainda não pediu (8271)
+    now = s.ctx.clock.now()
+    if (states := worldboss.states(s.ctx.templates, now)) != s.boss_states:
+        s.boss_states = states
+        s.send(S_BOSS_STATE, worldboss.states_msg(s.ctx.templates, now))
 
 
 @router.on(8259)

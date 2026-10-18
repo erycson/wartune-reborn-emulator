@@ -20,6 +20,7 @@ from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
 from . import timebox
+from .boss_fight import Bosses
 from .events import EventCatalog
 from .guild import Guilds
 from .monsters import Wilds
@@ -54,6 +55,7 @@ class GameContext:
     teams: Teams = field(default_factory=Teams)  # times livres (convite de amigos, até 4)
     world: World = World()  # catálogo do mundo (minas, robôs, chefes), do banco
     wilds: Wilds = field(default_factory=Wilds)  # névoa e monstros em luta (game/monsters.py)
+    bosses: Bosses = field(default_factory=Bosses)  # chefe do mundo: vida compartilhada (game/boss_fight.py)
 
 
 class OnlinePlayers:
@@ -127,6 +129,7 @@ class GameSession:
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
         self.pet_offer: dict[int, int] = {}
+        self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
