@@ -93,8 +93,8 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     s.send(S_QUESTS, quest_update(synced if q in synced else [*synced, q], rules.quest_bitmap(snap)))
     row, goods = rules.quest_rewards(snap, s.ctx.templates, q.template_id)
     gp, gold = int(row.get("RewardPlayGP", 0)), int(row.get("RewardGold", 0))
-    strategy = int(row.get("RewardStrategy", 0))  # (visto) tempinfos: 90 dá Ruh 1000, que não era paga
-    used, gone = rules.take_quest_goods(snap, s.ctx.templates, q)  # condição 27 (90): a bolsa paga a entrega
+    strategy = int(row.get("RewardStrategy", 0))  # (visto) tempinfos: 90 dá Ruh 1000; (dedução) o template manda
+    used, gone = rules.take_quest_goods(snap, s.ctx.templates, q)  # condição 27: a bolsa paga a entrega (dedução)
     q.completed, q.completed_at = True, s.ctx.clock.now()
     rules.add_gp(snap, s.ctx.templates, gp)
     snap.character.gold += gold

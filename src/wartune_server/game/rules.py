@@ -247,12 +247,15 @@ SELL_CONDITION = 56  # pôr item no leilão (8448), +1 por anúncio
 # (visto) tempinfos QuestTemps 857 Detail: [Akademi] > [Bereket Ruleti] > [Rulet Aç];
 # (cliente) SeminaryBlessFrame.as manda 8489 no confirmar
 SEMINARY_CONDITION = 57  # bênção do seminário (8489)
-# Masmorra (campanha): só o servidor sabe quando o jogador passou; o cliente só confere o contador (checkCount)
-CAMPAIGN_CONDITION = 14  # passar a campanha Para1 (CampaignId, ex. 70 -> 1001); (visto) captura: 112 logo após o 137
-HERO_KILL_CONDITION = 26  # matar o chefe Para1 (GameHeroTemp, ex. 1011 'Çene'); Para3 = campanha
-PAWN_KILL_CONDITION = 25  # matar Para2 soldados do tipo Para1 (PawnTempInfos) numa campanha (sem missão de 1001 ainda)
-SOLO_CONDITION = 31  # passar cena com Para1 jogadores (Campaigns.Capacity: 313 = 1, 371 = 2)
-GOODS_CONDITION = 27  # ter Para2 unidades de Para1 na bolsa (cliente: checkGoodsCount); a entrega consome
+# Masmorra (campanha): só o servidor sabe quando o jogador passou; (cliente) TaskTemplate.as checkCount só lê o contador
+CAMPAIGN_CONDITION = 14  # passar a campanha Para1 (CampaignId, ex. 70 -> 1001); (visto) captura #1215 -> #1222
+# (visto) tempinfos: a 80 pede o chefe 1011 ('Çene') na campanha 1001 (Para3); (visto) captura #1714: o 112 do chefe
+HERO_KILL_CONDITION = 26  # matar o chefe Para1 (GameHeroTemp); Para3 = campanha
+# (dedução) 25 conta os soldados do lado 2 da batalha vencida pelo tempId; nenhuma missão de 25 aponta para a 1001
+PAWN_KILL_CONDITION = 25  # matar Para2 soldados do tipo Para1 (PawnTempInfos) numa campanha
+SOLO_CONDITION = 31  # passar cena com Para1 jogadores (Campaigns.Capacity); (visto) tempinfos: 313 = 1, 371 = 2
+# (cliente) TaskTemplate.as checkGoodsCount: Para2 unidades de Para1 na bolsa; a entrega consome
+GOODS_CONDITION = 27
 # Os de nível guardam o maior valor: evoluir tropa até Para2 (10) e os que o cliente confere pelo estado
 # 63: Emek Oranı (total da atividade diária); 78: grau do símbolo; 14: passou a campanha (um sim, não soma)
 LEVEL_CONDITIONS = {
@@ -315,7 +318,7 @@ def goods_count(snap: PlayerSnapshot, template_id: int) -> int:
 def take_quest_goods(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) -> tuple[list[Item], list[Item]]:
     """Entregar a missão tira da mochila todas as unidades de cada item da condição 27.
 
-    (visto) captura: na entrega da 90 o 115 esvaziou a pilha de 10 Kurt Dişi (#1578 -> #1609, sem item). A
+    (visto) captura #1609: na entrega da 90 o 115 esvaziou a pilha de 10 Kurt Dişi. A
     quantidade pedida é 8; o replay não mostra sobra de 2, então foi tudo. Devolve ``(alterados, apagados)``.
     """
     changed, deleted = [], []

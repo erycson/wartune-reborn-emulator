@@ -449,12 +449,12 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     strategy = int(battle.spec.get("strategyBonus", 0)) if won else 0
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
-    snap.character.strategy += strategy  # "Ruh" do chefe (replay #1711: strategyBonus 72)
+    snap.character.strategy += strategy  # "Ruh" do chefe: (visto) captura #1711, strategyBonus 72
     loot = _Loot()
     if won and s.campaign is not None and s.campaign.dungeon:
         loot = _dungeon_loot(s, battle, camp)  # antes do await: drop, missão e EXP numa save só
-    if gp or strategy or loot.items or loot.quests:
-        await s.ctx.characters.save(snap.character, snap.leader, *loot.items, *loot.quests)
+    if gp or strategy or loot.items or loot.quests or loot.end_quests:
+        await s.ctx.characters.save(snap.character, snap.leader, *loot.items, *loot.quests, *loot.end_quests)
     s.battle_gp = gp
     await _push_player(s)
     _send(s, S_BATTLE_REPORT, _report(battle, won, gp, strategy))
@@ -471,7 +471,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if not won:
         _node_update(s, camp, NORMAL)
         return
-    if loot.items:  # o drop sai antes do 128 (replay #1360-#1374 e #1442-#1457)
+    if loot.items:  # (visto) captura #1360-#1374 e #1442-#1457: o drop sai antes do 128
         _send(s, S_ITEMS, rewards.items_msg(loot.items, s.player_id))
     for text in loot.texts:
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
@@ -484,6 +484,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         s.battle_gp = 0
         if _map_finished(c, camp):
             _dungeon_end(s)
+            if loot.end_quests:  # (visto) captura #1215 -> #1222: o 112 do 14 sai depois do 137
+                _send(s, S_QUESTS, quest_update(loot.end_quests, rules.quest_bitmap(snap)))
         else:
             _dungeon_unlock(s, camp)
         return
@@ -671,12 +673,12 @@ def _map_finished(c: CampaignMap, camp: int) -> bool:
         return True  # chefe (102109): a última luta do 1021
     if any(c.nodes[g]["state"] != DONE and g != camp for g in group):
         return False
-    # (visto) o último lobo do 1011 (101109) não tem param4: o mapa acaba (replay #1186 -> #1215)
+    # (visto) captura #1186 -> #1215: o último lobo do 1011 (101109) não tem param4, o mapa acaba
     return not unlock_actions(node)
 
 
 def _dungeon_unlock(s: GameSession, camp: int) -> None:
-    """Grupo de lobos caído com ``param4`` (replay #1593-#1605): aviso, depois esconde (0) ou mostra (1) o nó."""
+    """Grupo de lobos caído com ``param4`` (visto) captura #1593-#1605: aviso, depois esconde (0) ou mostra (1) o nó."""
     c = _map(s)
     node = c.node(camp)
     assert node is not None
@@ -703,23 +705,27 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
 
 @dataclass
 class _Loot:
-    """O que uma vitória na masmorra dá: itens novos (já no snapshot), textos e missões que avançaram."""
+    """O que uma vitória na masmorra dá: itens novos (já no snapshot), textos e missões que avançaram.
+
+    ``end_quests`` são as que fecham no fim do mapa (14 e 31): o 112 delas sai depois do 137 do fim.
+    """
 
     items: list[Item] = field(default_factory=list)
     texts: list[str] = field(default_factory=list)
     quests: list[Quest] = field(default_factory=list)
+    end_quests: list[Quest] = field(default_factory=list)
 
 
 def _dungeon_loot(s: GameSession, battle: Battle, camp: int) -> _Loot:
     """Efeitos de uma vitória na masmorra que mudam o snapshot. Chamado antes de qualquer await.
 
-    - Drop do nó (``dungeon()["drops"]``, ``tools/extract_dungeon.py``): (visto) replay #1355-#1377 (102102:
+    - Drop do nó (``dungeon()["drops"]``, ``tools/extract_dungeon.py``): (visto) captura #1355-#1377 (102102:
       Kurt Dişi x2 e Şans Taşı x1), #1442-#1457 (102103: x2), #1520-#1536 (102105: x3), #1578-#1592 (102106: x3).
-      O chefe 102109 e os lobos do 1011 não deram item no replay. (dedução) sem chance: sai sempre.
+      O chefe 102109 e os lobos do 1011 não deram item na captura. (dedução) sem chance: sai sempre.
     - Missões: condição 25 soma 1 por soldado inimigo morto do tipo ``tempId`` (PawnTempInfos); 26 conta o chefe
       morto (``heroTempId``, ex. 1011 'Çene'). No fim do mapa, 14 (passou a campanha) e 31 (cena com a
-      ``Capacity`` da campanha). (visto) o 112 do 14 sai logo depois do 137 do 1011 (replay #1215 -> #1222).
-      (dedução) 14 e 31 contam em todo mapa: o 31 soma, então um 1001 inteiro dá 2.
+      ``Capacity`` da campanha), em ``end_quests``. (visto) captura #1215 -> #1222: o 112 do 14 sai depois do 137
+      do 1011. (dedução) 14 e 31 contam em todo mapa: o 31 soma, então um 1001 inteiro dá 2.
     """
     c = _map(s)
     snap = s.snapshot
@@ -733,16 +739,21 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int) -> _Loot:
     kills = Counter(int(x["tempId"]) for x in battle.spec["soldiers"] if int(x["side"]) == 2)
     events = [(rules.PAWN_KILL_CONDITION, t, n) for t, n in kills.items()]
     events += [(rules.HERO_KILL_CONDITION, int(h["tempId"]), 1) for h in battle.spec["heroes"] if int(h["side"]) == 2]
-    if _map_finished(c, camp):
-        campaign = templates.get("Campaigns", DUNGEON_CAMPAIGN, key="CampaignId") or {}
-        events += [
-            (rules.CAMPAIGN_CONDITION, DUNGEON_CAMPAIGN, 1),
-            (rules.SOLO_CONDITION, int(campaign["Capacity"]), 1),
-        ]
     for kind, para1, value in events:
         for q in rules.quest_event(snap, templates, kind, para1, value):
             if q not in loot.quests:
                 loot.quests.append(q)
+    if _map_finished(c, camp):
+        campaign = templates.get("Campaigns", DUNGEON_CAMPAIGN, key="CampaignId") or {}
+        end = [
+            (rules.CAMPAIGN_CONDITION, DUNGEON_CAMPAIGN, 1),
+            (rules.SOLO_CONDITION, int(campaign["Capacity"]), 1),
+        ]
+        for kind, para1, value in end:
+            for q in rules.quest_event(snap, templates, kind, para1, value):
+                if q not in loot.end_quests:
+                    loot.end_quests.append(q)
+    loot.quests = [q for q in loot.quests if q not in loot.end_quests]  # quem fecha no fim do mapa sai uma vez só
     return loot
 
 
