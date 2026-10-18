@@ -9,6 +9,7 @@ e 5003 ainda não aberto (antes das 21:35). Em UTC o mesmo instante daria 5001 a
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from datetime import UTC, datetime, time
 
 from ..domain import gameday
@@ -52,12 +53,14 @@ def window(row: Row, now: datetime) -> tuple[datetime, datetime]:
     return opened.astimezone(UTC), stop.astimezone(UTC)
 
 
-def states(templates: GameTemplates, now: datetime) -> dict[int, int]:
-    return {int(row["CampaignId"]): state(row, now) for row in bosses(templates)}
+def states(templates: GameTemplates, now: datetime, defeated: Collection[int] = ()) -> dict[int, int]:
+    """Estado de cada chefe; ``defeated`` (morto na janela de hoje) aparece encerrado."""
+    return {int(row["CampaignId"]): CLOSED if int(row["CampaignId"]) in defeated else state(row, now)
+            for row in bosses(templates)}  # fmt: skip
 
 
-def states_msg(templates: GameTemplates, now: datetime) -> pb.WorldBossStateMsg:
+def states_msg(templates: GameTemplates, now: datetime, defeated: Collection[int] = ()) -> pb.WorldBossStateMsg:
     msg = pb.WorldBossStateMsg()
-    for row in bosses(templates):
-        msg.worldBossInfo.add(campaignId=int(row["CampaignId"]), state=state(row, now))
+    for campaign_id, value in states(templates, now, defeated).items():
+        msg.worldBossInfo.add(campaignId=campaign_id, state=value)
     return msg

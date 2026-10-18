@@ -171,6 +171,30 @@ class Bosses:
             self.pools[campaign_id] = pool
             return pool
 
+    def defeated(self, templates: GameTemplates, now: datetime) -> set[int]:
+        """Chefes já mortos (fim pago) na janela de hoje: o 4182 os mostra encerrados."""
+        out = set()
+        for campaign_id, pool in self.pools.items():
+            row = worldboss.boss(templates, campaign_id)
+            if row is not None and pool.fight.settled and pool.fight.opened_at == worldboss.window(row, now)[0]:
+                out.add(campaign_id)
+        return out
+
+    async def stale(self, world: World, characters: CharacterService) -> list[Pool]:
+        """Janelas sem fim pago no banco que não estão em memória (o servidor reiniciou ou a janela virou)."""
+        known = {p.fight.id for p in self.pools.values()}
+
+        async def query(uow: UnitOfWork) -> list[Pool]:
+            out = []
+            for fight in await uow.world_boss.open_fights():
+                boss = world.world_bosses.get(fight.campaign_id)
+                if boss is not None and fight.id not in known:
+                    wounds = await uow.world_boss.wounds(fight.id or 0)
+                    out.append(Pool(boss, fight, {w.character_id: w for w in wounds}))
+            return out
+
+        return await characters.read(query)
+
 
 async def _load(uow: UnitOfWork, boss: WorldBoss, opened: datetime) -> Pool:
     fight = await uow.world_boss.fight(boss.campaign_id, opened)

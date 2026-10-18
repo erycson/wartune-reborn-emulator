@@ -10,11 +10,16 @@ import asyncio
 from datetime import timedelta
 from typing import Any
 
+import structlog
+
+from ...domain.models import Mail, MailType
+from ...domain.repositories import UnitOfWork
 from ...domain.world import WorldBoss
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates
 from .. import boss_fight, space, worldboss
+from .. import mail as mailbox
 from .. import outer_city as oc
 from ..arena import config as arena_config
 from ..arena import npc_hero
@@ -22,7 +27,7 @@ from ..battle import Battle, SharedHp
 from ..builders import login as b
 from ..campaign import NORMAL, CampaignMap
 from ..router import router
-from ..session import GameSession
+from ..session import GameContext, GameSession
 from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, map_sync, player_hero
 from .login import army, player_info
 from .player import alert
@@ -38,7 +43,14 @@ NO_MAP = "This World Boss has no battle map yet."
 NOT_OPEN = "World Boss is not open now."
 NO_DIAMONDS = "Not enough Diamonds."
 REVIVE_COST = 3  # sem a linha no template; ConfigInfos Live_Fight_Pay é 15 nos templates EN
-S_PLAYER_STATE = 4175
+S_PLAYER_STATE, S_BOSS_REPORT = 4175, 4203
+REPORT_TYPE = 1  # WorldBossReportMsg.type: o popup do fim (WorldBossManager)
+DEFEATED = "World Boss has been defeated."
+MAIL_TITLE = "World Boss"
+GOLD, DARU = -100, -300  # anexos de moeda (rewards.CURRENCIES)
+MAIL_TEXT = "World Boss rewards: {gold:,} Gold and {daru:,} Daru."  # (dedução) o cliente não tem o texto
+CLOSE_EVERY = timedelta(seconds=60)
+log = structlog.get_logger(__name__)
 UNAVAILABLE = "This action is not available now."  # reviver e buff: o cliente só pede dentro do mapa do chefe
 
 
@@ -53,8 +65,10 @@ async def cancel_transport(s: GameSession, _: object) -> None:
 @router.on(8271)
 async def boss_state(s: GameSession, _: object) -> None:
     """Agenda de hoje dos dois chefes. O cliente pede isso uma vez, no login (``WorldBossManager.setup``)."""
-    s.boss_states = worldboss.states(s.ctx.templates, s.ctx.clock.now())
-    s.send(S_BOSS_STATE, worldboss.states_msg(s.ctx.templates, s.ctx.clock.now()))
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    defeated = s.ctx.bosses.defeated(templates, now)
+    s.boss_states = worldboss.states(templates, now, defeated)
+    s.send(S_BOSS_STATE, worldboss.states_msg(templates, now, defeated))
 
 
 def push_states(s: GameSession) -> None:
@@ -62,10 +76,11 @@ def push_states(s: GameSession) -> None:
     ``worldbossState`` ligado, e só o 4182 com ``state`` 0 liga (``WorldBossManager``)."""
     if s.boss_states is None:
         return  # o cliente ainda não pediu (8271)
-    now = s.ctx.clock.now()
-    if (states := worldboss.states(s.ctx.templates, now)) != s.boss_states:
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    defeated = s.ctx.bosses.defeated(templates, now)
+    if (states := worldboss.states(templates, now, defeated)) != s.boss_states:
         s.boss_states = states
-        s.send(S_BOSS_STATE, worldboss.states_msg(s.ctx.templates, now))
+        s.send(S_BOSS_STATE, worldboss.states_msg(templates, now, defeated))
 
 
 @router.on(8259)
@@ -89,6 +104,9 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
     pool = await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, msg.param1, ctx.clock.now())
     if pool is None:
         alert(s, NO_MAP if msg.param1 not in ctx.world.world_bosses else NOT_OPEN)
+        return
+    if not pool.alive:
+        alert(s, DEFEATED)
         return
     if s.battle is not None or s.campaign is not None:
         return  # entrou em outro lugar durante o await
@@ -132,11 +150,16 @@ def boss_node(templates: GameTemplates, boss: WorldBoss) -> dict[str, Any]:
     }  # fmt: skip
 
 
+def players_on(ctx: GameContext, campaign_id: int) -> list[GameSession]:
+    """Os jogadores no mapa do chefe ``campaign_id``."""
+    return [o for o in ctx.online.sessions()
+            if o.campaign is not None and o.campaign.world_boss and o.campaign.map_id == campaign_id
+            and o.snapshot is not None]  # fmt: skip
+
+
 def on_map(s: GameSession, campaign_id: int) -> list[GameSession]:
     """Os outros jogadores no mapa do chefe ``campaign_id``."""
-    return [o for o in s.ctx.online.sessions()
-            if o is not s and o.campaign is not None and o.campaign.world_boss and o.campaign.map_id == campaign_id
-            and o.snapshot is not None]  # fmt: skip
+    return [o for o in players_on(s.ctx, campaign_id) if o is not s]
 
 
 def leave_boss(s: GameSession) -> bool:
@@ -231,8 +254,75 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     broadcast_info(s, pool)
-    if not won and pool.alive:
+    if not pool.alive:
+        await settle(s.ctx, pool)  # o último golpe (ou a janela fechou durante a luta)
+        if s.campaign is not None and s.campaign.world_boss:  # o settle só tira quem estava fora de luta
+            _report_and_kick(s, pool)
+    elif not won:
         _kill(s, pool)
+
+
+async def settle(ctx: GameContext, pool: boss_fight.Pool) -> None:
+    """Fim da janela (chefe morto ou ``StopTime``), uma vez só: os prêmios do fim pelo correio (top 10 da classe,
+    degrau da fração do dano, último golpe; ``end_rewards``), a vida da próxima janela (``next_hp``) e o dano de
+    todos, numa transação. Quem está no mapa e fora de luta recebe o 4203 e sai (22); quem está em luta, no fim
+    dela (``_boss_over``)."""
+    now = ctx.clock.now()
+    async with pool.lock:
+        if pool.fight.settled:
+            return
+        pool.fight.settled = True
+        pool.fight.next_hp = boss_fight.next_hp(pool.boss, pool.fight)
+        prizes = {cid: p for cid, p in boss_fight.end_rewards(ctx.world, pool).items() if any(p)}
+        mails = {cid: Mail(cid, now, MAIL_TITLE, MAIL_TEXT.format(gold=g, daru=d), mail_type=MailType.SYSTEM,
+                           send_type=mailbox.SYSTEM_SENDER) for cid, (g, d) in prizes.items()}  # fmt: skip
+
+        async def change(uow: UnitOfWork) -> None:
+            await uow.save(pool.fight)
+            for wound in pool.wounds.values():
+                await uow.save(wound)
+            for cid, mail in mails.items():
+                gold, daru = prizes[cid]
+                await mailbox.stage(uow, mail, [(t, n) for t, n in ((GOLD, gold), (DARU, daru)) if n])
+
+        await ctx.characters.write(change)
+    log.info("chefe do mundo encerrado", chefe=pool.boss.campaign_id, vida=pool.hp, killer=pool.fight.killer_id,
+             proxima=pool.fight.next_hp, premiados=len(mails))  # fmt: skip
+    for mail in mails.values():
+        mailbox.notify(ctx.online, mail)
+    for timer in pool.timers.values():
+        timer.cancel()
+    pool.timers.clear()
+    pool.dead.clear()
+    for o in players_on(ctx, pool.boss.campaign_id):
+        if o.battle is None:
+            _report_and_kick(o, pool)
+
+
+def _report_and_kick(s: GameSession, pool: boss_fight.Pool) -> None:
+    """4203 (posição, ouro e daru do fim, o dano total) e 22: o chefe acabou para este jogador."""
+    ranking = [w.character_id for w in pool.ranking()]
+    gold, daru = boss_fight.end_rewards(s.ctx.world, pool).get(s.player_id, (0, 0))
+    mine = pool.wounds.get(s.player_id)
+    s.send(S_BOSS_REPORT, pb.WorldBossReportMsg(
+        campaignId=pool.boss.campaign_id, order=ranking.index(s.player_id) + 1 if s.player_id in ranking else 0,
+        gold=gold, strengy=daru, totalWound=mine.wound if mine else 0, type=REPORT_TYPE))  # fmt: skip
+    leave_boss(s)
+
+
+async def close_windows(s: GameSession) -> None:
+    """No relógio (20008), no máximo uma vez por minuto no servidor: paga as janelas que passaram do
+    ``StopTime``, as da memória e as que ficaram no banco sem fim pago (o servidor caiu no meio)."""
+    ctx, now = s.ctx, s.ctx.clock.now()
+    bosses = ctx.bosses
+    if bosses.checked_at is not None and now - bosses.checked_at < CLOSE_EVERY:
+        return
+    bosses.checked_at = now
+    pools = [p for p in bosses.pools.values() if not p.fight.settled]
+    for pool in pools + await bosses.stale(ctx.world, ctx.characters):
+        row = worldboss.boss(ctx.templates, pool.boss.campaign_id)
+        if row is not None and now >= worldboss.window(row, pool.fight.opened_at)[1]:
+            await settle(ctx, pool)
 
 
 def _state_msg(s: GameSession, pool: boss_fight.Pool, character_id: int) -> pb.PlayerStateListMsg:

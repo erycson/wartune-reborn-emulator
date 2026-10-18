@@ -57,11 +57,12 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     """Relógio (a cada ~60 s). Também vira o dia de quem está online (4202 com os valores novos e o 3) e os
     monstros da cidade externa que ele está vendo."""
     from .outer_city import roll_monsters  # outer_city importa events, que importa este módulo
-    from .worldboss import push_states  # worldboss importa este módulo
+    from .worldboss import close_windows, push_states  # worldboss importa este módulo
 
     now = s.ctx.clock.now()
     s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(now)))
     roll_monsters(s)
+    await close_windows(s)
     push_states(s)
     if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now)):
         await s.ctx.characters.save(*changed)

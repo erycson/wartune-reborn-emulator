@@ -136,6 +136,43 @@ async def test_dois_jogadores_batem_no_mesmo_chefe_e_um_so_da_o_ultimo_golpe(tmp
         fight_row, wounds = await ctx.characters.read(stored)
         assert fight_row.killer_id == pool.fight.killer_id  # type: ignore[attr-defined]
         assert sum(w.wound for w in wounds) == 150  # type: ignore[attr-defined]
+        assert fight_row.settled and fight_row.next_hp == 180  # type: ignore[attr-defined]  # morreu em 5 min: +20%
+
+        for game, got in zip((g, b), reports, strict=True):
+            codes = [p.code for p in [*got, *await game.idle()]]  # type: ignore[attr-defined]
+            assert codes.count(4203) == 1 and codes.index(4203) < len(codes) - 1 and codes[-1] == 22, codes
+
+        killer = pool.fight.killer_id
+
+        async def mail_gold(uow: object) -> int:
+            mails = await uow.mails.by_receiver(killer)  # type: ignore[attr-defined]
+            annexes = await uow.mails.annexes([m.id for m in mails])  # type: ignore[attr-defined]
+            return sum(a.count for a in annexes if a.template_id == -100)
+
+        assert await ctx.characters.read(mail_gold) >= 1_500_000  # último golpe somado ao resto
+
+        g.client.send(8258, pb.WorldBossMsg(param1=5001))  # morto: não entra mais hoje
+        assert [p.code for p in await g.idle()] == [ALERT]
+        g.client.send(8271)
+        [state] = [pb.WorldBossStateMsg.FromString(p.body) for p in await g.idle() if p.code == 4182]
+        assert _states(state) == [(5001, 2), (5003, 1)]
+
+
+async def test_janela_fecha_no_relogio_e_tira_todos(tmp_path: Path) -> None:
+    clock = FakeClock(OPEN_5001)
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        session.snapshot.character.grades = 20
+        await g.idle()
+        g.client.send(8258, pb.WorldBossMsg(param1=5001))
+        await g.idle()
+        clock.advance(60 * 60)  # 12:40: passou do StopTime 12:35
+        g.client.send(20008)
+        codes = [p.code for p in await g.idle()]
+        assert 4203 in codes and 22 in codes and session.campaign is None
+        pool = session.ctx.bosses.pools[5001]
+        assert pool.fight.settled and pool.fight.next_hp == 2_000_000  # não morreu: -10%, mas não abaixo do mínimo
 
 
 async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
