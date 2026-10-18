@@ -35,11 +35,11 @@ def _army(s: GameSession) -> None:
 
 
 def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True) -> None:
-    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro), 115 (itens) e o 83."""
+    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro e cristais), 115 (itens) e o 83."""
     _player(s)
     if any(t == rewards.EXP for t, _ in drops):
         _army(s)
-    if any(t == -100 for t, _ in drops):
+    if any(t in (-100, -600) for t, _ in drops):  # o 109 leva ouro e cristais
         castle_yield(s)
     if new:
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))

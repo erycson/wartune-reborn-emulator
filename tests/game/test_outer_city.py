@@ -685,6 +685,20 @@ async def test_luta_com_monstro_normal_abate_e_conta_no_dia(tmp_path: Path, monk
         assert (info.count1, info.count2, info.count3) == (1, 0, 0)
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.character.kills_normal == 1
+        box = pb.MapBoxMsg.FromString(next(p for p in got if p.code == 4940).body).boxlist  # baú no tile, gravado
+        assert [(x.mapId, x.x, x.y, x.type, x.grade, x.userId) for x in box] == [(2, m.x, m.y, 1, 10, g.user_id)]
+        assert [b.id for b in saved.wild_boxes] == [int(box[0].boxId)]
+
+        monkeypatch.setattr(monsters, "loot", lambda *_: [(-100, 500), (2131057, 2)])  # ouro + Mystery Stone
+        gold = snap.character.gold
+        g.client.send(9526, box[0])
+        got = await g.idle()
+        assert pb.MapBoxMsg.FromString(next(p for p in got if p.code == 4940).body).boxlist == []
+        assert snap.character.gold == gold + 500 and any(i.template_id == 2131057 for i in snap.items)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved.wild_boxes == [] and saved.character.gold == gold + 500
+        g.client.send(9526, box[0])  # de novo: o baú já não existe
+        assert all(p.code != 4940 for p in await g.idle())
 
         g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
         page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
@@ -711,6 +725,49 @@ async def test_chefe_abatido_fica_no_painel_como_morto(tmp_path: Path) -> None:
         g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
         msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
         assert [b.type for b in msg.bosslist] == [0, 1, 1, 1, 1]
+
+
+async def test_bau_com_mochila_cheia_vai_pelo_correio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """9526 sem espaço: o baú some e o conteúdo chega como anexo no correio do jogo (148), 5 por carta."""
+    from wartune_server.domain.models import WildBox
+    from wartune_server.game import rewards
+
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        box = WildBox(g.user_id, 2, 50, 60, 2, 30, clock.now())
+        snap.wild_boxes.append(box)
+        await g.server.services.characters.save(box)
+        drops = [(2131057, n) for n in range(1, 7)]  # 6 anexos: 2 cartas
+        monkeypatch.setattr(monsters, "loot", lambda *_: drops)
+        monkeypatch.setattr(rewards, "BAG_SIZE", 0)
+        g.client.send(9526, pb.ArmyBoxMsg(boxId=str(box.id)))
+        got = await g.idle()
+        assert [p.code for p in got].count(148) == 2 and 4940 in [p.code for p in got]
+        chars = g.server.services.characters
+        mails = await chars.read(lambda uow: uow.mails.by_receiver(g.user_id))
+        annexes = await chars.read(lambda uow: uow.mails.annexes([m.id or 0 for m in mails]))
+        assert len(mails) == 2 and mails[0].title == "Wilds Chest"
+        assert sorted((a.template_id, a.count) for a in annexes) == drops
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved.wild_boxes == [] and not any(i.template_id == 2131057 for i in saved.items)
+
+
+def test_tabela_de_queda_por_tipo_e_nivel() -> None:
+    """loot: só as linhas do tipo e da faixa de nível; cada uma sorteada sozinha pela chance."""
+    import random
+
+    from wartune_server.domain.world import MonsterDrop, World
+
+    world = World(monster_drops=(MonsterDrop(1, 1, 49, -100, 1.0, 10, 10), MonsterDrop(1, 50, 80, -100, 1.0, 99, 99),
+                                 MonsterDrop(2, 1, 80, -300, 1.0, 5, 5), MonsterDrop(1, 1, 80, 2131057, 0.0, 1, 1)))  # fmt: skip
+    rng = random.Random(1)
+    assert monsters.loot(world, 1, 20, rng) == [(-100, 10)]
+    assert monsters.loot(world, 1, 60, rng) == [(-100, 99)]
+    assert monsters.loot(world, 2, 60, rng) == [(-300, 5)]
+    half = World(monster_drops=(MonsterDrop(3, 1, 80, 2131056, 0.5, 1, 3),))
+    got = [monsters.loot(half, 3, 70, rng) for _ in range(2000)]
+    assert 800 < sum(bool(x) for x in got) < 1200 and {n for x in got for _, n in x} == {1, 2, 3}
 
 
 def test_quinze_niveis_abaixo_nao_conta_e_o_limite_do_dia() -> None:

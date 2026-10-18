@@ -653,6 +653,21 @@ class WildMonsterKill:
 
 
 @dataclass(eq=False)
+class WildBox:
+    """Baú que o monstro dos Wilds deixou no mapa para quem o matou (4940), até ser aberto (9526). O que tem
+    dentro é sorteado ao abrir, pela tabela ``world_monster_drops``."""
+
+    character_id: int
+    map_id: int
+    pos_x: int
+    pos_y: int
+    boss_type: int  # 1 normal, 2 elite, 3 BOSS: também o desenho (BossBoxMc<type>)
+    grade: int  # nível do monstro
+    created_at: datetime
+    id: int | None = None  # ArmyBoxMsg.boxId (como texto)
+
+
+@dataclass(eq=False)
 class ChallengeLog:
     """Uma luta no histórico de quem atacou e de quem foi atacado (``ChallengeLogMsg``)."""
 
@@ -893,6 +908,7 @@ class PlayerSnapshot:
     systems: PlayerSystems | None = None  # o serviço cria em memória quando não existe
     treasure: list[TreasureMap] = field(default_factory=list)  # zero ou um: mapa do tesouro (8744)
     wild_lands: list[WildLand] = field(default_factory=list)  # minas de ouro ocupadas (5160)
+    wild_boxes: list[WildBox] = field(default_factory=list)  # baús dos monstros dos Wilds ainda fechados
 
     @property
     def leader(self) -> Hero | None:

@@ -186,6 +186,15 @@ def count_kill(c: Character, templates: GameTemplates, m: Monster) -> bool:
     return True
 
 
+def loot(world: World, boss_type: int, grade: int, rng: random.Random) -> list[tuple[int, int]]:
+    """O que sai do baú: cada linha de ``world_monster_drops`` do tipo e da faixa de nível, sorteada sozinha."""
+    return [
+        (d.template_id, rng.randint(d.min_count, d.max_count))
+        for d in world.monster_drops
+        if d.boss_type == boss_type and d.min_level <= grade <= d.max_level and rng.random() < d.chance
+    ]
+
+
 def battle(snap: PlayerSnapshot, world: World, templates: GameTemplates, m: Monster) -> dict[str, object] | None:
     """Spec da luta (battleType 2): as tropas e o herói do jogador como na mina; o normal é uma pilha do pawn
     dele, a elite e o chefe são o herói NPC com a vida do template. (dedução) posições, ``mapTempId`` = o mapa e

@@ -15,6 +15,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Dialect,
+    Float,
     ForeignKey,
     Integer,
     MetaData,
@@ -68,6 +69,7 @@ from ..domain.models import (
     SnsProfile,
     Star,
     TreasureMap,
+    WildBox,
     WildLand,
     WildMonsterKill,
 )
@@ -675,6 +677,32 @@ wild_monster_kills = Table(
     _int("character_id"),
     Column("killed_at", UTCDateTime, nullable=False),
 )
+# o que cai no baú (0030): cada linha sorteada sozinha; ``source`` diz de onde veio o número
+world_monster_drops = Table(
+    "world_monster_drops",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _int("boss_type"),
+    _int("min_level"),
+    _int("max_level"),
+    _int("template_id"),  # ItemTempInfos, ou moeda < 0 (-100 ouro, -300 daru, -600 kyanite)
+    Column("chance", Float, nullable=False),  # 0 a 1
+    _int("min_count"),
+    _int("max_count"),
+    Column("source", String(255), server_default="", nullable=False),
+)
+wild_boxes = Table(
+    "wild_boxes",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _owner(index=True),
+    _int("map_id"),
+    _int("pos_x"),
+    _int("pos_y"),
+    _int("boss_type"),
+    _int("grade"),
+    Column("created_at", UTCDateTime, nullable=False),
+)
 
 arenas = Table(
     "arenas",
@@ -944,6 +972,7 @@ def map_entities() -> None:
         (TreasureMap, treasure_maps),
         (WildLand, wild_lands),
         (WildMonsterKill, wild_monster_kills),
+        (WildBox, wild_boxes),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
         (Consortia, consortias),

@@ -15,11 +15,9 @@ from ..templates.repository import GameTemplates
 from . import rules
 from .builders.player import item_moved
 
-CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token"}  # TemplateId < 0
+# TemplateId < 0 (-600 Kyanite: os cristais do castelo)
+CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}
 EXP = -700  # ItemTempInfo -700 "EXP": soma no jogador (rules.add_gp)
-# ponytail: -600 "Kristal" (cristal do castelo) ainda não existe no banco (CRYSTALS fixo em
-# handlers/player.py): é aceito e descartado, fora do texto. Gravar quando o castelo tiver cristal.
-SKIPPED = {-600}
 BAG_SIZE = 42  # PlayerInfo.bagDefaultCount; ponytail: sem espaços comprados (bagCount) ainda
 
 Drop = tuple[int, int]  # (TemplateId, quantidade)
@@ -30,9 +28,7 @@ def can_grant(snap: PlayerSnapshot, templates: GameTemplates, drops: Sequence[Dr
 
     ``freed``: espaços que a mesma operação libera (ex. a caixa que está sendo aberta).
     """
-    known = all(
-        t in CURRENCIES or t in SKIPPED or t == EXP or (t > 0 and templates.get("ItemTempInfos", t)) for t, _ in drops
-    )
+    known = all(t in CURRENCIES or t == EXP or (t > 0 and templates.get("ItemTempInfos", t)) for t, _ in drops)
     goods = sum(t > 0 for t, _ in drops)
     used = sum(i.bag_type == BagType.BAG for i in snap.items) - freed
     return known and all(n > 0 for _, n in drops) and used + goods <= BAG_SIZE
@@ -45,7 +41,6 @@ def _name(templates: GameTemplates, template_id: int) -> str:
 def text(templates: GameTemplates, drops: Sequence[Drop], style: str = "bag") -> str:
     """``Kazanılan:...`` como o oficial escreve: ``bag`` (pacote: ``Altın 3,000, Yüzük x1``) ou
     ``active`` (atividades: ``Altın x 10000,Yüzük x 5``)."""
-    drops = [d for d in drops if d[0] not in SKIPPED]
     if style == "active":
         return "Kazanılan:" + ",".join(f"{_name(templates, t)} x {n}" for t, n in drops)
     return "Kazanılan:" + ", ".join(
@@ -63,8 +58,6 @@ def grant(
     for template_id, count in drops:
         if (field := CURRENCIES.get(template_id)) is not None:
             setattr(c, field, getattr(c, field) + count)
-        elif template_id in SKIPPED:
-            continue
         elif template_id == EXP:
             rules.add_gp(snap, templates, count)
         else:

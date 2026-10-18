@@ -55,6 +55,21 @@ class MonsterTemplate:
     fight_capacity: int
 
 
+@dataclass(frozen=True, slots=True)
+class MonsterDrop:
+    """Uma linha da tabela de queda do baú dos Wilds: para o ``boss_type`` entre ``min_level`` e ``max_level``
+    (nível do monstro), ``template_id`` (``ItemTempInfos``, ou moeda < 0) cai com ``chance`` (0 a 1), em
+    ``min_count`` a ``max_count``. Cada linha é sorteada sozinha."""
+
+    boss_type: int
+    min_level: int
+    max_level: int
+    template_id: int
+    chance: float
+    min_count: int
+    max_count: int
+
+
 @dataclass(frozen=True)
 class World:
     mines: tuple[Mine, ...] = ()
@@ -64,6 +79,7 @@ class World:
     # mapa -> {bossType: quantos por ciclo}
     monster_counts: Mapping[int, Mapping[int, int]] = field(default_factory=lambda: MappingProxyType({}))
     monsters: Mapping[int, MonsterTemplate] = field(default_factory=lambda: MappingProxyType({}))
+    monster_drops: tuple[MonsterDrop, ...] = ()
 
     def mines_on(self, map_id: int) -> list[Mine]:
         return [m for m in self.mines if m.map_id == map_id]

@@ -162,9 +162,3 @@ async def space_player_info(s: GameSession, msg: pb.SpacePlayerArmyInfoReqMsg) -
 async def collection_finished(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     # coleta só começa com um 143 "COLLECTION" do servidor, que ainda não mandamos: nada a dar
     s.log.info("8733 coleta sem coleta iniciada", no=msg.param1)
-
-
-@router.on(9526)
-async def map_box_pick(s: GameSession, msg: pb.ArmyBoxMsg) -> None:
-    # caixas do chefe da cidade externa (4940); sem chefe de mapa não há caixa (docs/diversos.md)
-    s.log.info("9526 caixa inexistente", caixa=msg.boxId[:40])

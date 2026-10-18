@@ -34,6 +34,7 @@ from ..session import GameSession
 from . import events
 from .campaign import player_hero
 from .login import army, player_info
+from .wild_boxes import drop_box, send_boxes
 
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
@@ -122,7 +123,12 @@ async def _boss_info(s: GameSession, map_id: int) -> None:
 
 @router.on(9525)
 async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
+    """Painel dos chefes; o cliente pede ao entrar no mapa, então vão junto os baús fechados dele (só se houver:
+    a captura do tutorial não tem 4940 depois do 9525)."""
     await _boss_info(s, msg.mapId)
+    assert s.snapshot is not None
+    if any(box.map_id == msg.mapId for box in s.snapshot.wild_boxes):
+        send_boxes(s, msg.mapId)
 
 
 def viewers(s: GameSession, map_id: int) -> list[GameSession]:
@@ -386,8 +392,8 @@ async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
 async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won: bool) -> None:
     """Fim da luta com monstro, na ordem da luta da mina: 150, 4103, 150, 100 e 140 do exército. Vencendo,
     o abate vai para o banco (o primeiro a terminar leva; a chave repete em quem chega depois) e conta no
-    limite do dia (``monsters.count_kill``); o monstro sai do mapa para quem vê (140 state 0) e o 4938 vem com
-    os contadores novos. Perdendo, ele volta a state 1. ponytail: prêmio 0, sem fonte."""
+    limite do dia (``monsters.count_kill``), e então cai o baú (4940, ``wild_boxes``); o monstro sai do mapa
+    para quem vê (140 state 0) e o 4938 vem com os contadores novos. Perdendo, ele volta a state 1."""
     snap = s.snapshot
     assert snap is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()
@@ -411,6 +417,7 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
         else:
             if monsters.count_kill(snap.character, templates, m):
                 await s.ctx.characters.save(snap.character)
+                await drop_box(s, m)
     if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
         _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
     await _boss_info(s, m.map_id)
