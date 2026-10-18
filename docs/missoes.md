@@ -51,9 +51,16 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - Capturas: não há 8692 de conversa. O único 8692 visto é um teleporte (`peri_adasi_tp.json`, nó 5). A ordem 8692 e 5012 vem só do cliente (código, não captura).
 - Teste: `test_falar_com_npc_conta_no_aceite_perto_do_no` e `test_falar_com_npc_pelo_8692_so_perto_e_nao_com_quem_anda`.
 
+### Tipo 8: atacar castelo-robô
+
+- Verificado (cliente): `CityInfoFrame` manda o 5160 com a posição do castelo, e a missão 100 procura o robô em (44,22) (m8, alvo 80_3).
+- Servidor: `_castle_over` (handlers/outer_city.py) conta `quest_event(8, 1, 1)` na vitória. Para1 1 = vitória: 100 e 411 têm Para1 0 (qualquer), 765 tem 1.
+- Dedução: a luta é a da mina (sem captura de castelo) e o ataque gasta o contador do dia. Ouro saqueado: sem fonte, sai 0.
+- Teste: `test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque`. Detalhes em [cidade-externa.md](cidade-externa.md).
+
 ### Tipos que não foram ligados
 
-- **8 (Ocak Yağmala)**: missão 100 pede atacar cidade inimiga (`P1 = 0`, `P2 = 1`), 411 pede 2 ataques a cidade de jogador, e 765 é diária com `P1 = 1`. O servidor não tem ataque PvP a castelo: `8488` não tem alvo e só registra. O `5160` ataca mina livre contra o guarda (isso é ocupar, tipo 7), e mina já ocupada é recusada. Falta o ataque PvP a castelo.
+- **8 (Ocak Yağmala)**: ligado ao castelo-robô (seção *Tipo 8* acima). Falta o PvP contra castelo de jogador (8488 sem alvo) e a repetição da 765.
 - **32 (Kaynak Topla)**: `Para1` é o item (2100022 Kereste, 2100023 Mor Kristal, 2100024 Bakır, `SonType` 210). Contagem na bolsa (`checkGoodsCount`). Nenhum código do servidor cria esses itens (grep vazio em `src`). A coleta do espaço (8733) e a do tutorial (8699) não são implementadas. Depois de haver fonte, a avaliação é pela bolsa, o que mexe em `items.py` e `drops.py`, fora do meu grupo.
 - **33 (Hızlı Giriş Kullan)**: cliente (`checkClientLogin`) lê `DesktopManager.isDesktop`, um valor que a página manda pelo `ExternalInterface` (`IsDesktop`). Nenhum pacote avisa isso, e o `LoginReqMsg` só tem `playerId`, `key` e `ekeys`. Falta decidir como o servidor sabe que o cliente é o desktop.
 - **48 (cadastro de celular)**: existe no template (missão 816), mas o servidor não tem nada de celular. O cliente manda `8524` (`CheckSend`, "já preencheu o celular?") e `8352` (`UserPin`, código do SMS), e nenhum handler responde. Falta: os dois handlers, guardar o número e um provedor de SMS.
@@ -72,7 +79,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 2 | Meclisi Geliştir | 901 / 2; 402 / 2; 1201 / 3 | 38 (51, 81, 82, 181, 182, 225, ...) | `checkBuildingOrTecGrades` | sim | rules.update_building_quests (castle.py:115, accept_quest) | — | outra equipe |
 | 3 | Asker Çağır | 1 / 200; 2 / 100; 3 / 200 | 5 (52, 110, 764, 785, 786) | `checkCount` | sim | army.py:92 quest_event RECRUIT (soma) | — | outra equipe |
 | 7 | Altın Ocağını İşgal Et | 2006 / 2 | 2 (60, 282) | `checkWilanCount` | sim | outer_city.py:266 quest_event OCCUPY (soma) | — | outra equipe |
-| 8 | Ocak Yağmala | 0 / 1; 0 / 2; 1 / 1 | 3 (100, 411, 765) | `checkCount` | não | — | PvP contra castelo: 8488 não tem alvo (outer_city.pvp_army só registra) e 5160 só ataca mina livre contra o guarda (isso é ocupar, tipo 7). 100 pede cidade inimiga, 411 pede 2 ataques a cidade de jogador, 765 é diária com P1=1. | eu |
+| 8 | Ocak Yağmala | 0 / 1; 0 / 2; 1 / 1 | 3 (100, 411, 765) | `checkCount` | parcial | outer_city: `_castle_over` (handlers/outer_city.py), vitória contra o castelo-robô (Para1 1) | só o castelo-robô: PvP contra castelo de jogador segue sem alvo (8488). 100 e 411 presas na cadeia (80, 81, 90, 410). 765 é diária e não re-aceita (rules.py:282). Ouro saqueado sem fonte. | eu |
 | 10 | Mızraklı Askeri Geliştir | 1 / 3; 3 / 5 | 2 (101, 764) | `checkPawnGrades` | sim | army.py:178 quest_event PAWN_LEVEL (maior valor) | — | outra equipe |
 | 12 | Bekleme Süresini Kaldır | 1 / 1; 1 / 3; 1 / 7 | 3 (111, 112, 113) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 14 | Vahşiler Düzlüğünü Geç | 1005 / 1; 1002 / 1; 1001 / 1 | 39 (21, 70, 120, 130, 250, 350, ...) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
@@ -91,7 +98,7 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 | 29 | Birlik Katkısı | 0 / 10; 0 / 50; 0 / 150 | 4 (221, 222, 223, 224) | `checkConsortiaOffer` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 30 | Birlik Bereketi | 0 / 1 | 1 (241) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 31 | Tek Kişilik Sahneden Geç | 1 / 3; 2 / 1 | 2 (313, 371) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 32 | Kereste Topla | 2100022 / 20; 2100024 / 10; 2100023 / 10 | 7 (55, 102, 140, 170, 171, 172, ...) | `checkGoodsCount` | não | — | fonte dos recursos 2100022/23/24: nenhum código do servidor cria esses itens (grep vazio em src); coleta no espaço (8733) e no tutorial (8699) não é implementada. Depois, contar pela bolsa como o cliente faz (checkGoodsCount): mexe em items.py/drops.py, fora do meu grupo. | eu |
+| 32 | Kereste Topla | 2100022 / 20; 2100024 / 10; 2100023 / 10 | 7 (55, 102, 140, 170, 171, 172, ...) | `checkGoodsCount` | não | — | fonte dos recursos 2100022/23/24: nenhum código do servidor cria esses itens (grep vazio em src); coleta no espaço (8733) e no tutorial (8699) não é implementada. Depois, contar pela bolsa como o cliente faz (checkGoodsCount): mexe em items.py/drops.py, fora do meu grupo. Entrada 8258 com 6001 (Maden Ocağı, Types 2): recusa com aviso; sem layout nem captura ([cidade-externa.md](cidade-externa.md)). | eu |
 | 33 | Hızlı Giriş Kullan | 0 / 1 | 2 (1, 150) | `checkClientLogin` | não | — | sinal de cliente desktop: o cliente lê DesktopManager.isDesktop (JS da página, ExternalInterface 'IsDesktop') e nenhum pacote manda isso (LoginReqMsg só tem playerId, key e ekeys). Decisão de protocolo. | eu |
 | 34 | Asker Modunu Ayarla | 0 / 1 | 1 (160) | `checkSortPawn` | sim | army.py:286 quest_event FORMATION (soma) | — | outra equipe |
 | 35 | Meydan Oku | 1 / 3; 1 / 5; 1 / 1 | 3 (2, 4, 188) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
