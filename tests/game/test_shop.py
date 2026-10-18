@@ -5,7 +5,7 @@ from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import PlayerSnapshot
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-HORN = 35  # ShopTempInfo 35: Büyük Borazan (208002), 50 Bağlı Elmas
+HORN = 602  # ShopTempInfo 602 (ShopType 1): Bullhorn (Large) (208002), 195 vinculado (GiftToken)
 SMALL_HP = 32  # ShopType 100: Küçük HP Paketi (2090101), 5000 Altın, +10000 HP
 
 
@@ -33,8 +33,9 @@ def buy(good: int, count: int, pay_type: int = 0) -> pb.ShopMsg:
 
 async def test_buy_with_gift_token_writes_the_ledger(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
+        unit = int(next(g.server.services.templates.find("ShopTempInfos", Id=HORN))["GiftToken"])
         c = me(g).character
-        c.gift_token, c.point = 150, 0
+        c.gift_token, c.point = 2 * unit + 50, 0  # duas unidades e sobram 50
         await g.server.services.characters.save(c)
 
         g.client.send(5154, buy(HORN, 2))
@@ -45,7 +46,7 @@ async def test_buy_with_gift_token_writes_the_ledger(tmp_path: Path) -> None:
         assert (item.templateId, item.count) == (208002, 2)
         assert not item.HasField("attack")  # 115 sem complete(): o oficial omite os atributos do item
         assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg.endswith("x2 başarıyla alındı!")
-        assert ledger(tmp_path) == [(0, -100, 0, 50, "shop", "good:35 x2")]
+        assert ledger(tmp_path) == [(0, -2 * unit, 0, 50, "shop", f"good:{HORN} x2")]
 
         g.client.send(5154, buy(HORN, 2))  # só sobram 50: falta dinheiro, nada muda
         got = await g.until(90)
