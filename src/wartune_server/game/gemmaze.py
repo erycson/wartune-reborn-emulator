@@ -27,7 +27,7 @@ MAX_EXP_START = 30  # (visto) EXP para o próximo nível no nível 0
 # (115 com count 2 e 4, "Şeytan Kristali x 2"), os outros 1. Nenhum template liga prêmio a cor ou tamanho
 # (a mesma cor 4 deu 208027 e 2060008), então o sorteio entre os três é dedução.
 REWARDS = ((2060008, 1), (208027, 1), (208014, 2))
-BOX_SCORES = (500, 1000, 2000, 3500, 6000)  # (cliente) GemMazeBoxView.SORT_INDEX_ARRAY: pontos de cada caixa
+BOX_SCORES = (300, 700, 1600, 3500, 7000)  # (cliente) GemMazeBoxView.SORT_INDEX_ARRAY do CDN res134: pontos de cada caixa
 BOX_BITS = (1, 2, 4, 8, 16)  # (cliente) GemMazeBoxView.BOX_INDEX_ARR: o boxId do 9513 e o bit do boxMark
 LINES = [[r * SIZE + c for c in range(SIZE)] for r in range(SIZE)] + [
     [r * SIZE + c for r in range(SIZE)] for c in range(SIZE)

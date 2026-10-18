@@ -263,10 +263,10 @@ async def test_friend_help_is_refused_without_leaving_the_client_stuck(tmp_path:
 async def test_box_needs_its_score_and_pays_the_box_item_once(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         _set_board(g, gm.Game(board=list(CAPTURED_BOARD), score=1200))
-        g.client.send(9513, pb.GetRewardBoxMsg(boxId=4))  # caixa 3: 2000 pontos, ainda não
+        g.client.send(9513, pb.GetRewardBoxMsg(boxId=4))  # caixa 3: 1600 pontos, ainda não
         box = pb.GetRewardBoxRspMsg.FromString(_body(await g.idle(), 4928))
         assert box.boxGetMark == 0 and list(box.rewardInfo) == []
-        g.client.send(9513, pb.GetRewardBoxMsg(boxId=2))  # caixa 2: 1000 pontos
+        g.client.send(9513, pb.GetRewardBoxMsg(boxId=2))  # caixa 2: 700 pontos
         got = await g.idle()
         box = pb.GetRewardBoxRspMsg.FromString(_body(got, 4928))
         assert box.boxGetMark == 2 and [r.rewardId for r in box.rewardInfo] == [handler.BOX_IDS[1]]
