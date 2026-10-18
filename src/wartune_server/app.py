@@ -98,6 +98,7 @@ async def _register_server(database: Database, settings: Settings, keys: LoginKe
                 websocket_port=settings.websocket_port,
                 rsa_modulus=keys.modulus_b64,
                 rsa_exponent=keys.exponent_b64,
+                timezone=settings.game_timezone,
             )
         )
         await uow.commit()

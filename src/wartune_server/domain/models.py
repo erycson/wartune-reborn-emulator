@@ -73,6 +73,7 @@ class GameServer:
     # chave pública do login (formato Hurlant) que o portal põe no config.xml deste servidor
     rsa_modulus: str = ""
     rsa_exponent: str = ""
+    timezone: str = "UTC"  # fuso do jogo (Settings.game_timezone): o portal mostra na lista de servidores
 
 
 @dataclass(eq=False)

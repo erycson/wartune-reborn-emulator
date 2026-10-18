@@ -10,7 +10,7 @@ e 5003 ainda não aberto (antes das 21:35). Em UTC o mesmo instante daria 5001 a
 from __future__ import annotations
 
 import re
-from datetime import datetime, time, timedelta, timezone, tzinfo
+from datetime import UTC, datetime, time, timedelta, timezone, tzinfo
 from zoneinfo import ZoneInfo
 
 from ..protocol.messages import wartune_pb2 as pb
@@ -20,6 +20,8 @@ from ..templates.repository import GameTemplates, Row
 def parse_timezone(text: str) -> tzinfo:
     """``"+03:00"``, ``"UTC-7"`` (deslocamento fixo) ou um nome IANA (``"America/Los_Angeles"``, com horário
     de verão; no Windows vem do pacote ``tzdata``)."""
+    if text.strip().upper() == "UTC":
+        return UTC
     fixed = re.fullmatch(r"(?:UTC)?([+-])(\d{1,2})(?::?(\d{2}))?", text.strip())
     if fixed is None:
         return ZoneInfo(text.strip())
@@ -29,8 +31,8 @@ def parse_timezone(text: str) -> tzinfo:
 
 # Fuso do jogo (horários dos chefes, createDate das minas, relógio dos chefes do mapa). Vem de
 # ``Settings.game_timezone`` (WARTUNE_GAME_TIMEZONE) na subida (``set_timezone`` em ``build_services``).
-# O oficial inglês segue o horário do Pacífico (troca PDT/PST); as capturas são do turco (UTC+3).
-GAME_TZ: tzinfo = parse_timezone("America/Los_Angeles")
+# Padrão UTC; o oficial inglês segue o horário do Pacífico (troca PDT/PST) e as capturas são do turco (UTC+3).
+GAME_TZ: tzinfo = parse_timezone("UTC")
 
 
 def set_timezone(text: str) -> None:

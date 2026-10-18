@@ -152,6 +152,7 @@ game_servers = Table(
     _int("websocket_port"),
     Column("rsa_modulus", Text, nullable=False, default="", server_default=""),
     Column("rsa_exponent", String(32), nullable=False, default="", server_default=""),
+    Column("timezone", String(64), nullable=False, default="UTC", server_default="UTC"),
 )
 
 characters = Table(
