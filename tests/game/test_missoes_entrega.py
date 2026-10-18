@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
+from tests.game.test_missoes_social import _create_guild, _guild
 from tests.test_end_to_end import DATA
 from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
@@ -233,18 +234,38 @@ async def test_recompensas_estrategia_cristal_oferta_e_bonus_diario(tmp_path: Pa
         assert (c.consortia_offer, c.consortia_total_offer) == (player_offer + 40, total + 40)  # RewardPlayerOffer
 
 
+async def test_missao_de_guilda_entrega_a_bolsa_e_credita_as_ofertas(tmp_path: Path) -> None:
+    """847 (IsLeague, nível 31-35, CT49 208012 x8; RewardConsortiaOffer 20 e RewardPlayerOffer 20): com guilda e a bolsa
+    com 208012, aceita já com 8; a entrega consome as unidades e credita a oferta do jogador e a da guilda."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        await _create_guild(g)  # IsLeague: o cliente só mostra a 847 para quem tem guilda
+        snap = _snap(g)
+        snap.character.grades = 31
+        await _put(g, Item(g.user_id, 208012, pos=0, count=8))
+        g.client.send(5012, pb.QuestAddedMsg(questId=[847]))
+        assert _quest(await g.until(112), 847).condition_1 == 8  # a bolsa conta já no aceite
+        player_offer, guild_offer = snap.character.consortia_offer, _guild(g).offer
+        g.client.send(5014, pb.QuestFinishedReqMsg(templateId=847))
+        assert _quest(await g.until(52), 847).isComplete
+        assert rules.goods_count(snap, 208012) == 0
+        assert snap.character.consortia_offer == player_offer + 20  # RewardPlayerOffer
+        assert _guild(g).offer == guild_offer + 20  # RewardConsortiaOffer, na guilda
+
+
 # --- passo do novice (5017) ------------------------------------------------------------------------
 
 
 def test_passo_do_novice_so_para_a_frente_com_teto() -> None:
-    """(cliente) sendSaveProcess manda múltiplos de 100 e sempre para a frente; o servidor aceita um salto de até 2000
-    (de 0, até 11000 no primeiro 5017)."""
+    """(cliente) sendSaveProcess manda múltiplos de 100 e sempre para a frente; o servidor aceita um salto de até 3500,
+    o maior do newbie.xml (de 0, até 11000 no primeiro 5017)."""
     assert rules.novice_step_ok(0, 11000)
     assert not rules.novice_step_ok(0, 19000)
     assert rules.novice_step_ok(11000, 11300)
     assert not rules.novice_step_ok(11000, 11250)
     assert not rules.novice_step_ok(11000, 11000)
-    assert rules.novice_step_ok(24000, 25500)  # maior salto visto nas capturas
+    assert rules.novice_step_ok(24000, 25500)
+    assert rules.novice_step_ok(28500, 32000)  # maior salto do newbie.xml (saveId)
+    assert not rules.novice_step_ok(28500, 32100)
     assert not rules.novice_step_ok(11000, 30000)
 
 

@@ -269,9 +269,10 @@ TALK_CONDITION = 85  # falar com o NPC do nó Para4 ("mapa,nó"): vem do 8692 ou
 PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
 GOODS_CONDITIONS = {27, 28, 32, 49}  # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount)
 GAME_DAY_SHIFT = timedelta(hours=5)  # o dia do jogo vira às 5h (cliente: checkInRepeatTime)
-# ponytail: maior salto visto nas capturas (24000 -> 25500); o newbie.xml (saveId) não está na árvore
-NOVICE_STEP_MAX = 2000
-NOVICE_FIRST_MAX = 11000  # primeiro 5017 de conta nova (replay #79); de noviceProcess 0 o avanço não passa daqui
+# (cliente) newbie.xml (overlay/ui/zh_cn), saveId: o maior salto do guia é 28500 -> 32000 (3500)
+# ponytail: teto de salto em vez da lista exata de saveId; a lista seria o próximo passo
+NOVICE_STEP_MAX = 3500
+NOVICE_FIRST_MAX = 11000  # (cliente) primeiro saveId do newbie.xml; de noviceProcess 0 o avanço não passa daqui
 
 
 def conditions(templates: GameTemplates, template_id: int) -> list[Row]:
