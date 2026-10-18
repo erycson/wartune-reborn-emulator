@@ -64,17 +64,39 @@ async def test_agenda_e_recusas_com_o_relogio_da_captura(tmp_path: Path) -> None
         assert (ch.point, ch.gift_token) == (50, 50)
 
 
-async def test_entrada_aberta_sem_mapa_recusa_com_aviso(tmp_path: Path) -> None:
+async def test_entrar_e_sair_do_chefe_com_dois_jogadores(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
-        c = g.client
-        c.send(8258, pb.WorldBossMsg(param1=5001))  # nível 1 < 20
+        g.client.send(8258, pb.WorldBossMsg(param1=5001))  # nível 1 < 20
         assert [p.code for p in await g.idle()] == [ALERT]
 
-        session = g.server.online.get(g.user_id)
-        assert session is not None and session.snapshot is not None
-        session.snapshot.character.grades = 20
-        c.send(8258, pb.WorldBossMsg(param1=5001))  # aberto e nível ok: só falta o mapa
-        assert [p.code for p in await g.idle()] == [ALERT]
+        b = await g.join("outro")
+        for game in (g, b):
+            session = g.server.online.get(game.user_id)
+            assert session is not None and session.snapshot is not None
+            session.snapshot.character.grades = 20
+        await g.idle()  # a cidade do céu mostra o outro chegando
+        g.client.send(8258, pb.WorldBossMsg(param1=5001))
+        got = await g.idle()
+        assert [p.code for p in got] == [125, 4369, 21, 127, 130, 4174]
+        [nodes] = [pb.CampaignNodeListMsg.FromString(p.body) for p in got if p.code == 127]
+        assert [(n.masterType, n.heroTempId, n.state) for n in nodes.node] == [(41, 2001, 1)]
+        [info] = [pb.WorldBossInfoMsg.FromString(p.body) for p in got if p.code == 4174]
+        assert (info.curHp, info.totalHp, info.campaignId) == (2_000_000, 2_000_000, 5001)
+        assert len(pb.WorldBossWoundRewardListMsg.FromString(got[1].body).rewardinfo) == 3
+
+        await b.idle()
+        b.client.send(8258, pb.WorldBossMsg(param1=5001))
+        [enter] = [pb.RoomEnterMsg.FromString(p.body) for p in await b.idle() if p.code == 21]
+        assert sorted(p.playerId for p in enter.player) == sorted([g.user_id, b.user_id])
+        [joined] = [pb.RoomEnterMsg.FromString(p.body) for p in await g.idle() if p.code == 21]
+        assert [p.playerId for p in joined.player] == [b.user_id]
+
+        b.client.send(5025, pb.RoomExitMsg())
+        [mine] = [pb.CampaignExitMsg.FromString(p.body) for p in await b.idle() if p.code == 22]
+        [theirs] = [pb.CampaignExitMsg.FromString(p.body) for p in await g.idle() if p.code == 22]
+        assert mine.playerId == theirs.playerId == b.user_id and mine.result == 1
+        bs = g.server.online.get(b.user_id)
+        assert bs is not None and bs.campaign is None
 
 
 async def test_campanha_de_mina_nao_e_chefe_e_diz_indisponivel(tmp_path: Path) -> None:
@@ -85,7 +107,7 @@ async def test_campanha_de_mina_nao_e_chefe_e_diz_indisponivel(tmp_path: Path) -
         g.client.send(8258, pb.WorldBossMsg(param1=6001))
         [alert] = await g.idle()
         assert alert.code == ALERT
-        assert pb.ChatChannelMsg.FromString(alert.body).encodeMsg == "Bu işlem şu an kullanılamıyor."
+        assert pb.ChatChannelMsg.FromString(alert.body).encodeMsg == "This action is not available now."
 
 
 async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:

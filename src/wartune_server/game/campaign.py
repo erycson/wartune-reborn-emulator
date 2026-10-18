@@ -67,6 +67,7 @@ class CampaignMap:
     card: int | None = None  # index do 5122 já virado (uma carta por mapa, depois do 135)
     finished: bool = False  # mapa vencido: o fim (137 ... 134) já saiu
     buffs: list[int] = field(default_factory=list)  # buffs da Pandora, zerados no fim
+    world_boss: bool = False  # mapa do chefe do mundo (5001/5003): um nó, a luta em ``handlers/worldboss.py``
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:

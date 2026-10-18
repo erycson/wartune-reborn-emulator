@@ -169,11 +169,12 @@ class GameSession:
             self.outer_walk.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
-            from .handlers import events, room, team  # idem
+            from .handlers import events, room, team, worldboss  # idem
 
             try:  # sala e time antes do unbind: quem fica ainda recebe a saída
                 room.leave_room(self)
                 team.leave_team(self)
+                worldboss.leave_boss(self)
             except Exception:
                 self.log.exception("falha ao sair da sala ou do time")
             try:
