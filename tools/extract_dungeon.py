@@ -35,6 +35,17 @@ CHESTS = {
 }
 # aviso (126) quando o grupo de lobos cai e a passagem some (replay #1593, mapa 1021)
 NOTICES = {"1021": "Tüm kurtlar yok edildiğinde, geçiş gözden kaybolur"}
+# drop de cada luta, por nó (``[TemplateId, quantidade]``). (visto) captura #1355-#1592: 102102 deu Kurt Dişi x2
+# e Şans Taşı Lv.1 x1 (4103 #1355 com baseItem 2040101; 115 #1360 e #1386; 111 #1374 e #1400); 102103 x2
+# (#1442, #1457); 102105 x3 (#1520, #1536); 102106 x3 (#1578, #1592). Os lobos do 1011 e o chefe 102109 não
+# deram item. (dedução) sem chance: sai sempre e a quantidade é a vista. A carta do fim (Campaigns.Item) é
+# outra coisa: ``game/drops.py``.
+DROPS = {
+    "102102": [[2100001, 2], [2040101, 1]],
+    "102103": [[2100001, 2]],
+    "102105": [[2100001, 3]],
+    "102106": [[2100001, 3]],
+}
 
 
 def _dict(msg: Message) -> dict[str, Any]:
@@ -142,6 +153,7 @@ def extract(packets: list[dict[str, Any]]) -> dict[str, Any]:
         "battles": battles,
         "plots": plots,
         "chests": CHESTS,
+        "drops": DROPS,
         "notices": NOTICES,
     }
 

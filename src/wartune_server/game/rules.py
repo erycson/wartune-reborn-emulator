@@ -207,7 +207,7 @@ def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1
         if q.completed:
             continue
         for k, cond in enumerate(conditions(templates, q.template_id)):
-            if int(cond["CondictionType"]) != kind or not _para1_ok(kind, int(cond["Para1"]), para1):
+            if int(cond["CondictionType"]) != kind or not _para1_ok(kind, cond["Para1"], para1):
                 continue
             old = progress_of(q, k)
             new = max(old, value) if kind in LEVEL_CONDITIONS | MIN_CONDITIONS else old + value
@@ -218,12 +218,18 @@ def quest_event(snap: PlayerSnapshot, templates: GameTemplates, kind: int, para1
     return changed
 
 
-def _para1_ok(kind: int, need: int, para1: int) -> bool:
+def para1_ids(raw: str) -> set[int]:
+    """Para1 pode ser lista ("9004,9104": normal e grupo). 0 = qualquer. (visto) tempinfos: só tipos 14 e 26."""
+    return {int(x) for x in raw.split(",") if x}
+
+
+def _para1_ok(kind: int, raw: str, para1: int) -> bool:
     if kind in MIN_CONDITIONS:
-        return para1 > need
+        return para1 > int(raw)
+    ids = para1_ids(raw)
     if kind in EXACT_PARA1:
-        return need == para1
-    return need in (0, para1)
+        return para1 in ids
+    return 0 in ids or para1 in ids
 
 
 # Missões sociais e de guilda (QuestCondictionInfos.CondictionType)
@@ -241,9 +247,25 @@ SELL_CONDITION = 56  # pôr item no leilão (8448), +1 por anúncio
 # (visto) tempinfos QuestTemps 857 Detail: [Akademi] > [Bereket Ruleti] > [Rulet Aç];
 # (cliente) SeminaryBlessFrame.as manda 8489 no confirmar
 SEMINARY_CONDITION = 57  # bênção do seminário (8489)
+# Masmorra (campanha): só o servidor sabe quando o jogador passou; (cliente) TaskTemplate.as checkCount só lê o contador
+CAMPAIGN_CONDITION = 14  # passar a campanha Para1 (CampaignId, ex. 70 -> 1001); (visto) captura #1215 -> #1222
+# (visto) tempinfos: a 80 pede o chefe 1011 ('Çene') na campanha 1001 (Para3); (visto) captura #1714: o 112 do chefe
+HERO_KILL_CONDITION = 26  # matar o chefe Para1 (GameHeroTemp); Para3 = campanha
+# (dedução) 25 conta os soldados do lado 2 da batalha vencida pelo tempId; nenhuma missão de 25 aponta para a 1001
+PAWN_KILL_CONDITION = 25  # matar Para2 soldados do tipo Para1 (PawnTempInfos) numa campanha
+SOLO_CONDITION = 31  # passar cena com Para1 jogadores (Campaigns.Capacity); (visto) tempinfos: 313 = 1, 371 = 2
 # Os de nível guardam o maior valor: evoluir tropa até Para2 (10) e os que o cliente confere pelo estado
-# 63: Emek Oranı (total da atividade diária); 78: grau do símbolo
-LEVEL_CONDITIONS = {10, 63, RUNE_GRADE, FRIEND_CONDITION, GUILD_JOIN_CONDITION, OFFER_CONDITION, GUILD_LEVEL_CONDITION}
+# 63: Emek Oranı (total da atividade diária); 78: grau do símbolo; 14: passou a campanha (um sim, não soma)
+LEVEL_CONDITIONS = {
+    10,
+    63,
+    RUNE_GRADE,
+    FRIEND_CONDITION,
+    GUILD_JOIN_CONDITION,
+    OFFER_CONDITION,
+    GUILD_LEVEL_CONDITION,
+    CAMPAIGN_CONDITION,
+}
 # (visto) tempinfos: QuestConditionInfo 121, tipo 17, Para1 2; Detail "3 lv": grau > Para1
 MIN_CONDITIONS = {17}
 EXACT_PARA1 = {TREE_CONDITION}  # Para1 0 não é coringa aqui: regar a própria (1) não avança as de amigo (0)
@@ -293,6 +315,11 @@ def progress_of(q: Quest, k: int) -> int:
 
 def set_progress(q: Quest, k: int, value: int) -> None:
     setattr(q, PROGRESS_FIELDS[k], value)
+
+
+def goods_count(snap: PlayerSnapshot, template_id: int) -> int:
+    """Unidades do item na mochila, como ``goodsCountByTempId`` no cliente (TaskTemplate.checkGoodsCount)."""
+    return sum(i.count for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id)
 
 
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
@@ -495,17 +522,18 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
         if q.completed:
             continue
         for k, cond in enumerate(conditions(templates, q.template_id)):
-            kind, para1, para2 = int(cond["CondictionType"]), int(cond["Para1"]), int(cond["Para2"])
+            kind, para2 = int(cond["CondictionType"]), int(cond["Para2"])
             old = progress_of(q, k)
             if kind == MAP_CONDITION:  # vale o mapa de agora: sair dele desfaz (checkMapId)
                 here = snap.castle is not None and snap.castle.map_id == para2
                 value = para2 if here else 0
             elif kind in (RUNE_STUDY, RUNE_GRADE):
+                para1 = int(cond["Para1"])  # só aqui: o Para1 de outros tipos pode ser lista (14 e 26)
                 mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
                 value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
                 value = max(value, old)
             elif kind in GOODS_CONDITIONS:  # a quantidade atual na bolsa (cliente: checkGoodsCount)
-                value = goods_count(snap, para1)
+                value = goods_count(snap, int(cond["Para1"]))
             else:
                 continue
             if value != old:
@@ -535,11 +563,6 @@ def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: da
         if have < need:
             return False
     return True
-
-
-def goods_count(snap: PlayerSnapshot, template_id: int) -> int:
-    """Quantidade do item na mochila, só ``BagType.BAG`` (cliente: GoodsManager.countGoods)."""
-    return sum(i.count for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id)
 
 
 def goods_to_take(snap: PlayerSnapshot, templates: GameTemplates, template_id: int) -> list[tuple[int, int]]:
