@@ -147,6 +147,48 @@ Handlers em `game/handlers/worldboss.py`. Recusa = 111 (aviso no meio da tela) e
 - **4369**: marcos de dano acumulado.
 - As recompensas são definidas pelo servidor.
 
+## Regras pela Internet (pesquisa de 2026-10-18)
+
+Tudo aqui é *(internet)*; o help do cliente (`worldboss.view.BaseHelpFrame.helpText`) confirma ouro e Ruh por
+golpe, "HP e tropas não se esgotam", o prêmio do último golpe (Şanslı Ödülü), o top 10 de dano e o prêmio por
+0,3%/0,5%/0,8% do dano total. Wiki: https://wartune.fandom.com/wiki/World_BOSS (lida pela `api.php`, revisões
+`?oldid=`); guia da Koram: http://wartune.koramgame.com/2013/gameguide_0302/8.html; DolyGames:
+https://wartune.dolygames.com (posts citados abaixo).
+
+- **Chefes e horários**: Bloodfang, Ragnoch e Redoga Drake, todos Lv50 (`?oldid=4813`: 11:00, 16:00, 22:00).
+  Depois do Patch 2.1, 2 por dia (Bloodfang 11:30-12:30, depois 11:35; Redoga 22:00-23:00). Janela de 1 h.
+  Aviso "30 minutes before ... every 5 minutes" (Koram). Nível 20+. **Conflito**: o cliente fala em chefe Lv70
+  e janela "15:10 - 18:10"; nenhuma fonte cita.
+- **Vida**: 76 886 700 (`?oldid=4813`, 2012) → 115 330 078 (`?oldid=8129`, 2013) → ~250 milhões (Doly
+  my-best-world-boss-fight) → ~1,16 bi e alternando 1 167M/1 500M (fórum R2 147430, 156752, 2015-16).
+  **Escala**: "A Boss' health will increase the quicker a server kills the boss and decrease the longer a
+  server takes" (wiki), por chefe; "when the server did manage to kill the WB in under 10 minutes his HP
+  would grow for the next time" (Doly reflecting-on-world-boss-in-dec-2016); gamelytic: "The boss' level
+  scale with ... the average level of the players on the server". Nenhuma fonte dá a fórmula. Luta normal
+  de 12-16 min (Doly 508).
+- **Luta**: cada golpe é uma batalha individual; cada um vê no máximo 30 jogadores; o chefe dá 5 golpes e o
+  sexto em área mata ("kill you on the sixth one"); "troops and blood volume will not be damaged", sem EXP.
+  Morte: 30 s ou reviver pago (35 → 15 Balens; 10 na Fairytale). Patch 7.8 (2018): o chefe fica invencível
+  nos primeiros 5 min, e o dano conta para o prêmio.
+- **Moral (Inspiration)**: "For every 500,000 points of damage dealt by the top player, every player in the
+  battle receives a boost of 500 ... maximum level of 20 ... 10,000,000 damage ... boost of 10,000" (wiki).
+- **Buff comprado**: 20 Balens/Vouchers por +5% (até 10x no 1.46; até 20x em dez/2013); removido no Patch 5.5.
+- **Dublê**: 30 diamantes, marcado antes de abrir, até 3 lutas, sem prêmios de top e de % (vídeo
+  https://www.youtube.com/watch?v=iXbY85obSiQ, V1.50 chinês).
+- **Ouro e Daru por golpe**: "ratio of 1:5 ... 100,000 damage ... 20,000 Gold and 20,000 Daru" (wiki); teto de
+  10M por luta desde o 7.8 (Doly discussing-world-boss-changes-in-wartune-patch-7-8). O dano do Eudaemon não
+  conta. *(dedução)* Ruh do cliente = Daru.
+- **Último golpe**: 1 000 000 de ouro (`?oldid=5206`) → 1,2-1,3M → 1,7M (`?oldid=12788`); "varies based on
+  World Boss' total health (e.g. 1.5 million or 1.7 million gold)" (wiki atual); título Mortal Blow (HP +340).
+- **Top 10 por classe**: 360k/300k/240k/180k (do 4º ao 10º) em nov/2013 (`?oldid=18253`), depois
+  300k/270k/240k/180k, de ouro e daru. Antes: top 3 com 200k+200k (`?oldid=5206`).
+- **Por % do dano**: 0,3%/0,5%/0,8% → 60k/180k/360k (`?oldid=18143`) ou 60k/120k/180k (`?oldid=19424`);
+  servidores antigos: 1% → 360k. Removido no Patch 5.5.
+- **Prêmios somam?** Conflito: "you only receive one prize, whichever is best" (`?oldid=13462`) contra "Players
+  can acquire Beating Reward as well as other rewards" (Koram). Prêmios vão por correio (Koram).
+- **Fim**: a masmorra fecha quando o tempo acaba ou o chefe morre, e todos voltam para a cidade. Sem fonte para
+  o último golpe quando o chefe não morre. Participantes: "like 300-500 people" (Doly world-boss-last-hits).
+
 ## Captura que falta
 
 Cada item diz o que gravar no `captures/` (ou no relay) e o que fazer no jogo. Todos com um
