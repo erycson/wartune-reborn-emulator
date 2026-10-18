@@ -71,6 +71,10 @@ class Pool:
                 self.fight.killer_id, self.fight.killed_at = character_id, now
         return taken
 
+    def is_dead(self, character_id: int, now: datetime) -> bool:
+        until = self.dead.get(character_id)
+        return until is not None and now < until
+
     def ranking(self) -> list[WorldBossWound]:
         return sorted((w for w in self.wounds.values() if w.wound > 0), key=lambda w: (-w.wound, w.id or 0))
 

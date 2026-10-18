@@ -6,24 +6,39 @@ banco (``world_bosses``); a vida compartilhada está em ``game/boss_fight.py``.
 
 from __future__ import annotations
 
+import asyncio
+from datetime import timedelta
 from typing import Any
 
 from ...domain.world import WorldBoss
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from ...templates.repository import GameTemplates
 from .. import boss_fight, space, worldboss
+from .. import outer_city as oc
+from ..arena import config as arena_config
+from ..arena import npc_hero
+from ..battle import Battle, SharedHp
+from ..builders import login as b
 from ..campaign import NORMAL, CampaignMap
 from ..router import router
 from ..session import GameSession
+from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, map_sync, player_hero
+from .login import army, player_info
 from .player import alert
 
 S_BOSS_STATE, S_BOSS_INFO, S_MILESTONES = 4182, 4174, 4369
-S_ROOM_ENTER, S_EXIT, S_ROOM_CREATED, S_NODES, S_FOG = 21, 22, 125, 127, 130
+S_PLAYER, S_ROOM_ENTER, S_EXIT, S_ROOM_CREATED, S_NODES, S_FOG = 3, 21, 22, 125, 127, 130
+S_MAP_SYNC, S_FULL_ARMY, S_REPORT = 140, 150, 4103
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
 BOSS_NODE, BOSS_MASTER = 1, 41  # nodeId do único nó; masterType do chefe (como o 102109 da masmorra)
+BOSS_LIVING, BATTLE_TYPE = 4, 17  # o chefe na luta (como o da masmorra); battleType do chefe do mundo (cliente)
 TILE = 20
 NO_MAP = "This World Boss has no battle map yet."
 NOT_OPEN = "World Boss is not open now."
+NO_DIAMONDS = "Not enough Diamonds."
+REVIVE_COST = 3  # sem a linha no template; ConfigInfos Live_Fight_Pay é 15 nos templates EN
+S_PLAYER_STATE = 4175
 UNAVAILABLE = "This action is not available now."  # reviver e buff: o cliente só pede dentro do mapa do chefe
 
 
@@ -98,6 +113,8 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
     s.send(S_NODES, s.campaign.node_list())
     s.send(S_FOG, s.campaign.fog())
     s.send(S_BOSS_INFO, pool.info(ctx.templates, s.player_id, ctx.clock.now()))
+    if pool.is_dead(s.player_id, ctx.clock.now()):  # saiu morto e voltou: a contagem continua
+        s.send(S_PLAYER_STATE, _state_msg(s, pool, s.player_id))
 
 
 def boss_node(templates: GameTemplates, boss: WorldBoss) -> dict[str, Any]:
@@ -139,6 +156,127 @@ def leave_boss(s: GameSession) -> bool:
     return True
 
 
+def battle_spec(s: GameSession, pool: boss_fight.Pool) -> dict[str, Any]:
+    """Luta com o chefe: battleType 17, o chefe é herói ``type`` 3 com a vida que resta na janela (``maxHp`` = a
+    cheia), as tropas e o herói do jogador como na masmorra; o ``killTurn``-ésimo golpe do chefe mata o lado do
+    jogador inteiro (internet: o 6º golpe mata), antes disso ele não morre ("HP e tropas não se esgotam")."""
+    snap = s.snapshot
+    assert snap is not None
+    boss, templates = pool.boss, s.ctx.templates
+    hero = templates.get("GameHeroTemp", boss.hero_id) or {}
+    soldiers, pawn_tpl = oc.army_soldiers(snap, templates)
+    hp = pool.hp
+    enemy = npc_hero(livingId=BOSS_LIVING, side=2, pos=5, type=3, tempId=boss.hero_id,
+                     nickName=hero.get("TemplateName", ""), grade=int(hero.get("Grades") or 0),
+                     maxHp=pool.fight.total_hp, initHp=hp, hp=hp, captain=int(hero.get("Captain") or 0),
+                     res=hero.get("ResPath", ""), castTime=4000)  # fmt: skip
+    return {
+        "battleType": BATTLE_TYPE, "mapTempId": boss.campaign_id, "attackModel": 2, "battleScene": CAMPAIGN_SCENE,
+        "soldiers": soldiers, "heroes": [enemy], "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
+        "killTurn": boss.kill_turn,
+    }  # fmt: skip
+
+
+async def boss_attack(s: GameSession) -> None:
+    """5125 no nó do chefe: luta contra a vida compartilhada (``SharedHp``). O nó não muda de estado: todos
+    batem nele ao mesmo tempo."""
+    ctx, snap, c = s.ctx, s.snapshot, s.campaign
+    assert snap is not None and c is not None
+    pool = await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, c.map_id, ctx.clock.now())
+    if pool is None or not pool.alive or s.battle is not None or s.campaign is not c or c.fighting:
+        return
+    if pool.is_dead(s.player_id, ctx.clock.now()):
+        s.send(S_PLAYER_STATE, _state_msg(s, pool, s.player_id))  # o cliente volta a mostrar a contagem
+        return
+    ch = snap.character
+    cid, nick, job = s.player_id, ch.nickname or "", ch.job
+    link = SharedHp(BOSS_LIVING, lambda: pool.hp, lambda v: pool.hit(cid, nick, job, v, ctx.clock.now()),
+                    bonus=pool.inspire() * boss_fight.INSPIRE_BONUS)  # fmt: skip
+    spec = battle_spec(s, pool)
+    c.fighting = BOSS_NODE
+    s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
+
+    async def finished(battle: Battle, won: bool) -> None:
+        await _boss_over(s, battle, won, pool, link)
+
+    s.battle = Battle(spec, player_hero(s, spec), ctx.templates, ctx.clock, s.send, finished, shared=link)
+    s.log.info("batalha com o chefe do mundo", chefe=c.map_id, vida=pool.hp, battle=s.battle.id)
+    s.battle.start()
+
+
+async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight.Pool, link: SharedHp) -> None:
+    """Fim da luta: ouro e daru pelo dano desta luta (``battle_reward``), gravados com o dano acumulado da
+    janela; 3, 4103, 150 e 140; o 4174 novo vai a todos no mapa."""
+    snap = s.snapshot
+    assert snap is not None
+    s.battle, s.hero_sp = None, battle.player_sp
+    if s.campaign is not None:
+        s.campaign.fighting = 0
+    ch = snap.character
+    reward = pool.battle_reward(link.dealt)
+    ch.gold += reward
+    ch.strategy += reward  # daru = "strategy" (como o strategyBonus da masmorra)
+    rows: list[object] = [ch]
+    if (wound := pool.wounds.get(s.player_id)) is not None:
+        rows.append(wound)
+    if pool.fight.killer_id == s.player_id:
+        rows.append(pool.fight)
+    async with pool.lock:
+        await s.ctx.characters.save(*rows)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=reward, gpBonus=0,
+                                battleScene=CAMPAIGN_SCENE)  # fmt: skip
+    report.failCount, report.goldBonus, report.petGpBonus = 0, reward, 0
+    s.send(S_REPORT, report)
+    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+    broadcast_info(s, pool)
+    if not won and pool.alive:
+        _kill(s, pool)
+
+
+def _state_msg(s: GameSession, pool: boss_fight.Pool, character_id: int) -> pb.PlayerStateListMsg:
+    """4175: morto (1) com o tempo até reviver em ms, ou vivo (0)."""
+    until, now = pool.dead.get(character_id), s.ctx.clock.now()
+    left = int((until - now).total_seconds() * 1000) if until is not None and now < until else 0
+    server = s.snapshot.server.name if s.snapshot is not None else ""
+    msg = pb.PlayerStateListMsg()
+    msg.playerState.add(armyId=character_id, state=int(left > 0), leftTime=left, serverName=server)
+    return msg
+
+
+def _send_state(s: GameSession, pool: boss_fight.Pool) -> None:
+    msg = _state_msg(s, pool, s.player_id)
+    for o in [s, *on_map(s, pool.boss.campaign_id)]:
+        o.send(S_PLAYER_STATE, msg)
+
+
+def _kill(s: GameSession, pool: boss_fight.Pool) -> None:
+    """Perdeu a luta (o ``killTurn``): morto por ``revive_seconds`` (internet: 30 s), depois revive sozinho."""
+    cid = s.player_id
+    pool.dead[cid] = s.ctx.clock.now() + timedelta(seconds=pool.boss.revive_seconds)
+    if (old := pool.timers.pop(cid, None)) is not None:
+        old.cancel()
+    pool.timers[cid] = asyncio.get_running_loop().call_later(pool.boss.revive_seconds, revive, s, pool)
+    _send_state(s, pool)
+
+
+def revive(s: GameSession, pool: boss_fight.Pool) -> None:
+    pool.dead.pop(s.player_id, None)
+    if (timer := pool.timers.pop(s.player_id, None)) is not None:
+        timer.cancel()
+    if s.campaign is not None and s.campaign.world_boss and not s.gone.is_set():
+        _send_state(s, pool)
+
+
+def broadcast_info(s: GameSession, pool: boss_fight.Pool) -> None:
+    """O 4174 de cada um (o ``myWound`` muda) a todos no mapa do chefe."""
+    now = s.ctx.clock.now()
+    for o in [s, *on_map(s, pool.boss.campaign_id)]:
+        if o.campaign is not None and o.campaign.world_boss:
+            o.send(S_BOSS_INFO, pool.info(o.ctx.templates, o.player_id, now))
+
+
 def _refusal(s: GameSession, campaign_id: int) -> str | None:
     row = worldboss.boss(s.ctx.templates, campaign_id)
     if row is None:
@@ -158,15 +296,28 @@ def _refusal(s: GameSession, campaign_id: int) -> str | None:
 
 @router.on(8264)
 async def revive_or_fight(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    """Entrar na luta agora, pagando (``Live_Fight_Pay`` 3; payType 0 = vinculado primeiro, 1 = só
-    diamante). O botão existe na ``RiverView`` tipo 1, depois de morrer no chefe, e o servidor ainda
-    não sabe disso: nada é cobrado. ``Live_Pay`` (2) não tem botão no chefe.
+    """Reviver já e voltar à luta, pagando (``Live_Fight_Pay``, 15 nos templates EN; payType 0 = vinculado
+    primeiro, 1 = só diamante). O botão existe na ``RiverView`` tipo 1, depois de morrer no chefe. ``Live_Pay``
+    (2) não tem botão no chefe. Fora do mapa do chefe ou vivo: aviso, nada cobrado.
 
     ponytail: o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição);
     quem fizer o mapa do altar tem de separar pelo mapa do jogador.
     """
-    s.log.info("reviver pago recusado (sem morte no chefe)", pedido=str(msg))
-    alert(s, UNAVAILABLE)
+    ctx, c, snap = s.ctx, s.campaign, s.snapshot
+    pool = ctx.bosses.pools.get(c.map_id) if c is not None and c.world_boss else None
+    if pool is None or snap is None or not pool.is_dead(s.player_id, ctx.clock.now()):
+        s.log.info("reviver pago recusado (não está morto no chefe)", pedido=str(msg))
+        alert(s, UNAVAILABLE)
+        return
+    cost = arena_config(ctx.templates, "Live_Fight_Pay", REVIVE_COST)
+    entry = ledger.pay(snap.character, cost, bind=msg.payType == 0, reason="world_boss_revive",
+                       ref=str(c.map_id), now=ctx.clock.now())  # type: ignore[union-attr]  # fmt: skip
+    if entry is None:
+        alert(s, NO_DIAMONDS)
+        return
+    revive(s, pool)  # antes do await: um segundo 8264 já vê vivo
+    await ctx.characters.save(snap.character, entry)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
 
 
 @router.on(8470)

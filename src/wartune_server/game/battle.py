@@ -77,6 +77,18 @@ class Unit:
         return self.hp > 0
 
 
+@dataclass
+class SharedHp:
+    """Vida de uma unidade que vive fora da luta (chefe do mundo: todo o servidor bate no mesmo). Antes de cada
+    ação a vida da unidade vem de ``hp()``; o dano nela passa por ``hit()``, que devolve o que tirou de fato."""
+
+    living_id: int
+    hp: Callable[[], int]
+    hit: Callable[[int], int]
+    bonus: int = 0  # dano a mais por golpe do lado do jogador (moral do chefe)
+    dealt: int = 0  # o que esta luta tirou
+
+
 @dataclass(frozen=True, slots=True)
 class PlayerHero:
     """O que a batalha precisa do herói do jogador (montado pela sessão)."""
@@ -95,8 +107,11 @@ class Battle:
         clock: Clock,
         send: Callable[[int, Message], None],
         on_end: Callable[[Battle, bool], Awaitable[None]],
+        shared: SharedHp | None = None,
     ) -> None:
         self.id = str(uuid.uuid4())
+        self.shared = shared
+        self._kill_turn = int(spec.get("killTurn", 0))  # a ação do inimigo que mata o lado do jogador inteiro
         self.spec, self.templates, self.clock = spec, templates, clock
         self._send, self._on_end = send, on_end
         self._t0: float | None = None  # time.monotonic() do 156
@@ -281,6 +296,7 @@ class Battle:
         while True:
             first = True
             for unit in self._round_order():
+                self._sync()
                 if not unit.alive:
                     continue
                 if not (self._side_alive(True) and self._side_alive(False)):
@@ -295,9 +311,17 @@ class Battle:
                 await self._until(due)
                 start, side, first = self.frame, unit.side, False
                 end = start + self._act(unit, skill)
+            self._sync()
             if not (self._side_alive(True) and self._side_alive(False)):
                 await self._until(start + END_DELAY)
                 return self._side_alive(True)
+
+    def _sync(self) -> None:
+        """A vida compartilhada pode ter caído pelos golpes de outros jogadores enquanto esta luta esperava."""
+        if self.shared is not None:
+            unit = next((u for u in self.units if u.living_id == self.shared.living_id), None)
+            if unit is not None:
+                unit.hp = self.shared.hp()
 
     def _announce(self, unit: Unit, skill: int) -> None:
         """75 do herói inimigo: o cliente mostra a skill que ele vai usar (captura do coliseu #9)."""
@@ -378,13 +402,23 @@ class Battle:
             curturn=unit.turn,
         )
         raw = unit.attack * int(row.get("Parameter1", 100)) / 100 + int(row.get("Parameter2", 0))
-        for target in self._targets(unit, skill):
+        shared = self.shared
+        kills = unit.side != PLAYER_SIDE and 0 < self._kill_turn <= unit.turn
+        targets = [u for u in self.units if u.alive and u.side == PLAYER_SIDE] if kills else self._targets(unit, skill)
+        for target in targets:
             for _ in range(hits):
                 value = max(1, int(raw * self._factor(unit) / hits))
-                if target.side == PLAYER_SIDE and not (self.pvp or self.spec.get("lethal")):
+                if kills:
+                    value = target.hp
+                elif target.side == PLAYER_SIDE and not (self.pvp or self.spec.get("lethal")):
                     # as batalhas do tutorial são vitórias roteirizadas: o lado do jogador não morre
                     value = min(value, max(0, target.hp - 1))
-                target.hp = max(0, target.hp - value)
+                if shared is not None and target.living_id == shared.living_id:
+                    value = shared.hit(value + shared.bonus)  # síncrono: dois golpes nunca levam a mesma vida
+                    shared.dealt += value
+                    target.hp = shared.hp()
+                else:
+                    target.hp = max(0, target.hp - value)
                 msg.damages.add(
                     livingId=target.living_id, damageType=DAMAGE_HP, damageValue=value, leftValue=target.hp, parry=False
                 )

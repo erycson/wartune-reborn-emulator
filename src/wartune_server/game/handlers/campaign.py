@@ -227,6 +227,11 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if c is None or node is None or node["state"] != NORMAL or c.fighting or c.locked(msg.paraInt1):
         return
     camp = msg.paraInt1
+    if c.world_boss:
+        from .worldboss import boss_attack  # worldboss importa este módulo
+
+        await boss_attack(s)
+        return
     if c.dungeon:
         await _dungeon_arrive(s, camp, node)
         return

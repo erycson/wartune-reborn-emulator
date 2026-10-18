@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -97,6 +98,73 @@ async def test_entrar_e_sair_do_chefe_com_dois_jogadores(tmp_path: Path) -> None
         assert mine.playerId == theirs.playerId == b.user_id and mine.result == 1
         bs = g.server.online.get(b.user_id)
         assert bs is not None and bs.campaign is None
+
+
+async def test_dois_jogadores_batem_no_mesmo_chefe_e_um_so_da_o_ultimo_golpe(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
+        b = await g.join("outro")
+        sessions = [g.server.online.get(x.user_id) for x in (g, b)]
+        for session in sessions:
+            assert session is not None and session.snapshot is not None
+            session.snapshot.character.grades = 20
+        for game in (g, b):
+            await game.idle()
+            game.client.send(8258, pb.WorldBossMsg(param1=5001))
+            await game.idle()
+        ctx = sessions[0].ctx  # type: ignore[union-attr]
+        pool = ctx.bosses.pools[5001]
+        pool.fight.total_hp = 150  # morre em poucos golpes
+
+        async def fight(game: object) -> list[object]:
+            game.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))  # type: ignore[attr-defined]
+            got = await game.until(157)  # type: ignore[attr-defined]
+            prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+            assert prepare.battleType == 17
+            return await game.fight(prepare)  # type: ignore[attr-defined,no-any-return]
+
+        reports = await asyncio.gather(fight(g), fight(b))
+        assert pool.hp == 0 and pool.fight.killer_id in (g.user_id, b.user_id)
+        assert sum(w.wound for w in pool.wounds.values()) == 150
+        for got in reports:
+            [report] = [pb.BattleReportMsg.FromString(p.body) for p in got if p.code == 4103]  # type: ignore[attr-defined]
+            assert report.battleResult == 1
+
+        async def stored(uow: object) -> tuple[object, list[object]]:
+            fight = await uow.world_boss.fight(5001, pool.fight.opened_at)  # type: ignore[attr-defined]
+            return fight, await uow.world_boss.wounds(fight.id)  # type: ignore[attr-defined]
+
+        fight_row, wounds = await ctx.characters.read(stored)
+        assert fight_row.killer_id == pool.fight.killer_id  # type: ignore[attr-defined]
+        assert sum(w.wound for w in wounds) == 150  # type: ignore[attr-defined]
+
+
+async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        ch = session.snapshot.character
+        ch.grades, ch.point, ch.gift_token = 20, 20, 0
+        await g.idle()
+        g.client.send(8258, pb.WorldBossMsg(param1=5001))
+        await g.idle()
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))
+        prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+        got = await g.fight(prepare)
+        got += await g.idle()
+        [report] = [pb.BattleReportMsg.FromString(p.body) for p in got if p.code == 4103]
+        assert report.battleResult == 2 and report.goldBonus == report.strategyBonus > 0  # o dano paga
+        [dead] = [pb.PlayerStateListMsg.FromString(p.body) for p in got if p.code == 4175]
+        assert (dead.playerState[0].state, dead.playerState[0].leftTime) == (1, 30_000)
+
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))  # morto: sem luta
+        assert [p.code for p in await g.idle()] == [4175]
+
+        g.client.send(8264, pb.PayTypeMsg(payType=1))
+        got = await g.idle()
+        [alive] = [pb.PlayerStateListMsg.FromString(p.body) for p in got if p.code == 4175]
+        assert alive.playerState[0].state == 0 and ch.point == 5
+        g.client.send(8264, pb.PayTypeMsg(payType=1))  # vivo: aviso, nada cobrado
+        assert [p.code for p in await g.idle()] == [ALERT] and ch.point == 5
 
 
 async def test_campanha_de_mina_nao_e_chefe_e_diz_indisponivel(tmp_path: Path) -> None:
