@@ -14,7 +14,7 @@ Fontes: *(visto)* captura oficial (`captures/transfer_kampi_sistemi.json`, `capt
 ## O que o servidor tem
 
 O mapa do castelo (100000xxx, modelo 100) é uma instância de cada jogador *(visto)*: replay #706 e cevre #11
-trazem as mesmas 4 minas (ids e posições) e os mesmos ids de castelo (765957-765959), mas a instância
+trazem as mesmas 4 minas (ids e posições) e os mesmos ids de castelo-robô (765957 e 765958), mas a instância
 (100000313 e 100000714), os 2 robôs, os ids do `armyPawn` das minas e o `createDate` mudam de uma conta para
 a outra. Por isso o servidor mostra ali só o castelo e as minas do próprio jogador; ocupação de outro jogador
 não aparece nem bloqueia. Nos mapas compartilhados (1 a 5) o 8201 traz os castelos dos outros jogadores nas
@@ -113,16 +113,16 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
   (`occupyPlayerId` 13000xxxxx) e o nome mudam de uma conta para outra: replay ♣Chloe♣ e ♫Elizabeth♫; cevre
   ♫Elizabeth♫ e ►Abigail◄. Sem liga e sem tempo de defesa (`defenceLefttime` 0), estado 1, `castleName` = nome.
 - **Servidor** *(dedução)*: os ids e tiles são os do oficial; o dono é `ROBOT_USER_BASE + índice` (faixa dos
-  robôs); o nome sai da conta e do castelo (`robot_name`, sorteio com semente `robo:<conta>:<índice>`). A captura
+  robôs); o nome sai da conta (`robot_name`, sorteio com semente `robo:<conta>`; os dois robôs da conta tiram nomes distintos). A captura
   tem 3 nomes, então o sorteio usa só esses (*ponytail*: ampliar `ROBOT_NAMES` se houver mais nomes). Sem
   estado: o robô está sempre lá, não muda de dono nem some depois da vitória (não há captura disso).
 - **4129** *(visto)* cevre #11, replay #706: o robô entra no 4129 da grade dele, junto com o próprio castelo.
-  Só no mapa da própria instância (`robots_in`); nos mapas 1 a 5 não aparece.
+  Só na instância do próprio castelo, pela mesma regra das minas (`robots_in` e `robot_at`, com `template_of`): nos mapas 1 a 5 não aparece nem luta.
 - **Guia** *(cliente)*: a missão 100 (m8 `NewbieBaseActionMediator`, alvo 80_3) procura o castelo no pixel (880,440),
-  o tile (44,22). Sem o robô a tela escurece, como na missão 60; com ele a máscara sai no ataque.
-- **Ataque (5160)** *(cliente)*: `CityInfoFrame.__attackHandler` manda o 5160 com a posição do castelo.
-  `MapPhysicsCastle.attack` recusa sem ataque no dia (`attackCount` 0) e com diferença de nível de 10 ou mais.
-  O servidor faz as mesmas duas recusas e uma terceira (luta em andamento), todas com 140 parado e sem luta.
+  o tile (44,22). O robô está nesse tile, então `getPhysicsByXY(880,440)` o acha (`BaseCastle` faz `_x = posX × 20`; `OuterCityModel.as` 367-386). Sem o alvo a tela escurece, como na missão 60.
+- **Ataque (5160)** *(cliente)*: o `CityInfoFrame` (`sendAttack`, 28-44) manda o 5160 direto, com a posição do castelo.
+  `MapPhysicsCastle.attack` (156-211) recusa com diferença de nível de 10 ou mais (linha 166) e abre o `_attackAlert`; o `attackCount` (`playerInfo`) é lido só depois, em `MapPhysicsCastle.__responseHandler` (213-229, linha 221).
+  O servidor recusa com 140 parado e sem luta nos três casos (sem ataque no dia, diferença de 10 ou mais, luta em andamento) e também sem tropa (*dedução*).
   Com o ataque aceito, gasta um do dia (*dedução*: o contador é o do 9506, "x/5" no `AttackAlertFrame`).
 - **Luta** *(dedução)*: a spec da mina (`guard_battle`: battleType 1, mapa 100, cena 4) com o guarda 6504
   (grau 8). Não há captura de luta com castelo. Fim na ordem da mina: 150, 4103, 150, 100, 140 ×2.
@@ -134,24 +134,26 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - **Níveis** *(cliente + grau 8)*: a diferença menor que 10 deixa atacar até o nível 17. A 411 pede nível 17,
   então só passa no 17. A 765 (nível 12) passa de 12 a 17. Se o grau do oficial for outro, isso muda.
 - **Não feito**: PvP contra castelo de jogador (8488 segue sem alvo, porque exército alheio não existe aqui);
-  repetir a 765 (o 5012 de missão já existente é recusado, `rules.py`); e a gravação no fim da luta: um corte no
+  repetir a 765 (o 5012 de missão já existente é recusado, `rules.py:282`; a 765 também exige guilda, `TaskManage.checkConsortia`, 458-465; o cliente re-oferece quando a data da conclusão difere de hoje, `TaskManage.as` 531-542); e a gravação no fim da luta: um corte no
   meio da luta não cobra o ataque.
 
 ## Coleta (Kaynak Topla, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 
 - **Botão ir** *(cliente)*: `TaskFrameII.as:707-708` pega `worldBossTemplateDict[NeedFightId]` (6001) e
   `WorldBossControler.sendEnterBattle` manda o 8258 com essa campanha. A 6001 é "Maden Ocağı", `Types` 2,
-  `MinLevel` 1, `Capacity` 10000 (`Campaigns`). Não tem `CampaignData` nem `maps/6001` (o repo tem só os
-  `.maps` 100, 10001 e 10002), e nenhuma captura tem 8258 nem 6001. Sem layout nem fonte, a entrada não é
+  `MinLevel` 1, `Capacity` 10000 (`Campaigns`). `MapInfos` tem a 6001 (2000x2000 px, `Type` 1), mas não tem `CampaignData` nem `MapNodeInfos`. O `.maps`
+  existe no CDN local (`D:\xampp\htdocs\wartune-cdn\maps\6001\6001.maps`, fora do repo), mas não está entre os
+  13 mapas com nós de campanha da varredura. Nenhuma captura tem 8258 nem 6001. Sem layout nem captura, a entrada não é
   implementada. Hoje o 8258 é recusado com o aviso de indisponível (antes dizia "inválido").
 - **Coleta no espaço** *(cliente)*: `CollectionAction.sendCollection` manda o 8733 com o id do nó
   (`PropertyMsg.param1`). Os nós "year" são `MasterType` 300 a 315 ou 410 (`SpaceNodeType.isYearNode`), e o 4811
   (`QueryCollectCampaignNodeRspMsg`, `PlayerManager.__receiveYearNodeDataHandler`) diz o recurso de cada nó
   (`sonType`, nome). Os templates têm 20 nós `MasterType` 300 (mapa 10000, "Hediye Yığını", `SonType` 10031):
   são pacotes de presente, não Kereste, Ametist nem Bakır. Nenhuma captura tem 4811 nem 8733.
+- **Coleta de campanha** *(cliente)*: `CollectionAction.sendCollection` (`CollectionAction.as` 360-392) manda o 5032 `{mapId, nodeId, cmd 2}` (`SocketSendManager.sendSessionOverToBattle`, 266-273) num nó de campanha de coleta. O servidor só responde o 5032 nos nós do tutorial (`campaign.py`, 281-300). Os `SonType` de coleta são 2350 (som 041), 2351 e 2380 (som 039), 2352 e 2393-2395 (som 040) (`CollectionAction.as` 93-105). O nome do recurso de cada som (Bakır, Ametist, Kereste) é dedução.
 - **Itens 2100022, 2100023 e 2100024**: nenhum código, drop ou tabela os cria (já visto em `missoes.md`).
-- Resultado: coleta **não implementada**. Faltam: o layout da 6001 (`.maps` ou `CampaignData`), ou os nós de
-  coleta com recurso (4811 de captura), e uma fonte dos três itens.
+- Resultado: coleta **não implementada**. Faltam: a 6001 como campanha (`CampaignData` e nós de coleta, que não existem nos dados); uma captura do 8258 com a
+  6001 e do 5032 num nó de coleta (quantidade por coleta); e uma fonte dos três itens. A coleta do espaço (4811 e 8733) é outra rota.
 
 ## Tabelas e migrações
 
