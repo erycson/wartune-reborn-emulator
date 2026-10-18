@@ -2,17 +2,18 @@
 lugar (docs/cidade-externa.md). O mapa do castelo é uma instância do jogador; exército alheio não aparece,
 e os pedidos que dependem dele são recusados sem resposta, como o cliente espera."""
 
+import functools
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import Pawn, PlayerSnapshot, Quest, WildLand
+from wartune_server.domain.models import Item, Pawn, PlayerSnapshot, Quest, WildLand
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
-from wartune_server.game import bosses, mines, robots
 from wartune_server.game import castle as castle_mod
+from wartune_server.game import mines, monsters, robots
 from wartune_server.game import outer_city as oc
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -515,7 +516,7 @@ async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None
 
 
 async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
-    """Minas, guardas, robôs e chefes saem das tabelas da migração 0027, na ordem da captura."""
+    """Minas, guardas, robôs e monstros saem das tabelas das migrações 0027 e 0028, na ordem da captura."""
     async with logged_in(tmp_path, novice=22500) as g:
         world = g.server.services.world
         assert [(m.id, m.x, m.y, m.levels) for m in world.mines] == [
@@ -525,7 +526,8 @@ async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
         assert dict(world.mine_guards) == {8: 6504, 9: 6505, 10: 6505}
         assert [(r.id, r.x, r.y, r.grade) for r in world.robots] == [(765958, 44, 22, 8), (765957, 59, 56, 8)]
         assert [str(n) for n in world.robot_names] == ["♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"]
-        assert len(world.bosses_on(2)) == 5 and world.bosses_on(100) == []
+        assert dict(world.monster_counts[2]) == {1: 40, 2: 20, 3: 5} and 100 not in world.monster_counts
+        assert dict(world.monster_power) == {210127: 746796}
 
 
 async def test_ocupacao_sem_nivel_gravado_e_completada_no_login(tmp_path: Path) -> None:
@@ -545,28 +547,75 @@ async def test_ocupacao_sem_nivel_gravado_e_completada_no_login(tmp_path: Path) 
 
 
 async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
-    """9525 -> 4938 com a lista do mapa 2 da captura (nomes do template atual) e o relógio que as duas
-    capturas mostram: 2026-05-21 19:00 UTC menos 4828 s (transfer) e 5775 s (cevre)."""
+    """9525 -> 4938 com os 5 chefes (bossType 3) do sorteio do mapa 2, iguais em todo pedido do ciclo, e o
+    relógio que as duas capturas mostram: 2026-05-21 19:00 UTC menos 4828 s (transfer) e 5775 s (cevre)."""
     clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, 290000, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
         msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
-        templates = g.server.services.templates
-        spawns = g.server.services.world.bosses_on(2)
-        names = [templates.get("MapPhysicsTempInfos", b.template_id)["MapPhysicsTempName"] for b in spawns]
+        templates, world = g.server.services.templates, g.server.services.world
+        chiefs = [m for m in monsters.on_map(world, templates, 2, clock.now()) if m.boss_type == monsters.CHIEF]
+        rows = [templates.get("MapPhysicsTempInfos", m.template_id) for m in chiefs]
         assert [(b.bossName, b.grade, b.type, b.x, b.y) for b in msg.bosslist] == [
-            (names[0], 20, 1, 1540, 3323),
-            (names[1], 70, 1, 1239, 2870),
-            (names[2], 80, 1, 739, 388),
-            (names[3], 80, 1, 2164, 2112),
-            (names[4], 60, 1, 1865, 527),
+            (r["MapPhysicsTempName"], int(r["Grades"]), 1, m.x, m.y) for r, m in zip(rows, chiefs, strict=True)
         ]
+        assert len(chiefs) == 5 and all(r["Property1"] == "3" for r in rows)
         assert (msg.leftBossTime, msg.count1, msg.leftFogTime) == (4828, 0, 0)
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
+        assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).bosslist == msg.bosslist
 
         g.client.send(9525, pb.MapBossQuestMsg(mapId=100))  # instância do castelo: sem chefes (cevre)
         msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
         assert (len(msg.bosslist), msg.leftBossTime) == (0, 4828)
 
-    assert bosses.boss_left(datetime(2026, 5, 21, 17, 23, 44, 227000, tzinfo=UTC)) == 5775  # cevre #3
-    assert bosses.boss_left(datetime(2026, 5, 21, 19, 0, tzinfo=UTC)) == 7200  # na virada: ciclo novo, nunca 0
-    assert bosses.boss_left(datetime(2026, 5, 21, 18, 59, 59, 900000, tzinfo=UTC)) == 1
+        left = functools.partial(monsters.refresh_left, templates)
+        assert left(datetime(2026, 5, 21, 17, 23, 44, 227000, tzinfo=UTC)) == 5775  # cevre #3
+        assert left(datetime(2026, 5, 21, 19, 0, tzinfo=UTC)) == 7200  # 22:00 em UTC+3: o próximo é 00:00
+        assert left(datetime(2026, 5, 21, 18, 59, 59, 900000, tzinfo=UTC)) == 1  # nunca 0
+        assert left(datetime(2026, 5, 22, 0, 0, tzinfo=UTC)) == 5 * 3600  # 03:00: sem refresh até as 08:00
+        start = monsters.cycle_start(templates, datetime(2026, 5, 22, 0, 0, tzinfo=UTC))
+        assert start == datetime(2026, 5, 21, 21, 0, tzinfo=UTC)  # o ciclo das 00:00 locais
+
+
+async def test_monstros_dos_wilds_no_4129_como_na_captura(tmp_path: Path) -> None:
+    """8201 numa grade do mapa 2 com monstro: type 21 como o 210127 da transfer #14 (sem armyPawn, refreshTime
+    0, size = Property2, createDate = começo do ciclo). O ciclo novo sorteia outros pontos."""
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))  # 20:39 em UTC+3: ciclo das 20:00
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        templates, world = g.server.services.templates, g.server.services.world
+        found = monsters.on_map(world, templates, 2, clock.now())
+        assert [sum(m.boss_type == t for m in found) for t in (1, 2, 3)] == [40, 20, 5]
+        assert len({m.id for m in found}) == 65 and monsters.on_map(world, templates, 100, clock.now()) == []
+        m = found[0]
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
+        page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
+        land = next(w for w in page.wildLand if w.id == m.id)
+        row = templates.get("MapPhysicsTempInfos", m.template_id)
+        assert (land.type, land.templateId, land.posX, land.posY, land.state) == (21, m.template_id, m.x, m.y, 1)
+        assert (land.level, land.bossType, land.size) == (int(row["Grades"]), m.boss_type, int(row["Property2"]))
+        assert (land.refreshTime, len(land.armyPawn), land.createDate) == (0, 0, "2026-05-21 20:00:00")
+        later = monsters.on_map(world, templates, 2, clock.now() + timedelta(hours=2))
+        assert [(n.x, n.y) for n in later] != [(n.x, n.y) for n in found]
+
+
+async def test_divine_light_tira_a_nevoa_por_20_segundos(tmp_path: Path) -> None:
+    """5006 da Divine Light (2131055, SonType 316): gasta um, 4939 com leftFogTime 20, e o 4938 do mapa do
+    castelo leva o que sobra até zerar."""
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        assert snap.castle is not None
+        light = Item(g.user_id, 2131055, pos=0, count=2)
+        snap.items.append(light)
+        await g.server.services.characters.save(light)
+        g.client.send(5006, pb.ItemUseMsg(pos=0, count=2, bagType=1))
+        assert pb.MapBossMsg.FromString((await g.until(4939))[-1].body).leftFogTime == 20
+        assert light.count == 1
+        clock.advance(5)
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=snap.castle.map_id))
+        assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).leftFogTime == 15
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=2))  # outro mapa: com névoa
+        assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).leftFogTime == 0
+        clock.advance(20)
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=snap.castle.map_id))
+        assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).leftFogTime == 0

@@ -1,4 +1,4 @@
-"""Catálogo do mundo: o que existe em cada mapa (minas, castelos-robô, chefes). Vem do banco
+"""Catálogo do mundo: o que existe em cada mapa (minas, castelos-robô, quantos monstros). Vem do banco
 (``persistence/world_store.py``), carregado uma vez ao subir; o estado de cada jogador fica no snapshot."""
 
 from __future__ import annotations
@@ -44,21 +44,15 @@ class RobotName:
         return f"{self.prefix}{self.name}{self.suffix}"
 
 
-@dataclass(frozen=True, slots=True)
-class BossSpawn:
-    map_id: int
-    template_id: int
-    x: int
-    y: int
-
-
 @dataclass(frozen=True)
 class World:
     mines: tuple[Mine, ...] = ()
     mine_guards: Mapping[int, int] = field(default_factory=lambda: MappingProxyType({}))  # nível -> PawnTempInfos
     robots: tuple[RobotCastle, ...] = ()
     robot_names: tuple[RobotName, ...] = ()
-    bosses: tuple[BossSpawn, ...] = ()
+    # mapa -> {bossType: quantos por ciclo}; template -> fightCapaity
+    monster_counts: Mapping[int, Mapping[int, int]] = field(default_factory=lambda: MappingProxyType({}))
+    monster_power: Mapping[int, int] = field(default_factory=lambda: MappingProxyType({}))
 
     def mines_on(self, map_id: int) -> list[Mine]:
         return [m for m in self.mines if m.map_id == map_id]
@@ -68,6 +62,3 @@ class World:
 
     def robots_on(self, map_id: int) -> list[RobotCastle]:
         return [r for r in self.robots if r.map_id == map_id]
-
-    def bosses_on(self, map_id: int) -> list[BossSpawn]:
-        return [b for b in self.bosses if b.map_id == map_id]

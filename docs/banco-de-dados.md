@@ -108,9 +108,11 @@ Todo movimento de elmas (`point`) e elmas vinculado (`gift_token`): `delta_point
 Mina ocupada por personagem: `wild_id` (`world_mines.id`), `occupied_at` e, desde a 0027, o nível sorteado
 (`template_id`) e o tile (`pos_x`, `pos_y`). Só vale no ciclo de minas atual (`castles.mines_at`).
 
-### Catálogo do mundo (0027)
-`world_mines`, `world_mine_guards`, `world_robots`, `world_robot_names` e `map_boss_spawns`: o que existe em
-cada mapa, com semente das capturas. Lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
+### Catálogo do mundo (0027, 0028)
+`world_mines`, `world_mine_guards`, `world_robots`, `world_robot_names`, `world_monster_counts` e
+`world_monster_power`: o que existe em cada mapa, com semente das capturas (a 0028 apaga o `map_boss_spawns`
+da 0027: os chefes saem do sorteio dos monstros). `characters.fog_map`/`fog_until`: névoa tirada pela Divine
+Light. Lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
 Detalhes em [cidade-externa.md](cidade-externa.md).
 
 ## Transações

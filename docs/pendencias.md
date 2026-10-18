@@ -98,6 +98,11 @@ Outros eventos:
   sorteado de novo a cada ciclo, ocupação do ciclo anterior vence). **precisa de captura**: a perda de soldados
   numa derrota contra a mina (nas vitórias nenhum morre), o refresh com o jogador online e um login mais de
   12 h depois do último (para saber quando o ciclo abre).
+- Monstros dos Wilds: **parcial**. Aparecem no 4129 dos mapas 1 a 5 (sorteio por mapa e ciclo de
+  `WorldMapFreshTime`), os chefes vão no painel 4938 e a Divine Light tira a névoa. Quantidades por mapa e
+  `fightCapaity` fora do 210127 são **dedução**/0. **precisa de captura**: uma luta com monstro do mapa (não
+  há unidade de batalha nos templates); dela dependem o abate (140 state 4/0), `count1-3`, a regra dos 15
+  níveis e o baú (4940/9526).
 - "Emek oranınız ..." (83, taxa de trabalho): o sistema não existe.
 - Subida de nível: o oficial manda também 139, 100 e 4640 (replay #625-#628); aqui só o 150.
 - Presente da atividade de soma (8586 tipo 2, replay #678): recusado.

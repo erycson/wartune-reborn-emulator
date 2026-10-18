@@ -158,6 +158,8 @@ class Character:
     multi_copy_day: str = ""  # "YYYY-MM-DD"
     reset_day: str = ""  # último dia do jogo já virado (energia, stamina): game/daily.py
     weary_potions: int = 0  # stamina tomada em poções no dia (PlayerMsg.wearyLimit; teto 300)
+    fog_map: int = 0  # mapa onde a Divine Light tirou a névoa, até fog_until
+    fog_until: datetime | None = None
 
     @property
     def icon(self) -> int:

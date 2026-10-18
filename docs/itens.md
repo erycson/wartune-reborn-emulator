@@ -47,6 +47,8 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 | 5129 CampaignReqMsg | baú caído na campanha: os drops de campanha não existem | 4268 BattleReportMsg `{signId}` vazio (o cliente limpa o nó) | *(cliente)* `CampaignMapController` |
 
 Poção de HP e Bağlı Elmas/Elmas vindos de item gravam o `cash_ledger` com `reason` `item`.
+Divine Light (SonType 316): um por uso, tira a névoa do mapa do castelo por 20 s (4939); ver
+[cidade-externa.md](cidade-externa.md).
 Depende de outro sistema (recusado com log no 5006): cristal (203/11), guilda (203/8), VIP (203/12),
 buffs (201), caixas 206 cujo conteúdo só está na descrição (Property1 = o próprio id).
 

@@ -16,7 +16,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...services.ledger import item_entry
 from ...templates.repository import Row
-from .. import bag, daily, rules, space
+from .. import bag, daily, monsters, rules, space
 from ..builders import login as b
 from ..builders.player import fashion_book, item_info, item_moved
 from ..castle import castle_yield
@@ -26,7 +26,7 @@ from . import fashion
 from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player
 from .shop import send, send_blood
 
-S_DETAIL, S_RENTAL, S_DROP_FAIL = 4125, 4709, 4268
+S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
 S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (Büyük Sefer)
 BOX, USE, GEM_BOX, BLOOD = "298", "203", "206", "209"  # ItemTempInfo.SonType usáveis
 STORE_STONE = 208014  # Şeytan Kristali (SonType 293): Property1 = EXP do cristal (8484)
@@ -151,7 +151,8 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
 @router.on(5006)
 async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
     """Usa um item da mochila conforme o SonType: pacote (298), recurso (203), caixa de pedras
-    (206) ou poção de HP (209). Os outros dependem de sistemas que não existem e são recusados."""
+    (206), poção de HP (209) ou Divine Light (316). Os outros dependem de sistemas que não existem e são
+    recusados."""
     snap = s.snapshot
     assert snap is not None
     item = bag.at(snap, BagType.BAG, 0, msg.pos) if msg.bagType == BagType.BAG else None
@@ -160,7 +161,9 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
         s.log.info("5006 recusado", pedido=str(msg))
         return
     n = max(1, min(msg.count, item.count))
-    use = {BOX: _open_box, USE: _use_resource, GEM_BOX: _open_gem_box, BLOOD: _use_blood}.get(row.get("SonType", ""))
+    uses = {BOX: _open_box, USE: _use_resource, GEM_BOX: _open_gem_box, BLOOD: _use_blood}
+    uses[monsters.FOG_SON_TYPE] = _use_divine_light
+    use = uses.get(row.get("SonType", ""))
     if use is None or not await use(s, item, row, n):
         s.log.info("5006 recusado", pedido=str(msg), item=item.template_id, sontype=row.get("SonType"))
 
@@ -327,6 +330,21 @@ async def _use_blood(s: GameSession, item: Item, row: Row, n: int) -> bool:
     send_blood(s)
     _army(s)
     _player(s)
+    return True
+
+
+async def _use_divine_light(s: GameSession, item: Item, row: Row, n: int) -> bool:
+    """Divine Light (SonType 316): tira a névoa do mapa do castelo por ``FOG_SECONDS`` (um item por uso).
+    4939 = ``MapBossMsg`` só com ``leftFogTime`` (cliente); o 4938 do mapa leva o que sobra."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    c, now = snap.character, s.ctx.clock.now()
+    changed, gone = _consume(snap, item, 1)  # antes de qualquer await
+    c.fog_map, c.fog_until = snap.castle.map_id, now + timedelta(seconds=monsters.FOG_SECONDS)
+    await s.ctx.characters.save(c, *changed, delete=tuple(gone))
+
+    _send_items(s, changed, gone)
+    send(s, S_FOG, pb.MapBossMsg(leftFogTime=monsters.FOG_SECONDS))
     return True
 
 

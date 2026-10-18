@@ -227,6 +227,8 @@ characters = Table(
     _str("multi_copy_day", 10),
     _str("reset_day", 10),
     _int("weary_potions"),
+    _int("fog_map"),  # mapa sem névoa até fog_until (Divine Light): game/monsters.py
+    Column("fog_until", UTCDateTime),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -645,14 +647,19 @@ world_robot_names = Table(
     _str("prefix", 8),
     _str("suffix", 8),
 )
-map_boss_spawns = Table(
-    "map_boss_spawns",
+# monstros dos Wilds (0028): quantos de cada bossType (MapPhysicsTempInfos Property1) por mapa a cada ciclo
+world_monster_counts = Table(
+    "world_monster_counts",
     metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    _int("map_id"),
-    _int("template_id"),  # MapPhysicsTempInfos (MasterType 21)
-    _int("pos_x"),  # tiles: o radar do cliente faz x * 20
-    _int("pos_y"),
+    Column("map_id", Integer, primary_key=True, autoincrement=False),
+    Column("boss_type", Integer, primary_key=True, autoincrement=False),
+    _int("quantity"),
+)
+world_monster_power = Table(
+    "world_monster_power",
+    metadata,
+    Column("template_id", Integer, primary_key=True, autoincrement=False),  # MapPhysicsTempInfos MasterType 21
+    _int("fight_capacity"),  # WildLandMsg.fightCapaity
 )
 
 arenas = Table(

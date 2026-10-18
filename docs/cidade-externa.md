@@ -68,13 +68,14 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - Tamanho do mapa: `MapInfos` `Width` e `Height` em pixels, divididos por 20. O mapa do castelo
   (100000xxx) usa o modelo 100 (Loş Sahil).
 
-## Catálogo do mundo (migração 0027, `domain/world.py`)
+## Catálogo do mundo (migrações 0027 e 0028, `domain/world.py`)
 
 O que existe em cada mapa fica no banco, não no código: `world_mines` (id, mapa modelo, tile, faixa de
-nível, ordem do 4129), `world_mine_guards` (nível -> guarda), `world_robots`, `world_robot_names` e
-`map_boss_spawns` (mapa, template, tile). A semente da 0027 é o que as capturas mostram; o servidor lê tudo
+nível, ordem do 4129), `world_mine_guards` (nível -> guarda), `world_robots`, `world_robot_names`,
+`world_monster_counts` (mapa, `bossType`, quantos por ciclo) e `world_monster_power` (template ->
+`fightCapaity`). A semente é o que as capturas mostram (e dedução onde não há fonte, abaixo); o servidor lê tudo
 uma vez ao subir (`persistence/world_store.py`, `Services.world` e `GameContext.world`). Para trocar uma
-mina ou pôr chefes em outro mapa, mude as linhas e reinicie. O template de cada nível sai do tempinfos
+mina ou mudar quantos monstros um mapa tem, mude as linhas e reinicie. O template de cada nível sai do tempinfos
 (`MapPhysicsTempInfos` `SonType` 2006, `Grades` = nível). A mina ocupada grava o nível sorteado e o tile em
 `wild_lands` (`template_id`, `pos_x`, `pos_y`): o rendimento sai da linha, então mudar o catálogo não mexe no
 que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo login (`mines.backfill`).
@@ -159,21 +160,41 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 ## Chefes do mapa (9525 -> 4938, painel "Current map BOSS info")
 
 - **Relógio** *(visto)*: transfer (mapa 2, 4828 s às 17:39:31 UTC) e cevre (instância do castelo, 5775 s às
-  17:23:44 UTC) apontam para o mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do turco). *(dedução)*
-  relógio do mundo de 2 h (`RefreshTime` 7200 nos chefes, `MapPhysicsTempInfos` `MasterType` 21), nas horas
-  pares do fuso do jogo (`WARTUNE_GAME_TIMEZONE`). O `leftBossTime` nunca vai 0: com 0 o cliente
+  17:23:44 UTC) apontam para o mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do turco). As horas
+  de refresh são as do `ConfigInfos` `WorldMapFreshTime` (0,8,10,...,22) no fuso do jogo
+  (`WARTUNE_GAME_TIMEZONE`), como diz o help do cliente ("every 2 hours from 08:00 to 24:00"): de 00:00 a
+  08:00 não há refresh, então às 03:00 o painel mostra 5 h. O `leftBossTime` nunca vai 0: com 0 o cliente
   (`OuterCityManager.coolDownBossUpdate`) pede o 9525 de novo, a cada segundo. As duas capturas são da mesma conta.
-- **Lista** *(visto)*: o mapa 2 traz 5 chefes (template, tile): 210106 (1540,3323), 210124 (1239,2870), 210129
-  (739,388), 210129 (2164,2112), 210120 (1865,527), todos `type` 1. O template saiu do nome e do grau no
-  tempinfos turco; o nome mandado é o do template atual ("Gale Wolf King", "Spirit of Fire"...). x e y em tiles
-  (o radar faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (cevre), então no
-  mapa do castelo o painel fica vazio também no oficial: os chefes ficam nos mapas compartilhados (o 2 pede
-  nível 21).
-- **Não feito** *(precisa de captura)*: a lista dos mapas 1, 3, 4 e 5; se a lista muda a cada refresh; a luta
-  contra o chefe (5160 num chefe segue parado); `count1` a `count3` (monstros, elites e chefe do dia, sempre 0);
-  névoa (4939, `leftFogTime` 0) e caixas (4940/9526). O 4129 do mapa 2 (transfer #14) traz outro chefe
-  (879741, template 210127, `bossType` 2, em (2268,1932)) fora do `bosslist`: o painel não lista todos os
-  chefes do mapa, e eles ainda não entram no 4129.
+- **Lista**: os monstros de `bossType` 3 do sorteio do mapa (abaixo). *(visto)* o bosslist do mapa 2 na
+  transfer tem 5 monstros, todos de `Property1` 3 (210106, 210124, 210129 ×2, 210120), `type` 1, e o 210127
+  (`bossType` 2) do 4129 da mesma sessão fica de fora: o painel é a lista dos chefes. x e y em tiles (o radar
+  faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (cevre): ela não está em
+  `world_monster_counts`.
+- **Divine Light** (item 2131055, `SonType` 316, pelo 5006): gasta um e manda o 4939 (`MapBossMsg` só com
+  `leftFogTime` 20); o 4938 do mapa do castelo leva o que sobra (`characters.fog_map` e `fog_until`). Os 20 s
+  só estão na descrição do item ("20 saniyeliğine").
+- **Não feito**: a luta com monstro e chefe (5160 num monstro segue parado; ver abaixo), então `count1` a
+  `count3` (abates do dia; o máximo é `WorldMapKill` 5,3,1) ficam 0, e as caixas (4940/9526).
+
+## Monstros dos Wilds (4129 type 21, `game/monsters.py`)
+
+- **Mensagem** *(visto, transfer #14)*: 879741, template 210127 em (2268,1932) do mapa 2: `type` 21, `level` 80
+  (`Grades`), `refreshTime` 0, `state` 1, `createDate` "2026-05-21 20:00:50" (o ciclo das 20:00 no fuso do
+  jogo), `fightCapaity` 746796, `bossType` 2 (`Property1`), `size` 10 (`Property2`; 12 na maioria dos chefes),
+  sem `armyPawn`. Vem no meio das terras (type 20), antes dos castelos.
+- **Sorteio**: semente (mapa, começo do ciclo), então todo jogador vê os mesmos e um restart não muda nada,
+  sem tabela de estado. A cada ciclo de `WorldMapFreshTime` (help: "in random positions") saem
+  `world_monster_counts` monstros de cada tipo, com template sorteado entre os `MasterType` 21 daquele
+  `Property1` (sem regra de nível por mapa: o mapa 2 da transfer tem de nível 20 a 80) e tile a 20 da borda.
+  O id é 1000000000 + mapa × 10000 + ordem: estável no ciclo e longe das minas e terras do oficial.
+- **Dedução**: 40 normais, 20 elites e 5 chefes em cada mapa de 1 a 5. Só os 5 chefes do mapa 2 foram vistos;
+  o resto segue a proporção de `WorldMapKill` (5,3,1). Nada na Internet sobre isso. `fightCapaity` só do
+  210127 (`world_monster_power`); os outros vão 0. O tile não checa terreno (o .maps não traz a área andável).
+- **Luta** *(parado)*: o `SonType` do template é o avatar do cliente (2108, 2179...), não unidade de batalha:
+  só 2401, 2143, 2151, 2402 e 2124 batem com um `PawnTempInfos` (`MasterType` 101), e com outro nome
+  ("Lanetli Mızrak" para o "Boğa Başlılar Reisi"). Não há HP nem tropas do monstro em nenhuma fonte, então a
+  157 não sai sem inventar a unidade. Precisa de captura de uma luta com monstro do mapa (battleType 2,
+  `NPC_WILDLAND_BATTLE`); com ela vêm o abate (state 4/0 no 140, `count1-3`), a regra dos 15 níveis e o baú.
 - Internet: não achei fonte sobre os chefes do mapa externo (horário ou regra). O fuso do oficial inglês é o
   do Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html.
 

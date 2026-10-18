@@ -1,7 +1,7 @@
 """Cidade externa (mapa do castelo): grade de exércitos, andar, voltar ao castelo, ataques extras,
 mudar o castelo de lugar e a volta para a cidade no fim do tutorial.
 
-Regras e fontes em ``game/outer_city.py``, ``mines.py``, ``robots.py``, ``bosses.py`` e
+Regras e fontes em ``game/outer_city.py``, ``mines.py``, ``robots.py``, ``monsters.py``, ``bosses.py`` e
 ``docs/cidade-externa.md``. O mapa do castelo é uma instância do jogador (o castelo e as 4 minas do
 mapa 100); nos mapas compartilhados (1 a 5) aparecem os castelos dos outros jogadores. Quando o cliente
 pede algo que depende de exército alheio ou de terra selvagem, o pedido é recusado com log e o que o
@@ -18,7 +18,7 @@ from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
-from .. import bosses, mines, robots, rules
+from .. import bosses, mines, monsters, robots, rules
 from .. import castle as cs
 from .. import outer_city as oc
 from ..battle import Battle
@@ -105,7 +105,9 @@ async def refresh(s: GameSession) -> None:
 
 @router.on(9525)
 async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
-    s.send(S_MAP_BOSS, bosses.boss_msg(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now()))
+    assert s.snapshot is not None
+    now = s.ctx.clock.now()
+    s.send(S_MAP_BOSS, bosses.boss_msg(s.ctx.world, s.ctx.templates, s.snapshot.character, msg.mapId, now))
 
 
 @router.on(5004)
@@ -141,8 +143,9 @@ async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Ca
 
 @router.on(8201)
 async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
-    """4129 com as minas da grade (ciclo atual do jogador), o próprio castelo e, num mapa compartilhado, os
-    castelos de outros jogadores; depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa.
+    """4129 com as minas da grade (ciclo atual do jogador) ou, num mapa compartilhado, os monstros dos Wilds;
+    o próprio castelo e, num mapa compartilhado, os castelos de outros jogadores; depois 169 com o exército
+    próprio se cair numa grade pedida do mesmo mapa.
 
     ponytail: os exércitos alheios não aparecem (o 169 é só o próprio): a posição de outro jogador só existe
     na sessão dele, e não há presença entre sessões.
@@ -156,6 +159,9 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
         for mine in mines.mines_in(s.ctx.world, grids):
             land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s))
             reply.wildLand.append(land)
+    for m in monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now()):
+        if oc.grid_of(m.x, m.y) in grids:  # (visto) transfer #14: no meio das terras, antes dos castelos
+            reply.wildLand.append(monsters.monster_msg(s.ctx.world, s.ctx.templates, m))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
     # (visto) cevre #11: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
