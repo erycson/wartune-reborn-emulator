@@ -22,6 +22,7 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
         assert castle is not None and c.reset_day == "2026-01-01"  # o login já virou o dia
         top = energy_max(g.server.services.templates)
         c.weary, c.weary_potions, castle.energy = 50, 120, 100
+        c.grades, c.seminary_effect = 41, 180  # roda da bênção aberta, girada hoje
 
         g.client.send(20008)
         assert codes(await g.idle()) == [4234]  # mesmo dia: só o relógio
@@ -34,7 +35,7 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
         g.client.send(20008)
         got = await g.until(3)
         reset = body(got, 4202, pb.DataResetMsg)
-        assert (reset.weary, reset.transEnergy) == (150, top)
+        assert (reset.weary, reset.transEnergy, reset.blessingBuff) == (150, top, 10)
         assert body(got, 3, pb.PlayerMsg).wearyLimit == 0
 
         saved = await g.server.services.characters.snapshot(g.user_id)
