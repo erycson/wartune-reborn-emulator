@@ -38,7 +38,7 @@ CHIEF = 3  # bossType dos chefes (os do painel "Current map BOSS info")
 ID_BASE = 1_000_000_000  # WildLandMsg.id é int32 e não pode bater com minas (85xxxx) nem terras do oficial
 EDGE = 20  # tiles
 FOG_SON_TYPE = "316"  # Divine Light (ItemTempInfos 2131055)
-FOG_SECONDS = 20  # só a descrição do item diz: "20 saniyeliğine"
+FOG_SECONDS = 20  # só a descrição do item diz: "disperse the Wilds’ dark fog for 20 seconds"
 
 
 @dataclass(frozen=True, slots=True)

@@ -159,7 +159,10 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
         for mine in mines.mines_in(s.ctx.world, grids):
             land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s))
             reply.wildLand.append(land)
-    for m in monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now()):
+    now = s.ctx.clock.now()
+    if found := monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now):
+        s.outer_view = (msg.mapId, grids, monsters.cycle_start(s.ctx.templates, now))
+    for m in found:
         if oc.grid_of(m.x, m.y) in grids:  # (visto) transfer #14: no meio das terras, antes dos castelos
             reply.wildLand.append(monsters.monster_msg(s.ctx.world, s.ctx.templates, m))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
@@ -170,6 +173,27 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
         reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
     s.send(S_PHYSICS, reply)
     s.send(S_GRID_ARMY, _grid_msg(s, grids, msg.mapId))
+
+
+def roll_monsters(s: GameSession) -> None:
+    """Virada do ciclo dos monstros com o jogador online (20008). O cliente guarda os wildLands por tile e só
+    tira um com state 0 ou quando a vista sai da grade (``OuterCityModel.updateWildLand``,
+    ``removesNSSWildLand``): sem isto, quem fica parado veria os monstros do ciclo anterior. 140 com state 0
+    nos velhos e 140 com os novos, nas grades do último 8201."""
+    if s.outer_view is None:
+        return
+    map_id, grids, cycle = s.outer_view
+    world, templates, now = s.ctx.world, s.ctx.templates, s.ctx.clock.now()
+    start = monsters.cycle_start(templates, now)
+    if start == cycle:
+        return
+    s.outer_view = (map_id, grids, start)
+    for when, state in ((cycle, 0), (now, monsters.MONSTER_ALIVE)):
+        for m in monsters.on_map(world, templates, map_id, when):
+            if oc.grid_of(m.x, m.y) in grids:
+                land = monsters.monster_msg(world, templates, m)
+                land.state = state
+                s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
 
 
 @router.on(8254)

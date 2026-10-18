@@ -122,6 +122,8 @@ class GameSession:
         self.outer_army: tuple[int, int, int] | None = None
         self.outer_walk: asyncio.Task[None] | None = None  # chegada do exército andando (140 parado)
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
+        # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
+        self.outer_view: tuple[int, set[str], datetime] | None = None
         self.pet_offer: dict[int, int] = {}
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada

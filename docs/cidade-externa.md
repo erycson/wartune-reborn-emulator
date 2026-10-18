@@ -172,7 +172,8 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   `world_monster_counts`.
 - **Divine Light** (item 2131055, `SonType` 316, pelo 5006): gasta um e manda o 4939 (`MapBossMsg` só com
   `leftFogTime` 20); o 4938 do mapa do castelo leva o que sobra (`characters.fog_map` e `fog_until`). Os 20 s
-  só estão na descrição do item ("20 saniyeliğine").
+  só estão na descrição do item ("Can be used to disperse the Wilds’ dark fog for 20 seconds."). O cliente
+  tira a névoa com `leftFogTime` > 0 e a põe de volta quando a contagem dele zera (`OuterCityManager`).
 - **Não feito**: a luta com monstro e chefe (5160 num monstro segue parado; ver abaixo), então `count1` a
   `count3` (abates do dia; o máximo é `WorldMapKill` 5,3,1) ficam 0, e as caixas (4940/9526).
 
@@ -187,6 +188,10 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   `world_monster_counts` monstros de cada tipo, com template sorteado entre os `MasterType` 21 daquele
   `Property1` (sem regra de nível por mapa: o mapa 2 da transfer tem de nível 20 a 80) e tile a 20 da borda.
   O id é 1000000000 + mapa × 10000 + ordem: estável no ciclo e longe das minas e terras do oficial.
+- **Virada com o jogador online**: o cliente guarda os wildLands por tile e só tira um com state 0 ou quando a
+  vista sai da grade (`OuterCityModel.updateWildLand`, `removesNSSWildLand`); na virada ele só pede o 9525.
+  Então o 20008 (a cada ~60 s) confere o ciclo e, nas grades do último 8201, manda 140 com state 0 dos
+  monstros velhos e 140 com os novos (`handlers/outer_city.roll_monsters`).
 - **Dedução**: 40 normais, 20 elites e 5 chefes em cada mapa de 1 a 5. Só os 5 chefes do mapa 2 foram vistos;
   o resto segue a proporção de `WorldMapKill` (5,3,1). Nada na Internet sobre isso. `fightCapaity` só do
   210127 (`world_monster_power`); os outros vão 0. O tile não checa terreno (o .maps não traz a área andável).

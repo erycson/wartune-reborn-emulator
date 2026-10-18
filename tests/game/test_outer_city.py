@@ -597,6 +597,11 @@ async def test_monstros_dos_wilds_no_4129_como_na_captura(tmp_path: Path) -> Non
         later = monsters.on_map(world, templates, 2, clock.now() + timedelta(hours=2))
         assert [(n.x, n.y) for n in later] != [(n.x, n.y) for n in found]
 
+        clock.advance(2 * 3600)  # virada com o jogador parado: o 20008 tira o velho (state 0) da grade vista
+        g.client.send(20008)
+        gone = pb.MapUpdatedMsg.FromString((await g.until(140))[-1].body).wildLand
+        assert (gone.id, gone.posX, gone.posY, gone.state) == (m.id, m.x, m.y, 0)
+
 
 async def test_divine_light_tira_a_nevoa_por_20_segundos(tmp_path: Path) -> None:
     """5006 da Divine Light (2131055, SonType 316): gasta um, 4939 com leftFogTime 20, e o 4938 do mapa do
