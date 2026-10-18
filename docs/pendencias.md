@@ -230,13 +230,13 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/gemmaze.py:179](../src/wartune_server/game/handlers/gemmaze.py#L179) | o semanal soma o mesmo que o do dia e zera na semana nova (``gm.refresh``, dedução) |
 | [game/handlers/gemmaze.py:238](../src/wartune_server/game/handlers/gemmaze.py#L238) | a caixa vai para a bolsa do labirinto (o ícone voa para ela, como o das gemas); a bolsa |
 | [game/handlers/gemmaze.py:258](../src/wartune_server/game/handlers/gemmaze.py#L258) | o template não diz a moeda nem o limite diário: diamante (ou vinculado com buyTypes 2) é dedução |
-| [game/handlers/guild.py:486](../src/wartune_server/game/handlers/guild.py#L486) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
-| [game/handlers/guild.py:660](../src/wartune_server/game/handlers/guild.py#L660) | o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual. |
-| [game/handlers/guild.py:704](../src/wartune_server/game/handlers/guild.py#L704) | não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado |
-| [game/handlers/guild.py:932](../src/wartune_server/game/handlers/guild.py#L932) | a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item |
-| [game/handlers/guild.py:985](../src/wartune_server/game/handlers/guild.py#L985) | o prêmio fica na linha do membro, então sair da guilda antes de pegar perde o prêmio |
-| [game/handlers/guild.py:1068](../src/wartune_server/game/handlers/guild.py#L1068) | o correio por mochila cheia é dedução (o |
-| [game/handlers/guild.py:1151](../src/wartune_server/game/handlers/guild.py#L1151) | o oficial abre a eleição quando o chefe some por muitos dias; a regra não está no |
+| [game/handlers/guild/members.py:209](../src/wartune_server/game/handlers/guild/members.py#L209) | o oficial tinha guildas-robô; aqui vem o convite da guilda aberta com mais membros |
+| [game/handlers/guild/info.py:230](../src/wartune_server/game/handlers/guild/info.py#L230) | o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual. |
+| [game/handlers/guild/upgrades.py:75](../src/wartune_server/game/handlers/guild/upgrades.py#L75) | não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado |
+| [game/handlers/guild/altar.py:67](../src/wartune_server/game/handlers/guild/altar.py#L67) | a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item |
+| [game/handlers/guild/altar.py:120](../src/wartune_server/game/handlers/guild/altar.py#L120) | o prêmio fica na linha do membro, então sair da guilda antes de pegar perde o prêmio |
+| [game/handlers/guild/box.py:92](../src/wartune_server/game/handlers/guild/box.py#L92) | o correio por mochila cheia é dedução (o |
+| [game/handlers/guild/election.py:19](../src/wartune_server/game/handlers/guild/election.py#L19) | o oficial abre a eleição quando o chefe some por muitos dias; a regra não está no |
 | [game/handlers/guild_events.py:66](../src/wartune_server/game/handlers/guild_events.py#L66) | falta o sistema de mapas de campanha (só existe o do tutorial) e as ondas de |
 | [game/handlers/hero.py:128](../src/wartune_server/game/handlers/hero.py#L128) | a EXP gasta sai da EXP do nível atual (c.gp); conferir com captura se o oficial |
 | [game/handlers/hero.py:294](../src/wartune_server/game/handlers/hero.py#L294) | o preço sobe com diamondIndex (usos no dia); sem contador diário fica no primeiro |

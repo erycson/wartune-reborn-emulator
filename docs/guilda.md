@@ -1,6 +1,6 @@
 # Guilda (consortia)
 
-Código: `game/guild.py` (estado e mensagens), `game/handlers/guild.py` (gestão),
+Código: `game/guild.py` (estado e mensagens), `game/handlers/guild/` (gestão: `info`, `members`, `upgrades`, `altar`, `box`, `election`; ajudantes em `common`),
 `game/handlers/guild_events.py` (altar, terra secreta, guerras). Testes: `tests/game/test_guild.py`.
 
 Fontes: *(visto)* captura e índice; *(cliente)* arquivo `.as` (m2 = `D:\wartune\decompiled\m2`, m6 =

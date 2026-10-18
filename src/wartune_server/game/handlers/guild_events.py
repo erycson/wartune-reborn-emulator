@@ -15,7 +15,7 @@ from .. import guild as gd
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
-from .guild import _can, _char, _mine, _now, _push_info, _refuse
+from .guild.common import _can, _char, _mine, _now, _push_info, _refuse
 
 S_ALTAR_OPEN, S_GVG_TEAM, S_GVG_CHALLENGE, S_GVG_LIST, S_CROSS_GROUP = 4436, 4441, 4377, 4379, 4682
 ALTAR_MIN_LEVEL = 5  # ConsortiaDemonFrame: guilda nível 5
