@@ -82,7 +82,7 @@ disponível e o guia do `newbie.xml` trava no 12000 (o passo 12005 espera a miss
 
 Tabela `quests`. As do tutorial têm condição tipo 23 (`QuestConditionInfo`): cumprida quando o
 `noviceProcess` passa de `Para1` (10: 11600, 30: 13000, 40: 17000, 45: 18000, 50: 19000). O 5017
-só avança: múltiplo de 100, para a frente, salto de até 2000 (de 0, até 11000 no primeiro passo;
+só avança: múltiplo de 100, para a frente, salto de até 3500 (o maior do newbie.xml; de 0, até 11000 no primeiro passo;
 `rules.novice_step_ok`). O 5014 entrega a recompensa do `QuestTempInfo` (EXP, ouro, ruh, cristal e
 ofertas), os itens da classe e consome os itens das condições de bolsa. Manda 112, 3,
 112, (109), 83, 150, 3, (115, 111, 83 por item), 52. Se a condição ainda não bate, responde só o 112
