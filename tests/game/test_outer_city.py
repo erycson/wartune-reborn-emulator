@@ -744,3 +744,28 @@ async def test_luta_de_sessao_que_caiu_nao_prende_o_monstro(tmp_path: Path) -> N
         session.battle.cancel()
         await g.idle()
         assert wilds.state(m, set()) == monsters.MONSTER_ALIVE
+
+
+async def test_derrota_para_monstro_nao_abate_nem_conta(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A luta com monstro pode ser perdida (internet: vídeo Cn6cQpeImEM; o lado do jogador morre): 4103 com
+    derrota, o monstro volta a state 1, sem abate nem contador ("attempts are not used if you fail")."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        templates, world = g.server.services.templates, g.server.services.world
+        found = monsters.on_map(world, templates, 2, clock.now())
+        m = max((x for x in found if x.boss_type == 2), key=lambda x: monsters.level(templates, x))
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
+        await g.until(169)
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=m.x, posY=m.y))
+        prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+        assert [h.tempId for h in prepare.heros if h.side == 2] == [world.monsters[m.template_id].hero_id]
+        got = await g.fight(prepare)
+        got += await g.idle()
+        assert pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body).battleResult == 2
+        back = [pb.MapUpdatedMsg.FromString(p.body).wildLand for p in got if p.code == 140]
+        assert (back[-1].id, back[-1].state) == (m.id, monsters.MONSTER_ALIVE)
+        info = pb.MapBossMsg.FromString(next(p for p in got if p.code == 4938).body)
+        assert (info.count1, info.count2, info.count3) == (0, 0, 0)
+        cycle = monsters.cycle_start(templates, clock.now())
+        assert await g.server.services.characters.read(lambda uow: uow.wild_kills.in_cycle(2, cycle)) == set()

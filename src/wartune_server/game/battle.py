@@ -8,7 +8,8 @@ Modelo observado na captura: rodadas em que cada unidade viva age uma vez; açõ
 começam com 12 quadros de diferença, a troca de lado e a rodada seguinte vêm ~9 quadros depois do
 fim da última animação (``frameNum``); a primeira ação sai por volta do quadro 100. O herói do
 jogador espera a ordem (10008) do cliente. No PvE (tutorial) o lado dele não morre; com
-``spec["pvp"]`` ele perde de verdade, o herói inimigo anuncia a skill no 75 e o dano é simétrico.
+``spec["pvp"]`` ele perde de verdade, o herói inimigo anuncia a skill no 75 e o dano é simétrico; com
+``spec["lethal"]`` (monstros dos Wilds) ele também pode perder, sem as outras regras do PvP.
 Sem herói do jogador (torneio de fadas) a luta é toda automática e, depois de ``notice`` quadros,
 o 4361 avisa que o dano sobe ``damageImprove`` %.
 """
@@ -380,7 +381,7 @@ class Battle:
         for target in self._targets(unit, skill):
             for _ in range(hits):
                 value = max(1, int(raw * self._factor(unit) / hits))
-                if target.side == PLAYER_SIDE and not self.pvp:
+                if target.side == PLAYER_SIDE and not (self.pvp or self.spec.get("lethal")):
                     # as batalhas do tutorial são vitórias roteirizadas: o lado do jogador não morre
                     value = min(value, max(0, target.hp - 1))
                 target.hp = max(0, target.hp - value)

@@ -217,15 +217,28 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 - **Limite e 15 níveis** (help `map.outercity.view.helpFrame.helpContent`): o limite do dia é de prêmio ("kill
   a certain number of monsters every day for rich rewards", reset às 5h), não de ataque; monstro 15 níveis
   abaixo do jogador não dá prêmio nem gasta o limite (`monsters.count_kill`). Elite e BOSS "são para equipe".
+- **Morte** (internet): dá para perder. No vídeo https://www.youtube.com/watch?v=Cn6cQpeImEM o grupo de 4
+  morre para o Spirit of Dark e revive no mapa ("either you appear next to the boss or ... God knows where");
+  na Kongregate "I ... died near the end" (http://web.archive.org/web/20230903070232/https://www.kongregate.com/forums/12-kongregate-multiplayer-games/topics/419195-wartune-wilds-monsters);
+  e perder não gasta o limite: "attempts are not used if you fail to beat em... only when you actually win
+  rewards" (post #7 de http://web.archive.org/web/20201130235433/https://forum.r2games.com/forum/browser-games/wartune/news-events-aa/93675-guide-the-wilds).
+  Então a luta tem ``spec["lethal"]``: o lado do jogador morre (sem as outras regras do PvP). Derrota: o
+  monstro volta a state 1, sem abate nem contador. Perda de tropas e espera para voltar: nenhuma fonte.
 - **Simulação** (personagem novato com só o nível trocado: herói com 390 de vida no "nível 20" e 990 no "nível
-  80", sem equipamento, 150 lanceiros 10101, modo automático; não é um jogador real): como no resto do PvE, o lado
-  do jogador não morre (`battle._act`), então ele sempre vence, mas demora. Nível 20: normal ~1,5 min,
-  elite ~14 min, chefe ~27 min. Nível 80: normal ~26 min, elite e chefe passam de 400 golpes (~40-50 min).
-  Com morte de verdade, perde todas em 2 a 5 golpes. Vida dos templates mantida (não é inventada).
-- **Não feito**: o prêmio (nenhuma fonte: nem tempinfos, nem captura, nem Internet; o `BattleReportMsg` sai
-  com 0), o baú (4940/9526), entrar numa luta já começada (state 4) e luta em equipe.
-- Internet: não achei fonte sobre os chefes do mapa externo (horário ou regra). O fuso do oficial inglês é o
-  do Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html.
+  80", sem equipamento, 150 lanceiros 10101; não é um jogador real): sozinho ele perde para todos de nível 20
+  e 80 em 2 a 5 golpes. Sem morte venceria em 1,5 min (normal 20) a mais de 40 min (elite e chefe 80). Vida
+  dos templates mantida: elite e BOSS são para grupo de até 4 (o help e o guia da R2: "parties are highly
+  recommended"; os vídeos mostram 4 entrando na mesma luta).
+- **Prêmio** (internet, sem números por nível): o baú dourado que cai no mapa depois do abate (4940/9526) traz
+  o prêmio. Normais: ouro, daru, kyanite e mystery stones (https://wartune.fandom.com/wiki/Wilds). Elite e
+  BOSS: Energy Core (+100 de energia de teleporte), Divine Light, fate stones, soul crystals, chicotes de
+  montaria e runas; o BOSS também legendary stones do nível dele. Exemplos dos vídeos (transcrição
+  automática, números podem ter erro): Spirit of Light 70 com 180 000 de ouro e daru, Energy Core, 6-8
+  mystery stones e Gem Pack Lv3 (https://www.youtube.com/watch?v=PaRgg2jSAHE); Sawtooth Ant 70 com ~80 000
+  de ouro e daru e Soul Drainer com 100 000 (https://www.youtube.com/watch?v=KZVo075chg4). Não há tabela por
+  nível: o prêmio segue 0 até decidir como escalar.
+- **Não feito**: o prêmio e o baú (4940/9526), entrar numa luta já começada (state 4), luta em grupo, as
+  várias barras de vida dos chefes dos vídeos ("he's lost one life") e o reviver no mapa.
 
 ## Coleta (Kaynak Topla, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 
