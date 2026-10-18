@@ -108,12 +108,15 @@ Todo movimento de elmas (`point`) e elmas vinculado (`gift_token`): `delta_point
 Mina ocupada por personagem: `wild_id` (`world_mines.id`), `occupied_at` e, desde a 0027, o nível sorteado
 (`template_id`) e o tile (`pos_x`, `pos_y`). Só vale no ciclo de minas atual (`castles.mines_at`).
 
-### Catálogo do mundo (0027, 0028)
+### Catálogo do mundo (0027 a 0030)
 `world_mines`, `world_mine_guards`, `world_robots`, `world_robot_names`, `world_monster_counts` e
 `world_monster_power`: o que existe em cada mapa, com semente das capturas (a 0028 apaga o `map_boss_spawns`
 da 0027: os chefes saem do sorteio dos monstros; a 0029 troca o `world_monster_power` por `world_monsters`, com a
 unidade da luta de cada monstro). `wild_monster_kills`: abates do ciclo (mapa, monstro, começo do ciclo), de
-todos os jogadores. `characters.kills_normal`/`kills_elite`/`kills_boss`: abates do dia que contaram. Lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
+todos os jogadores. `characters.kills_normal`/`kills_elite`/`kills_boss`: abates do dia que contaram.
+`world_monster_drops` (0030): a tabela de queda do baú (tipo, faixa de nível, item ou moeda, chance 0-1,
+quantidade mínima e máxima, `source`). `wild_boxes` (0030): baús fechados de cada jogador (mapa, tile, tipo,
+nível), apagados ao abrir. O catálogo é lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
 Detalhes em [cidade-externa.md](cidade-externa.md).
 
 ## Transações

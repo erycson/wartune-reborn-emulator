@@ -753,6 +753,26 @@ async def test_bau_com_mochila_cheia_vai_pelo_correio(tmp_path: Path, monkeypatc
         assert saved.wild_boxes == [] and not any(i.template_id == 2131057 for i in saved.items)
 
 
+async def test_tabela_de_queda_semeada_e_valida(tmp_path: Path) -> None:
+    """A semente da 0030: todo item existe (ou é moeda), chance entre 0 e 1, e cada tipo em todo nível de 10 a
+    80 tem ouro; o BOSS de 40+ sempre dá a Legendary Stone do nível."""
+    from wartune_server.game import rewards
+
+    async with logged_in(tmp_path, novice=22500) as g:
+        templates, world = g.server.services.templates, g.server.services.world
+        drops = world.monster_drops
+        assert drops and all(0 < d.chance <= 1 and 0 < d.min_count <= d.max_count for d in drops)
+        assert all(d.template_id in rewards.CURRENCIES or templates.get("ItemTempInfos", d.template_id) for d in drops)
+        for t in (1, 2, 3):
+            for lvl in range(10, 81):
+                assert any(d.boss_type == t and d.template_id == -100 and d.chance == 1 and
+                           d.min_level <= lvl <= d.max_level for d in drops), (t, lvl)  # fmt: skip
+        import random
+
+        got = dict(monsters.loot(world, 3, 72, random.Random(0)))
+        assert got[2129700] >= 1 and got[2131057] >= 10  # Lv70 Legendary Stone e Mystery Stone
+
+
 def test_tabela_de_queda_por_tipo_e_nivel() -> None:
     """loot: só as linhas do tipo e da faixa de nível; cada uma sorteada sozinha pela chance."""
     import random

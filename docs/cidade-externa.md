@@ -178,7 +178,7 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   e o 4938 do mapa leva o que sobra. Fica só no processo (`monsters.Wilds`): são 20 s. Os 20 s
   só estão na descrição do item ("Can be used to disperse the Wilds’ dark fog for 20 seconds."). O cliente
   tira a névoa com `leftFogTime` > 0 e a põe de volta quando a contagem dele zera (`OuterCityManager`).
-- **Não feito**: as caixas (4940/9526) e o prêmio (abaixo).
+- O abate de um chefe deixa o baú como o de qualquer monstro (ver *Monstros dos Wilds*, abaixo).
 
 ## Monstros dos Wilds (4129 type 21, `game/monsters.py`)
 
@@ -229,16 +229,39 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   e 80 em 2 a 5 golpes. Sem morte venceria em 1,5 min (normal 20) a mais de 40 min (elite e chefe 80). Vida
   dos templates mantida: elite e BOSS são para grupo de até 4 (o help e o guia da R2: "parties are highly
   recommended"; os vídeos mostram 4 entrando na mesma luta).
-- **Prêmio** (internet, sem números por nível): o baú dourado que cai no mapa depois do abate (4940/9526) traz
-  o prêmio. Normais: ouro, daru, kyanite e mystery stones (https://wartune.fandom.com/wiki/Wilds). Elite e
-  BOSS: Energy Core (+100 de energia de teleporte), Divine Light, fate stones, soul crystals, chicotes de
-  montaria e runas; o BOSS também legendary stones do nível dele. Exemplos dos vídeos (transcrição
-  automática, números podem ter erro): Spirit of Light 70 com 180 000 de ouro e daru, Energy Core, 6-8
-  mystery stones e Gem Pack Lv3 (https://www.youtube.com/watch?v=PaRgg2jSAHE); Sawtooth Ant 70 com ~80 000
-  de ouro e daru e Soul Drainer com 100 000 (https://www.youtube.com/watch?v=KZVo075chg4). Não há tabela por
-  nível: o prêmio segue 0 até decidir como escalar.
-- **Não feito**: o prêmio e o baú (4940/9526), entrar numa luta já começada (state 4), luta em grupo, as
-  várias barras de vida dos chefes dos vídeos ("he's lost one life") e o reviver no mapa.
+- **Baú** (`handlers/wild_boxes.py`): o abate que conta no limite do dia (`count_kill`: dentro do limite e
+  não 15 níveis abaixo) deixa um baú no tile do monstro, gravado em `wild_boxes` (sobrevive a restart), e manda
+  o 4940. O cliente (m3 `OuterCityManager.onMapBossBox`, `OuterCityMap.onUpdateBox`, `OuterCityBossBoxView`)
+  troca a lista inteira, desenha um `BossBoxMc<type>` por `boxId` novo, sem filtrar por mapa nem tirar os que
+  saíram da lista, e o clique manda o 9526 e apaga o baú da tela. Então o 4940 leva só os baús do mapa, e o
+  9525 (o cliente pede ao entrar no mapa) só o manda se houver baú: a captura do tutorial não tem 4940 depois
+  do 9525. "you need to click the chest yourself, the reward won't auto send to your inventory" (internet,
+  fórum R2, abaixo). *(dedução)* `type` = `bossType` e o baú não expira.
+- **Abrir** (9526): sorteia pela `world_monster_drops` (`monsters.loot`): cada linha do tipo e da faixa de
+  nível do monstro sorteada sozinha pela `chance`, quantidade entre `min_count` e `max_count`. Dá os itens e
+  moedas (o Kyanite, -600, soma nos cristais), apaga o baú e manda o 4940 de novo. Mochila cheia: o conteúdo
+  vai como anexo no correio do jogo (5 por carta, na mesma transação que apaga o baú) e o aviso "Bag full,
+  check your mail." *(dedução: o cliente só tem o turco "Çanta dolu, postanızı kontrol edin")*.
+- **Tabela de queda** (semente na 0030, coluna `source` em cada linha). Nenhuma fonte publica chance nem
+  tabela por nível; as chances são *(dedução)* a partir de "usually"/"can drop"/"very rarely" e dos relatos,
+  as quantidades de nível 70-80 vêm dos relatos e as outras faixas (10-29, 30-49, 50-69, 70-80) são
+  proporcionais *(dedução)*. Cada membro de um grupo sorteia o seu ("each player gets different rewards").
+
+  | Tipo | O que cai (chance, quantidade em 70-80) | Fonte |
+  |---|---|---|
+  | Normal | ouro (sempre, 50-80k), kyanite (80%, 3-6k), daru (30%, 25-40k), Mystery Stone (50%, 2) | wiki: "usually drop only Gold and Kyanite"; fórum: "either 2 or nothing", "2-4 stones out of 5" |
+  | Elite | ouro (sempre, 80-120k), daru (50%), Mystery Stone (70%, 2-5), Soul Crystal (50%, 5-10), Energy Core (15%), Divine Light (10%), Fate Stone, Mount Training Whip, Runestone (20%), ouro grande (0,5%, 1-2M) | fórum: "80k gold daru and 8 sc", "5 stones or nothing", "elite and got 2 million"; wiki: "can drop", "very rarely ... 7 million" |
+  | BOSS | ouro (sempre, 180-220k), daru (50%), kyanite (sempre, 8-12k), Mystery Stone (sempre, 10-14), Soul Crystal (80%, 20-30), Legendary Stone do nível (sempre, 1-3; 40+), Energy Core, Fate Stone, Whip, Runestone (30%), Divine Light (20%), ouro grande (1%, 2-7M) | fórum: "14 Mystery Stone, 3 Lvl 80 Legend Stone, 10k Kyanite, 200k Gold, 26 Soul Crystal here from lvl 80 Boss", "7million gold from killing lvl 70 boss"; vídeo PaRgg2jSAHE: Spirit of Light 70 com 180 000 de ouro e daru |
+
+  Fontes (internet): https://wartune.fandom.com/wiki/Wilds (e as revisões ?oldid=24193 e 26635: a Divine
+  Light está riscada na atual); fórum R2 "What do you think of the wilds events" (94942, páginas 1, 2, 5, 7,
+  8 e 9 via Wayback 2024); guia da R2 (130741, p.13: "killed an elite and got 2 million in gold"); vídeos
+  https://www.youtube.com/watch?v=PaRgg2jSAHE e https://www.youtube.com/watch?v=KZVo075chg4 (Sawtooth Ant 70
+  com ~80 000, Soul Drainer com 100 000). Mahra e "Equipment materials" do post oficial não têm confirmação
+  de jogador e ficaram fora. Para mudar uma taxa, basta editar a linha no banco e reiniciar.
+- **Não feito**: entrar numa luta já começada (state 4), luta em grupo, as várias barras de vida dos chefes dos
+  vídeos ("he's lost one life"), o reviver no mapa, e a regra "+/-15 levels" da wiki (o post oficial e o help
+  só falam de 15 abaixo, que é o que está feito).
 
 ## Coleta (Kaynak Topla, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 

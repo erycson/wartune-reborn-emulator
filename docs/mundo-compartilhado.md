@@ -208,6 +208,6 @@ Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/han
 - 8700: 4126 com o último tile conhecido.
 - 8701: 4597 com os jogadores pedidos que estão no space (até 50).
 - 8733: só registra no log. A coleta só existe depois de um 143 "COLLECTION", que ainda não mandamos.
-- 9526 (caixa do chefe da cidade externa, 4940): só registra no log. Sem o chefe de mapa não há caixas
-  ([boss-eventos.md](boss-eventos.md)). No cliente o proto real é `army.BoxMsg`, com as mesmas tags do
+- 9526 (baú dos monstros dos Wilds, 4940): saiu daqui; está em `handlers/wild_boxes.py`
+  ([cidade-externa.md](cidade-externa.md)). No cliente o proto real é `army.BoxMsg`, com as mesmas tags do
   `ArmyBoxMsg`.

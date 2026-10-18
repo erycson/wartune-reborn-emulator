@@ -102,7 +102,9 @@ Outros eventos:
   `WorldMapFreshTime`), dá para lutar e abater (5160, battleType 2), os contadores do dia e a regra dos 15
   níveis valem, os chefes vão no painel 4938 e a Divine Light tira a névoa do mapa. Quantidades por mapa,
   `fightCapaity` fora do 210127 e o formato da 157 são **dedução**. **precisa de captura**: uma luta com
-  monstro do mapa (157 e prêmio) e o baú (4940/9526); prêmio sai 0. Luta em equipe/entrar na luta não existe.
+  monstro do mapa (157) e o baú (4940/9526). O baú existe, com a tabela de queda `world_monster_drops`: chances
+  e faixas de nível são **dedução** sobre a wiki e relatos ([cidade-externa.md](cidade-externa.md)). Luta em
+  equipe/entrar na luta não existe.
 - "Emek oranınız ..." (83, taxa de trabalho): o sistema não existe.
 - Subida de nível: o oficial manda também 139, 100 e 4640 (replay #625-#628); aqui só o 150.
 - Presente da atividade de soma (8586 tipo 2, replay #678): recusado.
@@ -302,8 +304,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/mall.py:43](../src/wartune_server/game/mall.py#L43) | arredondamento para baixo; o texto do cliente não diz como o oficial arredonda |
 | [game/outer_city.py:71](../src/wartune_server/game/outer_city.py#L71) | o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do |
 | [game/mines.py:29](../src/wartune_server/game/mines.py#L29) | (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora; |
-| [game/rewards.py:20](../src/wartune_server/game/rewards.py#L20) | -600 "Kristal" (cristal do castelo) ainda não existe no banco (CRYSTALS fixo em |
-| [game/rewards.py:23](../src/wartune_server/game/rewards.py#L23) | sem espaços comprados (bagCount) ainda |
+| [game/rewards.py:21](../src/wartune_server/game/rewards.py#L21) | sem espaços comprados (bagCount) ainda |
 | [game/rewards.py:72](../src/wartune_server/game/rewards.py#L72) | o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela |
 | [game/rules.py:36](../src/wartune_server/game/rules.py#L36) | guerreiro e caçador são o espelho dele, trocar quando houver captura. |
 | [game/rules.py:276](../src/wartune_server/game/rules.py#L276) | busca linear nas 352 linhas a cada chamada; indexar por TemplateId em GameTemplates se pesar. |
