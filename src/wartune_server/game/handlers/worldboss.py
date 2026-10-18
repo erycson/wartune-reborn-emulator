@@ -48,6 +48,8 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
 def _refusal(s: GameSession, campaign_id: int) -> str | None:
     row = worldboss.boss(s.ctx.templates, campaign_id)
     if row is None:
+        if next(s.ctx.templates.find("Campaigns", CampaignId=campaign_id), None) is not None:
+            return UNAVAILABLE  # (cliente) TaskFrameII.as:707-708: o botão ir manda 8258 com a campanha 6001 (Types 2)
         return "Geçersiz Dünya Boss."
     snap = s.snapshot
     assert snap is not None

@@ -327,7 +327,7 @@ async def test_mina_de_outro_jogador_nao_bloqueia_a_instancia(tmp_path: Path, mo
 
         got = await _grid(g, oc.grid_of(mine.x, mine.y))
         page = pb.PhysicListUpdateMsg.FromString(next(p.body for p in got if p.code == 4129))
-        assert [c.occupyPlayerId for c in page.baseCastle] == [g.user_id]
+        assert [c.occupyPlayerId for c in page.baseCastle] == [g.user_id, oc.ROBOT_USER_BASE]  # robô em (44,22)
         assert next(w for w in page.wildLand if w.id == mine.id).occupyPlayerId == 0
 
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=mine.x, posY=mine.y))
@@ -350,6 +350,140 @@ async def test_castelo_de_outro_jogador_num_mapa_compartilhado(tmp_path: Path) -
             (other.user_id, "Outro", 2110)
         ]
         assert list(page.wildLand) == []  # as minas do mapa 2 não existem no servidor
+
+
+async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
+    """Missão 100 (cevre #11, replay #706): o robô de (44,22) vem no 4129 da grade 0_0 com o próprio castelo,
+    o de (59,56) na grade 1_1, com grau 8 e o nome da conta. Em outro mapa, nenhum."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        castle = _snap(g).castle
+        assert castle is not None
+        got = await _grid(g, "0_0")
+        page = pb.PhysicListUpdateMsg.FromString(next(p.body for p in got if p.code == 4129))
+        [robo] = [c for c in page.baseCastle if c.id == 765958]
+        assert (robo.mapId, robo.posX, robo.posY, robo.type, robo.state, robo.grade) == (castle.map_id, 44, 22, 1, 1, 8)
+        assert robo.occupyPlayerId == oc.ROBOT_USER_BASE and robo.castleName == robo.occupyPlayerName
+        assert robo.occupyPlayerName in {"♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"}
+        again = await _grid(g, "0_0")  # o nome sai da conta: o mesmo pedido devolve o mesmo nome
+        twice = pb.PhysicListUpdateMsg.FromString(next(p.body for p in again if p.code == 4129))
+        assert [c.occupyPlayerName for c in twice.baseCastle if c.id == 765958] == [robo.occupyPlayerName]
+
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=castle.map_id, reqGrid="1_1"))
+        page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
+        assert [c.id for c in page.baseCastle] == [castle.id, 765957]
+        assert page.baseCastle[1].occupyPlayerName != robo.occupyPlayerName  # os dois robôs da conta têm nomes distintos
+
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=1, reqGrid="0_0"))  # mapa 1: não é a instância do jogador
+        page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
+        assert 765958 not in [c.id for c in page.baseCastle]
+
+
+async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Missão 100 (m8 alvo 80_3, tile (44,22)): o 5160 no robô abre a luta com o guarda de grau 8; a vitória
+    conta o tipo 8 (Para1 1), manda o 112 e gasta um ataque do dia (o PlayerMsg mostra o contador)."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        castle = snap.castle
+        assert castle is not None and snap.arena is not None
+        snap.character.grades = 10  # |10 - 8| < 10: o cliente deixa atacar
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        snap.quests.append(Quest(g.user_id, 100, datetime.now(UTC)))
+        snap.arena.day, snap.arena.attack_left = A.today(clock.now()), 5
+        await g.server.services.characters.save(snap.arena)
+
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))
+        got = await g.until(157)
+        assert [p.code for p in got] == [140, 140, 157]
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert prepare.battleType == 1 and [(x.tempId, x.side) for x in prepare.soldiers] == [
+            (10101, 1),
+            (10101, 1),
+            (6504, 2),
+        ]
+        assert snap.arena.attack_left == 4  # gasta ao começar a luta
+
+        got = await g.fight(prepare)
+        got += await g.idle()
+        report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
+        assert (report.battleResult, report.battleScene) == (1, 4)
+        after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
+        assert after == [150, 4103, 150, 100, 140, 140, 112, 3]
+        quest = pb.QuestUpdatedRspMsg.FromString(next(p.body for p in got if p.code == 112)).quest[0]
+        assert (quest.templateId, quest.condition_1) == (100, 1)
+        assert pb.PlayerMsg.FromString(next(p.body for p in got if p.code == 3)).attackLeftCount == 4
+
+
+async def test_castelo_robo_recusa_sem_ataque_ou_com_diferenca_de_nivel(tmp_path: Path) -> None:
+    """O cliente só ataca com ataque no dia e com menos de 10 níveis de diferença do castelo (grau 8). Recusa
+    é 140 parado: sem luta, sem gasto."""
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = _snap(g)
+        castle = snap.castle
+        assert castle is not None and snap.arena is not None
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        snap.arena.day = A.today(g.server.services.clock.now())
+
+        snap.character.grades, snap.arena.attack_left = 10, 0
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))  # sem ataque no dia
+        assert [p.code for p in await g.until(140)] == [140]
+
+        snap.character.grades, snap.arena.attack_left = 18, 5
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))  # 18 - 8 = 10
+        assert [p.code for p in await g.until(140)] == [140]
+        assert await g.idle() == []  # nem batalha nem gasto
+        assert snap.arena.attack_left == 5
+
+
+async def test_castelo_robo_so_existe_na_instancia_do_castelo(tmp_path: Path) -> None:
+    """O robô segue a regra da mina: só na instância do castelo. Com o castelo no mapa 1 (compartilhado), o 4129
+    desse mapa não traz o robô de (44,22), e o 5160 no tile dele só para o exército, sem luta nem ataque gasto."""
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = await _set(g, grades=11)  # o mapa 1 pede nível 11
+        castle = snap.castle
+        assert castle is not None and snap.arena is not None
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        castle.energy = 500
+        g.client.send(5176, pb.CastleReqMsg(magId=1, posX=0, posY=0, payType=1))
+        assert [p.code for p in await g.until(105)] == [140, 105]
+        assert castle.map_id == 1
+
+        got = await _grid(g, "0_0")
+        page = pb.PhysicListUpdateMsg.FromString(next(p.body for p in got if p.code == 4129))
+        assert 765958 not in [c.id for c in page.baseCastle]
+
+        attacks = snap.arena.attack_left
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=44, posY=22))
+        assert [p.code for p in await g.until(140)] == [140]  # sem luta: o tile do robô é da instância
+        assert await g.idle() == []
+        assert snap.arena.attack_left == attacks
+
+
+async def test_dois_ataques_seguidos_ao_robo_geram_uma_luta(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Dois 5160 seguidos no robô: o primeiro abre a luta e gasta um ataque; o segundo, com a luta em curso,
+    só para o exército (140)."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = await _set(g, grades=10)
+        castle = snap.castle
+        assert castle is not None and snap.arena is not None
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        snap.arena.day, snap.arena.attack_left = A.today(clock.now()), 5
+        await g.server.services.characters.save(snap.arena)
+
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))
+        prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))  # a luta segue em curso
+        second = [p.code for p in await g.until(140)]
+        assert second[-1] == 140 and 157 not in second
+        assert snap.arena.attack_left == 4  # um só gasto
+
+        await g.fight(prepare)
+        await g.idle()
 
 
 async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None:

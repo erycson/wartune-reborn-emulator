@@ -2,9 +2,9 @@
 
 Regras vindas do cliente (`OuterCityController`, `WorldMapControler`, `WorldMapHelper`) e da captura
 `transfer_kampi_sistemi.json` (5176 -> 140, 152, 105). O mapa 100000xxx do castelo é uma instância
-de cada jogador (o próprio castelo e as 4 minas do mapa 100); nos mapas 1 a 5, compartilhados, aparecem
-os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando de outro jogador e
-terra selvagem fora das 4 minas não existem aqui.
+de cada jogador (o próprio castelo, os 2 castelos-robô e as 4 minas do mapa 100); nos mapas 1 a 5,
+compartilhados, aparecem os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando
+de outro jogador e terra selvagem fora das 4 minas não existem aqui.
 """
 
 from __future__ import annotations
@@ -224,9 +224,10 @@ def mine_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
     return sum(y.wildYield for y in mine_yield(snap, templates))
 
 
-def mine_battle(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine, guard: int) -> dict[str, object]:
-    """Spec da luta da mina (replay #718): battleType 1 no mapa 100, as tropas do exército em duas
-    pilhas (pos 3 e 9), o herói na 4 e o guarda na 5. Vida da pilha = Live × soldados / 100."""
+def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> dict[str, object]:
+    """Spec da luta contra um guarda no mapa 100 (replay #718, a mina): battleType 1, as tropas do exército em
+    duas pilhas (pos 3 e 9), o herói na 4 e o guarda na 5. Vida da pilha = Live × soldados / 100. Serve também
+    ao castelo-robô (dedução: não há captura de luta com castelo; o guarda é o da mina do mesmo grau)."""
     soldiers: list[dict[str, object]] = []
     pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
@@ -256,6 +257,58 @@ def mine_battle(snap: PlayerSnapshot, templates: GameTemplates, mine: Mine, guar
         "heroes": [],
         "player": {"livingId": 3, "pos": 4},
     }
+
+
+# -- castelos-robô (missões 100, 411 e 765) -----------------------------------------------------------
+
+# Dois castelos de robô no mapa do castelo, nos mesmos tiles em todas as contas: 765958 em (44,22) e 765957
+# em (59,56) (visto: replay #706 e cevre #11). O guia da missão 100 procura o de (44,22) (m8, alvo 80_3); sem
+# ele a tela escurece, como na missão 60. Grau 8 (visto em 3 dos 4 castelos; o quarto tem grau 7). Id e nome
+# mudam de uma conta para outra (visto), então o nome sai da conta. Não tem estado: o robô está sempre lá.
+ROBOT_CASTLES = ((765958, 44, 22), (765957, 59, 56))
+ROBOT_GRADE = 8
+ROBOT_USER_BASE = 1_300_009_000  # (dedução) faixa 13000xxxxx dos robôs, acima das ids da arena (base + 1 a 1400+)
+# (visto) os enfeites e nomes das capturas: ♣Chloe♣, ♫Elizabeth♫, ►Abigail◄
+ROBOT_NAMES = (("♣", "♣", "Chloe"), ("♫", "♫", "Elizabeth"), ("►", "◄", "Abigail"))
+
+
+def _in_own_instance(snap: PlayerSnapshot, map_id: int) -> bool:
+    """Só na instância do próprio castelo, a mesma regra das minas (``template_of`` == modelo 100): num mapa
+    compartilhado (1 a 5) os robôs não aparecem nem lutam."""
+    return snap.castle is not None and map_id == snap.castle.map_id and template_of(map_id) == BASE_MAP
+
+
+def robot_at(snap: PlayerSnapshot, map_id: int, x: int, y: int) -> int | None:
+    """Índice do castelo-robô no tile pedido, na instância do próprio castelo."""
+    if not _in_own_instance(snap, map_id):
+        return None
+    return next((i for i, (_, rx, ry) in enumerate(ROBOT_CASTLES) if (rx, ry) == (x, y)), None)
+
+
+def robots_in(snap: PlayerSnapshot, map_id: int, grids: set[str]) -> list[int]:
+    """Robôs das grades pedidas, na instância do próprio castelo (4129 do 8201)."""
+    if not _in_own_instance(snap, map_id):
+        return []
+    return [i for i, (_, x, y) in enumerate(ROBOT_CASTLES) if grid_of(x, y) in grids]
+
+
+def robot_name(char_id: int, index: int) -> str:
+    """Nome do robô nesta conta. Os dois robôs da conta tiram nomes distintos da lista, sem repetir (dedução).
+    ponytail: a captura tem só 3 nomes (visto); ampliar ROBOT_NAMES se houver mais robôs."""
+    left, right, name = random.Random(f"robo:{char_id}").sample(ROBOT_NAMES, len(ROBOT_CASTLES))[index]
+    return f"{left}{name}{right}"
+
+
+def robot_castle_msg(snap: PlayerSnapshot, index: int) -> pb.BaseCastleMsg:
+    """Castelo-robô como no 4129 do oficial (cevre #11): tipo 1, estado 1, sem liga e sem tempo de defesa."""
+    assert snap.castle is not None
+    castle_id, x, y = ROBOT_CASTLES[index]
+    name = robot_name(snap.character.id or 0, index)
+    return pb.BaseCastleMsg(
+        id=castle_id, mapId=snap.castle.map_id, posX=x, posY=y, type=1,
+        occupyPlayerId=ROBOT_USER_BASE + index, occupyPlayerName=name, occupyLeagueName="",
+        state=1, defenceLefttime=0, castleName=name, grade=ROBOT_GRADE, vipCastleView=0, vipType=0,
+    )  # fmt: skip
 
 
 def occupy(snap: PlayerSnapshot, mine: Mine, now: datetime) -> WildLand:
