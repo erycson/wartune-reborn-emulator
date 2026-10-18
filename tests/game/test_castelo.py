@@ -145,13 +145,15 @@ async def test_gold_is_produced_per_hour_up_to_the_depot(tmp_path: Path) -> None
         assert (await g.server.services.characters.snapshot(g.user_id)).character.gold == 450000
 
 
-SEED = 2160001  # Ucuz Altın İnciri: 3000 de ouro em 60 min (rende 2400, amadurece em 59, ciftlik.json)
+SEED = 2160001  # [L1] Gold Seed: 3000 de ouro em 60 min (rende 2400, amadurece em 59, ciftlik.json)
 
 
 async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
     clock = FakeClock()
     async with logged_in(tmp_path, novice=READY, clock=clock) as g:
-        snap = await _set(g, gold=0, point=10)
+        row = g.server.services.templates.get("ConfigInfos", "Farm_Accelerate_Point", key="ConfigName")
+        cost = int(row["ConfigValue"])  # Farm_Accelerate_Point: 35 no inglês (10 no turco)
+        snap = await _set(g, gold=0, point=cost)
         seeds = Item(g.user_id, SEED, pos=0, count=2)
         snap.items.append(seeds)
         await g.server.services.characters.save(seeds)
@@ -194,7 +196,7 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         assert saved.lands == [] and saved.character.gold == gold and saved.items == []
         async with g.server.services.database.sessions() as db:
             ledger = (await db.execute(select(CashLedger))).scalars().all()
-        assert [(e.delta_point, e.reason) for e in ledger] == [(-10, "farm_accelerate")]
+        assert [(e.delta_point, e.reason) for e in ledger] == [(-cost, "farm_accelerate")]
 
 
 async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -> None:
@@ -225,6 +227,9 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
 async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:
     clock = FakeClock()
     async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        box_rows = list(g.server.services.templates.find("TimeDrop", Grade=5))  # período 5 da caixa
+        gold = int(next(r["Data"] for r in box_rows if r["TemplateId"] == "-100"))  # 50000 no inglês
+        item = next(int(r["TemplateId"]) for r in box_rows if int(r["TemplateId"]) > 0)  # 2090102 no inglês
         await _set(g, gold=0)
         g.client.send(5019, pb.BoxBoxMsg(time=-1, operate=False))
         assert pb.BoxBoxMsg.FromString((await g.until(4))[-1].body) == pb.BoxBoxMsg(time=0, operate=False, timerun=0)
@@ -236,12 +241,12 @@ async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:
         got = await g.until(3)
         assert [p.code for p in got] == [4, 115, 109, 3]
         assert pb.BoxBoxMsg.FromString(got[0].body) == pb.BoxBoxMsg(time=5, operate=True, timerun=300)
-        assert pb.CastleYieldMsg.FromString(got[2].body).goldTotalCount == 2000 + 260 * 300 // 3600
+        assert pb.CastleYieldMsg.FromString(got[2].body).goldTotalCount == gold + 260 * 300 // 3600
 
         g.client.send(5019, pb.BoxBoxMsg(time=5, operate=True))  # já recebido
         assert [p.code for p in await g.until(4)] == [4]
         saved = await g.server.services.characters.snapshot(g.user_id)
-        assert saved.character.box_period == 5 and [i.template_id for i in saved.items] == [2090101]
+        assert saved.character.box_period == 5 and [i.template_id for i in saved.items] == [item]
 
 
 async def test_offline_reward_gives_exp_once(tmp_path: Path) -> None:

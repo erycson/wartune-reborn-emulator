@@ -72,14 +72,14 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         g.client.send(8266)  # já assinou hoje: só repete o estado, sem prêmio
         assert [p.code for p in await g.idle()] == [4177]
 
-        # dia 1 do login acumulado: ReloginDrops 24001 (10.000 ouro, 20 diamantes vinculados); o 2 ainda não
+        # dia 1 do login acumulado: ReloginDrops 24001 (10.000 ouro e Worn Weapon x1, sem diamante vinculado); o 2 ainda não
         g.client.send(8496, pb.TakeLoginReward(index=2))
         g.client.send(8496, pb.TakeLoginReward(index=1))
         got = await g.until(3)
         player = pb.PlayerMsg.FromString(got[-1].body)
-        assert (player.reloginProcess, player.giftToken, player.reloginCount) == (1, 20, 1)
+        assert (player.reloginProcess, player.giftToken, player.reloginCount) == (1, 0, 1)
         g.client.send(8496, pb.TakeLoginReward(index=1))
-        assert [p.code for p in await g.idle()] == [109, 83]  # só o fim do anterior; nada novo
+        assert [p.code for p in await g.idle()] == [109, 115, 83]  # só o fim do anterior (ouro e item); nada novo
 
         # atividade diária: o login (leed 1) vale 5; o baú 1 precisa de 10
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))
@@ -94,7 +94,7 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         got = await g.until(83)
         box = pb.LeedFinishedRspMsg.FromString(next(p for p in got if p.code == 4150).body)
         assert (box.result, box.leedProcess) == (True, 2)
-        assert _alerts(got) == ["Kazanılan:Orta Ruh İncisi x5"]  # LeedDrop site 1, como o oficial
+        assert _alerts(got) == ["Kazanılan:Gold 50,000"]  # LeedDrop site 1 (50000 de ouro no inglês), como o oficial
 
         g.client.send(8749, pb.GetRewardMsg(day=1))  # guia de 7 dias: tarefas do dia 1 não feitas
         assert await g.idle() == []
