@@ -20,6 +20,7 @@ pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reaso
 WOLVES_1011 = (101102, 101103, 101105, 101106, 101109)  # o 101109 fecha o grupo e o mapa
 WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que libera o chefe 102109
 END = [137, 4151, 83, 135, 4165, 150, 150, 140]  # fim do mapa, antes da carta (replay #1215-#1226, #1722-#1729)
+END_COM_70 = [137, 4151, 83, 135, 112, 4165, 150, 150, 140]  # com a 70 no fim: o 112 entre o 135 e o 4165
 CARD = [115, 26, 83, 134]  # resposta do 5122 (replay #1227-#1243, #1730-#1747, sem 4476/4484)
 KURT_DIS, SANS_TASI = 2100001, 2040101  # drops dos lobos do 1021 (replay #1355-#1592)
 
@@ -245,9 +246,14 @@ def _quests(packets: list[Packet]) -> dict[int, pb.QuestInfo]:
     return out
 
 
-async def kurt_dis(g: Game) -> int:
+async def kurt_pilhas(g: Game) -> list[tuple[int, int]]:
+    """(posição, quantidade) de cada pilha de Kurt Dişi no banco."""
     snap = await g.server.services.characters.snapshot(g.user_id)
-    return sum(i.count for i in snap.items if i.template_id == KURT_DIS)
+    return [(i.pos, i.count) for i in snap.items if i.template_id == KURT_DIS]
+
+
+async def kurt_dis(g: Game) -> int:
+    return sum(n for _, n in await kurt_pilhas(g))
 
 
 async def entrega(g: Game, template_id: int) -> list[Packet]:
@@ -270,7 +276,8 @@ async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path:
         for camp in WOLVES_1011[:-1]:
             await battle(g, camp)
         end = await battle(g, WOLVES_1011[-1])
-        assert _quests(end)[70].condition_1 == 1 and not _quests(end)[70].isComplete  # 112 logo após o 137
+        assert codes(end)[-len(END_COM_70) :] == END_COM_70  # o 112 da 70 entre o 135 e o 4165 (replay #1221-#1222)
+        assert _quests(end)[70].condition_1 == 1 and not _quests(end)[70].isComplete
         await entrega(g, 70)
 
         # 1021: o drop de cada lobo sai antes do 128 (replay #1360, #1442, #1520, #1578)
@@ -281,27 +288,63 @@ async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path:
         g.client.send(8747, pb.SimplePropertyMsg(param7=True))
         await g.idle()
         await enter(g)
-        totals = []
+        totals, stacks = [], set()
         for camp in WOLVES_1021:
             got = await battle(g, camp)
             totals.append(await kurt_dis(g))
-            if camp == 102102:  # a primeira dá Şans Taşı Lv.1 também (no mesmo 115 do Kurt Dişi)
-                moved = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
+            assert len(await kurt_pilhas(g)) == 1  # uma pilha só, como o oficial (replay pos 6: 2, 4, 7, 10)
+            moved = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
+            stacks |= {m.changePos for m in moved if m.HasField("item") and m.item.templateId == KURT_DIS}
+            if camp == 102102:  # desvio: o oficial deixa o Şans Taşı num baú (4103 + pick-up 5129), aqui sai no 115
                 assert {m.item.templateId for m in moved if m.HasField("item")} >= {KURT_DIS, SANS_TASI}
         assert totals == [2, 4, 7, 10]
-        assert await kurt_dis(g) == 10
+        [(pos, count)] = await kurt_pilhas(g)
+        assert count == 10 and stacks == {pos}  # os 115 reusam a posição da pilha
 
         boss = await battle(g, 102109)
         assert _quests(boss)[80].condition_1 == 1  # 26: o chefe 1011 ('Çene') morto
         await entrega(g, 80)
 
         strategy = (await characters.snapshot(g.user_id)).character.strategy
+        [(pos, _)] = await kurt_pilhas(g)
         got = await entrega(g, 90)
         assert _quests(got)[90].isComplete
-        assert await kurt_dis(g) == 0  # a entrega tirou a pilha inteira
+        assert await kurt_pilhas(g) == []  # a entrega tirou a pilha inteira
         removed = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
-        assert any(not m.HasField("item") for m in removed)  # 115 com a posição vazia (replay #1609)
+        assert [m.changePos for m in removed if not m.HasField("item")] == [pos]  # 115 vazio na posição (replay #1609)
+        ao_completar = [
+            i
+            for i, p in enumerate(got)
+            if p.code == 112 and any(q.templateId == 90 and q.isComplete for q in pb.QuestUpdatedRspMsg.FromString(p.body).quest)
+        ]
+        assert ao_completar and codes(got).index(115) < ao_completar[-1]  # o 115 sai antes do 112 (replay #1609-#1611)
+        last = [p for p in got if p.code == 3][-1]
+        assert pb.PlayerMsg.FromString(last.body).strategy == strategy + 1000  # Ruh da 90 no PlayerMsg (replay #1612)
         assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 1000  # Ruh da 90
 
         done = {q.template_id for q in (await characters.snapshot(g.user_id)).quests if q.completed}
         assert {70, 80, 90} <= done  # gravado no banco
+
+
+async def test_guia_depois_da_70_aprende_a_skill_e_avanca_o_novice(tmp_path: Path) -> None:
+    # (visto) replay: 5185 (30111) e 5017 (25500) logo após a entrega da 70 (#1175-#1176). Respostas: 60 com
+    # {30111, index 2, type 0} (#1254) e 1, o U_C_PLAYER_NOVICE vazio (#1257). O novice vinha de 24000 (5017 de #927).
+    async with logged_in(tmp_path, novice=24000) as g:
+        g.client.send(5012, pb.QuestAddedMsg(questId=[70]))
+        await g.until(112)
+        await play_1011(g)
+        await entrega(g, 70)
+        # (visto) replay #1202: herói no nível 7 com 30711 e 30811 aprendidas e 1 ponto de skill (30111 gasta o ponto)
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None and session.snapshot.leader is not None
+        session.snapshot.leader.grades, session.snapshot.leader.skill_script = 7, "30711,30811,"
+
+        g.client.send(5185, pb.HeroAddPointReqMsg(skillTempId=30111, type=0))
+        got = await g.idle()
+        skill = pb.UpdatedSkillMsg.FromString(next(p.body for p in got if p.code == 60))
+        assert (skill.templateId, skill.index, skill.type) == (30111, 2, 0)
+
+        g.client.send(5017, pb.NoviceReqMsgMsg(noviceProcess=25500))
+        got = await g.idle()
+        assert codes(got)[-1] == 1 and got[-1].body == b""  # U_C_PLAYER_NOVICE vazio, depois do 3
+        assert (await g.server.services.characters.snapshot(g.user_id)).character.novice_process == 25500

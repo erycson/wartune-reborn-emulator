@@ -11,9 +11,10 @@ from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import DATA
 from wartune_server.content import dungeon
 from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
-from wartune_server.game import rules
+from wartune_server.game import bag, rules
 from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.game.handlers.campaign import _map_finished
+from wartune_server.templates.repository import GameTemplates
 
 pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
 
@@ -99,8 +100,8 @@ async def test_27_conta_a_bolsa_e_a_entrega_leva_todas_as_unidades(tmp_path: Pat
         assert not rules.quest_done(snap, templates, q90, now)  # 7 de 8
         snap.items.append(Item(g.user_id, KURT_DIS, count=3, pos=1))
         assert rules.quest_done(snap, templates, q90, now)  # bolsa, não contador: sem quest_event
-        changed, deleted = rules.take_quest_goods(snap, templates, q90)
-        assert changed == [] and len(deleted) == 2  # a entrega tira as pilhas inteiras (10 no replay)
+        deleted = rules.take_quest_goods(snap, templates, q90)
+        assert len(deleted) == 2  # a entrega tira as pilhas inteiras (10 no replay)
         assert rules.goods_count(snap, KURT_DIS) == 0
 
 
@@ -139,3 +140,10 @@ def test_fim_de_mapa_so_com_o_grupo_caido_e_sem_param4() -> None:
         camp.nodes[wolf]["state"] = DONE
     assert not _map_finished(camp, 102106)  # o 102106 tem param4 (libera o chefe): desbloqueia, não acaba
     assert _map_finished(camp, 102109)  # chefe sem grupo: acaba o mapa
+
+
+def test_kurt_dis_e_sans_tasi_existem_e_cabem_numa_pilha() -> None:
+    # (visto) overlay ItemTempInfos: Kurt Dişi MaxCount 9999, então as 10 unidades do 1021 ficam numa pilha só
+    templates = GameTemplates.parse((DATA / "xml/tempinfos.xml").read_bytes())
+    assert templates.get("ItemTempInfos", SANS_TASI) is not None
+    assert bag.max_count(templates, KURT_DIS) == 9999

@@ -94,7 +94,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     row, goods = rules.quest_rewards(snap, s.ctx.templates, q.template_id)
     gp, gold = int(row.get("RewardPlayGP", 0)), int(row.get("RewardGold", 0))
     strategy = int(row.get("RewardStrategy", 0))  # (visto) tempinfos: 90 dá Ruh 1000; (dedução) o template manda
-    used, gone = rules.take_quest_goods(snap, s.ctx.templates, q)  # condição 27: a bolsa paga a entrega (dedução)
+    gone = rules.take_quest_goods(snap, s.ctx.templates, q)  # condição 27: a bolsa paga a entrega (dedução)
     q.completed, q.completed_at = True, s.ctx.clock.now()
     rules.add_gp(snap, s.ctx.templates, gp)
     snap.character.gold += gold
@@ -102,14 +102,12 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     for item in goods:
         item.pos = rules.free_bag_pos(snap)
         snap.items.append(item)
-    await s.ctx.characters.save(snap.character, snap.leader, q, *goods, *synced, *used, delete=tuple(gone))
+    await s.ctx.characters.save(snap.character, snap.leader, q, *goods, *synced, delete=tuple(gone))
 
+    for item in gone:  # 115 da pilha entregue antes do 3 e do 112 de conclusão (visto) replay #1609-#1611
+        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, None, s.player_id))
     _player(s)
     s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
-    for item in gone:
-        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, None, s.player_id))
-    for item in used:
-        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
     if gold:
         castle_yield(s)
     if gp:

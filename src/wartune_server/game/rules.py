@@ -315,13 +315,13 @@ def goods_count(snap: PlayerSnapshot, template_id: int) -> int:
     return sum(i.count for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id)
 
 
-def take_quest_goods(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) -> tuple[list[Item], list[Item]]:
+def take_quest_goods(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) -> list[Item]:
     """Entregar a missão tira da mochila todas as unidades de cada item da condição 27.
 
     (visto) captura #1609: na entrega da 90 o 115 esvaziou a pilha de 10 Kurt Dişi. A
-    quantidade pedida é 8; o replay não mostra sobra de 2, então foi tudo. Devolve ``(alterados, apagados)``.
+    quantidade pedida é 8; o replay não mostra sobra de 2, então foi tudo. Devolve as pilhas apagadas.
     """
-    changed, deleted = [], []
+    gone: list[Item] = []
     for cond in conditions(templates, q.template_id):
         if int(cond["CondictionType"]) != GOODS_CONDITION:
             continue
@@ -329,10 +329,10 @@ def take_quest_goods(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) -
         stack = [
             i for i in sorted(snap.items, key=lambda i: i.pos) if i.bag_type == BagType.BAG and i.template_id == tid
         ]
-        a, b = take_items(snap, stack, sum(i.count for i in stack))
-        changed += a
-        deleted += b
-    return changed, deleted
+        for item in stack:
+            snap.items.remove(item)
+        gone += stack
+    return gone
 
 
 def arm_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:

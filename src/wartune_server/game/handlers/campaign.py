@@ -18,7 +18,7 @@ from ...content import dungeon, tutorial
 from ...domain.models import Item, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
-from .. import drops, rewards, rules, space
+from .. import bag, drops, rewards, rules, space
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
 from ..builders.army import castle_pawns
@@ -483,9 +483,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=gp, gold=0, strategy=strategy))
         s.battle_gp = 0
         if _map_finished(c, camp):
-            _dungeon_end(s)
-            if loot.end_quests:  # (visto) captura #1215 -> #1222: o 112 do 14 sai depois do 137
-                _send(s, S_QUESTS, quest_update(loot.end_quests, rules.quest_bitmap(snap)))
+            _dungeon_end(s, loot.end_quests)
         else:
             _dungeon_unlock(s, camp)
         return
@@ -707,7 +705,7 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
 class _Loot:
     """O que uma vitória na masmorra dá: itens novos (já no snapshot), textos e missões que avançaram.
 
-    ``end_quests`` são as que fecham no fim do mapa (14 e 31): o 112 delas sai depois do 137 do fim.
+    ``end_quests`` são as que fecham no fim do mapa (14 e 31): o 112 delas sai depois do 135 (cartas) e antes do 4165.
     """
 
     items: list[Item] = field(default_factory=list)
@@ -722,19 +720,24 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int) -> _Loot:
     - Drop do nó (``dungeon()["drops"]``, ``tools/extract_dungeon.py``): (visto) captura #1355-#1377 (102102:
       Kurt Dişi x2 e Şans Taşı x1), #1442-#1457 (102103: x2), #1520-#1536 (102105: x3), #1578-#1592 (102106: x3).
       O chefe 102109 e os lobos do 1011 não deram item na captura. (dedução) sem chance: sai sempre.
+      Empilha: (visto) overlay, Kurt Dişi MaxCount 9999; o oficial manteve uma pilha (id 58470972, pos 6: 2, 4, 7 e 10
+      em #1360, #1442, #1520 e #1578). O Şans Taşı saiu sozinho no pos 7 (#1386), depois do pick-up 5129 (#1332):
+      aqui sai direto no mesmo 115 (desvio, ver docs/drops-masmorras.md).
     - Missões: condição 25 soma 1 por soldado inimigo morto do tipo ``tempId`` (PawnTempInfos); 26 conta o chefe
       morto (``heroTempId``, ex. 1011 'Çene'). No fim do mapa, 14 (passou a campanha) e 31 (cena com a
-      ``Capacity`` da campanha), em ``end_quests``. (visto) captura #1215 -> #1222: o 112 do 14 sai depois do 137
-      do 1011. (dedução) 14 e 31 contam em todo mapa: o 31 soma, então um 1001 inteiro dá 2.
+      ``Capacity`` da campanha), em ``end_quests``. (visto) captura #1215 -> #1222: o 112 do 14 sai depois do 135
+      (cartas) e antes do 4165. (dedução) 14 e 31 contam em todo mapa: o 31 soma, então um 1001 inteiro dá 2.
     """
     c = _map(s)
     snap = s.snapshot
     assert snap is not None
     templates = s.ctx.templates
+    now = s.ctx.clock.now()
     loot = _Loot()
     drops_here = [(int(t), int(n)) for t, n in dungeon().get("drops", {}).get(str(camp), [])]
-    if drops_here and rewards.can_grant(snap, templates, drops_here):
-        loot.items, _ = rewards.grant(snap, templates, drops_here)
+    if drops_here and bag.fits(snap, templates, drops_here, now):  # confere antes; depois só muda o snapshot
+        for template_id, count in drops_here:
+            loot.items += bag.add(snap, templates, template_id, count, now)  # completa a pilha que já existe
         loot.texts = [rewards.text(templates, [d]) for d in drops_here]  # um aviso por item, como o oficial
     kills = Counter(int(x["tempId"]) for x in battle.spec["soldiers"] if int(x["side"]) == 2)
     events = [(rules.PAWN_KILL_CONDITION, t, n) for t, n in kills.items()]
@@ -757,7 +760,7 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int) -> _Loot:
     return loot
 
 
-def _dungeon_end(s: GameSession) -> None:
+def _dungeon_end(s: GameSession, end_quests: list[Quest]) -> None:
     """Fim do mapa: relatório e as 5 cartas viradas (replay #1215-#1226 e #1722-#1729); a carta sai no 5122.
 
     (visto) o 20 no meio do fim do 1011 (#1218) é a resposta do 5038 (#1165), que o cliente manda depois de
@@ -772,6 +775,8 @@ def _dungeon_end(s: GameSession) -> None:
     _send(s, S_RANK, ParseDict(data["rank"], pb.RankListRspMsg()))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=data["exp_text"]))
     _send(s, S_CARDS, ParseDict(data["cards"], pb.CampaignCardsMsg()))
+    if end_quests:  # (visto) captura #1221-#1222: o 112 da 70 sai depois do 135 e antes do 4165
+        _send(s, S_QUESTS, quest_update(end_quests, rules.quest_bitmap(snap)))
     c.buffs = []
     _send(s, S_BUFFERS, _buffers(s))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
