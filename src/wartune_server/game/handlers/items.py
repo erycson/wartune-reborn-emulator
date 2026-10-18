@@ -6,7 +6,6 @@ travar (8809), cristal (8484), espaços (5010/8819), ver equipamento de outro (8
 from __future__ import annotations
 
 import random
-import re
 from datetime import timedelta
 
 from google.protobuf.message import Message
@@ -38,7 +37,19 @@ STACKABLE = (BagType.STORE, BagType.BAG)
 USE_KINDS = {1: ("gold", "Altın"), 3: ("point", "Elmas"), 4: ("gift_token", "Bağlı Elmas"), 5: ("weary", "Beden")}
 USE_KINDS |= {6: ("repute", "Prestij"), 7: ("gp", "Lord EXP"), 10: ("strategy", "Ruh")}
 USE_KINDS[15] = ("copies", "Grup Ek Sahne yararı")  # Büyük Sefer (2032101): +1 entrada de campanha em grupo
-GEM_BOX_NAME = re.compile(r"Değerli Taş Kutusu Lv\.(\d)(?:-(\d))?$")
+# Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,
+# porque o nome muda de idioma ("Değerli Taş Kutusu Lv.N" no turco, "Lvl. N Gem Pack" no inglês). O 2060006 fica
+# de fora de propósito: são duas pedras Lv.3 e chance de Lv.4 (no turco a descrição tinha '*'; no inglês não tem).
+GEM_BOX_LEVELS = {
+    2060008: (1, 1),
+    2060009: (2, 2),
+    2060010: (3, 3),
+    2060011: (4, 4),
+    2060012: (5, 5),
+    2060013: (1, 3),
+    2060014: (1, 5),
+    2060020: (3, 5),
+}
 
 
 def _row(s: GameSession, item: Item) -> Row | None:
@@ -270,16 +281,15 @@ async def _use_copies(s: GameSession, item: Item, n: int, times: int) -> bool:
 
 
 async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
-    """Caixa de pedras "Değerli Taş Kutusu Lv.N" (ou Lv.A-B): uma pedra aleatória do nível por caixa,
-    entre as 8 do ``TransformInfos`` daquele nível. As outras caixas 206 têm o conteúdo só na descrição
+    """Caixa de pedras (``GEM_BOX_LEVELS``): uma pedra aleatória do nível por caixa, entre as 8 do
+    ``TransformInfos`` daquele nível. As outras caixas 206 têm o conteúdo só na descrição
     (Property1 = o próprio id, sem tabela de drop nos templates) e são recusadas."""
     snap = s.snapshot
     assert snap is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()
-    m = GEM_BOX_NAME.match(row.get("TemplateName", ""))
-    if m is None or "*" in row.get("Description", ""):
+    if box.template_id not in GEM_BOX_LEVELS:
         return False
-    low, high = int(m[1]), int(m[2] or m[1])
+    low, high = GEM_BOX_LEVELS[box.template_id]
     stones: dict[int, int] = {}
     for _ in range(n):
         level = templates.get("TransformInfos", random.randint(low, high), key="TransformId")
