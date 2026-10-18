@@ -738,8 +738,10 @@ async def novice(s: GameSession, msg: pb.NoviceReqMsgMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     c = snap.character
-    if msg.noviceProcess > c.novice_process:
+    if rules.novice_step_ok(c.novice_process, msg.noviceProcess):
         c.novice_process = msg.noviceProcess
+    else:
+        s.log.info("5017 recusado", novice=msg.noviceProcess, atual=c.novice_process)
     changed = rules.update_novice_quests(snap, s.ctx.templates)
     await s.ctx.characters.save(c, *changed)
     if changed:

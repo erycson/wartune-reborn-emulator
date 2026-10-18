@@ -5,7 +5,7 @@ herói, equipamentos, missões. Quem chama grava as entidades alteradas (``Chara
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from ..domain.models import (
     BagType,
@@ -267,6 +267,11 @@ PLAYER_LEVEL_CONDITION = 1  # nível do jogador >= Para2, lido na hora (cliente:
 LOGIN_DAY_CONDITION = 39  # entrar num dia diferente do da aceitação (cliente: checkSencondLogin)
 TALK_CONDITION = 85  # falar com o NPC do nó Para4 ("mapa,nó"): vem do 8692 ou do aceite (cliente: finishStory)
 PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
+GOODS_CONDITIONS = {27, 28, 32, 49}  # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount)
+GAME_DAY_SHIFT = timedelta(hours=5)  # o dia do jogo vira às 5h (cliente: checkInRepeatTime)
+# ponytail: maior salto visto nas capturas (24000 -> 25500); o newbie.xml (saveId) não está na árvore
+NOVICE_STEP_MAX = 2000
+NOVICE_FIRST_MAX = 11000  # primeiro 5017 de conta nova (replay #79); de noviceProcess 0 o avanço não passa daqui
 
 
 def conditions(templates: GameTemplates, template_id: int) -> list[Row]:
@@ -361,12 +366,65 @@ def quest(snap: PlayerSnapshot, template_id: int) -> Quest | None:
     return next((q for q in snap.quests if q.template_id == template_id), None)
 
 
-def accept_quest(snap: PlayerSnapshot, templates: GameTemplates, template_id: int, now: datetime) -> Quest | None:
-    """Aceita a missão se existir e ainda não foi aceita; já avalia a condição."""
-    if quest(snap, template_id) is not None or templates.get("QuestTemps", template_id) is None:
+def _utc(value: datetime) -> datetime:
+    """Relógio em UTC sem fuso, para comparar com StartDate e EndDate (o cliente usa o tempo do servidor)."""
+    return value.astimezone(UTC).replace(tzinfo=None) if value.tzinfo else value
+
+
+def _template_time(text: str) -> datetime:
+    return datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
+
+
+def _game_day(value: datetime) -> date:
+    return (_utc(value) - GAME_DAY_SHIFT).date()
+
+
+def _pre_done(snap: PlayerSnapshot, templates: GameTemplates, pre_id: str) -> bool:
+    """(cliente) TaskManage.checkPreTask: pré-requisito que não existe nos templates é ignorado (getTaskByID nulo)."""
+    if templates.get("QuestTemps", int(pre_id)) is None:
+        return True
+    pre = quest(snap, int(pre_id))
+    return pre is not None and pre.completed
+
+
+def can_accept(snap: PlayerSnapshot, templates: GameTemplates, row: Row, now: datetime, in_guild: bool) -> bool:
+    """Regras de TaskManage.isAvailableTask no servidor: janela de datas, nível (NeedMinLevel..NeedMaxLevel),
+    guilda (IsLeague) e pré-requisitos (lista com vírgula é E). NeedItemTemp, NeedBuildingTemp e NeedPos são 0 em
+    todas as linhas, então não têm regra. Missão aberta e repetição ficam em ``accept_quest``."""
+    if not _template_time(row["StartDate"]) <= _utc(now) <= _template_time(row["EndDate"]):
+        return False
+    if not int(row["NeedMinLevel"]) <= snap.character.grades <= int(row["NeedMaxLevel"]):
+        return False
+    if row.get("IsLeague") == "true" and not in_guild:
+        return False
+    return all(_pre_done(snap, templates, pre) for pre in row.get("PreQuestId", "").split(",") if pre)
+
+
+def _repeat_ok(row: Row, q: Quest, now: datetime) -> bool:
+    """Repetível concluída volta a aceitar quando o dia do jogo mudou desde a conclusão (cliente: checkRepeatMax
+    com checkInRepeatTime). RepeatMax é 1 em todas as linhas e repeatFinish fica 1, como o oficial manda."""
+    return row.get("IsRepeat") == "true" and q.completed_at is not None and _game_day(q.completed_at) != _game_day(now)
+
+
+def accept_quest(
+    snap: PlayerSnapshot, templates: GameTemplates, template_id: int, now: datetime, in_guild: bool
+) -> Quest | None:
+    """Aceita a missão se o cliente também aceitaria (``can_accept``) e ela não está aberta. Repetível concluída
+    volta a abrir na mesma linha (a tabela tem uma linha por personagem e missão). Já avalia as condições de estado."""
+    row = templates.get("QuestTemps", template_id)
+    if row is None:
         return None
-    q = Quest(snap.character.id or 0, template_id, now)
-    snap.quests.append(q)
+    q = quest(snap, template_id)
+    if q is not None and not (q.completed and _repeat_ok(row, q, now)):
+        return None
+    if not can_accept(snap, templates, row, now, in_guild):
+        return None
+    if q is None:
+        q = Quest(snap.character.id or 0, template_id, now)
+        snap.quests.append(q)
+    else:
+        q.completed, q.added_at = False, now
+        q.progress = q.progress_2 = q.progress_3 = q.progress_4 = 0
     update_novice_quests(snap, templates)
     update_building_quests(snap, templates)
     update_state_quests(snap, templates, [q])
@@ -436,6 +494,8 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
                 mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
                 value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
                 value = max(value, old)
+            elif kind in GOODS_CONDITIONS:  # a quantidade atual na bolsa (cliente: checkGoodsCount)
+                value = goods_count(snap, para1)
             else:
                 continue
             if value != old:
@@ -446,19 +506,75 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
 
 
 def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: datetime) -> bool:
-    """Concluída quando todas as condições batem, como no cliente. Nível do jogador e dia do login são lidos
-    agora; os de contagem usam o contador gravado (condition_N)."""
-    for k, cond in enumerate(conditions(templates, q.template_id)):
+    """Concluída quando todas as condições batem, como no cliente. Nível do jogador, dia do login e bolsa são lidos
+    agora; os de contagem usam o contador gravado (condition_N). Sem linha de condição não conclui: nenhuma missão
+    dos dados está assim, e o cliente a acharia pronta sem nada a cumprir."""
+    rows = conditions(templates, q.template_id)
+    if not rows:
+        return False
+    for k, cond in enumerate(rows):
         kind, need = int(cond["CondictionType"]), int(cond.get("Para2", "1"))
         if kind == PLAYER_LEVEL_CONDITION:
             have = snap.character.grades
         elif kind == LOGIN_DAY_CONDITION:  # dia em UTC, o mesmo fuso do addDate mandado no 112
             have = int(now.date() > q.added_at.date())
+        elif kind in GOODS_CONDITIONS:
+            have = goods_count(snap, int(cond["Para1"]))
         else:
             have = progress_of(q, k)
         if have < need:
             return False
     return True
+
+
+def goods_count(snap: PlayerSnapshot, template_id: int) -> int:
+    """Quantidade do item na mochila, só ``BagType.BAG`` (cliente: GoodsManager.countGoods)."""
+    return sum(i.count for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id)
+
+
+def goods_to_take(snap: PlayerSnapshot, templates: GameTemplates, template_id: int) -> list[tuple[int, int]]:
+    """(templateId, quantidade) que a entrega consome: de cada condição de bolsa, tudo que a mochila tem do item.
+    (visto) captura do replay #1609: a pilha do 2100001 foi de 10 para zero ao entregar a 90, cuja condição pede 8.
+    Uma observação só; se a regra for Para2, a captura contradiz."""
+    take: list[tuple[int, int]] = []
+    for cond in conditions(templates, template_id):
+        if int(cond["CondictionType"]) in GOODS_CONDITIONS:
+            tid = int(cond["Para1"])
+            take.append((tid, goods_count(snap, tid)))
+    return take
+
+
+def pay_quest_rewards(
+    snap: PlayerSnapshot, templates: GameTemplates, row: Row, goods: list[Item]
+) -> tuple[int, int]:
+    """Paga a recompensa da missão concluída, como a tela do cliente (TaskRewardViewII._rewardList): EXP (com o bônus
+    diário), ouro, RewardStrategy (ruh), RewardCrystal, RewardPlayerOffer e os itens (``goods``, já validados). Devolve
+    ``(EXP, RewardConsortiaOffer)``: quem chama credita a oferta da guilda se o jogador tiver guilda. RewardMoney,
+    RewardHeroGP e RewardDower não são pagos: a tela não mostra o primeiro (só a missão 1, expirada) e os outros dois
+    são 0 em todas as linhas."""
+    c = snap.character
+    gp = int(row.get("RewardPlayGP", 0))
+    if gp > 0 and row.get("TemplateType") == "1":  # bônus diário que a tela soma (TaskRewardViewII.as:207-209)
+        gp += (c.grades - int(row["NeedMinLevel"])) * 500
+    add_gp(snap, templates, gp)
+    c.gold += int(row.get("RewardGold", 0))
+    c.strategy += int(row.get("RewardStrategy", 0))
+    c.crystals += int(row.get("RewardCrystal", 0))
+    offer = int(row.get("RewardPlayerOffer", 0))
+    c.consortia_offer += offer
+    c.consortia_total_offer += offer
+    for item in goods:
+        item.pos = free_bag_pos(snap)
+        snap.items.append(item)
+    return gp, int(row.get("RewardConsortiaOffer", 0))
+
+
+def novice_step_ok(current: int, new: int) -> bool:
+    """(cliente) ``sendSaveProcess`` só manda múltiplos de 100 e sempre para a frente. Aceita um passo plausível
+    (até ``NOVICE_STEP_MAX``); de noviceProcess 0 (conta nova) o primeiro passo vai até ``NOVICE_FIRST_MAX``."""
+    if new <= current or new % 100:
+        return False
+    return new <= (NOVICE_FIRST_MAX if current == 0 else current + NOVICE_STEP_MAX)
 
 
 def talk_nodes(templates: GameTemplates, template_id: int) -> list[int]:
