@@ -44,15 +44,26 @@ class RobotName:
         return f"{self.prefix}{self.name}{self.suffix}"
 
 
+@dataclass(frozen=True, slots=True)
+class MonsterTemplate:
+    """Monstro dos Wilds (``MapPhysicsTempInfos`` ``MasterType`` 21): a unidade da luta (pawn do normal ou herói
+    da elite e do chefe) e o ``fightCapaity`` do 4129."""
+
+    template_id: int
+    pawn_id: int
+    hero_id: int
+    fight_capacity: int
+
+
 @dataclass(frozen=True)
 class World:
     mines: tuple[Mine, ...] = ()
     mine_guards: Mapping[int, int] = field(default_factory=lambda: MappingProxyType({}))  # nível -> PawnTempInfos
     robots: tuple[RobotCastle, ...] = ()
     robot_names: tuple[RobotName, ...] = ()
-    # mapa -> {bossType: quantos por ciclo}; template -> fightCapaity
+    # mapa -> {bossType: quantos por ciclo}
     monster_counts: Mapping[int, Mapping[int, int]] = field(default_factory=lambda: MappingProxyType({}))
-    monster_power: Mapping[int, int] = field(default_factory=lambda: MappingProxyType({}))
+    monsters: Mapping[int, MonsterTemplate] = field(default_factory=lambda: MappingProxyType({}))
 
     def mines_on(self, map_id: int) -> list[Mine]:
         return [m for m in self.mines if m.map_id == map_id]

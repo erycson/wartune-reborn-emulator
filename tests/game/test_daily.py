@@ -23,6 +23,7 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
         top = energy_max(g.server.services.templates)
         c.weary, c.weary_potions, castle.energy = 50, 120, 100
         c.grades, c.seminary_effect = 41, 180  # roda da bênção aberta, girada hoje
+        c.kills_normal, c.kills_boss = 5, 1  # abates de monstros dos Wilds de hoje
 
         g.client.send(20008)
         assert codes(await g.idle()) == [4234]  # mesmo dia: só o relógio
@@ -42,6 +43,7 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
         assert saved.castle is not None
         assert (saved.character.weary, saved.character.weary_potions, saved.castle.energy) == (150, 0, top)
         assert saved.character.reset_day == "2026-01-02"
+        assert (saved.character.kills_normal, saved.character.kills_boss) == (0, 0)
 
 
 async def test_dias_fora_somam_stamina_ate_o_maximo_e_nao_cortam_o_excesso(tmp_path: Path) -> None:

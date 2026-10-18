@@ -250,7 +250,7 @@ ENEMY_HERO = 7  # livingId da captura do coliseu (#6)
 PLAYER_LIVING, PLAYER_POS = 3, 6
 
 
-def _npc_hero(**fields: Any) -> dict[str, Any]:
+def npc_hero(**fields: Any) -> dict[str, Any]:
     """Herói do lado 2 como NPC: ``type 2``, ``userId 0`` (captura do coliseu #6)."""
     base: dict[str, Any] = {
         "heroId": ROBOT_BASE,
@@ -305,7 +305,7 @@ def robot_spec(
     11 ao 30). Voltar com os soldados quando o exército do jogador entrar na batalha."""
     row = templates.get("GameHeroTemp", robot.hero_template) or {}
     hp = max(1, int(player_hp * ROBOT_HP))
-    hero = _npc_hero(
+    hero = npc_hero(
         tempId=robot.hero_template,
         nickName=robot.name,
         grade=int(row.get("Grades", robot.grade)),
@@ -325,7 +325,7 @@ def copy_hero(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, Any]:
     stats = rules.leader_stats(snap, templates)
     magic = rules.job_type(snap.character.job) == 3
     tpl = templates.get("GameHeroTemp", leader.template_id) or {}
-    return _npc_hero(
+    return npc_hero(
         tempId=leader.template_id,
         nickName=leader.nickname,
         grade=leader.grades,

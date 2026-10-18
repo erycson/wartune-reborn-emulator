@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import Item, Pawn, PlayerSnapshot, Quest, WildLand
+from wartune_server.domain.models import Item, Pawn, PlayerSnapshot, Quest, WildLand, WildMonsterKill
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import castle as castle_mod
@@ -382,7 +382,9 @@ async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
         g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=castle.map_id, reqGrid="1_1"))
         page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
         assert [c.id for c in page.baseCastle] == [castle.id, 765957]
-        assert page.baseCastle[1].occupyPlayerName != robo.occupyPlayerName  # os dois robôs da conta têm nomes distintos
+        assert (
+            page.baseCastle[1].occupyPlayerName != robo.occupyPlayerName
+        )  # os dois robôs da conta têm nomes distintos
 
         g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=1, reqGrid="0_0"))  # mapa 1: não é a instância do jogador
         page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
@@ -527,7 +529,31 @@ async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
         assert [(r.id, r.x, r.y, r.grade) for r in world.robots] == [(765958, 44, 22, 8), (765957, 59, 56, 8)]
         assert [str(n) for n in world.robot_names] == ["♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"]
         assert dict(world.monster_counts[2]) == {1: 40, 2: 20, 3: 5} and 100 not in world.monster_counts
-        assert dict(world.monster_power) == {210127: 746796}
+        assert world.monsters[210127].fight_capacity == 746796 and world.monsters[210101].fight_capacity == 0
+
+
+async def test_unidade_de_cada_monstro_bate_com_o_tempinfos(tmp_path: Path) -> None:
+    """world_monsters (0029): todo monstro (MasterType 21) tem uma unidade com o mesmo nome e nível; o normal
+    é pawn, a elite e o chefe são herói (com AddName de elite ou BOSS)."""
+    async with logged_in(tmp_path, novice=22500) as g:
+        templates, world = g.server.services.templates, g.server.services.world
+        rows = list(templates.find("MapPhysicsTempInfos", MasterType="21"))
+        assert len(rows) == 30 == len(world.monsters)
+        for row in rows:
+            unit = world.monsters[int(row["TemplateId"])]
+            if row["Property1"] == "1":
+                pawn = templates.get("PawnTempInfos", unit.pawn_id)
+                assert unit.hero_id == 0 and (pawn["PawnName"], pawn["Level"]) == (
+                    row["MapPhysicsTempName"],
+                    row["Grades"],
+                )
+            else:
+                hero = templates.get("GameHeroTemp", unit.hero_id)
+                assert unit.pawn_id == 0 and (hero["TemplateName"], hero["Grades"]) == (
+                    row["MapPhysicsTempName"],
+                    row["Grades"],
+                )
+                assert hero["AddName"] == "Elite" or hero["AddName"].startswith("BOSS")
 
 
 async def test_ocupacao_sem_nivel_gravado_e_completada_no_login(tmp_path: Path) -> None:
@@ -624,3 +650,80 @@ async def test_divine_light_tira_a_nevoa_por_20_segundos(tmp_path: Path) -> None
         clock.advance(20)
         g.client.send(9525, pb.MapBossQuestMsg(mapId=snap.castle.map_id))
         assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).leftFogTime == 0
+
+
+async def test_luta_com_monstro_normal_abate_e_conta_no_dia(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """5160 num monstro normal do mapa 2: 140 em luta (state 4), 157 battleType 2 com o pawn dele; a vitória
+    grava o abate do ciclo, tira o monstro (140 state 0), conta no dia (4938 count1) e o próximo 5160 recusa."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        templates, world = g.server.services.templates, g.server.services.world
+        found = monsters.on_map(world, templates, 2, clock.now())
+        m = min((x for x in found if x.boss_type == 1), key=lambda x: monsters.level(templates, x))
+        assert monsters.level(templates, m) == 10
+        snap.character.grades = 20  # 10 abaixo: ainda conta (help: 15 abaixo não conta)
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
+        await g.until(169)
+
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=m.x, posY=m.y))
+        got = await g.until(157)
+        assert [p.code for p in got] == [140, 140, 140, 157]
+        assert pb.MapUpdatedMsg.FromString(got[2].body).wildLand.state == monsters.MONSTER_FIGHTING
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        enemy = prepare.soldiers[-1]
+        assert prepare.battleType == 2 and (enemy.tempId, enemy.side, enemy.hp) == (6992, 2, 350)
+
+        got = await g.fight(prepare)
+        got += await g.idle()
+        assert pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body).battleResult == 1
+        gone = [pb.MapUpdatedMsg.FromString(p.body).wildLand for p in got if p.code == 140]
+        assert (gone[-1].id, gone[-1].state) == (m.id, monsters.MONSTER_GONE)
+        info = pb.MapBossMsg.FromString(next(p for p in got if p.code == 4938).body)
+        assert (info.count1, info.count2, info.count3) == (1, 0, 0)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved.character.kills_normal == 1
+
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
+        page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
+        assert m.id not in [w.id for w in page.wildLand]
+        await g.until(169)
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=m.x, posY=m.y))
+        assert [p.code for p in await g.idle()] == [140]  # abatido no ciclo: só para
+
+        clock.advance(2 * 3600)  # ciclo novo: o mesmo id é outro monstro, vivo
+        again = next(x for x in monsters.on_map(world, templates, 2, clock.now()) if x.id == m.id)
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(again.x, again.y)))
+        page = pb.PhysicListUpdateMsg.FromString((await g.until(4129))[-1].body)
+        assert m.id in [w.id for w in page.wildLand if w.type == 21]
+
+
+async def test_chefe_abatido_fica_no_painel_como_morto(tmp_path: Path) -> None:
+    """bosslist: o chefe abatido no ciclo vem com type 0 ("(Killed)", language bossStatus0)."""
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        templates, world = g.server.services.templates, g.server.services.world
+        chief = next(x for x in monsters.on_map(world, templates, 2, clock.now()) if x.boss_type == monsters.CHIEF)
+        kill = WildMonsterKill(2, chief.id, chief.born, g.user_id, clock.now())
+        await g.server.services.characters.write(lambda uow: uow.wild_kills.add(kill))
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
+        msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
+        assert [b.type for b in msg.bosslist] == [0, 1, 1, 1, 1]
+
+
+def test_quinze_niveis_abaixo_nao_conta_e_o_limite_do_dia() -> None:
+    """count_kill: 15 níveis abaixo não conta; o limite vem do WorldMapKill (5,3,1)."""
+    from wartune_server.domain.models import Character
+    from wartune_server.templates.repository import GameTemplates
+
+    templates = GameTemplates({"MapPhysicsTempInfos": [{"TemplateId": "210103", "Grades": "10"}],
+                               "ConfigInfos": []})  # fmt: skip
+    chief = monsters.Monster(1, 2, 210103, 3, 50, 50, datetime(2026, 5, 21, tzinfo=UTC))
+    c = Character(account_id=1, server_id=1, created_at=datetime(2026, 5, 21, tzinfo=UTC))
+    c.grades = 25
+    assert not monsters.count_kill(c, templates, chief) and c.kills_boss == 0
+    c.grades = 24
+    assert monsters.count_kill(c, templates, chief) and c.kills_boss == 1
+    assert not monsters.count_kill(c, templates, chief) and c.kills_boss == 1  # limite 1 por dia

@@ -69,6 +69,7 @@ from ..domain.models import (
     Star,
     TreasureMap,
     WildLand,
+    WildMonsterKill,
 )
 
 NAMING = {
@@ -227,8 +228,9 @@ characters = Table(
     _str("multi_copy_day", 10),
     _str("reset_day", 10),
     _int("weary_potions"),
-    _int("fog_map"),  # mapa sem névoa até fog_until (Divine Light): game/monsters.py
-    Column("fog_until", UTCDateTime),
+    _int("kills_normal"),  # monstros dos Wilds abatidos no dia que contaram (MapBossMsg.count1-3)
+    _int("kills_elite"),
+    _int("kills_boss"),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )
@@ -655,11 +657,23 @@ world_monster_counts = Table(
     Column("boss_type", Integer, primary_key=True, autoincrement=False),
     _int("quantity"),
 )
-world_monster_power = Table(
-    "world_monster_power",
+world_monsters = Table(
+    "world_monsters",
     metadata,
     Column("template_id", Integer, primary_key=True, autoincrement=False),  # MapPhysicsTempInfos MasterType 21
+    _int("pawn_id"),  # unidade da luta do normal (PawnTempInfos)
+    _int("hero_id"),  # ou da elite e do chefe (GameHeroTemp)
     _int("fight_capacity"),  # WildLandMsg.fightCapaity
+)
+# abates do ciclo (0029): o id do monstro se repete a cada ciclo, então a chave leva o começo do ciclo
+wild_monster_kills = Table(
+    "wild_monster_kills",
+    metadata,
+    Column("map_id", Integer, primary_key=True, autoincrement=False),
+    Column("monster_id", Integer, primary_key=True, autoincrement=False),
+    Column("cycle_at", UTCDateTime, primary_key=True),
+    _int("character_id"),
+    Column("killed_at", UTCDateTime, nullable=False),
 )
 
 arenas = Table(
@@ -929,6 +943,7 @@ def map_entities() -> None:
         (Arena, arenas),
         (TreasureMap, treasure_maps),
         (WildLand, wild_lands),
+        (WildMonsterKill, wild_monster_kills),
         (ArenaRank, arena_ranks),
         (ChallengeLog, challenge_logs),
         (Consortia, consortias),

@@ -1,8 +1,8 @@
 """Virada do dia do jogo (5h, ``domain/gameday``) do que o cliente reinicia de uma vez (4202 ``DataResetMsg``):
-energia de teleporte cheia, +100 de stamina por dia (até o máximo), as poções do dia zeradas e a bênção
-de volta a 10%, além dos contadores da arena. Roda no login e no 20008 (o cliente manda a cada ~60 s),
-então quem fica online também vira às 5h, e quem volta depois de dias recebe a stamina de cada dia que
-passou."""
+energia de teleporte cheia, +100 de stamina por dia (até o máximo), as poções do dia zeradas, a bênção
+de volta a 10% e os abates de monstros dos Wilds zerados, além dos contadores da arena. Roda no login e no
+20008 (o cliente manda a cada ~60 s), então quem fica online também vira às 5h, e quem volta depois de
+dias recebe a stamina de cada dia que passou."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ def roll(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[
     c, changed = snap.character, list[object]()
     if days := gameday.days_between(c.reset_day, now):
         c.reset_day, c.weary_potions = gameday.today(now), 0
+        c.kills_normal = c.kills_elite = c.kills_boss = 0  # monstros dos Wilds: "reset at 5 a.m." (help)
         c.weary = max(c.weary, min(c.weary_limit, c.weary + WEARY_DAILY * days))
         if c.grades >= BLESS_LEVEL:
             c.seminary_effect = BLESS_BASE

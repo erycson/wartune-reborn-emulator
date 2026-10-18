@@ -12,8 +12,11 @@ from __future__ import annotations
 
 import asyncio
 import math
+from datetime import datetime
 
-from ...domain.models import Castle
+from sqlalchemy.exc import IntegrityError
+
+from ...domain.models import Castle, WildMonsterKill
 from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
@@ -103,11 +106,37 @@ async def refresh(s: GameSession) -> None:
     await s.ctx.characters.save(snap.character, snap.castle)
 
 
-@router.on(9525)
-async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
+async def _killed(s: GameSession, map_id: int, now: datetime) -> set[int]:
+    """Ids dos monstros do mapa já abatidos neste ciclo (por qualquer jogador)."""
+    cycle = monsters.cycle_start(s.ctx.templates, now)
+    return await s.ctx.characters.read(lambda uow: uow.wild_kills.in_cycle(map_id, cycle))
+
+
+async def _boss_info(s: GameSession, map_id: int) -> None:
     assert s.snapshot is not None
     now = s.ctx.clock.now()
-    s.send(S_MAP_BOSS, bosses.boss_msg(s.ctx.world, s.ctx.templates, s.snapshot.character, msg.mapId, now))
+    killed = await _killed(s, map_id, now)
+    ctx = s.ctx
+    s.send(S_MAP_BOSS, bosses.boss_msg(ctx.world, ctx.templates, ctx.wilds, s.snapshot.character, map_id, killed, now))
+
+
+@router.on(9525)
+async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
+    await _boss_info(s, msg.mapId)
+
+
+def viewers(s: GameSession, map_id: int) -> list[GameSession]:
+    """Sessões online cujo último 8201 com monstros foi neste mapa (quem vê os monstros dele)."""
+    return [o for o in s.ctx.online.sessions() if o.outer_view is not None and o.outer_view[0] == map_id]
+
+
+def _monster_sync(s: GameSession, m: monsters.Monster, state: int) -> None:
+    """140 do monstro (state 4 em luta, 0 abatido, 1 de volta) a quem vê a grade dele."""
+    land = monsters.monster_msg(s.ctx.world, s.ctx.templates, m, state)
+    for other in viewers(s, m.map_id):
+        assert other.outer_view is not None
+        if oc.grid_of(m.x, m.y) in other.outer_view[1]:
+            other.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
 
 
 @router.on(5004)
@@ -162,9 +191,11 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     now = s.ctx.clock.now()
     if found := monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now):
         s.outer_view = (msg.mapId, grids, monsters.cycle_start(s.ctx.templates, now))
-    for m in found:
-        if oc.grid_of(m.x, m.y) in grids:  # (visto) transfer #14: no meio das terras, antes dos castelos
-            reply.wildLand.append(monsters.monster_msg(s.ctx.world, s.ctx.templates, m))
+        killed = await _killed(s, msg.mapId, now)
+        for m in found:
+            # (visto) transfer #14: no meio das terras, antes dos castelos
+            if oc.grid_of(m.x, m.y) in grids and (state := s.ctx.wilds.state(m, killed)) != monsters.MONSTER_GONE:
+                reply.wildLand.append(monsters.monster_msg(s.ctx.world, s.ctx.templates, m, state))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
     # (visto) cevre #11: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
@@ -188,11 +219,10 @@ def roll_monsters(s: GameSession) -> None:
     if start == cycle:
         return
     s.outer_view = (map_id, grids, start)
-    for when, state in ((cycle, 0), (now, monsters.MONSTER_ALIVE)):
+    for when, state in ((cycle, monsters.MONSTER_GONE), (now, monsters.MONSTER_ALIVE)):
         for m in monsters.on_map(world, templates, map_id, when):
             if oc.grid_of(m.x, m.y) in grids:
-                land = monsters.monster_msg(world, templates, m)
-                land.state = state
+                land = monsters.monster_msg(world, templates, m, state)
                 s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
 
 
@@ -264,7 +294,8 @@ def _army_sync(s: GameSession, state: int) -> None:
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (replay #713-#795): 140 do
     exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô: luta (ver ``_attack_robot``).
-    Mina já ocupada, castelo de outro jogador, terra ou tesouro: o exército só para (140 parado)."""
+    Monstro dos Wilds: luta (ver ``_attack_monster``). Mina já ocupada, castelo de outro jogador, terra ou
+    tesouro: o exército só para (140 parado)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     await refresh(s)
@@ -272,6 +303,10 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     robot = robots.robot_at(snap, s.ctx.world, msg.mapId, msg.posX, msg.posY)
     if robot is not None:
         _attack_robot(s, robot)
+        return
+    found = monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now())
+    if (monster := monsters.at(found, msg.posX, msg.posY)) is not None:
+        await _attack_monster(s, monster)
         return
     mine = mines.mine_at(s.ctx.world, msg.mapId, msg.posX, msg.posY)
     if mine is None or mines.occupied(snap, mine) is not None or s.battle is not None:
@@ -323,6 +358,60 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     _mine_sync(s, mine, mines.MINE_FREE)
     map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # replay #749
+
+
+async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
+    """Luta com monstro dos Wilds (battleType 2). Recusa com 140 parado se já há luta, se o monstro já foi
+    abatido no ciclo ou se o catálogo não tem a unidade dele. O 140 dele vai em state 4 a quem vê a grade."""
+    snap = s.snapshot
+    assert snap is not None
+    killed = await _killed(s, m.map_id, s.ctx.clock.now())
+    spec = monsters.battle(snap, s.ctx.world, s.ctx.templates, m)
+    if s.battle is not None or m.id in killed or spec is None:  # s.battle de novo: houve await
+        s.log.info("5160 monstro recusado", monstro=m.id, template=m.template_id, abatido=m.id in killed)
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
+        return
+    s.ctx.wilds.fighting.add((m.map_id, m.id))
+    _army_sync(s, ARMY_FIGHTING)
+    _monster_sync(s, m, monsters.MONSTER_FIGHTING)
+
+    async def finished(battle: Battle, won: bool) -> None:
+        await _monster_over(s, battle, m, won)
+
+    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.log.info("batalha com monstro", monstro=m.id, template=m.template_id, battle=s.battle.id)
+    s.battle.start()
+
+
+async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won: bool) -> None:
+    """Fim da luta com monstro, na ordem da luta da mina: 150, 4103, 150, 100 e 140 do exército. Vencendo,
+    o abate vai para o banco (o primeiro a terminar leva; a chave repete em quem chega depois) e conta no
+    limite do dia (``monsters.count_kill``); o monstro sai do mapa para quem vê (140 state 0) e o 4938 vem com
+    os contadores novos. Perdendo, ele volta a state 1. ponytail: prêmio 0, sem fonte."""
+    snap = s.snapshot
+    assert snap is not None
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
+    s.ctx.wilds.fighting.discard((m.map_id, m.id))
+    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
+    report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    s.send(S_REPORT, report)
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
+    _army_sync(s, ARMY_IDLE)
+    gone = won and monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: já sumiu
+    if gone:
+        kill = WildMonsterKill(m.map_id, m.id, m.born, snap.character.id or 0, now)
+        try:
+            await s.ctx.characters.write(lambda uow: uow.wild_kills.add(kill))
+        except IntegrityError:
+            s.log.info("monstro já abatido por outro", monstro=m.id)
+        else:
+            if monsters.count_kill(snap.character, templates, m):
+                await s.ctx.characters.save(snap.character)
+    _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
+    await _boss_info(s, m.map_id)
 
 
 def _attack_robot(s: GameSession, robot: RobotCastle) -> None:

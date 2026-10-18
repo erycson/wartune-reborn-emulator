@@ -111,8 +111,9 @@ Mina ocupada por personagem: `wild_id` (`world_mines.id`), `occupied_at` e, desd
 ### Catálogo do mundo (0027, 0028)
 `world_mines`, `world_mine_guards`, `world_robots`, `world_robot_names`, `world_monster_counts` e
 `world_monster_power`: o que existe em cada mapa, com semente das capturas (a 0028 apaga o `map_boss_spawns`
-da 0027: os chefes saem do sorteio dos monstros). `characters.fog_map`/`fog_until`: névoa tirada pela Divine
-Light. Lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
+da 0027: os chefes saem do sorteio dos monstros; a 0029 troca o `world_monster_power` por `world_monsters`, com a
+unidade da luta de cada monstro). `wild_monster_kills`: abates do ciclo (mapa, monstro, começo do ciclo), de
+todos os jogadores. `characters.kills_normal`/`kills_elite`/`kills_boss`: abates do dia que contaram. Lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
 Detalhes em [cidade-externa.md](cidade-externa.md).
 
 ## Transações

@@ -39,6 +39,7 @@ from .models import (
     Relation,
     SnsProfile,
     Star,
+    WildMonsterKill,
 )
 
 
@@ -160,6 +161,11 @@ class EventStateRepository(Protocol):
     async def by_character(self, character_id: int) -> list[EventState]: ...
 
 
+class WildKillRepository(Protocol):
+    async def in_cycle(self, map_id: int, cycle_at: datetime) -> set[int]: ...
+    async def add(self, kill: WildMonsterKill) -> None: ...
+
+
 class OwnedRepository[T](Protocol):
     """Entidades que só pertencem a um personagem (tropas, estrelas, pets...)."""
 
@@ -216,6 +222,8 @@ class UnitOfWork(Protocol):
     def lands(self) -> FarmLandRepository: ...
     @property
     def events(self) -> EventStateRepository: ...
+    @property
+    def wild_kills(self) -> WildKillRepository: ...
     @property
     def pawns(self) -> OwnedRepository[Pawn]: ...
     @property

@@ -6,7 +6,7 @@ from datetime import datetime
 from types import TracebackType
 from typing import Any, Self
 
-from sqlalchemy import exists, func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..domain.models import (
@@ -42,6 +42,7 @@ from ..domain.models import (
     Relation,
     SnsProfile,
     Star,
+    WildMonsterKill,
 )
 
 
@@ -374,6 +375,21 @@ class SqlEventStateRepository(_Repo):
         return list(await self._s.scalars(query))
 
 
+class SqlWildKillRepository(_Repo):
+    """Abates de monstros dos Wilds (de todos os jogadores) no ciclo."""
+
+    async def in_cycle(self, map_id: int, cycle_at: datetime) -> set[int]:
+        k: Any = WildMonsterKill
+        return set(await self._s.scalars(select(k.monster_id).where(k.map_id == map_id, k.cycle_at == cycle_at)))
+
+    async def add(self, kill: WildMonsterKill) -> None:
+        """Grava o abate e apaga os de ciclos anteriores do mapa (não servem mais). Repetido: IntegrityError."""
+        k: Any = WildMonsterKill
+        await self._s.execute(delete(k).where(k.map_id == kill.map_id, k.cycle_at < kill.cycle_at))
+        self._s.add(kill)
+        await self._s.flush()
+
+
 class SqlOwnedRepository[T]:
     def __init__(self, session: AsyncSession, entity: type[T]) -> None:
         self._s, self._entity = session, entity
@@ -409,6 +425,7 @@ class SqlAlchemyUnitOfWork:
         self.orders = SqlBuildOrderRepository(self._session)
         self.lands = SqlFarmLandRepository(self._session)
         self.events = SqlEventStateRepository(self._session)
+        self.wild_kills = SqlWildKillRepository(self._session)
         self.pawns = SqlOwnedRepository(self._session, Pawn)
         self.stars = SqlOwnedRepository(self._session, Star)
         self.pets = SqlOwnedRepository(self._session, Pet)

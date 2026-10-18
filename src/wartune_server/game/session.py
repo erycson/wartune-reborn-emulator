@@ -22,6 +22,7 @@ from ..templates.repository import GameTemplates
 from . import timebox
 from .events import EventCatalog
 from .guild import Guilds
+from .monsters import Wilds
 from .rooms import Rooms
 from .router import PacketRouter
 from .teams import Teams
@@ -52,6 +53,7 @@ class GameContext:
     rooms: Rooms = field(default_factory=Rooms)  # salas de campanha em grupo (PvE)
     teams: Teams = field(default_factory=Teams)  # times livres (convite de amigos, até 4)
     world: World = World()  # catálogo do mundo (minas, robôs, chefes), do banco
+    wilds: Wilds = field(default_factory=Wilds)  # névoa e monstros em luta (game/monsters.py)
 
 
 class OnlinePlayers:

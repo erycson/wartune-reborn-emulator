@@ -158,8 +158,10 @@ class Character:
     multi_copy_day: str = ""  # "YYYY-MM-DD"
     reset_day: str = ""  # último dia do jogo já virado (energia, stamina): game/daily.py
     weary_potions: int = 0  # stamina tomada em poções no dia (PlayerMsg.wearyLimit; teto 300)
-    fog_map: int = 0  # mapa onde a Divine Light tirou a névoa, até fog_until
-    fog_until: datetime | None = None
+    # monstros dos Wilds abatidos no dia que contaram para o prêmio (MapBossMsg.count1-3; zera no daily.roll)
+    kills_normal: int = 0
+    kills_elite: int = 0
+    kills_boss: int = 0
 
     @property
     def icon(self) -> int:
@@ -637,6 +639,17 @@ class WildLand:
     template_id: int = 0  # nível sorteado no ciclo da ocupação (MapPhysicsTempInfos)
     pos_x: int = 0
     pos_y: int = 0
+
+
+@dataclass(eq=False)
+class WildMonsterKill:
+    """Monstro dos Wilds abatido no ciclo (``game/monsters.py``): some do mapa para todos até o refresh."""
+
+    map_id: int
+    monster_id: int
+    cycle_at: datetime
+    character_id: int
+    killed_at: datetime
 
 
 @dataclass(eq=False)

@@ -8,12 +8,12 @@ from types import MappingProxyType
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from ..domain.world import Mine, RobotCastle, RobotName, World
+from ..domain.world import Mine, MonsterTemplate, RobotCastle, RobotName, World
 from .schema import (
     world_mine_guards,
     world_mines,
     world_monster_counts,
-    world_monster_power,
+    world_monsters,
     world_robot_names,
     world_robots,
 )
@@ -28,12 +28,17 @@ async def load(engine: AsyncEngine) -> World:
         counts: defaultdict[int, dict[int, int]] = defaultdict(dict)
         for r in await conn.execute(select(world_monster_counts)):
             counts[r.map_id][r.boss_type] = r.quantity
-        power = await conn.execute(select(world_monster_power))
+        monsters = await conn.execute(select(world_monsters))
         return World(
             mines=tuple(Mine(r.id, r.map_id, r.pos_x, r.pos_y, r.min_level, r.max_level) for r in mines),
             mine_guards=MappingProxyType({r.level: r.pawn_id for r in guards}),
             robots=tuple(RobotCastle(r.id, r.map_id, r.pos_x, r.pos_y, r.grade) for r in robots),
             robot_names=tuple(RobotName(r.name, r.prefix, r.suffix) for r in names),
             monster_counts=MappingProxyType({m: MappingProxyType(c) for m, c in counts.items()}),
-            monster_power=MappingProxyType({r.template_id: r.fight_capacity for r in power}),
+            monsters=MappingProxyType(
+                {
+                    r.template_id: MonsterTemplate(r.template_id, r.pawn_id, r.hero_id, r.fight_capacity)
+                    for r in monsters
+                }
+            ),
         )

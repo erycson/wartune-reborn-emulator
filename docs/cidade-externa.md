@@ -169,13 +169,16 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   transfer tem 5 monstros, todos de `Property1` 3 (210106, 210124, 210129 ×2, 210120), `type` 1, e o 210127
   (`bossType` 2) do 4129 da mesma sessão fica de fora: o painel é a lista dos chefes. x e y em tiles (o radar
   faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (cevre): ela não está em
-  `world_monster_counts`.
-- **Divine Light** (item 2131055, `SonType` 316, pelo 5006): gasta um e manda o 4939 (`MapBossMsg` só com
-  `leftFogTime` 20); o 4938 do mapa do castelo leva o que sobra (`characters.fog_map` e `fog_until`). Os 20 s
+  `world_monster_counts`. O chefe abatido no ciclo fica na lista com `type` 0 e o em luta com 4 (language
+  `bossinfo.bossStatus0` "(Killed)", `bossStatus4` "(In battle)").
+- **Contadores** (`count1-3`): abates do dia que contaram, por tipo (`characters.kills_normal`, `kills_elite`,
+  `kills_boss`; zeram no `daily.roll` das 5h). O cliente mostra "{0}/{1}" com o `WorldMapKill` (5,3,1).
+- **Divine Light** (item 2131055, `SonType` 316, pelo 5006): gasta um e tira a névoa do mapa do castelo para
+  todos (help: "anyone" que usar limpa a névoa): 4939 (`MapBossMsg` só com `leftFogTime` 20) a quem vê o mapa,
+  e o 4938 do mapa leva o que sobra. Fica só no processo (`monsters.Wilds`): são 20 s. Os 20 s
   só estão na descrição do item ("Can be used to disperse the Wilds’ dark fog for 20 seconds."). O cliente
   tira a névoa com `leftFogTime` > 0 e a põe de volta quando a contagem dele zera (`OuterCityManager`).
-- **Não feito**: a luta com monstro e chefe (5160 num monstro segue parado; ver abaixo), então `count1` a
-  `count3` (abates do dia; o máximo é `WorldMapKill` 5,3,1) ficam 0, e as caixas (4940/9526).
+- **Não feito**: as caixas (4940/9526) e o prêmio (abaixo).
 
 ## Monstros dos Wilds (4129 type 21, `game/monsters.py`)
 
@@ -194,12 +197,29 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   monstros velhos e 140 com os novos (`handlers/outer_city.roll_monsters`).
 - **Dedução**: 40 normais, 20 elites e 5 chefes em cada mapa de 1 a 5. Só os 5 chefes do mapa 2 foram vistos;
   o resto segue a proporção de `WorldMapKill` (5,3,1). Nada na Internet sobre isso. `fightCapaity` só do
-  210127 (`world_monster_power`); os outros vão 0. O tile não checa terreno (o .maps não traz a área andável).
-- **Luta** *(parado)*: o `SonType` do template é o avatar do cliente (2108, 2179...), não unidade de batalha:
-  só 2401, 2143, 2151, 2402 e 2124 batem com um `PawnTempInfos` (`MasterType` 101), e com outro nome
-  ("Lanetli Mızrak" para o "Boğa Başlılar Reisi"). Não há HP nem tropas do monstro em nenhuma fonte, então a
-  157 não sai sem inventar a unidade. Precisa de captura de uma luta com monstro do mapa (battleType 2,
-  `NPC_WILDLAND_BATTLE`); com ela vêm o abate (state 4/0 no 140, `count1-3`), a regra dos 15 níveis e o baú.
+  210127 (`world_monsters`); os outros vão 0. O tile não checa terreno (o .maps não traz a área andável).
+- **Unidade** *(visto no tempinfos, pelo nome)*: o `SonType` é o avatar e não liga a nada; a ligação é o nome
+  com o mesmo nível. Normais: `PawnTempInfos` 6992-6999 ("Tauren Gladiator" nível 10 ... "Void Cavalry" 80).
+  Elites e chefes: `GameHeroTemp` 2978-2999, na ordem dos templates, com `AddName` "Elite" ou "BOSS· ...". O
+  nome sozinho é ambíguo ("Red Claw" nível 20 tem 4 pawns), então o vínculo está em `world_monsters` (0029),
+  com um teste que confere nome e nível de cada linha.
+- **Luta** (5160 no tile do monstro; `_attack_monster`): battleType 2 (`NPC_WILDLAND_BATTLE`, cliente), as
+  tropas e o herói do jogador como na mina, o normal como uma pilha do pawn (vida de um soldado, como o guarda)
+  e a elite e o chefe como herói NPC com o `Live` do template. *(dedução)* posições, `mapTempId` = o mapa e a
+  vida do normal. 140 do monstro em state 4 a quem vê a grade; recusa (140 parado) se já há luta, se ele já
+  foi abatido no ciclo ou sem unidade no catálogo. Fim na ordem da mina (150, 4103, 150, 100, 140); vencendo,
+  o abate vai para `wild_monster_kills` (chave mapa, monstro, começo do ciclo: o id se repete a cada ciclo;
+  quem termina depois de outro bate na chave e não conta), o 140 dele vai em state 0 a quem vê e o 4938 sai
+  com os contadores. Luta que cruza o refresh não abate: o monstro já é outro.
+- **Limite e 15 níveis** (help `map.outercity.view.helpFrame.helpContent`): o limite do dia é de prêmio ("kill
+  a certain number of monsters every day for rich rewards", reset às 5h), não de ataque; monstro 15 níveis
+  abaixo do jogador não dá prêmio nem gasta o limite (`monsters.count_kill`). Elite e BOSS "são para equipe".
+- **Simulação** (herói sem equipamento, 150 lanceiros 10101, modo automático): como no resto do PvE, o lado
+  do jogador não morre (`battle._act`), então ele sempre vence, mas demora. Nível 20: normal ~1,5 min,
+  elite ~14 min, chefe ~27 min. Nível 80: normal ~26 min, elite e chefe passam de 400 golpes (~40-50 min).
+  Com morte de verdade, perde todas em 2 a 5 golpes. Vida dos templates mantida (não é inventada).
+- **Não feito**: o prêmio (nenhuma fonte: nem tempinfos, nem captura, nem Internet; o `BattleReportMsg` sai
+  com 0), o baú (4940/9526), entrar numa luta já começada (state 4) e luta em equipe.
 - Internet: não achei fonte sobre os chefes do mapa externo (horário ou regra). O fuso do oficial inglês é o
   do Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html.
 

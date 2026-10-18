@@ -84,10 +84,9 @@ def energy_diamonds(castle: Castle, top: int, need: int) -> int:
     return math.ceil((top - castle.energy) / 5)
 
 
-def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> dict[str, object]:
-    """Spec da luta contra um guarda no mapa 100 (replay #718, a mina): battleType 1, as tropas do exército em
-    duas pilhas (pos 3 e 9), o herói na 4 e o guarda na 5. Vida da pilha = Live × soldados / 100. Serve também
-    ao castelo-robô (dedução: não há captura de luta com castelo; o guarda é o da mina do mesmo grau)."""
+def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[dict[str, object]], int]:
+    """As tropas do exército na luta da cidade externa (replay #718): duas pilhas (pos 3 e 9, livingId 1 e 2),
+    vida da pilha = Live × soldados / 100. Devolve as pilhas e o template da tropa (0 sem tropa)."""
     soldiers: list[dict[str, object]] = []
     pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
@@ -104,6 +103,14 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
                  "initHp": hp, "hp": hp, "qteTime": 0, "castTime": 4000,
                  "skillId": skills}
             )  # fmt: skip
+    return soldiers, pawn.template_id if soldiers and pawn else 0
+
+
+def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> dict[str, object]:
+    """Spec da luta contra um guarda no mapa 100 (replay #718, a mina): battleType 1, as tropas do exército
+    (``army_soldiers``), o herói na 4 e o guarda na 5 com a vida de um soldado (Live / 100). Serve também
+    ao castelo-robô (dedução: não há captura de luta com castelo; o guarda é o da mina do mesmo grau)."""
+    soldiers, pawn_tpl = army_soldiers(snap, templates)
     guard_row = templates.get("PawnTempInfos", guard) or {}
     hp = max(1, int(guard_row.get("Live", 100)) // 100)
     soldiers.append(
@@ -117,7 +124,7 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
         "battleScene": 4,
         "soldiers": soldiers,
         "heroes": [],
-        "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn.template_id if soldiers[:-1] and pawn else 0},
+        "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
     }
 
 

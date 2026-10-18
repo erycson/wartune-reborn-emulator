@@ -334,17 +334,21 @@ async def _use_blood(s: GameSession, item: Item, row: Row, n: int) -> bool:
 
 
 async def _use_divine_light(s: GameSession, item: Item, row: Row, n: int) -> bool:
-    """Divine Light (SonType 316): tira a névoa do mapa do castelo por ``FOG_SECONDS`` (um item por uso).
-    4939 = ``MapBossMsg`` só com ``leftFogTime`` (cliente); o 4938 do mapa leva o que sobra."""
+    """Divine Light (SonType 316): tira a névoa do mapa do castelo por ``FOG_SECONDS`` para todos (help: "when
+    anyone uses Divine Light the fog around is cleared"), um item por uso. 4939 = ``MapBossMsg`` só com
+    ``leftFogTime`` (cliente) a quem vê o mapa; o 4938 dele leva o que sobra. Só no processo: são 20 s."""
+    from .outer_city import viewers  # outer_city importa events, que importa player e este módulo
+
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    c, now = snap.character, s.ctx.clock.now()
+    map_id = snap.castle.map_id
     changed, gone = _consume(snap, item, 1)  # antes de qualquer await
-    c.fog_map, c.fog_until = snap.castle.map_id, now + timedelta(seconds=monsters.FOG_SECONDS)
-    await s.ctx.characters.save(c, *changed, delete=tuple(gone))
+    s.ctx.wilds.clear_fog(map_id, s.ctx.clock.now())
+    await s.ctx.characters.save(*changed, delete=tuple(gone))
 
     _send_items(s, changed, gone)
-    send(s, S_FOG, pb.MapBossMsg(leftFogTime=monsters.FOG_SECONDS))
+    for other in {s, *viewers(s, map_id)}:
+        send(other, S_FOG, pb.MapBossMsg(leftFogTime=monsters.FOG_SECONDS))
     return True
 
 
