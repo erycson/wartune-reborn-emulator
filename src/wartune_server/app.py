@@ -27,9 +27,18 @@ from .services.characters import CharacterService, GridCastlePlacement
 from .services.clock import Clock, SystemClock
 from .services.login import LoginService
 from .services.sessions import InMemoryLoginSessionStore
+from .templates import store as template_store
 from .templates.repository import GameTemplates
 
 log = structlog.get_logger(__name__)
+
+
+async def _templates(database: Database, settings: Settings) -> GameTemplates:
+    """Do banco quando importados (``templates import``); senão do arquivo, como num banco novo de teste."""
+    if await template_store.has_templates(database.engine):
+        return await template_store.load(database.engine)
+    log.warning("templates fora do banco: lendo o arquivo", arquivo=str(settings.templates_file))
+    return await GameTemplates.load(settings.templates_file)
 
 
 @dataclass
@@ -48,7 +57,7 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
     database = Database(settings.database_url, echo=settings.database_echo)
     await database.migrate()
     templates, keys = await asyncio.gather(
-        GameTemplates.load(settings.templates_file),
+        _templates(database, settings),
         asyncio.to_thread(LoginKeyPair.load_or_create, settings.rsa_key_file),
     )
     await _register_server(database, settings, keys, clock)

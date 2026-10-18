@@ -1,6 +1,7 @@
 """Mercado entre jogadores (8448-8457): anunciar, listas, lance, preço fixo, cancelar, busca e encerramento."""
 
 import asyncio
+import sqlite3
 import zlib
 from pathlib import Path
 
@@ -74,6 +75,12 @@ async def _mail_id(g: Game, title: str) -> int:
 async def _pick(g: Game, mail_id: int) -> list[bool]:
     g.client.send(5022, pb.MailMsg(mailsIdArray=[mail_id], position=[0]))
     return [r.result for r in last(await g.until(114), pb.MailPickupRspMsg).pickupResult]
+
+
+def _purchases(tmp_path: Path) -> list[tuple[int, str, int, int, int, str, int]]:
+    with sqlite3.connect(tmp_path / "game.db") as db:
+        sql = "SELECT character_id, source, good_id, template_id, count, currency, price FROM purchases"
+        return list(db.execute(sql))
 
 
 async def test_every_code_has_a_handler() -> None:
@@ -232,6 +239,7 @@ async def test_fixed_price_buy_mails_the_item_to_the_buyer_and_the_taxed_price_t
         assert last(got, pb.FixAuctionItemRspMsg).result == h.OK
         assert 115 not in [p.code for p in got]  # a mochila não muda: o item vai pelo correio
         assert me(b).character.point == 10
+        assert _purchases(tmp_path) == [(me(b).character.id, "mall", listing.id, HORN, 1, "Point", 50)]
         assert await _owned(b, HORN) == [(BagType.MAIL, 0, 1)]
         assert await _listings(a) == []
         assert await _pick(b, await _mail_id(b, "Satın alınan eşya")) == [True]
@@ -294,6 +302,7 @@ async def test_expired_auctions_settle_by_mail_even_for_an_offline_seller(tmp_pa
         await b.until(4354)
         assert await _listings(b) == []  # os dois anúncios venceram e foram encerrados na mesma transação
         assert await _owned(b, HORN) == [(BagType.MAIL, 0, 1)]  # o lance vencedor: item na caixa de correio
+        assert _purchases(tmp_path) == [(me(b).character.id, "mall_lance", win.id, HORN, 1, "Point", 15)]
 
         won = await _mail_id(b, "Kazanılan eşya")
         b.client.send(8206, pb.MailDelReqMsg(delList=[won]))  # item ainda não retirado: o correio não some

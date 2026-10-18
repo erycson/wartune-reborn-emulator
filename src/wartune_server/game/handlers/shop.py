@@ -14,7 +14,7 @@ from datetime import datetime
 
 from google.protobuf.message import Message
 
-from ...domain.models import CashLedger, Item, MysteryShop, PlayerSnapshot, ShopBuy
+from ...domain.models import CashLedger, Item, MysteryShop, PlayerSnapshot, Purchase, ShopBuy
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import Row
@@ -133,6 +133,20 @@ def count_buy(snap: PlayerSnapshot, good_id: int, count: int, now: datetime) -> 
     return rec
 
 
+def purchase(
+    snap: PlayerSnapshot,
+    source: str,
+    good_id: int,
+    template_id: int,
+    count: int,
+    currency: str,
+    total: int,
+    now: datetime,
+) -> Purchase:
+    """A linha de ``purchases`` da compra (gravada com o resto, na mesma transação)."""
+    return Purchase(snap.character.id or 0, source, good_id, template_id, count, currency, total, now)
+
+
 def send_charge(s: GameSession, paid: Charge) -> None:
     if paid.ledger is not None:
         _player(s)
@@ -176,7 +190,8 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     got = bag.add(snap, templates, tid, info.count, now)
     rec = count_buy(snap, info.goodId, info.count, now)
     extra = [paid.ledger] if paid.ledger else []
-    await s.ctx.characters.save(snap.character, *paid.changed, *got, rec, *extra, delete=tuple(paid.gone))
+    bought = purchase(snap, "shop", info.goodId, tid, info.count, column, unit * info.count, now)
+    await s.ctx.characters.save(snap.character, *paid.changed, *got, rec, *extra, bought, delete=tuple(paid.gone))
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
@@ -280,7 +295,10 @@ async def fast_use_blood(s: GameSession, msg: pb.ShopMsg) -> None:
     leader.blood += int(tpl.get("Property1") or 0) * info.count
     leader.blood_id = int(tpl["TemplateId"])
     extra = [paid.ledger] if paid.ledger else []
-    await s.ctx.characters.save(snap.character, leader, *paid.changed, *extra, delete=tuple(paid.gone))
+    cost = price(row) if row is not None else None
+    assert cost is not None  # cobrado acima: tem preço
+    record = purchase(snap, "blood", info.goodId, leader.blood_id, info.count, cost[0], cost[1] * info.count, now)
+    await s.ctx.characters.save(snap.character, leader, *paid.changed, *extra, record, delete=tuple(paid.gone))
 
     send_charge(s, paid)
     send_blood(s)
@@ -408,7 +426,10 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
     shop.bought = ",".join(map(str, [*bought, msg.index]))
     shop.buy_count += 1
     extra = [paid.ledger] if paid.ledger else []
-    await s.ctx.characters.save(snap.character, shop, *paid.changed, *got, *extra, delete=tuple(paid.gone))
+    cost = price(row)
+    assert cost is not None  # cobrado acima: tem preço
+    record = purchase(snap, "mystery", msg.itemId, tid, 1, cost[0], cost[1], now)
+    await s.ctx.characters.save(snap.character, shop, *paid.changed, *got, *extra, record, delete=tuple(paid.gone))
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))

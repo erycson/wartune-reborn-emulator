@@ -13,6 +13,7 @@
 | [batalha.md](batalha.md) | Batalha simulada no servidor: pacotes, relógio, turnos, dano |
 | [castelo.md](castelo.md) | Prédios, tecnologia, filas e aceleração, produção, cobrança de ouro, fazenda, árvore, caixa por tempo e offline |
 | [http.md](http.md) | Endpoints HTTP do jogo, portal PHP e CDN |
+| [templates.md](templates.md) | Templates do jogo (`tempinfos.xml`) no banco: tabelas, import/export, a subida e consultas |
 | [banco-de-dados.md](banco-de-dados.md) | Modelo de dados, várias contas em vários servidores, SQLite/MySQL/Postgres |
 | [configuracao.md](configuracao.md) | Variáveis de ambiente, logs e CLI |
 | [ferramentas.md](ferramentas.md) | Decompilação, geração do `.proto` e dos opcodes, exportação das capturas |

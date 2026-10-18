@@ -441,6 +441,23 @@ class CashLedger:
 
 
 @dataclass(eq=False)
+class Purchase:
+    """Uma compra: o que o jogador levou (``template_id``) e o que pagou, no preço do momento. ``good_id`` é a
+    linha de ``ShopTempInfos`` (loja) ou o anúncio (mercado); ``currency`` é a coluna de preço (``Point``,
+    ``GiftToken``, ``Gold``, moeda-item...)."""
+
+    character_id: int
+    source: str
+    good_id: int
+    template_id: int
+    count: int
+    currency: str
+    price: int
+    created_at: datetime
+    id: int | None = None
+
+
+@dataclass(eq=False)
 class ItemLog:
     character_id: int
     template_id: int
