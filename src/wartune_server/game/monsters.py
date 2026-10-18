@@ -29,6 +29,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from ..domain import gameday
 from ..domain.models import Character, PlayerSnapshot
@@ -39,6 +40,9 @@ from . import outer_city as oc
 from .arena import npc_hero
 from .events import config
 from .mines import game_date
+
+if TYPE_CHECKING:
+    from .battle import Battle
 
 MONSTER_TYPE = 21  # WildLandMsg.type e MapPhysicsTempInfos.MasterType
 MONSTER_ALIVE, MONSTER_FIGHTING, MONSTER_GONE = 1, 4, 0  # WildLandMsg.state e BossMsg.type (cliente)
@@ -131,10 +135,11 @@ def monster_msg(world: World, templates: GameTemplates, m: Monster, state: int =
 
 @dataclass
 class Wilds:
-    """O que vive só no processo: a névoa de cada mapa (20 s) e os monstros em luta (state 4)."""
+    """O que vive só no processo: a névoa de cada mapa (20 s) e os monstros em luta (state 4). A luta é
+    guardada com o ciclo (o id se repete) e só conta enquanto roda: a de uma sessão que caiu se desfaz sozinha."""
 
     fog: dict[int, datetime] = field(default_factory=dict)  # mapa -> fim da Divine Light
-    fighting: set[tuple[int, int]] = field(default_factory=set)  # (mapa, id do monstro)
+    fighting: dict[tuple[int, int, datetime], Battle] = field(default_factory=dict)  # (mapa, id, ciclo)
 
     def clear_fog(self, map_id: int, now: datetime) -> None:
         self.fog[map_id] = now + timedelta(seconds=FOG_SECONDS)
@@ -147,7 +152,8 @@ class Wilds:
     def state(self, m: Monster, killed: set[int]) -> int:
         if m.id in killed:
             return MONSTER_GONE
-        return MONSTER_FIGHTING if (m.map_id, m.id) in self.fighting else MONSTER_ALIVE
+        fight = self.fighting.get((m.map_id, m.id, m.born))
+        return MONSTER_FIGHTING if fight is not None and fight.running else MONSTER_ALIVE
 
 
 def at(monsters: list[Monster], x: int, y: int) -> Monster | None:

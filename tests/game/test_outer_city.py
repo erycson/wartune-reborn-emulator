@@ -727,3 +727,20 @@ def test_quinze_niveis_abaixo_nao_conta_e_o_limite_do_dia() -> None:
     c.grades = 24
     assert monsters.count_kill(c, templates, chief) and c.kills_boss == 1
     assert not monsters.count_kill(c, templates, chief) and c.kills_boss == 1  # limite 1 por dia
+
+
+async def test_luta_de_sessao_que_caiu_nao_prende_o_monstro(tmp_path: Path) -> None:
+    """Luta cancelada (a sessão caiu: on_end não roda): o monstro volta a state 1 sem limpeza explícita."""
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        templates, world = g.server.services.templates, g.server.services.world
+        m = next(x for x in monsters.on_map(world, templates, 2, clock.now()) if x.boss_type == 1)
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=m.x, posY=m.y))
+        await g.until(157)
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.battle is not None
+        wilds = session.ctx.wilds
+        assert wilds.state(m, set()) == monsters.MONSTER_FIGHTING
+        session.battle.cancel()
+        await g.idle()
+        assert wilds.state(m, set()) == monsters.MONSTER_ALIVE

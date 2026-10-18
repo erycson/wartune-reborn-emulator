@@ -127,6 +127,11 @@ class Battle:
         return int((now - self._t0 - self._paused_total) / FRAME_SECONDS)
 
     @property
+    def running(self) -> bool:
+        """Começou e não acabou nem foi cancelada (sessão que caiu cancela a luta)."""
+        return self._task is not None and not self._task.done()
+
+    @property
     def paused(self) -> bool:
         return self._paused_at is not None
 

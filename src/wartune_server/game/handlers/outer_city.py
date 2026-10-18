@@ -371,15 +371,15 @@ async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
         s.log.info("5160 monstro recusado", monstro=m.id, template=m.template_id, abatido=m.id in killed)
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
         return
-    s.ctx.wilds.fighting.add((m.map_id, m.id))
     _army_sync(s, ARMY_FIGHTING)
-    _monster_sync(s, m, monsters.MONSTER_FIGHTING)
 
     async def finished(battle: Battle, won: bool) -> None:
         await _monster_over(s, battle, m, won)
 
     s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
     s.log.info("batalha com monstro", monstro=m.id, template=m.template_id, battle=s.battle.id)
+    s.ctx.wilds.fighting[(m.map_id, m.id, m.born)] = s.battle
+    _monster_sync(s, m, monsters.MONSTER_FIGHTING)  # como a mina: o 140 em luta antes da 157
     s.battle.start()
 
 
@@ -392,7 +392,7 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     assert snap is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
-    s.ctx.wilds.fighting.discard((m.map_id, m.id))
+    s.ctx.wilds.fighting.pop((m.map_id, m.id, m.born), None)
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
     report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
@@ -400,7 +400,8 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
     _army_sync(s, ARMY_IDLE)
-    gone = won and monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: já sumiu
+    same = monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: o monstro já sumiu
+    gone = won and same
     if gone:
         kill = WildMonsterKill(m.map_id, m.id, m.born, snap.character.id or 0, now)
         try:
@@ -410,7 +411,8 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
         else:
             if monsters.count_kill(snap.character, templates, m):
                 await s.ctx.characters.save(snap.character)
-    _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
+    if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
+        _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
     await _boss_info(s, m.map_id)
 
 

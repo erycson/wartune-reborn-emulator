@@ -210,11 +210,15 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   foi abatido no ciclo ou sem unidade no catálogo. Fim na ordem da mina (150, 4103, 150, 100, 140); vencendo,
   o abate vai para `wild_monster_kills` (chave mapa, monstro, começo do ciclo: o id se repete a cada ciclo;
   quem termina depois de outro bate na chave e não conta), o 140 dele vai em state 0 a quem vê e o 4938 sai
-  com os contadores. Luta que cruza o refresh não abate: o monstro já é outro.
+  com os contadores. Luta que cruza o refresh não abate: o monstro já é outro (e o 140 dele não sai, para
+  não trazer de volta o que o `roll_monsters` tirou). "Em luta" fica em `monsters.Wilds` com o ciclo e só vale
+  enquanto a batalha roda: a de uma sessão que caiu se desfaz sozinha. O `countDown` do 156 não limita a luta
+  (é o relógio do aumento de dano, `HurtUpMode`).
 - **Limite e 15 níveis** (help `map.outercity.view.helpFrame.helpContent`): o limite do dia é de prêmio ("kill
   a certain number of monsters every day for rich rewards", reset às 5h), não de ataque; monstro 15 níveis
   abaixo do jogador não dá prêmio nem gasta o limite (`monsters.count_kill`). Elite e BOSS "são para equipe".
-- **Simulação** (herói sem equipamento, 150 lanceiros 10101, modo automático): como no resto do PvE, o lado
+- **Simulação** (personagem novato com só o nível trocado: herói com 390 de vida no "nível 20" e 990 no "nível
+  80", sem equipamento, 150 lanceiros 10101, modo automático; não é um jogador real): como no resto do PvE, o lado
   do jogador não morre (`battle._act`), então ele sempre vence, mas demora. Nível 20: normal ~1,5 min,
   elite ~14 min, chefe ~27 min. Nível 80: normal ~26 min, elite e chefe passam de 400 golpes (~40-50 min).
   Com morte de verdade, perde todas em 2 a 5 golpes. Vida dos templates mantida (não é inventada).
