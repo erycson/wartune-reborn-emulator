@@ -22,6 +22,34 @@ from wartune_server.protocol.registry import Direction, MessageRegistry
 OUT = Path("src/wartune_server/content/tutorial.json")
 TUTORIAL_MAPS = (10001, 10002)
 OUTER_CITY_BOSS = "8251"  # batalha "retomar o castelo" do mapa externo (C_FIGHT_SPECIAL_BOSS)
+# A captura é do servidor turco; o padrão é o inglês. Nome turco -> nome do mesmo template no tempinfos inglês
+# (vídeo do servidor inglês confirma "Dinah" e "Gold Mountain Bear"). "Huntera" é a grafia do próprio cliente.
+EN_NAMES = {
+    "Avcı": "Huntera",  # PawnTempInfo 2001
+    "Tina": "Dinah",  # GameHeroTempInfo 1004
+    "Yorgun Asker": "Exhausted Soldier",  # GameHeroTempInfo 1003
+    "Sihirli Ayı": "Gold Mountain Bear",  # PawnTempInfo 2003
+    "Boğa Başlı Asker": "Tauren Guard",  # PawnTempInfo 2002
+    "Baltacı Boğa Başlı": "Tauren Axeman",  # GameHeroTempInfo 1002
+    "Acımasız Kan": "Tauren Gladiator",  # GameHeroTempInfo 1000/1001
+    "İnek": "Cow",  # enfeite sem template: tradução literal
+}
+
+
+def to_english(data: dict[str, Any]) -> dict[str, Any]:
+    """Troca nomes de nós, de heróis NPC e de quem fala pelos ingleses (os textos dos diálogos seguem turcos)."""
+    for entry in data["maps"].values():
+        for node in entry.get("nodes", []):
+            node["nodeName"] = EN_NAMES.get(node.get("nodeName", ""), node.get("nodeName", ""))
+    for plot in data["plots"]:
+        for info in plot["plot"].get("info", []):
+            if "roleName" in info:
+                info["roleName"] = EN_NAMES.get(info["roleName"], info["roleName"])
+    for battle in data["battles"].values():
+        for hero in battle["heroes"]:
+            if "nickName" in hero:
+                hero["nickName"] = EN_NAMES.get(hero["nickName"], hero["nickName"])
+    return data
 
 
 def _dict(msg: Message) -> dict[str, Any]:
@@ -90,7 +118,7 @@ def extract(packets: list[dict[str, Any]]) -> dict[str, Any]:
             battle["gpBonus"] = msg.gpBonus
             battle["battleScene"] = msg.battleScene
             battle = None
-    return {"maps": maps, "battles": battles, "plots": plots}
+    return to_english({"maps": maps, "battles": battles, "plots": plots})
 
 
 def main() -> None:
