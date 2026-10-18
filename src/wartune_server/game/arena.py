@@ -103,7 +103,7 @@ def data_reset(snap: PlayerSnapshot, now: datetime) -> pb.DataResetMsg:
     return pb.DataResetMsg(
         weary=c.weary,
         hangupCount=0,
-        transEnergy=0,
+        transEnergy=snap.castle.energy if snap.castle is not None else 0,  # vai para o prédio -11 (teleporte)
         attackCount=snap.arena.attack_left if snap.arena is not None else ATTACK_FREE,  # = attackLeftCount
         challengeCount=0,
         leftHangupWeary=0,

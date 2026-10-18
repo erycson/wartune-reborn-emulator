@@ -58,6 +58,7 @@ validado no `POST login` para o servidor certo.
 | sex, camp, job | `job` = ícone = template do herói (1–6) |
 | grades, gp, total_gp, gold, point, gift_token, strategy | progresso e moedas (`strategy` = Ruh) |
 | weary, weary_limit, novice_process, fighting_capacity, repute, geste, charm | |
+| reset_day, weary_potions | último dia do jogo virado (energia e stamina, `game/daily.py`) e stamina de poções no dia |
 | bag_count, rental_bag_until | espaços comprados (5010, de 7 em 7) e fim do aluguel da mochila de 217 (8819) |
 | store_grade, store_gp | cristal (8484) |
 | appell_id | título em uso |

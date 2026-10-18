@@ -53,7 +53,7 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 15044 op 7 | acelera (10 diamantes `Farm_Accelerate_Point`, `payType` 0 = vinculado primeiro): amadurece na hora, uma vez por plantio | 3, 4387 | cliente + dedução |
 | 15044 op 8 | limpa a terra | 4387 | cliente |
 | 15044 outros | roubar (5), reviver (6), ações em fazenda de amigo, upgrade de terra (9) e pets (10–16): recusados | 4387 `result` 1 na própria fazenda, nada na de amigo | — |
-| 15017 | rega a própria árvore a cada 10 min (sem fruto): ouro = nível do dono × 20, energia +1, EXP da fazenda +1, `waterCount` +1. Árvore de amigo: recusada | 109, 83 "Doldurma başarılıAltın + N,Enerji + 1,Çiftlik EXP  + 1", 147 | visto (ciftlik, 2 capturas: 220 no nível 11 e 1.320 na árvore de amigo de nível 66) |
+| 15017 | rega a própria árvore a cada 10 min (sem fruto): ouro = nível do dono × 20, EXP da fazenda +1, `waterCount` +1 (o "Enerji + 1" do texto é essa carga da árvore, não a energia de teleporte; (internet) https://wartune.fandom.com/wiki/Tree_of_Ancients). Árvore de amigo: recusada | 109, 83 "Doldurma başarılıAltın + N,Enerji + 1,Çiftlik EXP  + 1", 147 | visto (ciftlik, 2 capturas: 220 no nível 11 e 1.320 na árvore de amigo de nível 66) |
 | 5178 | colher a árvore: recusada (o servidor nunca tem fruto). Cliente: `TreeInfo.canPick` exige `fruitCount` > 0; a colheita soma 1 de EXP da fazenda (`FarmModel._expTreePick`). Resposta do oficial: 106 (`U_C_TREE_PICK`, sem handler no cliente) | — | cliente |
 | 8219 | árvores dos ids pedidos (o cliente pede a própria ao chegar no nível 11) | 4146 FriendTreeRsp | cliente |
 | 8231 | estado das fazendas: o próprio jogador primeiro (`isChargeEnergy` = pode regar a própria), amigos todos falsos | 4190 LoadFarmRsp.friendFarmState | visto (ciftlik) |
@@ -80,7 +80,7 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
 - **Aceleração da fazenda**: o texto do oficial não está decompilado; aqui amadurece na hora.
 - **Offline**: ×1,5 e ×2 custam diamante no oficial, preço desconhecido (recusados); EXP =
   nível × minutos fora, até 8 h *(dedução)*.
-- **Caixa por tempo**: o dia vira à meia-noite UTC *(dedução)*.
+- **Caixa por tempo**: o dia vira às 5h no fuso do jogo, como os outros contadores diários.
 - **Trégua** (8562) e **terras selvagens** (5179): só confirmam; dependem do mapa-múndi.
 - **Árvore da guilda** (8565, resposta 4432) e **reforço** (8255): sistemas de guilda e batalha em grupo.
 - **Bênção do seminário**: o `blessingBuff` (o bônus que o cliente mostra) ainda não entra nos atributos do

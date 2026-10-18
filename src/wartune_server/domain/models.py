@@ -156,6 +156,8 @@ class Character:
     multi_copy_count: int = 0  # PlayerMsg.campaignCount
     multi_copy_max: int = 0  # PlayerMsg.campaignMaxcount (base + Büyük Sefer usados no dia)
     multi_copy_day: str = ""  # "YYYY-MM-DD"
+    reset_day: str = ""  # último dia do jogo já virado (energia, stamina): game/daily.py
+    weary_potions: int = 0  # stamina tomada em poções no dia (PlayerMsg.wearyLimit; teto 300)
 
     @property
     def icon(self) -> int:

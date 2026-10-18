@@ -16,7 +16,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...services.ledger import item_entry
 from ...templates.repository import Row
-from .. import bag, rules, space
+from .. import bag, daily, rules, space
 from ..builders import login as b
 from ..builders.player import fashion_book, item_info, item_moved
 from ..castle import castle_yield
@@ -228,10 +228,10 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     if field == "copies":
         return await _use_copies(s, item, n, amount)
     if field == "weary":
-        # ponytail: sem o teto diário de poções de Beden; só o limite do personagem
-        amount = min(amount, c.weary_limit - c.weary)
+        amount = min(amount, c.weary_limit - c.weary, daily.POTION_DAY - c.weary_potions)
         if amount <= 0:
             return False
+        c.weary_potions += amount
     changed, gone = _consume(snap, item, n)  # antes de qualquer await
     extra: list[object] = []
     gained = 0

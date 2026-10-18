@@ -56,6 +56,11 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - Grade: `"x_y"`, 50 × 50 tiles. A janela do cliente é de 3 × 2 células.
 - Energia de teleporte: 200 para outro mapa, 100 no mesmo mapa. Completar com diamantes custa
   `ceil((máximo - atual) / 5)`, e só quando falta energia para o gasto. *(visto: 500 para 300)*
+- Virada do dia às 5h (`game/daily.py`, no login e no 20008 que o cliente manda a cada ~60 s): a energia
+  de teleporte volta ao máximo (151101 `Property2`, sem regenerar com o tempo), a stamina ganha +100 por
+  dia que passou até o máximo (200), e a stamina de poções do dia (`PlayerMsg.wearyLimit`, teto 300 no
+  cliente) zera. Quem está online recebe o 4202 com os valores novos e o 3; a energia vai no
+  `transEnergy` (prédio -11).
 - Mapas abertos: 1 pede nível 11, 2 nível 21, 3 nível 31, 4 nível 41, 5 nível 51; `-1` fica fechado
   (`WorldMapHelper.chcekMapId`).
 - Tamanho do mapa: `MapInfos` `Width` e `Height` em pixels, divididos por 20. O mapa do castelo

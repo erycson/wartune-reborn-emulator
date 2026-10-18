@@ -225,6 +225,8 @@ characters = Table(
     _int("multi_copy_count"),
     _int("multi_copy_max"),
     _str("multi_copy_day", 10),
+    _str("reset_day", 10),
+    _int("weary_potions"),
     UniqueConstraint("account_id", "server_id"),  # um personagem por conta em cada servidor
     UniqueConstraint("server_id", "nickname"),
 )

@@ -181,7 +181,7 @@ def player_msg(
         geste=c.geste,
         charm=c.charm,
         weary=c.weary,
-        wearyLimit=0,
+        wearyLimit=c.weary_potions,  # stamina tomada em poções hoje (o cliente avisa acima de 300 - isto)
         attackLeftCount=snap.arena.attack_left if snap.arena is not None else 5,
         noviceProcess=c.novice_process,
         fightingCapacity=fighting_capacity,

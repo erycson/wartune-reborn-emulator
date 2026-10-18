@@ -7,7 +7,8 @@ from dataclasses import replace
 
 from ...domain.models import Consortia, Item
 from ...protocol.messages import wartune_pb2 as pb
-from .. import bag, rewards, rules
+from .. import bag, daily, rewards, rules
+from ..arena import data_reset
 from ..builders import login as b
 from ..builders.player import quest_update
 from ..castle import castle_yield
@@ -17,7 +18,7 @@ from .login import army, player_info
 from .space import talk
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
-S_CHAT, S_ALERT, S_FAST_KEY, S_TIME = 83, 111, 64, 4234
+S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
 # (dedução) texto sem fonte: o cliente monta esses avisos com chave de idioma, que não está no decompilado
 BAG_FULL = "Çantanız dolu."
@@ -53,7 +54,13 @@ def alert(s: GameSession, text: str) -> None:
 
 @router.on(20008)
 async def synchronized_time(s: GameSession, _: object) -> None:
-    s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(s.ctx.clock.now())))
+    """Relógio (a cada ~60 s). Também vira o dia de quem está online: 4202 com os valores novos e o 3."""
+    now = s.ctx.clock.now()
+    s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(now)))
+    if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now)):
+        await s.ctx.characters.save(*changed)
+        s.send(S_RESET, data_reset(s.snapshot, now))
+        _player(s)
 
 
 @router.on(5167)

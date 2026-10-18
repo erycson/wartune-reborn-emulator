@@ -211,7 +211,8 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     gold = c.grades * 20
     cs.settle(snap, templates, now)
     c.gold += gold
-    castle.energy = min(castle.energy + 1, max(castle.energy, cs.energy_max(templates)))
+    # o "Enerji + 1" do texto é a carga da árvore (waterCount), não a energia de teleporte
+    # (internet) https://wartune.fandom.com/wiki/Tree_of_Ancients
     castle.tree_water, castle.tree_watered_at = castle.tree_water + 1, now
     farm.add_farm_gp(castle, c.grades, templates, 1)
     # ponytail: sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado)

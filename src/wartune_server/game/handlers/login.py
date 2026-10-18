@@ -16,8 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import arena as A
-from .. import castle, farm, guild, rules, social, space, timebox
+from .. import castle, daily, farm, guild, rules, social, space, timebox
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..builders.army import army_pawn_msg, castle_pawns
@@ -125,10 +124,9 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     now = s.ctx.clock.now()
     timebox.on_login(snap.character, now)  # antes do PlayerMsg: timeRun e tempo offline
     changed = castle.ensure(snap, s.ctx.templates, now)
-    # o dia vira antes do PlayerMsg (o attackLeftCount dele já é o do dia) e grava junto: senão o 8224
+    # o dia vira antes do PlayerMsg (stamina, energia e attackLeftCount já do dia) e grava junto: senão o 8224
     # recarrega o arena do banco com o dia de ontem
-    if snap.arena is not None and A.roll_day(snap.arena, now):
-        changed.append(snap.arena)
+    changed.extend(daily.roll(snap, s.ctx.templates, now))
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
     s.ctx.online.bind(s.player_id, s)  # antes do primeiro await: o segundo 20001 junto já vê a sessão

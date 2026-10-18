@@ -14,7 +14,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_HTTP_PORT` | `8080` | |
 | `WARTUNE_SOCKET_PORT` | `5000` | |
 | `WARTUNE_WEBSOCKET_PORT` | `5001` | ponte para o Ruffle |
-| `WARTUNE_GAME_TIMEZONE` | `UTC` | fuso do jogo (vai para `game_servers.timezone` e aparece na lista de servidores do portal): horários do chefe do mundo, relógio dos chefes do mapa e `createDate` das minas. Nome IANA (com horário de verão, base do pacote `tzdata`) ou fixo (`+03:00`). O oficial inglês segue o Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html; as capturas são do turco (UTC+3), por isso os testes usam `+03:00` |
+| `WARTUNE_GAME_TIMEZONE` | `UTC` | fuso do jogo (vai para `game_servers.timezone` e aparece na lista de servidores do portal): horários do chefe do mundo, relógio dos chefes do mapa, `createDate` das minas e a virada do dia do jogo às 5h (`domain/gameday.py`), que zera todos os contadores diários. Nome IANA (com horário de verão, base do pacote `tzdata`) ou fixo (`+03:00`). O oficial inglês segue o Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html; as capturas são do turco (UTC+3), por isso os testes usam `+03:00` |
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
 | `WARTUNE_TEMPLATES_FILE` | `data/overlay/xml/tempinfos.xml` | cópia local dos templates |
 | `WARTUNE_TEMPLATES_URL` | vazio | ex.: `https://cdn.exemplo.com/xml/tempinfos.xml`, usada pelo `templates update` |
