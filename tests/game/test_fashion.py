@@ -5,7 +5,7 @@ from tests.game.test_shop import codes, me
 from wartune_server.domain.models import Item
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-CLOTH = 1120101  # Saksağanın Gölgesi: roupa de moda (SonType 112, espaço 10), qualquer classe
+CLOTH = 1120101  # Lover's Gown: roupa de moda (SonType 112, espaço 10), qualquer classe
 
 
 async def test_fashion_book_hide_and_first_wear(tmp_path: Path) -> None:
@@ -13,7 +13,9 @@ async def test_fashion_book_hide_and_first_wear(tmp_path: Path) -> None:
         snap = me(g)
         g.client.send(8625)
         book = pb.FashionMsg.FromString((await g.until(4542))[-1].body)
-        assert not book.info and len(book.fashionIds) == 1388  # todas as modas do jogo, como o oficial
+        rows = g.server.services.templates.rows("ItemTempInfos")
+        modas = [r for r in rows if r.get("MasterType") == "1" and r.get("SonType") in ("109", "110", "111", "112")]
+        assert not book.info and len(book.fashionIds) == len(modas)  # todas as modas do jogo, como o oficial
 
         cloth = Item(g.user_id, CLOTH, pos=0)
         snap.items.append(cloth)

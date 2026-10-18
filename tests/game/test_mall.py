@@ -18,7 +18,7 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
 CODES = [8448, 8449, 8450, 8451, 8452, 8453, 8454, 8457]
-HORN = 208002  # Büyük Borazan: StartingPrice 10, empilhável (MaxCount 9999)
+HORN = 208002  # Bullhorn (Large): StartingPrice 10, empilhável (MaxCount 999)
 CRYSTAL = 208014  # Şeytan Kristali: StartingPrice 0, o template não vai a leilão
 CHEAP = 208027  # StartingPrice 1
 
@@ -94,7 +94,7 @@ async def test_handlers_survive_empty_and_minimal_bodies(tmp_path: Path) -> None
             8452: pb.MallItemViewReqMsg(page=1, count=9),
             8453: pb.AuctionItemReqMsg(id=1, point=1),
             8454: pb.AuctionItemReqMsg(id=1),
-            8457: pb.SearchItemReqMsg(itemName="borazan", page=1),
+            8457: pb.SearchItemReqMsg(itemName="bullhorn", page=1),
         }
         for code in CODES:
             for msg in [None, minimal[code]]:
@@ -163,7 +163,7 @@ async def test_market_list_and_search_show_open_listings(tmp_path: Path) -> None
         ]
         assert (market.pageIdx, market.pageCount) == (1, 1)
 
-        b.client.send(8457, pb.SearchItemReqMsg(itemName="borazan", page=1))
+        b.client.send(8457, pb.SearchItemReqMsg(itemName="bullhorn", page=1))
         assert [x.id for x in last(await b.until(4359), pb.AuctionItemsMsg).sellItem] == [listing.id]
         b.client.send(8457, pb.SearchItemReqMsg(minLevel=50, page=1))
         assert list(last(await b.until(4359), pb.AuctionItemsMsg).sellItem) == []

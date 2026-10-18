@@ -41,7 +41,8 @@ async def test_offer_board_refresh_accept_and_pass(tmp_path: Path) -> None:
         g.client.send(8291, pb.RewardFinishedReqMsg(templateId=info.templateId, isPass=True))  # sem contrato 2
         assert await g.idle() == []
 
-        c.point = 90
+        need = {int(r["Id"]): int(r["NeedPoint"]) for r in g.server.services.templates.rows("KingContracts")}
+        c.point = need[2]  # o contrato 2 custa NeedPoint do template
         g.client.send(8540, pb.KingContractBuyMsg(ids=[2], friendId=g.user_id))
         await g.until(4434)
         gold = c.gold
