@@ -104,6 +104,15 @@ Todo movimento de elmas (`point`) e elmas vinculado (`gift_token`): `delta_point
 `gm`, `recharge`), `ref` (o que foi comprado), `gm` (quem, quando for GM) e `created_at`. Só cresce;
 é gravado na mesma transação da compra (`services/cash.py`).
 
+### wild_lands
+Mina ocupada por personagem: `wild_id` (`world_mines.id`), `occupied_at` e, desde a 0027, o nível sorteado
+(`template_id`) e o tile (`pos_x`, `pos_y`). Só vale no ciclo de minas atual (`castles.mines_at`).
+
+### Catálogo do mundo (0027)
+`world_mines`, `world_mine_guards`, `world_robots`, `world_robot_names` e `map_boss_spawns`: o que existe em
+cada mapa, com semente das capturas. Lido uma vez ao subir (`persistence/world_store.py`); mudou, reinicie.
+Detalhes em [cidade-externa.md](cidade-externa.md).
+
 ## Transações
 
 Os serviços usam `async with uow_factory() as uow: …; await uow.commit()`. Sem `commit()`, o

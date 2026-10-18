@@ -17,7 +17,7 @@ from ..domain import gameday
 from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
-from . import outer_city, rules
+from . import mines, rules
 from .builders import login as b
 from .session import GameSession
 
@@ -80,7 +80,7 @@ def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
             total += int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
     # ponytail: sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem
     # (login.json: 8550 = 8220 dos prédios + 300 da tecnologia + 30)
-    return total + outer_city.mine_gold(snap, templates)
+    return total + mines.mine_gold(snap, templates)
 
 
 def gold_max(snap: PlayerSnapshot, templates: GameTemplates) -> int:
@@ -112,11 +112,11 @@ def pending_gold(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) 
 def settle(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> None:
     """Acumula a produção no ouro do personagem (grave personagem e castelo juntos). Passou o refresh de
     12 h das minas: o ouro até o fim do ciclo sai com a taxa delas e o ciclo novo começa em ``now``, sem
-    ocupação (``outer_city.occupied`` só vale no ciclo atual)."""
+    ocupação (``mines.occupied`` só vale no ciclo atual)."""
     if snap.castle is not None:
-        snap.castle.mines_at = outer_city.cycle_start(snap)  # castelo de antes da 0018 fixa o ciclo
-        if now >= outer_city.cycle_end(snap):
-            _settle(snap, templates, outer_city.cycle_end(snap))
+        snap.castle.mines_at = mines.cycle_start(snap)  # castelo de antes da 0018 fixa o ciclo
+        if now >= mines.cycle_end(snap):
+            _settle(snap, templates, mines.cycle_end(snap))
             snap.castle.mines_at = now
     _settle(snap, templates, now)
 
@@ -154,10 +154,10 @@ def castle_yield(s: GameSession) -> None:
 def politics_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.CastleYieldMsg:
     """152 (conselho): o rendimento dos prédios e uma linha por mina ocupada. Como no replay (#743,
     #794), ``goldYield`` e ``goldTotalCount`` ficam só com os prédios e ``goldWildLandYield`` em 0."""
-    total = gold_yield(snap, templates) - outer_city.mine_gold(snap, templates)
+    total = gold_yield(snap, templates) - mines.mine_gold(snap, templates)
     msg = pb.CastleYieldMsg(goldYield=total, goldWildLandYield=0, goldTechnology=0, goldWonder=0)
     msg.goldTotalCount = total
-    msg.wildYield.extend(outer_city.mine_yield(snap, templates))
+    msg.wildYield.extend(mines.mine_yield(snap, templates))
     return msg
 
 

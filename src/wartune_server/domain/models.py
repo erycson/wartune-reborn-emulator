@@ -629,9 +629,12 @@ class WildLand:
     """Mina de ouro (``WildLandMsg`` type 20) do mapa do castelo que o personagem ocupou (5160)."""
 
     character_id: int
-    wild_id: int  # outer_city.MINES
+    wild_id: int  # world_mines.id
     occupied_at: datetime
     id: int | None = None
+    template_id: int = 0  # nível sorteado no ciclo da ocupação (MapPhysicsTempInfos)
+    pos_x: int = 0
+    pos_y: int = 0
 
 
 @dataclass(eq=False)

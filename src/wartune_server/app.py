@@ -12,6 +12,7 @@ from aiohttp import web
 from .config import Settings
 from .domain import gameday
 from .domain.models import GameServer
+from .domain.world import World
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
 from .game import mall as market
 from .game.events import EventCatalog
@@ -20,6 +21,7 @@ from .game.router import router
 from .game.session import GameContext, GameSession, OnlinePlayers
 from .http.app import HttpDeps, build_http_app
 from .net.servers import ConnectionAcceptor, start_policy, start_tcp, websocket_app
+from .persistence import world_store
 from .persistence.database import Database
 from .persistence.repositories import SqlAlchemyUnitOfWork
 from .protocol.registry import MessageRegistry
@@ -51,6 +53,7 @@ class Services:
     keys: LoginKeyPair
     clock: Clock
     guilds: Guilds
+    world: World
 
 
 async def build_services(settings: Settings, clock: Clock | None = None) -> Services:
@@ -77,6 +80,7 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
         keys=keys,
         clock=clock,
         guilds=await Guilds.load(characters, settings.server_id),
+        world=await world_store.load(database.engine),
     )
 
 
@@ -120,6 +124,7 @@ class GameServerApp:
             self.online,
             services.guilds,
             EventCatalog.load(settings.events_file),
+            world=services.world,
         )
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds

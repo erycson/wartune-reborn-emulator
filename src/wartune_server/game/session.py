@@ -11,6 +11,7 @@ import structlog
 from google.protobuf.message import Message
 
 from ..domain.models import PlayerSnapshot
+from ..domain.world import World
 from ..net.connection import Connection
 from ..protocol import Packet
 from ..protocol.registry import Direction, MessageRegistry
@@ -50,6 +51,7 @@ class GameContext:
     events: EventCatalog = EventCatalog()  # ordem preservada: app.py passa guilds e events posicionais
     rooms: Rooms = field(default_factory=Rooms)  # salas de campanha em grupo (PvE)
     teams: Teams = field(default_factory=Teams)  # times livres (convite de amigos, até 4)
+    world: World = World()  # catálogo do mundo (minas, robôs, chefes), do banco
 
 
 class OnlinePlayers:

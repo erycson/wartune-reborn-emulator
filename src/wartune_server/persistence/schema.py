@@ -603,7 +603,56 @@ wild_lands = Table(
     _owner(index=True),
     _int("wild_id"),
     Column("occupied_at", UTCDateTime, nullable=False),
+    _int("template_id"),  # nível sorteado no ciclo da ocupação (MapPhysicsTempInfos): o rendimento sai daqui
+    _int("pos_x"),
+    _int("pos_y"),
     UniqueConstraint("character_id", "wild_id"),
+)
+
+# -- catálogo do mundo (semente na migração 0027; lido uma vez ao subir: persistence/world_store.py) --------
+world_mines = Table(
+    "world_mines",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=False),  # WildLandMsg.id
+    _int("position"),  # ordem no 4129 (a da captura)
+    _int("map_id"),  # modelo do mapa (100 = o do castelo, copiado em cada instância 100000xxx)
+    _int("pos_x"),
+    _int("pos_y"),
+    _int("min_level"),  # nível sorteado a cada ciclo entre min e max (MapPhysicsTempInfos SonType 2006)
+    _int("max_level"),
+)
+world_mine_guards = Table(
+    "world_mine_guards",
+    metadata,
+    Column("level", Integer, primary_key=True, autoincrement=False),
+    _int("pawn_id"),  # PawnTempInfos do guarda
+)
+world_robots = Table(
+    "world_robots",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=False),  # BaseCastleMsg.id
+    _int("position"),  # ordem no 4129 e na escolha do nome
+    _int("map_id"),
+    _int("pos_x"),
+    _int("pos_y"),
+    _int("grade"),
+)
+world_robot_names = Table(
+    "world_robot_names",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _str("name", 32),
+    _str("prefix", 8),
+    _str("suffix", 8),
+)
+map_boss_spawns = Table(
+    "map_boss_spawns",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _int("map_id"),
+    _int("template_id"),  # MapPhysicsTempInfos (MasterType 21)
+    _int("pos_x"),  # tiles: o radar do cliente faz x * 20
+    _int("pos_y"),
 )
 
 arenas = Table(

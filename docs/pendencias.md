@@ -296,8 +296,8 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/mall.py:33](../src/wartune_server/game/mall.py#L33) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
 | [game/mall.py:35](../src/wartune_server/game/mall.py#L35) | o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento |
 | [game/mall.py:43](../src/wartune_server/game/mall.py#L43) | arredondamento para baixo; o texto do cliente não diz como o oficial arredonda |
-| [game/outer_city.py:75](../src/wartune_server/game/outer_city.py#L75) | o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do |
-| [game/outer_city.py:117](../src/wartune_server/game/outer_city.py#L117) | (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora; |
+| [game/outer_city.py:71](../src/wartune_server/game/outer_city.py#L71) | o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do |
+| [game/mines.py:29](../src/wartune_server/game/mines.py#L29) | (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora; |
 | [game/rewards.py:20](../src/wartune_server/game/rewards.py#L20) | -600 "Kristal" (cristal do castelo) ainda não existe no banco (CRYSTALS fixo em |
 | [game/rewards.py:23](../src/wartune_server/game/rewards.py#L23) | sem espaços comprados (bagCount) ainda |
 | [game/rewards.py:72](../src/wartune_server/game/rewards.py#L72) | o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela |

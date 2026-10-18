@@ -4,7 +4,8 @@ Opcodes da cidade externa e dos sistemas que o cliente abre a partir dela: grade
 voltar ao castelo, ataque extra, mudar o castelo de lugar, gancho (8292, 8293, 8295, 8525), passe de progresso (8636,
 8637) e mapa do tesouro (8744, 8745).
 
-Código: `game/outer_city.py` (regras), `game/handlers/outer_city.py`, `game/handlers/hangup.py`,
+Código: `game/outer_city.py` (geometria do mapa e luta contra o guarda), `game/mines.py`, `game/robots.py`,
+`game/bosses.py`, `game/handlers/outer_city.py`, `game/handlers/hangup.py`,
 `game/handlers/singlepass.py`, `game/handlers/treasure.py`. Testes: `tests/game/test_outer_city.py` e
 `tests/game/test_mundo_opcodes.py` (todo código tem handler e corpo vazio não derruba a sessão).
 
@@ -66,7 +67,18 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - Tamanho do mapa: `MapInfos` `Width` e `Height` em pixels, divididos por 20. O mapa do castelo
   (100000xxx) usa o modelo 100 (Loş Sahil).
 
-## Minas de ouro (missão 60, `game/outer_city.py`)
+## Catálogo do mundo (migração 0027, `domain/world.py`)
+
+O que existe em cada mapa fica no banco, não no código: `world_mines` (id, mapa modelo, tile, faixa de
+nível, ordem do 4129), `world_mine_guards` (nível -> guarda), `world_robots`, `world_robot_names` e
+`map_boss_spawns` (mapa, template, tile). A semente da 0027 é o que as capturas mostram; o servidor lê tudo
+uma vez ao subir (`persistence/world_store.py`, `Services.world` e `GameContext.world`). Para trocar uma
+mina ou pôr chefes em outro mapa, mude as linhas e reinicie. O template de cada nível sai do tempinfos
+(`MapPhysicsTempInfos` `SonType` 2006, `Grades` = nível). A mina ocupada grava o nível sorteado e o tile em
+`wild_lands` (`template_id`, `pos_x`, `pos_y`): o rendimento sai da linha, então mudar o catálogo não mexe no
+que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo login (`mines.backfill`).
+
+## Minas de ouro (missão 60, `game/mines.py`)
 
 - **Layout** *(visto)*: as 4 minas vêm das capturas, com os mesmos ids e posições para contas diferentes
   (replay e cevre), então são do mapa modelo 100: 853876 (16,34), 853877 (36,34), 853874 (71,54) e
@@ -76,7 +88,7 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - **Refresh de 12 h** *(visto)*: `RefreshTime` 43200 s (`MapPhysicsTempInfos`), que sai como 43200000 no 4129
   e no 140 das duas capturas (mapa 100, fixo: na cevre, 35 min depois do `createDate`, ainda é 43200000; só no
   mapa 2 ele vem como contagem regressiva). `createDate` é o começo do ciclo, no fuso do jogo (UTC+3,
-  `worldboss.GAME_TZ`): replay 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre 19:48:57 = 16:48:57
+  `gameday.GAME_TZ`): replay 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre 19:48:57 = 16:48:57
   UTC, 73 s antes do `signDate` 19:50:10 do mesmo `asiesat` (login.json), e o relogin das 17:05 UTC não
   mudou o `createDate`. As duas fases ficam 7 h 29 min distantes, então o ciclo é do jogador
   (`Castle.mines_at`, migração 0018), não do mundo. *(dedução)* o ciclo abre no login; vencido, o seguinte
@@ -112,7 +124,7 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
   `PlayerSnapshot.wild_lands`. Relogar mantém a mina até o refresh.
 - **0018** `castles.mines_at`: começo do ciclo de 12 h das minas do jogador.
 
-## Castelos-robô (missões 100, 411 e 765, `game/outer_city.py` e `handlers/outer_city.py`)
+## Castelos-robô (missões 100, 411 e 765, `game/robots.py` e `handlers/outer_city.py`)
 
 - **Layout** *(visto)*: 765958 em (44,22) e 765957 em (59,56), no mapa da instância, nas duas capturas
   (replay #706 e cevre #11, mesmos ids e tiles). Grau 8 em 3 dos 4 (o quarto, replay 765958, tem 7). O dono
@@ -120,7 +132,7 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
   ♫Elizabeth♫ e ►Abigail◄. Sem liga e sem tempo de defesa (`defenceLefttime` 0), estado 1, `castleName` = nome.
 - **Servidor** *(dedução)*: os ids e tiles são os do oficial; o dono é `ROBOT_USER_BASE + índice` (faixa dos
   robôs); o nome sai da conta (`robot_name`, sorteio com semente `robo:<conta>`; os dois robôs da conta tiram nomes distintos). A captura
-  tem 3 nomes, então o sorteio usa só esses (*ponytail*: ampliar `ROBOT_NAMES` se houver mais nomes). Sem
+  tem 3 nomes (`world_robot_names`); com mais robôs que nomes, os nomes se repetem. Sem
   estado: o robô está sempre lá, não muda de dono nem some depois da vitória (não há captura disso).
 - **4129** *(visto)* cevre #11, replay #706: o robô entra no 4129 da grade dele, junto com o próprio castelo.
   Só na instância do próprio castelo, pela mesma regra das minas (`robots_in` e `robot_at`, com `template_of`): nos mapas 1 a 5 não aparece nem luta.
@@ -130,8 +142,8 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
   `MapPhysicsCastle.attack` (156-211) recusa com diferença de nível de 10 ou mais (linha 166) e abre o `_attackAlert`; o `attackCount` (`playerInfo`) é lido só depois, em `MapPhysicsCastle.__responseHandler` (213-229, linha 221). O clique no castelo passa também por `OuterCityModel.checkArmy` (`OuterCityModel.as` 477-521): exército existente, em estado parado ou de movimento, e mesmo mapa (ou instância contra o mapa 100). Essa checagem não conta tropas. O clique na mina (`FieldInfoFrame.as` 37) e o `CityInfoFrame` mandam o 5160 sem ela, e nenhum desses caminhos conta tropas.
   O servidor recusa com 140 parado e sem luta nos três casos (sem ataque no dia, diferença de 10 ou mais, luta em andamento).
   Com o ataque aceito, gasta um do dia (*dedução*: o contador é o do 9506, "x/5" no `AttackAlertFrame`).
-- **Luta** *(dedução)*: a spec da mina (`guard_battle`: battleType 1, mapa 100, cena 4) com o guarda 6504
-  (grau 8). Não há captura de luta com castelo. Fim na ordem da mina: 150, 4103, 150, 100, 140 ×2.
+- **Luta** *(dedução)*: a spec da mina (`guard_battle`: battleType 1, mapa 100, cena 4) com o guarda da mina
+  do mesmo grau (`world_mine_guards`: 6504 no grau 8). Não há captura de luta com castelo. Fim na ordem da mina: 150, 4103, 150, 100, 140 ×2.
 - **Vitória** *(dedução)*: `quest_event(8, 1, 1)`, em que Para1 1 = vitória. As missões 100 e 411 (Para1 0)
   e a 765 (Para1 1) avançam; sai o 112 e a gravação do ataque vai em uma só save.
 - **Ouro saqueado: sem fonte.** A captura não tem castelo atacado, nem o `4103` com ouro de saque. O
