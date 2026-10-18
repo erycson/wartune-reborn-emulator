@@ -72,7 +72,7 @@ correio, 12).
 | 8693 ShopMsg | quantos daquele item já comprei hoje | 4599 `buyInfo.count` | *(cliente)* |
 | 8632 | ofertas relâmpago: vêm do 4238 (eventos do operador), nenhuma ativa | 4547 `{refreshDate}` vazio | *(cliente)* |
 | 8645 ShopMsg | compra coletiva: só existe com uma oferta type 3 do 4238; recusa sem resposta | — | *(cliente)* |
-| 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (10) | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
+| 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (10). Os itens trocam sozinhos 14400 s depois do `freshLastdate` (`MysteryShopModel.remainTime`, que pede a lista de novo ao zerar); as compras do dia zeram na virada das 5h | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
 | 8482 ShopItemBuyMsg | compra o item `index` da misteriosa (uma vez cada, até `ShopBuy_MaxCount` 20 por dia) | 3/109, 115, 111, 83, 4383 `{result, buyCount}`, 4384 | *(cliente)* |
 | 8597 AppellExchangeMsg | `look`: títulos (vazio); trocar exige ter o título (conquistas não existem); `appellId` 0 tira o título | 4484 AppellsMsg | *(cliente)* |
 

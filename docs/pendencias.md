@@ -263,7 +263,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/shop.py:94](../src/wartune_server/game/handlers/shop.py#L94) | nenhuma loja tem NeedMinVip hoje; regra não conferida |
 | [game/handlers/shop.py:98](../src/wartune_server/game/handlers/shop.py#L98) | o cliente esconde o botão se o andar passa do maxIndex (GoodsItem.as:380; o 4205 manda 60 fixo) |
 | [game/handlers/shop.py:163](../src/wartune_server/game/handlers/shop.py#L163) | presente depende do correio |
-| [game/handlers/shop.py:335](../src/wartune_server/game/handlers/shop.py#L335) | troca os itens e zera as compras uma vez por dia |
 | [game/handlers/space.py:47](../src/wartune_server/game/handlers/space.py#L47) | o fim do diálogo é local no cliente (``finishStory``); aqui conta o clique ou o aceite perto do nó. |
 | [game/handlers/space.py:95](../src/wartune_server/game/handlers/space.py#L95) | o outro teleporte (mina de ametista, 30000) depende do sistema de minas |
 | [game/handlers/space.py:104](../src/wartune_server/game/handlers/space.py#L104) | mapa por sessão com os nós da captura; pets selvagens, coleta e o chefe (4686) |

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from google.protobuf.message import Message
 
@@ -38,6 +38,7 @@ CURRENCY_ITEMS = {"Honor": 208001, "MazeCoin": 208009}  # BuyFrameI.PayMoney
 PRICE_COLUMNS = ("Point", "GiftToken", "Gold", "Honor", "ConsortiaOffer", "MazeCoin")
 MYSTERY, BLOOD, MAIN_OFFER = "5", "100", "99"  # ShopType: misteriosa, poção de HP, itens das ofertas da home
 MAZE = "4"  # ShopType: loja do labirinto, preço em Labirent Parası (208009, MazeCoin)
+MYSTERY_FRESH = timedelta(seconds=14400)  # cliente: MysteryShopModel.remainTime = 14400 - (agora - freshLastdate)
 MYSTERY_GOODS = 8  # ponytail: a tela da loja misteriosa não está no cliente decompilado; 8 é palpite
 MAX_COUNT = 999
 
@@ -351,14 +352,10 @@ def _mystery(s: GameSession) -> MysteryShop:
     if not snap.mystery:
         snap.mystery.append(MysteryShop(snap.character.id or 0, now, ",".join(map(str, _roll(s, snap))), day=day(now)))
     shop = snap.mystery[0]
-    if shop.day != day(now):  # ponytail: troca os itens e zera as compras uma vez por dia
-        shop.goods, shop.bought, shop.day, shop.buy_count, shop.fresh_at = (
-            ",".join(map(str, _roll(s, snap))),
-            "",
-            day(now),
-            0,
-            now,
-        )
+    if shop.day != day(now):  # as compras do dia (ShopBuy_MaxCount) zeram na virada das 5h
+        shop.day, shop.buy_count = day(now), 0
+    if now - shop.fresh_at >= MYSTERY_FRESH:  # os itens trocam 4 h depois do último refresh
+        shop.goods, shop.bought, shop.fresh_at = ",".join(map(str, _roll(s, snap))), "", now
     return shop
 
 
