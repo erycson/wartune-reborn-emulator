@@ -7,13 +7,15 @@ Sequências reproduzidas da captura oficial (``docs/tutorial.md``). O roteiro de
 from __future__ import annotations
 
 import uuid
+from collections import Counter
+from dataclasses import dataclass, field
 from typing import Any
 
 from google.protobuf.json_format import ParseDict
 from google.protobuf.message import Message
 
 from ...content import dungeon, tutorial
-from ...domain.models import Item
+from ...domain.models import Item, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
 from .. import drops, rewards, rules, space
@@ -447,9 +449,12 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     strategy = int(battle.spec.get("strategyBonus", 0)) if won else 0
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
-    if gp or strategy:
-        snap.character.strategy += strategy  # "Ruh" do chefe (replay #1711: strategyBonus 72)
-        await s.ctx.characters.save(snap.character, snap.leader)
+    snap.character.strategy += strategy  # "Ruh" do chefe (replay #1711: strategyBonus 72)
+    loot = _Loot()
+    if won and s.campaign is not None and s.campaign.dungeon:
+        loot = _dungeon_loot(s, battle, camp)  # antes do await: drop, missão e EXP numa save só
+    if gp or strategy or loot.items or loot.quests:
+        await s.ctx.characters.save(snap.character, snap.leader, *loot.items, *loot.quests)
     s.battle_gp = gp
     await _push_player(s)
     _send(s, S_BATTLE_REPORT, _report(battle, won, gp, strategy))
@@ -466,12 +471,21 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if not won:
         _node_update(s, camp, NORMAL)
         return
+    if loot.items:  # o drop sai antes do 128 (replay #1360-#1374 e #1442-#1457)
+        _send(s, S_ITEMS, rewards.items_msg(loot.items, s.player_id))
+    for text in loot.texts:
+        _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if loot.quests:
+        _send(s, S_QUESTS, quest_update(loot.quests, rules.quest_bitmap(snap)))
     _node_update(s, camp, DONE, fresh=True)
     if c.dungeon:  # a masmorra manda o 4382 logo depois do 128 (replay #1060, #1720), não na volta do 5035
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=gp, gold=0, strategy=strategy))
         s.battle_gp = 0
-        if _dungeon_won(s, camp):
+        if _map_finished(c, camp):
             _dungeon_end(s)
+        else:
+            _dungeon_unlock(s, camp)
         return
     for unlocked in WIN_UNLOCKS.get(camp, []):
         _node_update(s, unlocked, NORMAL, fresh=True)
@@ -646,21 +660,31 @@ async def campaign_finish(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     s.log.info("5180 sem efeito", p1=msg.paraInt1)
 
 
-def _dungeon_won(s: GameSession, camp: int) -> bool:
-    """Depois da vitória: True se o mapa acabou. Lobos: só ao cair o grupo todo (param4 libera ou esconde)."""
-    c = _map(s)
+def _map_finished(c: CampaignMap, camp: int) -> bool:
+    """O mapa acabou com a vitória do nó ``camp``. Lobos: só ao cair o grupo todo, e sem ``param4`` (que libera
+    ou esconde nós). Chefe (sem grupo) acaba o mapa. O nó ``camp`` conta como vencido mesmo antes do 128.
+    """
     node = c.node(camp)
     assert node is not None
     group = group_of(node)
     if not group:
         return True  # chefe (102109): a última luta do 1021
-    if any(c.nodes[g]["state"] != DONE for g in group):
+    if any(c.nodes[g]["state"] != DONE and g != camp for g in group):
         return False
+    # (visto) o último lobo do 1011 (101109) não tem param4: o mapa acaba (replay #1186 -> #1215)
+    return not unlock_actions(node)
+
+
+def _dungeon_unlock(s: GameSession, camp: int) -> None:
+    """Grupo de lobos caído com ``param4`` (replay #1593-#1605): aviso, depois esconde (0) ou mostra (1) o nó."""
+    c = _map(s)
+    node = c.node(camp)
+    assert node is not None
+    if any(c.nodes[g]["state"] != DONE for g in group_of(node)):
+        return  # ainda há lobo de pé
     actions = unlock_actions(node)
-    if not actions:
-        return True  # último lobo do 1011 (replay #1186 -> #1215; dedução: o fim é o grupo todo caído)
     notice = dungeon()["notices"].get(str(c.map_id))
-    if notice:
+    if actions and notice:
         _send(s, S_NOTIFY, pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=notice, delay=0), extend2=25)
     for target, action in actions:
         t = c.node(target)
@@ -675,7 +699,51 @@ def _dungeon_won(s: GameSession, camp: int) -> bool:
             movie = pb.PlayerMovieMsg(movieTargetType=0, targetId=t["nodeId"], movieType="FLICKER", delay=FLICKER_DELAY)
             _send(s, S_MOVIE, movie, extend2=FLICKER_DELAY)
             _node_update(s, target, NORMAL, fresh=True)
-    return False
+
+
+@dataclass
+class _Loot:
+    """O que uma vitória na masmorra dá: itens novos (já no snapshot), textos e missões que avançaram."""
+
+    items: list[Item] = field(default_factory=list)
+    texts: list[str] = field(default_factory=list)
+    quests: list[Quest] = field(default_factory=list)
+
+
+def _dungeon_loot(s: GameSession, battle: Battle, camp: int) -> _Loot:
+    """Efeitos de uma vitória na masmorra que mudam o snapshot. Chamado antes de qualquer await.
+
+    - Drop do nó (``dungeon()["drops"]``, ``tools/extract_dungeon.py``): (visto) replay #1355-#1377 (102102:
+      Kurt Dişi x2 e Şans Taşı x1), #1442-#1457 (102103: x2), #1520-#1536 (102105: x3), #1578-#1592 (102106: x3).
+      O chefe 102109 e os lobos do 1011 não deram item no replay. (dedução) sem chance: sai sempre.
+    - Missões: condição 25 soma 1 por soldado inimigo morto do tipo ``tempId`` (PawnTempInfos); 26 conta o chefe
+      morto (``heroTempId``, ex. 1011 'Çene'). No fim do mapa, 14 (passou a campanha) e 31 (cena com a
+      ``Capacity`` da campanha). (visto) o 112 do 14 sai logo depois do 137 do 1011 (replay #1215 -> #1222).
+      (dedução) 14 e 31 contam em todo mapa: o 31 soma, então um 1001 inteiro dá 2.
+    """
+    c = _map(s)
+    snap = s.snapshot
+    assert snap is not None
+    templates = s.ctx.templates
+    loot = _Loot()
+    drops_here = [(int(t), int(n)) for t, n in dungeon().get("drops", {}).get(str(camp), [])]
+    if drops_here and rewards.can_grant(snap, templates, drops_here):
+        loot.items, _ = rewards.grant(snap, templates, drops_here)
+        loot.texts = [rewards.text(templates, [d]) for d in drops_here]  # um aviso por item, como o oficial
+    kills = Counter(int(x["tempId"]) for x in battle.spec["soldiers"] if int(x["side"]) == 2)
+    events = [(rules.PAWN_KILL_CONDITION, t, n) for t, n in kills.items()]
+    events += [(rules.HERO_KILL_CONDITION, int(h["tempId"]), 1) for h in battle.spec["heroes"] if int(h["side"]) == 2]
+    if _map_finished(c, camp):
+        campaign = templates.get("Campaigns", DUNGEON_CAMPAIGN, key="CampaignId") or {}
+        events += [
+            (rules.CAMPAIGN_CONDITION, DUNGEON_CAMPAIGN, 1),
+            (rules.SOLO_CONDITION, int(campaign["Capacity"]), 1),
+        ]
+    for kind, para1, value in events:
+        for q in rules.quest_event(snap, templates, kind, para1, value):
+            if q not in loot.quests:
+                loot.quests.append(q)
+    return loot
 
 
 def _dungeon_end(s: GameSession) -> None:

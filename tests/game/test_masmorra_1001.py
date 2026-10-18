@@ -21,6 +21,7 @@ WOLVES_1011 = (101102, 101103, 101105, 101106, 101109)  # o 101109 fecha o grupo
 WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que libera o chefe 102109
 END = [137, 4151, 83, 135, 4165, 150, 150, 140]  # fim do mapa, antes da carta (replay #1215-#1226, #1722-#1729)
 CARD = [115, 26, 83, 134]  # resposta do 5122 (replay #1227-#1243, #1730-#1747, sem 4476/4484)
+KURT_DIS, SANS_TASI = 2100001, 2040101  # drops dos lobos do 1021 (replay #1355-#1592)
 
 
 @pytest.fixture(autouse=True)
@@ -232,3 +233,75 @@ async def test_5126_devolve_a_nevoa_revelada(tmp_path: Path) -> None:
         got = await g.until(19)
         update = pb.CampaignFogUpdateMsg.FromString(got[-1].body).fogUpdate
         assert [(u.index, u.fogByte) for u in update] == [(5, 1), (9, 0)]
+
+
+def _quests(packets: list[Packet]) -> dict[int, pb.QuestInfo]:
+    """Último estado de cada missão nos 112 recebidos."""
+    out: dict[int, pb.QuestInfo] = {}
+    for p in packets:
+        if p.code == 112:
+            for q in pb.QuestUpdatedRspMsg.FromString(p.body).quest:
+                out[q.templateId] = q
+    return out
+
+
+async def kurt_dis(g: Game) -> int:
+    snap = await g.server.services.characters.snapshot(g.user_id)
+    return sum(i.count for i in snap.items if i.template_id == KURT_DIS)
+
+
+async def entrega(g: Game, template_id: int) -> list[Packet]:
+    g.client.send(5014, pb.QuestFinishedReqMsg(templateId=template_id))
+    got = await g.idle()
+    assert [pb.QuestFinishedRspMsg.FromString(p.body).templateId for p in got if p.code == 52] == [template_id]
+    return got
+
+
+async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path: Path) -> None:
+    # (visto) replay: 70 (passar a campanha) fecha com o 137 do 1011; 80 (chefe 1011) com o 102109; 90 com 8
+    # Kurt Dişi na bolsa (os lobos do 1021 deram 10). Entrega pelo 5014, como o oficial.
+    async with logged_in(tmp_path, novice=25500) as g:
+        g.client.send(5012, pb.QuestAddedMsg(questId=[70, 80, 90]))
+        assert set(_quests(await g.until(112))) == {70, 80, 90}
+        characters = g.server.services.characters
+        assert await kurt_dis(g) == 0
+
+        await enter(g)
+        for camp in WOLVES_1011[:-1]:
+            await battle(g, camp)
+        end = await battle(g, WOLVES_1011[-1])
+        assert _quests(end)[70].condition_1 == 1 and not _quests(end)[70].isComplete  # 112 logo após o 137
+        await entrega(g, 70)
+
+        # 1021: o drop de cada lobo sai antes do 128 (replay #1360, #1442, #1520, #1578)
+        await take(g, 2)
+        g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))
+        await g.idle()
+        g.client.send(5035, pb.LoginStateMsg(state=0))
+        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
+        await g.idle()
+        await enter(g)
+        totals = []
+        for camp in WOLVES_1021:
+            got = await battle(g, camp)
+            totals.append(await kurt_dis(g))
+            if camp == 102102:  # a primeira dá Şans Taşı Lv.1 também (no mesmo 115 do Kurt Dişi)
+                moved = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
+                assert {m.item.templateId for m in moved if m.HasField("item")} >= {KURT_DIS, SANS_TASI}
+        assert totals == [2, 4, 7, 10]
+        assert await kurt_dis(g) == 10
+
+        boss = await battle(g, 102109)
+        assert _quests(boss)[80].condition_1 == 1  # 26: o chefe 1011 ('Çene') morto
+        await entrega(g, 80)
+
+        strategy = (await characters.snapshot(g.user_id)).character.strategy
+        got = await entrega(g, 90)
+        assert _quests(got)[90].isComplete
+        assert await kurt_dis(g) == 0  # a entrega tirou a pilha inteira
+        removed = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
+        assert any(not m.HasField("item") for m in removed)  # 115 com a posição vazia (replay #1609)
+        assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 1000  # Ruh da 90
+
+        done = {q.template_id for q in (await characters.snapshot(g.user_id)).quests if q.completed}
+        assert {70, 80, 90} <= done  # gravado no banco

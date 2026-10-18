@@ -93,16 +93,23 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     s.send(S_QUESTS, quest_update(synced if q in synced else [*synced, q], rules.quest_bitmap(snap)))
     row, goods = rules.quest_rewards(snap, s.ctx.templates, q.template_id)
     gp, gold = int(row.get("RewardPlayGP", 0)), int(row.get("RewardGold", 0))
+    strategy = int(row.get("RewardStrategy", 0))  # (visto) tempinfos: 90 dá Ruh 1000, que não era paga
+    used, gone = rules.take_quest_goods(snap, s.ctx.templates, q)  # condição 27 (90): a bolsa paga a entrega
     q.completed, q.completed_at = True, s.ctx.clock.now()
     rules.add_gp(snap, s.ctx.templates, gp)
     snap.character.gold += gold
+    snap.character.strategy += strategy
     for item in goods:
         item.pos = rules.free_bag_pos(snap)
         snap.items.append(item)
-    await s.ctx.characters.save(snap.character, snap.leader, q, *goods, *synced)
+    await s.ctx.characters.save(snap.character, snap.leader, q, *goods, *synced, *used, delete=tuple(gone))
 
     _player(s)
     s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
+    for item in gone:
+        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, None, s.player_id))
+    for item in used:
+        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
     if gold:
         castle_yield(s)
     if gp:
