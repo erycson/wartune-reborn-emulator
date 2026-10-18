@@ -2,9 +2,9 @@
 
 Regras vindas do cliente (`OuterCityController`, `WorldMapControler`, `WorldMapHelper`) e da captura
 `transfer_kampi_sistemi.json` (5176 -> 140, 152, 105). O mapa 100000xxx do castelo é uma instância
-de cada jogador (o próprio castelo e as 4 minas do mapa 100); nos mapas 1 a 5, compartilhados, aparecem
-os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando de outro jogador e
-terra selvagem fora das 4 minas não existem aqui.
+de cada jogador (o próprio castelo, os 2 castelos-robô e as 4 minas do mapa 100); nos mapas 1 a 5,
+compartilhados, aparecem os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando
+de outro jogador e terra selvagem fora das 4 minas não existem aqui.
 """
 
 from __future__ import annotations
@@ -272,24 +272,30 @@ ROBOT_USER_BASE = 1_300_009_000  # (dedução) faixa 13000xxxxx dos robôs, acim
 ROBOT_NAMES = (("♣", "♣", "Chloe"), ("♫", "♫", "Elizabeth"), ("►", "◄", "Abigail"))
 
 
+def _in_own_instance(snap: PlayerSnapshot, map_id: int) -> bool:
+    """Só na instância do próprio castelo, a mesma regra das minas (``template_of`` == modelo 100): num mapa
+    compartilhado (1 a 5) os robôs não aparecem nem lutam."""
+    return snap.castle is not None and map_id == snap.castle.map_id and template_of(map_id) == BASE_MAP
+
+
 def robot_at(snap: PlayerSnapshot, map_id: int, x: int, y: int) -> int | None:
-    """Índice do castelo-robô no tile pedido. O robô só existe no mapa do próprio castelo (a instância)."""
-    if snap.castle is None or map_id != snap.castle.map_id:
+    """Índice do castelo-robô no tile pedido, na instância do próprio castelo."""
+    if not _in_own_instance(snap, map_id):
         return None
     return next((i for i, (_, rx, ry) in enumerate(ROBOT_CASTLES) if (rx, ry) == (x, y)), None)
 
 
 def robots_in(snap: PlayerSnapshot, map_id: int, grids: set[str]) -> list[int]:
-    """Robôs das grades pedidas, no mapa do próprio castelo (4129 do 8201)."""
-    if snap.castle is None or map_id != snap.castle.map_id:
+    """Robôs das grades pedidas, na instância do próprio castelo (4129 do 8201)."""
+    if not _in_own_instance(snap, map_id):
         return []
     return [i for i, (_, x, y) in enumerate(ROBOT_CASTLES) if grid_of(x, y) in grids]
 
 
 def robot_name(char_id: int, index: int) -> str:
-    """Nome do robô nesta conta. ponytail: a captura tem só 3 nomes (visto); o sorteio por conta e castelo
-    dá nomes diferentes entre contas, como no oficial. Mais nomes: ampliar ROBOT_NAMES."""
-    left, right, name = random.Random(f"robo:{char_id}:{index}").choice(ROBOT_NAMES)
+    """Nome do robô nesta conta. Os dois robôs da conta tiram nomes distintos da lista, sem repetir (dedução).
+    ponytail: a captura tem só 3 nomes (visto); ampliar ROBOT_NAMES se houver mais robôs."""
+    left, right, name = random.Random(f"robo:{char_id}").sample(ROBOT_NAMES, len(ROBOT_CASTLES))[index]
     return f"{left}{name}{right}"
 
 

@@ -221,11 +221,16 @@ def _army_sync(s: GameSession, state: int) -> None:
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (replay #713-#795): 140 do
     exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô: luta (ver ``_attack_robot``).
-    Mina já ocupada, castelo de outro jogador, terra ou tesouro: o exército só para (140 parado)."""
+    Mina já ocupada, castelo de outro jogador, terra ou tesouro: o exército só para (140 parado). Sem tropa
+    (``rules.army_pawn``) não há luta nenhuma: também só para (dedução)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     await refresh(s)
     _stop_walk(s)
+    if rules.army_pawn(snap) is None:
+        s.log.info("5160 sem exército", mapa=msg.mapId, x=msg.posX, y=msg.posY)
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s)))
+        return
     robot = oc.robot_at(snap, msg.mapId, msg.posX, msg.posY)
     if robot is not None:
         _attack_robot(s, robot)
