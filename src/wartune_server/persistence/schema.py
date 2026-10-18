@@ -800,6 +800,30 @@ player_systems = Table(
 _mapped = False
 
 
+# Templates do jogo (tempinfos.xml) no banco: templates/store.py. Cada elemento abaixo de <root> é um nó.
+template_nodes = Table(
+    "template_nodes",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=False),  # o import numera, para ligar pai e filho
+    Column("parent_id", Integer, ForeignKey("template_nodes.id", ondelete="CASCADE"), nullable=True, index=True),
+    _int("position"),
+    _str("tag", 64),
+    Column("key_name", String(64), nullable=True),  # categoria: o atributo id das linhas (TemplateId, Id...)
+    Column("row_key", String(64), nullable=True, index=True),  # linha: o valor desse atributo
+    _text("attrs"),  # JSON dos atributos, na ordem do arquivo
+)
+
+template_imports = Table(
+    "template_imports",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _str("source"),
+    _str("sha256", 64),
+    _int("nodes"),
+    Column("imported_at", UTCDateTime, nullable=False),
+)
+
+
 def map_entities() -> None:
     """Liga as dataclasses do domínio às tabelas (idempotente)."""
     global _mapped
