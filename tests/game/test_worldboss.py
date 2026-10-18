@@ -10,8 +10,8 @@ from wartune_server.templates.repository import GameTemplates
 
 WORLD_BOSS_OPCODES = (8258, 8259, 8264, 8271, 8470)
 ALERT = 111
-BEFORE_OPEN = datetime(2026, 5, 21, 9, 20, tzinfo=UTC)  # 12:20 em UTC+3: 5001 fechado, 5003 ainda não
-OPEN_5001 = datetime(2026, 5, 21, 8, 30, tzinfo=UTC)  # 11:30 em UTC+3
+BEFORE_OPEN = datetime(2026, 5, 21, 9, 20, tzinfo=UTC)  # 12:20 em UTC+3: 5001 aberto (11:35-12:35), 5003 ainda não
+OPEN_5001 = datetime(2026, 5, 21, 8, 40, tzinfo=UTC)  # 11:40 em UTC+3: 5001 aberto (abre 11:35 no inglês)
 
 
 def _states(msg: pb.WorldBossStateMsg) -> list[tuple[int, int]]:
@@ -46,7 +46,7 @@ async def test_agenda_e_recusas_com_o_relogio_da_captura(tmp_path: Path) -> None
         c = g.client
         c.send(8271)
         [state] = [pb.WorldBossStateMsg.FromString(p.body) for p in await g.idle() if p.code == 4182]
-        assert _states(state) == [(5001, 2), (5003, 1)]
+        assert _states(state) == [(5001, 0), (5003, 1)]  # 5001 já abriu às 11:35 no inglês (fecha 12:35)
 
         c.send(8258, pb.WorldBossMsg(param1=5003))  # fora da janela: aviso, sem 125
         c.send(8258, pb.WorldBossMsg(param1=4602))  # não é chefe do mundo
