@@ -75,6 +75,17 @@ async def test_entrada_aberta_sem_mapa_recusa_com_aviso(tmp_path: Path) -> None:
         assert [p.code for p in await g.idle()] == [ALERT]
 
 
+async def test_campanha_de_mina_nao_e_chefe_e_diz_indisponivel(tmp_path: Path) -> None:
+    """O botão ir de uma missão de coleta (NeedFightId 6001, Maden Ocağı, Types 2) manda 8258 com essa campanha
+    (cliente: TaskFrameII.as:707-708). Não é chefe e a entrada não existe aqui: aviso de indisponível, sem
+    cobrar nada, não o "inválido" de id que não existe."""
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
+        g.client.send(8258, pb.WorldBossMsg(param1=6001))
+        [alert] = await g.idle()
+        assert alert.code == ALERT
+        assert pb.ChatChannelMsg.FromString(alert.body).encodeMsg == "Bu işlem şu an kullanılamıyor."
+
+
 async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(BEFORE_OPEN)) as g:
         c = g.client
