@@ -18,7 +18,7 @@ XML = b"""<?xml version="1.0" encoding="UTF-8"?>
   <MapInfos><MapInfo Id="1" Name="A"/><MapInfo Id="2" Name="B"/></MapInfos>
 </root>"""
 
-REAL_FILE = Path("data/overlay/xml/tempinfos.xml")
+REAL_FILE = Path("data/templates/tempinfos.xml")
 
 
 def test_parses_zlib_and_plain() -> None:

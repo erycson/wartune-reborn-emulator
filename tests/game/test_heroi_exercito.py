@@ -7,11 +7,11 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import Item, Pet, PlayerSnapshot
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 
 def codes(packets: list) -> list[int]:  # type: ignore[type-arg]

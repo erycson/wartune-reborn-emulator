@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.content import dungeon
 from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
@@ -16,7 +16,7 @@ from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.game.handlers.campaign import _map_finished
 from wartune_server.templates.repository import GameTemplates
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 KURT_DIS, SANS_TASI = 2100001, 2040101
 
@@ -143,6 +143,6 @@ def test_fim_de_mapa_so_com_o_grupo_caido_e_sem_param4() -> None:
 
 def test_kurt_dis_e_sans_tasi_existem_e_cabem_numa_pilha() -> None:
     # (visto) overlay ItemTempInfos: Kurt Dişi MaxCount 9999, então as 10 unidades do 1021 ficam numa pilha só
-    templates = GameTemplates.parse((DATA / "xml/tempinfos.xml").read_bytes())
+    templates = GameTemplates.parse(TEMPLATES.read_bytes())
     assert templates.get("ItemTempInfos", SANS_TASI) is not None
     assert bag.max_count(templates, KURT_DIS) == 9999

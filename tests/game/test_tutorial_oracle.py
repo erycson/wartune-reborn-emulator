@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import battle as battle_mod
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.protocol.registry import Direction, MessageRegistry
@@ -48,7 +48,7 @@ SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para
 
 pytestmark = [
     pytest.mark.skipif(not CAPTURE.exists(), reason="precisa da captura do relay"),
-    pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay"),
+    pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates"),
 ]
 
 

@@ -328,7 +328,7 @@ async def test_pet_battle_finish_resolves_without_more_attacks() -> None:
     from wartune_server.services.clock import SystemClock
     from wartune_server.templates.repository import GameTemplates
 
-    templates = await GameTemplates.load(Path("data/overlay/xml/tempinfos.xml"))
+    templates = await GameTemplates.load(Path("data/templates/tempinfos.xml"))
     sent: list[int] = []
     ended: list[bool] = []
 

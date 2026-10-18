@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import PlayerSnapshot, Quest
 from wartune_server.game import rules
 from wartune_server.game.builders.player import quest_info
@@ -19,7 +19,7 @@ from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 TINA_NODE = 2  # MapNodeInfos 10000/2 (MasterType 61: o cliente manda o 8692); missão 361 pede conversa com ela
 TINA_POS = (108, 88)  # PosX/PosY do nó; alcance = HandlerRange 4 + 5

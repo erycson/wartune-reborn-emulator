@@ -20,9 +20,9 @@ from wartune_server.persistence.repositories import SqlAlchemyUnitOfWork
 from wartune_server.protocol import Packet, PacketDecoder, StreamCipher
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-DATA = Path("data/overlay")
+TEMPLATES = Path("data/templates/tempinfos.xml")
 pytestmark = pytest.mark.skipif(
-    not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay (tools/export_captures.py)"
+    not TEMPLATES.exists(), reason="precisa de data/templates/tempinfos.xml"
 )
 
 INIT_CODES = {4153, 4154, 4155, 4156, 4157, 4160, 4173, 4176, 4233, 4245}  # LoginInitDataAccept

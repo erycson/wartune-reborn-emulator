@@ -11,14 +11,14 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_social import _create_guild, _guild
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.templates.repository import Row
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 NOW = datetime(2026, 10, 17, 12, tzinfo=UTC)
 PILE_90 = 2100001  # condição da 90: 8 unidades (replay #1609: a pilha de 10 foi a zero na entrega)

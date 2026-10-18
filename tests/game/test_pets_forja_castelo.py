@@ -7,14 +7,14 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import logged_in
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import Item, Pet
 from wartune_server.game import bag
 from wartune_server.game.handlers import pets
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.templates.repository import GameTemplates
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 PAN_T1_S4 = 104104  # receita 4: 10 de 2125054 + 1000 de 2125057 + 5 milhões de ouro
 PAN_T2_S4 = 104204  # resultado da receita 4 (tier 2, mesma estrela)
@@ -113,7 +113,7 @@ def test_receita_so_vale_se_o_pet_resultante_tem_template() -> None:
 
 
 def test_refino_sorteia_so_atributos_com_grade() -> None:
-    templates = GameTemplates.parse((DATA / "xml/tempinfos.xml").read_bytes())
+    templates = GameTemplates.parse(TEMPLATES.read_bytes())
     bag._random_pool.clear()
     pool = set(bag.random_skill_pool(templates))
     # atributos vistos nas capturas (login, ciftlik, atolye_item_basma_ve_mozaik): todos com Grades 1-10

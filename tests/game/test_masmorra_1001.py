@@ -8,7 +8,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.content import dungeon
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import drops
@@ -16,7 +16,7 @@ from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 WOLVES_1011 = (101102, 101103, 101105, 101106, 101109)  # o 101109 fecha o grupo e o mapa
 WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que libera o chefe 102109

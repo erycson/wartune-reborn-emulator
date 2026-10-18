@@ -7,12 +7,12 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import logged_in
-from tests.test_end_to_end import DATA
+from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import battle as battle_mod
 from wartune_server.game.campaign import DONE, NORMAL, CampaignMap
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-pytestmark = pytest.mark.skipif(not (DATA / "xml/tempinfos.xml").exists(), reason="precisa de data/overlay")
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 
 @pytest.fixture(autouse=True)
