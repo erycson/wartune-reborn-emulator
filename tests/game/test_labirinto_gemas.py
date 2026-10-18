@@ -226,18 +226,19 @@ async def test_refused_moves_only_unlock_the_client(tmp_path: Path) -> None:
 
 async def test_buy_times_costs_diamonds_and_stops_at_the_cap(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
+        _, cost, _ = handler._buy_info(g.server.services.templates)  # diamantes por compra do template
         c = _snap(g).character
         c.point = 100
         _set_board(g, gm.Game(board=list(CAPTURED_BOARD), times=20))
         g.client.send(9516, pb.GemMazeBuyTimesMsg(buyTypes=1))
         got = await g.idle()
         assert pb.GemMazeBuyTimesRspMsg.FromString(_body(got, 4927)).moveTimesLeft == 30
-        assert c.point == 95 and await _ledger(g) == [(-5, 0, "gemmaze_buy")]
+        assert c.point == 100 - cost and await _ledger(g) == [(-cost, 0, "gemmaze_buy")]
 
         _set_board(g, gm.Game(board=list(CAPTURED_BOARD), times=90))  # 90 + 10 passa do teto de 99
         g.client.send(9516, pb.GemMazeBuyTimesMsg(buyTypes=1))
         assert [p.code for p in await g.idle() if p.code == 4927] == []
-        assert c.point == 95
+        assert c.point == 100 - cost
 
 
 async def test_receive_all_moves_the_maze_bag_into_the_main_bag(tmp_path: Path) -> None:
