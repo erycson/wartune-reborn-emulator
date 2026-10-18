@@ -76,7 +76,8 @@ async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
         got = await g.until(83)
         assert codes(got) == [109, 115, 115, 111, 83] and wand.join_1 == 0 and c.gold == 800
         assert (
-            pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Başarıyla söküldü! Kazanılan:Saldırı Taşı Lv.1 x1!"
+            pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg
+            == "Başarıyla söküldü! Kazanılan:Lvl. 1 Physical Attack Gem x1!"
         )
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert sorted(i.template_id for i in saved.items if i.bag_type == 1) == [ATTACK_1, ATTACK_2]
@@ -96,7 +97,7 @@ async def test_compose_and_transform(tmp_path: Path) -> None:
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))
         got = await g.until(83)
         assert codes(got) == [115, 109, 115, 111, 89, 83] and c.gold == 40000
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Kazanılan:İnanç Kılıcı x1"
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Kazanılan:Gartan Sword x1"
         assert {(i.template_id, i.count) for i in me(g).items if i.bag_type == 1} >= {(2129001, 1), (1991011, 1)}
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))  # falta material
         assert await g.idle() == []

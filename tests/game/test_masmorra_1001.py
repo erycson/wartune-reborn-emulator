@@ -79,7 +79,7 @@ async def test_cada_mapa_gasta_20_de_beden_e_sem_beden_nao_entra(tmp_path: Path)
         got = await enter(g)
         assert pb.PlayerMsg.FromString(got[-2].body).weary == before - 20
         assert (
-            pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "[Kurt İni] haritasına girildi, 20 can kullanıldı."
+            pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "[Worg Lair] haritasına girildi, 20 can kullanıldı."
         )
         assert (await characters.snapshot(g.user_id)).character.weary == before - 20  # gravado
 

@@ -4,7 +4,7 @@ from tests.game.harness import logged_in
 from wartune_server.domain.models import Item
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-NEWBIE_BOX = 2060101  # Yeni Oyuncu Paketi Lv.5 (guerreiro), GradeDrop 90105
+NEWBIE_BOX = 2060101  # Lvl. 5 Starter Pack (guerreiro), GradeDrop 90105: 10 de Bound Balens no inglês (2 no turco)
 
 
 async def test_opening_the_newbie_box_swaps_it_for_its_drop(tmp_path: Path) -> None:
@@ -26,13 +26,13 @@ async def test_opening_the_newbie_box_swaps_it_for_its_drop(tmp_path: Path) -> N
         text = pb.ChatChannelMsg.FromString(got[4].body).encodeMsg
         assert (
             text
-            == "Kazanılan:Bağlı Elmas 2, Altın 3,000, Yeşil Yüzük x1, Parlak İşaret x1, Yeni Oyuncu Paketi Lv.10 x1"
+            == "Kazanılan:Bound Balens 10, Gold 3,000, Amethyst Ring x1, Coruscan Crest x1, Lvl. 10 Starter Pack x1"
         )
-        assert pb.PlayerMsg.FromString(got[6].body).giftToken == 2
+        assert pb.PlayerMsg.FromString(got[6].body).giftToken == 10
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert sorted(i.template_id for i in saved.items if i.bag_type == 1) == [1070002, 1080002, 2060102]
-        assert (saved.character.gold, saved.character.gift_token) == (gold + 3000, 2)
+        assert (saved.character.gold, saved.character.gift_token) == (gold + 3000, 10)
 
         g.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))  # agora é a Lv.10: nível 5 não abre
         assert await g.idle() == []

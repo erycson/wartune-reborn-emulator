@@ -93,9 +93,10 @@ async def test_opening_a_box_writes_cash_ledger_and_item_log(tmp_path: Path) -> 
         await g.until(3)
 
         (cash,) = await _rows(g, CashLedger)
-        assert (cash.character_id, cash.delta_point, cash.delta_gift_token) == (g.user_id, 0, 2)
-        assert (cash.balance_gift_token, cash.reason, cash.ref, cash.gm) == (2, "item", f"5006:{NEWBIE_BOX}", None)
+        # caixa 90105: 10 de Bound Balens no inglês (2 no turco)
+        assert (cash.character_id, cash.delta_point, cash.delta_gift_token) == (g.user_id, 0, 10)
+        assert (cash.balance_gift_token, cash.reason, cash.ref, cash.gm) == (10, "item", f"5006:{NEWBIE_BOX}", None)
         logs = [(r.template_id, r.count, r.action) for r in await _rows(g, ItemLog)]
         assert logs[0] == (NEWBIE_BOX, -1, "use") and len(logs) == 4 and {a for *_, a in logs[1:]} == {"drop"}
         (char,) = await _rows(g, Character)
-        assert char.gift_token == 2
+        assert char.gift_token == 10

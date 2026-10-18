@@ -65,9 +65,9 @@ async def test_26_chefe_pelo_template_e_nao_pelo_mapa(tmp_path: Path) -> None:
         templates = g.server.services.templates
         snap = _snap(g)
         now = datetime.now(UTC)
-        q80 = Quest(g.user_id, 80, now)  # tipo 26, Para1 1011 = 'Çene' (GameHeroTemp), Para3 1001
+        q80 = Quest(g.user_id, 80, now)  # tipo 26, Para1 1011 = 'Wulfgar' (GameHeroTemp; 'Çene' no turco), Para3 1001
         snap.quests.append(q80)
-        assert templates.get("GameHeroTemp", 1011, key="TemplateId")["TemplateName"] == "Çene"
+        assert templates.get("GameHeroTemp", 1011, key="TemplateId")["TemplateName"] == "Wulfgar"
         assert rules.quest_event(snap, templates, rules.HERO_KILL_CONDITION, 1031, 1) == []  # outro chefe
         assert rules.quest_event(snap, templates, rules.HERO_KILL_CONDITION, 1011, 1) == [q80]
         assert rules.quest_done(snap, templates, q80, now)
@@ -142,7 +142,8 @@ def test_fim_de_mapa_so_com_o_grupo_caido_e_sem_param4() -> None:
 
 
 def test_kurt_dis_e_sans_tasi_existem_e_cabem_numa_pilha() -> None:
-    # (visto) overlay ItemTempInfos: Kurt Dişi MaxCount 9999, então as 10 unidades do 1021 ficam numa pilha só
+    # (visto) ItemTempInfos: Worg Tooth (Kurt Dişi) MaxCount 999 no inglês (9999 no turco)
+    # então as 10 unidades do 1021 cabem numa pilha só
     templates = GameTemplates.parse(TEMPLATES.read_bytes())
     assert templates.get("ItemTempInfos", SANS_TASI) is not None
-    assert bag.max_count(templates, KURT_DIS) == 9999
+    assert bag.max_count(templates, KURT_DIS) >= 10
