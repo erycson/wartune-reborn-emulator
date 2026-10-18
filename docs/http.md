@@ -45,7 +45,7 @@ Fica em `D:\xampp\htdocs\wartune-reborn\portal` (`http://127.0.0.1:8090/wartune-
 |---|---|
 | `index.php` | entrar / criar conta (senha com `password_hash`); lista os servidores de `game_servers`, com status online (teste no socket) e o personagem da conta em cada um |
 | `play.php?server=N` | emite o ticket e mostra a URL do `Loading.swf` (projector) e o botão do Ruffle |
-| `client-config.php?server=N` | `config.xml` do servidor N, a partir do modelo oficial: `REQUEST_PATH` → HTTP do jogo, `ResourcePath`/`TEMPLATE_PATH` → CDN, `SocktPath`, `NODE site` e `RSAKey` vindos de `game_servers` |
+| `client-config.php?server=N` | `config.xml` do servidor N, a partir do modelo oficial: `REQUEST_PATH` → HTTP do jogo, `ResourcePath` → CDN (`cdn_url`, espelho do res134), `TEMPLATE_PATH` → site do jogo (`game_url`, espelho do s134, `xml/`), `SocktPath`, `NODE site` e `RSAKey` vindos de `game_servers` |
 
 ## CDN
 

@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta
 from ..domain.models import Castle, PlayerSnapshot, WildLand
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
-from .worldboss import GAME_TZ
+from . import worldboss
 
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
 GRID = 50  # a grade pedida pelo cliente é "x_y" de 50 × 50 tiles (OuterCitySocketOutManager)
@@ -150,7 +150,7 @@ def cycle_end(snap: PlayerSnapshot) -> datetime:
 
 def game_date(at: datetime) -> str:
     """Data como o oficial manda (createDate): no fuso do jogo."""
-    return at.astimezone(GAME_TZ).strftime(DATE)
+    return at.astimezone(worldboss.GAME_TZ).strftime(DATE)
 
 
 def draw(snap: PlayerSnapshot, mine: Mine) -> tuple[int, int]:
@@ -336,3 +336,41 @@ def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
         leftEnergy=castle.energy,
         grade=castle.grade,
     )
+
+
+# Chefes do mapa (9525 -> 4938, painel "Current map BOSS info" da cidade externa).
+# Relógio (visto): transfer #8/#10 (mapa 2, 4828 s às 17:39:31 UTC) e cevre #3/#9/#43/#44 (instância do
+# castelo, 5775 s às 17:23:44 UTC) caem no mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do jogo),
+# em mapas diferentes. (dedução) é um relógio do mundo de 2 h nas horas pares do fuso do jogo: RefreshTime
+# 7200 nos chefes (MapPhysicsTempInfos MasterType 21). As duas capturas são da mesma conta.
+BOSS_PERIOD = 7200
+# Lista (visto): o bosslist do mapa 2 na transfer, como (template, tile x, tile y). O template saiu do nome e
+# do grau no tempinfos turco da captura (Çılgın Garnett 20 = 210106, Ateş Ruhu 70 = 210124, Işık Ruhu 80 =
+# 210129, Rüzgar Ruhu 60 = 210120); o nome vai do template atual. x e y em tiles: o radar do cliente faz
+# x * 20 (OuterCityBossInfoView) e o mapa 2 tem 4000 tiles. A instância do castelo vem vazia (cevre).
+# ponytail: mapas 1, 3, 4 e 5 sem lista (precisa de captura); a lista não muda no refresh (sem captura de
+# dois ciclos). O 4129 do mapa 2 (transfer #14) traz outro chefe (210127, bossType 2) fora do bosslist: o
+# painel não é a lista inteira dos chefes do mapa.
+MAP_BOSSES: dict[int, tuple[tuple[int, int, int], ...]] = {
+    2: ((210106, 1540, 3323), (210124, 1239, 2870), (210129, 739, 388), (210129, 2164, 2112), (210120, 1865, 527)),
+}
+BOSS_ALIVE = 1  # BossMsg.type visto; 0 o cliente pinta como morto e esconde o radar
+
+
+def boss_left(now: datetime) -> int:
+    """Segundos até o próximo refresh dos chefes. Nunca 0: com 0 o cliente (``coolDownBossUpdate``) pede
+    o 9525 de novo, e a cada segundo se a resposta voltar 0."""
+    local = now.astimezone(worldboss.GAME_TZ)
+    into = (local - local.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() % BOSS_PERIOD
+    return max(1, int(BOSS_PERIOD - into))
+
+
+def boss_msg(templates: GameTemplates, map_id: int, now: datetime) -> pb.MapBossMsg:
+    """4938. ``count1`` a ``count3`` (monstros, elites e chefe do dia) ficam 0: não há monstro do mapa
+    nem luta contra chefe que conte. Névoa (``leftFogTime``) sem captura: 0, como nas duas."""
+    bosses = []
+    for template, x, y in MAP_BOSSES.get(map_id, ()):
+        row = templates.get("MapPhysicsTempInfos", template) or {}
+        name, grade = row.get("MapPhysicsTempName", ""), int(row.get("Grades", 0))
+        bosses.append(pb.BossMsg(bossName=name, grade=grade, type=BOSS_ALIVE, x=x, y=y))
+    return pb.MapBossMsg(count1=0, count2=0, count3=0, bosslist=bosses, leftBossTime=boss_left(now), leftFogTime=0)

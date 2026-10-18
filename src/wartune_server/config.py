@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     policy_port: int | None = 843  # None desliga o servidor de policy dedicado
 
     templates_file: Path = Path("data/templates/tempinfos.xml")
+    # Fuso do jogo: horários dos chefes do mundo, relógio dos chefes do mapa e createDate. Nome IANA (com
+    # horário de verão) ou deslocamento fixo ("+03:00"). O oficial inglês segue o Pacífico (internet)
+    # https://wartunereborn.wan.com/article/read?aid=8721.html; o turco das capturas era UTC+3.
+    game_timezone: str = "America/Los_Angeles"
     # URL do tempinfos.xml na CDN (TEMPLATE_PATH + tempinfos.xml), para ``templates update``
     templates_url: str | None = None
     rsa_key_file: Path = Path("data/rsa_private.pem")

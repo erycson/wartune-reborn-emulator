@@ -2,19 +2,42 @@
 
 Os chefes são as campanhas com ``Types=1`` (5001 e 5003). O cliente guarda todo campanha com
 ``Types>=1`` (menos 5 e 9) e derruba com um id fora desse dicionário, então o 4182 manda só estes.
-Os horários (``OpenTime``/``StopTime``) são do jogo no fuso de Istambul: a captura de 4182 em
-``replay_packets.json`` (pacotes 78 -> 102, 12:20 em UTC+3) mostra 5001 já fechado (passou das 12:00)
+Os horários (``OpenTime``/``StopTime``) são do jogo no fuso do servidor (``GAME_TZ``). No turco era UTC+3: a
+captura de 4182 em ``replay_packets.json`` (pacotes 78 -> 102, 12:20 em UTC+3) mostra 5001 já fechado (passou das 12:00)
 e 5003 ainda não aberto (antes das 21:35). Em UTC o mesmo instante daria 5001 aberto.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta, timezone
+import re
+from datetime import datetime, time, timedelta, timezone, tzinfo
+from zoneinfo import ZoneInfo
 
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
 
-GAME_TZ = timezone(timedelta(hours=3))  # ponytail: fuso fixo (UTC+3, sem horário de verão); outro fuso vira config
+
+def parse_timezone(text: str) -> tzinfo:
+    """``"+03:00"``, ``"UTC-7"`` (deslocamento fixo) ou um nome IANA (``"America/Los_Angeles"``, com horário
+    de verão; no Windows vem do pacote ``tzdata``)."""
+    fixed = re.fullmatch(r"(?:UTC)?([+-])(\d{1,2})(?::?(\d{2}))?", text.strip())
+    if fixed is None:
+        return ZoneInfo(text.strip())
+    sign = -1 if fixed.group(1) == "-" else 1
+    return timezone(sign * timedelta(hours=int(fixed.group(2)), minutes=int(fixed.group(3) or 0)))
+
+
+# Fuso do jogo (horários dos chefes, createDate das minas, relógio dos chefes do mapa). Vem de
+# ``Settings.game_timezone`` (WARTUNE_GAME_TIMEZONE) na subida (``set_timezone`` em ``build_services``).
+# O oficial inglês segue o horário do Pacífico (troca PDT/PST); as capturas são do turco (UTC+3).
+GAME_TZ: tzinfo = parse_timezone("America/Los_Angeles")
+
+
+def set_timezone(text: str) -> None:
+    global GAME_TZ
+    GAME_TZ = parse_timezone(text)
+
+
 OPEN, BEFORE, CLOSED = 0, 1, 2  # WorldBossInfoStateMsg.state: aberto, ainda não abriu hoje, encerrado hoje
 
 

@@ -501,3 +501,30 @@ async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None
         assert oc.occupied(fresh, oc.MINES[0]) is None
         assert fresh.castle is not None and fresh.castle.mines_at == clock.now()
         assert fresh.character.gold >= gold_before  # o settle do refresh nunca tira ouro
+
+
+async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
+    """9525 -> 4938 com a lista do mapa 2 da captura (nomes do template atual) e o relógio que as duas
+    capturas mostram: 2026-05-21 19:00 UTC menos 4828 s (transfer) e 5775 s (cevre)."""
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, 290000, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
+        msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
+        templates = g.server.services.templates
+        names = [templates.get("MapPhysicsTempInfos", t)["MapPhysicsTempName"] for t, _, _ in oc.MAP_BOSSES[2]]
+        assert [(b.bossName, b.grade, b.type, b.x, b.y) for b in msg.bosslist] == [
+            (names[0], 20, 1, 1540, 3323),
+            (names[1], 70, 1, 1239, 2870),
+            (names[2], 80, 1, 739, 388),
+            (names[3], 80, 1, 2164, 2112),
+            (names[4], 60, 1, 1865, 527),
+        ]
+        assert (msg.leftBossTime, msg.count1, msg.leftFogTime) == (4828, 0, 0)
+
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=100))  # instância do castelo: sem chefes (cevre)
+        msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
+        assert (len(msg.bosslist), msg.leftBossTime) == (0, 4828)
+
+    assert oc.boss_left(datetime(2026, 5, 21, 17, 23, 44, 227000, tzinfo=UTC)) == 5775  # cevre #3
+    assert oc.boss_left(datetime(2026, 5, 21, 19, 0, tzinfo=UTC)) == 7200  # na virada: ciclo novo, nunca 0
+    assert oc.boss_left(datetime(2026, 5, 21, 18, 59, 59, 900000, tzinfo=UTC)) == 1

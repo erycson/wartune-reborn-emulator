@@ -93,8 +93,8 @@ async def refresh(s: GameSession) -> None:
 
 
 @router.on(9525)
-async def map_boss(s: GameSession, _: pb.MapBossQuestMsg) -> None:
-    s.send(S_MAP_BOSS, pb.MapBossMsg(count1=0, count2=0, count3=0, leftBossTime=0, leftFogTime=0))
+async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
+    s.send(S_MAP_BOSS, oc.boss_msg(s.ctx.templates, msg.mapId, s.ctx.clock.now()))
 
 
 @router.on(5004)

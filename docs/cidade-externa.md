@@ -30,6 +30,7 @@ disso é recusado ou respondido vazio, do jeito que o cliente espera para não t
 | 5181 | Sem resposta própria. A grade vem no 169 do 8201 | *(visto)* transfer #12-15, cevre #11-12: sem S>C | — |
 | 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100, ocupadas só pelo próprio jogador), o próprio castelo, os castelos-robô da grade (na instância) e, num mapa compartilhado (1 a 5), os castelos de outros jogadores nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* replay #706, cevre #11, transfer #14-15 (no mapa 2 o 4129 traz o castelo de `asiesat` e 20 "Köy"; o 169 traz o exército dele); *(dedução)* castelo de outro jogador com os campos do próprio (a captura não tem um) | exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) e castelos "Köy" sem dono |
 | 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,134 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* replay #761-#767 (18 tiles em 2,43 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
+| 9525 | 4938 com os chefes do mapa pedido e o tempo até o próximo refresh (ver *Chefes do mapa*) | *(visto)* transfer #7-10, cevre #3, #9, #43, #44 | luta contra chefe, monstros do mapa, névoa (4939) e caixas (4940) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
 | 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o guarda de grau 8 se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* replay #713-#795; *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo e a luta do castelo-robô | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
@@ -136,6 +137,27 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - **Não feito**: PvP contra castelo de jogador (8488 segue sem alvo, porque exército alheio não existe aqui);
   repetir a 765 (o 5012 de missão já existente é recusado, `rules.py:282`; a 765 também exige guilda, `TaskManage.checkConsortia`, 458-465; o cliente re-oferece quando a data da conclusão difere de hoje, `TaskManage.as` 531-542); e a gravação no fim da luta: um corte no
   meio da luta não cobra o ataque.
+
+## Chefes do mapa (9525 -> 4938, painel "Current map BOSS info")
+
+- **Relógio** *(visto)*: transfer (mapa 2, 4828 s às 17:39:31 UTC) e cevre (instância do castelo, 5775 s às
+  17:23:44 UTC) apontam para o mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do turco). *(dedução)*
+  relógio do mundo de 2 h (`RefreshTime` 7200 nos chefes, `MapPhysicsTempInfos` `MasterType` 21), nas horas
+  pares do fuso do jogo (`WARTUNE_GAME_TIMEZONE`). O `leftBossTime` nunca vai 0: com 0 o cliente
+  (`OuterCityManager.coolDownBossUpdate`) pede o 9525 de novo, a cada segundo. As duas capturas são da mesma conta.
+- **Lista** *(visto)*: o mapa 2 traz 5 chefes (template, tile): 210106 (1540,3323), 210124 (1239,2870), 210129
+  (739,388), 210129 (2164,2112), 210120 (1865,527), todos `type` 1. O template saiu do nome e do grau no
+  tempinfos turco; o nome mandado é o do template atual ("Gale Wolf King", "Spirit of Fire"...). x e y em tiles
+  (o radar faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (cevre), então no
+  mapa do castelo o painel fica vazio também no oficial: os chefes ficam nos mapas compartilhados (o 2 pede
+  nível 21).
+- **Não feito** *(precisa de captura)*: a lista dos mapas 1, 3, 4 e 5; se a lista muda a cada refresh; a luta
+  contra o chefe (5160 num chefe segue parado); `count1` a `count3` (monstros, elites e chefe do dia, sempre 0);
+  névoa (4939, `leftFogTime` 0) e caixas (4940/9526). O 4129 do mapa 2 (transfer #14) traz outro chefe
+  (879741, template 210127, `bossType` 2, em (2268,1932)) fora do `bosslist`: o painel não lista todos os
+  chefes do mapa, e eles ainda não entram no 4129.
+- Internet: não achei fonte sobre os chefes do mapa externo (horário ou regra). O fuso do oficial inglês é o
+  do Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html.
 
 ## Coleta (Kaynak Topla, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 

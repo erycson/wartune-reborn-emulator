@@ -13,6 +13,7 @@ from .config import Settings
 from .domain.models import GameServer
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
 from .game import mall as market
+from .game import worldboss
 from .game.events import EventCatalog
 from .game.guild import Guilds
 from .game.router import router
@@ -54,6 +55,7 @@ class Services:
 
 async def build_services(settings: Settings, clock: Clock | None = None) -> Services:
     clock = clock or SystemClock()
+    worldboss.set_timezone(settings.game_timezone)
     database = Database(settings.database_url, echo=settings.database_echo)
     await database.migrate()
     templates, keys = await asyncio.gather(

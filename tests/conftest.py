@@ -7,8 +7,15 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from wartune_server.domain.models import Account, GameServer, PlayTicket
+from wartune_server.game import worldboss
 from wartune_server.persistence.database import Database
 from wartune_server.persistence.repositories import SqlAlchemyUnitOfWork
+
+
+@pytest.fixture(autouse=True)
+def game_timezone() -> None:
+    """Os testes reproduzem as capturas do servidor turco (UTC+3); o padrão do servidor é o fuso do inglês."""
+    worldboss.set_timezone("+03:00")
 
 
 @pytest.fixture

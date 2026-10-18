@@ -98,3 +98,16 @@ async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:
 def test_todo_opcode_da_lista_tem_handler() -> None:
     for code in WORLD_BOSS_OPCODES:
         assert router.get(code) is not None, code
+
+
+def test_fuso_do_jogo_da_configuracao() -> None:
+    """WARTUNE_GAME_TIMEZONE: deslocamento fixo ou nome IANA (com horário de verão, via tzdata)."""
+    from datetime import timedelta
+
+    from wartune_server.game import worldboss as wb
+
+    assert wb.parse_timezone("+03:00").utcoffset(None) == timedelta(hours=3)
+    assert wb.parse_timezone("UTC-7").utcoffset(None) == timedelta(hours=-7)
+    pacific = wb.parse_timezone("America/Los_Angeles")
+    assert datetime(2026, 7, 1, tzinfo=pacific).utcoffset() == timedelta(hours=-7)  # PDT
+    assert datetime(2026, 12, 1, tzinfo=pacific).utcoffset() == timedelta(hours=-8)  # PST
