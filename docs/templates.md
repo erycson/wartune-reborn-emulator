@@ -49,3 +49,28 @@ join template_nodes c on c.id = n.parent_id and c.tag = 'ItemTempInfos';
 ```
 
 `json_extract` é do SQLite. No MySQL e no Postgres a função de JSON muda de nome.
+
+## Compras (`purchases`)
+
+Cada compra grava uma linha com o jogador, a origem, o que levou e o que pagou. Ela entra na mesma transação da compra.
+
+| Coluna | Conteúdo |
+|---|---|
+| `source` | `shop` (loja comum, inclui moda: 5154 e 8592), `blood` (poção de HP, 5633), `mystery` (loja misteriosa, 8482), `mall` (preço fixo do mercado, 8453), `mall_lance` (lance vencedor no encerramento) |
+| `good_id` | Linha de `ShopTempInfos` (loja) ou id do anúncio (mercado) |
+| `template_id` | Item levado (`ItemTempInfos`) |
+| `count`, `currency`, `price` | Quantidade, coluna de preço (`Point`, `GiftToken`, `Gold`, `Honor`, `MazeCoin`) e o total pago |
+
+O preço fica gravado porque um reimport do template muda o catálogo. O `cash_ledger` continua registrando o movimento de diamantes. O `purchases` é o "o que foi comprado".
+
+Ainda não gravam: a loja da guilda (`ConsortiaOffer`, `guild.shop_buy`) e as ofertas da home (nenhuma ativa).
+
+```sql
+select p.created_at, c.nickname, p.source, p.count, json_extract(n.attrs, '$.TemplateName') as item,
+       p.currency, p.price
+from purchases p
+join characters c on c.id = p.character_id
+join template_nodes n on n.row_key = cast(p.template_id as text)
+join template_nodes cat on cat.id = n.parent_id and cat.tag = 'ItemTempInfos'
+order by p.created_at desc;
+```

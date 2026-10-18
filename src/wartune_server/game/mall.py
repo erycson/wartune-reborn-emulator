@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from ..domain.models import Item, Mail, MailType
+from ..domain.models import Item, Mail, MailType, Purchase
 from ..domain.repositories import UnitOfWork
 from ..templates.repository import GameTemplates
 from . import mail as mailbox
@@ -76,6 +76,19 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
             continue
         label = f"{name(templates, item.template_id)} x{item.count}"
         if listing.bidder_id:
+            # o lance vencedor é a compra (o diamante saiu no lance, mall_bids)
+            await uow.save(
+                Purchase(
+                    listing.bidder_id,
+                    "mall_lance",
+                    listing.id or 0,
+                    item.template_id,
+                    item.count,
+                    "Point",
+                    listing.point,
+                    now,
+                )
+            )
             mails.append(
                 await post(
                     uow, listing.bidder_id, now, "Kazanılan eşya", f"{label}: en yüksek teklif sizde.", items=[item]

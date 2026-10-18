@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 
 from google.protobuf.message import Message
 
-from ...domain.models import BagType, Character, Item, Mail, MallBid, MallListing, PlayerSnapshot
+from ...domain.models import BagType, Character, Item, Mail, MallBid, MallListing, PlayerSnapshot, Purchase
 from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
@@ -455,6 +455,9 @@ async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
         await uow.delete(listing)
         await uow.save(c)
         await uow.save(paid)
+        await uow.save(
+            Purchase(c.id or 0, "mall", listing.id or 0, item.template_id, item.count, "Point", listing.fix_point, now)
+        )
         reply.out.append((S_FIX, pb.FixAuctionItemRspMsg(result=OK, mallItemId=listing.id or 0)))
         return reply
 

@@ -61,6 +61,7 @@ from ..domain.models import (
     Pet,
     PlayerSystems,
     PlayTicket,
+    Purchase,
     Quest,
     Relation,
     ShopBuy,
@@ -448,6 +449,21 @@ item_log = Table(
     _int("count"),
     _text("action"),
     _text("ref"),
+    _created_at(),
+)
+
+
+purchases = Table(
+    "purchases",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("character_id", Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True),
+    _str("source", 32),  # shop, blood, mystery, mall, mall_lance
+    _int("good_id"),
+    Column("template_id", Integer, nullable=False, index=True),
+    _int("count"),
+    _str("currency", 32),
+    _int("price"),
     _created_at(),
 )
 
@@ -842,6 +858,7 @@ def map_entities() -> None:
         (LoginHistory, login_history),
         (CashLedger, cash_ledger),
         (ItemLog, item_log),
+        (Purchase, purchases),
         (Relation, relations),
         (FriendGroup, friend_groups),
         (SnsProfile, sns_profiles),
