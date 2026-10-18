@@ -259,6 +259,31 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   https://www.youtube.com/watch?v=PaRgg2jSAHE e https://www.youtube.com/watch?v=KZVo075chg4 (Sawtooth Ant 70
   com ~80 000, Soul Drainer com 100 000). Mahra e "Equipment materials" do post oficial não têm confirmação
   de jogador e ficaram fora. Para mudar uma taxa, basta editar a linha no banco e reiniciar.
+- **Níveis 60-80: lidos em vídeo (migração 0032).** Ao pegar o baú, o jogo mostra "Wilds Slayer Rewards:
+  ...". O contador "Today's Reward Attempts" confirma o tipo. Foram lidos 35 baús: 18 BOSS (12 Lv80, 4 Lv70,
+  2 Lv60), 13 Elite e 5 Normal de nível ~80. A chance é a frequência vista e a quantidade é fixa quando todos
+  os baús deram a mesma. Abaixo de 60 continua valendo a 0030. O ouro de milhões (wiki) também continua,
+  porque não aparecer nos 35 não o desmente. *(internet)*
+
+  | Tipo | Sempre | Às vezes (frequência vista) |
+  |---|---|---|
+  | BOSS 60/70/80 | ouro 150k/180k/200k, Mystery Stone x8, Legendary Stone do nível x2/x2/x3 | 2ª pilha de Mystery Stone x5/x6 (40%), daru igual ao ouro (25%), kyanite 6k/8k/10k (30%), Shadow Crystal x7/x8 (30%), Divine Light (50%), Energy Core (30%), Runestone x6/x8/x10 (35%), Whip x7/x8 (25%), Fate Stone x8 (15%), Lvl. 3 Gem Pack x3 (25%), Skeleton Key x4/x5 (10%), Soul Crystal x16 (10%) |
+  | Elite 60/70/80 | ouro 70k/80k/100k | Mystery Stone x4/x5 (70%), daru igual ao ouro (40%), kyanite 4 500 (40%), Fate Stone x3/x4 (45%), Soul Crystal x5/x8/x13 (40%), Energy Core (25%), Divine Light (15%), Skeleton Key x3 (15%), Shadow Crystal x6, Runestone x5, Whip x3 (10%) |
+  | Normal ~80 | ouro 40-50k | kyanite 3 500 (60%), daru 50k (20%), Shadow Crystal x5 (20%), Mystery Stone x2 (20%) |
+
+  - **Valores *(dedução)*:** os da faixa 60 que não apareceram (Whip, Fate, Soul do BOSS e o Normal).
+    O Gem Pack usado é o 2060010 (uma gema), porque o template tem dois "Lvl. 3 Gem Pack".
+  - **Vídeos dos baús de BOSS:**
+    9TR2vFgoM68, KZVo075chg4, E2mSjZgS4s4, ZQQinb0eCaE, PK9ZQyBjIrA, uHwbw4qh5Mo, z_GJsJHFStk,
+    7La5sHVhJVI, WNA3obEGelA, qfWE3Fwnehg, 5qii_QwoyMg, yAwFriADgBA, Cn6cQpeImEM, PaRgg2jSAHE,
+    O41F-CZjgX4, Jah1Lt7hVf8, L1PN_S_WOGo, ap2OmPNJfrY.
+  - **Vídeos dos baús de Elite e Normal:** KZVo075chg4, E2mSjZgS4s4, PaRgg2jSAHE, M6FNpuuUhGc,
+    MkPflW645qU, pct0pNz2IEc, ROf6fZ1I-Wc, L4FT8QhQfqY, MvDYvI72TGM, 7La5sHVhJVI, z_GJsJHFStk.
+  - Todos são `https://www.youtube.com/watch?v=<id>`.
+  - **O que os vídeos também mostram:**
+    - a mochila cheia manda o excedente pelo correio (5qii_QwoyMg: "inventory full, please check your mail!");
+    - nenhum baú de nível 10-50 foi lido; os chefes desses níveis são Tauren Grand Master 10, Gale Wolf King 20,
+      Poison Jade Lizard 30, Bonecrusher 40 e Purgatory Lord / Water's Heart 50.
 - **Não feito**: entrar numa luta já começada (state 4), luta em grupo, as várias barras de vida dos chefes dos
   vídeos ("he's lost one life"), o reviver no mapa, e a regra "+/-15 levels" da wiki (o post oficial e o help
   só falam de 15 abaixo, que é o que está feito).

@@ -5,147 +5,89 @@ Visão geral e legenda em [multiplayer.md](multiplayer.md). Há captura só da a
 
 ## Boss mundial *(cliente)*
 
-### Templates
+### Templates (inglês, `data/templates/tempinfos.xml`)
 
-- **`CampaignInfo` com `Types=1`:**
-  - 5001 "Kızıl Gözlü Kurt": nível 20, 11:00–12:00.
-  - 5003 "Ejderha Kemiği": 21:35–22:35.
-  - O cliente trata os mapas 5000–5100 como boss.
-- **Heróis do boss:** `GameHeroTempInfo` 2002 "Kızıl Gözlü Kurt" e 2003 "Ejderha Kemiği",
-  `HeroType=3`, `Grades=50`, `Live=2000000`, `Attack=20000`, `MagicAttack=20000`, `ForceHit=705`,
-  `AI` 20041/20061, `DefaultSkill` 50041/50128. Os ids 2002/2003 de `PawnTempInfos` são tropas comuns (`Live` 400),
-  não o chefe.
-  - **Ligação campanha -> herói: só por nome** (5001 e 2002, 5003 e 2003). Nenhuma coluna liga os
-    dois. *(dedução)*
-  - O `Live` é o HP cheio do chefe. O cliente só recebe `totalHp` no 4174.
-- **Buff do chefe:** `CampaignBufferTemps` `Types=4`, 401–420 (+5% a +100% de atributos, só na
-  batalha do chefe, grade máxima 20). Os 701–720 "Moral Lv. N" são `Types=7` (ataque +500 a +10000,
-  grade 1 a 20, ícone `/buff_worldboss.png`), outro buff: a compra (8470) usa só o `Types=4`
-  (`WorldBossBuyBuffModel.BUFFER_TYPE = 4`). Quem dá a moral não está no cliente. **precisa de captura**.
-- **Mapas:** `MapInfos` 5001 e 5003 ("Dünya BOSS", `MapFileId` = id, `BattleGround` 11, 1600x1700).
-  `MapInfos` 5002 tem o mesmo nome mas não tem linha em `Campaigns`: não entra na agenda.
-- **Prêmios:** nenhuma linha de `RewardTemps`, `RewardGoods`, `CampaignData` ou `MapNodeInfos` cita
-  5001, 5003, 2002 ou 2003. A tabela de prêmios do chefe não está nos templates.
-- **Preços em `ConfigInfo`:**
-  - `WorldBoss_Buffer_*_Price=5`
-  - `WorldBoss_Replacement_Price=30` (dublê)
-  - `Live_Pay=2`: lido pela `RiverView` tipo 1, mas o botão de reviver só existe no altar (tipo 2)
-  - `Live_Fight_Pay=3`: entrar na luta agora (o botão do chefe)
+- **`CampaignInfo` com `Types=1`:** 5001 "Bloodfang" (11:35–12:35) e 5003 "Redoga Drake" (21:00–22:00),
+  `MinLevel` 20, `Capacity` 10000. O cliente trata os mapas 5000–5100 como chefe (`WorldBossHelper`).
+- **Herói do chefe:** o cliente usa o **2001 "Ragnoch"** nos mapas 5001 e 5003 e o 2002 no 5002
+  (`PreLoadWorldBoss.as:32-45`). Isso vira lei, contra a ligação por nome (5001 Bloodfang = 2002,
+  5003 Redoga = 2003). Os três têm `HeroType=3`, `Grades=50`, `Live=2000000`, `Attack=20000`, `Captain=3`
+  e `ResPath` boss016/boss004/boss020B. Os ids 2001–2003 de `PawnTempInfos` são tropas comuns.
+- **Mapas:** `MapInfos` 5001 e 5003 ("World BOSS", `BattleGround` 11, 1600x1700). `checkFogMap` ignora
+  a névoa nesses mapas.
+- **Moral:** `CampaignBufferTemps` 701–720 "Moral Lv. N" (`Types=7`, ataque +500 a +10000). O texto do
+  cliente (`WoundInfoView.buffTip`) diz que sobe a cada 500 mil do maior dano.
+- **Buff comprado** (`Types=4`, 401–420, 8470): removido no Patch 5.5 (internet); fica recusado.
+- **Prêmios:** os templates não têm tabela de prêmios do chefe. Estão na config do banco (ver abaixo).
+- **`ConfigInfo`:** `Live_Fight_Pay=15` (reviver e voltar à luta, 8264), `Live_Pay=10` (sem botão no
+  chefe), `WorldBoss_Replacement_Price=30` (dublê).
 
 ### Agenda
 
-**Quem decide é o servidor.** O horário do template só aparece no texto "fechado".
-
 - O cliente manda **8271** (vazio) no login. O servidor responde com o **4182**
-  `WorldBossStateMsg{worldBossInfo[]{campaignId, state}}`, só com os chefes de `Campaigns`
-  `Types=1` (5001 e 5003).
-- Significado de `state`: 0 = aberto (de `OpenTime` até `StopTime`), 1 = ainda não abriu hoje,
-  2 = encerrado. *(visto)* `login.json #120`: 5001=2, 5003=1.
-  - O 0 vem do cliente (`WorldBossManager`, `state == 0`). Nenhuma captura mostra o 0 no 4182: só 1 e 2.
-  - O 0 = aberto aparece no 4248 (mesmo `WorldBossStateMsg`): *(visto)* `login.json #121` (20:06
-    UTC+3) tem 4001–4009=2, **4010=0** (janela 20:00–20:25) e 4011–4013=1.
-  - Na mesma mensagem há um 3: *(visto)* `replay_packets.json #103` (12:20) tem 4002=3 (janela
-    12:00–12:25). Aos 6 min da janela é 0, aos 20 min é 3: talvez "entrada encerrada, luta em
-    andamento". *(dedução)* Para o chefe o 3 não aparece em captura e não é mandado.
-- **Fuso UTC+3.** Duas capturas batem: o 4182 de `replay_packets.json` (pacotes 78 -> 102, 12:20
-  local, 09:20 UTC) mandou 5001=2 e 5003=1 (em UTC, 5001 daria 1), e o de `login.json #120`
-  (20:06 local) também 5001=2 e 5003=1. Código: `game/worldboss.py` (`GAME_TZ`).
-- O cliente guarda todo `Types>=1` menos 5 e 9, e derruba com um `campaignId` fora desse
-  dicionário: o 4182 nunca leva outro id.
-- O 4182 só sai como resposta ao 8271. Não há tarefa periódica no servidor, então quem já está
-  logado não vê o chefe abrir até relogar. *(dedução)*
-  - O oficial empurra a mudança: *(visto)* `replay_packets.json #619`, 12:25:04, 4248 sem pedido e
-    só com o id que mudou (4002=2) no fim da janela. Para o 4182 não há captura do empurrão.
-    ponytail: sem tarefa periódica; quando o chefe tiver mapa, mandar `{campaignId, state}` no
-    `OpenTime`/`StopTime` para todos online.
-- O **4248** é o mesmo formato para o campo de batalha (4001–4013) e já sai no login
-  (`warfield.login`).
-- O **4381** `{campaignId, leftTime}` é o aviso de pré-carregamento antes de abrir. É opcional;
-  não é mandado.
+  `WorldBossStateMsg{worldBossInfo[]{campaignId, state}}` só com 5001 e 5003. Um id fora dos chefes
+  derruba o cliente.
+- `state`: 0 = aberto, 1 = ainda não abriu hoje, 2 = encerrado. *(visto)* `login.json #120`: 5001=2, 5003=1.
+  O 8258 só passa no cliente com `worldbossState` ligado, e só o 4182 com 0 liga.
+- **O servidor empurra a mudança:** no relógio (20008, ~60 s) cada sessão recebe o 4182 de novo quando um
+  estado muda (abriu, fechou ou o chefe morreu). Um chefe morto na janela de hoje aparece como 2.
+- Fuso do jogo: `game_timezone` (o turco era UTC+3). Código: `game/worldboss.py`.
+- O **4381** (pré-carregamento) não é mandado.
 
-### Mapa do chefe *(dado verificado no espelho local da CDN, só leitura)*
+### Implementação (`game/boss_fight.py`, `game/handlers/worldboss.py`)
 
-- `maps/5001/5001.maps` e `maps/5003/5003.maps` existem no espelho (`D:\xampp\htdocs\wartune-cdn\maps`).
-  Decodificados (AMF3, mesmo decodificador de `memory/campaign-nodes-in-maps-files`), trazem só
-  decoração: 5001 tem 1756 objetos com `campaign: null` e 5003 tem 2047; nenhum dos dois tem objeto
-  com `campaign` preenchido. Nenhum dos 13 mapas com nós é o do chefe.
-- Então o **nó do chefe** (`campDataId`, `nodeId`, `masterType`, `sonType`, `heroTempId`,
-  `BattleType`) não está no arquivo e não está em `CampaignData`. Em masmorra o nó também vem do
-  banco do oficial. **precisa de captura**: o 130 (lista de nós) do mapa 5001 numa entrada real.
-- Atacar um nó: o cliente anda até ele e manda **5125** `CampaignReqMsg{paraInt1=nodeId}`
-  (`CampaignArmyViewHelper` -> `MapSocketOuterManager.sendCampaignArrive`). É o mesmo caminho do
-  tutorial. Sem o nó do chefe no servidor não há o que atacar.
+**Config no banco (migração 0031).** `world_bosses` tem uma linha por chefe com a fonte de cada valor em
+`source`: herói, `sonType` do avatar, posição do nó e do jogador, vida inicial e mínima, regra de
+crescimento (morto em menos de `fast_seconds`: +`grow_pct`%; não morto: −`shrink_pct`%, sem passar de
+`min_hp`), `kill_turn` (6), `revive_seconds` (30), `damage_per_gold` (5), `battle_cap` (10M) e o último
+golpe (1,5M de ouro). `world_boss_rewards` tem o top 10 da classe (300k/270k/240k/180k de ouro e daru) e os
+degraus da fração do dano (0,3%/0,5%/0,8%: 60k/120k/180k). Os números vêm da Internet.
 
-### Pedidos C>S
+**Estado.** `world_boss_fights` guarda uma linha por janela (vida cheia, quem matou e quando, `settled`,
+`next_hp`) e `world_boss_wounds` o dano de cada personagem. A vida atual é a vida cheia menos a soma dos
+danos. Em memória fica o `Pool` da janela aberta (`ctx.bosses`). Um restart perde só as lutas em curso.
 
-Handlers em `game/handlers/worldboss.py`. Recusa = 111 (aviso no meio da tela) e nada cobrado.
+**Entrar (8258).** Valida id, janela, nível 20 e se o jogador está fora de batalha ou campanha, e se o
+chefe ainda está vivo. Resposta: 125, **4369** (os 3 degraus, antes da view; o cliente só tem
+`core.WorldBossReward1..3`), 21 (todos no mapa), 127, 130, 4174 e, se o jogador estiver morto, 4175. Quem
+já está no mapa recebe o 21 de quem entrou.
 
-| Opcode | Nome | Corpo | Servidor | Fonte |
-|---|---|---|---|---|
-| 8271 | `C_WORLDBOSS_STATE` | vazio | 4182 com a agenda de hoje | *(visto)* captura; *(cliente)* `WorldBossManager.setup` |
-| 8258 | `C_WORLD_BOSS_CMD` | `WorldBossMsg{param1=campanha}` | 111 com o motivo: id fora do template, janela fechada, nível abaixo de `MinLevel` (20), em batalha ou em campanha. Se tudo passa, 111 de "mapa não pronto". Nunca 125 | *(cliente)* `WorldBossSocketOutManager.sendWorldBossCmd` (5 s entre pedidos no cliente) |
-| 8259 | `C_WORLD_BOSS_REQ` | `WorldBossMsg{mapId}` | nada (log) | *(cliente)* `reqWorldBossCmd` existe, mas nenhum arquivo o chama |
-| 8264 | `C_WORLDBOSS_PLAYER_LIVE` | `PayTypeMsg{payType}` | 111, sem cobrança | *(cliente)* `WorldBossRiverMediator` → `RiverView()` tipo 1: entrar na luta com `Live_Fight_Pay`=3; payType 0 = vinculado primeiro, 1 = só diamante (como `cash.split`) |
-| 8470 | `C_WORLDBOSS_BUFFER` | `WorldBossBufferMsg{op=2, type}` | 111, sem cobrança | *(cliente)* `buyWorldBossBufferWithPointOrGiftToken` → `MapSocketOuterManager`; `type` 2 = vinculado, 1 = só diamante; preço `WorldBoss_Buffer_Diamond_Price` / `WorldBoss_Buffer_Gift_Price` = 5 |
-| 8535 | `C_CANCEL_TRANS` | vazio | nada (log). Cancela o transporte do jogador morto no mapa de PvP do chefe, que não existe aqui. O cliente não espera resposta | *(cliente)* `SocketSendManager.sendCancelTransport` |
+O nó tem `nodeId` 1 e `campDataId` = campanha × 100 + 1, e copia o modelo do chefe da masmorra
+(102109): `masterType` 41, `heroTempId` 2001, `resource` 1. O avatar `swf/npc/<sonType>.bswf` (2145) é
+dedução.
 
-**Dependências (por que cada recusa):**
-- **Mapa do chefe.** O `.maps` de 5001/5003 existe, mas não tem nó (ver *Mapa do chefe*). Sem o nó
-  do chefe não há alvo para o 125 nem para o 5125. **precisa de captura** da entrada (8258 -> 125 ->
-  130) para montar o nó.
-- **Batalha compartilhada.** O 157 com `battleType 17`, o boss com `type==3`
-  (`BattleModel.getWorldBoss`), herói 2002/2003 (vida 2 000 000). Não há captura da luta nem do
-  que encerra a batalha de cada jogador. Falta: 4174 (HP global), 4435, 4203 e 4369.
-- **Morte e entrada paga.** O 4175 de morte nasce na batalha do chefe. Sem o servidor saber que o
-  jogador morreu, o 8264 é recusado. Quando a batalha existir: contar a morte, cobrar
-  `Live_Fight_Pay` (3, com a regra de vinculado do payType) e mandar o 4175 de volta. Não há
-  botão de reviver pago no chefe: `Live_Pay` (2) não tem uso no cliente do chefe.
-- **Buff.** Só se compra dentro do mapa do chefe, e o efeito só vale na batalha
-  (`CampaignBufferTemps` `Types=4`, 401–420, grade máxima 20). O cliente lê o nível atual pelo
-  4165 (`bufferTempId`, `leftTime`) e pelo 4174 (`bufferGrade`). Duração e reset não estão no
-  cliente nem em captura, então nada é gravado.
-- **Altar de guilda.** O 8264 também é o reviver do altar (`RiverView` tipo 2, paga
-  `AltarLive_Offer` = 50 de contribuição). Quem fizer o mapa do altar separa pelo mapa do jogador;
-  a recusa atual vale para os dois.
-- **Pedido de info (8259).** Sem chamador no cliente: nada a responder.
+**Atacar (5125).** Luta com `battleType` 17. O chefe é herói `type` 3, `livingId` 4, com a vida que resta
+(`maxHp` = cheia). Ao lado do jogador vão as tropas e o herói.
+- **Concorrência:** a vida do chefe na luta é um `SharedHp`. Antes de cada ação ela vem do pool, e o dano
+  nele passa pelo pool dentro do próprio golpe (`Battle._act`, sem await). Assim, dois golpes nunca
+  levam a mesma vida, e só um zera o pool: esse é o último golpe.
+- A moral soma `bufferGrade × 500` a cada golpe do lado do jogador.
+- O jogador não morre até o `kill_turn`-ésimo golpe do chefe, que mata o lado inteiro.
+- **Fim da luta:**
+  - ouro e daru = dano da luta ÷ 5 (teto de 10M), gravados junto com o dano;
+  - o jogador recebe 3, 4103 (`goldBonus`/`strategyBonus`), 150 e 140;
+  - o 4174 vai a todos no mapa, cada um com o seu `myWound`.
 
-### Batalha compartilhada
+**Morte.** Quem perde fica morto 30 s. O 4175 (`state` 1, `leftTime` em ms) vai a todos no mapa, e o
+jogador revive sozinho com um 4175 `state` 0. Enquanto estiver morto, o 5125 só devolve o 4175.
+O **8264** revive na hora, cobrando `Live_Fight_Pay`: com payType 0 gasta primeiro o vinculado, com 1
+só diamante.
 
-**Entrada**
-- O cliente manda **8258** `WorldBossMsg{param1=campaignId}`.
-- A resposta deve ser a mesma entrada de campanha que já temos, no mapa 5001 *(dedução)*.
+**Sair (5025 ou desconexão).** O 22 `CampaignExitMsg` vai a todos no mapa, inclusive a quem sai
+(`exitBack`).
 
-**HP global**
-- O servidor faz broadcast do **4174** `WorldBossInfoMsg` com:
-  - `curHp`, `totalHp`
-  - `woundInfo[]{userId, nickName, wound, job}`
-  - `myWound`, diferente para cada destinatário
-  - `currentMillis`
-  - `bufferGrade`
-- O cliente monta sozinho o top 10 a partir do `woundInfo`.
+**Fim da janela (chefe morto ou `StopTime`).** É pago uma vez só, sob o lock do pool.
+- Os prêmios do fim vão pelo **correio do jogo** e somam (guia da Koram): top 10 da classe
+  (`job % 3`), o maior degrau da fração do dano e o último golpe.
+- Na mesma transação gravam-se `settled`, `next_hp` e o dano de todos.
+- Quem está no mapa recebe o **4203** (posição, ouro, daru e dano total) e o 22. Quem está em luta recebe
+  os dois no fim dela.
+- O relógio (20008, uma vez por minuto no servidor) paga as janelas que passaram do `StopTime`,
+  inclusive as que ficaram no banco sem pagamento depois de um restart.
 
-**Na batalha**
-- O 157 vai com `battleType 17` e o boss com `type==3` (`BattleModel.getWorldBoss`).
-- O **4435** ajusta a barra de HP.
-- Não se sabe o que encerra a batalha de cada jogador. Provavelmente é tempo ou a morte dele: o
-  boss sobrevive à batalha individual.
-
-**Morte e reviver**
-- O **4175** `PlayerStateListMsg{playerState[]{armyId, state:1, leftTime ms}}` avisa a morte. A
-  contagem é de uns 20 s.
-- Entrar na luta pagando (botão da `RiverView` tipo 1): o cliente manda **8264** `PayTypeMsg`.
-
-**Extras**
-- Buff: 8470.
-- Dublê: 8526, com as respostas 4424 e 4423. Recusado em `handlers/dungeon.py` (sem cobrança; preço
-  `WorldBoss_Replacement_Price` = 30). Nas pastas decompiladas nada chama `sendBuyStunmanFor`: a tela
-  `worldboss.BuyAvatarFrame` não está lá, então o lugar da compra não foi confirmado. *(dedução)*
-
-### Fim
-
-- **4203** `WorldBossReportMsg{order, gold, strengy, totalWound}`: posição, ouro e Ruh.
-- **4369**: marcos de dano acumulado.
-- As recompensas são definidas pelo servidor.
+**Fora do escopo:** o buff comprado (8470, removido no 5.5) e o dublê (8526) continuam recusados, e o
+4435 (barra de HP na luta) não é mandado. A vida do chefe não acompanha o nível dos jogadores: cresce ou
+cai conforme a última janela.
 
 ## Regras pela Internet (pesquisa de 2026-10-18)
 
@@ -195,7 +137,7 @@ Cada item diz o que gravar no `captures/` (ou no relay) e o que fazer no jogo. T
 personagem de nível 20 ou mais, sem batalha e sem campanha abertas, no horário da janela
 (UTC+3). Os pacotes esperados estão entre parênteses.
 
-1. **Estado aberto da agenda.** Entrar entre 11:00 e 12:00 (ou 21:35–22:35) e logar. Gravar o 4182
+1. **Estado aberto da agenda.** Entrar entre 11:35 e 12:35 (ou 21:00–22:00) e logar. Gravar o 4182
    (esperado: 5001=0 ou 5003=0; hoje só vimos 1 e 2). Confirma o 0 do cliente.
 2. **Entrada no chefe.** Clicar no chefe com a janela aberta. Gravar 8258, 125 (mapa 5001 ou
    5003), 130 (lista de nós, com o nó do chefe), 4174 (HP cheio e `woundInfo` vazio), 4182 e 157
@@ -207,13 +149,13 @@ personagem de nível 20 ou mais, sem batalha e sem campanha abertas, no horário
 5. **Buff.** Comprar o buff do chefe (`Types=4`) dentro do mapa (8470 `type` 1 e 2). Gravar 8470 e 4165
    (`bufferTempId`, `leftTime`) e o saldo antes e depois.
 6. **Dublê.** Comprar e cancelar o dublê na tela de dublê (`BuyAvatarFrame`, onde ela abrir) (8526 `op` 1 e 2). Gravar 8526, 4424 e 4423.
-7. **Fim.** Deixar a janela fechar (depois de 12:00) com a sessão aberta. Gravar 4203
+7. **Fim.** Deixar a janela fechar (depois de 12:35) com a sessão aberta. Gravar 4203
    (`order`, `gold`, `strengy`, `totalWound`) e 4369 (marcos de dano e estado de cada um).
 8. **Ranking com dois jogadores.** Dois personagens no mesmo chefe, cada um com dano. Gravar os dois
    4174 para confirmar a ordem do `woundInfo` e o `myWound` de cada um.
 
-Sem essas capturas não há como montar o nó, a batalha compartilhada, a regra do dano, a morte, o
-buff com duração e os prêmios. Nada disso é inventado no servidor.
+O servidor já faz tudo isso (ver *Implementação*), com o que falta das capturas tirado do cliente e da
+Internet; as capturas confirmariam o nó, a ordem dos pacotes e os números.
 
 ## Boss de guilda
 

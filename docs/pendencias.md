@@ -60,18 +60,16 @@ Outros eventos:
 
 ## Chefe do mundo ([boss-eventos.md](boss-eventos.md))
 
-- Agenda (8271 -> 4182): pronta, conferida com a captura de 12:20 (5001=2, 5003=1). O estado 0 (aberto) nunca apareceu num 4182, mas aparece no 4248 (mesma mensagem, `login.json #121`, 4010=0 às 20:06). **precisa de captura**: o 4182 dentro da janela. Ver *Captura que falta* em [boss-eventos.md](boss-eventos.md).
-- Entrar (8258): validado e recusado com aviso. **precisa de captura**: o `.maps` de 5001/5003 existe mas não tem nó do chefe (decoração só), e `CampaignData` não tem linha para eles.
-- Atacar: o caminho do nó é 5125 (`paraInt1` = nodeId), mas não há nó nem batalha de chefe. **precisa de captura** (entrada, 130, 157 com `battleType`, golpes).
-- Dano acumulado e ranking: o cliente ordena o `woundInfo` sozinho (`WorldBossModel.commit`); o servidor não soma dano. **precisa de captura**: quem soma e com que fórmula.
-- HP global (4174), morte (4175), relatórios (4203, 4369, 4435): não existem. Prêmios (4203 `gold`/`strengy`, 4369 marcos): **precisa de captura**, nenhuma tabela de prêmios cita os chefes.
-- Reviver pago (8264) e buff do chefe (8470, `Types=4`): recusam sem cobrar. **depende de**: mapa e batalha do chefe.
-- Dublê (8526): recusado em `handlers/dungeon.py`, sem cobrança. **depende de**: batalha do chefe e a tela `BuyAvatarFrame` (não está nas pastas decompiladas).
-- O 4182 (chefe abriu) não é reenviado para quem já está online: não há tarefa periódica. O oficial empurra o 4248 só com o id que mudou no fim da janela (`replay_packets.json #619`); fazer o mesmo no 4182 quando o chefe tiver mapa (antes disso o botão só leva à recusa).
-- Fuso fixo UTC+3. **dedução** (conferido em duas capturas: 12:20 e 20:06).
+- Pronto: agenda empurrada no relógio, entrar e sair, luta com vida compartilhada (último golpe único), ranking,
+  moral, morte de 30 s e reviver pago, fim da janela com prêmios pelo correio e vida da próxima janela. Config
+  e estado no banco (0031). Números da Internet (**dedução** onde a Internet não dá a regra).
+- **precisa de captura** para conferir: o nó do chefe (127), a ordem dos pacotes da entrada, o 157 do chefe e o
+  4203 real. O avatar do nó (`sonType` 2145) é **dedução**: conferir os 404 do Apache e baixar com
+  `tools/fetch_missing.py`.
+- Missões tipo 40 (participar do chefe) e 66 (lutar agora) não contam.
+- Buff comprado (8470) e dublê (8526) recusados (o buff saiu no Patch 5.5). O 4435 não é mandado.
+- A vida não segue o nível dos jogadores: cresce/cai pela janela anterior (`grow_pct`/`shrink_pct`).
 - O 8264 também é o reviver do altar da guilda: separar pelo mapa quando o altar existir.
-- Templates: moral (buff `Types=7`) são 701–720, não 701–710. O herói do chefe (2002/2003, `Live` 2 000 000) liga ao chefe só pelo nome. **dedução**.
-- Fora do chefe: 4002 não é chefe, é campo de batalha (Savaş Alanı, 12:00–12:25). O 4248 tem 0 = aberto (`login.json #121`, 4010=0 aos 6 min da janela) e um 3 aos 20 min (`replay_packets.json #103`, 4002=3), talvez "entrada encerrada" (**dedução**). `warfield.py` manda 1 para todos (fechado de propósito); o 3 precisa ser entendido antes de abrir o campo.
 
 ## Salas, times e masmorras ([salas-campanha.md](salas-campanha.md))
 

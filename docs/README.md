@@ -28,7 +28,7 @@
 | [social.md](social.md) | Amigos, lista negra, correio (socket + `maillist`), troca de nome, casamento |
 | [mercado.md](mercado.md) | Mercado entre jogadores: anunciar, lances, preço fixo, cancelar, busca e encerramento pelo correio |
 | [pvp.md](pvp.md) | Coliseu, torneio de fadas e os eventos PvP fechados (Senhores, campo de batalha, mina) |
-| [boss-eventos.md](boss-eventos.md) | Chefe do mundo: agenda (4182), recusas de entrada, reviver e buff, e o que falta do mapa do chefe |
+| [boss-eventos.md](boss-eventos.md) | Chefe do mundo: agenda, mapa, luta com vida compartilhada, morte, reviver e prêmios do fim |
 | [guilda.md](guilda.md) | Guilda: opcodes, regras do cliente, estado em memória, o que falta (altar, guerra) |
 | [roadmap.md](roadmap.md) | O que está pronto e os próximos marcos |
 | [pendencias.md](pendencias.md) | O que ainda não é igual ao oficial, por sistema, e todas as simplificações `ponytail:` |

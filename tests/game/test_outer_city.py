@@ -769,8 +769,11 @@ async def test_tabela_de_queda_semeada_e_valida(tmp_path: Path) -> None:
                            d.min_level <= lvl <= d.max_level for d in drops), (t, lvl)  # fmt: skip
         import random
 
-        got = dict(monsters.loot(world, 3, 72, random.Random(0)))
-        assert got[2129700] >= 1 and got[2131057] >= 10  # Lv70 Legendary Stone e Mystery Stone
+        got = monsters.loot(world, 3, 72, random.Random(0))
+        count = {t: sum(n for i, n in got if i == t) for t, _ in got}
+        assert count[2129700] == 2 and count[2131057] >= 8 and count[-100] >= 180_000  # 0032: os vídeos do Lv70
+        low = monsters.loot(world, 3, 45, random.Random(0))
+        assert dict(low)[2131057] >= 10  # abaixo de 60 vale a 0030
 
 
 def test_tabela_de_queda_por_tipo_e_nivel() -> None:
