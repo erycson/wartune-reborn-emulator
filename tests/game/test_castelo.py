@@ -47,7 +47,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         order = pb.OrderInfoMsg.FromString(got[2].body)
         assert (order.orderId, order.orderType, order.remainTime) == (1, 1, 10)
         assert pb.BuildingInfoListMsg.FromString(got[3].body).building[0].templateId == 90102
-        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Geliştirilen Seviye: Meclis Lv.2"
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Geliştirilen Seviye: Town Hall Lv.2"
         await g.idle()
 
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 10101)))  # fila ocupada

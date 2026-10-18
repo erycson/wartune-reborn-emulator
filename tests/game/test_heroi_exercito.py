@@ -33,12 +33,12 @@ async def test_recruit_put_in_army_and_dismiss(tmp_path: Path) -> None:
         g.client.send(5155, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=900))
         got = await g.until(111)
         assert codes(got) == [109, 109, 100, 111]  # o 112 só vem com a missão 52 aberta (relay #643)
-        assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 1001  # 2 de ouro por Er
+        assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 1001  # 2 de ouro por Lancer
         assert (pb.CastleYieldMsg.FromString(got[1].body).curPopulation, 900) == (900, 900)
         pawn = pb.ArmyPawnUpdatedMsg.FromString(got[2].body).armyPawn[0]
         assert (pawn.armyId, pawn.sonType, pawn.ownPawns, pawn.fightPos, len(pawn.pawnLive)) == (0, 101, 900, 3, 7)
         assert [x.tempData for x in pawn.pawnLive] == [64, 50, 0, 40, 323, 64, 0]  # igual ao relay #647
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Tebrikler,900 tane Er alındı"
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Tebrikler,900 tane Lancer alındı"
 
         g.client.send(5155, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=1))  # casa cheia
         assert await g.idle() == []
@@ -92,7 +92,8 @@ async def test_pawn_upgrade_costs_soul_and_needs_barracks(tmp_path: Path) -> Non
 async def test_skills_second_set_and_reset(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:  # maga: skills 30711 e 30811
         snap = snap_of(g)
-        snap.leader.grades, snap.character.point = 8, 600  # type: ignore[union-attr]
+        cost = int(g.server.services.templates.get("ConfigInfos", "Second_SkillPoint", key="ConfigName")["ConfigValue"])
+        snap.leader.grades, snap.character.point = 8, cost  # type: ignore[union-attr]
         await g.server.services.characters.save(snap.character, snap.leader)
 
         g.client.send(5185, pb.HeroAddPointReqMsg(skillTempId=30111, type=0))
