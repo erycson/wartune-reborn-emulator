@@ -232,6 +232,8 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
     pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
     if pawn is not None and tpl is not None:
+        # replay #718: [DefaultSkill, HighSkill] repetido 5 vezes (10,11 do Lancer)
+        skills = [int(s) for s in (tpl["DefaultSkill"], tpl.get("HighSkill", "")) if s] * 5
         half = (pawn.army_count + 1) // 2
         for living, pos, count in ((1, 3, half), (2, 9, pawn.army_count - half)):
             if count <= 0:
@@ -240,7 +242,7 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
             soldiers.append(
                 {"livingId": living, "tempId": pawn.template_id, "type": 1, "side": 1, "pos": pos,
                  "initHp": hp, "hp": hp, "qteTime": 0, "castTime": 4000,
-                 "skillId": [int(tpl["DefaultSkill"])]}
+                 "skillId": skills}
             )  # fmt: skip
     guard_row = templates.get("PawnTempInfos", guard) or {}
     hp = max(1, int(guard_row.get("Live", 100)) // 100)
@@ -255,7 +257,7 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
         "battleScene": 4,
         "soldiers": soldiers,
         "heroes": [],
-        "player": {"livingId": 3, "pos": 4},
+        "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn.template_id if soldiers[:-1] and pawn else 0},
     }
 
 

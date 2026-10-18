@@ -264,6 +264,20 @@ def army_msg(
     return msg
 
 
+def brief_army(full: pb.ArmyArmyMsg, job: int, hero_template: int, state: int) -> pb.ArmyArmyMsg:
+    """Exército compacto do 140/169 (replay #709, #715): sem armyPawn e sem simpleHeroInfo, com ``heroTempId`` e
+    ``job``. O cliente (ThaneInfoHelper.readOuterCityArmyInfo) grava ``heroTempId`` no template do herói: sem ele
+    vem 0, o herói fica sem template (corpo some do mapa e a luta trava em ResourceModel.loadBattleJobUI)."""
+    return pb.ArmyArmyMsg(
+        armyId=full.armyId, playerId=full.playerId, nickName=full.nickName, mapId=full.mapId,
+        curPosX=full.curPosX, curPosY=full.curPosY, state=state, type=full.type, consortiaId=0,
+        consortiaName="", fightingCapacity=full.fightingCapacity, gpOrder=0, grades=full.grades, arm=full.arm,
+        cloth="", job=job, changeSharp=0, heroTempId=hero_template, geste=0, isVip=False, vipType=0,
+        mountTempId=full.mountTempId, mountGrade=0, wing="", hat="", fashionArm="", fashionCloth="", hide=False,
+        appellid=0, fateSkills="", petTempId=full.petTempId, petQuqlity=full.petQuqlity, petName=full.petName,
+    )  # fmt: skip
+
+
 def castle_msg(snap: PlayerSnapshot, castle: Castle) -> pb.BaseCastleMsg:
     c = snap.character
     return pb.BaseCastleMsg(

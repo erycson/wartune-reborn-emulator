@@ -202,10 +202,17 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         got = await g.until(157)
         assert [p.code for p in got] == [140, 140, 140, 157]
         assert pb.MapUpdatedMsg.FromString(got[2].body).wildLand.state == oc.MINE_FIGHTING
+        # replay #715: exército compacto com heroTempId e job (o cliente grava heroTempId no herói; com 0 a luta
+        # trava em ResourceModel.loadBattleJobUI e o boneco perde o corpo)
+        army_msg = pb.MapUpdatedMsg.FromString(got[0].body).army
+        assert snap.leader is not None
+        assert (army_msg.heroTempId, army_msg.job, army_msg.state) == (snap.leader.template_id, 3, 2)  # maga
+        assert not army_msg.HasField("simpleHeroInfo") and not army_msg.armyPawn
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
         assert prepare.battleType == 1 and [(x.tempId, x.side, x.hp) for x in prepare.soldiers] == [
             (10101, 1, 242), (10101, 1, 242), (guard, 2, 175)
         ]  # fmt: skip
+        assert list(prepare.soldiers[0].skillId) == [10, 11] * 5 and prepare.heros[0].pawnTempId == 10101  # #718
 
         got = await g.fight(prepare)
         got += await g.idle()

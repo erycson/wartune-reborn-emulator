@@ -52,6 +52,13 @@ def _army_now(s: GameSession, state: int = ARMY_IDLE) -> pb.ArmyArmyMsg:
     return msg
 
 
+def _army_brief(s: GameSession, state: int = ARMY_IDLE) -> pb.ArmyArmyMsg:
+    """O exército como o oficial manda no 140 e no 169 (compacto, com ``heroTempId`` e ``job``)."""
+    snap = s.snapshot
+    assert snap is not None and snap.leader is not None
+    return b.brief_army(_army_now(s), rules.job_type(snap.character.job), snap.leader.template_id, state)
+
+
 def _grid_msg(s: GameSession, grids: set[str], map_id: int) -> pb.OutercityArmyUpdatedGridMsg:
     """169: o exército próprio se cair numa das grades pedidas no mesmo mapa; senão lista vazia."""
     snap = s.snapshot
@@ -59,7 +66,7 @@ def _grid_msg(s: GameSession, grids: set[str], map_id: int) -> pb.OutercityArmyU
     msg = pb.OutercityArmyUpdatedGridMsg()
     map_now, x, y = oc.position(snap.castle, s.outer_army)
     if map_id == map_now and oc.grid_of(x, y) in grids:
-        msg.updatedArmy.add().CopyFrom(_army_now(s))
+        msg.updatedArmy.add().CopyFrom(_army_brief(s))
     return msg
 
 
@@ -214,7 +221,7 @@ def _mine_sync(s: GameSession, mine: oc.Mine, state: int) -> None:
 
 def _army_sync(s: GameSession, state: int) -> None:
     for _ in range(2):  # o oficial manda o 140 do exército sempre duas vezes
-        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s, state)))
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, state)))
 
 
 @router.on(5160)
@@ -233,7 +240,7 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     mine = oc.mine_at(msg.mapId, msg.posX, msg.posY)
     if mine is None or oc.occupied(snap, mine) is not None or s.battle is not None:
         s.log.info("5160 sem alvo", mapa=msg.mapId, x=msg.posX, y=msg.posY)
-        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s)))
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
         return
     _, guard = oc.draw(snap, mine)
     _army_sync(s, ARMY_FIGHTING)
@@ -294,7 +301,7 @@ def _attack_robot(s: GameSession, index: int) -> None:
         s.send(S_RESET, A.data_reset(snap, now))
     if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - oc.ROBOT_GRADE) >= 10:
         s.log.info("5160 castelo-robô recusado", castelo=index, ataques=arena.attack_left, nivel=c.grades)
-        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_now(s)))
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
         return
     arena.attack_left -= 1  # sem await até criar a luta: dois 5160 seguidos não gastam o mesmo ataque
     _army_sync(s, ARMY_FIGHTING)
@@ -407,7 +414,7 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     _stop_walk(s)
     s.outer_army = None
     await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests)
-    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_now(s)))
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_brief(s)))
     s.send(S_TRANSFER, pb.CastleReqMsg(magId=target, posX=spot[0], posY=spot[1], leftEnergy=castle.energy))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))

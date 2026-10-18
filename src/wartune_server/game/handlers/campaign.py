@@ -108,42 +108,9 @@ def _army_brief(s: GameSession, state: int) -> pb.ArmyArmyMsg:
 def map_sync(s: GameSession, state: int) -> pb.MapUpdatedMsg:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None and snap.leader is not None
-    full, fighting = army(s, snap)
-    a = pb.ArmyArmyMsg(
-        armyId=full.armyId,
-        playerId=full.playerId,
-        nickName=full.nickName,
-        mapId=full.mapId,
-        curPosX=full.curPosX,
-        curPosY=full.curPosY,
-        state=state,
-        type=full.type,
-        consortiaId=0,
-        consortiaName="",
-        fightingCapacity=fighting,
-        gpOrder=0,
-        grades=full.grades,
-        arm=full.arm,
-        cloth="",
-        job=rules.job_type(snap.character.job),
-        changeSharp=0,
-        heroTempId=snap.leader.template_id,
-        geste=0,
-        isVip=False,
-        vipType=0,
-        mountTempId=0,
-        mountGrade=0,
-        wing="",
-        hat="",
-        fashionArm="",
-        fashionCloth="",
-        hide=False,
-        appellid=0,
-        fateSkills="",
-        petTempId=0,
-        petQuqlity=0,
-        petName="",
-    )
+    full, _fighting = army(s, snap)
+    full.mountTempId, full.petTempId, full.petQuqlity, full.petName = 0, 0, 0, ""  # a campanha manda vazio
+    a = b.brief_army(full, rules.job_type(snap.character.job), snap.leader.template_id, state)
     return pb.MapUpdatedMsg(updatedType=3, army=a)
 
 
@@ -375,7 +342,7 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
         res="",
         qteTime=0,
         castTime=4500,
-        pawnTempId=0,
+        pawnTempId=int(player.get("pawnTempId", 0)),  # replay #718: a tropa que luta junto (cidade externa)
         headId=0,
         isShow=False,
         serverName=snap.server.name,
