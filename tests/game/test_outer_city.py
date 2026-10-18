@@ -462,22 +462,6 @@ async def test_castelo_robo_so_existe_na_instancia_do_castelo(tmp_path: Path) ->
         assert snap.arena.attack_left == attacks
 
 
-async def test_sem_exercito_o_ataque_so_para(tmp_path: Path) -> None:
-    """(dedução) Sem tropa no exército não há luta: o 5160 no robô e na mina livre só para o exército (140), sem
-    ataque gasto e sem mina ocupada."""
-    async with logged_in(tmp_path, novice=22500) as g:
-        snap = await _set(g, grades=10)  # |10 - 8| < 10: o robô deixaria atacar se houvesse tropa
-        castle = snap.castle
-        assert castle is not None and snap.arena is not None
-        snap.arena.day = A.today(g.server.services.clock.now())
-        attacks = snap.arena.attack_left
-        for x, y in ((44, 22), (16, 34)):  # o robô e a mina livre
-            g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=x, posY=y))
-            assert [p.code for p in await g.until(140)] == [140]
-        assert await g.idle() == []
-        assert snap.arena.attack_left == attacks and oc.occupied(snap, oc.MINES[0]) is None
-
-
 async def test_dois_ataques_seguidos_ao_robo_geram_uma_luta(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Dois 5160 seguidos no robô: o primeiro abre a luta e gasta um ataque; o segundo, com a luta em curso,
     só para o exército (140)."""

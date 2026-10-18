@@ -6,7 +6,7 @@ correções das missões; o estado atual de cada tipo de condição fica em [mis
 
 Resultado (milestone-1): **18 ok**, **34 parcial**, **287 trava**. Com a cidade externa: **18 ok**, **36 parcial**, **285 trava**.
 
-Atualização (cidade-externa, 2026-10-17): **100** e **411** passam de trava para parcial (o tipo 8 agora conta a vitória contra o castelo-robô; a cadeia ainda trava). **765** segue trava: exige guilda (IsLeague) e não re-aceita a diária. **90** segue trava: o 2100001 vem de batalha de campanha, não de drop. Na cidade externa, os robôs ficaram só na instância do castelo e o ataque sem tropa só para o exército. Nenhuma chegou a ok. Coleta (55, 102, 140, 170, 171, 172): o 8258 com a 6001 segue recusado, com aviso de indisponível; o `.maps` da 6001 existe no CDN local, mas sem nó de campanha, e não há captura de 8258 com a 6001 nem de 5032 em nó de coleta (ver [cidade-externa.md](cidade-externa.md)).
+Atualização (cidade-externa, 2026-10-17): **100** e **411** passam de trava para parcial (o tipo 8 agora conta a vitória contra o castelo-robô; a cadeia ainda trava). **765** segue trava: exige guilda (IsLeague) e não re-aceita a diária. **90** segue trava: o 2100001 vem de batalha de campanha, não de drop. Na cidade externa, os robôs ficaram só na instância do castelo. Nenhuma chegou a ok. Coleta (55, 102, 140, 170, 171, 172): o 8258 com a 6001 segue recusado, com aviso de indisponível; o `.maps` da 6001 existe no CDN local, mas sem nó de campanha, e não há captura de 8258 com a 6001 nem de 5032 em nó de coleta (ver [cidade-externa.md](cidade-externa.md)).
 
 ## Problemas que se repetem
 
