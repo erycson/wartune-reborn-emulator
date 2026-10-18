@@ -291,6 +291,19 @@ async def test_aceite_devolve_as_outras_missoes_que_ele_mudou(tmp_path: Path) ->
         assert any(x is q10 for x in accepted[1])
 
 
+async def test_5012_manda_112_com_as_outras_missoes_que_mudaram(tmp_path: Path) -> None:
+    """Handler: aceitar a 183 muda a 10 (tutorial). O 112 do 5012 traz as duas, então o cliente vê a 10 mudada."""
+    async with logged_in(tmp_path, novice=0) as g:
+        snap = _snap(g)
+        snap.character.grades = 40
+        snap.quests.append(Quest(g.user_id, 10, NOW))
+        snap.character.novice_process = 19000
+        g.client.send(5012, pb.QuestAddedMsg(questId=[183]))
+        got = await g.until(112)
+        assert _quest(got, 183).templateId == 183
+        assert _quest(got, 10).templateId == 10
+
+
 # --- recompensas (TaskRewardViewII._rewardList) ----------------------------------------------------
 
 
