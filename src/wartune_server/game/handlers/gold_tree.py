@@ -287,7 +287,8 @@ async def _count_box(s: GameSession, snap: PlayerSnapshot, cfg: Mapping[str, Any
     i = next((k for k, box in enumerate(boxes) if box[0] == want), -1)
     marks = st.text.split(",")
     drops = [(boxes[i][1], boxes[i][2])] if i >= 0 else []
-    if i < 0 or st.value < want or marks[i] != "0" or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
+    fits = rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now())
+    if i < 0 or st.value < want or marks[i] != "0" or not fits:
         s.log.info("8604 baú de vezes recusado", vezes=want, minhas=st.value)
         _send(s, S_RESULT, _score_msg(st))
         return
