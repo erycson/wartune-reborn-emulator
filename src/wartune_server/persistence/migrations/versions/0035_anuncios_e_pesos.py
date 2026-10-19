@@ -10,7 +10,7 @@ help do cliente ("Every day from 01:00, the Sylph Atoll attacks every 3 hours") 
 ganha os pesos que eram constantes inventadas no código: estrelas (``star_weights``, ``star_open_next``) e labirinto
 de gemas (``gem_maze_reward_weights``). Como editar: ``docs/configuracao.md``.
 
-Revision ID: 0036
+Revision ID: 0035
 Revises: 0034
 Create Date: 2026-10-19 12:00:00.000000
 """
@@ -22,8 +22,7 @@ import json
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0036"
-# ponytail: aponta para a 0034 enquanto a 0035 (outro trabalho em paralelo) não entra; trocar para "0035" no merge
+revision = "0035"
 down_revision = "0034"
 branch_labels = None
 depends_on = None

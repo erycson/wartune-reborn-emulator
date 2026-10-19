@@ -201,7 +201,7 @@ def _wheel_taken(snap: PlayerSnapshot) -> list[int]:
 
 
 def wheel_pick(weights: Sequence[float], taken: Collection[int], rng: random.Random) -> int | None:
-    """Posição do prêmio que sai, entre as que ainda não saíram, pelo peso (``vip_wheel_prizes.weight``, 0036;
+    """Posição do prêmio que sai, entre as que ainda não saíram, pelo peso (``vip_wheel_prizes.weight``, 0035;
     padrão 1 = uniforme). Peso 0 nunca sai; ``None`` quando só sobram pesos 0 (o giro é recusado)."""
     left = [i for i, w in enumerate(weights) if i not in taken and w > 0]
     return rng.choices(left, [weights[i] for i in left])[0] if left else None

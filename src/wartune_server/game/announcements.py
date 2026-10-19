@@ -1,4 +1,4 @@
-"""Anúncios agendados do servidor (``scheduled_announcements``, migração 0036): no horário configurado, um 83 para
+"""Anúncios agendados do servidor (``scheduled_announcements``, migração 0035): no horário configurado, um 83 para
 todos os jogadores online. O relógio é o 20008 do cliente (~60 s), como o fim das janelas do chefe do mundo.
 
 Regras e como editar em ``docs/eventos.md`` (seção "Anúncios agendados").

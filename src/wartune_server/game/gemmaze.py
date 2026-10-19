@@ -185,7 +185,7 @@ def new_game(rng: random.Random) -> Game:
 
 def play(game: Game, begin: int, end: int, rng: random.Random, weights: Sequence[float] | None = None) -> Play | None:
     """Troca ``begin`` com ``end`` e resolve as combinações em cascata. ``weights``: peso de cada um de ``REWARDS``
-    (``game_settings.gem_maze_reward_weights``, 0036); sem ele, uniforme.
+    (``game_settings.gem_maze_reward_weights``, 0035); sem ele, uniforme.
 
     ``None``: pedido inválido (fora do tabuleiro, não vizinho ou sem movimento), nada muda.
     """

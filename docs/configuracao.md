@@ -40,7 +40,7 @@ O servidor lê estas tabelas uma vez, ao subir (`persistence/world_store.py`): *
 
 ### Anúncios agendados
 
-`scheduled_announcements` (migração 0036; regras em [eventos.md](eventos.md#anúncios-agendados-gameannouncementspy)):
+`scheduled_announcements` (migração 0035; regras em [eventos.md](eventos.md#anúncios-agendados-gameannouncementspy)):
 uma linha por mensagem. `times` = horários do dia na hora do jogo (`WARTUNE_GAME_TIMEZONE`), separados por vírgula;
 `weekdays` = dias ISO (`1` segunda … `7` domingo) separados por vírgula, vazio = todo dia; `active` 0 desliga.
 Mesmo horário: sai na ordem do `id`. Horário inválido (`25:00`) derruba a subida, de propósito.
@@ -61,7 +61,7 @@ Os horários do Sylph Atoll são escolha do dono (o padrão vem do help do clien
 
 ### Chances dos sorteios
 
-Peso = chance relativa (só a proporção importa; 0 = nunca sai). Valores semeados na 0036; sem a linha no banco, o
+Peso = chance relativa (só a proporção importa; 0 = nunca sai). Valores semeados na 0035; sem a linha no banco, o
 código usa o mesmo padrão.
 
 | onde | o quê |

@@ -30,7 +30,7 @@ LOCK_QUEST = 53  # QuestCondictionInfos: travar estrela
 RAND_QUEST, RAND_PARA1 = 36, 1
 # ponytail: o oficial não publica as chances do sorteio; pesos por qualidade (Profile) e cristal
 # tirados a olho da captura (lixo ~40%), e 30% de abrir o próximo cristal. Valem os do banco
-# (``game_settings`` ``star_weights`` e ``star_open_next``, migração 0036); estes são o padrão sem a linha
+# (``game_settings`` ``star_weights`` e ``star_open_next``, migração 0035); estes são o padrão sem a linha
 WEIGHTS = {"1": (40,) * 5, "2": (35, 33, 30, 27, 24), "3": (18, 21, 24, 27, 30), "4": (5, 8, 11, 14, 17)}
 WEIGHTS |= {"5": (0, 2, 4, 6, 8), "7": (0, 0, 0, 0, 1), "6": (2,) * 5}
 OPEN_NEXT = 0.3

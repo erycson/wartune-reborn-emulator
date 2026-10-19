@@ -1,5 +1,5 @@
 """Lê o catálogo do mundo (``world_*`` e ``campaign_*``: migrações 0027, 0028 e 0034), as regras de evento (0033) e
-os anúncios agendados e pesos dos sorteios (0036)."""
+os anúncios agendados e pesos dos sorteios (0035)."""
 
 from __future__ import annotations
 

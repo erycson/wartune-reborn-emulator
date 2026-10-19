@@ -75,7 +75,7 @@ captura virou -500).
 | 8505 | presente semanal `VipDrop.site` = nível VIP; 115, 111, 4410, 4539, 83 ("Received: ..."); de novo na segunda da semana seguinte (semana começa no domingo, *dedução*: um ponto só); repetido sem resposta | (visto) tutorial_en #3266-#3282 |
 | 5006 (2031201) | cartão VIP de teste: `Property3` horas somadas ao fim; 115, 111 "Your VIP service has been extended N hours; new expiration date is AAAA-MM-DD.", 4410 `vipType` 2, 3 | (visto) tutorial_en #3259-#3263 |
 | 8521 | abre/atualiza a roleta: zera o tabuleiro, 4414 com os 18 prêmios (`vip_wheel_prizes`), `leftCount` 8, `needVipItem` 1; sem VIP 4414 vazio | (visto) #3325 |
-| 8519 | gira gastando VIP Token (208015): o giro k custa k (`game_settings.vip_wheel_costs`); `opType` 1 gira enquanto houver fichas; prêmio sorteado entre os que faltam pelo `vip_wheel_prizes.weight` (0036, padrão 1 = uniforme; peso 0 nunca sai; só pesos 0 sobrando = giro recusado; `vip.wheel_pick`); 115, 109, 3, 4415 (`openIndex` = abertos agora, `takeItem` = todos); recusa = 4415 sem `isStart` | (visto) #3331-#3335 |
+| 8519 | gira gastando VIP Token (208015): o giro k custa k (`game_settings.vip_wheel_costs`); `opType` 1 gira enquanto houver fichas; prêmio sorteado entre os que faltam pelo `vip_wheel_prizes.weight` (0035, padrão 1 = uniforme; peso 0 nunca sai; só pesos 0 sobrando = giro recusado; `vip.wheel_pick`); 115, 109, 3, 4415 (`openIndex` = abertos agora, `takeItem` = todos); recusa = 4415 sem `isStart` | (visto) #3331-#3335 |
 | 8756 | só registro (atendimento QQ) | (cliente) |
 | 8540 | compra `ids` (`NeedPoint` cada; os seis por `All_KingContract`=338), só diamante, renova somando 31 dias; `__use` com o contrato 6 ativa o 7 (30 min) uma vez por dia; 3 + 4434 | (cliente) KingContractFrame |
 
@@ -88,7 +88,7 @@ captura virou -500).
 
 ## Anúncios agendados (`game/announcements.py`)
 
-Tabela **`scheduled_announcements`** (migração 0036): uma linha por mensagem, `times` (`HH:MM,HH:MM`, hora do jogo,
+Tabela **`scheduled_announcements`** (migração 0035): uma linha por mensagem, `times` (`HH:MM,HH:MM`, hora do jogo,
 `WARTUNE_GAME_TIMEZONE`), `weekdays` (ISO `1,2,..`, 1 = segunda; vazio = todo dia), `channel`, `user_type`,
 `is_center_tip`, `text`, `active`. No horário, todos os jogadores online recebem um **83** com `otherId` -1 e `name`
 vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como editar: [configuracao.md](configuracao.md#anúncios-agendados).
@@ -210,7 +210,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   até o `MaxCount`). O 9517 passa a bolsa para a mochila se couber tudo. As buscas por posição (`bag.at`, `bag_item`, arrumar, tirar) filtram `BagType.BAG`, então nenhuma acha item da bolsa 24 (auditado). Itens: 2060008 Değerli Taş Kutusu
   Lv.1 ×1, 208027 Arıtma Kilidi ×1, 208014 Şeytan Kristali ×2 *(visto: o 115 sobe a pilha de 2 em 2 e o
   chat diz "x 2")* (nomes dos `ItemTempInfos`). Sorteio pelos pesos `game_settings.gem_maze_reward_weights`
-  (0036, padrão `[1, 1, 1]` = uniforme) *(ponytail: nenhum template liga o prêmio à cor nem ao tamanho)*.
+  (0035, padrão `[1, 1, 1]` = uniforme) *(ponytail: nenhum template liga o prêmio à cor nem ao tamanho)*.
 - Caixas (9513/4928): *(cliente)* `GemMazeBoxView`: a caixa `i` (1–5) libera com `score` >= 500, 1000, 2000,
   3500, 6000 e o pedido manda `boxId` = 1, 2, 4, 8, 16; `boxMark` é a soma dos bits das caixas pegas. O
   prêmio é o item `boxesId[i]` (2131035–2131039, Antik Kayıp Hazine I–V; a dica da caixa é esse item,

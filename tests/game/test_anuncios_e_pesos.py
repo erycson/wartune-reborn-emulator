@@ -94,7 +94,7 @@ def test_labirinto_sorteia_pelo_peso() -> None:
 async def test_pesos_vem_do_banco(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         world, templates = g.server.services.world, g.server.services.templates
-        assert world.vip_wheel_weights == (1.0,) * 18  # 0036: padrão igual (uniforme, como antes)
+        assert world.vip_wheel_weights == (1.0,) * 18  # 0035: padrão igual (uniforme, como antes)
         assert world.settings["star_open_next"] == 0.3 and world.settings["gem_maze_reward_weights"] == [1, 1, 1]
         assert set(world.settings["star_weights"]) == {"1", "2", "3", "4", "5", "6", "7"}
         assert [a.text[:12] for a in world.announcements] == ["Sylph Atoll ", "Defend Sylph", "Defend Sylph"] + [
