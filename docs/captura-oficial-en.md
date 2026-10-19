@@ -31,7 +31,7 @@ respeita `paraInt2` (a campanha) e a etapa vem do estado do personagem (`campaig
 Ordens, fórmulas (137, `totalGp`), cartas e o que é dedução: `docs/salas-campanha.md` e `docs/drops-masmorras.md`.
 
 Karda (GameHeroTempInfo 1023) tem `RejectType="19,100,38,39"` (19 = imune a atordoamento); o
-cliente desenha sozinho. Nossa batalha ainda não tem efeitos de controle: **só registrado, não implementado**.
+cliente desenha sozinho. A batalha respeita o `RejectType` e tem os controles (atordoar, confundir, amnésia): [batalha.md](batalha.md#buffers-e-controle).
 
 ## Missões (10 → 130, todas na captura)
 

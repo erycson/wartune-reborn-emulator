@@ -155,7 +155,7 @@ Outros eventos:
 - Cartas de poder (9505): cartas e EXP vêm da batalha (4902). ~~Bônus de coleção falta~~: feito no 4905 (powcard_suite_slots); os graus dos degraus 2 e 3 são **dedução** (**precisa de captura**, ver heroi-exercito.md) e o bônus não entra na batalha.
 - Posição do herói em salas (8277/8278) e teleporte (8326): **depende de** salas/cidade externa.
 - Ganhar montaria, pet ou carta: **depende de** uso de item, missão ou batalha.
-- `battle.py` ainda não lê a tropa (`rules.battle_pawn`) nem os buffs (talento, runas, destino, dragão, cartas).
+- ~~`battle.py` ainda não lê a tropa (`rules.battle_pawn`) nem os buffs (talento, runas, destino, dragão, cartas).~~ Lê atributos, tropa, talento, runas e destino ([batalha.md](batalha.md)). Dragão e cartas: **precisa de captura**.
 - Destino tipos 2100/2200 nunca abrem. **sem dado**.
 - **dedução**: chance do sorteio de estrelas, EXP de destino por pedra, atributos e pontos dos pets por nível.
 
@@ -187,16 +187,14 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 
 | Onde | Simplificação |
 |---|---|
-| [game/arena.py:293](../src/wartune_server/game/arena.py#L293) | o caçador perde até o nível ~30 porque o ataque |
-| [game/arena.py:303](../src/wartune_server/game/arena.py#L303) | a captura tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha soldados; |
-| [game/arena.py:362](../src/wartune_server/game/arena.py#L362) | perda não observada, não tira pontos |
-| [game/arena.py:366](../src/wartune_server/game/arena.py#L366) | fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura |
-| [game/arena.py:407](../src/wartune_server/game/arena.py#L407) | ~ o dano da captura (golpe básico ≈ vida/40) |
+| [game/arena.py:294](../src/wartune_server/game/arena.py#L294) | o caçador perde até o nível ~30 porque o ataque |
+| [game/arena.py:304](../src/wartune_server/game/arena.py#L304) | a captura tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha soldados; |
+| [game/arena.py:364](../src/wartune_server/game/arena.py#L364) | perda não observada, não tira pontos |
+| [game/arena.py:368](../src/wartune_server/game/arena.py#L368) | fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura |
+| [game/arena.py:409](../src/wartune_server/game/arena.py#L409) | ~ o dano da captura (golpe básico ≈ vida/40): sem defesa, (A - 0) × 0,5 = vida/40 |
 | [game/bag.py:92](../src/wartune_server/game/bag.py#L92) | o oficial sorteia randomSkill_1..N (RandomSkillCount); a tabela do sorteio não está nos |
-| [game/battle.py:289](../src/wartune_server/game/battle.py#L289) | a iniciativa do oficial não foi decifrada; aliados NPC, inimigos e o herói por último |
-| [game/battle.py:376](../src/wartune_server/game/battle.py#L376) | fórmula de dano desconhecida. PvE calibrado na captura do tutorial (herói mata os |
-| [game/builders/login.py:76](../src/wartune_server/game/builders/login.py#L76) | bate com o oficial no nível 1 (199); nível 3 dá 291 contra 278. Falta a fórmula real. |
-| [game/builders/login.py:248](../src/wartune_server/game/builders/login.py#L248) | 1 exército por personagem; tabela própria quando houver tropas extras |
+| [game/battle.py:446](../src/wartune_server/game/battle.py#L446) | a iniciativa do oficial não foi decifrada (#727 e #782 têm as mesmas unidades e ordens |
+| [game/builders/login.py:249](../src/wartune_server/game/builders/login.py#L249) | 1 exército por personagem; tabela própria quando houver tropas extras |
 | [game/campaign.py:214](../src/wartune_server/game/campaign.py#L214) | ``StandSecond`` não entra em nota nenhuma do 137 (não há campo de tempo avaliado); time/friend/vip |
 | [game/castle.py:81](../src/wartune_server/game/castle.py#L81) | sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem |
 | [game/castle.py:162](../src/wartune_server/game/castle.py#L162) | sem o bônus de raça/efeitos do limite (PlayerEffect.getTransferPowerLimitAddition) |
@@ -215,12 +213,12 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/army.py:277](../src/wartune_server/game/handlers/army.py#L277) | grade 3x3 da formação; conferir limites quando houver captura |
 | [game/handlers/army.py:302](../src/wartune_server/game/handlers/army.py#L302) | só a posição do próprio herói é gravada; |
 | [game/handlers/army.py:322](../src/wartune_server/game/handlers/army.py#L322) | a posição do exército no mapa externo não é gravada (sistema do mapa externo).""" |
-| [game/handlers/battle.py:35](../src/wartune_server/game/handlers/battle.py#L35) | a postura não muda o dano (a fórmula real não é conhecida) |
-| [game/handlers/campaign.py:593](../src/wartune_server/game/handlers/campaign.py#L593) | sem energia não entra e não responde; a recusa do oficial precisa de captura com estamina < 20 |
-| [game/handlers/campaign.py:670](../src/wartune_server/game/handlers/campaign.py#L670) | colheita sem limite nem espera (a captura colheu duas vezes seguidas a mesma pilha, #1847 e #1861); |
-| [game/handlers/campaign.py:993](../src/wartune_server/game/handlers/campaign.py#L993) | carta paga (isPay, autoChest) tratada como a grátis: price 0 e uma só por etapa; cartas pagas extras |
+| [game/handlers/battle.py:35](../src/wartune_server/game/handlers/battle.py#L35) | a postura não muda o dano (o efeito dela não tem captura) |
+| [game/handlers/campaign.py:629](../src/wartune_server/game/handlers/campaign.py#L629) | sem energia não entra e não responde; a recusa do oficial precisa de captura com estamina < 20 |
+| [game/handlers/campaign.py:706](../src/wartune_server/game/handlers/campaign.py#L706) | colheita sem limite nem espera (a captura colheu duas vezes seguidas a mesma pilha, #1847 e #1861); |
+| [game/handlers/campaign.py:1029](../src/wartune_server/game/handlers/campaign.py#L1029) | carta paga (isPay, autoChest) tratada como a grátis: price 0 e uma só por etapa; cartas pagas extras |
 | [game/handlers/campaign_map.py:37](../src/wartune_server/game/handlers/campaign_map.py#L37) | mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado |
-| [game/handlers/castle.py:306](../src/wartune_server/game/handlers/castle.py#L306) | trégua ainda não existe; zera e confirma.""" |
+| [game/handlers/castle.py:307](../src/wartune_server/game/handlers/castle.py#L307) | trégua ainda não existe; zera e confirma.""" |
 | [game/handlers/chat.py:28](../src/wartune_server/game/handlers/chat.py#L28) | o cliente não limita a guilda (ChatHelper); 1 s contra spam |
 | [game/handlers/chat.py:30](../src/wartune_server/game/handlers/chat.py#L30) | o cliente não limita o privado; 1 s contra spam |
 | [game/handlers/chat.py:178](../src/wartune_server/game/handlers/chat.py#L178) | "cena" = todos online até existir o registro de cenas (cidade do céu). |
@@ -306,7 +304,7 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/vip.py:253](../src/wartune_server/game/handlers/vip.py#L253) | se o oficial cobra a atualização, o preço não está na evidência.""" |
 | [game/handlers/vip.py:373](../src/wartune_server/game/handlers/vip.py#L373) | presente para amigo (friendId de outro) igual ao VIP: precisa gravar outro personagem |
 | [game/handlers/vip.py:485](../src/wartune_server/game/handlers/vip.py#L485) | o mapa do teste (andar, buffs na batalha) não existe no servidor; sem ele não há onde |
-| [game/handlers/worldboss.py:406](../src/wartune_server/game/handlers/worldboss.py#L406) | o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição); |
+| [game/handlers/worldboss.py:408](../src/wartune_server/game/handlers/worldboss.py#L408) | o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição); |
 | [game/items.py:56](../src/wartune_server/game/items.py#L56) | um item novo por entrada, sem empilhar (igual ao 5006); empilhar quando o |
 | [game/mall.py:33](../src/wartune_server/game/mall.py#L33) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
 | [game/mall.py:35](../src/wartune_server/game/mall.py#L35) | o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento |

@@ -32,7 +32,7 @@ async def fight_mode(s: GameSession, msg: pb.AttackModeMsg) -> None:
     """Postura ataque (2) / defesa (1): o cliente espera o 77 de volta para liberar os botões."""
     if _battle(s, msg.battleId) is None:
         return
-    # ponytail: a postura não muda o dano (a fórmula real não é conhecida)
+    # ponytail: a postura não muda o dano (o efeito dela não tem captura)
     s.send(S_FIGHT_MODE, pb.AttackModeMsg(userId=s.player_id, battleId=msg.battleId, mode=msg.mode, fmTurn=0, heroSp=0))
 
 

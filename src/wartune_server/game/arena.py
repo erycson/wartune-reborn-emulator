@@ -20,6 +20,7 @@ from ..domain.models import Arena, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import rules
+from .battle import STATS
 
 COLOSSEUM, PETS = 0, 1  # ChallengeRequestMsg/ChallengeCoolTimeMsg.type e ChallengeLog.kind
 FREE_COUNT, MAX_BUY = 10, 10  # coliseu: tentativas grátis e compráveis por dia (totalCount/totalBuyCount)
@@ -337,6 +338,7 @@ def copy_hero(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> 
         skillId=[int(x) for x in leader.skill_script.split(",") if x],
         fightCapacity=stats.fighting_capacity,
         attack=stats.total["MagicAttack"] if magic else stats.total["PhyAttack"],
+        stats={k: stats.total[k] for k in STATS},  # defesa, crítico e bloqueio reais (battle._stats)
         defaultSkill=int(tpl.get("DefaultSkill", 0)),
     )
 
@@ -404,7 +406,8 @@ def pet_unit(
         "serverName": "",
         "livingId2": 0,
         "petQuality": quality,
-        "attack": hp // 14,  # ponytail: ~ o dano da captura (golpe básico ≈ vida/40)
+        # ponytail: ~ o dano da captura (golpe básico ≈ vida/40): sem defesa, (A - 0) × 0,5 = vida/40
+        "attack": hp // 20,
         "defaultSkill": int(row.get("DefaultSkills", 0) or 0),
     }
 

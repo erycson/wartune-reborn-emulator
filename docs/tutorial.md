@@ -109,7 +109,7 @@ sem arma:
 
 Os atributos dos itens equipados e o atributo sorteado (`SkillPropertyTempInfo`, ex.: 70302
 "Zeka+2") entram nos atributos antes das fórmulas; os bônus fixos (`Attack`, `MagicAttack`…) só
-no total. O poder de combate ainda é aproximado (bate no nível 1).
+no total. O poder de combate bate com os 150 da captura (fórmula em [heroi-exercito.md](heroi-exercito.md#atributos-do-herói)).
 
 ## Testes
 

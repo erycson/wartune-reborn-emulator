@@ -32,7 +32,7 @@ Talento, runas, destino, dragão e cartas são skills/buffs nos templates, não 
 **Para a batalha:** `rules.battle_pawn(snap, templates) -> (linha de PawnTempInfos, quantidade) | None`
 devolve a tropa que luta com o herói. Os atributos de cada soldado são as colunas Attack, Defence,
 MagicAttack, MagicDefence, Live, ForceHit e Parry do template (o mesmo que vai em `pawnLive`).
-O `battle.py` ainda não lê.
+O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). Poder de combate (150) = `PhyAttack + PhyDefence + 1,05 × MagicAttack + MagicDefence + ForceHit + Parry + ConatArmy + Live/5`, sem a tropa: **visto** em 20 valores da maga no tutorial_en; o ×1,05 nas outras classes é **dedução**.
 
 ## Opcodes
 
@@ -128,7 +128,7 @@ Não enviados: 4495 do login (#40 é `{opType 0, opResult false, count 0}`; o `A
 ## Dependências
 
 - Ganhar montaria, pet e cartas: uso de item / missões / batalha (outros módulos).
-- Batalha: ler `rules.battle_pawn` e os buffs de talento, runas, destino e cartas (inclui o bônus da coleção).
+- Batalha: dragão e cartas (buffer 3040/3041 sem template): **precisa de captura**.
 - **Captura que falta (cartas)**: uma conta com as 4 cartas de uma coleção em graus diferentes (todas no 3+, depois
   todas no 8+ ou 6+): gravar o 4905 depois de cada subida (9505 op 1) para fechar quando o 2º e o 3º degrau acendem.
 - Cidade externa: posição do teleporte (8326).

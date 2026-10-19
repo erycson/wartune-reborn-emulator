@@ -230,7 +230,7 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _colosseum_over(s, battle, won, target, name, grade, job)
 
-    s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
     # gasta antes da luta: cair não devolve; a atividade "Solo Arena" (tipo 26) conta a participação, como o leed 19
     counted = ev.count(snap, s.ctx.events, ev.CHALLENGE, s.ctx.clock.now())
     await s.ctx.characters.save(snap.character, arena, *counted)
@@ -493,7 +493,7 @@ async def challenge_pet(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _pet_over(s, won, target, name)
 
-    s.battle = Battle(spec, None, s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(spec, None, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
     await s.ctx.characters.save(arena)
     s.log.info("torneio de fadas", alvo=target, battle=s.battle.id)
     s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))

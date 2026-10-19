@@ -23,7 +23,7 @@ robô), e a IA dele age. Os robôs de iniciante têm `userId 13000xxxxx`.
 - nome e skills do jogador copiado
 
 **No `battle.py`** (detalhes em [batalha.md](batalha.md)): com `spec["pvp"]` o lado do jogador
-perde de verdade, o herói inimigo anuncia a skill no 75 e o dano é simétrico; a batalha só de
+perde de verdade, o herói inimigo anuncia a skill no 75 e o dano é a mesma fórmula dos dois lados; a batalha só de
 pets é automática e manda o 4361 aos 60 s.
 
 ## Coliseu (desafio por ranking, battleType 16)

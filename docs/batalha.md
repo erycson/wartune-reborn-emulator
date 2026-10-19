@@ -28,7 +28,7 @@ Na campanha, depois do 154 vêm 3, 4103, 83 (EXP), 150, 100, 140, 131 e 128 (nó
   pausa antes do 156 não conta.
 - `153.frame = execFrame = quadro atual`. Mandar adiantado faz o cliente saltar o relógio.
 - Rodadas: cada unidade viva age uma vez (`curturn` conta por unidade). Ordem: aliados NPC,
-  inimigos, herói do jogador (a iniciativa real não foi decifrada).
+  inimigos, herói do jogador (a iniciativa real não foi decifrada, ver Dano).
 - A primeira ação sai no quadro 100. Do mesmo lado, uma ação começa 12 quadros depois da
   anterior. Troca de lado e rodada nova vêm 9 quadros depois do fim da animação anterior.
 - O herói espera a ordem do 10008 sem prazo e golpeia 25 quadros depois dela (o guia pausa no meio
@@ -39,16 +39,73 @@ Na campanha, depois do 154 vêm 3, 4103, 83 (EXP), 150, 100, 140, 131 e 128 (nó
   em `YYYY-MM-DD hh:mm:ss`.
 - O 154 sai 90 quadros depois do último golpe.
 
-## Alvos e dano
+## Alvos
 
-`SkillTempInfo.AcceptObject` 3 acerta todos os inimigos; o resto acerta um (o de menor
-`livingId`). Curas e buffs de NPC (4 e 5) ficam de fora da rotação por enquanto. A fórmula de dano
-do oficial é desconhecida: o golpe usa `ataque × Parameter1 / 100 + Parameter2`, com 65% para o
-lado do jogador (mata os soldados do tutorial com um golpe, como na captura) e 30–40% para os
-inimigos (os 6–19 de dano observados). No PvE o lado do jogador nunca cai abaixo de 1 de vida: as
-batalhas do tutorial são vitórias roteirizadas, e uma derrota no chefe deixaria o guia preso.
-No PvP ele morre de verdade (abaixo).
+`SkillTempInfo.AcceptObject` 3 acerta todos os inimigos, 4 o próprio; o resto acerta um (o de menor
+`livingId`). Cura (`Parameter1` 0 e `Parameter2` < 0) vai no aliado com menos vida proporcional
+(**dedução**). Confuso (buffer 38) acerta qualquer um vivo, até aliado (**dedução**). No PvE o lado
+do jogador nunca cai abaixo de 1 de vida: as batalhas do tutorial são vitórias roteirizadas, e uma
+derrota no chefe deixaria o guia preso (`spec["lethal"]` desliga). No PvP ele morre de verdade.
 
+## Dano
+
+`damage()` em `game/battle.py`; coeficientes em `game_settings.battle_formula` (migração 0040,
+[configuracao.md](configuracao.md#fórmula-de-dano)).
+
+- Golpe = `max((A - D) × 0,5, A × 0,1) × Parameter1/100 + Parameter2`, ±8%, dividido pelos
+  `AttackTimes`. **(visto)** tutorial_en, os 153 contra os atributos do 150 e dos templates: maga
+  nível 1 (MAtk 20) com Lightning Bolt (102% + 15) dá 25; Lancer (64) contra Def 66 dá 5–6 (o piso
+  de 10%); 10102 (84) com a skill 11 (150%) contra PDef 44 dá 28–30. Testes em `test_batalha.py`.
+- `CountWay` 2 usa `MagicAttack`/`MagicDefence`; 1 e 3, os físicos (**visto**: as skills da maga).
+- Crítico: `extraData & 1` (cliente `DannyAction`), ×1,5 (**dedução**, poucos golpes). Bloqueio:
+  `parry`, ×0,75 (**dedução**). Chance `1 - 0,9995^ForceHit` e `1 - 0,9995^Parry`
+  **(internet)** https://breezewiki.discard.no/wartune/wiki/Statistics.
+- O dano da tropa não cresce com o tamanho da pilha (**visto**: o mesmo golpe com pilhas diferentes).
+- Atributos: herói do jogador = `HeroStats.total` (o mesmo do 150); NPC = colunas do template
+  (`Attack`, `Defence`, ...), depois `stats` da spec, depois `attack` da spec (os dois ataques).
+- Iniciativa: **sem dado**. #727 e #782 têm as mesmas unidades e ordens diferentes; a ordem fica:
+  aliados NPC, inimigos, herói do jogador.
+
+## Tropa, passivas, runas e destino
+
+- A tropa do jogador (`outer_city.army_soldiers`, de `rules.battle_pawn`) troca as pilhas de tropa
+  do lado 1 da spec, só onde a spec já tem pilhas (**dedução**: nas lutas roteirizadas sem tropa os
+  `livingId` são outros). Vida da pilha = `Live × quantidade / 100`, dividida com o arredondamento
+  para cima na primeira (**visto** 523 → 262/261).
+- Skills passivas (`UseWay` 2) viram `HeroMsg.buffers` no 157 (**visto** #1466: 30111, `curTurn` -1)
+  e não entram nos cooldowns nem na rotação. Talento: passivas do `talent_script` (`MasterType` 10);
+  destino: a linha de `SkillTempInfos` com `SonType` = tipo e `Grades` = grau (**dedução**).
+- Runas: `RuneTempInfos.SkillTemplateId` é uma skill ativa, entra no `skillId` e só se usa uma vez
+  por batalha (**dedução**).
+- Dragão e cartas: **precisa de captura** (o buffer das cartas, 3040/3041, não está nos templates; o
+  dragão não tem tabela de skill).
+
+## Buffers e controle
+
+`SkillTempInfo.BufferIds` (com a chance do texto, "50% chance"; sem texto, sempre: **dedução**) aplica
+linhas de `SkillBufferTempInfos`. `BufferMsg` no 153 de quem age e dos alvos.
+
+- Ciclo **(visto)** #1484–#1493 (60023, Chomp): entra com `curTurn = ValidCount`, `seeType` 0; cada
+  ação de quem carrega desconta 1 e o efeito age (sangra antes do golpe, `seeType` 1); em 0 sai com
+  `seeType` 2. Passiva permanente começa em -1 e desce (-2, -3...).
+- `AttackWay` (cliente `BufferEffectiveType`): 1 ao agir, 2 ao levar dano, 3 ao causar, 4 na hora.
+- 30111 (Fúria): +1 de SP por golpe dado, entrada `damageType` 9 com o total em `leftValue`
+  (**visto** #3136).
+- `AttackType` lidos: 1/3 ataque, 2/4 defesa, 5/33 vida, 6 fúria, 15 dano recebido, 16/17 crítico,
+  20/40 dano causado, 28/29 ignora defesa. Controle: 19 atordoado e 101 desmaio não agem (cliente
+  trata 19 como "restrito"); 38 confuso; 39 amnésia (só o golpe básico). `RejectType` do
+  `GameHeroTemp` = tipos a que o herói é imune.
+- Atordoado perde a vez sem 153 e o turno do controle conta (**dedução**; **precisa de captura**).
+- Selo sagrado (100): **sem dado**, ignorado.
+
+## Captura que falta
+
+- Uma luta com atordoamento num inimigo (skill com "Stunned", ex. buffer 41): ver se a vez perdida
+  manda 153 e como desce o `curTurn`.
+- Batalha com cartas de poder equipadas e com dragão: 157 (buffers do herói) e 4902.
+- Golpes críticos e bloqueados em quantidade (multiplicadores e chances); um guerreiro ou caçador no
+  150 (o ×1,05 do `MagicAttack` no poder de combate só foi visto na maga).
+- Skills com chance de buffer (quantas vezes entra); Selo sagrado; pets numa luta normal.
 ## Regras que travam o cliente em silêncio
 
 - O herói do jogador no 157 precisa de `userId == playerId`; senão a batalha nunca começa.
@@ -58,12 +115,11 @@ No PvP ele morre de verdade (abaixo).
 
 ## PvP (`spec["pvp"]`)
 
-- O lado do jogador morre de verdade; o dano é o mesmo para os dois lados (30–40% do bruto, mais
-  `damageImprove` % depois do 4361).
+- O lado do jogador morre de verdade; o dano é a mesma fórmula, mais `damageImprove` % depois do 4361.
 - Herói NPC do lado 2: antes do golpe vai um 75 com `heroIndexId` dele, skill e alvos (o cliente
   só põe o ícone da skill sobre ele; `castTime` não é usado).
 - Herói do jogador em modo manual: sem ordem em 112 quadros (4,5 s) age sozinho.
-- A spec aceita `attack` e `defaultSkill` nos heróis e pets (cópia de jogador, robô, pet), fora do
+- A spec aceita `stats`, `attack` e `defaultSkill` nos heróis e pets (cópia de jogador, robô, pet), fora do
   protobuf (`ParseDict(ignore_unknown_fields=True)`).
 - Batalha só de pets (battleType 35): `pets` no 157, sem herói do jogador; o cliente manda o 10007
   e não deixa dar ordens. Sem um pet com `userId` do jogador no lado dele a batalha não

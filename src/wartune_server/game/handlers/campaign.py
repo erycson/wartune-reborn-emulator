@@ -17,10 +17,11 @@ from google.protobuf.json_format import ParseDict
 from google.protobuf.message import Message
 
 from ...content import tutorial
-from ...domain.models import EventState, Item, Quest
+from ...domain.models import EventState, Item, PlayerSnapshot, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
-from .. import bag, buffs, drops, events, rewards, rules, space
+from ...templates.repository import GameTemplates
+from .. import bag, buffs, drops, events, outer_city, rewards, rules, space
 from .. import campaign as cm
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
@@ -384,9 +385,40 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
         curturn=0,
     )
     msg.skillId.extend(int(x) for x in leader.skill_script.split(",") if x)
-    magic = rules.job_type(snap.character.job) == 3
-    attack = stats.total["MagicAttack"] if magic else stats.total["PhyAttack"]
-    return PlayerHero(msg, attack, int(tpl_row.get("DefaultSkill", 0)))
+    runes = rune_skills(leader.rune_key, s.ctx.templates)
+    msg.skillId.extend(runes)
+    army, _ = outer_city.army_soldiers(snap, s.ctx.templates)
+    return PlayerHero(
+        msg,
+        stats.total,
+        int(tpl_row.get("DefaultSkill", 0)),
+        passives=passive_skills(snap, s.ctx.templates),
+        army=tuple(army),
+        once=frozenset(runes),
+    )
+
+
+def rune_skills(rune_key: str, templates: GameTemplates) -> list[int]:
+    """Runas equipadas (``runeKey`` "204,-1,") viram skills ativas do herói: RuneTempInfos.SkillTemplateId
+    (9204 "Can only be used 1 time per battle", UseCount 1). (dedução) entram no ``skillId`` do 157 no fim."""
+    rows = (templates.get("RuneTempInfos", k) for k in rune_key.split(",") if k and k != "-1")
+    return [int(r["SkillTemplateId"]) for r in rows if r and int(r.get("SkillTemplateId") or 0)]
+
+
+def passive_skills(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int, ...]:
+    """Passivas fora da lista de skills: talento (``talent_script``, SkillTempInfo MasterType 10, UseWay 2) e
+    destino (skill do SonType no grau, como o 4544). Os BufferIds delas viram buffers no 157 (dedução: o
+    tutorial só mostra a passiva 30111 da lista de skills). Alma do dragão e cartas: sem tabela, ver batalha.md."""
+    from . import systems  # systems importa este módulo
+
+    leader = snap.leader
+    assert leader is not None
+    skills = [int(x) for x in leader.talent_script.split(",") if x]
+    for son_type, gp in systems.fate(rules.systems(snap)).items():
+        row = next(templates.find("SkillTempInfos", SonType=son_type, Grades=systems.fate_grade(templates, gp)), None)
+        if row is not None:
+            skills.append(int(row["TemplateId"]))
+    return tuple(skills)
 
 
 def _start_battle(s: GameSession, camp: int) -> None:
@@ -401,7 +433,9 @@ def _start_battle(s: GameSession, camp: int) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _battle_over(s, battle, camp, won)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
     s.log.info("batalha", nó=camp, battle=s.battle.id)
     s.battle.start()
 
@@ -421,7 +455,9 @@ async def special_boss(s: GameSession, _: object) -> None:
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
     s.log.info("batalha do chefe", battle=s.battle.id)
     s.battle.start()
 
@@ -1034,7 +1070,9 @@ async def quarry_fight(s: GameSession) -> bool:
     async def finished(battle: Battle, won: bool) -> None:
         await _quarry_over(s, battle, won)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
     s.log.info("batalha da pedreira", battle=s.battle.id)
     s.battle.start()
     return True

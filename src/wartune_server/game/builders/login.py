@@ -73,11 +73,12 @@ class HeroStats:
 
     @property
     def fighting_capacity(self) -> int:
-        # ponytail: bate com o oficial no nível 1 (199); nível 3 dá 291 contra 278. Falta a fórmula real.
+        # (visto) tutorial_en: os 20 valores distintos do 150 (maga, níveis 1 a 10, com e sem equipamento)
+        # batem exatos; a tropa não entra (#727: 489 com e sem exército). (dedução) o ×1,05 só foi visto no
+        # MagicAttack da maga; nas outras classes fica igual, falta captura
         t = self.total
-        return (
-            t["PhyAttack"] + t["PhyDefence"] + int(t["MagicAttack"] * 1.05) + t["MagicDefence"] + t["ForceHit"]
-        ) + int(t["Live"] * 0.75)
+        flat = t["PhyAttack"] + t["PhyDefence"] + t["MagicDefence"] + t["ForceHit"] + t["Parry"] + t["ConatArmy"]
+        return (20 * flat + 21 * t["MagicAttack"] + 4 * t["Live"]) // 20  # = flat + 1,05 MAtk + Live/5, em inteiros
 
     @classmethod
     def of(cls, hero: Hero, tpl: HeroTemplate, bonuses: Sequence[Row] = ()) -> HeroStats:

@@ -54,6 +54,10 @@ pytestmark = [
 @pytest.fixture(autouse=True)
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    # o oráculo reenvia as ordens (10008) da captura, em número fixo: sem sorteio (±8%, crítico, bloqueio)
+    # cada luta dura as mesmas ações do herói que no oficial
+    for key, value in (("spread", 0.0), ("crit_base", 1.0), ("block_base", 1.0)):
+        monkeypatch.setitem(battle_mod.FORMULA, key, value)
 
 
 def _filtered(codes: list[int]) -> list[int]:

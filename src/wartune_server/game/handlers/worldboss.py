@@ -227,7 +227,9 @@ async def boss_attack(s: GameSession) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _boss_over(s, battle, won, pool, link)
 
-    s.battle = Battle(spec, player_hero(s, spec), ctx.templates, ctx.clock, s.send, finished, shared=link)
+    s.battle = Battle(
+        spec, player_hero(s, spec), ctx.templates, ctx.clock, s.send, finished, shared=link, settings=ctx.world.settings
+    )
     s.log.info("batalha com o chefe do mundo", chefe=c.map_id, vida=pool.hp, battle=s.battle.id)
     s.battle.start()
     from . import events  # handlers.events importa login, que importa a campanha

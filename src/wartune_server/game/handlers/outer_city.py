@@ -329,7 +329,9 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _mine_over(s, battle, mine, won)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
     s.log.info("batalha da mina", mina=mine.id, battle=s.battle.id)
     s.battle.start()
 
@@ -384,7 +386,9 @@ async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _monster_over(s, battle, m, won)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
     s.log.info("batalha com monstro", monstro=m.id, template=m.template_id, battle=s.battle.id)
     s.ctx.wilds.fighting[(m.map_id, m.id, m.born)] = s.battle
     _monster_sync(s, m, monsters.MONSTER_FIGHTING)  # como a mina: o 140 em luta antes da 157
@@ -449,7 +453,9 @@ def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:
     async def finished(battle: Battle, won: bool) -> None:
         await _castle_over(s, battle, won)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
     s.log.info("batalha com castelo-robô", castelo=robot.id, battle=s.battle.id)
     s.battle.start()
     return [arena, *rows]

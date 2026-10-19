@@ -675,6 +675,8 @@ async def test_luta_com_monstro_normal_abate_e_conta_no_dia(tmp_path: Path, monk
         m = min((x for x in found if x.boss_type == 1), key=lambda x: monsters.level(templates, x))
         assert monsters.level(templates, m) == 10
         snap.character.grades = 20  # 10 abaixo: ainda conta (help: 15 abaixo não conta)
+        assert snap.leader is not None
+        snap.leader.intellect = 200  # a batalha usa os atributos reais: a maga do 22500 não vence um nível 10
         g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
         await g.until(169)
 

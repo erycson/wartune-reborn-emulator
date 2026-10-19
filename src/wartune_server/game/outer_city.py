@@ -87,19 +87,20 @@ def energy_diamonds(castle: Castle, top: int, need: int) -> int:
 
 
 def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[dict[str, object]], int]:
-    """As tropas do exército na luta da cidade externa (replay #718): duas pilhas (pos 3 e 9, livingId 1 e 2),
-    vida da pilha = Live × soldados / 100. Devolve as pilhas e o template da tropa (0 sem tropa)."""
+    """As tropas do exército na luta (replay #718): duas pilhas (pos 3 e 9, livingId 1 e 2). A vida total
+    Live × soldados / 100 se divide arredondando para cima na primeira (visto tutorial_en: 523 -> 262/261,
+    637 -> 319/318). Devolve as pilhas e o template da tropa (0 sem tropa)."""
     soldiers: list[dict[str, object]] = []
     pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
     if pawn is not None and tpl is not None:
         # replay #718: [DefaultSkill, HighSkill] repetido 5 vezes (10,11 do Lancer)
         skills = [int(s) for s in (tpl["DefaultSkill"], tpl.get("HighSkill", "")) if s] * 5
-        half = (pawn.army_count + 1) // 2
-        for living, pos, count in ((1, 3, half), (2, 9, pawn.army_count - half)):
-            if count <= 0:
+        total = max(1, int(tpl["Live"]) * pawn.army_count // 100)
+        first = (total + 1) // 2 if pawn.army_count > 1 else total
+        for living, pos, hp in ((1, 3, first), (2, 9, total - first)):
+            if hp <= 0:
                 continue
-            hp = max(1, int(tpl["Live"]) * count // 100)
             soldiers.append(
                 {"livingId": living, "tempId": pawn.template_id, "type": 1, "side": 1, "pos": pos,
                  "initHp": hp, "hp": hp, "qteTime": 0, "castTime": 4000,
