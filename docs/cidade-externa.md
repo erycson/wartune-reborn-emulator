@@ -9,18 +9,20 @@ Código: `game/outer_city.py` (geometria do mapa e luta contra o guarda), `game/
 `game/handlers/singlepass.py`, `game/handlers/treasure.py`. Testes: `tests/game/test_outer_city.py` e
 `tests/game/test_mundo_opcodes.py` (todo código tem handler e corpo vazio não derruba a sessão).
 
-Fontes: *(visto)* captura oficial (`captures/transfer_kampi_sistemi.json`, `captures/cevre_altin_madeni_savasi.json`);
+Fontes: *(visto)* captura oficial inglesa (`captures/tutorial_en.json`, "inglesa #N": minas da missão 60 e robô da 100
+no mapa 100000042) e turcas (`captures/transfer_kampi_sistemi.json`, `captures/cevre_altin_madeni_savasi.json`, replay),
+estas só no que a inglesa não tem;
 *(cliente)* código decompilado (`m2`, `m3`, `m8`); *(dedução)* inferido de cliente e captura.
 
 ## O que o servidor tem
 
-O mapa do castelo (100000xxx, modelo 100) é uma instância de cada jogador *(visto)*: replay #706 e cevre #11
-trazem as mesmas 4 minas (ids e posições) e os mesmos ids de castelo-robô (765957 e 765958), mas a instância
-(100000313 e 100000714), os 2 robôs, os ids do `armyPawn` das minas e o `createDate` mudam de uma conta para
+O mapa do castelo (100000xxx, modelo 100) é uma instância de cada jogador *(visto)*: inglesa #718 e, de outras contas,
+replay #706 e cevre #11 (só turco) trazem as mesmas 4 minas (ids e posições) e os mesmos ids de castelo-robô
+(765957 e 765958), mas a instância (100000042 na inglesa; 100000313 e 100000714 nas turcas), os 2 robôs, os ids do `armyPawn` das minas e o `createDate` mudam de uma conta para
 a outra. Por isso o servidor mostra ali só o castelo e as minas do próprio jogador; ocupação de outro jogador
 não aparece nem bloqueia. Nos mapas compartilhados (1 a 5) o 8201 traz os castelos dos outros jogadores nas
 grades pedidas. Os 2 castelos-robô da instância existem desde a missão 100 (ver *Castelos-robô*). Não há
-exércitos alheios andando, terras selvagens fora das 4 minas nem os castelos "Köy" do mapa 2. Pedido que depende
+exércitos alheios andando, terras selvagens fora das 4 minas nem os castelos "Köy" do mapa 2 (só turco: transfer). Pedido que depende
 disso é recusado ou respondido vazio, do jeito que o cliente espera para não travar.
 
 ## Opcodes C>S
@@ -28,16 +30,16 @@ disso é recusado ou respondido vazio, do jeito que o cliente espera para não t
 | Código | O que o servidor faz | Fonte | Depende de |
 |---|---|---|---|
 | 5004 | Registra. Sem resposta | *(cliente)* o cliente não lê resposta do 5004 | — (os exércitos da tela chegam pelo 169) |
-| 5181 | Sem resposta própria. A grade vem no 169 do 8201 | *(visto)* transfer #12-15, cevre #11-12: sem S>C | — |
-| 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100, ocupadas só pelo próprio jogador), o próprio castelo, os castelos-robô da grade (na instância) e, num mapa compartilhado (1 a 5), os castelos de outros jogadores nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* replay #706, cevre #11, transfer #14-15 (no mapa 2 o 4129 traz o castelo de `asiesat` e 20 "Köy"; o 169 traz o exército dele); *(dedução)* castelo de outro jogador com os campos do próprio (a captura não tem um) | exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) e castelos "Köy" sem dono |
-| 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,134 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* replay #761-#767 (18 tiles em 2,43 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
-| 9525 | 4938 com os chefes do mapa pedido e o tempo até o próximo refresh (ver *Chefes do mapa*) | *(visto)* transfer #7-10, cevre #3, #9, #43, #44 | luta contra chefe, monstros do mapa, névoa (4939) e caixas (4940) |
+| 5181 | Sem resposta própria. A grade vem no 169 do 8201 | *(visto)* inglesa #715-#719: sem S>C | — |
+| 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100, ocupadas só pelo próprio jogador), o próprio castelo, os castelos-robô da grade (na instância) e, num mapa compartilhado (1 a 5), os castelos de outros jogadores nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* inglesa #716-#719; transfer #14-15 (só turco: no mapa 2 o 4129 traz o castelo de `asiesat` e 20 "Köy"; o 169 traz o exército dele); *(dedução)* castelo de outro jogador com os campos do próprio (a captura não tem um) | exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) e castelos "Köy" sem dono |
+| 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,134 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* replay #761-#767 (turco: 18 tiles em 2,43 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
+| 9525 | 4938 com os chefes do mapa pedido e o tempo até o próximo refresh (ver *Chefes do mapa*) | *(visto)* inglesa #525-#526, #709-#710 (instância, sem chefes); transfer #7-10 (só turco: mapa 2 com chefes) | luta contra chefe, monstros do mapa, névoa (4939) e caixas (4940) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o guarda de grau 8 se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* replay #713-#795; *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo e a luta do castelo-robô | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
+| 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o guarda de grau 8 se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo e a luta do castelo-robô | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Na pedreira 6001: a luta da coleta (140, 157; fim com Wood x18). Fora dela, registra | *(visto)* inglesa #1928-#2070 | — |
 | 9506 | Ataque extra: `ConfigInfos` `AddAttck_Point` diamantes (395 nos templates EN, como o texto EN "Additional attack attempts cost 395 Balens"; vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount`. O ataque ao castelo-robô (5160) gasta um e grava na hora | *(cliente)* `AttackAlertFrame` (`setAddAttackCount`; o 100 do cliente é só o saldo mínimo conferido) | — |
-| 5176 | Muda o castelo. Outro mapa: 200 de energia e o ponto central do mapa. Mesmo mapa com ponto: 100 de energia. Energia completada com diamantes. Resposta: 140 e 105 (mapa, posição, energia). Recusa: 105 com o castelo como está | *(visto)* transfer #2-5 (500 para 300 de energia); *(cliente)* `WorldMapControler`, `MapPhysicsCastle` | sem outros castelos, o ponto de chegada é o centro |
+| 5176 | Muda o castelo. Outro mapa: 200 de energia e o ponto central do mapa. Mesmo mapa com ponto: 100 de energia. Energia completada com diamantes. Resposta: 140 e 105 (mapa, posição, energia). Recusa: 105 com o castelo como está | *(visto)* transfer #2-5 (só turco: 500 para 300 de energia); *(cliente)* `WorldMapControler`, `MapPhysicsCastle` | sem outros castelos, o ponto de chegada é o centro |
 | 8292 | Cancela o gancho: 4200 com `leftWeay` 0 e `isStartHangup` falso, a mesma resposta do 8293. Não cobra | *(cliente)* `HookTimeView` envia o 8292 ao cancelar | sistema de gancho da campanha (ausente) |
 | 8293 | Ressincroniza o gancho: 4200 com `leftWeay` 0. Não cobra | *(cliente)* `HookTimeView` só envia com `hookleftWeay` diferente de zero | sistema de gancho da campanha (ausente) |
 | 8295 | Estado dos ganchos da sala: 4204 vazio. É a resposta que termina o pré-carregamento do gancho | *(cliente)* `HookContorler` envia o 8295 sem corpo | ganchos de outros jogadores (ausente) |
@@ -56,7 +58,7 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - Exército parado: 2 tiles antes do castelo. `PosMoveMsg.routes` vêm em pixels: tile = pixel // 20.
 - Grade: `"x_y"`, 50 × 50 tiles. A janela do cliente é de 3 × 2 células.
 - Energia de teleporte: 200 para outro mapa, 100 no mesmo mapa. Completar com diamantes custa
-  `ceil((máximo - atual) / 5)`, e só quando falta energia para o gasto. *(visto: 500 para 300)*
+  `ceil((máximo - atual) / 5)`, e só quando falta energia para o gasto. *(visto: 500 para 300; só turco: transfer)*
 - Virada do dia às 5h (`game/daily.py`, no login e no 20008 que o cliente manda a cada ~60 s): a energia
   de teleporte volta ao máximo (151101 `Property2`, sem regenerar com o tempo), a stamina ganha +100 por
   dia que passou até o máximo (200), e a stamina de poções do dia (`PlayerMsg.wearyLimit`, teto 300 no
@@ -66,7 +68,7 @@ S>C usados: 98 (`OutercityRspMsg`), 105 (`CastleReqMsg`), 140 (`MapUpdatedMsg`),
 - Mapas abertos: 1 pede nível 11, 2 nível 21, 3 nível 31, 4 nível 41, 5 nível 51; `-1` fica fechado
   (`WorldMapHelper.chcekMapId`).
 - Tamanho do mapa: `MapInfos` `Width` e `Height` em pixels, divididos por 20. O mapa do castelo
-  (100000xxx) usa o modelo 100 (Loş Sahil).
+  (100000xxx) usa o modelo 100 (Twilight Sands).
 
 ## Catálogo do mundo (migrações 0027 e 0028, `domain/world.py`)
 
@@ -83,22 +85,22 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 ## Minas de ouro (missão 60, `game/mines.py`)
 
 - **Layout** *(visto)*: as 4 minas vêm das capturas, com os mesmos ids e posições para contas diferentes
-  (replay e cevre), então são do mapa modelo 100: 853876 (16,34), 853877 (36,34), 853874 (71,54) e
+  (inglesa #718; replay e cevre, só turco), então são do mapa modelo 100: 853876 (16,34), 853877 (36,34), 853874 (71,54) e
   853875 (54,64). Cada conta tem a sua cópia (ver *O que o servidor tem*). O nível não é fixo: é sorteado a
   cada refresh (abaixo). Guarda: um soldado, 6504 no nível 8 e 6505 nos níveis 9 e 10. O arquivo
   `maps/100/100.maps` não tem minas.
 - **Refresh de 12 h** *(visto)*: `RefreshTime` 43200 s (`MapPhysicsTempInfos`), que sai como 43200000 no 4129
-  e no 140 das duas capturas (mapa 100, fixo: na cevre, 35 min depois do `createDate`, ainda é 43200000; só no
-  mapa 2 ele vem como contagem regressiva). `createDate` é o começo do ciclo, no fuso do jogo (UTC+3,
-  `gameday.GAME_TZ`): replay 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre 19:48:57 = 16:48:57
+  e no 140 (inglesa #718, #726; mapa 100, fixo: na cevre, 35 min depois do `createDate`, ainda é 43200000; só no
+  mapa 2 ele vem como contagem regressiva, só turco). `createDate` é o começo do ciclo, no fuso do jogo (UTC+3,
+  `gameday.GAME_TZ`; só turco): replay 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre 19:48:57 = 16:48:57
   UTC, 73 s antes do `signDate` 19:50:10 do mesmo `asiesat` (login.json), e o relogin das 17:05 UTC não
   mudou o `createDate`. As duas fases ficam 7 h 29 min distantes, então o ciclo é do jogador
   (`Castle.mines_at`, migração 0018), não do mundo. *(dedução)* o ciclo abre no login; vencido, o seguinte
   abre no primeiro login, 8201 ou 5160 depois do fim (*ponytail*: quem fica online pode ver o oficial renovar
   na hora certa; não há captura de um refresh ao vivo). Castelo de antes da 0018: o ciclo começa na ocupação
   mais velha.
-- **Nível sorteado** *(dedução)*: os 8 sorteios vistos nas duas capturas (replay e cevre) deram nível 8, 9 e
-  10. Cada ciclo sorteia o nível com semente `"<jogador>:<id da mina>:<início do ciclo>"`: fica o mesmo até o
+- **Nível sorteado** *(dedução)*: os sorteios vistos deram nível 9 e 10 (inglesa #718: 10, 10, 10
+  e 9) e 8 (replay e cevre, só turco). Cada ciclo sorteia o nível com semente `"<jogador>:<id da mina>:<início do ciclo>"`: fica o mesmo até o
   refresh. Os templates são 200408, 200409 e 200410 (`MapPhysicsTempInfos`: `Grades` é o nível, `Property4` o
   ouro por hora). Nível fora de 8 a 10 e guarda diferente não têm captura.
 - **Expiração** *(dedução)*: no fim do ciclo toda ocupação vence. Quem vira o ciclo é o `castle.settle`: todo
@@ -110,33 +112,36 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   (320,680) e (720,680), e o castelo em (520,920). Sem elas a máscara escura do passo 22500 nunca sai. Por
   isso o castelo novo nasce em (26,46), como no oficial (`GridCastlePlacement`), e a migração 0017 move
   quem ainda estava na grade antiga.
-- **Luta** *(visto)* #713-#744: 140 ×2 do exército lutando, 140 da mina em luta (state 4), 157 (battleType 1,
+- **Luta** *(visto)* inglesa #723-#754: 140 ×2 do exército lutando, 140 da mina em luta (state 4), 157 (battleType 1,
   mapa 100, as tropas do exército em duas pilhas nas posições 3 e 9, o herói na 4, o guarda na 5; vida da
   pilha = Live × soldados / 100). Fim: 150, 4103 (cena 4), 150, 100, 140 ×2. Vencendo: a mina fica do
   jogador, 112 da missão (condição 7, Para1 2006), 4152 (Leed 9), 109, 152 com o rendimento, 140 da mina
   ocupada e 169. Perdendo: 140 da mina livre (a derrota não tem captura, ver abaixo).
-- **Perda de soldados** *(visto)*: nas 3 vitórias contra mina nenhum soldado morre (cevre #36-39: `ownPawns`
-  737 antes e depois; replay #735 e #787: 150 antes e depois). Derrota contra mina: *precisa de captura*. Na
-  campanha os soldados morrem (replay #1711, battleType 6, mapTempId 1021, pool 900 para 828), mas essa regra
+- **Perda de soldados** *(visto)*: nas vitórias contra mina nenhum soldado morre (inglesa #741/#743 e #797:
+  `ownPawns` 152 nos dois 150 do fim; cevre #36-39, só turco: 737 antes e depois). Derrota contra mina: *precisa de
+  captura*. Na campanha os soldados morrem (replay #1711, turco: battleType 6, mapTempId 1021, pool 900 para 828;
+  na inglesa a 1021 de #1187-#1202 fica com 162 antes e depois), mas essa regra
   é de outro sistema e não passa por `outer_city`.
-- **Volta** *(visto)* #750: o primeiro 5035 com state 3 depois da luta recebe o 4382.
-- **Ouro** *(visto)*: cada mina ocupada soma `Property4` por hora no 109 (280 para 960). O 152 lista as minas
-  em `wildYield` e mantém `goldYield` só com os prédios e `goldWildLandYield` em 0, como no replay.
+- **Volta** *(visto)* inglesa #758-#759: o primeiro 5035 com state 3 depois da luta recebe o 4382.
+- **Ouro** *(visto)*: cada mina ocupada soma `Property4` por hora no 109 (inglesa #802: 280 para 1040, mina
+  nível 10 = 760). O 152 lista as minas em `wildYield` e mantém `goldYield` só com os prédios e `goldWildLandYield`
+  em 0 (inglesa #751, #804).
 - **0017** `wild_lands`: mina ocupada por personagem (`wild_id`, `occupied_at`), carregada em
   `PlayerSnapshot.wild_lands`. Relogar mantém a mina até o refresh.
 - **0018** `castles.mines_at`: começo do ciclo de 12 h das minas do jogador.
 
 ## Castelos-robô (missões 100, 411 e 765, `game/robots.py` e `handlers/outer_city.py`)
 
-- **Layout** *(visto)*: 765958 em (44,22) e 765957 em (59,56), no mapa da instância, nas duas capturas
-  (replay #706 e cevre #11, mesmos ids e tiles). Grau 8 em 3 dos 4 (o quarto, replay 765958, tem 7). O dono
-  (`occupyPlayerId` 13000xxxxx) e o nome mudam de uma conta para outra: replay ♣Chloe♣ e ♫Elizabeth♫; cevre
-  ♫Elizabeth♫ e ►Abigail◄. Sem liga e sem tempo de defesa (`defenceLefttime` 0), estado 1, `castleName` = nome.
+- **Layout** *(visto)*: 765958 em (44,22) e 765957 em (59,56), no mapa da instância (inglesa #718; replay #706 e
+  cevre #11, só turco: mesmos ids e tiles). Grau 8 nos dois (inglesa #718; no replay o 765958 tem 7, só turco). O
+  dono (`occupyPlayerId` 13000xxxxx) e o nome mudam de uma conta para outra: inglesa Aillendre (765958,
+  1300001446) e Addyn (765957, 1300001447). Sem liga e sem tempo de defesa (`defenceLefttime` 0), estado 1, `castleName` = nome.
 - **Servidor** *(dedução)*: os ids e tiles são os do oficial; o dono é `ROBOT_USER_BASE + índice` (faixa dos
-  robôs); o nome sai da conta (`robot_name`, sorteio com semente `robo:<conta>`; os dois robôs da conta tiram nomes distintos). A captura
-  tem 3 nomes (`world_robot_names`); com mais robôs que nomes, os nomes se repetem. Sem
+  robôs); o nome sai da conta (`robot_name`, sorteio com semente `robo:<conta>`; os dois robôs da conta tiram nomes distintos). O banco
+  tem os 3 nomes das capturas turcas (`world_robot_names`: ♣Chloe♣, ♫Elizabeth♫, ►Abigail◄; a inglesa traz
+  Aillendre e Addyn); com mais robôs que nomes, os nomes se repetem. Sem
   estado: o robô está sempre lá, não muda de dono nem some depois da vitória (não há captura disso).
-- **4129** *(visto)* cevre #11, replay #706: o robô entra no 4129 da grade dele, junto com o próprio castelo.
+- **4129** *(visto)* inglesa #718: o robô entra no 4129 da grade dele, junto com o próprio castelo.
   Só na instância do próprio castelo, pela mesma regra das minas (`robots_in` e `robot_at`, com `template_of`): nos mapas 1 a 5 não aparece nem luta.
 - **Guia** *(cliente)*: a missão 100 (m8 `NewbieBaseActionMediator`, alvo 80_3) procura o castelo no pixel (880,440),
   o tile (44,22). O robô está nesse tile, então `getPhysicsByXY(880,440)` o acha (`BaseCastle` faz `_x = posX × 20`; `OuterCityModel.as` 367-386). Sem o alvo a tela escurece, como na missão 60.
@@ -160,16 +165,17 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 
 ## Chefes do mapa (9525 -> 4938, painel "Current map BOSS info")
 
-- **Relógio** *(visto)*: transfer (mapa 2, 4828 s às 17:39:31 UTC) e cevre (instância do castelo, 5775 s às
-  17:23:44 UTC) apontam para o mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do turco). As horas
+- **Relógio** *(visto, só turco: transfer e cevre)*: transfer (mapa 2, 4828 s às 17:39:31 UTC) e cevre (instância
+  do castelo, 5775 s às 17:23:44 UTC) apontam para o mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do
+  servidor turco). As horas
   de refresh são as do `ConfigInfos` `WorldMapFreshTime` (0,8,10,...,22) no fuso do jogo
   (`WARTUNE_GAME_TIMEZONE`), como diz o help do cliente ("every 2 hours from 08:00 to 24:00"): de 00:00 a
   08:00 não há refresh, então às 03:00 o painel mostra 5 h. O `leftBossTime` nunca vai 0: com 0 o cliente
   (`OuterCityManager.coolDownBossUpdate`) pede o 9525 de novo, a cada segundo. As duas capturas são da mesma conta.
-- **Lista**: os monstros de `bossType` 3 do sorteio do mapa (abaixo). *(visto)* o bosslist do mapa 2 na
-  transfer tem 5 monstros, todos de `Property1` 3 (210106, 210124, 210129 ×2, 210120), `type` 1, e o 210127
+- **Lista**: os monstros de `bossType` 3 do sorteio do mapa (abaixo). *(visto, só turco: transfer)* o bosslist do
+  mapa 2 na transfer tem 5 monstros, todos de `Property1` 3 (210106, 210124, 210129 ×2, 210120), `type` 1, e o 210127
   (`bossType` 2) do 4129 da mesma sessão fica de fora: o painel é a lista dos chefes. x e y em tiles (o radar
-  faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (cevre): ela não está em
+  faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (inglesa #526, #710): ela não está em
   `world_monster_counts`. O chefe abatido no ciclo fica na lista com `type` 0 e o em luta com 4 (language
   `bossinfo.bossStatus0` "(Killed)", `bossStatus4` "(In battle)").
 - **Contadores** (`count1-3`): abates do dia que contaram, por tipo (`characters.kills_normal`, `kills_elite`,
@@ -183,14 +189,14 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 
 ## Monstros dos Wilds (4129 type 21, `game/monsters.py`)
 
-- **Mensagem** *(visto, transfer #14)*: 879741, template 210127 em (2268,1932) do mapa 2: `type` 21, `level` 80
+- **Mensagem** *(visto, só turco: transfer #14)*: 879741, template 210127 em (2268,1932) do mapa 2: `type` 21, `level` 80
   (`Grades`), `refreshTime` 0, `state` 1, `createDate` "2026-05-21 20:00:50" (o ciclo das 20:00 no fuso do
   jogo), `fightCapaity` 746796, `bossType` 2 (`Property1`), `size` 10 (`Property2`; 12 na maioria dos chefes),
   sem `armyPawn`. Vem no meio das terras (type 20), antes dos castelos.
 - **Sorteio**: semente (mapa, começo do ciclo), então todo jogador vê os mesmos e um restart não muda nada,
   sem tabela de estado. A cada ciclo de `WorldMapFreshTime` (help: "in random positions") saem
   `world_monster_counts` monstros de cada tipo, com template sorteado entre os `MasterType` 21 daquele
-  `Property1` (sem regra de nível por mapa: o mapa 2 da transfer tem de nível 20 a 80) e tile a 20 da borda.
+  `Property1` (sem regra de nível por mapa: o mapa 2 da transfer, só turco, tem de nível 20 a 80) e tile a 20 da borda.
   O id é 1000000000 + mapa × 10000 + ordem: estável no ciclo e longe das minas e terras do oficial.
 - **Virada com o jogador online**: o cliente guarda os wildLands por tile e só tira um com state 0 ou quando a
   vista sai da grade (`OuterCityModel.updateWildLand`, `removesNSSWildLand`); na virada ele só pede o 9525.
@@ -242,7 +248,7 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   nível do monstro sorteada sozinha pela `chance`, quantidade entre `min_count` e `max_count`. Dá os itens e
   moedas (o Kyanite, -600, soma nos cristais), apaga o baú e manda o 4940 de novo. Mochila cheia: o conteúdo
   vai como anexo no correio do jogo (5 por carta, na mesma transação que apaga o baú) e o aviso "Bag full,
-  check your mail." *(dedução: o cliente só tem o turco "Çanta dolu, postanızı kontrol edin")*.
+  check your mail." *(dedução: o cliente só tem o texto turco "Çanta dolu, postanızı kontrol edin"; sem versão inglesa achada)*.
 - **Tabela de queda** (semente na 0030, coluna `source` em cada linha). Nenhuma fonte publica chance nem
   tabela por nível; as chances são *(dedução)* a partir de "usually"/"can drop"/"very rarely" e dos relatos,
   as quantidades de nível 70-80 vêm dos relatos e as outras faixas (10-29, 30-49, 50-69, 70-80) são
@@ -289,10 +295,10 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   vídeos ("he's lost one life"), o reviver no mapa, e a regra "+/-15 levels" da wiki (o post oficial e o help
   só falam de 15 abaixo, que é o que está feito).
 
-## Coleta (Kaynak Topla, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
+## Coleta (Resource Harvesting, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 
 - **Botão ir** *(cliente)*: `TaskFrameII.as:707-708` pega `worldBossTemplateDict[NeedFightId]` (6001) e
-  `WorldBossControler.sendEnterBattle` manda o 8258 com essa campanha. A 6001 é "Maden Ocağı", `Types` 2,
+  `WorldBossControler.sendEnterBattle` manda o 8258 com essa campanha. A 6001 é "Resource Quarry", `Types` 2,
   `MinLevel` 1, `Capacity` 10000 (`Campaigns`). `MapInfos` tem a 6001 (2000x2000 px, `Type` 1), mas não tem `CampaignData` nem `MapNodeInfos`. O `.maps`
   existe no CDN local (`D:\xampp\htdocs\wartune-cdn\maps\6001\6001.maps`, fora do repo), mas não está entre os
   13 mapas com nós de campanha da varredura. A captura inglesa tem o 8258 com a 6001 (#1803) e os nós no 127 (#1809):
@@ -300,14 +306,14 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 - **Coleta no espaço** *(cliente)*: `CollectionAction.sendCollection` manda o 8733 com o id do nó
   (`PropertyMsg.param1`). Os nós "year" são `MasterType` 300 a 315 ou 410 (`SpaceNodeType.isYearNode`), e o 4811
   (`QueryCollectCampaignNodeRspMsg`, `PlayerManager.__receiveYearNodeDataHandler`) diz o recurso de cada nó
-  (`sonType`, nome). Os templates têm 20 nós `MasterType` 300 (mapa 10000, "Hediye Yığını", `SonType` 10031):
-  são pacotes de presente, não Kereste, Ametist nem Bakır. Nenhuma captura tem 4811 nem 8733.
-- **Coleta de campanha** *(cliente)*: `CollectionAction.sendCollection` (`CollectionAction.as` 360-392) manda o 5032 `{mapId, nodeId, cmd 2}` (`SocketSendManager.sendSessionOverToBattle`, 266-273) num nó de campanha de coleta. O servidor só responde o 5032 nos nós do tutorial (`campaign.py`, 281-300). Os `SonType` de coleta são 2350 (som 041), 2351 e 2380 (som 039), 2352 e 2393-2395 (som 040) (`CollectionAction.as` 93-105). O nome do recurso de cada som (Bakır, Ametist, Kereste) é dedução.
+  (`sonType`, nome). Os templates têm 20 nós `MasterType` 300 (mapa 10000, "礼物堆" no tempinfos inglês, `SonType` 10031):
+  são pacotes de presente, não Wood, Amethyst nem Copper. Nenhuma captura tem 4811 nem 8733.
+- **Coleta de campanha** *(cliente)*: `CollectionAction.sendCollection` (`CollectionAction.as` 360-392) manda o 5032 `{mapId, nodeId, cmd 2}` (`SocketSendManager.sendSessionOverToBattle`, 266-273) num nó de campanha de coleta. O servidor só responde o 5032 nos nós do tutorial (`campaign.py`, 281-300). Os `SonType` de coleta são 2350 (som 041), 2351 e 2380 (som 039), 2352 e 2393-2395 (som 040) (`CollectionAction.as` 93-105). O nome do recurso de cada som (Copper, Amethyst, Wood) é dedução.
 - **Itens 2100022, 2100023 e 2100024**: nenhum código, drop ou tabela os cria (já visto em `missoes.md`).
 - Resultado (2026-10-19): a **pedreira 6001 está feita** pela captura inglesa (#1803-#2123). O 8258 entra, o 5125 numa
   pilha responde 143 COLLECTION, o 5032 colhe Wood (2100022) x2-3 e o 8699 dá Wood x18. O 5025 sai. Os nós vêm da
   captura (127), no banco (`campaign_contents` 6001, migração 0034). Ver [salas-campanha.md](salas-campanha.md).
-  A missão 102 fecha pela bolsa. Ametist (2100023) e Bakır (2100024), das missões 140 e 170-172, seguem sem fonte. A
+  A missão 102 fecha pela bolsa. Amethyst (2100023) e Copper (2100024), das missões 140 e 170-172, seguem sem fonte. A
   coleta do espaço (4811 e 8733) é outra rota.
 
 ## Tabelas e migrações
@@ -324,8 +330,8 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 
 1. **Mapa-múndi compartilhado.** Feito: castelos de outros jogadores nos mapas 1 a 5, nas grades pedidas
    (8201), e os 2 castelos-robô da instância (*Castelos-robô*). Falta: exércitos de outros jogadores (o 169 da
-   transfer #15 traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168 não
-   existem aqui), terras selvagens fora das 4 minas, castelos NPC "Köy", e a resposta do 5160 e do 8488 contra
+   transfer #15, só turco, traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168 não
+   existem aqui), terras selvagens fora das 4 minas, castelos NPC "Köy" (só turco), e a resposta do 5160 e do 8488 contra
    castelo ou exército de jogador (*precisa de captura*).
 2. **Gancho da campanha** (8292, 8293, 8295, 8525). O servidor responde o gancho zerado (4200) e a lista
    de ganchos vazia (4204); o cancelar (8292) não muda nada. O ganho de tempo offline da campanha precisa do

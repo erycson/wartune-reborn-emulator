@@ -13,7 +13,7 @@ Cliente: `D:/wartune/decompiled/m2/scripts/chat/`, `managers/IMManager.as`,
 | 0 | aba "tudo" (só cliente) |
 | 1 | corneta grande (item 208002) |
 | 2 | anúncio global de sistema, sem remetente |
-| 3 | mensagem de sistema para o jogador (já usamos: EXP, "Kazanılan:…") |
+| 3 | mensagem de sistema para o jogador (já usamos: EXP, "Received:…") |
 | 5 | guilda (exige `consortiaID != 0`) |
 | 6 | time / sala / campanha em grupo |
 | 7 | alerta (vai no 111, popup) |
@@ -56,7 +56,7 @@ histórico do ↑). Quem envia também recebe o 83. No privado o eco é o 4236.
 - **4236** ChatFriendMsg: eco para quem enviou; `result = -1` mostra "o jogador não está online"
   (`friends.im.IMFrame.command02`).
 - 4232 ChatStateMsg / 15029: estado do IM (o cliente manda `chatState=7` logo depois do login;
-  *(visto)* `login.json #87` 4232 `{userId, chatState:7, result:1}`).
+  *(visto)* inglesa #75 4232 `{userId, chatState:7, result:1}`).
 
 Marcação dentro do `encodeMsg`: `<a t="1" id=".." name=".." …/>` link de jogador, `<a t="2" …
 tempid=..>` link de item, `#00`–`#39` emoticons.
@@ -87,7 +87,8 @@ convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207 membros, 8212 i
 | | | 4156 | lista paginada `relationList[]` (hoje vai vazia no login) |
 
 *(visto)* `arkadas_istegi_gonderme.json` 1–3: 78 com `relation:3` (pendente), 111 "Eklendi,
-yanıtını bekleyin", 83 canal 3. `login.json #68/#79`: 4156 em 2 páginas, relations 1 e 3.
+yanıtını bekleyin", 83 canal 3 (só turco: `arkadas_istegi_gonderme`). `login.json #68/#79`: 4156 em 2 páginas,
+relations 1 e 3 (só turco: `login`, conta com amigos; na inglesa #61 a lista vazia vai `{maxPage: 0, curPage: 0}`).
 
 ## Correio e guilda
 

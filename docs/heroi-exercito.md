@@ -40,7 +40,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
-| 5155 recrutar | 109, 112 (missões), 109, 100, 111 | visto (relay #643) | ouro = ⌈n·GoldConsume·(100−Property4 do quartel)/100⌉; quartel ≥ NeedBuilding; população da casa (1201) |
+| 5155 recrutar | 109, 112 (missões), 109, 100, 111 | visto (inglesa #653-#659) | ouro = ⌈n·GoldConsume·(100−Property4 do quartel)/100⌉; quartel ≥ NeedBuilding; população da casa (1201) |
 | 5156 pôr no exército | 150, 93, 100 | visto | um slot; total ≤ liderança (ConatArmy) |
 | 5157 dispensar | 100, 109 | dedução | |
 | 5158 evoluir | 3, 116, 150, 109 (+112) | visto | Ruh de UpGrade Types 1; quartel ≥ nível seguinte; nível < herói − 3 |
@@ -56,7 +56,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
-| 5185 aprender skill/talento | 150, 60 | visto (#1175) | pontos = nível/2 − graus gastos; talento por TalentTempInfos |
+| 5185 aprender skill/talento | 150, 60 | visto (inglesa #1141-#1143) | pontos = nível/2 − graus gastos; talento por TalentTempInfos |
 | 5184 resetar skills | 61, 150 (+3) | cliente | grátis abaixo do 25 |
 | 5187 subir talento | 4430, 4431, 3, 109 | cliente | ouro e EXP do jogador (dedução: desconta gp e totalGp) |
 | 8479 abrir 2º conjunto | 150, 3 | cliente | Second_SkillPoint diamantes |
@@ -78,26 +78,26 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8270 comprar espaço | 3 | cliente | (comprados/4 + 1) × 100 diamantes; 1 espaço por compra (dedução) |
 | 8325 virada do dia | 3 | cliente | renova o sorteio grátis |
 | 8341 loja | 4178, 3 | cliente | preço = StarPoint do template |
-| 8224 `star` | 4178, 4180 | visto (login #51-52) | |
+| 8224 `star` | 4178, 4180 | visto (só turco: login.json #51-52; a inglesa #49 só traz o 4180) | |
 
 ### Montaria, destino, dragão, cartas — `systems.py`
 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
-| 8530 lista | 4427, 4426 | visto (login #11-12) | soulScore = soma de SoulScore |
+| 8530 lista | 4427, 4426 | visto (inglesa #19-#20 só traz o 4427; o 4426 é só turco: login.json #11-12) | soulScore = soma de SoulScore |
 | 8529 op 1 treinar | 115, 3, 150, 4426 | visto | `propertyType` 0 força, 2 int., 5 físico, 1 agilidade (PropertyInfo); `param1` unidades de comida 208017 ou Mount_Point diamantes; 10 de EXP cada; teto = grau levelMax |
 | 8529 op 2 montar | 4426, 150 | cliente | precisa possuir |
 | 8529 op 5 ver de outro | 4459 | cliente | só jogador online |
 | 8529 demais ops | — | **parcial** | estrela/bênção, rei, loja, refino, voo: UI não descompilada |
 | 8843 evento de montaria | — | **parcial** | sem captura |
-| 8628 destino | 4544 | visto (login #34) | abre no 55 com os tipos 2000 e 3000; 2100/2200: não sabemos abrir |
+| 8628 destino | 4544 | visto (inglesa #42, vazio no nível 1; os tipos só turco: login.json #34) | abre no 55 com os tipos 2000 e 3000; 2100/2200: não sabemos abrir |
 | 8626 treinar destino | 115, 4544 | cliente | pedras SonType 307; **1 EXP por pedra: dedução**; graus por Types 26 (acumulado) |
 | 8627 roda | 4545, 115 (+3) | cliente | Fate_FreeCount grátis, depois 10, 20, 30… e 300 do 30º; prêmios 1/2/3/4/10 pedras com pesos das fatias (dedução) |
-| 8642 dragão | 4555 | visto (login #37) | abre no 40 |
+| 8642 dragão | 4555 | visto (só turco: login.json #37) | abre no 40 |
 | 8641 alimentar | 115, 4555 | cliente | item SonType 319, 1 EXP; Types 101 por grau; grau máx. pelo nível (40→1 … 80→5) |
 | 8643 transferência | 4556, 4557 | cliente | grau 5 → tipo 102; **vocação: parcial** |
-| 9505 cartas | 4905 | visto (login #76) | op 1 sobe (Types 29+Profile), 2 ativa todas, 3 reenvia; buf = BufId + grau − 1. **Cartas/EXP vêm das batalhas (4902): parcial** |
-| 4905 `bufInfos` (bônus da coleção) | — | visto + cliente + dedução | 3 degraus por coleção (`MagicCardSlotView`); o degrau k usa `Template{3+k}s` (sonType) e `Property{3+k}` (bufId) da `PowCardSuiteTemInfos`, com `fixvalue`/`percent` da linha. Aceso quando há [cartas, grau mínimo] = `powcard_suite_slots` (game_settings, 0037; padrão 4/1, 4/3, 4/8). Fontes: login #76 (só a 1002, com 4 cartas, tem 40001; as de 3 cartas nada) e o language EN `card.CardSlotView.Notactive0..2` ("4 cards", "3 level 4 cards", "8 level 4 cards"; o turco diz 3, 4 e "4 no Lv6"). A leitura dos graus 3 e 8 é **dedução**. O bônus ainda não entra na batalha (`battle.py`) |
+| 9505 cartas | 4905 | visto (só turco: login.json #76) | op 1 sobe (Types 29+Profile), 2 ativa todas, 3 reenvia; buf = BufId + grau − 1. **Cartas/EXP vêm das batalhas (4902): parcial** |
+| 4905 `bufInfos` (bônus da coleção) | — | visto + cliente + dedução | 3 degraus por coleção (`MagicCardSlotView`); o degrau k usa `Template{3+k}s` (sonType) e `Property{3+k}` (bufId) da `PowCardSuiteTemInfos`, com `fixvalue`/`percent` da linha. Aceso quando há [cartas, grau mínimo] = `powcard_suite_slots` (game_settings, 0037; padrão 4/1, 4/3, 4/8). Fontes: login.json #76 (só turco; só a 1002, com 4 cartas, tem 40001; as de 3 cartas nada) e o language EN `card.CardSlotView.Notactive0..2` ("4 cards", "3 level 4 cards", "8 level 4 cards"). A leitura dos graus 3 e 8 é **dedução**. O bônus ainda não entra na batalha (`battle.py`) |
 | 8224 `powcardInfo` | 4905 | visto | |
 
 ### Pets — `pets.py`
@@ -108,22 +108,22 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8621 op 3 zerar | 4540, 3 | cliente | pet_reset_att diamantes |
 | 8621 op 9 / 10 batalha / descanso | 4540 | cliente | um pet na batalha |
 | 8621 op 11 atalhos | 4540 | dedução | string em `petName` |
-| 8621 op 12 vaga | 4540, 3 | cliente | add_pet_count por compra; base 3 (login: petCount 6) |
+| 8621 op 12 vaga | 4540, 3 | cliente | add_pet_count por compra; base 3 (login: petCount 6, só turco: login.json) |
 | 8621 op 14 topo | 4540 | cliente | |
 | 8621 op 13 compor (um pet) | 4540, 115, 109 | cliente + template | receita de `PetComponseInfos` com `Pet2Types` 0 casa com (`PetType`, `NeedGrade` = tier, `Quality` = estrela) do template do pet; o template passa a ser o do resultado; gasta `NeedItemTempId*` e `NeedGold`. Nível, EXP, pontos, aptidões, skills e qualidade ficam (**dedução**). Filtro de UI `canComposePet` (NeedGrade 50) não casa com as receitas: a leitura por tier é **dedução**, falta captura. 24 de 28 receitas; 19, 26, 29 e 32 dão tipos 117–119, sem template: recusadas |
 | 8621 op 15 fusão de dois pets | — | template | as 6 receitas dão tipos 117–119 e pedem itens (2125126, 2125127, 2125128, 2125130, 2125134) que não estão em `ItemTempInfos`: sem resposta (log) |
 | 8621 ops 1, 4–8 | — | **sem dado** | devorar (1), crescimento (4), skills (5), sacrifício (6), aptidão (7), resistência (8). Tabelas que existem: `UpGradeTempInfos` tipo 25 (EXP por nível), tipos 27/29/107 (EXP de qualidade), `PetTempInfos.PowerApt` (mín,máx). Falta o ganho por item ou ação, que o cliente não informa |
 | 8702 pets de outro | 4608 | cliente | só jogador online |
-| login (8224 `army`) | 4540 | visto (login #30) | só quando há pet |
+| login (8224 `army`) | 4540 | visto (só turco: login.json #30) | só quando há pet |
 
 Atributos derivados do pet (força etc. = template + pontos + nível × aptidão/100) e o HP são
 aproximação: o cliente não calcula e a captura não fecha com fórmula simples.
 
 ## Carga do login
 
-Enviados: 100 (tropas, no `user`), 150 com `mountTempId` e o pet em batalha (`petTempId`, `petQuqlity`, `petName`, como no login #5), 4540 (flag `army`, só com pet), 4178 + 4180 (`star`), 4905 (`powcardInfo`); 4427/4426, 4544 e 4555 respondem aos pedidos 8530, 8628 e 8642 que o cliente faz sozinho. O sorteio grátis das estrelas vira às 5h e é recalculado em toda leitura (`rules.refresh_star_day`), então quem estava offline no 8325 não perde.
+Enviados: 100 (tropas, no `user`), 150 com `mountTempId` e o pet em batalha (`petTempId`, `petQuqlity`, `petName`, como no login.json #5, só turco), 4540 (flag `army`, só com pet), 4178 + 4180 (`star`), 4905 (`powcardInfo`); 4427/4426, 4544 e 4555 respondem aos pedidos 8530, 8628 e 8642 que o cliente faz sozinho. O sorteio grátis das estrelas vira às 5h e é recalculado em toda leitura (`rules.refresh_star_day`), então quem estava offline no 8325 não perde.
 
-Não enviados: 4495 do login (#40 é `{opType 0, opResult false, count 0}`; o `ArmyManager.__runeOperateHandler` não faz nada com isso) e 4902 (bônus das cartas por campType na batalha; o `MagicCardManager` só guarda — depende da batalha).
+Não enviados: 4495 do login (só turco: login.json #40 é `{opType 0, opResult false, count 0}`; o `ArmyManager.__runeOperateHandler` não faz nada com isso) e 4902 (bônus das cartas por campType na batalha; o `MagicCardManager` só guarda — depende da batalha).
 
 ## Dependências
 

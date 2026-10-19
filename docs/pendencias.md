@@ -181,6 +181,21 @@ Outros eventos:
 - Presentes do VIP/contrato do rei para amigo (8513/8540): recusados (gravar outro personagem).
 - ~~Mochila de 42 espaços base em coliseu, fazenda, caixa por tempo, correio e `rewards.can_grant`~~ **feito**: todos usam `bag.free_positions` (`bag.capacity`: 42 + comprados, 217 alugada).
 
+## Oráculo do tutorial e protocolo
+
+`tests/game/test_tutorial_oracle.py` reenvia o tutorial da captura inglesa (#98-#822) e conta as respostas.
+Diferenças (`KNOWN_GAPS`), além das de ritmo e de outros jogadores (11, 4248, chegada do exército 140 ×2):
+- 150 ×2 idênticos na saída do mapa do tutorial (inglesa #518-#519, 5125 1000206): aqui sai um.
+- Opcode 2 (`U_C_PLAYER_GRADE`, corpo `32023332`, sem mensagem no `.proto`) depois do Lvl. 5 Starter Pack
+  (#690): não existe aqui. **sem dado**: significado do campo 6 = "32".
+- A missão 50 avança no 5017 20000 (#584): o oficial não manda o 112 (aqui sobra um).
+- A subida de nível da missão 51 (que faltava com a captura turca) já bate com a inglesa (#636-#639).
+
+`.proto`: o `ShopMainRspMsg` (4238) da inglesa tem o campo 4 (varint, 6) que o `.proto` gerado do cliente não
+tem (`tests/protocol/test_messages_against_pcap.py`, xfail).
+
+O que ainda depende de captura turca sem versão inglesa: [fontes-turcas.md](fontes-turcas.md).
+
 ## Simplificações marcadas no código
 
 Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" src --include=*.py`).

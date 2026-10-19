@@ -21,7 +21,7 @@ Alvo online vem de `OnlinePlayers` (snapshot); offline, do banco (`characters.by
 | `relations` (0037) | + `friend_gp` (amizade; sobe 1 dos dois lados a cada rega de árvore de amigo) e `tree_day` (dia em que `character_id` regou a árvore de `other_id`) |
 
 Amizade: 78/165 levam `relationGp` = `friend_gp` e `relationGrade`; o 4156 leva `friendRp`/`friendGrade`. Grau =
-1 + `friend_gp` // `friend_grade_step` (game_settings, 10) só para amigo, 0 nos outros *(dedução: ciftlik #85 tem
+1 + `friend_gp` // `friend_grade_step` (game_settings, 10) só para amigo, 0 nos outros *(dedução: ciftlik #85 (só turco: `ciftlik`) tem
 grau 4 com 34; a tabela real precisa de captura)*. Fazenda e árvore de amigo em [castelo.md](castelo.md).
 
 Uma relação é de um lado só: "amigo" = as duas linhas com 1. Quem me pede amizade fica 3 (pendente)
@@ -32,7 +32,7 @@ no lado dele até eu mandar 15003 relation 1 de volta. Lista negra (2) filtra mu
 
 | C>S | mensagem | S>C | situação |
 |---|---|---|---|
-| 15003 | FriendRelationMsg `{nickName, relation}` | 78 FriendInfoMsg (relation 3 pendente) + 111 "Eklendi,yanıtını bekleyin." + 83 canal 3 "Yeni arkadaşı eklediniz" + link; 84 para o alvo; 165 para o outro lado quando vira amizade | pronto *(visto)* `arkadas_istegi_gonderme.json` |
+| 15003 | FriendRelationMsg `{nickName, relation}` | 78 FriendInfoMsg (relation 3 pendente) + 111 "Eklendi,yanıtını bekleyin." + 83 canal 3 "Yeni arkadaşı eklediniz" + link; 84 para o alvo; 165 para o outro lado quando vira amizade | pronto *(visto)* `arkadas_istegi_gonderme.json` (só turco: `arkadas_istegi_gonderme`, textos turcos sem equivalente inglês conhecido) |
 | 15012 | FriendRelationMsg | como 15003 relation 1 | pronto; sem chamador no cliente *(dedução)* |
 | 15004 | `{otherId}` | 79 `{otherId, result}`; o outro lado volta a pendente (165) | pronto *(cliente)* |
 | 8285 | vazio | 4193 RefuseFriendRspMsg | pronto: alterna "recusar pedidos" *(cliente)* |
@@ -41,13 +41,13 @@ no lado dele até eu mandar 15003 relation 1 de volta. Lista negra (2) filtra mu
 | 15013 | vazio | 85 RecommendListMsg | pronto: até 10 online fora da lista *(cliente)* |
 | 15025 / 15026 / 15027 | FriendGroupMsg | 4227 / 4228 / 4229 | pronto: apagar devolve os amigos ao grupo 2 *(cliente)*; até 10 grupos, nome até 12 *(dedução)* |
 | 15028 | MoveFriendReqMsg | 4230 | pronto *(cliente)* |
-| 15029 | ChatStateMsg | 4232 para mim e para quem me tem na lista | pronto *(visto)* `login.json #87` |
+| 15029 | ChatStateMsg | 4232 para mim e para quem me tem na lista | pronto *(visto)* inglesa #75 |
 | 15043 | RecentContractsStateReqMsg | 4272 estados | pronto *(cliente)* |
 | 15033 / 15036 | SNSInfoMsg / vazio | 4239 SNSUpdatedMsg | pronto: só campos presentes (`HasField`) / reset *(cliente)* |
 | 15042 | FriendSearchConditionReqMsg | 4273 | pronto: 10 por página, `pageIndex` a partir de 1 *(cliente)* |
 | 8200 | InfoReqMsg | 4128 | pronto *(cliente)* |
 | 8257 | SimplePlayerSearchReqMsg | 4170 (sem `info` = não existe) | pronto *(cliente)* |
-| — (login) | | 4156 FriendRelationList | pronto: uma página (`maxPage=1`) com grupos *(visto em 2 páginas; dedução: uma basta)* |
+| — (login) | | 4156 FriendRelationList | pronto: uma página (`maxPage=1`) com grupos *(visto em 2 páginas, só turco: `login`; dedução: uma basta)*; lista vazia: inglesa #61 `{maxPage: 0, curPage: 0}` |
 | — | | 160 / 161 | pronto: no login e no `on_disconnect` (sem nova sessão), para quem tem linha apontando para mim |
 
 Limites: 200 amigos (pendentes contam) + 50 com VIP, 50 na lista negra, nível 6 para pedir *(cliente)*. O +50 é o

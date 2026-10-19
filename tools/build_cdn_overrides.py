@@ -1,5 +1,8 @@
 """Monta a pasta de sobreposição do CDN (servida pelo Apache antes do CDN completo).
 
+Legado da CDN turca (``data/overlay`` -> ``wartune-reborn/cdn-turco``); a CDN ativa é a inglesa
+(``tools/fetch_missing.py``). Ver docs/ferramentas.md.
+
 Copia de cada origem, na ordem, os arquivos que faltam no CDN ou têm conteúdo diferente.
 A primeira origem que tiver o arquivo vence:
 

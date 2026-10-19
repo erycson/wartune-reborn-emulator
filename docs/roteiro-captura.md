@@ -6,6 +6,8 @@ diz o que fazer no jogo e o que o pacote resolve; o detalhe está no doc do sist
 
 Ordem sugerida: o que dá numa conta nova primeiro, depois o que pede nível, VIP ou amigos.
 
+O que hoje só tem fonte turca (e o que capturar no inglês para trocar): [fontes-turcas.md](fontes-turcas.md).
+
 ## Numa sessão comum (conta nova ou baixa)
 
 | Fazer no jogo | Resolve | Doc |

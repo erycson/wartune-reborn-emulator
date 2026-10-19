@@ -5,11 +5,13 @@ do sistema em `game/mall.py`; correio com item em `game/mail.py` e `game/handler
 Legenda: *(visto)* = captura oficial; *(cliente)* = constante, campo ou texto no cliente decompilado;
 *(dedução)* = coerente com o resto, sem prova direta.
 
-**Limite da fonte.** Nenhuma das 32 capturas de `captures/` nem o `server-relay/replay_packets.json` tem pacote do
-mercado (8448–8457 ou 4352–4359). `captures/amfi_marketi_alisveris.json` é a loja de NPC (5154), não o leilão. Os
+**Limite da fonte.** Nem a captura inglesa, nem as 32 capturas turcas, nem o `server-relay/replay_packets.json` têm
+pacote do mercado (8448–8457 ou 4352–4359). `amfi_marketi_alisveris.json` (turca) é a loja de NPC (5154), não o leilão. Os
 nomes dos opcodes e os campos vêm de `ProtocolType.as`, `AcceptProtocolType.as`, `m2/scripts/mvc/module/auction/` e
 do `.proto`. Os textos da tela (`Auction.ResultAlert*`, `Auction.SubmitHour*`, `Auction.LeftTime*`) estão em
-`ui/zh_cn/language.txt` do CDN local (zlib, em turco; lido sem alterar nada). A ajuda da tela
+`ui/zh_cn/language.txt` do CDN local (zlib, em turco; lido sem alterar nada). Todos os textos entre aspas abaixo são
+desse arquivo (só turco: `data/overlay/ui/zh_cn/language.txt`; o `language.txt` inglês não está no repositório e os
+templates ingleses não têm esses textos). A ajuda da tela
 (`auction.view.AuctionHelp.helpContent`, 11 itens) dá as regras de imposto, entrega e limite diário: citada abaixo como
 *(cliente, ajuda item N)*. O que a ajuda não dá (valor da taxa em ouro, nível de abertura) pede captura: ver
 [Dependências](#dependências).
@@ -181,7 +183,7 @@ inventa formato:
   do servidor).
 - **Vínculo**: −7 é "Eşya bağlı halde" (item vinculado) no cliente. O item do servidor não tem estado de vínculo
   (`builders/player.py` manda `bind=True` para todo item), então não há como recusar vinculado com o dado que existe.
-  O −7 do servidor é item travado (8809), que é outra coisa ("kilit" é o travamento). Lance e compra pagam só elmas
+  O −7 do servidor é item travado (8809), que é outra coisa ("kilit" é o travamento). Lance e compra pagam só Balens
   (`bind=False`) *(dedução)*. **Precisa de captura**: anunciar um item vinculado e um não vinculado (o cliente diz
   "Bu eşya bağlı değildir" para item que ainda não está vinculado) e ler o código.
 - **Lance no primeiro preço**: o primeiro lance é ≥ o inicial *(dedução)*. O texto do −4 é "Girilecek fiyat, var olan

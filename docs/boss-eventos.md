@@ -1,7 +1,7 @@
 # Boss e eventos
 
-Visão geral e legenda em [multiplayer.md](multiplayer.md). Há captura só da agenda (4182 em
-`login.json` e `replay_packets.json`); da batalha do chefe não há nenhuma.
+Visão geral e legenda em [multiplayer.md](multiplayer.md). Há captura só da agenda (4182 na
+inglesa #103); da batalha do chefe não há nenhuma.
 
 ## Boss mundial *(cliente)*
 
@@ -27,11 +27,11 @@ Visão geral e legenda em [multiplayer.md](multiplayer.md). Há captura só da a
 - O cliente manda **8271** (vazio) no login. O servidor responde com o **4182**
   `WorldBossStateMsg{worldBossInfo[]{campaignId, state}}` só com 5001 e 5003. Um id fora dos chefes
   derruba o cliente.
-- `state`: 0 = aberto, 1 = ainda não abriu hoje, 2 = encerrado. *(visto)* `login.json #120`: 5001=2, 5003=1.
+- `state`: 0 = aberto, 1 = ainda não abriu hoje, 2 = encerrado. *(visto)* inglesa #103: 5001=2, 5003=1.
   O 8258 só passa no cliente com `worldbossState` ligado, e só o 4182 com 0 liga.
 - **O servidor empurra a mudança:** no relógio (20008, ~60 s) cada sessão recebe o 4182 de novo quando um
   estado muda (abriu, fechou ou o chefe morreu). Um chefe morto na janela de hoje aparece como 2.
-- Fuso do jogo: `game_timezone` (o turco era UTC+3). Código: `game/worldboss.py`.
+- Fuso do jogo: `game_timezone`. Código: `game/worldboss.py`.
 - O **4381** (pré-carregamento) não é mandado.
 
 ### Implementação (`game/boss_fight.py`, `game/handlers/worldboss.py`)
@@ -95,8 +95,9 @@ cai conforme a última janela.
 
 ## Regras pela Internet (pesquisa de 2026-10-18)
 
-Tudo aqui é *(internet)*; o help do cliente (`worldboss.view.BaseHelpFrame.helpText`) confirma ouro e Ruh por
-golpe, "HP e tropas não se esgotam", o prêmio do último golpe (Şanslı Ödülü), o top 10 de dano e o prêmio por
+Tudo aqui é *(internet)*; o help do cliente (`worldboss.view.BaseHelpFrame.helpText`) confirma ouro e Daru por
+golpe, "HP e tropas não se esgotam", o prêmio do último golpe ("Şanslı Ödülü" no help turco; nome inglês não
+achado), o top 10 de dano e o prêmio por
 0,3%/0,5%/0,8% do dano total. Wiki: https://wartune.fandom.com/wiki/World_BOSS (lida pela `api.php`, revisões
 `?oldid=`); guia da Koram: http://wartune.koramgame.com/2013/gameguide_0302/8.html; DolyGames:
 https://wartune.dolygames.com (posts citados abaixo).
@@ -123,7 +124,7 @@ https://wartune.dolygames.com (posts citados abaixo).
   https://www.youtube.com/watch?v=iXbY85obSiQ, V1.50 chinês).
 - **Ouro e Daru por golpe**: "ratio of 1:5 ... 100,000 damage ... 20,000 Gold and 20,000 Daru" (wiki); teto de
   10M por luta desde o 7.8 (Doly discussing-world-boss-changes-in-wartune-patch-7-8). O dano do Eudaemon não
-  conta. *(dedução)* Ruh do cliente = Daru.
+  conta.
 - **Último golpe**: 1 000 000 de ouro (`?oldid=5206`) → 1,2-1,3M → 1,7M (`?oldid=12788`); "varies based on
   World Boss' total health (e.g. 1.5 million or 1.7 million gold)" (wiki atual); título Mortal Blow (HP +340).
 - **Top 10 por classe**: 360k/300k/240k/180k (do 4º ao 10º) em nov/2013 (`?oldid=18253`), depois
@@ -139,7 +140,7 @@ https://wartune.dolygames.com (posts citados abaixo).
 
 Cada item diz o que gravar no `captures/` (ou no relay) e o que fazer no jogo. Todos com um
 personagem de nível 20 ou mais, sem batalha e sem campanha abertas, no horário da janela
-(UTC+3). Os pacotes esperados estão entre parênteses.
+(fuso do jogo). Os pacotes esperados estão entre parênteses.
 
 1. **Estado aberto da agenda.** Entrar entre 11:35 e 12:35 (ou 21:00–22:00) e logar. Gravar o 4182
    (esperado: 5001=0 ou 5003=0; hoje só vimos 1 e 2). Confirma o 0 do cliente.
@@ -166,11 +167,11 @@ Internet; as capturas confirmariam o nó, a ordem dos pacotes e os números.
 A guilda está pronta ([guilda.md](guilda.md)); o altar abre (8541 -> 4436 para os membros, estado
 no 164/4138), mas a entrada (8542) é recusada: falta o mapa de campanha 7601 com as ondas.
 
-- **7601 "Lanetli İbadethane"** é a defesa do altar:
+- **7601 "Celestial Altar"** (`MapName` "Divine Altar") é a defesa do altar:
   - abertura: o servidor manda o 4436;
   - entrada: o cliente manda o 8542;
   - relatório: o servidor manda o 4437 (durabilidade, ondas, `hurtOrder`).
-- **7501 "Birlik Sırrı"**: 8537.
+- **7501 "Guild Chamber"**: 8537.
 
 Quem abre é quem tem o direito 3 (só o chefe), com a guilda no nível 5, pagando 50000 ou 200000
 de riqueza (`Consortia_OpenAltar1_Offer`/`2`); m6 `ConsortiaSocektSendManager.sendOpenDemon`.

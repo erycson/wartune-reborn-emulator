@@ -28,7 +28,7 @@ pets é automática e manda o 4361 aos 60 s.
 
 ## Coliseu (desafio por ranking, battleType 16)
 
-*(visto)* `meydan_okuma.json`
+*(visto)* só turco: `meydan_okuma.json` (os `#N` desta seção são dela)
 
 **Lista de oponentes**
 - O cliente manda **8256** `{type:0}` e recebe **4169** `ChallengeInfoMsg` (#3) com:
@@ -52,7 +52,7 @@ pets é automática e manda o 4361 aos 60 s.
 - #26: **4103** `{battleResult:1, battleScene:7}` com a EXP.
 - #29: **4176** `{leftTime:600, challengeCount:1, totalCount:10, type:0}`, ou seja, 10 min de
   espera.
-- #30: drop por vitória (115 e 111/83, "Şans Taşı Lv.3").
+- #30: drop por vitória (115 e 111/83, "Lvl. 3 Luck Stone").
 - #46: **4169** de novo, agora com `curRank:1693` (a primeira vitória coloca o jogador no ranking)
   e 4 oponentes melhores no ranking, com `avater[]`.
 
@@ -72,7 +72,7 @@ servidor troca as duas posições).
 
 ## Torneio de fadas (battleType 35)
 
-*(visto)* `peri_turnuvasi.json`
+*(visto)* só turco: `peri_turnuvasi.json` (os `#N` desta seção são dela)
 
 **Entrada e lista**
 - #1: 4540, a formação.
@@ -89,7 +89,7 @@ servidor troca as duas posições).
 - #43: **4361** `{countDown:60000, damageImprove:50}`. Depois de 60 s o dano sobe 50%.
 - #46: **4176** com 5 min de espera.
 - #47: **4103** `{battleScene:19}`.
-- #55: "Puan +5".
+- #55: "Puan +5" (texto turco; sem versão inglesa).
 - #58: 4611 com o novo score e o `challengeLog`.
 
 **Templates e outros pedidos**
@@ -109,25 +109,24 @@ servidor troca as duas posições).
 
 ## Mina de ouro (battleType 1)
 
-*(visto)* `cevre_altin_madeni_savasi.json`. Aqui é contra a guarnição NPC de uma mina sem dono.
+*(visto)* inglesa (`tutorial_en.json`, missão 60). Aqui é contra a guarnição NPC de uma mina sem dono.
 
 **Mina disponível**
-- 8201 → #11 **4129**, com `wildLand` (`templateId 200409`, `occupyPlayerId:0`, `armyPawn 6505`).
+- 8201 → #718 **4129**, com `wildLand` (`templateId 200410`/`200409`, `occupyPlayerId:0`, `armyPawn 6505`).
 
 **Ataque e batalha**
-- O cliente manda **5160**.
-- O exército marcha: 140 `updatedType 3`, de #13 a #18.
-- #19: 140 com a terra em `state:4`.
-- #20 a #26: batalha `battleType:1`.
+- O cliente manda **5160** (#723).
+- O exército marcha: 140 `updatedType 3`, #721-#725.
+- #726: 140 com a terra em `state:4`.
+- #727 a #742: batalha `battleType:1`, fim no 4103 `{battleScene:4}` (#742).
 
 **Depois da vitória**
-- #32: **152** `CastleYieldMsg{wildYield}`.
-- #33: 140 com a mina `occupyPlayerId` = o jogador.
-- #36: 4103 `{battleScene:4}`.
-- A vitória contra NPC não gastou `attackLeftCount`.
+- #751: **152** `CastleYieldMsg{wildYield}`.
+- #752: 140 com a mina `occupyPlayerId` = o jogador.
+- A vitória contra NPC não gastou `attackLeftCount` (5 em #14 e #755).
 
 **Template e lacuna**
-- Template: `MapPhysicsTempInfo` "Altın Madeni" (`SonType=2006`). `Property4` é o rendimento,
+- Template: `MapPhysicsTempInfo` "Gold Mine" (`SonType=2006`). `Property4` é o rendimento,
   `RefreshTime 43200`.
 - Para desistir da mina, o cliente manda 5179 e o servidor responde com o 108.
 - O PvP contra o dono não foi capturado. O `WildLandMsg.simpleHeroInfo` é a fonte natural da cópia
@@ -135,7 +134,7 @@ servidor troca as duas posições).
 
 ## Ataque a castelo (battleType 4)
 
-**Sem captura nenhuma** *(cliente)*.
+**Sem captura de castelo de jogador** *(cliente)*; a inglesa #1648-#1700 tem o ataque ao castelo-robô (5160, 157 `battleType 4`, `mapTempId 993`).
 
 - O ataque é o **5160** contra a posição do castelo. O cliente bloqueia o botão se
   `PlayerMsg.attackLeftCount` for 0.
@@ -187,10 +186,10 @@ Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado 
 
 | C>S | O servidor faz / responde | Fonte |
 |---|---|---|
-| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (arma/armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. Com `noviceProcess <= 30000` (tutorial) não responde nada, como o cliente que nem abre a tela. | *(visto)* meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
-| 8253 `{tarUserId, payType}` | Recusa (só 4176) se ainda no tutorial (`noviceProcess <= 30000`), fora da lista, em espera, em batalha ou sem tentativas. Da 11ª à 20ª cobra `min((compradas+1)*2, 10)` diamantes (`payType 0` usa o vinculado primeiro, `1` só diamante). Gasta a tentativa e grava **antes** da luta (cair não devolve). 140 `state 2`, 157 `battleType 16, mapTempId 992`, herói inimigo `type 2, userId 0, heroId 1300000000`. No fim: 3, 150, 4103 `{battleScene 7, gpBonus}`, 83 EXP, 140 `state 0`, 4176 `{leftTime 600}` (a espera conta do fim, como na captura). | *(visto)* #6, #26-#29; *(cliente)* `ColosseumModel.buyCountNeedPay` |
+| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (arma/armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. Com `noviceProcess <= 30000` (tutorial) não responde nada, como o cliente que nem abre a tela. | *(visto)* só turco: meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
+| 8253 `{tarUserId, payType}` | Recusa (só 4176) se ainda no tutorial (`noviceProcess <= 30000`), fora da lista, em espera, em batalha ou sem tentativas. Da 11ª à 20ª cobra `min((compradas+1)*2, 10)` diamantes (`payType 0` usa o vinculado primeiro, `1` só diamante). Gasta a tentativa e grava **antes** da luta (cair não devolve). 140 `state 2`, 157 `battleType 16, mapTempId 992`, herói inimigo `type 2, userId 0, heroId 1300000000`. No fim: 3, 150, 4103 `{battleScene 7, gpBonus}`, 83 EXP, 140 `state 0`, 4176 `{leftTime 600}` (a espera conta do fim, como na captura). | *(visto)* só turco: meydan_okuma #6, #26-#29; *(cliente)* `ColosseumModel.buyCountNeedPay` |
 | 8265 `PayTypeMsg` | Zera a espera (type 0 coliseu, 1 torneio) por `ceil(s/60)*5` diamantes (`payType 2` aceita vinculado); 3 e 4176. | *(cliente)* `QueueBar.as`, `SocketSendManager.sendCoolColosseun` |
-| 8329 | Recompensa da posição, uma por período de `period_days`: ouro e Ruh de `data/colosseum_rewards.json`. 4243 `{isTake false, param1 posição, param2 ouro, param3 Ruh, param4 dias}`. | *(cliente)* `TopToolsBar.as`; tabela *(dedução)* |
+| 8329 | Recompensa da posição, uma por período de `period_days`: ouro e Daru de `data/colosseum_rewards.json`. 4243 `{isTake false, param1 posição, param2 ouro, param3 Daru, param4 dias}`. | *(cliente)* `TopToolsBar.as`; tabela *(dedução)* |
 | 5021 | `type 1`: tentativa do torneio por `Jion_pet_challenge` de ouro (até 10/dia, *dedução*), 109 e 4176. Outros tipos (2 = chegada dos deuses) não são daqui: registrado. O coliseu compra pelo 8253. | *(cliente)* `PetChallengeController.buyChallengeCount` |
 | 8635 `QuestInfo` | Lutar contra a própria cópia é ação de missão com condição 92, que não existe no tempinfos: recusado com log. | *(cliente)* `TaskFrameII.as` |
 | 8590 | 4482 `{isTake false}` ("sem direito"): não há arena entre servidores. | *(cliente)* `TopToolsBar.as` |
@@ -209,21 +208,21 @@ em silêncio (a 4202 viria antes da 4176 da carga) e só na memória, até o pr�
 
 **Robôs:** `Robot(id, nível)`; nome, sexo e herói saem do id (mesmo robô na lista e na luta).
 Só há robôs guerreiros nos templates (`GameHeroTemp` HeroType 2: 11001-11030 e 14001-14030),
-então acima do nível 30 eles ficam no 30. A captura tem 2 arqueiros 10202 com o robô, mas lá o
+então acima do nível 30 eles ficam no 30. A captura (só turco: meydan_okuma) tem 2 arqueiros 10202 com o robô, mas lá o
 jogador também lutava com soldados; aqui ele não tem, então o robô vai sozinho, com 35% da vida e
 15% do ataque do herói do jogador *(dedução, ajustado por simulação: guerreiro e mago ganham 15/15
 do nível 11 ao 50; o caçador perde até o ~30 porque o ataque dele ainda sai de PhyAttack)*.
 
 **EXP da luta:** `win_gp_per_grade`/`lose_gp_per_grade` × nível, no mesmo arquivo *(dedução: a
-captura soma EXP mundial e offline, sem fórmula)*. O drop por vitória (#30) não foi reproduzido.
+captura turca soma EXP mundial e offline, sem fórmula)*. O drop por vitória (meydan_okuma #30, só turco) não foi reproduzido.
 
 ### Torneio de fadas
 
 | C>S | O servidor faz / responde | Fonte |
 |---|---|---|
-| 8256 `{type:1}` | 4611: `playerInfo{score, order}` (o cliente monta a própria linha; o jogador não vai em `playerPets`), até 4 jogadores de pontos logo acima, robôs (3 pets nível 50, qualidade 6, ordem 500+) e o histórico. | *(visto)* peri_turnuvasi #3, #58 |
+| 8256 `{type:1}` | 4611: `playerInfo{score, order}` (o cliente monta a própria linha; o jogador não vai em `playerPets`), até 4 jogadores de pontos logo acima, robôs (3 pets nível 50, qualidade 6, ordem 500+) e o histórico. | *(visto)* só turco: peri_turnuvasi #3, #58 |
 | 8256 `{type:2}` | 4619 com os 10 de mais pontos. | *(cliente)* `PetChallengeController.openChallengeTopFrame` |
-| 8724 `{tarUserId}` | Exige nível `Pet_Challenge_Grade`, formação com pets, oponente da lista, sem espera e tentativas. 157 `battleType 35` só com `pets` (os do jogador com `userId` dele), automática: sem 75, 4361 `{60000, 50}` no quadro 1500. No fim: 4176 `{leftTime 300}`, 4103 `{battleScene 19}`, 83 "Puan  +5". | *(visto)* #7, #43-#47, #55 |
+| 8724 `{tarUserId}` | Exige nível `Pet_Challenge_Grade`, formação com pets, oponente da lista, sem espera e tentativas. 157 `battleType 35` só com `pets` (os do jogador com `userId` dele), automática: sem 75, 4361 `{60000, 50}` no quadro 1500. No fim: 4176 `{leftTime 300}`, 4103 `{battleScene 19}`, 83 "Puan  +5". | *(visto)* só turco: peri_turnuvasi #7, #43-#47, #55 |
 | 8725 `chaPos` | Só ids de pets do jogador e -1; grava e confirma com 4540 `{chaPos}`. Sem `chaPos` (os Senhores mandam assim) é ignorado. | *(cliente)* `PlayerManager.as` |
 | 8726 | Skills do pet no torneio: o pet tem de ser do jogador; responde 4540 com `chaSkillIndexs`. | *(cliente)* `PetData.as` |
 | 8727 `{battleId}` | "Encerrar já" (`Battle.finish`): só VIP ativo (`is_vip`: data de fim do VIP no futuro) com nível ≥ `Pet_BattleOver_Grade` (3) e a luta do torneio. VIP vencido não conta, mesmo com nível 3. Senão, recusado sem resposta. | *(cliente)* `BattleUIView.as` (`IsVipAndNoExpirt` e `VipGrade` >= 3, o mesmo valor do template); VIP de `handlers/vip.py` |
@@ -231,10 +230,10 @@ captura soma EXP mundial e offline, sem fórmula)*. O drop por vitória (#30) n�
 
 **Pets:** `arena.pets_of(snap)` lê `snap.pets` (tabela `pets`, em [heroi-exercito.md](heroi-exercito.md)).
 A formação guarda o espaço de cada pet (`chaPos`, `slot`); do lado do jogador, `pos` = espaço + 1
-*(visto)* #7. O pet do oponente segue a ordem da formação (`pos` = índice + 3, sem captura que diga).
+*(visto)* só turco: peri_turnuvasi #7. O pet do oponente segue a ordem da formação (`pos` = índice + 3, sem captura que diga).
 Os dois lados usam os pets gravados: o do oponente vem do snapshot da sessão dele ou, se estiver
 offline, do banco (como o coliseu faz com o herói). A batalha usa grau, qualidade e skills do
-próprio pet (`change_skills`, formato da captura #1, `735101,731001,...`; sem ele, as do template). Sem nenhum pet o cliente nem abre
+próprio pet (`change_skills`, formato da peri_turnuvasi #1, só turco, `735101,731001,...`; sem ele, as do template). Sem nenhum pet o cliente nem abre
 o torneio ("nopet"), e o servidor recusa formação, skills, desafio e recompensa. Nada no servidor
 cria pets ainda: ganhar um é do sistema de pets (item, missão), não deste torneio. Pontos: +5 por
 vitória; a perda não foi observada e não tira pontos; os do atacado não mudam *(dedução)*. A vida
