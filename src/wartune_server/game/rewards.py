@@ -8,30 +8,32 @@ numa ``save`` só, junto com o que foi consumido.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from ..domain.models import BagType, Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
-from . import rules
+from . import bag, rules
 from .builders.player import item_moved
 
 # TemplateId < 0 (-600 Kyanite: os cristais do castelo)
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}
 EXP = -700  # ItemTempInfo -700 "EXP": soma no jogador (rules.add_gp)
-BAG_SIZE = 42  # PlayerInfo.bagDefaultCount; ponytail: sem espaços comprados (bagCount) ainda
 
 Drop = tuple[int, int]  # (TemplateId, quantidade)
 
 
-def can_grant(snap: PlayerSnapshot, templates: GameTemplates, drops: Sequence[Drop], freed: int = 0) -> bool:
-    """Todo TemplateId existe (ou é moeda conhecida) e os itens cabem na mochila.
+def can_grant(
+    snap: PlayerSnapshot, templates: GameTemplates, drops: Sequence[Drop], now: datetime, freed: int = 0
+) -> bool:
+    """Todo TemplateId existe (ou é moeda conhecida) e os itens cabem na mochila real (``bag.capacity``: 42 +
+    comprados, 217 com a alugada), um espaço por entrada (``grant`` não empilha).
 
     ``freed``: espaços que a mesma operação libera (ex. a caixa que está sendo aberta).
     """
     known = all(t in CURRENCIES or t == EXP or (t > 0 and templates.get("ItemTempInfos", t)) for t, _ in drops)
     goods = sum(t > 0 for t, _ in drops)
-    used = sum(i.bag_type == BagType.BAG for i in snap.items) - freed
-    return known and all(n > 0 for _, n in drops) and used + goods <= BAG_SIZE
+    return known and all(n > 0 for _, n in drops) and goods <= len(bag.free_positions(snap, now)) + freed
 
 
 def _name(templates: GameTemplates, template_id: int) -> str:

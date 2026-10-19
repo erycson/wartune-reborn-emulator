@@ -61,7 +61,7 @@ async def _receive(s: GameSession, book: TreasureMap) -> None:
         s.log.info("8744 mapa recusado", motivo="limite do dia")
         return
     drops = [(GET_ITEM, 1)]
-    if not rewards.can_grant(snap, s.ctx.templates, drops):
+    if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         s.log.info("8744 mapa recusado", motivo="mochila cheia")
         return
     book.join_count += 1

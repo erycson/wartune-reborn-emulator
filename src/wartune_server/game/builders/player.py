@@ -45,8 +45,9 @@ def item_info(item: Item, player_id: int) -> pb.ItemInfoMsg:
         bagType=item.bag_type,
         bind=True,
         used=False,
-        validDate=0,
-        beginDate=NEVER,
+        # (cliente) ItemHelper: beginDate "YYYY-MM-DD hh:mm:ss", comparado com o sysCurtime (mesmo fmt_time)
+        validDate=item.valid_date,
+        beginDate=fmt_time(item.begin_date) if item.begin_date else NEVER,
         count=item.count,
         strengthenGrade=item.strengthen_grade,
         join_1=item.join_1,

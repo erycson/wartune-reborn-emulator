@@ -974,7 +974,8 @@ async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     # (payCardCount 5) precisam de captura de quem paga (nenhuma das capturas paga)
     c.card = msg.paraInt2  # antes do await: um segundo 5122 já cai no ``c.card is not None``
     cid = c.run.campaign_id
-    grant = drops.card(snap, s.ctx.templates, cid, msg.paraInt2, table=s.ctx.world.campaign_cards.get(cid, ()))
+    cards = s.ctx.world.campaign_cards.get(cid, ())
+    grant = drops.card(snap, s.ctx.templates, cid, msg.paraInt2, table=cards, now=s.ctx.clock.now())
     if grant is None:
         return  # mochila cheia: sem carta
     item, take, text = grant

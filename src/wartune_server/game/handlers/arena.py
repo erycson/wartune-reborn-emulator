@@ -14,8 +14,7 @@ from ...domain.errors import NotFoundError
 from ...domain.models import ArenaRank, BagType, ChallengeLog, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import arena as A
-from .. import rules
-from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
+from .. import bag, rules
 from ..battle import Battle
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -579,7 +578,7 @@ async def pet_rank_reward(s: GameSession, msg: pb.RankRewardMsg) -> None:
     attr, key = ("pet_reward_week", A.week(now)) if kind == PET_WEEK else ("pet_reward_day", A.today(now))
     order = await _pet_order(s)
     goods = A.pet_rewards(s.ctx.templates, kind, order) if order else []
-    free = BAG_SIZE - sum(i.bag_type == BagType.BAG for i in snap.items)
+    free = len(bag.free_positions(snap, now))
     if not goods or getattr(arena, attr) == key or len(goods) > free:
         s.log.info("8728 recusado", tipo=kind, posição=order, resgatado=getattr(arena, attr))
         return

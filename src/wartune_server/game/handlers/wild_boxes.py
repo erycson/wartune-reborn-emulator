@@ -80,7 +80,7 @@ async def pick(s: GameSession, msg: pb.ArmyBoxMsg) -> None:
         return
     drops = monsters.loot(s.ctx.world, box.boss_type, box.grade, _rng)
     snap.wild_boxes.remove(box)
-    if not rewards.can_grant(snap, s.ctx.templates, drops):
+    if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         await _by_mail(s, box, drops)
         return
     new, text = rewards.grant(snap, s.ctx.templates, drops)

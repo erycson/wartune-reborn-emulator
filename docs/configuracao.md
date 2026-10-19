@@ -71,6 +71,7 @@ código usa o mesmo padrão.
 | `game_settings` `star_weights` | estrelas (8269): `{"<Profile>": [peso no cristal 0, 1, 2, 3, 4]}`; Profile fora do JSON não sai |
 | `game_settings` `star_open_next` | chance (0 a 1) de um sorteio de estrela acender o cristal seguinte (0.3) |
 | `game_settings` `gem_maze_reward_weights` | labirinto de gemas, um peso por prêmio na ordem 2060008 x1, 208027 x1, 208014 x2 (`[1, 1, 1]`) |
+| `game_settings` `vip_bugle_bonus` | cornetas pequenas grátis a mais por dia, por nível VIP (índice 0..9; padrão `[0, ...]`, sem fonte, ver chat.md) |
 
 ```sql
 UPDATE vip_wheel_prizes SET weight = 0.2 WHERE position = 4;          -- 500.000 de ouro 5x mais raro

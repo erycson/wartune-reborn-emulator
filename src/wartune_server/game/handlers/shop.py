@@ -110,9 +110,15 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
     limit = int(row.get("VIP0Count") or -1)
     if limit != -1 and today_count(snap, int(row["Id"]), s.ctx.clock.now()) + count > limit:
         return LIMIT
-    if not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], s.ctx.clock.now()):
+    if not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], s.ctx.clock.now(), valid_minutes(row)):
         return FAIL  # o oficial manda pelo correio (12); aqui não há correio
     return OK
+
+
+def valid_minutes(row: Row) -> int:
+    """``ShopTempInfos.ValidDate``: validade do item comprado, em minutos (as medalhas da loja de honra: 10080,
+    21600, 43200 = 7, 15, 30 dias). *(cliente)* ``NumBuyFrame`` põe o valor direto no ``GoodsInfo.validDate``."""
+    return int(row.get("ValidDate") or 0)
 
 
 def day(now: datetime) -> str:
@@ -189,7 +195,7 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     if paid is None:
         return NO_MONEY
     tid = int(row["ItemId"])
-    got = bag.add(snap, templates, tid, info.count, now)
+    got = bag.add(snap, templates, tid, info.count, now, valid_minutes(row))
     rec = count_buy(snap, info.goodId, info.count, now)
     extra = [paid.ledger] if paid.ledger else []
     bought = purchase(snap, "shop", info.goodId, tid, info.count, column, unit * info.count, now)

@@ -19,6 +19,7 @@ from ..builders import login as b
 from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
+from . import vip
 from .login import army, player_info
 
 S_ADD, S_REMOVE, S_REQUEST, S_RECOMMEND, S_UPDATE = 78, 79, 84, 85, 165
@@ -27,7 +28,7 @@ S_GROUP_ADD, S_GROUP_DEL, S_GROUP_RENAME, S_MOVE = 4227, 4228, 4229, 4230
 S_CHAT_STATE, S_RECENT_STATE, S_SEARCH, S_SNS_UPDATED = 4232, 4272, 4273, 4239
 S_INFO, S_SEARCH_NICK, S_CHECK_NICK, S_REFUSE, S_RENAME, S_HERO_INFO = 4128, 4170, 4148, 4193, 4271, 4464
 MIN_GRADE = 6  # FriendManager.sendAddFriendRequest
-MAX_FRIENDS, MAX_BLACKLIST = 200, 50  # maxFriendCount (200 + VIP; sem VIP ainda) e FullBlackList
+MAX_FRIENDS, MAX_BLACKLIST = 200, 50  # FriendManager.maxFriendCount (200 + vip.friend_bonus) e FullBlackList
 MAX_GROUPS, GROUP_NAME_MAX = 10, 12  # ponytail: limites do cliente não achados (módulo de UI ausente)
 FIRST_GROUP = 3  # 1 recentes, 2 amigos, -1 pendente, -2: ids do cliente
 SEARCH_PAGE = 10  # __findFriendHandler: ceil(totalRows / 10)
@@ -92,7 +93,7 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
     if mine is not None and (mine.relation == relation or (relation == 1 and mine.relation == RelationType.PENDING)):
         _fail(s, ALREADY)
         return
-    if count >= (MAX_BLACKLIST if relation == RelationType.BLACKLIST else MAX_FRIENDS):
+    if count >= (MAX_BLACKLIST if relation == RelationType.BLACKLIST else MAX_FRIENDS + vip.friend_bonus(s, snap)):
         _fail(s, FULL)
         return
     theirs = await social.row_of(s.ctx, target.id, me.id or 0)

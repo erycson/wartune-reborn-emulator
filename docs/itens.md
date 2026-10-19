@@ -38,13 +38,27 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 | 5007 ItemReqMsg.beginPos | vende a pilha toda | 115, 109 | preço `GoodsHelp.getSellGold` *(cliente)* |
 | 8624 ItemSellReqMsg | venda em lote (pos, count) | 115, 109 | *(cliente)* |
 | 8220 ArrangeReq | aplica a ordem que o cliente calculou (`BaseBagListView.sort`: cada item `oldplace`→índice), sem colisão nem fora da mochila; `isStackItem` junta pilhas incompletas (mesmo item e mesmo cadeado) e fecha os buracos | 115 com a mochila | *(cliente)*; pilhas *(dedução)* |
-| 8346 ItemRemoveMsg | o cliente só pede para tirar item vencido; nenhum item tem validade aqui: recusa | — | *(cliente)* |
+| 8346 ItemRemoveMsg `{bagType, pos}` | tira item vencido: o servidor confere `validDate`/`beginDate` e apaga (ainda válido: ignora). Bolsa do herói: também 3 e 150 | 115 com a posição vazia | pedido *(cliente)* `BaseBagListView`/`EquipBagII`; resposta *(dedução)* |
 | 8809 LockAndUnlockMsg | opType 1 mochila, 3 equipamento, 4 medalha: alterna `isLocked`. Item travado não é vendido nem usado | 115 | *(cliente)* |
 | 8484 ItemUseStoreReqMsg | gasta `count` Şeytan Kristali (208014, Property1 = EXP) no cristal: `storeGp` e `storeGrade` (`UpGradeTempInfos` Types 15, `Data` = total) | 115, 3 | *(cliente)* |
 | 5010 PayTypeMsg | compra `property1` linhas de 7 espaços (até 175); linha i custa (i+1)×10 elmas até a 10ª, depois 100 (`BagBuyFrame`) | 3 (`bagCount`) | *(cliente)* |
 | 8819 RentalBagOpReqMsg | aluga a mochila de 217 por `param2` dias (`rental_bag_day_cost` × 2 páginas), `param1` = payType; renovar soma ao prazo | 3, 4709 `{opType, rentalBagTime, status 1}` | *(cliente)* |
 | 8199 DetailReqMsg | ficha de outro jogador (online ou do banco): equipamento do líder, atributos, `hideFashion`, `storeGrade`, `appellId` | 4125 DetailRspMsg | *(cliente)* `PlayerInfoFrameII` |
 | 5129 CampaignReqMsg | baú caído na campanha: os drops de campanha não existem | 4268 BattleReportMsg `{signId}` vazio (o cliente limpa o nó) | *(cliente)* `CampaignMapController` |
+
+### Itens com validade
+
+`Item.valid_date` (minutos) e `begin_date` (migração 0037) vão no 115 como `validDate` e `beginDate`
+(`"YYYY-MM-DD hh:mm:ss"`, o mesmo `fmt_time` do `sysCurtime`, porque o cliente compara os dois) *(cliente)*
+`ItemHelper`, `GoodsInfo.leftTime`. Vence quando `agora - beginDate >= validDate` minutos (a conta do cliente).
+Hoje só a loja dá validade: `ShopTempInfos.ValidDate` em minutos (as 10 medalhas da loja de honra, ShopType 3:
+10080/21600/43200 = 7/15/30 dias; `NumBuyFrame` põe o número direto em `validDate`) *(cliente)*. Item com validade
+não empilha (5005, 8220, `bag.add`). Vencido some: no 8346 do cliente, no login (antes do 115) e no relógio de 60 s
+(20008), que pega também a medalha vestida (bolsa 3), que o cliente nunca confere *(dedução)*. Sem aviso: o cliente
+não mostra nada ao mandar o 8346 *(dedução)*.
+
+**Captura que falta**: no oficial, comprar uma medalha de 7 dias (Honor Shop), deixar vencer com ela na mochila e
+outra vestida, e capturar o login seguinte e o 8346 → resposta (algum 83/111 ou correio avisando?).
 
 Poção de HP e Bağlı Elmas/Elmas vindos de item gravam o `cash_ledger` com `reason` `item`.
 Divine Light (SonType 316): um por uso, tira a névoa do mapa do castelo por 20 s (4939); ver

@@ -98,8 +98,11 @@ def new_item(snap: PlayerSnapshot, templates: GameTemplates, template_id: int, c
     return item
 
 
-def fits(snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[int, int]], now: datetime) -> bool:
-    """Cabe tudo na mochila (empilhando onde der)? ``goods`` = (templateId, quantidade), moedas ignoradas."""
+def fits(
+    snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[int, int]], now: datetime, valid: int = 0
+) -> bool:
+    """Cabe tudo na mochila (empilhando onde der)? ``goods`` = (templateId, quantidade), moedas ignoradas.
+    ``valid`` > 0: item com validade, não entra nas pilhas que já existem (cada um tem o seu relógio)."""
     free = len(free_positions(snap, now))
     room: dict[int, int] = {}
     for tid, count in goods:
@@ -107,7 +110,9 @@ def fits(snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[i
             continue
         top = max_count(templates, tid)
         if tid not in room:
-            room[tid] = sum(top - i.count for i in in_bag(snap) if i.template_id == tid and i.count < top)
+            room[tid] = (
+                0 if valid else sum(top - i.count for i in in_bag(snap) if i.template_id == tid and i.count < top)
+            )
         use = min(room[tid], count)
         room[tid] -= use
         count -= use
@@ -120,13 +125,16 @@ def fits(snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[i
     return True
 
 
-def add(snap: PlayerSnapshot, templates: GameTemplates, template_id: int, count: int, now: datetime) -> list[Item]:
+def add(
+    snap: PlayerSnapshot, templates: GameTemplates, template_id: int, count: int, now: datetime, valid: int = 0
+) -> list[Item]:
     """Põe ``count`` na mochila: completa as pilhas que já existem e abre espaços novos.
 
+    ``valid``: minutos de validade (``ShopTempInfos.ValidDate``) contados de ``now``; com validade não empilha.
     Devolve os itens alterados/criados. Chame ``fits`` antes: sem espaço o resto é descartado.
     """
     top, changed = max_count(templates, template_id), []
-    for item in sorted(in_bag(snap), key=lambda i: i.pos):
+    for item in [] if valid else sorted(in_bag(snap), key=lambda i: i.pos):
         if count <= 0:
             break
         if item.template_id == template_id and item.count < top:
@@ -139,10 +147,20 @@ def add(snap: PlayerSnapshot, templates: GameTemplates, template_id: int, count:
             break
         item = new_item(snap, templates, template_id, min(top, count))
         item.pos = pos
+        if valid:
+            item.valid_date, item.begin_date = valid, now
         count -= item.count
         snap.items.append(item)
         changed.append(item)
     return changed
+
+
+def expire(snap: PlayerSnapshot, now: datetime) -> list[Item]:
+    """Tira do snapshot os itens vencidos de qualquer bolsa (mochila, herói, medalha). Devolve os apagados."""
+    gone = [i for i in snap.items if i.expired(now)]
+    for item in gone:
+        snap.items.remove(item)
+    return gone
 
 
 def take(snap: PlayerSnapshot, template_id: int, count: int) -> tuple[list[Item], list[Item]]:

@@ -17,6 +17,7 @@ from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import buffs, castle, daily, farm, guild, rules, social, space, timebox
+from ..bag import expire as expire_items
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..builders.army import army_pawn_msg, castle_pawns
@@ -213,6 +214,8 @@ async def _login_state(s: GameSession) -> None:
     s.snapshot = snap = await s.ctx.characters.snapshot(s.player_id)
     if account.expire_vice_reset(snap.character, s.ctx.clock.now()):
         await s.ctx.characters.save(snap.character)
+    if gone := expire_items(snap, s.ctx.clock.now()):  # vencidos somem antes do 115 (dedução)
+        await s.ctx.characters.save(delete=tuple(gone))
     assert snap.castle is not None
     active = [q for q in snap.quests if not q.completed]
     s.send(S_QUESTS, pb_player.quest_update(active, rules.quest_bitmap(snap)))

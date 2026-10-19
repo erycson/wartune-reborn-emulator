@@ -157,7 +157,7 @@ async def _harvest(s: GameSession, snap: PlayerSnapshot, cfg: Mapping[str, Any],
         _send_fund(s, snap)
         return
     drops = [(int(t), int(n)) for t, n in tier[2]]
-    if not rewards.can_grant(snap, s.ctx.templates, drops):
+    if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         s.log.info("8751 mochila cheia", vez=times)
         _send_fund(s, snap)
         return

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Sequence
+from datetime import datetime
 
 from ..domain.models import Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
@@ -31,6 +32,8 @@ def card(
     index: int,
     rng: random.Random | None = None,
     table: Sequence[tuple[int, float]] = (),
+    *,
+    now: datetime,
 ) -> tuple[Item, pb.CampaignTakeCardsMsg, str] | None:
     """Sorteia e põe na mochila a carta ``index``. ``None``: campanha sem lista ou mochila cheia.
 
@@ -43,7 +46,7 @@ def card(
     items = [t for t, _ in table] or pool(templates, campaign_id)
     weights = [w for _, w in table] if sum(w for _, w in table) > 0 else None  # tudo 0 no banco: uniforme
     drop = [(rng.choices(items, weights)[0], 1)] if items else []
-    if not drop or not rewards.can_grant(snap, templates, drop):
+    if not drop or not rewards.can_grant(snap, templates, drop, now):
         return None
     new, _ = rewards.grant(snap, templates, drop)
     text = rewards.received(templates, drop)  # (visto) inglesa #1123 "Received: Banshee Plume x1"

@@ -45,7 +45,10 @@ no lado dele até eu mandar 15003 relation 1 de volta. Lista negra (2) filtra mu
 | — (login) | | 4156 FriendRelationList | pronto: uma página (`maxPage=1`) com grupos *(visto em 2 páginas; dedução: uma basta)* |
 | — | | 160 / 161 | pronto: no login e no `on_disconnect` (sem nova sessão), para quem tem linha apontando para mim |
 
-Limites: 200 amigos (pendentes contam), 50 na lista negra, nível 6 para pedir *(cliente)*.
+Limites: 200 amigos (pendentes contam) + 50 com VIP, 50 na lista negra, nível 6 para pedir *(cliente)*. O +50 é o
+do cliente (`VIPModel.vipFriendPrivilege`): procura `VipPrerogativeTempInfos` com `para2` 6 (não `type`) no nível VIP
+e dá 50 fixos se `para1` != 0; com os templates de hoje isso vale para todo VIP, embora o `type` 4 ("Increased Friend
+Limit") diga +0 no VIP 1-2. O servidor segue o cliente (`vip.friend_bonus`).
 
 ## Correio
 
@@ -109,5 +112,4 @@ No login vai 4657 depois do LoginState 6 para quem tem linha em `marriages`.
 - Time/sala: canal 6, convite de amigo para time.
 - Cena de campanha: cerimônia do casamento (8760, op 6/7/13), sala de casamento.
 - SMTP: 9591.
-- VIP: cota maior de cornetas grátis.
 - Entre-servidores: 8623, 25024, 25096, 25097 tratados como este servidor.

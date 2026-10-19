@@ -5,11 +5,13 @@ Só mexem em memória: quem chama grava tudo numa ``characters.save`` e manda os
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from ..domain.models import BagType, Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import rules
-from .bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; espaços comprados/alugados via bag.capacity(c, now)
+from .bag import free_positions
 from .builders.player import item_moved
 from .handlers.player import CURRENCIES
 
@@ -39,9 +41,9 @@ def item_update(item: Item, player_id: int) -> pb.ItemMovedListMsg:
     return item_moved(BagType.BAG, 0, item.pos, item if item.count > 0 else None, player_id)
 
 
-def fits(snap: PlayerSnapshot, goods: list[tuple[int, int]]) -> bool:
-    used = sum(i.bag_type == BagType.BAG for i in snap.items)
-    return used + sum(t > 0 for t, _ in goods) <= BAG_SIZE
+def fits(snap: PlayerSnapshot, goods: list[tuple[int, int]], now: datetime) -> bool:
+    """Um espaço livre da mochila real (comprados/alugada) por entrada: ``grant`` não empilha."""
+    return sum(t > 0 for t, _ in goods) <= len(free_positions(snap, now))
 
 
 def known(templates: GameTemplates, template_id: int) -> bool:

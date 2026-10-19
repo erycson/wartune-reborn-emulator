@@ -83,14 +83,22 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
 def free_bugles(s: GameSession) -> int:
     """Cornetas pequenas grátis que restam hoje (o contador zera na virada do dia do servidor).
 
-    ponytail: cota do ConfigInfo ``SMALL_BUGLE_FREE_COUNT`` (10, #2780); o VIP do oficial pode aumentar.
+    Cota do ConfigInfo ``SMALL_BUGLE_FREE_COUNT`` (10, #2780) + ``vip_bugle_bonus[nível VIP]`` (``game_settings``,
+    migração 0037): nem o cliente nem a captura dizem se o VIP ganha mais, então o padrão é 0 (sem efeito).
     """
-    assert s.snapshot is not None
-    c = s.snapshot.character
-    today = gameday.today(s.ctx.clock.now())
+    from .vip import is_vip, vip_grade  # vip importa player, que importa este pacote
+
+    snap = s.snapshot
+    assert snap is not None
+    c, now = snap.character, s.ctx.clock.now()
+    today = gameday.today(now)
     if c.bugle_free_day != today:
         c.bugle_free_day, c.bugle_free_used = today, 0
-    return max(0, int(ev.config(s.ctx.templates, "SMALL_BUGLE_FREE_COUNT", "0")) - c.bugle_free_used)
+    quota = int(ev.config(s.ctx.templates, "SMALL_BUGLE_FREE_COUNT", "0"))
+    bonus = list(s.ctx.world.settings.get("vip_bugle_bonus") or [])
+    if is_vip(snap, now) and 0 <= (grade := vip_grade(s, snap)) < len(bonus):
+        quota += int(bonus[grade])
+    return max(0, quota - c.bugle_free_used)
 
 
 async def _pay_bugle(s: GameSession, template_id: int, *, free: bool = False) -> bool:

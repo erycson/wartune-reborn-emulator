@@ -21,7 +21,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 | Lojas pagas com pontuação (ShopType 8, 13, 15, 20) e `NeedItem` 2125048 (Cesur Dönüş Kitabı) | 79 | ok: recusado (moeda não existe aqui). **depende de**: pontuação de lordes, guerra de guildas, cristal de fada, volta de jogador |
 | Limite diário `VIP0Count` (o cliente chama de `OneDayCount`; não existe limite "uma vez na vida" na tabela) | 22 | ok na loja comum; **corrigido** no mercado da guilda (antes comprava sem limite) |
 | `NeedMinVip`, `VIP1Count`..`VIP6Count` | todos 0 / -1 | nada a fazer hoje |
-| Loja de honra (ShopType 3): medalhas com `ValidDate` (7, 15 e 30 dias) | 10 | **falta**: item com validade. Hoje a medalha comprada fica para sempre. Precisa de `begin_date`/`valid_date` no item, mandar no 115 e expirar (o cliente já some com o item vencido: `BaseBagListView`) |
+| Loja de honra (ShopType 3): medalhas com `ValidDate` (7, 15 e 30 dias) | 10 | ~~falta item com validade~~ **feito**: `items.valid_date`/`begin_date` (0037), no 115 e apagado no 8346, no login e no relógio (20008). **dedução**: apagar sem aviso e a varredura do servidor. **falta captura**: deixar uma medalha de 7 dias vencer no oficial e capturar o login e o 8346 (ver itens.md) |
 | Loja do labirinto (ShopType 4): moeda e preço (Labirent Parası, `MazeCoin`) conferidos na captura (105 e 110). Andar: o cliente esconde o botão com `MazeLayers` > `maxIndex` (60 fixo) ou `MazeLayers2` > 0, e o servidor recusa o mesmo | 119 (23 e 22 bloqueadas) | **dedução** no código. **falta**: o `maxIndex` depois de avançar no labirinto (captura de 4205 com o labirinto mais fundo). O progresso real do labirinto não existe aqui |
 | Loja misteriosa (ShopType 5): peso `Rands` | 110 | **dedução**: sorteio uniforme de 8 itens, sem o peso |
 | Presente para outro jogador (`receiveId`) | — | recusado. **depende de**: entrega pelo correio na compra |
@@ -166,9 +166,9 @@ Outros eventos:
 ## Social, chat e VIP ([social.md](social.md), [chat.md](chat.md))
 
 - Canal de time (6) no chat: recusado.
-- VIP ainda ignorado em: cota de cornetas, limite de amigos (`MAX_FRIENDS`), acelerar construção índice 0 (5172).
+- ~~VIP ignorado em limite de amigos e 5172 índice 0~~ **feito** pelo cliente (`VIPModel.vipFriendPrivilege`/`vipCoolPrivilege`). Cota de cornetas: `game_settings.vip_bugle_bonus` (0037), padrão 0 = **sem fonte**; **falta captura** do 8705 → 4500 de uma conta VIP (ver chat.md).
 - Presentes do VIP/contrato do rei para amigo (8513/8540): recusados (gravar outro personagem).
-- Mochila de 42 espaços base (sem os comprados/alugados) em: coliseu, fazenda, caixa por tempo, correio.
+- ~~Mochila de 42 espaços base em coliseu, fazenda, caixa por tempo, correio e `rewards.can_grant`~~ **feito**: todos usam `bag.free_positions` (`bag.capacity`: 42 + comprados, 217 alugada).
 
 ## Simplificações marcadas no código
 
@@ -197,7 +197,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/guild.py:161](../src/wartune_server/game/guild.py#L161) | só os 50 últimos na memória; o banco guarda todos |
 | [game/handlers/account.py:20](../src/wartune_server/game/handlers/account.py#L20) | prazo do reset não está no cliente nem nas capturas; ajustar se aparecer |
 | [game/handlers/account.py:190](../src/wartune_server/game/handlers/account.py#L190) | sala de um jogador só; broadcast quando houver sala compartilhada |
-| [game/handlers/arena.py:18](../src/wartune_server/game/handlers/arena.py#L18) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
 | [game/handlers/arena.py:355](../src/wartune_server/game/handlers/arena.py#L355) | limite de compras do torneio não está no cliente nem nos templates; 10/dia como no coliseu |
 | [game/handlers/army.py:237](../src/wartune_server/game/handlers/army.py#L237) | bênção cheia = sorteio garantido um grau acima; a regra exata do oficial não tem captura |
 | [game/handlers/army.py:276](../src/wartune_server/game/handlers/army.py#L276) | grade 3x3 da formação; conferir limites quando houver captura |
@@ -210,11 +209,9 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/castle.py:292](../src/wartune_server/game/handlers/castle.py#L292) | trégua ainda não existe; zera e confirma. |
 | [game/handlers/chat.py:26](../src/wartune_server/game/handlers/chat.py#L26) | o cliente não limita a guilda (ChatHelper); 1 s contra spam |
 | [game/handlers/chat.py:28](../src/wartune_server/game/handlers/chat.py#L28) | o cliente não limita o privado; 1 s contra spam |
-| [game/handlers/chat.py:84](../src/wartune_server/game/handlers/chat.py#L84) | cota fixa do ConfigInfo; o VIP do oficial pode aumentar (sem VIP ainda). |
 | [game/handlers/chat.py:165](../src/wartune_server/game/handlers/chat.py#L165) | "cena" = todos online até existir o registro de cenas (cidade do céu). |
 | [game/handlers/events.py:166](../src/wartune_server/game/handlers/events.py#L166) | só os tipos 13 e 14 têm regra; os outros ficam "ainda não" até alguém implementar |
 | [game/handlers/events.py:377](../src/wartune_server/game/handlers/events.py#L377) | nenhum desses sistemas conta ainda; lista vazia = tudo zerado no painel. |
-| [game/handlers/farm.py:15](../src/wartune_server/game/handlers/farm.py#L15) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/farm.py:183](../src/wartune_server/game/handlers/farm.py#L183) | o texto do oficial (farm.view.FarmOperMenu.accelerateTip) não está decompilado; |
 | [game/handlers/farm.py:217](../src/wartune_server/game/handlers/farm.py#L217) | sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado) |
 | [game/handlers/farm.py:254](../src/wartune_server/game/handlers/farm.py#L254) | ações em fazenda de amigo ainda recusadas (lista de amigos), então tudo falso |
@@ -262,7 +259,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/pets.py:82](../src/wartune_server/game/handlers/pets.py#L82) | família (tipo, tier, estrela) = template: é a leitura que fecha os 24 pares de receita com um |
 | [game/handlers/pets.py:202](../src/wartune_server/game/handlers/pets.py#L202) | devorar, crescimento, skills, sacrifício, treino, resistência e a fusão de 2 pets (15) |
 | [game/handlers/pets.py:218](../src/wartune_server/game/handlers/pets.py#L218) | só jogador online |
-| [game/handlers/rewards.py:10](../src/wartune_server/game/handlers/rewards.py#L10) | só os 42 base; comprados via bag.capacity |
 | [game/handlers/rewards.py:84](../src/wartune_server/game/handlers/rewards.py#L84) | x1,5 e x2 custam diamante no oficial, mas o preço não está no cliente; recusados |
 | [game/handlers/shop.py:40](../src/wartune_server/game/handlers/shop.py#L40) | a tela da loja misteriosa não está no cliente decompilado; 8 é palpite |
 | [game/handlers/shop.py:94](../src/wartune_server/game/handlers/shop.py#L94) | nenhuma loja tem NeedMinVip hoje; regra não conferida |
@@ -295,14 +291,12 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/vip.py:214](../src/wartune_server/game/handlers/vip.py#L214) | presente para amigo (friendId de outro) igual ao VIP: precisa gravar outro personagem |
 | [game/handlers/vip.py:324](../src/wartune_server/game/handlers/vip.py#L324) | o mapa do teste (andar, buffs na batalha) não existe no servidor; sem ele não há onde |
 | [game/handlers/worldboss.py:69](../src/wartune_server/game/handlers/worldboss.py#L69) | o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição); |
-| [game/items.py:12](../src/wartune_server/game/items.py#L12) | só os 42 base; espaços comprados/alugados via bag.capacity(c, now) |
 | [game/items.py:54](../src/wartune_server/game/items.py#L54) | um item novo por entrada, sem empilhar (igual ao 5006); empilhar quando o |
 | [game/mall.py:33](../src/wartune_server/game/mall.py#L33) | lock global do processo (um servidor por processo). Por anúncio se a fila pesar. |
 | [game/mall.py:35](../src/wartune_server/game/mall.py#L35) | o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento |
 | [game/mall.py:43](../src/wartune_server/game/mall.py#L43) | arredondamento para baixo; o texto do cliente não diz como o oficial arredonda |
 | [game/outer_city.py:71](../src/wartune_server/game/outer_city.py#L71) | o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do |
 | [game/mines.py:29](../src/wartune_server/game/mines.py#L29) | (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora; |
-| [game/rewards.py:21](../src/wartune_server/game/rewards.py#L21) | sem espaços comprados (bagCount) ainda |
 | [game/rewards.py:72](../src/wartune_server/game/rewards.py#L72) | o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela |
 | [game/rules.py:36](../src/wartune_server/game/rules.py#L36) | guerreiro e caçador são o espelho dele, trocar quando houver captura. |
 | [game/rules.py:276](../src/wartune_server/game/rules.py#L276) | busca linear nas 352 linhas a cada chamada; indexar por TemplateId em GameTemplates se pesar. |

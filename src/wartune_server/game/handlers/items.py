@@ -115,6 +115,7 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         and item is not None
         and other is not None
         and other.template_id == item.template_id
+        and not (item.valid_date or other.valid_date)  # com validade: cada um tem o seu relógio
         and {begin[0], end_bag} <= set(STACKABLE)
         and other.count < bag.max_count(s.ctx.templates, item.template_id)
     )
@@ -493,7 +494,7 @@ async def bag_arrange(s: GameSession, msg: pb.ArrangeReq) -> None:
             for other in sorted(items, key=lambda i: i.pos):
                 if other is item or other in gone or other.pos < item.pos or other.template_id != item.template_id:
                     continue
-                if other.is_locked != item.is_locked:
+                if other.is_locked != item.is_locked or item.valid_date or other.valid_date:
                     continue
                 use = min(top - item.count, other.count)
                 item.count += use
@@ -510,8 +511,38 @@ async def bag_arrange(s: GameSession, msg: pb.ArrangeReq) -> None:
 
 @router.on(8346)
 async def bag_remove(s: GameSession, msg: pb.ItemRemoveMsg) -> None:
-    # o cliente só manda para tirar item vencido (validDate); aqui nenhum item tem validade
-    s.log.info("8346 recusado: item sem validade", pedido=str(msg))
+    """Item vencido: *(cliente)* ``BaseBagListView``/``EquipBagII`` mandam ``{bagType, pos}`` ao desenhar um item com
+    ``validDate`` > 0 e ``now - beginDate >= validDate`` minutos. O servidor confere a validade e apaga; o 115
+    esvazia a posição. Resposta e silêncio (nenhum aviso): *(dedução)*, sem captura."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    # o pedido não traz objectId: na mochila é 0, nas bolsas do herói é o herói que tiver algo ali
+    item = next((i for i in snap.items if (i.bag_type, i.pos) == (msg.bagType, msg.pos)), None)
+    if item is None or item.bag_type not in MOVABLE or not item.expired(now):
+        s.log.info("8346 recusado: item ausente ou ainda válido", pedido=str(msg))
+        return
+    snap.items.remove(item)
+    await s.ctx.characters.save(delete=(item,))
+    if item.bag_type != BagType.BAG:  # medalha/equipamento do herói: atributos mudam
+        _player(s)
+        _army(s)
+    s.send(S_ITEMS, item_moved(item.bag_type, item.object_id, item.pos, None, s.player_id))
+
+
+async def expire_items(s: GameSession) -> None:
+    """Apaga os itens vencidos do snapshot (login e relógio de 60 s): o cliente só confere a mochila que está na
+    tela, e a medalha vestida (bolsa 3) nunca passa por lá. *(dedução)*: o oficial faz o mesmo de algum jeito."""
+    snap = s.snapshot
+    assert snap is not None
+    gone = bag.expire(snap, s.ctx.clock.now())
+    if not gone:
+        return
+    await s.ctx.characters.save(delete=tuple(gone))
+    if any(i.bag_type != BagType.BAG for i in gone):
+        _player(s)
+        _army(s)
+    _send_items(s, [], gone)
 
 
 LOCK_BAGS = {1: BagType.BAG, 3: BagType.HERO, 4: BagType.HONOR}  # LockAndUnlockMsg.opType

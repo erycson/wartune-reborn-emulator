@@ -87,6 +87,10 @@ async def synchronized_time(s: GameSession, _: object) -> None:
         await s.ctx.characters.save(*changed)
         s.send(S_RESET, data_reset(s.snapshot, now))
         _player(s)
+    if s.snapshot is not None:
+        from .items import expire_items  # items importa este módulo
+
+        await expire_items(s)
 
 
 @router.on(5167)

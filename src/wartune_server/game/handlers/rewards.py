@@ -5,9 +5,8 @@ from __future__ import annotations
 from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import record_cash
+from .. import bag, rewards, rules, timebox
 from .. import castle as cs
-from .. import rewards, rules, timebox
-from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; comprados via bag.capacity
 from ..builders import login as b
 from ..builders.player import item_moved
 from ..router import router
@@ -58,7 +57,7 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
     goods = [d for d in drops if int(d["TemplateId"]) > 0]
     ids = [int(d["TemplateId"]) for d in drops]
     known = all(t in CURRENCIES or templates.get("ItemTempInfos", t) for t in ids)
-    fits = sum(i.bag_type == BagType.BAG for i in snap.items) + len(goods) <= BAG_SIZE
+    fits = len(goods) <= len(bag.free_positions(snap, s.ctx.clock.now()))
     if period is None or msg.time != period or c.box_seconds < period * 60 or not (drops and known and fits):
         s.log.info("5019 recusado", time=msg.time, proximo=period, segundos=c.box_seconds, cabe=fits)
         await s.ctx.characters.save(c)

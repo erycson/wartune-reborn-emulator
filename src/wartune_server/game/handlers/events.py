@@ -223,7 +223,12 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     assert snap is not None
     a = next((x for x in running if x.active_id == msg.activeId), None)
     found = [(p, st) for p, st, _ in _status(s, a, now) if p.package_id == msg.packageId] if a else []
-    if a is None or not found or found[0][1] != CAN or not rewards.can_grant(snap, s.ctx.templates, found[0][0].items):
+    if (
+        a is None
+        or not found
+        or found[0][1] != CAN
+        or not rewards.can_grant(snap, s.ctx.templates, found[0][0].items, s.ctx.clock.now())
+    ):
         s.log.info("8586 recusado", atividade=msg.activeId, pacote=msg.packageId)
         return
     p = found[0][0]
@@ -264,7 +269,7 @@ async def sign(s: GameSession, _: object) -> None:
     bit = 1 << (calendar.monthrange(now.year, now.month)[1] - now.day)
     times = (st.value | bit).bit_count()
     drops = [(int(r["TemplateId"]), int(r["Data"])) for r in s.ctx.templates.find("SignDrop", Times=times)]
-    if st.value & bit or not rewards.can_grant(snap, s.ctx.templates, drops):
+    if st.value & bit or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         s.log.info("8266 recusado", ja_assinado=bool(st.value & bit))
         s.send(S_SIGN, pb.PlayerSignRspMsg(signDate=b.fmt_time(now), signTimes=st.value.bit_count(), signSite=st.value))
         return
@@ -296,7 +301,7 @@ async def relogin_reward(s: GameSession, msg: pb.TakeLoginReward) -> None:
         or st.value & bit
         or msg.index > days
         or not drops
-        or not rewards.can_grant(snap, s.ctx.templates, drops)
+        or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now())
     ):
         s.log.info("8496 recusado", dia=msg.index, logins=days)
         return
@@ -410,7 +415,7 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
         not bit
         or box.value & bit
         or total < LEED_BOX[msg.site - 1]
-        or not rewards.can_grant(snap, s.ctx.templates, drops)
+        or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now())
     ):
         s.log.info("8235 recusado", bau=msg.site, atividade=total)
         s.send(S_LEED_RECEIVE, pb.LeedFinishedRspMsg(result=False, site=msg.site, leedProcess=box.value))
@@ -489,7 +494,7 @@ async def serven_reward(s: GameSession, msg: pb.GetRewardMsg) -> None:
     if (
         not ok
         or not all(_task_done(s, t) for t in SERVEN[msg.day])
-        or not rewards.can_grant(snap, s.ctx.templates, drops)
+        or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now())
     ):
         s.log.info("8749 recusado", dia=msg.day)
         return

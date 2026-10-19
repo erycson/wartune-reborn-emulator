@@ -205,7 +205,7 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
         # outros sistemas que ainda não avisam; sem o contrato não há como terminar
         s.log.info("8291 recusado", tarefa=msg.templateId, passe=msg.isPass)
         return
-    if not rewards.can_grant(snap, s.ctx.templates, drops):
+    if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         return
     board, task, tid, _ = _clear(snap, now, COMPLETED)
     count = ev.daily(snap, "offer:count", now)
@@ -299,7 +299,7 @@ async def ring_finish_now(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     st = _ring(snap, now)
     tid = int(_json(st).get("t", 0))
     drops = _ring_drops(s, snap, tid, st.value + 1)
-    if not tid or not rewards.can_grant(snap, s.ctx.templates, drops):
+    if not tid or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         s.log.info("8730 recusado", anel=tid)
         return
     used = rewards.take_one(snap, RING_ITEM)

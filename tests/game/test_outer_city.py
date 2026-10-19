@@ -735,7 +735,7 @@ async def test_chefe_abatido_fica_no_painel_como_morto(tmp_path: Path) -> None:
 async def test_bau_com_mochila_cheia_vai_pelo_correio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """9526 sem espaço: o baú some e o conteúdo chega como anexo no correio do jogo (148), 5 por carta."""
     from wartune_server.domain.models import WildBox
-    from wartune_server.game import rewards
+    from wartune_server.game import bag
 
     clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
@@ -745,7 +745,7 @@ async def test_bau_com_mochila_cheia_vai_pelo_correio(tmp_path: Path, monkeypatc
         await g.server.services.characters.save(box)
         drops = [(2131057, n) for n in range(1, 7)]  # 6 anexos: 2 cartas
         monkeypatch.setattr(monsters, "loot", lambda *_: drops)
-        monkeypatch.setattr(rewards, "BAG_SIZE", 0)
+        monkeypatch.setattr(bag, "BAG_BASE", 0)  # mochila cheia
         g.client.send(9526, pb.ArmyBoxMsg(boxId=str(box.id)))
         got = await g.idle()
         assert [p.code for p in got].count(148) == 2 and 4940 in [p.code for p in got]

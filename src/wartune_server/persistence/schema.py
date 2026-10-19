@@ -378,6 +378,8 @@ items = Table(
     _int("join_4", -1),
     Column("is_locked", Boolean, nullable=False, default=False, server_default="0"),
     _int("mould_grade"),
+    _int("valid_date"),  # minutos (ItemInfoMsg.validDate); 0 = sem validade
+    Column("begin_date", UTCDateTime),
 )
 
 shop_buys = Table(

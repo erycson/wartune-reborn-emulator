@@ -8,7 +8,7 @@ Modelo multi-servidor: uma ``Account`` é global (login do portal) e pode ter um
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import IntEnum
 
 from . import gameday
@@ -340,6 +340,18 @@ class Item:
     join_4: int = -1
     is_locked: bool = False
     mould_grade: int = 0
+    # validade (ItemInfoMsg.validDate em minutos, beginDate): 0 = para sempre (cliente GoodsInfo.leftTime)
+    valid_date: int = 0
+    begin_date: datetime | None = None
+
+    def expired(self, now: datetime) -> bool:
+        """Venceu? Mesma conta do cliente (``BaseBagListView``: ``now - beginDate >= validDate`` minutos)."""
+        return self.valid_date > 0 and self.begin_date is not None and now >= self.expires_at
+
+    @property
+    def expires_at(self) -> datetime:
+        assert self.begin_date is not None
+        return self.begin_date + timedelta(minutes=self.valid_date)
 
     @property
     def random_skills(self) -> list[int]:

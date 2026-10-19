@@ -52,7 +52,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
 
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 10101)))  # fila ocupada
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))  # sem diamante
-        g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=0))  # VIP: não existe aqui
+        g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=0))  # grátis só com VIP (vip.free_cool)
         assert await g.idle() == []
 
         await _set(g, point=5)

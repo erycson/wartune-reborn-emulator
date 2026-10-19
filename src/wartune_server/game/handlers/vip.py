@@ -25,6 +25,8 @@ S_LUCKY, S_SOUL, S_TRIAL = 4224, 4372, 4468
 VIP_DAYS = {31: "One_MonthPoint", 93: "Three_MonthPoint", 186: "Six_MonthPoint"}  # OpenVipItem: index*31
 VIP_GRADE = 4  # UpGradeTempInfos.Types da VIP (Data = vipGp acumulado)
 ALCHEMY_RIGHT, SOUL_RIGHT = 8, 9  # VipPrerogativeTempInfos.type: usos extras por dia
+VIP_COOL = 16  # VIPModel.VIP_COOL: type do "Speed up cool down timer for free"
+VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2) e o 50 fixo de vipFriendPrivilege
 ALCHEMY_COUNT = 20  # login.json #9: remainCount 20 sem VIP
 MAX_COST = 40  # AlchemyFrame/SoulMakeFrame: (usos+1)*2, no máximo 40
 KING_BUFF, KING_BUFF_FROM = 7, 6  # contrato 6 dá o buff 7 (30 min) uma vez por dia (KingContractFrame)
@@ -78,6 +80,25 @@ def vip_right(s: GameSession, snap: PlayerSnapshot, kind: int) -> int:
         return 0
     row = next(s.ctx.templates.find("VipPrerogativeTempInfos", type=kind, grade=vip_grade(s, snap)), None)
     return int(row["para1"] or 0) if row else 0
+
+
+def friend_bonus(s: GameSession, snap: PlayerSnapshot) -> int:
+    """Amigos a mais do VIP, igual ao cliente (``VIPModel.vipFriendPrivilege``): procura pelo ``para2`` 6
+    (``getTemplatesByType`` filtra ``para2``, não ``type``) no nível VIP e dá 50 fixos se ``para1`` != 0.
+    Com os templates de hoje isso pega o ``type`` 20 (para1 1 em todo nível): +50 para qualquer VIP, embora o
+    ``type`` 4 "Increased Friend Limit" diga +0 no VIP 1-2. O cliente é que limita a tela, então vale o dele."""
+    if not is_vip(snap, s.ctx.clock.now()):
+        return 0
+    grade = vip_grade(s, snap)
+    row = next((r for r in s.ctx.templates.rows("VipPrerogativeTempInfos") if r.get("para2") == str(VIP_FRIEND)
+                and int(r.get("grade") or 0) == grade), None)  # fmt: skip
+    return VIP_FRIEND_BONUS if row is not None and int(row.get("para1") or 0) != 0 else 0
+
+
+def free_cool(s: GameSession, snap: PlayerSnapshot) -> bool:
+    """Acelerar a fila de graça (5172 index 0): ``VIPModel.vipCoolPrivilege`` = VIP ativo e ``type`` 16 com
+    ``para1`` != 0 no nível (todos os níveis têm 1 hoje)."""
+    return vip_right(s, snap, VIP_COOL) != 0
 
 
 def next_gift(now: datetime) -> datetime:
@@ -153,7 +174,7 @@ async def vip_gift(s: GameSession, _: object) -> None:
     assert snap is not None
     now = s.ctx.clock.now()
     drops = [(int(r["itemId"]), int(r["count"])) for r in s.ctx.templates.find("VipDrop", site=vip_grade(s, snap))]
-    if not _vip_msg(s, snap).isTakeGift or not drops or not rewards.can_grant(snap, s.ctx.templates, drops):
+    if not _vip_msg(s, snap).isTakeGift or not drops or not rewards.can_grant(snap, s.ctx.templates, drops, now):
         s.log.info("8505 recusado")
         return
     st = ev.state(snap, GIFT_NEXT, now)
@@ -266,7 +287,7 @@ async def vip_wheel_spin(s: GameSession, msg: pb.VipRouletteMsg) -> None:
         index = wheel_pick(s.ctx.world.vip_wheel_weights or (1.0,) * len(wheel), taken, _rng)
         if index is None or bag.count_of(snap, VIP_TOKEN) < cost:
             break
-        if not rewards.can_grant(snap, templates, [wheel[index]]):
+        if not rewards.can_grant(snap, templates, [wheel[index]], s.ctx.clock.now()):
             break
         used, deleted = bag.take(snap, VIP_TOKEN, cost)
         changed += used

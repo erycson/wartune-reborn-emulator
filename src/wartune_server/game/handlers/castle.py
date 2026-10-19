@@ -21,6 +21,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import player_info
+from .vip import free_cool
 
 S_PLAYER, S_CHAT, S_ALERT, S_QUESTS = 3, 83, 111, 112
 S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 104, 102, 4187
@@ -178,7 +179,8 @@ async def load_orders(s: GameSession, _: object) -> None:
 @router.on(5172)
 async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     """Acelera com diamante: 1 por 10 minutos. index 1 = só diamante, 2 = vinculado primeiro,
-    0 = privilégio VIP grátis (sem VIP aqui: recusado). orderId 0 = todas as filas de prédio."""
+    0 = privilégio VIP grátis (*(cliente)* ``QueueBar``/``SeminaryFrameBottomView`` mandam index 0 só com VIP:
+    ``vip.free_cool``). orderId 0 = todas as filas de prédio."""
     snap = s.snapshot
     assert snap is not None
     c, now = snap.character, s.ctx.clock.now()
@@ -187,10 +189,11 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     else:
         orders = [o for o in cs.orders_of(snap, cs.BUILD) if o.remain(now) > 0]
     cost = sum(cs.quick_cost(o.remain(now)) for o in orders)
-    valid = bool(orders) and msg.index in (1, 2)  # validar antes: pay() já debita
+    free = msg.index == 0 and free_cool(s, snap)
+    valid = bool(orders) and (msg.index in (1, 2) or free)  # validar antes: pay() já debita
     ref = f"order:{msg.orderId}"
-    entry = pay(c, cost, bind=msg.index == 2, reason="order_quick", ref=ref, now=now) if valid else None
-    if entry is None:
+    entry = pay(c, cost, bind=msg.index == 2, reason="order_quick", ref=ref, now=now) if valid and not free else None
+    if not valid or (entry is None and not free):
         _refuse(s, 5172, "sem ordem, VIP ou sem diamante", order=msg.orderId, index=msg.index, cost=cost)
         return
     for o in orders:
@@ -199,7 +202,7 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     # (cliente) NewbieBaseActionMediator.as case 12 = QueueBar
     build = any(o.order_type == cs.BUILD for o in orders)
     quests = rules.quest_event(snap, s.ctx.templates, ACCELERATE, cs.BUILD, 1) if build else []
-    await s.ctx.characters.save(c, entry, *orders, *quests)
+    await s.ctx.characters.save(c, *([entry] if entry else []), *orders, *quests)
     _send_player(s)
     # texto deduzido (sem fonte no cliente/captura)
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Cooldown removed."))

@@ -115,7 +115,7 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
         wanted = [a for a in annexes if a.mail_id == mail.id and not a.taken and pos in (0, a.slot)]
         goods = [(a.template_id, a.count) for a in wanted if not a.item_id]
         carried = [_carried(snap, fetched, a.item_id) for a in wanted if a.item_id]
-        ok = bool(wanted) and items.fits(snap, goods) and all(items.known(s.ctx.templates, t) for t, _ in goods)
+        ok = bool(wanted) and items.fits(snap, goods, now) and all(items.known(s.ctx.templates, t) for t, _ in goods)
         ok = ok and None not in carried and len(bag.free_positions(snap, now)) >= len(carried) + len(goods)
         if ok:
             p0, g0 = c.point, c.gift_token

@@ -10,9 +10,8 @@ from ...domain.errors import NotFoundError
 from ...domain.models import BagType, FarmLand, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay, record_cash
+from .. import bag, farm, rules
 from .. import castle as cs
-from .. import farm, rules
-from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; comprados via bag.capacity
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
 from ..router import router
@@ -138,7 +137,7 @@ async def _pick(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, la
     if field == "gold" and cs.yield_msg(snap, templates, now).goldTotalCount >= cs.gold_max(snap, templates, now):
         return False  # FarmLandItem.checkGoldLimit: o cliente também bloqueia
     item = Item(c.id or 0, reward, count=count, pos=rules.free_bag_pos(snap)) if reward > 0 else None
-    full = sum(i.bag_type == BagType.BAG for i in snap.items) >= BAG_SIZE
+    full = not bag.free_positions(snap, now)
     if item is not None and (full or not templates.get("ItemTempInfos", reward)):
         return False
     changed: list[object] = [c]
