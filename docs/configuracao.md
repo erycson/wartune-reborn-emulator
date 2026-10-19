@@ -130,7 +130,7 @@ Para seguir um jogador específico: `Select-String '"player": 1' logs\server.log
 
 ### Fórmula de dano
 
-`game_settings` `battle_formula` (migração 0040; regras em [batalha.md](batalha.md#dano)): um JSON com os coeficientes
+`game_settings` `battle_formula` (migração 0039; regras em [batalha.md](batalha.md#dano)): um JSON com os coeficientes
 de `game/battle.py` (`FORMULA`); chave ausente usa o padrão do código. `defence_factor` e `floor` (golpe =
 `max((A - D) × defence_factor, A × floor) × Parameter1/100 + Parameter2`), `spread` (sorteio ±), `crit_base`/
 `block_base` (chance = 1 - base^ForceHit ou ^Parry), `crit_damage`/`block_damage` (multiplicadores).

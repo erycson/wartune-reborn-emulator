@@ -49,7 +49,7 @@ derrota no chefe deixaria o guia preso (`spec["lethal"]` desliga). No PvP ele mo
 
 ## Dano
 
-`damage()` em `game/battle.py`; coeficientes em `game_settings.battle_formula` (migração 0040,
+`damage()` em `game/battle.py`; coeficientes em `game_settings.battle_formula` (migração 0039,
 [configuracao.md](configuracao.md#fórmula-de-dano)).
 
 - Golpe = `max((A - D) × 0,5, A × 0,1) × Parameter1/100 + Parameter2`, ±8%, dividido pelos
