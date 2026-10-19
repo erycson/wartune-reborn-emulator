@@ -87,4 +87,7 @@ Correlações:
 - 2031201 (VIP Trial Card) ↔ texto "Your VIP service has been extended N hours; new expiration date is AAAA-MM-DD." (#3260);
 - 208015 (VIP Token, SonType 292) ↔ fichas da roleta: `needVipItem` 1 → 3 e 5 → 2 fichas em dois giros (#3325-#3335);
 - `TimeDrop` ↔ texto do baú: "Received: 50,000 Gold, Moderate HP Pack x1", da última linha para a primeira (#2110), e "Reward retrieval successful!";
-- 4590 `param1` 2059 = cartão de super login, fechado também no oficial; 4475/4612/4422/4251 com os textos ingleses de `data/events.json` (tipos 13/14).
+- comparados, sem mudança (eventos datados do servidor, não do personagem): 4590 `param1` 2059 = botão do
+  cartão de super login (2026-10-23 a 10-30, #110); 4612 = "钻石矿脉" `activeType` 1 até 10-18 (#86); 4422 =
+  lista de chaves (`switchType` 3031 a partir de 10-26, #89); 4251 = "Level up and get rewards" da abertura
+  do servidor (#84). 4475: só os títulos/textos dos tipos 13/14 de `data/events.json` foram para o inglês.
