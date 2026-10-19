@@ -53,6 +53,9 @@ SPECIAL_S2C = {
 SPECIAL_C2S = {
     10007: "com.road.yishi.proto.battle.LoadOverMsg",
     10018: "com.road.yishi.proto.battle.LoadOverMsg",
+    # o m2 não manda o 5039 (vem de outro módulo); (visto) captura inglesa #843 e #2310: 08 01 10 e9 07 =
+    # CampaignReqMsg {paraInt1: 1, paraInt2: 1001} (1002 em ea 07)
+    5039: "com.road.yishi.proto.campaign.CampaignReqMsg",
 }
 
 

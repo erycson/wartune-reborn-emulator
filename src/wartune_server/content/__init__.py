@@ -1,4 +1,9 @@
-"""Conteúdo de jogo que não está no ``tempinfos.xml`` (era do banco do servidor oficial)."""
+"""Conteúdo de jogo que não está no ``tempinfos.xml`` (era do banco do servidor oficial).
+
+As masmorras e a pedreira estão no banco (``campaign_contents``, migração 0034). O tutorial e a ilha dos pets
+ficam aqui: ``CampaignMap.enter`` e o 127 da ilha os leem sem sessão de banco, e os testes do tutorial também;
+levá-los ao banco é mudar esse caminho todo (docs/salas-campanha.md).
+"""
 
 from __future__ import annotations
 
@@ -12,13 +17,6 @@ from typing import Any
 def tutorial() -> dict[str, Any]:
     """Nós, batalhas e diálogos da campanha de treino (``tools/extract_tutorial.py``)."""
     text = resources.files(__package__).joinpath("tutorial.json").read_text(encoding="utf-8")
-    return json.loads(text)  # type: ignore[no-any-return]
-
-
-@cache
-def dungeon() -> dict[str, Any]:
-    """Mapas, batalhas, Pandora e fim da masmorra Kurt İni, campanha 1001 (``tools/extract_dungeon.py``)."""
-    text = resources.files(__package__).joinpath("dungeon_1001.json").read_text(encoding="utf-8")
     return json.loads(text)  # type: ignore[no-any-return]
 
 

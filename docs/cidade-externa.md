@@ -35,7 +35,7 @@ disso é recusado ou respondido vazio, do jeito que o cliente espera para não t
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
 | 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o guarda de grau 8 se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* replay #713-#795; *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo e a luta do castelo-robô | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
-| 8699 | Registra. Sem resposta | *(cliente)* ação a46 do guia do tutorial (m8) | nó de coleta que o passo abre (ausente nas capturas) |
+| 8699 | Na pedreira 6001: a luta da coleta (140, 157; fim com Wood x18). Fora dela, registra | *(visto)* inglesa #1928-#2070 | — |
 | 9506 | Ataque extra: 100 diamantes (vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount` | *(cliente)* `AttackAlertFrame` (`setAddAttackCount`); preço em `ConfigInfos` `AddAttck_Point` | — |
 | 5176 | Muda o castelo. Outro mapa: 200 de energia e o ponto central do mapa. Mesmo mapa com ponto: 100 de energia. Energia completada com diamantes. Resposta: 140 e 105 (mapa, posição, energia). Recusa: 105 com o castelo como está | *(visto)* transfer #2-5 (500 para 300 de energia); *(cliente)* `WorldMapControler`, `MapPhysicsCastle` | sem outros castelos, o ponto de chegada é o centro |
 | 8292 | Cancela o gancho: 4200 com `leftWeay` 0 e `isStartHangup` falso, a mesma resposta do 8293. Não cobra | *(cliente)* `HookTimeView` envia o 8292 ao cancelar | sistema de gancho da campanha (ausente) |
@@ -294,8 +294,8 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   `WorldBossControler.sendEnterBattle` manda o 8258 com essa campanha. A 6001 é "Maden Ocağı", `Types` 2,
   `MinLevel` 1, `Capacity` 10000 (`Campaigns`). `MapInfos` tem a 6001 (2000x2000 px, `Type` 1), mas não tem `CampaignData` nem `MapNodeInfos`. O `.maps`
   existe no CDN local (`D:\xampp\htdocs\wartune-cdn\maps\6001\6001.maps`, fora do repo), mas não está entre os
-  13 mapas com nós de campanha da varredura. Nenhuma captura tem 8258 nem 6001. Sem layout nem captura, a entrada não é
-  implementada. Hoje o 8258 é recusado com o aviso de indisponível (antes dizia "inválido").
+  13 mapas com nós de campanha da varredura. A captura inglesa tem o 8258 com a 6001 (#1803) e os nós no 127 (#1809):
+  a entrada está feita (ver *Resultado*).
 - **Coleta no espaço** *(cliente)*: `CollectionAction.sendCollection` manda o 8733 com o id do nó
   (`PropertyMsg.param1`). Os nós "year" são `MasterType` 300 a 315 ou 410 (`SpaceNodeType.isYearNode`), e o 4811
   (`QueryCollectCampaignNodeRspMsg`, `PlayerManager.__receiveYearNodeDataHandler`) diz o recurso de cada nó
@@ -303,8 +303,11 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   são pacotes de presente, não Kereste, Ametist nem Bakır. Nenhuma captura tem 4811 nem 8733.
 - **Coleta de campanha** *(cliente)*: `CollectionAction.sendCollection` (`CollectionAction.as` 360-392) manda o 5032 `{mapId, nodeId, cmd 2}` (`SocketSendManager.sendSessionOverToBattle`, 266-273) num nó de campanha de coleta. O servidor só responde o 5032 nos nós do tutorial (`campaign.py`, 281-300). Os `SonType` de coleta são 2350 (som 041), 2351 e 2380 (som 039), 2352 e 2393-2395 (som 040) (`CollectionAction.as` 93-105). O nome do recurso de cada som (Bakır, Ametist, Kereste) é dedução.
 - **Itens 2100022, 2100023 e 2100024**: nenhum código, drop ou tabela os cria (já visto em `missoes.md`).
-- Resultado: coleta **não implementada**. Faltam: a 6001 como campanha (`CampaignData` e nós de coleta, que não existem nos dados); uma captura do 8258 com a
-  6001 e do 5032 num nó de coleta (quantidade por coleta); e uma fonte dos três itens. A coleta do espaço (4811 e 8733) é outra rota.
+- Resultado (2026-10-19): a **pedreira 6001 está feita** pela captura inglesa (#1803-#2123). O 8258 entra, o 5125 numa
+  pilha responde 143 COLLECTION, o 5032 colhe Wood (2100022) x2-3 e o 8699 dá Wood x18. O 5025 sai. Os nós vêm da
+  captura (127), no banco (`campaign_contents` 6001, migração 0034). Ver [salas-campanha.md](salas-campanha.md).
+  A missão 102 fecha pela bolsa. Ametist (2100023) e Bakır (2100024), das missões 140 e 170-172, seguem sem fonte. A
+  coleta do espaço (4811 e 8733) é outra rota.
 
 ## Tabelas e migrações
 
@@ -329,7 +332,7 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 3. **Passe de progresso** (8636, 8637). A área é sempre 1. Falta o progresso das fases (8753, 8755).
 4. **Mapa do tesouro.** Falta a tabela de sorteio da qualidade do mapa (o servidor dá o de bronze). Refresh,
    escavação, uso do mapa e recompensa dependem de pontos no mapa do mundo e de batalha de equipe.
-5. **Guia do tutorial** (8699, ação a46). Abre um nó de coleta que nenhuma captura tem.
+5. **Guia do tutorial** (8699, ação a46). Feito: é a luta da pedreira 6001.
 6. **Contagem diária do mapa do tesouro.** *(dedução)* A config `join_tremap_count` não diz o período, e o
    cliente não mostra data. Assumimos o dia, como o coliseu e o ataque extra.
 7. **Mapa de bronze e nível.** *(dedução)* O item que o oficial dá é sorteado por qualidade; a tabela não está

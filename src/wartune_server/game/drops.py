@@ -2,13 +2,15 @@
 
 *(visto)* replay #1221-#1243 e #1725-#1747 (Kurt İni, 1001): 135 (5 cartas), 115 com o item na mochila,
 26 com a carta (``index`` escolhido no 5122, ``count`` 1, ``bind``, os ``randomSkill`` já sorteados), 83
-``Kazanılan:<nome> x1`` e 134. Lista vazia (tutorial, chefe do mundo, guilda) = sem carta: o oficial não
+``Kazanılan:<nome> x1`` e 134. No inglês (#1121-#1126) o 83 é ``Received: <nome> x1`` e o 134 só vem como
+resposta do 5180 (sair). Lista vazia (tutorial, chefe do mundo, guilda) = sem carta: o oficial não
 manda 26 no fim do tutorial (replay #525).
 """
 
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 
 from ..domain.models import Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
@@ -23,20 +25,28 @@ def pool(templates: GameTemplates, campaign_id: int) -> list[int]:
 
 
 def card(
-    snap: PlayerSnapshot, templates: GameTemplates, campaign_id: int, index: int, rng: random.Random | None = None
+    snap: PlayerSnapshot,
+    templates: GameTemplates,
+    campaign_id: int,
+    index: int,
+    rng: random.Random | None = None,
+    table: Sequence[tuple[int, float]] = (),
 ) -> tuple[Item, pb.CampaignTakeCardsMsg, str] | None:
     """Sorteia e põe na mochila a carta ``index``. ``None``: campanha sem lista ou mochila cheia.
 
-    Como ``rewards.grant``, só altera o snapshot: quem chama grava o item e manda 115, 26 e 83.
+    ``table``: (TemplateId, peso) do banco (``campaign_cards``, migração 0034); vazia = ``Campaigns.Item`` com
+    pesos iguais. Como ``rewards.grant``, só altera o snapshot: quem chama grava o item e manda 115, 26 e 83.
     """
-    # ponytail: sorteio uniforme e sem filtro de classe (o mesmo mago tirou 1080013, Job 3, e 1080002,
-    # Job 1,2); chance de cada item e cartas em grupo (9000+) precisam de mais capturas ou vídeos
+    # ponytail: sem filtro de classe (o mesmo mago tirou 1080013, Job 3, e 1080002, Job 1,2); peso = vezes visto,
+    # amostra pequena (docs/drops-masmorras.md); cartas em grupo (9000+) precisam de mais capturas ou vídeos
     rng = rng or random.Random()
-    items = pool(templates, campaign_id)
-    drop = [(rng.choice(items), 1)] if items else []
+    items = [t for t, _ in table] or pool(templates, campaign_id)
+    weights = [w for _, w in table] or None
+    drop = [(rng.choices(items, weights)[0], 1)] if items else []
     if not drop or not rewards.can_grant(snap, templates, drop):
         return None
-    new, text = rewards.grant(snap, templates, drop)
+    new, _ = rewards.grant(snap, templates, drop)
+    text = rewards.received(templates, drop)  # (visto) inglesa #1123 "Received: Banshee Plume x1"
     item = new[0]
     slots = int((templates.get("ItemTempInfos", item.template_id) or {}).get("RandomSkillCount") or 0)
     if slots:  # #1241: 3 atributos no 1080013 (RandomSkillCount 3); #1744: 1 no 1080002

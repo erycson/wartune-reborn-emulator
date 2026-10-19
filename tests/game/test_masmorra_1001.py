@@ -1,56 +1,102 @@
-"""Masmorra Kurt İni (campanha 1001, mapas 1011 e 1021) com cliente falso: entrar, lutar, Pandora, baú, fim."""
+"""Masmorra Worg Lair (campanha 1001, mapas 1011 e 1021) com cliente falso: entrar, lutar, Pandora, baú, fim.
+
+Ordem e textos da captura inglesa (``captures/tutorial_en.txt``); o conteúdo vem do banco (migração 0034).
+"""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+import wartune_server
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.content import dungeon
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import drops
 from wartune_server.game.campaign import DONE, CampaignMap
+from wartune_server.game.handlers import campaign as handlers
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
+SEED = Path(wartune_server.__file__).parent / "persistence/migrations/versions/0034_campanhas.json"
 WOLVES_1011 = (101102, 101103, 101105, 101106, 101109)  # o 101109 fecha o grupo e o mapa
 WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que libera o chefe 102109
-END = [137, 4151, 83, 135, 4165, 150, 150, 140]  # fim do mapa, antes da carta (replay #1215-#1226, #1722-#1729)
-END_COM_70 = [137, 4151, 83, 135, 112, 4165, 150, 150, 140]  # com a 70 no fim: o 112 entre o 135 e o 4165
-CARD = [115, 26, 83, 134]  # resposta do 5122 (replay #1227-#1243, #1730-#1747, sem 4476/4484)
-KURT_DIS, SANS_TASI = 2100001, 2040101  # drops dos lobos do 1021 (replay #1355-#1592)
+END = [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140]  # (visto) inglesa #1096-#1107, sem o 20 do 5038
+END_COM_70 = [4382, 3, 137, 4151, 83, 135, 112, 4165, 150, 150, 140]  # com a 70: o 112 entre o 135 e o 4165
+CARD = [115, 26, 83]  # resposta do 5122 (inglesa #1111-#1123, sem 4476/4484); o 134 vem no 5180
+WORG_TOOTH, LUCK_STONE = 2100001, 2040101  # drops dos lobos do 1021
+
+
+def content(campaign_id: int) -> dict[str, Any]:
+    return json.loads(SEED.read_text(encoding="utf-8"))[str(campaign_id)]  # type: ignore[no-any-return]
+
+
+class Sure:
+    """``random`` dos handlers sem sorte: todo drop sai, o primeiro buff, o mínimo da coleta."""
+
+    @staticmethod
+    def random() -> float:
+        return 0.0
+
+    @staticmethod
+    def choice(seq: list[int]) -> int:
+        return seq[0]
+
+    @staticmethod
+    def randint(low: int, high: int) -> int:
+        return low
 
 
 @pytest.fixture(autouse=True)
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    monkeypatch.setattr(handlers, "random", Sure)
 
 
 def codes(packets: list[Packet]) -> list[int]:
     return [p.code for p in packets]
 
 
-async def enter(g: Game) -> list[Packet]:
-    g.client.send(5039, pb.CampaignReqMsg(paraInt1=1, paraInt2=1001))  # sem tipo C>S no opcodes.json: corpo cru
+async def enter(g: Game, campaign_id: int = 1001) -> list[Packet]:
+    g.client.send(5039, pb.CampaignReqMsg(paraInt1=1, paraInt2=campaign_id))  # inglesa #843: 08 01 10 e9 07
+    return await g.idle()
+
+
+async def back_to_map(g: Game) -> list[Packet]:
+    g.client.send(5035, pb.LoginStateMsg(state=4))  # o cliente volta da cena da luta
     return await g.idle()
 
 
 async def battle(g: Game, camp: int) -> list[Packet]:
-    """Chegada ao nó, vitória e os pacotes da luta e do que vem depois (fim do mapa incluso)."""
+    """Chegada ao nó, vitória, a volta ao mapa e tudo o que vem depois (4382 e o fim da etapa)."""
     g.client.send(5125, pb.CampaignReqMsg(paraInt1=camp, paraBool1=True))
+    return await won(g)
+
+
+async def won(g: Game) -> list[Packet]:
     got = await g.fight(pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body))
     assert pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103)).battleResult == 1
-    return got + await g.idle()
+    return got + await g.idle() + await back_to_map(g)
 
 
 async def take(g: Game, index: int) -> list[Packet]:
     g.client.send(5122, pb.CampaignReqMsg(paraInt2=index))
     return await g.idle()
+
+
+async def leave(g: Game) -> None:
+    await take(g, 2)
+    g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))
+    assert codes(await g.idle()) == [134]  # (visto) inglesa #1124 -> #1126
+    g.client.send(5035, pb.LoginStateMsg(state=0))
+    g.client.send(8747, pb.SimplePropertyMsg(param7=True))
+    await g.idle()
 
 
 async def play_1011(g: Game) -> list[Packet]:
@@ -65,33 +111,37 @@ async def play_1011(g: Game) -> list[Packet]:
 async def test_entrada_manda_o_mapa_1011(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         got = await enter(g)
-        assert codes(got) == [125, 140, 21, 127, 130, 143, 138, 3, 83]
+        assert codes(got) == [125, 140, 21, 127, 130, 143, 138, 3, 83]  # inglesa #844-#853
         assert pb.RoomCreatedMsg.FromString(got[0].body).room.campaignId == 1011
         assert len(pb.CampaignNodeListMsg.FromString(got[3].body).node) == 10
         fog = pb.CampaignFogMsg.FromString(got[4].body)
         assert (fog.row, fog.col) == (24, 19)  # névoa da captura, não a de 'tudo visível'
 
 
-async def test_cada_mapa_gasta_20_de_beden_e_sem_beden_nao_entra(tmp_path: Path) -> None:
+async def test_campanha_que_nao_existe_nao_entra(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=25500) as g:
+        assert codes(await enter(g, 4242)) == []
+        assert codes(await enter(g, 6001)) == []  # a pedreira entra pelo 8258
+
+
+async def test_cada_etapa_gasta_20_de_estamina_e_sem_estamina_nao_entra(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         characters = g.server.services.characters
         before = (await characters.snapshot(g.user_id)).character.weary
         got = await enter(g)
         assert pb.PlayerMsg.FromString(got[-2].body).weary == before - 20
-        assert (
-            pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "[Worg Lair] haritasına girildi, 20 can kullanıldı."
-        )
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Entered [Worg Lair] and deducted 20 stamina."
         assert (await characters.snapshot(g.user_id)).character.weary == before - 20  # gravado
 
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None
         session.snapshot.character.weary = 19
-        session.campaign = None  # fora da masmorra, com 19 de Beden
+        session.campaign = None  # fora da masmorra, com 19 de estamina
         assert codes(await enter(g)) == []
         assert session.snapshot.character.weary == 19 and session.campaign is None
 
 
-async def test_lobo_comeca_a_luta_na_chegada_e_da_exp(tmp_path: Path) -> None:
+async def test_lobo_comeca_a_luta_na_chegada_e_o_4382_espera_a_volta(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         await enter(g)
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=101102, paraBool1=True))
@@ -100,38 +150,39 @@ async def test_lobo_comeca_a_luta_na_chegada_e_da_exp(tmp_path: Path) -> None:
         prepare = pb.BattlePrepareMsg.FromString(start[-1].body)
         assert prepare.mapTempId == 1011
         got = await g.fight(prepare) + await g.idle()
+        assert 4382 not in codes(got)  # (visto) inglesa #915 -> #920: só depois do 5035 state 4
+        exp = next(p for p in got if p.code == 83)
+        assert pb.ChatChannelMsg.FromString(exp.body).encodeMsg == "Received 35 EXP "
         node = pb.CampaignNodeUpdateMsg.FromString([p for p in got if p.code == 128][-1].body)
-        assert (node.nodeId, node.nodeState) == (9561, DONE)  # nó do 101102 vira DONE
-        assert pb.FightOverMoiveMsg.FromString(next(p.body for p in got if p.code == 4382)).gp == 35
-
-
-async def test_ultimo_lobo_comeca_na_chegada_sem_5180(tmp_path: Path) -> None:
-    # o 5180 é do quadro das cartas (ChestFrame.dispose), não solta luta: a do 101109 sai no 5125
-    async with logged_in(tmp_path, novice=25500) as g:
-        await enter(g)
-        g.client.send(5125, pb.CampaignReqMsg(paraInt1=101109, paraBool1=True))
-        assert codes(await g.until(157)) == [140, 131, 128, 157]
+        assert (node.nodeId, node.nodeState) == (14053, DONE)  # nó do 101102 vira DONE
+        back = await back_to_map(g)
+        assert codes(back) == [4382]
+        assert pb.FightOverMoiveMsg.FromString(back[0].body).gp == 35
+        assert codes(await back_to_map(g)) == []  # um 4382 por luta
 
 
 async def test_pandora_pede_confirmacao_e_da_buff_uma_vez(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         await enter(g)
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=101107, paraBool1=True))
-        assert codes(await g.until(29)) == [29]
-
-        g.client.send(5033, pb.CampaignReqMsg(paraInt1=880, paraInt2=101107, paraBool1=True))  # mapa da 1021
-        assert await g.idle() == []  # confirmação de outro mapa não abre a caixa
-
-        g.client.send(5033, pb.CampaignReqMsg(paraInt1=879, paraInt2=101107, paraBool1=True))
         got = await g.idle()
-        assert codes(got) == [4126, 4165, 150, 150, 128, 111, 83]  # replay #1155-#1161
-        stand = pb.StandPosMsg.FromString(got[0].body)
-        assert (stand.posX, stand.posY) == (26, 26)  # nó (24, 24) + 2, como nas duas Pandoras da captura
-        assert pb.CampaignBufferMsg.FromString(got[1].body).bufferInfo[0].bufferTempId == 1301
-        alert = dungeon()["maps"]["1011"]["pandora"]["alert"]
-        assert [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got[-2:]] == [alert, alert]
+        assert codes(got) == [29, 4126]  # inglesa #1428-#1429
+        confirm = pb.CampaignConfirmMsg.FromString(got[0].body)
+        assert confirm.nodeId == 101107 and "Pandora" in confirm.body  # o 29 da 102107, com o nó trocado
+        stand = pb.StandPosMsg.FromString(got[1].body)
+        assert (stand.posX, stand.posY) == (26, 26)  # nó (24, 24) + 2
 
-        g.client.send(5033, pb.CampaignReqMsg(paraInt1=879, paraInt2=101107, paraBool1=True))
+        g.client.send(5033, pb.CampaignReqMsg(paraInt1=confirm.mapId, paraInt2=101107, paraBool1=False))
+        assert await g.idle() == []  # "não"
+
+        g.client.send(5033, pb.CampaignReqMsg(paraInt1=confirm.mapId, paraInt2=101107, paraBool1=True))
+        got = await g.idle()
+        assert codes(got) == [4165, 150, 150, 111, 128, 83]  # inglesa #1433-#1438
+        assert pb.CampaignBufferMsg.FromString(got[0].body).bufferInfo[0].bufferTempId == 1301  # 1º do "1301|1701"
+        texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in (got[3], got[5])]
+        assert texts == ["Received: Lvl. 1 PDEF Boost"] * 2  # CampaignBufferTemps.TemplateName
+
+        g.client.send(5033, pb.CampaignReqMsg(paraInt1=confirm.mapId, paraInt2=101107, paraBool1=True))
         assert await g.idle() == []  # nó já DONE: sem segunda caixa
 
 
@@ -142,8 +193,8 @@ async def test_bau_de_ouro_da_500_uma_vez_e_grava(tmp_path: Path) -> None:
         before = (await characters.snapshot(g.user_id)).character.gold
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=101108, paraBool1=True))
         got = await g.idle()
-        assert codes(got) == [109, 126, 128, 83]  # replay #1020-#1023
-        assert pb.CampaignNotifyMsg.FromString(got[1].body).body == "Kazanılan: Altın 500"
+        assert codes(got) == [109, 126, 128, 83]  # inglesa #945-#948
+        assert pb.CampaignNotifyMsg.FromString(got[1].body).body == "Received: 500 Gold"
         assert (await characters.snapshot(g.user_id)).character.gold == before + 500
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=101108, paraBool1=True))
@@ -152,7 +203,7 @@ async def test_bau_de_ouro_da_500_uma_vez_e_grava(tmp_path: Path) -> None:
 
 
 def test_chefe_so_aparece_com_o_grupo_caido() -> None:
-    camp = CampaignMap.enter_dungeon(1021)
+    camp = CampaignMap.enter_dungeon(content(1001), 1021)
     assert camp.locked(102109)  # 102106 libera o chefe (param4 "102109,1") e o grupo está vivo
     assert not camp.locked(102107)  # a Pandora não depende de grupo
     for wolf in WOLVES_1021:
@@ -163,13 +214,23 @@ def test_chefe_so_aparece_com_o_grupo_caido() -> None:
 async def test_5122_so_vira_carta_depois_do_fim(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         await enter(g)
-        assert codes(await take(g, 2)) == []  # antes do 135 não há carta (o relay engana: S>C atrasado)
+        assert codes(await take(g, 2)) == []  # antes do 135 não há carta
+        g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))
+        assert await g.idle() == []  # nem 134 no meio da etapa
 
 
 async def test_mapa_1011_fecha_e_a_carta_do_5122_fica_gravada(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         end = await play_1011(g)
-        assert codes(end)[-len(END) :] == END  # sem 115/26/134: a carta espera o clique
+        assert codes(end)[-len(END) :] == END  # sem 115/26: a carta espera o clique
+        report = pb.CampaignReportMsg.FromString(next(p.body for p in end if p.code == 137))
+        assert report.totalGp == 630 and report.failedCount == 0  # BaseGp 600 * 1,05
+        assert report.woundValue > 0 and report.totalAppraisal == round((report.woundAppraisal + report.hurtAppraisal
+                                                                         + report.failedAppraisal) / 3)  # fmt: skip
+        rank = pb.RankListRspMsg.FromString(next(p.body for p in end if p.code == 4151))
+        assert [(r.campaignId, r.rank) for r in rank.rankInfo] == [(1001, report.totalAppraisal)]
+        exp = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83][-1]
+        assert exp == "Received 630 EXP "
         assert codes(await take(g, 5)) == []  # index fora das 5 cartas (0..4)
 
         got = await take(g, 2)
@@ -178,31 +239,29 @@ async def test_mapa_1011_fecha_e_a_carta_do_5122_fica_gravada(tmp_path: Path) ->
         card = pb.ItemMovedListMsg.FromString(got[0].body).moved[0].item
         assert (take_msg.index, take_msg.templateId) == (2, card.templateId)
         assert card.templateId in drops.pool(g.server.services.templates, 1001)
+        name = g.server.services.templates.get("ItemTempInfos", card.templateId)["TemplateName"]
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == f"Received: {name} x1"
         snap = await g.server.services.characters.snapshot(g.user_id)
         assert [i.template_id for i in snap.items].count(card.templateId) == 1  # lida do banco, não da sessão
 
-        assert codes(await take(g, 3)) == []  # uma carta por mapa
+        assert codes(await take(g, 3)) == []  # uma carta por etapa
         snap = await g.server.services.characters.snapshot(g.user_id)
         assert [i.template_id for i in snap.items].count(card.templateId) == 1
+        assert {e.key: e.value for e in snap.events}["campaign_stage:1001"] == 1  # o próximo 5039 leva ao 1021
 
 
 async def test_grupo_de_1021_libera_o_chefe_e_fecha_a_masmorra(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         await play_1011(g)
-        await take(g, 2)
-        g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))  # quadro fechado: sem resposta
-        assert await g.idle() == []
-        g.client.send(5035, pb.LoginStateMsg(state=0))  # o cliente volta ao castelo (replay #1170, #1171)
-        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
-        await g.idle()
+        await leave(g)
         got = await enter(g)
         assert codes(got) == [125, 140, 21, 127, 130, 143, 3, 83]  # sem plot: o diálogo é só do 1011
         assert pb.RoomCreatedMsg.FromString(got[0].body).room.campaignId == 1021
 
-        g.client.send(5125, pb.CampaignReqMsg(paraInt1=102104, paraBool1=True))  # baú sem 126 (replay #1475)
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=102104, paraBool1=True))  # baú sem 126
         chest = await g.idle()
         assert codes(chest) == [109, 111, 128, 83]
-        assert pb.ChatChannelMsg.FromString(chest[1].body).encodeMsg == "Kazanılan:Altın 500"
+        assert pb.ChatChannelMsg.FromString(chest[1].body).encodeMsg == "Received: 500 Gold"
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=102109, paraBool1=True))
         assert await g.idle() == []  # chefe travado enquanto o grupo vive
@@ -210,19 +269,22 @@ async def test_grupo_de_1021_libera_o_chefe_e_fecha_a_masmorra(tmp_path: Path) -
         for camp in WOLVES_1021[:-1]:
             await battle(g, camp)
         last = await battle(g, WOLVES_1021[-1])
-        after = codes(last)[codes(last).index(4382) + 1 :]
-        assert after == [126, 143, 143, 128]  # aviso, DISAPPEARD do gatilho, FLICKER do chefe, nó novo
+        # drop (83), aviso, DISAPPEARD, FLICKER, chefe novo; desvio: o oficial (#1408-#1422) solta antes do 128 do lobo
+        # e manda o 128 do chefe depois do 4382 (docs/salas-campanha.md)
+        assert codes(last)[-6:] == [83, 126, 143, 143, 128, 4382]
         movies = [pb.PlayerMovieMsg.FromString(p.body) for p in last if p.code == 143]
-        assert [(m.movieType, m.targetId) for m in movies] == [("DISAPPEARD", 9579), ("FLICKER", 9578)]
+        assert [(m.movieType, m.targetId) for m in movies] == [("DISAPPEARD", 14074), ("FLICKER", 14073)]
         notice = next(p.body for p in last if p.code == 126)
-        assert pb.CampaignNotifyMsg.FromString(notice).body == dungeon()["notices"]["1021"]
+        assert pb.CampaignNotifyMsg.FromString(notice).body == "Defeat all the worgs to remove the obstacle."
 
         characters = g.server.services.characters
         strategy = (await characters.snapshot(g.user_id)).character.strategy
         boss = await battle(g, 102109)
         assert codes(boss)[-len(END) :] == END
-        assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 72  # "Ruh" do chefe
+        assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 88  # inglesa #1509
         assert codes(await take(g, 1)) == CARD  # a carta do 1021 é outra, uma também
+        snap = await characters.snapshot(g.user_id)
+        assert {e.key: e.value for e in snap.events}["campaign_stage:1001"] == 0  # (dedução) volta ao 1011
 
 
 async def test_5126_devolve_a_nevoa_revelada(tmp_path: Path) -> None:
@@ -237,6 +299,13 @@ async def test_5126_devolve_a_nevoa_revelada(tmp_path: Path) -> None:
         assert [(u.index, u.fogByte) for u in update] == [(5, 1), (9, 0)]
 
 
+async def test_5038_manda_o_exercito_do_mapa_do_banco(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=25500) as g:
+        g.client.send(5038, pb.CampaignReqMsg(paraInt1=1021))
+        army = pb.SystemArmyMsg.FromString((await g.until(20))[-1].body)
+        assert (list(army.heroTemplated), list(army.soldierTemplated)) == ([1011], [2011])  # inglesa #1524
+
+
 def _quests(packets: list[Packet]) -> dict[int, pb.QuestInfo]:
     """Último estado de cada missão nos 112 recebidos."""
     out: dict[int, pb.QuestInfo] = {}
@@ -247,14 +316,14 @@ def _quests(packets: list[Packet]) -> dict[int, pb.QuestInfo]:
     return out
 
 
-async def kurt_pilhas(g: Game) -> list[tuple[int, int]]:
-    """(posição, quantidade) de cada pilha de Kurt Dişi no banco."""
+async def tooth_piles(g: Game) -> list[tuple[int, int]]:
+    """(posição, quantidade) de cada pilha de Worg Tooth no banco."""
     snap = await g.server.services.characters.snapshot(g.user_id)
-    return [(i.pos, i.count) for i in snap.items if i.template_id == KURT_DIS]
+    return [(i.pos, i.count) for i in snap.items if i.template_id == WORG_TOOTH]
 
 
-async def kurt_dis(g: Game) -> int:
-    return sum(n for _, n in await kurt_pilhas(g))
+async def worg_teeth(g: Game) -> int:
+    return sum(n for _, n in await tooth_piles(g))
 
 
 async def entrega(g: Game, template_id: int) -> list[Packet]:
@@ -265,67 +334,54 @@ async def entrega(g: Game, template_id: int) -> list[Packet]:
 
 
 async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path: Path) -> None:
-    # (visto) replay: 70 (passar a campanha) fecha com o 137 do 1011; 80 (chefe 1011) com o 102109; 90 com 8
-    # Kurt Dişi na bolsa (os lobos do 1021 deram 10). Entrega pelo 5014, como o oficial.
+    # (visto) 70 (passar a campanha) fecha com o 137 do 1011 (inglesa #1103); 80 (chefe Wulfgar) com o 102109
+    # (#1513); 90 com 8 Worg Tooth na bolsa (os lobos do 1021 deram 10). Entrega pelo 5014, como o oficial.
     async with logged_in(tmp_path, novice=25500) as g:
         _done(g, 60)  # pré da 70; 80 e 90 pedem a 70 concluída (PreQuestId), então entram depois da entrega
         g.client.send(5012, pb.QuestAddedMsg(questId=[70]))
         assert 70 in _quests(await g.until(112))
         characters = g.server.services.characters
-        assert await kurt_dis(g) == 0
+        assert await worg_teeth(g) == 0
 
         await enter(g)
         for camp in WOLVES_1011[:-1]:
             await battle(g, camp)
         end = await battle(g, WOLVES_1011[-1])
-        assert codes(end)[-len(END_COM_70) :] == END_COM_70  # o 112 da 70 entre o 135 e o 4165 (replay #1221-#1222)
+        assert codes(end)[-len(END_COM_70) :] == END_COM_70
         assert _quests(end)[70].condition_1 == 1 and not _quests(end)[70].isComplete
         await entrega(g, 70)
         g.client.send(5012, pb.QuestAddedMsg(questId=[80, 90]))
         assert {80, 90} <= set(_quests(await g.until(112)))
 
-        # 1021: o drop de cada lobo sai antes do 128 (replay #1360, #1442, #1520, #1578)
-        await take(g, 2)
-        g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))
-        await g.idle()
-        g.client.send(5035, pb.LoginStateMsg(state=0))
-        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
-        await g.idle()
+        await leave(g)
         await enter(g)
         totals, stacks = [], set()
         for camp in WOLVES_1021:
             got = await battle(g, camp)
-            totals.append(await kurt_dis(g))
-            assert len(await kurt_pilhas(g)) == 1  # uma pilha só, como o oficial (replay pos 6: 2, 4, 7, 10)
+            totals.append(await worg_teeth(g))
+            assert len(await tooth_piles(g)) == 1  # uma pilha só, como o oficial
             moved = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
-            stacks |= {m.changePos for m in moved if m.HasField("item") and m.item.templateId == KURT_DIS}
-            if camp == 102102:  # desvio: o oficial deixa o Şans Taşı num baú (4103 + pick-up 5129), aqui sai no 115
-                assert {m.item.templateId for m in moved if m.HasField("item")} >= {KURT_DIS, SANS_TASI}
+            stacks |= {m.changePos for m in moved if m.HasField("item") and m.item.templateId == WORG_TOOTH}
+            if camp == 102102:  # Luck Stone (chance 0,5; aqui sem sorte, sai sempre)
+                assert {m.item.templateId for m in moved if m.HasField("item")} >= {WORG_TOOTH, LUCK_STONE}
         assert totals == [2, 4, 7, 10]
-        [(pos, count)] = await kurt_pilhas(g)
+        [(pos, count)] = await tooth_piles(g)
         assert count == 10 and stacks == {pos}  # os 115 reusam a posição da pilha
 
         boss = await battle(g, 102109)
-        assert _quests(boss)[80].condition_1 == 1  # 26: o chefe 1011 ('Çene') morto
+        assert _quests(boss)[80].condition_1 == 1  # 26: o chefe 1011 (Wulfgar) morto
         await entrega(g, 80)
 
         strategy = (await characters.snapshot(g.user_id)).character.strategy
-        [(pos, _)] = await kurt_pilhas(g)
+        [(pos, _)] = await tooth_piles(g)
         got = await entrega(g, 90)
         assert _quests(got)[90].isComplete
-        assert await kurt_pilhas(g) == []  # a entrega tirou a pilha inteira
+        assert await tooth_piles(g) == []  # a entrega tirou a pilha inteira
         removed = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
-        assert [m.changePos for m in removed if not m.HasField("item")] == [pos]  # 115 vazio na posição (replay #1609)
-        ao_completar = [
-            i
-            for i, p in enumerate(got)
-            if p.code == 112
-            and any(q.templateId == 90 and q.isComplete for q in pb.QuestUpdatedRspMsg.FromString(p.body).quest)
-        ]
-        assert ao_completar and codes(got).index(115) < ao_completar[-1]  # o 115 sai antes do 112 (replay #1609-#1611)
+        assert [m.changePos for m in removed if not m.HasField("item")] == [pos]
         last = [p for p in got if p.code == 3][-1]
-        assert pb.PlayerMsg.FromString(last.body).strategy == strategy + 1000  # Ruh da 90 no PlayerMsg (replay #1612)
-        assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 1000  # Ruh da 90
+        assert pb.PlayerMsg.FromString(last.body).strategy == strategy + 1000  # Daru da 90 no PlayerMsg
+        assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 1000
 
         done = {q.template_id for q in (await characters.snapshot(g.user_id)).quests if q.completed}
         assert {70, 80, 90} <= done  # gravado no banco

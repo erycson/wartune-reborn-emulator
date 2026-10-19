@@ -32,3 +32,16 @@ async def test_carta_da_masmorra_como_no_replay(tmp_path: Path) -> None:
         cid = snap.character.id or 0
         snap.items.extend(Item(cid, 2040101, pos=p) for p in range(bag.BAG_BASE) if not bag.at(snap, BagType.BAG, 0, p))
         assert drops.card(snap, templates, 1001, 2) is None  # mochila cheia
+
+
+async def test_carta_sorteia_pela_tabela_do_banco(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap, templates = session.snapshot, g.server.services.templates
+        table = g.server.services.world.campaign_cards[1002]  # migração 0034
+        assert (2040102, 2.0) in table  # Lvl. 2 Luck Stone: 2 em 2 na captura inglesa, fora do CampaignInfo.Item
+        assert {t for t, _ in table} >= set(drops.pool(templates, 1002))  # os do template pesam 1
+        got = [drops.card(snap, templates, 1002, 0, random.Random(seed), table=[(2040102, 1.0), (1011104, 0.0)])
+               for seed in range(5)]  # fmt: skip
+        assert {item.template_id for item, _, _ in filter(None, got)} == {2040102}  # peso 0 nunca sai

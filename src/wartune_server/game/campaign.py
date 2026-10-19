@@ -11,17 +11,19 @@ como estavam naquele ponto (``RESUME``) e o guia do cliente continua dali.
 from __future__ import annotations
 
 import copy
+import struct
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from google.protobuf.json_format import ParseDict
 
-from ..content import dungeon, tutorial
+from ..content import tutorial
 from ..protocol.messages import wartune_pb2 as pb
 
 FIRST_MAP, SECOND_MAP = 10001, 10002
-DUNGEON_FIRST, DUNGEON_SECOND = 1011, 1021  # masmorra Kurt İni (campanha 1001), em ordem
 PET_ISLANDS = range(20001, 25001)  # WorldBossHelper.checkPetLand: 20000 < mapa <= 25000
 SECOND_MAP_FROM = 15500  # noviceProcess a partir do qual o jogador já passou pelo portal
 ESCORT_FROM = 15300  # a Tina segue o jogador desde aqui (mapa 10001) até o fim
@@ -30,6 +32,8 @@ FOG_ROWS, FOG_COLS = 18, 19
 NORMAL, FIGHTING, DONE = 1, 4, 8  # CampaignNodeMsg.state (2 = NPC parado, 16 = escondido)
 HIDDEN = 16
 MONSTER, TRIGGER, PANDORA = 42, 53, 61  # masterType (61 também é o baú de ouro, sem buff em param3)
+BOSS, COLLECT = 41, 91  # masterType: chefe (a vitória fecha o mapa) e pilha da pedreira (6001)
+SHOW = 2  # ação do param4 sem ``,ação`` (1002: "113106"): o nó aparece só com o 128, sem FLICKER (#2471)
 AGGRESSIVE = 1  # attackTypes: persegue o jogador (8196 -> 4105)
 FLICKER_DELAY, DISAPPEAR_DELAY = 85, 35  # delay das PlayerMovieMsg de liberar/esconder um nó (replay #1595/#1597)
 
@@ -54,6 +58,21 @@ def map_for(novice: int) -> int:
 
 
 @dataclass
+class StageRun:
+    """Uma etapa de masmorra em andamento (do 125 tipo 1 ao 137): o que o relatório conta. Passa de um mapa ao
+    outro da etapa (1131 -> 1132): (visto) o ``time`` do 137 #2705 (189) conta desde o 125 do 1131 (#2311)."""
+
+    campaign_id: int
+    stage: int  # índice em ``content["stages"]``
+    maps: tuple[int, ...]
+    started: datetime
+    wound: int = 0  # dano que o lado do jogador causou
+    hurt: int = 0  # dano que o lado do jogador sofreu
+    lost: int = 0  # lutas perdidas (``failedCount``)
+    batter: int = 0  # maior 8282 (combo) da etapa
+
+
+@dataclass
 class CampaignMap:
     map_id: int
     nodes: dict[int, dict[str, Any]]  # campDataId -> CampaignNodeMsg (como dict, estado muda)
@@ -62,12 +81,17 @@ class CampaignMap:
     callbacks: Counter[int] = field(default_factory=Counter)  # 5032 recebidos por nó
     fighting: int = 0  # campDataId em combate
     talked: set[int] = field(default_factory=set)  # nós cujo diálogo de chegada já saiu
-    dungeon: bool = False  # masmorra 1001 (``dungeon_1001.json``): sem Tina, com 130 da captura
+    dungeon: bool = False  # masmorra (``campaign_contents``): sem Tina, com 130 da captura
     fog_data: dict[str, Any] | None = None  # 130 da captura (só masmorra)
     card: int | None = None  # index do 5122 já virado (uma carta por mapa, depois do 135)
     finished: bool = False  # mapa vencido: o fim (137 ... 134) já saiu
     buffs: list[int] = field(default_factory=list)  # buffs da Pandora, zerados no fim
     world_boss: bool = False  # mapa do chefe do mundo (5001/5003): um nó, a luta em ``handlers/worldboss.py``
+    content: Mapping[str, Any] | None = None  # conteúdo da campanha (masmorra ou pedreira), do banco
+    run: StageRun | None = None  # etapa da masmorra (relatório 137)
+    quarry: bool = False  # pedreira 6001: coleta (5032) e a luta do 8699, sem fim nem carta
+    over: tuple[int, int] | None = None  # (gp, strategy) do 4382 que espera a volta ao mapa (5035 state 4)
+    ending: list[Any] | None = None  # etapa vencida: missões (Quest) que fecham no fim, que sai com o 4382
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:
@@ -82,10 +106,22 @@ class CampaignMap:
         return cls(map_id, nodes, tuple(data["start"]), escort=escort if following else 0)
 
     @classmethod
-    def enter_dungeon(cls, map_id: int) -> CampaignMap:
-        data = dungeon()["maps"][str(map_id)]
+    def enter_dungeon(cls, content: Mapping[str, Any], map_id: int, run: StageRun | None = None) -> CampaignMap:
+        data = content["maps"][str(map_id)]
         nodes = {n["campDataId"]: copy.deepcopy(n) for n in data["nodes"]}
-        return cls(map_id, nodes, tuple(data["start"]), dungeon=True, fog_data=data["fog"])
+        x, y = data["start"]
+        if "fog" not in data:  # pedreira: (visto) #1805-#1809 sem 130
+            return cls(map_id, nodes, (int(x), int(y)), content=content, quarry=True)
+        return cls(map_id, nodes, (int(x), int(y)), dungeon=True, fog_data=data["fog"], content=content, run=run)
+
+    def battle(self, camp: int | str) -> dict[str, Any] | None:
+        """Luta do nó (ou ``"8699"``, a da pedreira) no conteúdo da campanha."""
+        spec: dict[str, Any] | None = (self.content or {}).get("battles", {}).get(str(camp))
+        return spec
+
+    def part(self, name: str, camp: int | str) -> Any:
+        """Entrada ``camp`` de uma seção do conteúdo (``chests``, ``confirms``, ``wins``, ``plots``...)."""
+        return (self.content or {}).get(name, {}).get(str(camp))
 
     def node(self, camp: int) -> dict[str, Any] | None:
         return self.nodes.get(camp)
@@ -111,26 +147,76 @@ class CampaignMap:
         )
 
     def locked(self, camp: int) -> bool:
-        """Nó que só aparece quando o grupo de lobos cai (``param4`` com ação 1); some ao cair o grupo."""
+        """Nó que só aparece quando o grupo cai (``param4`` com ação 1 ou sem ação); some ao cair o grupo."""
         for n in self.nodes.values():
-            if any(target == camp and action == 1 for target, action in unlock_actions(n)):
+            if any(target == camp and action in (1, SHOW) for target, action in unlock_actions(n)):
                 return any(self.nodes[g]["state"] != DONE for g in group_of(n) if g in self.nodes)
         return False
 
 
-def group_of(node: dict[str, Any]) -> list[int]:
-    """Grupo de lobos de um nó (``param3`` do 127, ids separados por ``|``); vazio para os demais."""
+def group_of(node: Mapping[str, Any]) -> list[int]:
+    """Grupo de monstros de um nó (``param3`` do 127, ids separados por ``|``); vazio para os demais."""
     if node["masterType"] != MONSTER:
         return []
     return [int(x) for x in str(node.get("param3", "")).split("|") if x]
 
 
-def unlock_actions(node: dict[str, Any]) -> list[tuple[int, int]]:
-    """Ações ao cair o grupo (``param4`` do 127): ``campDataId,ação``. Ação 0 esconde, 1 mostra."""
-    return [(int(a), int(b)) for a, b in (x.split(",") for x in str(node.get("param4", "")).split("|") if x)]
+def unlock_actions(node: Mapping[str, Any]) -> list[tuple[int, int]]:
+    """Ações ao cair o grupo (``param4`` do 127 de um monstro): ``campDataId,ação``. Ação 0 esconde, 1 mostra
+    com FLICKER (1021); sem ``,ação`` (1002, "113106") só mostra (``SHOW``). Nos outros nós o param4 é outra coisa
+    (a caixa do 1132 lista os nós que fecham com ela)."""
+    if node["masterType"] != MONSTER:
+        return []
+    out = []
+    for x in str(node.get("param4", "")).split("|"):
+        if x:
+            target, _, action = x.partition(",")
+            out.append((int(target), int(action) if action else SHOW))
+    return out
 
 
 def battle_spec(camp: int) -> dict[str, Any] | None:
-    """Spec da luta de um nó: do tutorial (ids 1000xxx) ou da masmorra (ids 101xxx/102xxx)."""
-    spec: dict[str, Any] | None = tutorial()["battles"].get(str(camp)) or dungeon()["battles"].get(str(camp))
+    """Spec da luta de um nó do tutorial (ids 1000xxx); as masmorras usam ``CampaignMap.battle``."""
+    spec: dict[str, Any] | None = tutorial()["battles"].get(str(camp))
     return spec
+
+
+# -- relatório do fim da etapa (137) ---------------------------------------------------------------
+# (visto) os seis 137 das capturas (inglesa #1098, #1521, #2705, #3157; turca #1215, #1722) têm notas 1, 5, 5 e 4:
+# dano causado / StandardDamage de 0,17 a 0,51 é D, dano sofrido / StandardHurt abaixo de 0,18 é S, sem derrota é S.
+# (dedução) os degraus abaixo e a nota total = média arredondada; nada além disso fecha com as amostras.
+WOUND_STEPS = (0.6, 0.7, 0.8, 1.0)  # causado/StandardDamage: abaixo do 1º = D (1) ... a partir do último = S (5)
+HURT_STEPS = (0.2, 0.4, 0.6, 0.8)  # sofrido/StandardHurt: até o 1º = S (5) ... acima do último = D (1)
+GP_BONUS = 1.05  # (visto) totalGp 630 com BaseGp 600 e 839 com 800: (int)(BaseGp * 1.05f) em float de 32 bits
+
+
+def _f32(x: float) -> float:
+    return float(struct.unpack("f", struct.pack("f", x))[0])
+
+
+def total_gp(base_gp: int) -> int:
+    """EXP do fim da etapa. 800 * 1,05 = 840, mas o oficial mandou 839: a conta é em float (``1.05f``)."""
+    return int(_f32(_f32(base_gp) * _f32(GP_BONUS)))
+
+
+def grades(run: StageRun, row: Mapping[str, Any]) -> tuple[int, int, int, int]:
+    """Notas (1 = D ... 5 = S): dano causado, dano sofrido, derrotas e a total."""
+    dealt = run.wound / max(1, int(row.get("StandardDamage") or 0))
+    taken = run.hurt / max(1, int(row.get("StandardHurt") or 0))
+    wound = 1 + sum(dealt >= s for s in WOUND_STEPS)
+    hurt = 5 - sum(taken > s for s in HURT_STEPS)
+    failed = max(1, 5 - run.lost)
+    return wound, hurt, failed, int((wound + hurt + failed) / 3 + 0.5)
+
+
+def report(run: StageRun, row: Mapping[str, Any], now: datetime) -> pb.CampaignReportMsg:
+    """137 calculado. ``time``: segundos desde o 125 da etapa (visto: 143,7 -> 143 ... 177,3 -> 177).
+    ponytail: ``StandSecond`` não entra em nota nenhuma do 137 (não há campo de tempo avaliado); time/friend/vip
+    join ficam 0 (jogo solo, sem VIP na captura)."""
+    wound, hurt, failed, total = grades(run, row)
+    return pb.CampaignReportMsg(
+        time=int((now - run.started).total_seconds()), woundValue=run.wound, hurtValue=run.hurt,
+        failedCount=run.lost, woundAppraisal=wound, hurtAppraisal=hurt, failedAppraisal=failed,
+        totalAppraisal=total, batter=run.batter, teamJoin=0, friendJoin=0, vipJoin=0, propJoin=0, otherJoin=0,
+        totalGp=total_gp(int(row.get("BaseGp") or 0)), petGp=0,
+    )  # fmt: skip

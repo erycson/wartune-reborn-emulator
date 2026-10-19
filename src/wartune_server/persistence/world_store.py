@@ -1,4 +1,4 @@
-"""Lê o catálogo do mundo (tabelas ``world_*``, semente nas migrações 0027 e 0028) e as regras de evento (0033)."""
+"""Lê o catálogo do mundo (``world_*`` e ``campaign_*``: migrações 0027, 0028 e 0034) e as regras de evento (0033)."""
 
 from __future__ import annotations
 
@@ -21,6 +21,8 @@ from ..domain.world import (
     WorldBossReward,
 )
 from .schema import (
+    campaign_cards,
+    campaign_contents,
     exp_rate_events,
     game_settings,
     vip_wheel_prizes,
@@ -52,6 +54,10 @@ async def load(engine: AsyncEngine) -> World:
         settings = await conn.execute(select(game_settings))
         wheel = await conn.execute(select(vip_wheel_prizes).order_by(vip_wheel_prizes.c.position))
         rates = await conn.execute(select(exp_rate_events).order_by(exp_rate_events.c.id))
+        contents = await conn.execute(select(campaign_contents))
+        cards: defaultdict[int, list[tuple[int, float]]] = defaultdict(list)
+        for r in await conn.execute(select(campaign_cards).order_by(campaign_cards.c.id)):
+            cards[r.campaign_id].append((r.template_id, r.weight))
         return World(
             mines=tuple(Mine(r.id, r.map_id, r.pos_x, r.pos_y, r.min_level, r.max_level) for r in mines),
             mine_guards=MappingProxyType({r.level: r.pawn_id for r in guards}),
@@ -79,4 +85,6 @@ async def load(engine: AsyncEngine) -> World:
             exp_rates=tuple(
                 ExpRate(r.rate, r.begin_day, r.end_day, r.begin_time, r.end_time, r.buffer_type) for r in rates
             ),
+            campaigns=MappingProxyType({r.campaign_id: json.loads(r.data) for r in contents}),
+            campaign_cards=MappingProxyType({c: tuple(v) for c, v in cards.items()}),
         )

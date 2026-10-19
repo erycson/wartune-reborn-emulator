@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
+from tests.game.test_masmorra_1001 import content
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.content import dungeon
 from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
 from wartune_server.game.campaign import DONE, CampaignMap
@@ -115,30 +115,30 @@ async def test_27_nao_conta_item_que_nao_esta_na_bolsa(tmp_path: Path) -> None:
         assert not rules.quest_done(snap, templates, q90, datetime.now(UTC))
 
 
-def test_drops_por_no_do_1021_como_visto_no_replay() -> None:
-    drops = dungeon()["drops"]
+def test_drops_por_no_do_1021_como_visto_na_captura() -> None:
+    drops = content(1001)["drops"]  # [item, n, chance]; o Luck Stone (chance 0,5) é da captura turca
     assert drops == {
-        "102102": [[KURT_DIS, 2], [SANS_TASI, 1]],
-        "102103": [[KURT_DIS, 2]],
-        "102105": [[KURT_DIS, 3]],
-        "102106": [[KURT_DIS, 3]],
+        "102102": [[KURT_DIS, 2, 1.0], [SANS_TASI, 1, 0.5]],
+        "102103": [[KURT_DIS, 2, 1.0]],
+        "102105": [[KURT_DIS, 3, 1.0]],
+        "102106": [[KURT_DIS, 3, 1.0]],
     }
-    assert sum(n for nodo in drops.values() for t, n in nodo if t == KURT_DIS) == 10  # 8 da 90, com folga
+    assert sum(n for nodo in drops.values() for t, n, _ in nodo if t == KURT_DIS) == 10  # 8 da 90, com folga
 
 
 def test_fim_de_mapa_so_com_o_grupo_caido_e_sem_param4() -> None:
-    camp = CampaignMap.enter_dungeon(1011)
+    camp = CampaignMap.enter_dungeon(content(1001), 1011)
     for wolf in (101102, 101105, 101106):  # 101103 ainda de pé
         camp.nodes[wolf]["state"] = DONE
     assert not _map_finished(camp, 101109)
     camp.nodes[101103]["state"] = DONE
     assert _map_finished(camp, 101109)  # último lobo do 1011: sem param4, o mapa acaba
 
-    camp = CampaignMap.enter_dungeon(1021)
+    camp = CampaignMap.enter_dungeon(content(1001), 1021)
     for wolf in (102102, 102103, 102105):
         camp.nodes[wolf]["state"] = DONE
     assert not _map_finished(camp, 102106)  # o 102106 tem param4 (libera o chefe): desbloqueia, não acaba
-    assert _map_finished(camp, 102109)  # chefe sem grupo: acaba o mapa
+    assert _map_finished(camp, 102109)  # chefe (masterType 41): acaba o mapa
 
 
 def test_kurt_dis_e_sans_tasi_existem_e_cabem_numa_pilha() -> None:

@@ -204,12 +204,11 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         assert [p.code for p in await g.idle()] == [ALERT] and ch.point == 5
 
 
-async def test_campanha_de_mina_nao_e_chefe_e_diz_indisponivel(tmp_path: Path) -> None:
-    """O botão ir de uma missão de coleta (NeedFightId 6001, Maden Ocağı, Types 2) manda 8258 com essa campanha
-    (cliente: TaskFrameII.as:707-708). Não é chefe e a entrada não existe aqui: aviso de indisponível, sem
-    cobrar nada, não o "inválido" de id que não existe."""
+async def test_campanha_que_nao_e_chefe_nem_pedreira_diz_indisponivel(tmp_path: Path) -> None:
+    """8258 com uma campanha que existe mas não é chefe nem pedreira (a 6001 entra: test_pedreira_6001.py): aviso de
+    indisponível, sem cobrar nada, não o "inválido" de id que não existe."""
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(OPEN_5001)) as g:
-        g.client.send(8258, pb.WorldBossMsg(param1=6001))
+        g.client.send(8258, pb.WorldBossMsg(param1=1001))
         [alert] = await g.idle()
         assert alert.code == ALERT
         assert pb.ChatChannelMsg.FromString(alert.body).encodeMsg == "This action is not available now."

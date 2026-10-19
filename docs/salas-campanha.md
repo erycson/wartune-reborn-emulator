@@ -62,7 +62,7 @@ recusados, e 5026/8465 de outro tipo voltam vazios. Antes, uma sala PvP virava s
 | 5122 | CAMPAIGN_TAKE_CARD | feito (masmorra) | replay (#1166 -> #1227-#1243, #1651 -> #1730-#1747); cliente (`ChestFrame`) | Corpo visto: `paraInt1` 58073072 (o id do exército), `paraInt2` 2 (o `index` da carta), `paraBool1` false (`isPay`; true no `autoChest`, quando o tempo do quadro acaba). (cliente) só sai do clique numa carta do 135, então vem depois do fim; no relay aparece antes porque o relay não guarda a ordem entre C>S e S>C: o S>C chega uns 30 pacotes atrasado (o 10007 da luta 4c4d40c7 no #1153 vem antes do 157 dela no #1186; o 5033 do #1120 antes do 29 do #1154). Com o mapa vencido e nenhuma carta virada, sorteia em `drops.card` (`Campaigns.Item`), grava o item num save e responde 115, 26 com o `index`, 83 e 134 (mochila cheia: só o 134). Antes do fim, `index` fora de 0..`cardCount`-1 ou segunda carta: sem efeito. Falta: chance de cada item e cartas pagas ([drops-masmorras.md](drops-masmorras.md)). |
 | 5126 | CAMPAIGN_FOG_UPDATE | feito (masmorra) | replay (#950 -> #953) | Na masmorra devolve 19 com os mesmos `index` e `fogByte` enviados. A névoa não é guardada: o 130 volta com a névoa da captura no próximo ENTER. No tutorial, sem efeito. |
 | 5180 | CAMPAIGN_FINISH | parcial | replay (#1169, #1653); cliente (`ChestFrame`) | `paraInt1` 1 = o quadro das cartas fechou (`dispose`, 8 s depois do 26), 2 = jogar de novo (`campaignAgain`). Sem efeito: a resposta não dá para separar no relay. (O revisor tirou a leitura "5180 solta a última luta": o 157 do #1186 é da chegada #1148, o relay não guarda a ordem entre C>S e S>C: o S>C chega uns 30 pacotes atrasado (o 10007 da luta 4c4d40c7 no #1153 vem antes do 157 dela no #1186; o 5033 do #1120 antes do 29 do #1154).) Depois do #1169 o cliente manda 5035 state 0 e 8747 (volta ao castelo) e o 5039 #1212 leva ao 1021. |
-| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | feito (masmorra) | replay (#908, #1212) | Corpo `{1: 1, 2: 1001}` (campanha 1001). Não há tipo C>S para o 5039 no `opcodes.json`: o handler recebe `None` e ignora o corpo. Entra no 1011: 125 (`RoomCreatedMsg`, campaignId 1011), 140, 21, 127 (10 nós), 130 (névoa 24 x 19), 143 e 138 (diálogo de entrada, `{nick}`). Com o 1011 vencido, o mesmo 5039 leva ao 1021, sem diálogo. Cada mapa gasta 20 de Beden (`weary`, 200 → 180 → 160) e manda 3 e 83 "[Kurt İni] haritasına girildi, 20 can kullanıldı." (#917-#918, #1319-#1320), gravado num save; com menos de 20 não entra e não responde (a recusa do oficial precisa de captura). Sair para a cidade do céu (8688) entre os mapas zera `s.campaign` e o próximo 5039 volta ao 1011 (*dedução*). (dedução) vencido o 1021, o 5039 recomeça no 1011: a captura não mostra. |
+| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | feito (masmorras) | inglesa (#843, #1151, #2310, #2788) | `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}`. Entra na etapa da vez da campanha pedida (`campaign_stage:<id>`): 125, 140, 21, 127, 130, 143, [138], 3, 83 "Entered [Worg Lair] and deducted 20 stamina.". 20 de estamina por etapa; sem estamina não entra e não responde (a recusa do oficial precisa de captura). Ver a seção das masmorras. |
 | 4240 | U_C_ENTER_COPY_NUM_REFRESH (S>C) | parcial | visto (buyuk_sefer #3), cliente (`PlayerManager.__uPlayerEnterCopyNumHandler`) | Sem C>S. Vem depois do Büyük Sefer com `campaignCount` e `campaignMaxcount` (ver Persistência). Nenhum gasto de entrada visto. |
 | 8286 | C_ROOM_REFUSE | completo | cliente (`sendRefuseInvite`, 4194) | Alterna "recusar convites". Responde 4194. O bloqueio do 5142 da guilda é *(dedução)*, ver [guilda.md](guilda.md). Não há convite de sala no servidor. |
 | 8297 | TOWER_INFO | parcial | captura (4205) | 4205 com `maxIndex=60`, `campaignId=8001`, 0 entradas feitas e 1 livre de 1 (visto em `labirent_sandik` #17 e `yeralti` #1). `index` ecoa o pedido; `towerIndex` (andar atual) fica 0 sem progresso. `totalGp`, `itemTempIds` e `order` dependem de progresso. |
@@ -120,25 +120,135 @@ capturar.
   no 4240, com 115, 111 "Grup Ek Sahne yararı 1 kez arttı" e 3. O base é `MultiCampaign_MaxCount` (1). *(dedução)*
   o reset volta ao base no dia seguinte: o item diz que vale no dia do uso, e o reset em si não foi capturado.
 
-## Masmorra Kurt İni (campanha 1001)
+## Masmorras 1001 e 1002 e a pedreira 6001
 
-Mapas 1011 e 1021, nós, névoa, lutas, Pandora, baús e fim vêm de `content/dungeon_1001.json`, extraído da captura por `tools/extract_dungeon.py` (mesmo padrão do tutorial, sem nada do jogador). A sessão guarda o mapa em `CampaignMap` com `dungeon=True`: sem Tina e sem a tabela de retomada do tutorial.
+O conteúdo vem do banco: tabela `campaign_contents`, um JSON por campanha, gravado pela migração 0034 a partir de
+`persistence/migrations/versions/0034_campanhas.json`. O JSON sai da captura inglesa com
+`tools/extract_dungeon.py captures/tutorial_en.json --campaign N`. Ele traz os mapas (nós, névoa, ponto de partida,
+exército do 5038, diálogo de entrada e o 135), as lutas por nó, os diálogos de chegada, os baús, as perguntas (29)
+com o desfecho, as moedas das caixas, os drops com chance, os avisos, os portais e a coleta. O `World` carrega
+tudo uma vez (`world.campaigns` e `world.campaign_cards`). As fontes são as linhas `#N` de `captures/tutorial_en.txt`.
 
-- **Chegada (5125)**: nó com luta no `battles` começa a luta (inclusive o 101109 e o chefe 102109). Pandora (`param3` com buffs) manda o 29. Baú de ouro (101108 e 102108 com 500 e 126, 102104 com 111 "Kazanılan:Altın 500") dá o ouro num save só: 109, 126 ou 111, 128, 83 (#1020-#1023, #1475-#1477). Nó travado (`CampaignMap.locked`: o chefe 102109 só libera com o grupo caído) não reage.
-- **Grupo de lobos**: a vitória só fecha o grupo (`param3`) quando todos caem. O `param4` do último lobo esconde (action 0, DISAPPEARD) ou mostra (action 1, FLICKER) outro nó; no 1021 vem o aviso (126) antes.
-- **Fim**: vencer o último nó (101109 no 1011, chefe 102109 no 1021) manda 137, 4151, 83, 135, 4165, 150, 150, 140 (#1722-#1729); com a 70 aberta, o 112 dela sai entre o 135 e o 4165 (#1215-#1226). A carta sai quando o jogador clica (5122): `drops.card` (`Campaigns.Item`) com 115, 26, 83, 134 e o item gravado. Uma carta por mapa. O buff da Pandora zera no fim; a "Ruh" do chefe (`strategyBonus` 72) entra no personagem.
-- **Ordem do relay**: o relay não guarda a ordem entre C>S e S>C: o S>C chega uns 30 pacotes atrasado (o 10007 da luta 4c4d40c7 no #1153 vem antes do 157 dela no #1186; o 5033 do #1120 antes do 29 do #1154). Só a ordem S>C entre si vale; o extrator não usa mais a ordem C>S.
-- **Loot das lutas**: `content/dungeon_1001.json` (campo `drops`, por nó) dá o item de cada luta vencida: 102102 Kurt Dişi x2 e Şans Taşı Lv.1 x1, 102103 Kurt Dişi x2, 102105 e 102106 Kurt Dişi x3 cada (visto: replay #1355-#1592). Os Kurt Dişi formam uma pilha só (pos 6: 2, 4, 7 e 10). O Şans Taşı sai direto no 115 da luta; o oficial usa um baú (desvio). Os lobos do 1011 e o chefe não dão item. Sem chance (ver [drops-masmorras.md](drops-masmorras.md)).
-- **Missões da 1001**: o fim de cada mapa (`campaign._map_finished`) vale a condição 14 (campanha 1001) e a 31 (cena solo, capacidade 1). A 26 (chefe 102109 morto, `Para1` 1011) é contada na batalha do chefe. A 27 (Kurt Dişi na bolsa) é lida e paga na entrega (5014): a pilha inteira sai, com o 115 vazio antes do 112 de conclusão (#1609-#1611). Fecham com a 1001: 70, 80 e 90 (ver [missoes.md](missoes.md)).
-- **Diferenças de captura**: a EXP do fim (630, no texto do 83) é constante copiada: o `BaseGp` do 1001 é 600 e não explica o número. O diálogo de entrada é só o do 1011.
+**Etapas.** As etapas são: 1001 = [1011], [1021]; 1002 = [1131 → 1132], [1141 → 1142]; 6001 = [6001].
+
+**Entrada (5039).** O 5039 manda `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}` (o corpo `08 01 10 e9 07` é
+a 1001). A etapa sai do estado do personagem: o `EventState` `campaign_stage:<id>` avança no fim de cada etapa. A
+captura mostra o mesmo 5039 levando ao 1011 e depois ao 1021 (#843, #1151), e ao 1131 e depois ao 1141 (#2310,
+#2788). *(dedução)* Depois da última etapa, volta à primeira.
+
+A entrada custa 20 de estamina e manda, nesta ordem: 125 tipo 1, 140, 21, 127, 130, 143, 138 (se o mapa tem
+diálogo), 3 e o 83 "Entered [Worg Lair] and deducted 20 stamina." (#844-#853). Sem estamina, o servidor fica calado.
+
+**Portal.** O nó do portal (masterType 62: 113106, 114106) responde 4208, 125 tipo 3, 127, 130, 21 e 131
+(#2503-#2508). A etapa (`StageRun`) passa para o mapa novo, então o tempo do 137 conta desde o 125 do 1131.
+
+**Chegada (5125).** O que acontece depende do nó:
+
+| Nó | Resposta |
+|---|---|
+| Com diálogo (Karlan 113205) | 138, um a cada 5125 (#2666-#2667). A luta vem no 5032 do fim do diálogo. |
+| Caixa ou tumba (61, com pergunta) | 29 e 4126 na posição do nó + 2 (#1428-#1429, #2397-#2398). |
+| Monstro ou chefe com luta | A luta começa. |
+| Baú de ouro | 109, depois 126 ou 111, depois 128 e 83 "Received: 500 Gold" (#945-#948). |
+
+A Pandora do 1011 nunca foi aberta na captura. *(dedução)* Ela usa o 29 da Pandora de mesmo `sonType` (102107),
+com o nó trocado.
+
+**Resposta ao 29 (5033).** O desfecho depende do conteúdo do nó:
+
+| Nó | Resposta |
+|---|---|
+| Pandora | 4165 com o buff, 150, 150, 111, 128 DONE, 83 "Received: Rage Boost" (#1433-#1438). O buff é sorteado entre os do `param3`, e o texto é o `CampaignBufferTemps.TemplateName`. |
+| Tumba com sentinela (113105) | 126 "You've startled a sentinel... begin battle!", 128 com `visitUserIds`, depois a luta (#2400-#2404). |
+| Caixa do caçador (113203, 114203) | A luta. Na vitória: 3, 126 "Received: 10,000 Daru", 128 DONE para cada nó do `param4` da caixa (a caixa e os reforços 113207/113208) e 83 (#2630-#2644). |
+| Tumba com Daru (114105) | 3, 126 "Received: 5,000 Daru", 128 state 1 visitado, 83 (#2874-#2877). |
+
+*(dedução)* O desfecho de cada nó é fixo, o mesmo da captura. O oficial pode sortear: só uma passada foi
+capturada.
+
+**Grupo de monstros.** O `param4` do monstro diz o que muda quando o grupo cai:
+
+- `id,0`: o nó some (DISAPPEARD).
+- `id,1`: o nó aparece com FLICKER (o chefe do 1021).
+- só `id`, sem ação (1002): o nó aparece só com o 128, como o portal do 1131 (#2470-#2471).
+
+O 1021 manda o aviso 126 "Defeat all the worgs to remove the obstacle." antes.
+
+Há um desvio de ordem. No oficial (#1408-#1422), o aviso e os filmes saem antes do 128 do lobo, e o 128 do chefe
+sai depois do 4382. Aqui eles saem depois do 128 e do 83 do drop.
+
+**Luta.** O fim da luta manda: 3, 4103, 83 "Received 35 EXP " (com o espaço no fim, #909), 150, 100, 140, 131. Se
+houver drop, vêm 115 e 111. Depois saem 112, o 128 DONE e o 83 do drop. O 4382 só sai quando o cliente volta ao
+mapa, no 5035 state 4 (#1094-#1096). Ele leva o `strategy` do chefe (Daru: 88 no Wulfgar, 9 no Karlan, 28 na
+Karda).
+
+**Fim da etapa.** O mapa acaba com o chefe (masterType 41) ou com o grupo todo caído sem `param4`; caixas e tumbas
+não acabam o mapa. O fim só sai no último mapa da etapa e vai junto do 4382: 3, 137, 4151, 83 "Received 630 EXP ",
+135, 112 (missões do fim), 4165, 150, 150, 140 (#1096-#1107, #2703-#2714). O 20 no meio é a resposta do 5038.
+
+**Carta (5122).** O 5122 responde 115, 26 e 83 "Received: Banshee Plume x1". O 5180 responde 134 e tira o jogador
+do mapa (#1124-#1126).
+
+**Relatório 137.** O cálculo está em `game/campaign.py` (`report`, `grades`, `total_gp`):
+
+| Campo | Cálculo |
+|---|---|
+| `time` | Segundos inteiros desde o 125 da etapa. *(visto)* 143, 151, 189, 177. |
+| `woundValue` | Dano que o lado do jogador causou na etapa (`Battle.wound`). |
+| `hurtValue` | Dano que o lado do jogador sofreu na etapa. A soma da captura não fechou com os 153, então vale a nossa simulação. |
+| `failedCount` | Lutas perdidas. |
+| `batter` | Maior 8282 recebido na etapa. O 8282 da última luta chega depois do 137 (#2698 → #2705), e o 7 mostrado é o maior anterior. |
+| `woundAppraisal` | `1 + quantos de (0,6; 0,7; 0,8; 1,0)` a razão dano causado / `StandardDamage` alcança. |
+| `hurtAppraisal` | `5 − quantos de (0,2; 0,4; 0,6; 0,8)` a razão dano sofrido / `StandardHurt` passa. |
+| `failedAppraisal` | `max(1, 5 − derrotas)`. |
+| `totalAppraisal` | Média das três notas, arredondada. |
+| `totalGp` | `int(float32(BaseGp) × 1.05f)`: 600 → 630 e 800 → 839, como na captura (#1100, #2707). |
+
+As notas vão de 1 = D a 5 = S. *(dedução)* Os limites das notas foram deduzidos. As seis amostras (inglesa #1098,
+#1521, #2705, #3157 e turca #1215, #1722) dão 1, 5, 5, 4 e fecham com esses degraus. A internet não trouxe a
+fórmula. O `StandSecond` não entra em nota nenhuma: o 137 não tem nota de tempo. O 4151 lista a melhor nota total
+de cada campanha (`campaign_rank:<id>`), em ordem de id.
+
+**Pedreira 6001.** O 8258 `{param1: 6001}` entra; é o botão "ir" da missão 102 (TaskFrameII.as:707). A entrada
+manda 125, 140, 140, 21 e 127, sem névoa (#1805-#1809). A coleta funciona assim:
+
+- 5125 numa pilha (masterType 91) responde 143 COLLECTION com o `nodeId`.
+- Cada 5032 dá 2 ou 3 Wood (115, 111, 83 "Received: Wood x2"). A pilha nunca fecha.
+- *(ponytail)* Não há limite de colheita.
+
+O 8699 começa a luta da coleta (140, 157; herói Affudda 11005, mapTempId 1). O fim manda 115, 111 "Received: Wood
+x18", 140, 4103, 150, 100, 83 e 4382 (#2050-#2070). A luta da captura foi perdida e a madeira veio mesmo assim. O
+5025 sai: 4165, 150, 150, 140, 22 e a cidade do céu (4595) (#2118-#2123). A missão 102 (tipo 32, Wood 2100022) lê
+a bolsa.
+
+**Não feito.** Ficaram de fora:
+
+- os reforços da caixa (72) e a fala no meio da luta (171);
+- as falas de NPC (4163, inclusive o "Welcome to the Resource Quarry!");
+- os movimentos de câmera (142);
+- o `RejectType` da Karda (1023, "19,100,38,39"): só registrado.
+
+**Tutorial e ilha dos pets.** Os dois continuam em `content/*.json`. `CampaignMap.enter`, o 127 da ilha e os
+testes do tutorial leem esses arquivos sem banco, de forma síncrona. Levar para o banco é mudar esse caminho todo,
+e o custo é alto para conteúdo que não muda.
+
+**Correlações.**
+
+| Missão | Liga com |
+|---|---|
+| 70 | Passar a 1001 (tipo 14). |
+| 80 | Wulfgar (GameHeroTemp 1011), o chefe 102109. |
+| 90 | 8 Worg Tooth (2100001), dos lobos do 1021. |
+| 120 | Passar a 1002 (tipo 14) (#2710). |
+| 130 | Os irmãos tauren, Karlan (1022) e Karda (1023). |
+| 102 | Wood 2100022 (tipo 32), da pedreira 6001. |
 
 ## Dependências que faltam
 
-- **Começar a campanha da sala**: o 5039 entra no 1011 (seção da masmorra). Falta a escolha da campanha antes do 5039: o `InstanceSelectFrame` não está decompilado, então ainda não foi capturada. Até lá a sala fica "Savaş seçilmedi".
-- **Progresso de campanha e mapa 2011**: o estado dos nós da masmorra não é salvo (só a carta e o progresso das missões 14, 26, 27 e 31 da 1001). O mapa 2011 não tem nós, e a varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
-- **Lista de soldados por mapa (5038)**: só 1011, 1021 e 2011 estão na captura. `PawnTempInfos` confere
-  para 2011 ("Otlak Kurdu", nível 5, no mapa 1011 de nível 5 a 7). Os demais mapas precisam de captura do
-  5038 de cada um.
+- **Começar a campanha da sala**: o 5039 entra na campanha pedida (seção das masmorras). Falta a escolha da campanha antes do 5039: o `InstanceSelectFrame` não está decompilado, então ainda não foi capturada. Até lá a sala fica "Savaş seçilmedi".
+- **Progresso de campanha e mapa 2011**: o estado dos nós da masmorra não é salvo (só a etapa da vez, a melhor nota, a carta e as missões). O mapa 2011 não tem nós, e a varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
+- **Lista de soldados por mapa (5038)**: as campanhas no banco levam a sua (`maps[mapa].army`, inglesa
+  #924, #1524, #2513); fora delas só o 2011 (peri_uyanis). Os demais mapas precisam de captura do 5038 de cada um.
 - **Varredura (8528)**: falta a captura do pedido C>S. As respostas 4425 estão nas capturas, mas nenhuma
   tem o pedido. Além disso, o progresso de campanha (vitória) não é salvo.
 - **Torre**: sem progresso salvo. Os limites vistos (1 de 1, `maxIndex` 60) estão no 8297; a torre real
@@ -160,8 +270,9 @@ Mapas 1011 e 1021, nós, névoa, lutas, Pandora, baús e fim vêm de `content/du
 ## Testes
 
 - `tests/game/test_rooms_teams.py`: registros de salas e times, sem sessão.
-- `tests/game/test_masmorra_1001.py`: masmorra Kurt İni: entrada (125, 140, 21, 127, 130, 143, 138); luta do lobo (157, 4103, 128, 4382); último lobo começa no 5125; Pandora (29, mapa errado sem efeito, depois 4126, 4165, 150, 150, 128, 111, 83, segunda caixa nada); baú de 500 uma vez e gravado (109, 126, 128, 83; 102104 com 111); chefe travado (`CampaignMap.locked`); 5122 antes do fim sem efeito; mapa 1011 inteiro, fim sem carta, 5122 fora das 5 cartas sem efeito, 5122 com 115, 26, 83, 134, carta gravada e uma só; grupo do 1021 (126, 143, 143, 128) e fim com o chefe e a carta dele; 5126 (19); missões 70, 80 e 90 fecham jogando a 1001 do começo ao fim (`test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim`); pilha única do Kurt Dişi (2, 4, 7, 10), Ruh da 90 no PlayerMsg e o guia depois da 70 (`test_guia_depois_da_70_aprende_a_skill_e_avanca_o_novice`).
-- `tests/game/test_missoes_masmorra.py`: condições 14, 25, 26, 27 e 31 contra a masmorra (casam o id e não somam, Para1 em lista, chefe pelo template, bolsa com entrega de todas as unidades, cena solo, fim de mapa com o grupo caído e sem `param4`) e os drops por nó.
+- `tests/game/test_masmorra_1001.py`: 1001 pela captura inglesa: entrada (125, 140, 21, 127, 130, 143, 138, 3, 83 em inglês), campanha inexistente e a pedreira não entram pelo 5039, estamina, luta do lobo (4382 só no 5035 state 4), Pandora (29 e 4126 na chegada; 4165, 150, 150, 111, 128, 83), baú de 500, chefe travado, 5122/5180 fora do fim, fim do 1011 (137 com `totalGp` 630, 4151, carta 115, 26, 83; 134 no 5180; etapa avança), 1021 (aviso, DISAPPEARD, FLICKER, chefe, Daru 88, etapa volta a 0), 5126, 5038 do banco, missões 70, 80 e 90 jogando a 1001 inteira e o guia depois da 70.
+- `tests/game/test_masmorra_1002_pedreira.py`: `total_gp` (630, 839), notas das amostras (1, 5, 5, 4) e uma etapa com derrotas, `param4` com e sem ação, portal e fim de mapa; 1002 jogada (tumba com sentinela, portal 125 tipo 3, caixa do caçador com Daru e os nós que fecham, Karlan pelo 5032, fim com 839 e o 4151, 2ª etapa no 1141, tumba com Daru); pedreira (8258, COLLECTION, colheita, 8699 com Wood x18, 5025).
+- `tests/game/test_missoes_masmorra.py`: condições 14, 25, 26, 27 e 31 contra a masmorra (casam o id e não somam, Para1 em lista, chefe pelo template, bolsa com entrega de todas as unidades, cena solo, fim de mapa com o grupo caído e sem `param4`) e os drops por nó (com chance).
 - `tests/game/test_salas_campanha.py`: os 29 opcodes têm handler (e 5025); corpo vazio não derruba a
   sessão; fluxo completo da sala com dois jogadores (criar, entrar, recusar, expulsar, passar o dono,
   sair, dissolver e queda por desconexão); convite sem amizade não chega.

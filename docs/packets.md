@@ -550,6 +550,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 5033 | 0x13A9 | U_C_CAMPAIGN_CONFIRM | CampaignReqMsg |  |
 | 5035 | 0x13AB | U_PLAYER_CLIENT_STATE | LoginStateMsg |  |
 | 5038 | 0x13AE | U_C_CAMPAIGN_SYSTEM_ARMY | CampaignReqMsg |  |
+| 5039 | 0x13AF | U_C_CAMPAIGN_ENTER | CampaignReqMsg |  |
 | 5041 | 0x13B1 | C_MICRO_CLIENT_INFO | SimplePropertyMsg |  |
 | 5120 | 0x1400 | U_C_CAMPAIGN_EXIT | RoomExitMsg |  |
 | 5121 | 0x1401 | U_C_CAMPAIGN_ARMY | CampaignReqMsg |  |

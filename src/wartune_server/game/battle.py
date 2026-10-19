@@ -129,6 +129,7 @@ class Battle:
         self._player_msg = player.msg if player is not None else None
         self.units = self._units(player)
         self.player = next((u for u in self.units if u.is_player), None)
+        self.wound = self.hurt = 0  # dano causado e sofrido pelo lado do jogador (relatório 137 da masmorra)
 
     @property
     def player_sp(self) -> int:
@@ -419,6 +420,10 @@ class Battle:
                     target.hp = shared.hp()
                 else:
                     target.hp = max(0, target.hp - value)
+                if unit.side == PLAYER_SIDE:
+                    self.wound += value
+                elif target.side == PLAYER_SIDE:
+                    self.hurt += value
                 msg.damages.add(
                     livingId=target.living_id, damageType=DAMAGE_HP, damageValue=value, leftValue=target.hp, parry=False
                 )

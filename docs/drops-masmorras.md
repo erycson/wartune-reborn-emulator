@@ -1,56 +1,77 @@
 # Drops das masmorras
 
-A carta do fim da masmorra sai da coluna `Item` de `Campaigns` (tempinfos.xml), lida em tempo de
-execução por `game/drops.py`: esta página é só um retrato dela, para conferir com vídeos e capturas.
+A carta do fim da etapa é sorteada pela tabela `campaign_cards` (migração 0034), no formato (campanha, item,
+peso, fonte). O peso é quantas vezes o item saiu nas capturas, inglesa e turca. Os itens da coluna `Item` de
+`Campaigns` que nunca foram vistos pesam 1. Uma campanha sem linhas na tabela usa a coluna `Item` com pesos iguais
+(`game/drops.py`). As tabelas por campanha abaixo são um retrato do template, para conferir com vídeos e capturas.
 
 ## O que é visto, deduzido e o que falta
 
-- *(visto)* replay #1221-#1243 e #1725-#1747, Kurt İni (1001): 135 (5 cartas, `payCardCount` 5), 115 com o
-  item, 26 `CampaignTakeCardsMsg` (`index` do 5122, `count` 1, `bind`, `randomSkill` já sorteados), 83
-  `Kazanılan:<nome> x1`, 134. Saíram 1080013 (Karanlık İzler, 3 atributos) e 1080002 (Parlak İşaret, 1).
-- *(dedução)* sorteio uniforme na lista, sem filtro de classe: o mesmo personagem tirou um item de mago
-  (Job 3) e um de guerreiro/arqueiro (Job 1,2). Os atributos saem do mesmo sorteio do refino (8336).
-- *(dedução)* o -700 (EXP) das torres não é carta: a EXP vem do `BaseGp`.
-- **Falta**: chance de cada item; cartas pagas (`payCardCount`, `price`); a carta em grupo (9000+, um
-  por jogador?); o prêmio das listas vazias (chefe do mundo 4001+, 5001/5003, 3001, 7501, 7601, labirintos
-  8001/8101). Anote na coluna *Visto em* o vídeo ou a captura (ex.: `vídeo X 03:12, caiu 1011104`).
-- **Ligado (1001)**: vencer o último nó do Kurt İni manda 137, 4151, 83, 135, [112 da 70, se aberta], 4165, 150, 150, 140 (`_dungeon_end`); o clique na carta (5122) sorteia com `drops.card` e responde 115, 26, 83, 134 com o item gravado, uma carta por mapa (`take_card`, `game/handlers/campaign.py`).
-- **Loot das lutas (ligado, sem chance)**: `content/dungeon_1001.json` (campo `drops`) dá o item de cada luta vencida, por nó (tabela abaixo). Os lobos do 1011 e o chefe 102109 não deram item. Nenhuma tabela do tempinfos liga nó a item (`CampaignData` só tem 130 linhas, sem os nós 101xxx/102xxx), então a lista vem só da captura. O servidor dá o item sempre: a chance não se separa na captura (dedução). Empilha: o Kurt Dişi cai numa pilha só (MaxCount 9999; replay: pos 6, com 2, 4, 7 e 10). O Şans Taşı sai direto aqui; no oficial é baú (4103 `baseItem`/`signId`, pick-up 5129). As outras masmorras desta lista ainda não rodam no servidor (ver [salas-campanha.md](salas-campanha.md)).
+- *(visto)* Inglesa #1102-#1123 (1001): 135 (5 cartas, `payCardCount` 5, `price` 0), depois 5122 → 115, 26 e 83
+  "Received: Banshee Plume x1". O 134 só vem como resposta do 5180.
+- *(visto)* Cartas da 1001: 1080012 Banshee Plume duas vezes (inglesa #1122 e #1544, mago); 1080013 e 1080002 uma
+  vez cada (turca #1241 e #1744).
+- *(visto)* Cartas da 1002: 2040102 Lvl. 2 Luck Stone nas duas (#2727, #3181). Esse item **não está** no
+  `CampaignInfo.Item` da 1002, então o sorteio do oficial não é a lista do template.
+- *(dedução)* O peso vem da contagem dessa amostra pequena. Não há filtro de classe: o mesmo personagem tirou
+  item de mago (Job 3) e de guerreiro/arqueiro (Job 1,2). Os atributos saem do mesmo sorteio do refino (8336).
+- *(dedução)* O -700 (EXP) das torres não é carta: a EXP vem do `BaseGp`.
+- **Carta paga**: nenhuma captura paga (`isPay`, `payCardCount`). A carta paga é tratada como a grátis, uma por
+  etapa.
+- **Falta**: a chance real de cada item; a carta em grupo (9000+, um por jogador?); o prêmio das listas vazias
+  (chefe do mundo 4001+, 5001/5003, 3001, 7501, 7601, labirintos 8001/8101). Anote na coluna *Visto em* o vídeo
+  ou a captura (ex.: `vídeo X 03:12, caiu 1011104`).
+- **Loot das lutas**: o campo `drops[nó]` do conteúdo da campanha (`campaign_contents`) guarda [item, quantidade,
+  chance]. Nenhuma tabela do tempinfos liga nó a item, então a lista vem só das capturas. Os itens empilham
+  (`bag.add`): o Worg Tooth cai numa pilha só.
 
-## 1001 Kurt İni (Lv 5, solo)
+## 1001 Worg Lair (Lv 5, solo)
 
-Ligado no servidor: mapas 1011 e 1021 em `content/dungeon_1001.json`. A chance de cada item não é conhecida; o sorteio é uniforme (ver acima).
+Ligada no servidor: mapas 1011 e 1021 (`campaign_contents` 1001).
 
-Drops das lutas, por nó (sem chance; visto no replay):
+Drops das lutas, por nó:
 
-| Nó | Item | Quantidade | Visto em |
-|---|---|---|---|
-| 102102 | Kurt Dişi (2100001) | 2 | 115 #1360 (pos 6, pilha de 2); 111 #1374 |
-| 102102 | Şans Taşı Lv.1 (2040101) | 1 | 4103 #1355 (`baseItem`, `signId`); pick-up 5129 #1332; 115 #1386 (pos 7); 111 #1400 |
-| 102103 | Kurt Dişi (2100001) | 2 | #1442 e #1457 |
-| 102105 | Kurt Dişi (2100001) | 3 | #1520 e #1536 |
-| 102106 | Kurt Dişi (2100001) | 3 | #1578 e #1592 |
-| 1011 (101102 a 101109) e 102109 | nenhum | — | sem item na captura |
-
-| Item | Nome | Classe | Atributos | Visto em |
+| Nó | Item | Quantidade | Chance | Visto em |
 |---|---|---|---|---|
-| 1080003 | Kazılmış Damga | guerreiro/arqueiro | 3 |  |
-| 1080013 | Karanlık İzler | mago | 3 | replay #1241 |
-| 1080002 | Parlak İşaret | guerreiro/arqueiro | 1 | replay #1744 |
-| 1080012 | Cadı Aksesuarı | mago | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| 102102 | Worg Tooth (2100001) | 2 | 1 | inglesa e turca (#1360) |
+| 102102 | Lvl. 1 Luck Stone (2040101) | 1 | 0,5 *(dedução)* | só na turca (#1355, #1386); a inglesa não deu |
+| 102103 | Worg Tooth (2100001) | 2 | 1 | inglesa #1275-#1280 |
+| 102105 | Worg Tooth (2100001) | 3 | 1 | inglesa e turca |
+| 102106 | Worg Tooth (2100001) | 3 | 1 | inglesa #1397-#1418 |
+| 1011 (101102 a 101109) e 102109 | nenhum | — | — | sem item nas duas capturas |
 
-## 1002 Hallen Düzlüğü (Lv 9, solo)
+Cartas:
 
-| Item | Nome | Classe | Atributos | Visto em |
-|---|---|---|---|---|
-| 1011104 | Dev Kılıç | guerreiro | 3 |  |
-| 1012104 | Bıçak Kemik Rüzgar Yaran | arqueiro | 5 |  |
-| 1013104 | Kan Ruhu Asa | mago | 5 |  |
-| 1011102 | Adalet Kılıcı | guerreiro | 1 |  |
-| 1012102 | Karanlık Kemik Yayı | arqueiro | 1 |  |
-| 1013102 | Ay Taşı Değneği | mago | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| Item | Nome | Classe | Atributos | Peso | Visto em |
+|---|---|---|---|---|---|
+| 1080003 | Kazılmış Damga | guerreiro/arqueiro | 3 | 1 |  |
+| 1080013 | Karanlık İzler | mago | 3 | 1 | turca #1241 |
+| 1080002 | Parlak İşaret | guerreiro/arqueiro | 1 | 1 | turca #1744 |
+| 1080012 | Banshee Plume | mago | 1 | 2 | inglesa #1122, #1544 |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 | 1 |  |
+
+## 1002 Baylon Plains (Lv 9, solo)
+
+Ligada no servidor: etapas 1131 → 1132 e 1141 → 1142.
+
+Drops: o 114104 deu 1080011 x1 *(dedução: chance 0,5)*. As caixas do caçador (113203, 114203) dão 10.000 Daru, e
+a tumba 114105 dá 5.000 Daru.
+
+| Item | Nome | Classe | Atributos | Peso | Visto em |
+|---|---|---|---|---|---|
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 | 2 | inglesa #2727, #3181 (fora do `CampaignInfo.Item`) |
+| 1011104 | Dev Kılıç | guerreiro | 3 | 1 |  |
+| 1012104 | Bıçak Kemik Rüzgar Yaran | arqueiro | 5 | 1 |  |
+| 1013104 | Kan Ruhu Asa | mago | 5 | 1 |  |
+| 1011102 | Adalet Kılıcı | guerreiro | 1 | 1 |  |
+| 1012102 | Karanlık Kemik Yayı | arqueiro | 1 | 1 |  |
+| 1013102 | Ay Taşı Değneği | mago | 1 | 1 |  |
+| 2040101 | Şans Taşı Lv.1 | todas | 0 | 1 |  |
+
+## 6001 Resource Quarry (pedreira)
+
+Não tem carta. Cada colheita (5032 numa pilha, sonType 2352) dá Wood (2100022) x2 ou x3, e a luta do 8699 dá
+Wood x18 (inglesa #2050-#2066), ganhando ou perdendo.
 
 ## 1003 Juits Dış Saray (Lv 11, solo)
 

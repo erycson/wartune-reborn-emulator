@@ -138,6 +138,10 @@ class World:
     settings: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))  # game_settings (JSON)
     vip_wheel: tuple[tuple[int, int], ...] = ()  # (TemplateId, quantidade) na ordem do 4414
     exp_rates: tuple[ExpRate, ...] = ()
+    # campanha -> conteúdo (`campaign_contents`, JSON de tools/extract_dungeon.py: nós, batalhas, baús...)
+    campaigns: Mapping[int, Mapping[str, Any]] = field(default_factory=lambda: MappingProxyType({}))
+    # campanha -> ((TemplateId, peso), ...) das cartas do fim (`campaign_cards`)
+    campaign_cards: Mapping[int, tuple[tuple[int, float], ...]] = field(default_factory=lambda: MappingProxyType({}))
 
     def mines_on(self, map_id: int) -> list[Mine]:
         return [m for m in self.mines if m.map_id == map_id]

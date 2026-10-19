@@ -17,25 +17,21 @@ trocar `game.jsp` por `Loading.swf` e abrir no projector; `pktmon filter add -p 
   `roleId` do jogador nas falas = `job`.
 - Missões: entrega (5014) na ordem e com os textos do oficial, missão 10 no registro (seção Missões).
 
-## Campanhas novas
+## Campanhas (feito)
 
 | mapa | campanha | situação |
 |---|---|---|
-| 1011, 1021 Worg Lair | 1001 | temos (`dungeon_1001.json`, captura turca) |
-| 1131→1132, 1141→1142 Baylon Plains | 1002 | **nova**: pares de mapas, relatório (137) e cartas (135) só no segundo |
-| 6001 Resource Quarry | 6001 | **nova**: 8258 entra, 5032 `cmd:2` coleta madeira, 8699 luta. Hoje recusada (`handlers/worldboss.py`) e trava a missão 102 |
+| 1011, 1021 Worg Lair | 1001 | **feito**: conteúdo inglês no banco (`campaign_contents`, migração 0034) |
+| 1131→1132, 1141→1142 Baylon Plains | 1002 | **feito**: etapas em par, portal (125 tipo 3), tumbas, caixa do caçador, Karlan e Karda |
+| 6001 Resource Quarry | 6001 | **feito**: 8258 entra, 5125 → 143 COLLECTION, 5032 colhe Wood (115, 111, 83), 8699 luta (Wood x18), 5025 sai. Destrava a missão 102 |
 
-`tools/extract_dungeon.py` está preso à 1001 e ao turco (`exp_text` termina em "EXP kazanıldı";
-em inglês é "Received 630 EXP "). O servidor também: `DUNGEON_CAMPAIGN = 1001`, o 5039 ignora o id
-pedido e a mensagem de entrada é turca (oficial: "Entered [Worg Lair] and deducted 20 stamina.").
-
-Fim de masmorra (#2700-#2731): 4382, 3, 137, 4151, 83, 20, 135, 112, 4165, 150×2, 140; carta: 5122 →
-115, 26, 83; saída 5180 → 134. 137: notas 1=D … 5=S (prováveis limites `StandardDamage`,
-`StandardHurt`, `StandSecond` do CampaignInfo), `totalGp` ≈ BaseGp × 1,05. A 1002 deu 2040102, que
-não está no `CampaignInfo.Item`: o sorteio real é do servidor.
+`tools/extract_dungeon.py captures/tutorial_en.json --campaign N` (N = 1001, 1002, 6001) junta cada campanha em
+`src/wartune_server/persistence/migrations/versions/0034_campanhas.json`; a migração 0034 grava no banco. O 5039
+respeita `paraInt2` (a campanha) e a etapa vem do estado do personagem (`campaign_stage:<id>`). Mensagens em inglês.
+Ordens, fórmulas (137, `totalGp`), cartas e o que é dedução: `docs/salas-campanha.md` e `docs/drops-masmorras.md`.
 
 Karda (GameHeroTempInfo 1023) tem `RejectType="19,100,38,39"` (19 = imune a atordoamento); o
-cliente desenha sozinho. Nossa batalha ainda não tem efeitos de controle.
+cliente desenha sozinho. Nossa batalha ainda não tem efeitos de controle: **só registrado, não implementado**.
 
 ## Missões (10 → 130, todas na captura)
 

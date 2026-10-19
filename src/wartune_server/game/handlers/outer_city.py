@@ -32,7 +32,7 @@ from ..castle import castle_yield, politics_msg
 from ..router import router
 from ..session import GameSession
 from . import events
-from .campaign import player_hero
+from .campaign import player_hero, quarry_fight
 from .login import army, player_info
 from .wild_boxes import drop_box, send_boxes
 
@@ -480,9 +480,10 @@ async def pvp_army(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
 
 @router.on(8699)
 async def collection_battle(s: GameSession, _: object) -> None:
-    """Só o guia do tutorial manda (ação a46 do m8). Nenhuma captura tem o passo nem o nó de coleta
-    que ele abre: sem o que iniciar, só registramos (docs/cidade-externa.md)."""
-    s.log.info("8699 do guia do tutorial sem coleta para iniciar")
+    """O guia do tutorial manda (ação a46 do m8) dentro da pedreira 6001: a luta da coleta (inglesa #1928,
+    ``handlers/campaign.py``). Fora dela não há o que iniciar."""
+    if not await quarry_fight(s):
+        s.log.info("8699 fora da pedreira")
 
 
 @router.on(9506)

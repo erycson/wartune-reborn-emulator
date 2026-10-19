@@ -28,7 +28,7 @@ from ..builders import login as b
 from ..campaign import NORMAL, CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
-from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, map_sync, player_hero
+from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, enter_quarry, map_sync, player_hero
 from .login import army, player_info
 from .player import alert
 
@@ -97,6 +97,8 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
     própria campanha (``MapInfos`` 5001/5003, 1600x1700) e ``checkFogMap`` ignora a névoa nele, mas o 130 abre a
     view. Os outros jogadores do mapa recebem o 21 de quem entrou (``CampaignManager.readMember`` soma um a um).
     """
+    if await enter_quarry(s, msg.param1):  # 6001: o botão "ir" da missão 102 usa o mesmo 8258
+        return
     if (why := _refusal(s, msg.param1)) is not None:
         alert(s, why)
         return
@@ -136,7 +138,7 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
 
 
 def boss_node(templates: GameTemplates, boss: WorldBoss) -> dict[str, Any]:
-    """O nó do chefe no 127, no molde do chefe da masmorra (102109, ``dungeon_1001.json``): masterType 41,
+    """O nó do chefe no 127, no molde do chefe da masmorra (102109, ``campaign_contents`` 1001): masterType 41,
     ``heroTempId`` do ``GameHeroTemp`` (o cliente monta o herói por ele) e o avatar em ``swf/npc/<sonType>``."""
     hero = templates.get("GameHeroTemp", boss.hero_id) or {}
     x, y = boss.node_x, boss.node_y
@@ -371,7 +373,7 @@ def _refusal(s: GameSession, campaign_id: int) -> str | None:
     row = worldboss.boss(s.ctx.templates, campaign_id)
     if row is None:
         if next(s.ctx.templates.find("Campaigns", CampaignId=campaign_id), None) is not None:
-            return UNAVAILABLE  # (cliente) TaskFrameII.as:707-708: o botão ir manda 8258 com a campanha 6001 (Types 2)
+            return UNAVAILABLE  # campanha sem conteúdo de pedreira no banco (a 6001 entra antes, ``enter_quarry``)
         return "Invalid World Boss."
     snap = s.snapshot
     assert snap is not None

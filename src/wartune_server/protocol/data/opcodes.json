@@ -6647,9 +6647,11 @@
   "names": [
    "U_C_CAMPAIGN_ENTER"
   ],
-  "c2s": [],
+  "c2s": [
+   "CampaignReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5041": {

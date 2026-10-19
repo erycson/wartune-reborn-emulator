@@ -16,7 +16,7 @@ from ..builders.player import quest_update
 from ..campaign import PET_ISLANDS, CampaignMap
 from ..router import router
 from ..session import GameSession
-from .campaign import ARMY_IDLE, map_sync
+from .campaign import ARMY_IDLE, leave_quarry, map_sync
 from .room import leave_room
 
 MAX_PATH = 16  # o cliente manda no máximo ~7 passos; o resto é repassado a todos, então corta
@@ -141,7 +141,7 @@ async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
         return
     from .worldboss import leave_boss  # worldboss importa space
 
-    if leave_boss(s):
+    if leave_boss(s) or leave_quarry(s):
         return
     s.log.info("5025 sem ilha dos pets nem sala", mapa=s.campaign and s.campaign.map_id)
 
