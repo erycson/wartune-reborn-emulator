@@ -56,12 +56,12 @@ async def test_castelo_completa_o_exercito_ate_a_lideranca(tmp_path: Path) -> No
         _almost_six(s)
         pawn = Pawn(snap.character.id or 0, LANCER, castle_count=748)
         snap.pawns.append(pawn)
-        pawn.army_count = rules.leader_stats(snap, s.ctx.templates).total["ConatArmy"]  # cheio no nível 5
+        pawn.army_count = rules.leader_stats(snap, s.ctx.templates, None).total["ConatArmy"]  # cheio no nível 5
         five = pawn.army_count
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=QUEST))
         got = await g.until(52)
         assert _level_codes([p.code for p in got]) == [100, 150, 4640]  # sem 139: o castelo tinha tropa
-        six = rules.leader_stats(snap, s.ctx.templates).total["ConatArmy"]
+        six = rules.leader_stats(snap, s.ctx.templates, None).total["ConatArmy"]
         assert six - five == 10  # EN #624/#638: liderança 142 -> 152
         assert (pawn.army_count, pawn.castle_count) == (six, 748 - (six - five))
         castle = pb.ArmyPawnUpdatedMsg.FromString(next(p.body for p in got if p.code == 100))
