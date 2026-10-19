@@ -97,6 +97,7 @@ O `battle.py` ainda não lê.
 | 8641 alimentar | 115, 4555 | cliente | item SonType 319, 1 EXP; Types 101 por grau; grau máx. pelo nível (40→1 … 80→5) |
 | 8643 transferência | 4556, 4557 | cliente | grau 5 → tipo 102; **vocação: parcial** |
 | 9505 cartas | 4905 | visto (login #76) | op 1 sobe (Types 29+Profile), 2 ativa todas, 3 reenvia; buf = BufId + grau − 1. **Cartas/EXP vêm das batalhas (4902): parcial** |
+| 4905 `bufInfos` (bônus da coleção) | — | visto + cliente + dedução | 3 degraus por coleção (`MagicCardSlotView`); o degrau k usa `Template{3+k}s` (sonType) e `Property{3+k}` (bufId) da `PowCardSuiteTemInfos`, com `fixvalue`/`percent` da linha. Aceso quando há [cartas, grau mínimo] = `powcard_suite_slots` (game_settings, 0038; padrão 4/1, 4/3, 4/8). Fontes: login #76 (só a 1002, com 4 cartas, tem 40001; as de 3 cartas nada) e o language EN `card.CardSlotView.Notactive0..2` ("4 cards", "3 level 4 cards", "8 level 4 cards"; o turco diz 3, 4 e "4 no Lv6"). A leitura dos graus 3 e 8 é **dedução**. O bônus ainda não entra na batalha (`battle.py`) |
 | 8224 `powcardInfo` | 4905 | visto | |
 
 ### Pets — `pets.py`
@@ -127,6 +128,8 @@ Não enviados: 4495 do login (#40 é `{opType 0, opResult false, count 0}`; o `A
 ## Dependências
 
 - Ganhar montaria, pet e cartas: uso de item / missões / batalha (outros módulos).
-- Batalha: ler `rules.battle_pawn` e os buffs de talento, runas, destino e cartas.
+- Batalha: ler `rules.battle_pawn` e os buffs de talento, runas, destino e cartas (inclui o bônus da coleção).
+- **Captura que falta (cartas)**: uma conta com as 4 cartas de uma coleção em graus diferentes (todas no 3+, depois
+  todas no 8+ ou 6+): gravar o 4905 depois de cada subida (9505 op 1) para fechar quando o 2º e o 3º degrau acendem.
 - Cidade externa: posição do teleporte (8326).
 - `castle_yield` usa `rules.population` (sobrepõe com o módulo do castelo).

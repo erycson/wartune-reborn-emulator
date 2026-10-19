@@ -157,7 +157,7 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 17 | Bir Ekipmanı 3 Lv’ye Güçlendir | 2 / 1 | 1 (121) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 18 | Değerli Taş İşle | 1 / 1 | 1 (281) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 19 | Değerli Taş Birleştir | 0 / 1 | 1 (311) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 20 | Arkadaşına Enerji Doldur | 0 / 2; 1 / 2 | 4 (22, 260, 261, 271) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 20 | Arkadaşına Enerji Doldur | 0 / 2; 1 / 2 | 4 (22, 260, 261, 271) | `checkCount` | sim | handlers/farm.py (15017) | Para1 exato: 1 a própria árvore, 0 a de amigo | castelo.md |
 | 21 | Arkadaş Ekle | 0 / 1 | 1 (200) | `checkFriendsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 22 | Birliğe Katıl/Birlik kur | 0 / 1 | 1 (220) | `checkJoinConsortia` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 23 | Avcıyı Öldür | 13000 / 1; 11600 / 1; 17000 / 1 | 7 (10, 20, 30, 40, 45, 50, ...) | `checkAttack` | sim | rules.update_novice_quests (campaign.py:506, accept_quest) | — | outra equipe |
@@ -176,7 +176,7 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 37 | Özgürlük Otlağına Gir | 0 / 1; 0 / 2; 0 / 3 | 5 (173, 390, 580, 787, 826) | `checkMapId` | sim | update_state_quests (MAP_CONDITION, checkMapId); já estava no HEAD | — | outra equipe |
 | 38 | Yeraltı Labirentine Katıl | 8001 / 2 | 1 (6) | `checkMazeRecord` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 39 | İkinci Gün Oyuna Giriş Yap | 0 / 1 | 1 (5) | `checkSencondLogin` | sim | rules.quest_done (LOGIN_DAY_CONDITION), dia UTC | nada: ligado. Compara o dia UTC do aceite com o de agora; o cliente usa o dia local (getDate). Se o fuso importar, trocar por um fuso fixo. | eu |
-| 40 | Dünya Boss’a Katıl | 0 / 10; 0 / 1 | 2 (759, 761) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 40 | Dünya Boss’a Katıl | 0 / 10; 0 / 1 | 2 (759, 761) | `checkCount` | sim | handlers/worldboss.py (fim da luta) | 1 por luta (dedução) | boss-eventos.md |
 | 41 | Biriktirilmiş Zarar | 0 / 50000 | 1 (762) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 42 | Altın Topla | 0 / 1 | 1 (763) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 44 | Savaş Alanına Katıl | 0 / 1 | 2 (758, 766) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
@@ -193,12 +193,12 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 57 | Bereket Ruleti | 0 / 1 | 1 (857) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 58 | Şeytan Damgası | 0 / 1 | 1 (858) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 59 | Çiftlikte Ürün Ek | 0 / 1 | 2 (262, 859) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 60 | Çiftliğini Topla | 0 / 2; 1 / 2 | 4 (263, 266, 860, 861) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 60 | Çiftliğini Topla | 0 / 2; 1 / 2 | 4 (263, 266, 860, 861) | `checkCount` | sim | handlers/farm.py (op 4 e 5) | Para1 exato: 0 colher a própria, 1 roubar de amigo | castelo.md |
 | 61 | Böcek Temizle | 1 / 2 | 2 (267, 862) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 63 | Devotion (Emek Oranı) | 0 / 20 | 1 (863, diária `IsRepeat`) | `checkCount` | sim: maior total de devoção do dia (`LEVEL_CONDITIONS`) | `handlers/events.leed_gain`/`devotion_quests` (ganhos e 1º login do dia) | aceite nasce com 0 mesmo com devoção já ganha (visto, tutorial_en #3199); só o próximo ganho grava o total. Reabre no dia do jogo seguinte (`_repeat_ok`) | — |
 | 64 | Simya | 0 / 3 | 1 (184) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 65 | Ruh Topla | 0 / 3 | 1 (185) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 66 | Dünya BOSS'ta Hemen Savaş | 0 / 3 | 1 (183) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 66 | Dünya BOSS'ta Hemen Savaş | 0 / 3 | 1 (183) | `checkCount` | sim | handlers/worldboss.py (8264 pago) | 1 por reviver pago | boss-eventos.md |
 | 71 | Binek Eğitimi | 0 / 1 | 1 (753) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 74 | Deneme Kulesine Gir | 0 / 1 | 1 (799) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 76 | Saldırma Sembolünü Öğren | 2 / 1; 1 / 1 | 2 (906, 907) | `checkRuneStudy` | sim | update_state_quests (RUNE_STUDY); já estava no HEAD | — | outra equipe |

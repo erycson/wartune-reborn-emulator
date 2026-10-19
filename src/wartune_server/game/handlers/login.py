@@ -200,7 +200,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.powcardInfo:  # login #76
         from .systems import S_POWCARD, powcard_msg
 
-        s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates))
+        s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots")))
     if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
         _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
     if msg.challReward or msg.petChallengeReward or msg.crossScoreReward:

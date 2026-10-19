@@ -51,13 +51,17 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 15044 op 1 | planta: terra aberta e vazia, semente (SonType 216) na bolsa em `bagPos` com o `templateId` certo, `NeedGrades`, uma semente especial (`Property5`) de cada tipo por vez. Amadurece em `Property1 − 1` min e rende 80% do `Property3` se for moeda | 115, 4387 (`opType`, `result` 0) | visto (ciftlik) + cliente |
 | 15044 op 2/3 | tira inseto/mato da própria terra quando a praga está ativa (40%/60% e 30%/50% do ciclo); +`FarmCrop_Operate_GP` de EXP da fazenda | 4387 | cliente |
 | 15044 op 4 | colhe: madura e viva (`matureTime + Property1` min); ouro bloqueado no teto como no cliente. Rende moeda (-100 ouro, -300 alma, -500 vinculado com ledger, -600 cristal), -700 EXP ou item | 4387 (terra vazia), 109 ou 3, 115 se item | cliente |
+| 15044 op 2/3 (amigo) | tira inseto/mato da terra do amigo; EXP `FarmCrop_Operate_GP` para quem ajuda, dentro do teto do dia `Farm_TodayFromFriend_GP` (200; no teto a ação vale e rende 0, como `expByOper`) | 4387 com o `userId` do dono | cliente |
+| 15044 op 5 | rouba da terra madura e viva do amigo (`canBeStolen`): uma vez por ladrão, até 3 ladrões (`MAX_STOLEN_COUNT`), produção ≥ 10; até `Farm_TodayStolen_Count` (200) por dia. Leva `farm_steal_percent` % (10, internet) do `rewardCount`, que sai do dono; grava `stolen_by`. Sem EXP. Missão 60 Para1 1 | 4387 (`stolenCount`, `stolenUsers`), 109/3/115 como a colheita | cliente + internet |
+| 15044 op 6 | revive a planta morta do amigo: `matureTime` = agora − 1 min, o resto igual; EXP `FarmCrop_Operate_GP` (teto do dia) | 4387 | visto (ciftlik #88–#105) |
 | 15044 op 7 | acelera (10 diamantes `Farm_Accelerate_Point`, `payType` 0 = vinculado primeiro): amadurece na hora, uma vez por plantio | 3, 4387 | cliente + dedução |
 | 15044 op 8 | limpa a terra | 4387 | cliente |
-| 15044 outros | roubar (5), reviver (6), ações em fazenda de amigo, upgrade de terra (9) e pets (10–16): recusados | 4387 `result` 1 na própria fazenda, nada na de amigo | — |
-| 15017 | rega a própria árvore a cada 10 min (sem fruto): ouro = nível do dono × 20, EXP da fazenda +1, `waterCount` +1 (o "Enerji + 1" do texto é essa carga da árvore, não a energia de teleporte; (internet) https://wartune.fandom.com/wiki/Tree_of_Ancients). Árvore de amigo: recusada | 109, 83 "Doldurma başarılıAltın + N,Enerji + 1,Çiftlik EXP  + 1", 147 | visto (ciftlik, 2 capturas: 220 no nível 11 e 1.320 na árvore de amigo de nível 66) |
+| 15044 outros | upgrade de terra (9), pets (10–16), ops do dono na terra do amigo e qualquer op em quem não é amigo: recusados | 4387 `result` 1 com o `userId` do dono da terra | — |
+| 15017 | rega a própria árvore a cada 10 min, 3 vezes por dia (sem fruto): ouro = nível do dono × 20, EXP da fazenda +1, `waterCount` +1 (o "Enerji + 1" do texto é essa carga da árvore, não a energia de teleporte; (internet) https://wartune.fandom.com/wiki/Tree_of_Ancients) | 109, 146 (`harvestMsg` com as 3 linhas), 83, 147 | visto (ciftlik #5–#10) + cliente (help: "3 times a day") |
+| 15017 `userId` de amigo | rega a árvore do amigo: uma vez por dia por amigo (`relations.tree_day`), até 200 no dia (help EN). Quem rega ganha ouro = nível do dono × 20 e EXP da fazenda = grau de amizade (`expByOper` caso 8, teto do dia); a árvore do dono ganha +1 de carga sem mexer no tempo dele (gravado mesmo offline); a amizade sobe 1 dos dois lados. Missão 20 Para1 0 | 4158 `{playerId, operUserId}`, 109, 147 (a do amigo sem `leftTime`, depois a minha), 165 (`relationGrade`/`relationGp`), 146, 83 "Energize successful, Gold + N, Farm EXP + N, Friendship + 1" | visto (ciftlik #81–#87) + cliente |
 | 5178 | colher a árvore: recusada (o servidor nunca tem fruto). Cliente: `TreeInfo.canPick` exige `fruitCount` > 0; a colheita soma 1 de EXP da fazenda (`FarmModel._expTreePick`). Resposta do oficial: 106 (`U_C_TREE_PICK`, sem handler no cliente) | — | cliente |
 | 8219 | árvores dos ids pedidos (o cliente pede a própria ao chegar no nível 11) | 4146 FriendTreeRsp | cliente |
-| 8231 | estado das fazendas: o próprio jogador primeiro (`isChargeEnergy` = pode regar a própria), amigos todos falsos | 4190 LoadFarmRsp.friendFarmState | visto (ciftlik) |
+| 8231 | estado das fazendas: o próprio jogador primeiro (`isChargeEnergy` = pode regar a própria); para amigo, `isReap` (alguma terra roubável por mim), `isChargeEnergy` (não reguei hoje e cabe no dia), `isRevive`, `isWorm`, `isGrass` pelas terras dele; quem não é amigo vem tudo falso | 4190 LoadFarmRsp.friendFarmState | visto (ciftlik #3) |
 | 8565 | invocar a árvore da terra secreta da guilda: sem guilda, nada | — | cliente |
 | 5019 | `operate=false`: sincroniza; `operate=true, time=P`: paga o TimeDrop do período P se for o próximo e já houver `P×60` s online hoje | 4 BoxBoxMsg (`time` = último período recebido, `operate` = recebido, `timerun` = segundos online hoje); 115, 109, 3 ao pagar | visto (tut2) + cliente |
 | 8287 | EXP offline (`rateCount` 0 = ×1) | 3 PlayerMsg | cliente |
@@ -74,8 +78,20 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
   (5155/5156/5158 são de outro agente).
 - **Rendimento**: o oficial soma +30/h que não sabemos de onde vem (login.json: 8550 = 8220 dos
   prédios + 300 de tecnologia + 30); sem terras selvagens, guilda e efeitos.
-- **Fazenda de amigo** (roubar, reviver, praga, regar árvore de amigo, EXP diária de amigos):
-  depende da lista de amigos para validar. Regar a árvore de amigo (15017 com `userId` de outro) tem o que falta: ouro = nível do dono × 20 (visto, 1.320), EXP da fazenda = 1 × grau de amizade (+4 com grau 4; `FarmModel.expByOper`, caso 8; teto `Farm_TodayFromFriend_GP` = 200 por dia) e "Arkadaşlık + 1" (amizade, regra não achada). Sem energia. Falta: quem pode regar (cooldown do dono, limite por amigo), o que o 4158 (`FarmLogRsp`) quer dizer, e gravar o castelo do dono, online ou offline. Captura: `ciftlik.json` linhas 81–87.
+- ~~**Fazenda de amigo**~~: feita (tabela acima). Quem pode: só amigo (`relation` 1, que já é dos dois lados).
+  Contadores do dia no castelo de quem age (`farm_day`, `farm_friend_gp`, `farm_steals`, `tree_water_today`,
+  `tree_friend_today`, migração 0038); `todayFromFriendGp`/`todayStolenCount` vão no 4386 da própria fazenda.
+  Fontes: limites do cliente (`FarmModel`, `FarmLandInfo.canBeStolen`, `ConfigInfos` e o help EN da fazenda),
+  reviver e regar visto (ciftlik). **dedução / config** (`game_settings`, 0038): roubo de 10% (`farm_steal_percent`,
+  internet); grau de amizade = 1 + pontos // `friend_grade_step` (10; ciftlik: grau 4 com 34); amizade +1 dos dois
+  lados; ouro da rega pelo nível de jogador do dono (o 66 do THoR também era o grau da fazenda); textos 146/83 em
+  inglês montados com os termos do language EN. O dono online é mexido no snapshot da sessão dele; offline, pelo banco
+  (ponytail: dois ladrões ao mesmo tempo com o dono offline podem se sobrepor).
+- **Captura que falta (fazenda de amigo)**: (1) roubar uma terra madura de amigo (15044 op 5): gravar o 4387, o 109/115
+  e o 83, para conferir os 10% e o texto; (2) tirar inseto/mato na fazenda de amigo (op 2/3); (3) regar a árvore do
+  mesmo amigo duas vezes no dia e regar com o teto de 200 EXP batido, para ver as recusas; (4) a tabela de grau de
+  amizade: anotar `relationGp`/`relationGrade` do 165 em vários amigos; (5) com o dono online, ver se ele recebe algo
+  (4158 ou 147) quando um amigo rega ou rouba.
 - **Árvore**: nenhuma captura tem `fruitCount` > 0 (147, 4190, 4146) nem 5178/106. **Precisa de captura**: regar a própria árvore até `fruitCount` > 0 (147), colher (5178 com `index`) e gravar a resposta (106, 115, 109), depois ver a árvore voltar a 0. Os itens 2160037–2160046 e 2160055 são sementes da fazenda (SonType 216), não o fruto.
 - **Upgrade de terra** (op 9) e terras extras: sem sender decompilado; ficam 3 terras.
 - **Aceleração da fazenda**: o texto do oficial não está decompilado; aqui amadurece na hora.

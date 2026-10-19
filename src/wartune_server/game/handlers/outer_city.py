@@ -16,7 +16,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 
-from ...domain.models import Castle, EventState, Quest, WildMonsterKill
+from ...domain.models import Castle, WildMonsterKill
 from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay

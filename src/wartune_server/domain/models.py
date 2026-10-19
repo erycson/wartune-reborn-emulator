@@ -241,6 +241,12 @@ class Castle:
     tree_watered_at: datetime | None = None
     tree_picked_at: datetime | None = None
     mines_at: datetime | None = None  # começo do ciclo de 12 h das minas do mapa 100 (outer_city.cycle_start)
+    # contadores do dia da fazenda (``farm.roll_day``; dia do jogo em ``farm_day``)
+    farm_day: str = ""
+    farm_friend_gp: int = 0  # EXP da fazenda vinda de amigos (teto Farm_TodayFromFriend_GP)
+    farm_steals: int = 0  # roubos feitos (teto Farm_TodayStolen_Count)
+    tree_water_today: int = 0  # regas da própria árvore (3 por dia)
+    tree_friend_today: int = 0  # regas de árvores de amigos (200 por dia)
 
 
 @dataclass(eq=False)
@@ -273,6 +279,7 @@ class FarmLand:
     worm: int = 0
     grass: int = 0
     accelerated: bool = False
+    stolen_by: str = ""  # ids de quem roubou, separados por vírgula (``FarmLandInfoMsg.stolenUsers``)
     id: int | None = None
 
 
@@ -435,6 +442,8 @@ class Relation:
     relation: int
     id: int | None = None
     group_id: int = -1  # 2 = grupo padrão "amigos" do cliente; -1 pendente/lista negra
+    friend_gp: int = 0  # amizade (``relationGp``); o grau sai de ``social.friend_grade``
+    tree_day: str = ""  # dia do jogo em que ``character_id`` regou a árvore de ``other_id`` (uma por dia)
 
 
 @dataclass(eq=False)

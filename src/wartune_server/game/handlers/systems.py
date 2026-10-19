@@ -12,7 +12,7 @@ import random
 from ...domain import gameday
 from ...domain.models import BagType, Item, PlayerSnapshot, PlayerSystems
 from ...protocol.messages import wartune_pb2 as pb
-from ...templates.repository import GameTemplates
+from ...templates.repository import GameTemplates, Row
 from .. import rules
 from ..builders.login import NEVER, fmt_time
 from ..builders.player import quest_update
@@ -362,18 +362,49 @@ def store_cards(sy: PlayerSystems, found: dict[int, list[int]]) -> None:
     sy.powcards = ",".join(f"{t}:{g}:{gp}:{a}" for t, (g, gp, a) in found.items())
 
 
-def powcard_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.PowCardSuiteListMsg:
-    """4905 (login #76): cartas por coleção; buf = BufId + grau - 1 (10001 grau 2 -> 3041)."""
+# Bônus da coleção: 3 degraus (MagicCardSlotView.updateBuffData). (cliente) language EN
+# card.CardSlotView.Notactive0..2: "4 cards from the same deck", "3 level 4 cards", "8 level 4 cards".
+# (visto) login #76: só a 1002, com 4 cartas, tem bufInfos (40001 = Property3); as de 3 cartas não têm.
+# (dedução) leitura: [cartas, grau mínimo de cada] = 4 de qualquer grau, 4 no grau 3, 4 no grau 8 (o turco diz 6).
+# Configurável: game_settings ``powcard_suite_slots`` (0038).
+SUITE_SLOTS = [[4, 1], [4, 3], [4, 8]]
+
+
+def suite_buffs(suite: Row, owned: list[int], slots: list[list[int]]) -> list[tuple[int, int]]:
+    """(sonType, bufId) de cada degrau aceso: o degrau k usa ``Template{3+k}s`` e ``Property{3+k}``
+    da PowCardSuiteTemInfos (1002 com 4 cartas: Template3s 1004, Property3 40001, como no #76)."""
+    lit = []
+    for k, (count, grade) in enumerate(slots):
+        if sum(g >= grade for g in owned) < count:
+            break
+        lit.append((int(suite.get(f"Template{3 + k}s") or 0), int(suite.get(f"Property{3 + k}") or 0)))
+    return lit
+
+
+def powcard_msg(
+    snap: PlayerSnapshot, templates: GameTemplates, slots: list[list[int]] | None = None
+) -> pb.PowCardSuiteListMsg:
+    """4905 (login #76): cartas por coleção; buf = BufId + grau - 1 (10001 grau 2 -> 3041); ``bufInfos`` da
+    coleção pelos degraus (``suite_buffs``)."""
     msg, suites = pb.PowCardSuiteListMsg(), {}
+    owned: dict[int, list[int]] = {}
     for temp, (grade, gp, active) in cards(rules.systems(snap)).items():
         tpl = templates.get("PowcardTempInfos", temp) or {}
         suite_id = int(tpl.get("SuiteId", 0))
         if suite_id not in suites:
             suites[suite_id] = msg.suites.add(suiteId=suite_id)
+        owned.setdefault(suite_id, []).append(grade)
         card = suites[suite_id].cardInfos.add(tempId=temp, grade=grade, gp=gp, isActive=active)
         card.buf.sonType, card.buf.bufId = int(tpl.get("SonType", 0)), int(tpl.get("BufId", 0)) + grade - 1
         card.buf.fixValue, card.buf.percent = int(tpl.get("fixvalue", 0)), int(tpl.get("percent", 0))
-    # ponytail: o buff da coleção completa (bufInfos da suíte, visto 40001) não tem tabela conhecida
+    for suite_id, entry in suites.items():
+        row = templates.get("PowCardSuiteTemInfos", suite_id)
+        if row is None:
+            continue
+        for son_type, buf_id in suite_buffs(row, owned[suite_id], slots or SUITE_SLOTS):
+            # (dedução) fixvalue/percent da linha da coleção (0/0 na 1002, igual ao #76)
+            entry.bufInfos.add(sonType=son_type, bufId=buf_id, fixValue=int(row.get("fixvalue") or 0),
+                               percent=int(row.get("percent") or 0))  # fmt: skip
     return msg
 
 
@@ -402,4 +433,4 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
     if msg.op != CARD_TIDY:
         store_cards(sy, found)
         await s.ctx.characters.save(sy)
-    s.send(S_POWCARD, powcard_msg(snap, templates))
+    s.send(S_POWCARD, powcard_msg(snap, templates, s.ctx.world.settings.get("powcard_suite_slots")))

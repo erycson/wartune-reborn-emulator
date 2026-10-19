@@ -79,6 +79,14 @@ UPDATE game_settings SET value = '[1, 1, 3]' WHERE key = 'gem_maze_reward_weight
 UPDATE game_settings SET value = '0.5' WHERE key = 'star_open_next';
 ```
 
+### Fazenda, amizade e cartas (0038)
+
+| `game_settings` | o quê |
+|---|---|
+| `farm_steal_percent` | % do `rewardCount` que um amigo leva por roubo (10, internet) |
+| `friend_grade_step` | pontos de amizade por grau: grau = 1 + pontos // passo (10, dedução) |
+| `powcard_suite_slots` | degraus do bônus da coleção de cartas: `[[cartas, grau mínimo], ...]` (`[[4, 1], [4, 3], [4, 8]]`) |
+
 Ficam no código (vêm do cliente, dos templates ou da internet): `Rands`/`TakeRandom` dos templates, a roda do
 destino (tamanho das fatias no cliente), o reforço (100% → 10%, wiki) e as quedas que já estão no banco
 (`world_monster_drops`, `campaign_contents`).

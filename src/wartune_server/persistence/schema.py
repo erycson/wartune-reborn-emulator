@@ -299,6 +299,11 @@ castles = Table(
     Column("tree_watered_at", UTCDateTime),
     Column("tree_picked_at", UTCDateTime),
     Column("mines_at", UTCDateTime),
+    Column("farm_day", String(10), nullable=False, default="", server_default=""),
+    _int("farm_friend_gp"),
+    _int("farm_steals"),
+    _int("tree_water_today"),
+    _int("tree_friend_today"),
 )
 
 farm_lands = Table(
@@ -314,6 +319,7 @@ farm_lands = Table(
     _int("worm"),
     _int("grass"),
     Column("accelerated", Boolean, nullable=False, default=False, server_default="0"),
+    Column("stolen_by", String(255), nullable=False, default="", server_default=""),
     UniqueConstraint("character_id", "pos"),
 )
 
@@ -489,6 +495,8 @@ relations = Table(
     _owner("other_id", index=True),  # quem me tem na lista: avisos 160/161
     Column("relation", Integer, nullable=False),
     _int("group_id", -1),
+    _int("friend_gp"),
+    Column("tree_day", String(10), nullable=False, default="", server_default=""),
     UniqueConstraint("character_id", "other_id"),
 )
 

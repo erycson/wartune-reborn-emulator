@@ -8,7 +8,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import CashLedger, Character, Item, PlayerSnapshot
+from wartune_server.domain.models import CashLedger, Character, FarmLand, Item, PlayerSnapshot, Relation
 from wartune_server.game import timebox
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -173,8 +173,8 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         g.client.send(15044, plant)  # terra ocupada
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=0))  # ainda verde
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id + 1, opType=4, pos=0))  # fazenda de outro
-        results = [pb.FarmInfoRspMsg.FromString(p.body).farmLandInfo[0].result for p in await g.idle()]
-        assert results == [1, 1]
+        lands = [pb.FarmInfoRspMsg.FromString(p.body).farmLandInfo[0] for p in await g.idle()]
+        assert [x.result for x in lands] == [1, 1, 1] and lands[2].userId == g.user_id + 1  # o 4387 vai com o dono
 
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=1, bagPos=0, templateId=SEED))
         await g.until(4387)
@@ -209,9 +209,10 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
 
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
         got = await g.until(147)
-        assert [p.code for p in got] == [109, 83, 147]
-        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg.startswith("Energize successful! Gold + 220,")
-        tree = pb.TreeUpdateRsp.FromString(got[2].body).tree[0]
+        assert [p.code for p in got] == [109, 146, 83, 147]  # ciftlik #7-#10
+        assert pb.TreeUpdateRsp.FromString(got[1].body).harvestMsg == ["Energy + 1", "Gold + 220", "Farm EXP + 1"]
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg.startswith("Energize successful! Gold + 220,")
+        tree = pb.TreeUpdateRsp.FromString(got[3].body).tree[0]
         assert (tree.waterCount, tree.leftTime) == (1, 600)
 
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))  # 10 minutos de espera
@@ -222,6 +223,89 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
         assert pb.TreeUpdateRsp.FromString((await g.until(147))[-1].body).tree[0].waterCount == 2
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.castle is not None and (saved.castle.tree_water, saved.castle.farm_gp) == (2, 2)
+        clock.advance(600)
+        g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
+        await g.until(147)
+        clock.advance(600)
+        g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))  # 3 por dia (help do cliente)
+        assert await g.idle() == []
+
+
+async def _friends(g: Game, other: Game, gp: int = 0) -> None:
+    """Amizade dos dois lados (relation 1), gravada; ``gp`` = amizade de ``g`` por ``other``."""
+    mine, theirs = (
+        Relation(g.user_id, other.user_id, 1, group_id=2, friend_gp=gp),
+        Relation(other.user_id, g.user_id, 1),
+    )
+    _snap(g).relations.append(mine)
+    _snap(other).relations.append(theirs)
+    await g.server.services.characters.save(mine, theirs)
+
+
+async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        other = await g.join("outro")
+        await g.idle()
+        now = clock.now()
+        await _set(g, gold=0, grades=11)
+        owner = await _set(other, grades=66)
+        await _friends(g, other, gp=33)  # grau 4 (ciftlik #85: 34 depois de regar)
+        lands = [
+            FarmLand(other.user_id, 0, SEED, now - timedelta(hours=2), now - timedelta(minutes=30), 2400),  # madura
+            FarmLand(other.user_id, 1, SEED, now - timedelta(hours=4), now - timedelta(hours=3), 2400),  # morta
+            FarmLand(other.user_id, 2, SEED, now - timedelta(minutes=50), now + timedelta(minutes=50), 2400, worm=1),
+        ]
+        owner.lands.extend(lands)
+        await g.server.services.characters.save(*lands)
+
+        g.client.send(8231, pb.FriendUserIdsMsg(friendId=[other.user_id, g.user_id + 99]))
+        states = pb.LoadFarmRsp.FromString((await g.until(4190))[-1].body).friendFarmState
+        friend = states[1]
+        assert (friend.userId, friend.isReap, friend.isChargeEnergy, friend.isRevive, friend.isWorm) == (
+            other.user_id, True, True, True, True)  # fmt: skip
+        assert (states[2].userId, states[2].isReap, states[2].isChargeEnergy) == (g.user_id + 99, False, False)
+
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=5, pos=0))  # rouba 10%
+        got = await g.until(109)
+        land = pb.FarmInfoRspMsg.FromString(got[0].body).farmLandInfo[0]
+        assert (land.userId, land.result, land.stolenCount, list(land.stolenUsers), land.rewardCount) == (
+            other.user_id, 0, 1, [g.user_id], 2160)  # fmt: skip
+        assert pb.CastleYieldMsg.FromString(got[1].body).goldTotalCount == 240
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=5, pos=0))  # já roubou esta
+        assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1
+
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=6, pos=1))  # reviver
+        land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
+        assert (land.result, land.matureTime) == (0, "2025-12-31 23:59:00")  # 1 min antes de agora (UTC+3)
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=2, pos=2))  # tirar o inseto
+        assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 0
+
+        leaving = g.server.online.get(other.user_id)
+        assert leaving is not None
+        other.client.writer.close()  # o dono sai: a árvore dele é gravada pelo banco
+        await leaving.gone.wait()
+        await g.idle()
+        g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))
+        got = await g.until(83)
+        assert [p.code for p in got] == [4158, 109, 147, 165, 146, 83]  # ciftlik #82-#87
+        assert pb.CastleYieldMsg.FromString(got[1].body).goldTotalCount == 240 + 1320
+        trees = pb.TreeUpdateRsp.FromString(got[2].body).tree
+        assert [(t.userId, t.waterCount) for t in trees] == [(other.user_id, 1), (g.user_id, 0)]
+        info = pb.FriendInfoMsg.FromString(got[3].body)
+        assert (info.userId, info.relationGrade, info.relationGp) == (other.user_id, 4, 34)
+        assert pb.TreeUpdateRsp.FromString(got[4].body).harvestMsg[0] == "Farm EXP + 4"
+        g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))  # uma por dia por amigo
+        assert await g.idle() == []
+
+        mine = await g.server.services.characters.snapshot(g.user_id)
+        theirs = await g.server.services.characters.snapshot(other.user_id)
+        assert mine.castle is not None and theirs.castle is not None
+        assert (mine.castle.farm_friend_gp, mine.castle.farm_steals, mine.castle.tree_friend_today) == (6, 1, 1)
+        assert theirs.castle.tree_water == 1 and theirs.lands[0].stolen_by == str(g.user_id)
+        assert [r.friend_gp for r in theirs.relations] == [1]
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=0))
+        assert pb.FarmInfoRspMsg.FromString((await g.until(4386))[-1].body).todayFromFriendGp == 6
 
 
 async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:

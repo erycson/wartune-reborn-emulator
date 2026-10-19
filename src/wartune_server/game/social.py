@@ -125,6 +125,17 @@ def sns_info(c: Character, p: SnsProfile | None) -> pb.SNSInfoMsg:
     )
 
 
+GRADE_STEP = 10  # padrão de game_settings friend_grade_step (0038)
+
+
+def friend_grade(ctx: GameContext, r: Relation) -> int:
+    """Grau de amizade (``relationGrade``/``friendGrade``). (dedução) 1 + pontos // passo: ciftlik #85 tem grau 4
+    com 34 pontos; a tabela real não está no cliente nem nos templates. Só amigo tem grau."""
+    if r.relation != RelationType.FRIEND:
+        return 0
+    return 1 + r.friend_gp // max(1, int(ctx.world.settings.get("friend_grade_step", GRADE_STEP)))
+
+
 def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | None = None) -> pb.FriendInfoMsg:
     """78 / 165 (``FriendManager.readFriendInfo``)."""
     state = state_of(ctx, c.id or 0)
@@ -132,6 +143,8 @@ def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | Non
         pb.FriendInfoMsg(
             userId=c.id,
             relation=r.relation,
+            relationGrade=friend_grade(ctx, r),
+            relationGp=r.friend_gp,
             sex=c.sex,
             pic=c.icon,
             grades=c.grades,
@@ -159,7 +172,8 @@ async def friend_list(s: GameSession) -> pb.FriendRelationList:
     msg = pb.FriendRelationList(maxPage=1, curPage=0)
     for r in snap.relations:
         if (c := found.get(r.other_id)) is not None:
-            entry = msg.relationList.add(relation=r.relation, friendRp=0, friendGrade=0, groupId=r.group_id, isVip=0)
+            entry = msg.relationList.add(relation=r.relation, friendRp=r.friend_gp, friendGrade=friend_grade(s.ctx, r),
+                                         groupId=r.group_id, isVip=0)  # fmt: skip
             entry.player.CopyFrom(simple_player(s.ctx, c))
     for g in snap.groups:
         msg.group.add(groupId=g.group_id, groupName=g.name, result=1)

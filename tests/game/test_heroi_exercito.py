@@ -353,3 +353,26 @@ async def test_pets_points_fight_and_slots(tmp_path: Path) -> None:
         relogin.client.send(8224, pb.PlayerDataMsg(army=True))
         pets = pb.PlayerPetMsg.FromString((await relogin.until(4540))[-1].body)
         assert [(p.petName, p.power) for p in pets.petInfo] == [("Pan", 66), ("Amazon", 10)]
+
+
+def test_bonus_da_colecao_reproduz_o_login_76() -> None:
+    """login #76: 1000/1001/1003/1004 com 3 cartas sem bufInfos; 1002 com 4 cartas (graus 2,2,2,1) só com o
+    degrau 0 (Template3s 1004, Property3 40001)."""
+    from wartune_server.domain.models import PlayerSystems
+    from wartune_server.game.handlers.systems import powcard_msg
+    from wartune_server.templates.repository import GameTemplates
+
+    templates = GameTemplates.parse(TEMPLATES.read_bytes())
+    seen = {10001: 2, 10002: 1, 10003: 1, 10011: 2, 10012: 1, 10013: 1, 10015: 2, 10016: 2, 10017: 2,
+            10018: 1, 10019: 2, 10020: 2, 10021: 1, 10023: 2, 10024: 2, 10025: 1}  # fmt: skip
+
+    def suites(grades: dict[int, int]) -> dict[int, list[tuple[int, int, int, int]]]:
+        snap = PlayerSnapshot.__new__(PlayerSnapshot)
+        sy = PlayerSystems(1, powcards=",".join(f"{t}:{g}:0:0" for t, g in grades.items()))
+        object.__setattr__(snap, "systems", sy)
+        msg = powcard_msg(snap, templates)
+        return {s.suiteId: [(b.sonType, b.bufId, b.fixValue, b.percent) for b in s.bufInfos] for s in msg.suites}
+
+    assert suites(seen) == {1000: [], 1001: [], 1002: [(1004, 40001, 0, 0)], 1003: [], 1004: []}
+    # 4 cartas no grau 3 acendem o degrau 1 (Property4)
+    assert suites({10015: 3, 10016: 3, 10017: 3, 10018: 3})[1002] == [(1004, 40001, 0, 0), (1004, 40002, 0, 0)]

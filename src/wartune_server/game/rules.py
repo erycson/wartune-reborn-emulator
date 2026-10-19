@@ -270,7 +270,9 @@ LEVEL_CONDITIONS = {
 }
 # (visto) tempinfos: QuestConditionInfo 121, tipo 17, Para1 2; Detail "3 lv": grau > Para1
 MIN_CONDITIONS = {17}
-EXACT_PARA1 = {TREE_CONDITION}  # Para1 0 não é coringa aqui: regar a própria (1) não avança as de amigo (0)
+# Para1 0 não é coringa aqui: regar a própria (1) não avança as de amigo (0); colher (60): 0 a própria fazenda
+# (263/860), 1 roubar na de amigo (266/861)
+EXACT_PARA1 = {TREE_CONDITION, 60}
 # Para1 de 51 -> Consortia: (cliente) TaskTemplate.as checkConsortuaGrade, Para1 1-5 = levels, shopLevel,
 # altarLevel, schoolLevel, storeLevel (mesma numeração de guild.LEVEL_TYPES; 6-12 são pesquisas, fora da 51)
 GUILD_LEVEL_ATTRS = {1: "levels", 2: "shop_level", 3: "altar_level", 4: "school_level", 5: "store_level"}

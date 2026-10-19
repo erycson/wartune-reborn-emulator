@@ -1,16 +1,20 @@
 """Fazenda (15044), árvore (15017, 5178, 8219, 8231) (8565 árvore da guilda: guild_events.py). Ver docs/castelo.md.
 
-Só a fazenda e a árvore do próprio jogador mudam aqui. Ações na fazenda de amigo (roubar, reviver,
-tirar praga, regar a árvore dele) dependem da lista de amigos e são recusadas até ela existir.
+Na própria fazenda: plantar, praga, colher, acelerar e limpar. Na de amigo (relação ``FRIEND``, que é dos dois
+lados): praga (2/3), roubar (5), reviver (6) e regar a árvore dele (15017 com ``userId``). O dono pode estar
+online (mexe-se no snapshot da sessão dele, como ``social.row_of``) ou offline (snapshot do banco).
 """
 
 from __future__ import annotations
 
+from datetime import timedelta
+
+from ...domain import gameday
 from ...domain.errors import NotFoundError
-from ...domain.models import BagType, FarmLand, Item, PlayerSnapshot
+from ...domain.models import BagType, FarmLand, Item, PlayerSnapshot, Relation, RelationType
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay, record_cash
-from .. import bag, farm, rules
+from .. import bag, farm, rules, social
 from .. import castle as cs
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -21,13 +25,16 @@ from .player import CURRENCIES
 
 S_PLAYER, S_CHAT, S_ITEMS, S_QUESTS = 3, 83, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
-REQ, PLANT, WORM, WEED, PICK, ACCELERATE, CLEAR = 0, 1, 2, 3, 4, 7, 8  # FarmOperateType
+S_HARVEST, S_WATER_LOG, S_FRIEND_UPDATE = 146, 4158, 165
+REQ, PLANT, WORM, WEED, PICK, STEAL, REVIVE, ACCELERATE, CLEAR = 0, 1, 2, 3, 4, 5, 6, 7, 8  # FarmOperateType
 OK, FAIL = 0, 1
 EXP = -700  # ItemTempInfos -700: as sementes de EXP rendem EXP do jogador
 QUEST_PLANT, QUEST_HARVEST, QUEST_BUG = 59, 60, 61  # QuestCondictionInfos: plantar, colher, pegar praga
 BUG_PARA1 = 1  # Para1 da praga: vale a fazenda própria ou de amigo (QuestTemps 267/862, Detail)
-S_QUESTS = 112  # QuestUpdatedRspMsg
+OWN_FARM, FRIEND_FARM = 0, 1  # Para1 do tipo 60: 263/860 a própria, 266/861 a de amigo
+OWN_TREE, FRIEND_TREE = 1, 0  # Para1 do tipo 20: 260 a própria, 22/261/271 a de amigo
 MAX_IDS = 100  # listas de amigos que o cliente manda (8219/8231)
+REVIVE_BACK = timedelta(minutes=1)  # (visto) ciftlik #88-#89: reviver às 20:22:41 dá matureTime 20:21:42
 
 
 def _config(s: GameSession, name: str, default: int) -> int:
@@ -47,8 +54,18 @@ async def _other(s: GameSession, user_id: int) -> PlayerSnapshot | None:
     return snap if snap.castle is not None and snap.character.active else None
 
 
-def _land_reply(s: GameSession, pos: int, land: FarmLand | None, op: int, result: int) -> None:
-    msg = farm.land_msg(s.player_id, pos, land)
+async def _friend(s: GameSession, user_id: int) -> tuple[PlayerSnapshot, Relation] | None:
+    """Amigo (``FRIEND`` já é a amizade dos dois lados, docs/social.md) com castelo."""
+    r = social.relation_to(s, user_id)
+    if r is None or r.relation != RelationType.FRIEND:
+        return None
+    target = await _other(s, user_id)
+    return (target, r) if target is not None else None
+
+
+def _land_reply(s: GameSession, owner_id: int, pos: int, land: FarmLand | None, op: int, result: int) -> None:
+    """4387 com o ``userId`` do dono da terra: o cliente só aplica na fazenda de mesmo ``userId``."""
+    msg = farm.land_msg(owner_id, pos, land)
     msg.opType, msg.result = op, result
     s.send(S_FARM_LAND, pb.FarmInfoRspMsg(farmLandInfo=[msg]))
 
@@ -63,19 +80,29 @@ async def farm_operate(s: GameSession, msg: pb.FarmOperReqMsg) -> None:
         if target is not None:
             s.send(S_FARM_INFO, b.complete(farm.farm_info(target, now, own=target is snap)))
         return
-    if msg.friendId not in (0, s.player_id) or not 0 <= msg.pos < farm.OPEN_LANDS:
-        s.log.info("15044 recusado", motivo="fazenda de amigo ou terra fechada", op=msg.opType, friend=msg.friendId)
+    own = msg.friendId in (0, s.player_id)
+    owner_id = s.player_id if own else msg.friendId
+    found = None if own else await _friend(s, msg.friendId)
+    target = snap if own else (found[0] if found else None)
+    if target is None or not 0 <= msg.pos < farm.OPEN_LANDS:
+        s.log.info("15044 recusado", motivo="não é amigo ou terra fechada", op=msg.opType, friend=msg.friendId)
+        _land_reply(s, owner_id, msg.pos, None, msg.opType, FAIL)
         return
-    land = next((x for x in snap.lands if x.pos == msg.pos), None)
-    action = {PLANT: _plant, WORM: _pest, WEED: _pest, PICK: _pick, ACCELERATE: _accelerate, CLEAR: _clear}.get(
-        msg.opType
+    land = next((x for x in target.lands if x.pos == msg.pos), None)
+    actions = (
+        {PLANT: _plant, WORM: _pest, WEED: _pest, PICK: _pick, ACCELERATE: _accelerate, CLEAR: _clear}
+        if own
+        else {WORM: _pest, WEED: _pest, STEAL: _steal, REVIVE: _revive}
     )
-    if action is None or not await action(s, snap, msg, land):
-        s.log.info("15044 recusado", op=msg.opType, pos=msg.pos)
-        _land_reply(s, msg.pos, land, msg.opType, FAIL)  # o cliente mostra a dica de falha
+    action = actions.get(msg.opType)
+    if action is None or not await action(s, snap, target, msg, land):
+        s.log.info("15044 recusado", op=msg.opType, pos=msg.pos, friend=msg.friendId)
+        _land_reply(s, owner_id, msg.pos, land, msg.opType, FAIL)  # o cliente mostra a dica de falha
 
 
-async def _plant(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None) -> bool:
+async def _plant(
+    s: GameSession, snap: PlayerSnapshot, _: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
     c, now = snap.character, s.ctx.clock.now()
     item = next((i for i in snap.items if (i.bag_type, i.pos) == (BagType.BAG, msg.bagPos)), None)
     row = farm.seed(s.ctx.templates, item.template_id) if item is not None else None
@@ -98,13 +125,26 @@ async def _plant(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, l
     else:
         await s.ctx.characters.save(new, *quests, delete=(item,))
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item if item.count > 0 else None, s.player_id))
-    _land_reply(s, msg.pos, new, PLANT, OK)
+    _land_reply(s, s.player_id, msg.pos, new, PLANT, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     return True
 
 
-async def _pest(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None) -> bool:
+def _helper_gp(s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, gp: int) -> None:
+    """EXP da fazenda de quem ajudou: na própria, direto; na de amigo, até o teto do dia (expByOper)."""
+    assert snap.castle is not None
+    grade, templates = snap.character.grades, s.ctx.templates
+    if target is snap:
+        farm.add_farm_gp(snap.castle, grade, templates, gp)
+        return
+    farm.roll_day(snap.castle, s.ctx.clock.now())
+    farm.add_friend_gp(snap.castle, grade, templates, gp, _config(s, "Farm_TodayFromFriend_GP", 200))
+
+
+async def _pest(
+    s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
     assert snap.castle is not None
     now = s.ctx.clock.now()
     worm = msg.opType == WORM
@@ -114,32 +154,30 @@ async def _pest(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, la
         land.worm = 0
     else:
         land.grass = 0
-    gp = _config(s, "FarmCrop_Operate_GP", 1)
-    farm.add_farm_gp(snap.castle, snap.character.grades, s.ctx.templates, gp)
+    _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_BUG, BUG_PARA1, 1) if worm else []  # o mato não conta
     await s.ctx.characters.save(land, snap.castle, *quests)
-    _land_reply(s, msg.pos, land, msg.opType, OK)
+    _land_reply(s, target.character.id or 0, msg.pos, land, msg.opType, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     return True
 
 
-async def _pick(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None) -> bool:
-    """Colhe: moeda (ouro, alma, cristal, diamante vinculado), EXP (-700) ou item, e libera a terra."""
+def _payout(
+    s: GameSession, snap: PlayerSnapshot, reward: int, count: int, ref: str
+) -> tuple[list[object], Item | None] | None:
+    """Dá ``count`` de ``reward`` (moeda < 0, EXP -700 ou item) a quem colhe ou rouba. ``None`` = não cabe: ouro no
+    teto (FarmLandItem.checkGoldLimit, o cliente também bloqueia), mochila cheia ou item sem template."""
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
-    row = farm.seed(templates, land.item_template_id) if land is not None else None
-    if land is None or row is None or not farm.is_mature(land, now) or farm.is_dead(land, row, now):
-        return False
-    reward, count = int(row["Property2"]), land.reward_count
     field = CURRENCIES.get(reward)
     if reward < 0 and field is None and reward != EXP:
-        return False
+        return None
     if field == "gold" and cs.yield_msg(snap, templates, now).goldTotalCount >= cs.gold_max(snap, templates, now):
-        return False  # FarmLandItem.checkGoldLimit: o cliente também bloqueia
+        return None
     item = Item(c.id or 0, reward, count=count, pos=rules.free_bag_pos(snap)) if reward > 0 else None
     full = not bag.free_positions(snap, now)
     if item is not None and (full or not templates.get("ItemTempInfos", reward)):
-        return False
+        return None
     changed: list[object] = [c]
     if item is not None:
         snap.items.append(item)
@@ -155,23 +193,96 @@ async def _pick(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, la
         setattr(c, field, getattr(c, field) + count)
         if field in ("point", "gift_token"):
             delta = (count, 0) if field == "point" else (0, count)
-            changed.append(record_cash(c, *delta, reason="farm_pick", ref=f"seed:{land.item_template_id}", now=now))
-    snap.lands.remove(land)
-    quests = rules.quest_event(snap, templates, QUEST_HARVEST, 0, 1)  # só a fazenda própria (Para1 0)
-    await s.ctx.characters.save(*changed, *quests, delete=(land,))
-    _land_reply(s, msg.pos, None, PICK, OK)
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+            changed.append(record_cash(c, *delta, reason="farm_pick", ref=ref, now=now))
+    return changed, item
+
+
+def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: Item | None) -> None:
     if item is not None:
         s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
-    if field in ("gold", "crystals"):
+    if CURRENCIES.get(reward) in ("gold", "crystals"):
         cs.castle_yield(s)
     else:
         s.send(S_PLAYER, b.complete(player_info(s, snap)))
+
+
+async def _pick(
+    s: GameSession, snap: PlayerSnapshot, _: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
+    """Colhe: moeda (ouro, alma, cristal, diamante vinculado), EXP (-700) ou item, e libera a terra."""
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    row = farm.seed(templates, land.item_template_id) if land is not None else None
+    if land is None or row is None or not farm.is_alive_mature(land, row, now):
+        return False
+    reward = int(row["Property2"])
+    paid = _payout(s, snap, reward, land.reward_count, f"seed:{land.item_template_id}")
+    if paid is None:
+        return False
+    changed, item = paid
+    snap.lands.remove(land)
+    quests = rules.quest_event(snap, templates, QUEST_HARVEST, OWN_FARM, 1)
+    await s.ctx.characters.save(*changed, *quests, delete=(land,))
+    _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    _payout_sent(s, snap, reward, item)
     return True
 
 
-async def _accelerate(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None) -> bool:
+async def _steal(
+    s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
+    """Rouba da terra madura do amigo (FarmLandInfo.canBeStolen): uma vez por terra, até 3 ladrões, produção
+    de 10 ou mais; até ``Farm_TodayStolen_Count`` roubos no dia. Leva ``farm_steal_percent`` % do que resta
+    (internet: 10%), que sai do ``rewardCount`` do dono. Sem EXP (``expByOper`` não tem o caso 5)."""
+    assert snap.castle is not None
+    templates, now, me = s.ctx.templates, s.ctx.clock.now(), s.player_id
+    row = farm.seed(templates, land.item_template_id) if land is not None else None
+    if land is None or row is None or not farm.can_steal(land, row, me, now):
+        return False
+    farm.roll_day(snap.castle, now)
+    if snap.castle.farm_steals >= _config(s, "Farm_TodayStolen_Count", 200):
+        return False
+    pct = int(s.ctx.world.settings.get("farm_steal_percent", farm.STEAL_PERCENT))
+    amount = land.reward_count * pct // 100
+    reward = int(row["Property2"])
+    paid = _payout(s, snap, reward, amount, f"steal:{target.character.id}:{land.item_template_id}") if amount else None
+    if paid is None:
+        return False
+    changed, item = paid
+    land.reward_count -= amount
+    land.stolen_by = ",".join(str(x) for x in [*farm.stolen_by(land), me])
+    snap.castle.farm_steals += 1
+    quests = rules.quest_event(snap, templates, QUEST_HARVEST, FRIEND_FARM, 1)
+    # ponytail: dono offline vem do banco; dois ladrões ao mesmo tempo em cópias diferentes podem se sobrepor
+    await s.ctx.characters.save(*changed, land, snap.castle, *quests)
+    _land_reply(s, target.character.id or 0, msg.pos, land, STEAL, OK)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    _payout_sent(s, snap, reward, item)
+    return True
+
+
+async def _revive(
+    s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
+    """Revive a planta morta do amigo (só amigo revive: "Dead crops must be revived by friends"). (visto)
+    ciftlik #88-#105: só o ``matureTime`` muda, para 1 minuto antes de agora; produção, roubos e pragas ficam.
+    EXP ``FarmCrop_Operate_GP`` (expByOper, caso 6)."""
+    assert snap.castle is not None
+    now = s.ctx.clock.now()
+    if land is None or not farm.is_dead(land, farm.seed(s.ctx.templates, land.item_template_id), now):
+        return False
+    land.mature_at = now - REVIVE_BACK
+    _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
+    await s.ctx.characters.save(land, snap.castle)
+    _land_reply(s, target.character.id or 0, msg.pos, land, REVIVE, OK)
+    return True
+
+
+async def _accelerate(
+    s: GameSession, snap: PlayerSnapshot, _: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
     c, now = snap.character, s.ctx.clock.now()
     if land is None or land.accelerated or farm.is_mature(land, now):
         return False
@@ -184,27 +295,34 @@ async def _accelerate(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqM
     land.mature_at, land.accelerated = now, True
     await s.ctx.characters.save(c, land, entry)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
-    _land_reply(s, msg.pos, land, ACCELERATE, OK)
+    _land_reply(s, s.player_id, msg.pos, land, ACCELERATE, OK)
     return True
 
 
-async def _clear(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None) -> bool:
+async def _clear(
+    s: GameSession, snap: PlayerSnapshot, _: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
+) -> bool:
     if land is None:
         return False
     snap.lands.remove(land)
     await s.ctx.characters.save(delete=(land,))
-    _land_reply(s, msg.pos, None, CLEAR, OK)
+    _land_reply(s, s.player_id, msg.pos, None, CLEAR, OK)
     return True
 
 
 @router.on(15017)
 async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
-    """Rega a própria árvore a cada 10 minutos (ciftlik.json: ouro, energia e EXP da fazenda)."""
+    """Rega a própria árvore a cada 10 minutos, 3 vezes por dia (ciftlik.json #5-#10: ouro, energia e EXP da
+    fazenda); com ``userId`` de amigo, a árvore dele (``_water_friend``)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
+    if msg.userId not in (0, s.player_id):
+        await _water_friend(s, snap, msg.userId)
+        return
     c, castle, templates, now = snap.character, snap.castle, s.ctx.templates, s.ctx.clock.now()
-    if msg.userId not in (0, s.player_id) or farm.tree_left(castle, now) > 0 or castle.tree_fruit > 0:
-        s.log.info("15017 recusado", motivo="árvore de amigo, em espera ou com fruto", user=msg.userId)
+    farm.roll_day(castle, now)
+    if farm.tree_left(castle, now) > 0 or castle.tree_fruit > 0 or castle.tree_water_today >= farm.OWN_TREE_DAILY:
+        s.log.info("15017 recusado", motivo="em espera, com fruto ou 3 no dia", hoje=castle.tree_water_today)
         return
     # ouro = nível do dono x 20: visto em 2 capturas (220 no nível 11, 1.320 na árvore de amigo de nível 66)
     gold = c.grades * 20
@@ -213,16 +331,70 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     # o "Enerji + 1" do texto é a carga da árvore (waterCount), não a energia de teleporte
     # (internet) https://wartune.fandom.com/wiki/Tree_of_Ancients
     castle.tree_water, castle.tree_watered_at = castle.tree_water + 1, now
+    castle.tree_water_today += 1
     farm.add_farm_gp(castle, c.grades, templates, 1)
     # ponytail: sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado)
-    # missão 20 da própria árvore (Para1 1, visto em tempinfos QuestTemps 260); as de amigo esperam o regar amigo
-    quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, 1, 1)
+    quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, OWN_TREE, 1)
     await s.ctx.characters.save(c, castle, *quests)
     cs.castle_yield(s)
-    # texto deduzido (sem fonte no cliente/captura); termo Energize do language.txt
-    text = f"Energize successful! Gold + {gold:,}, Energy + 1, Farm EXP + 1"
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    # (visto) #8: 146 com as 3 linhas antes do 83; textos em inglês deduzidos (termo Energize do language.txt)
+    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=["Energy + 1", f"Gold + {gold:,}", "Farm EXP + 1"]))
+    s.send(
+        S_CHAT,
+        pb.ChatChannelMsg(channel=3, encodeMsg=f"Energize successful! Gold + {gold:,}, Energy + 1, Farm EXP + 1"),
+    )
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+
+
+async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> None:
+    """Rega a árvore de um amigo: uma vez por dia por amigo, até 200 no dia (help do cliente). (visto) ciftlik
+    #81-#87: quem rega ganha ouro = nível do dono x 20 (1.320 com o dono no 66) e EXP da fazenda = grau de amizade
+    (+4 no grau 4; expByOper caso 8, dentro do teto do dia); a árvore do dono ganha 1 de carga (8 -> 9) sem mexer
+    no tempo de espera dele; a amizade sobe 1. Pacotes: 4158, 109, 147 (a dele, depois a minha), 165, 146, 83."""
+    assert snap.castle is not None
+    found = await _friend(s, user_id)
+    c, castle, templates, now = snap.character, snap.castle, s.ctx.templates, s.ctx.clock.now()
+    farm.roll_day(castle, now)
+    today = gameday.today(now)
+    if found is None or found[1].tree_day == today or castle.tree_friend_today >= farm.FRIEND_TREE_DAILY:
+        s.log.info("15017 recusado", motivo="não é amigo, já regou hoje ou 200 no dia", user=user_id)
+        return
+    target, mine = found
+    owner = target.castle
+    assert owner is not None
+    theirs = await social.row_of(s.ctx, user_id, s.player_id)
+    # (dedução) ouro pelo nível de jogador do dono (o 66 do THoR também é o grau da fazenda dele)
+    gold = target.character.grades * 20
+    cs.settle(snap, templates, now)
+    c.gold += gold
+    gp = farm.add_friend_gp(castle, c.grades, templates, social.friend_grade(s.ctx, mine),
+                            _config(s, "Farm_TodayFromFriend_GP", 200))  # fmt: skip
+    castle.tree_friend_today += 1
+    owner.tree_water += 1
+    mine.tree_day, mine.friend_gp = today, mine.friend_gp + 1
+    rows: list[object] = [c, castle, owner, mine]
+    if theirs is not None:  # (dedução) a amizade sobe dos dois lados
+        theirs.friend_gp += 1
+        rows.append(theirs)
+    quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, FRIEND_TREE, 1)
+    await s.ctx.characters.save(*rows, *quests)
+    s.send(S_WATER_LOG, pb.FarmLogRsp(playerId=s.player_id, operUserId=user_id))
+    cs.castle_yield(s)
+    trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
+    s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in trees]))
+    s.send(S_FRIEND_UPDATE, social.friend_info(s.ctx, target.character, mine, target.sns))
+    if theirs is not None and (other := s.ctx.online.get(user_id)) is not None:
+        other.send(S_FRIEND_UPDATE, social.friend_info(s.ctx, c, theirs, snap.sns))
+    lines = [f"Farm EXP + {gp}", f"Energize successful, Gold + {gold:,}", "Friendship + 1"]
+    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines))
+    s.send(
+        S_CHAT,
+        pb.ChatChannelMsg(
+            channel=3, encodeMsg=f"Energize successful, Gold + {gold:,}, Farm EXP + {gp}, Friendship + 1"
+        ),
+    )
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
@@ -248,11 +420,19 @@ async def friend_trees(s: GameSession, msg: pb.FriendTreeReq) -> None:
 
 @router.on(8231)
 async def friend_farm_state(s: GameSession, msg: pb.FriendUserIdsMsg) -> None:
-    """4190: o que dá para fazer em cada fazenda. O oficial põe o próprio jogador primeiro."""
+    """4190: o que dá para fazer em cada fazenda. O oficial põe o próprio jogador primeiro (ciftlik #3)."""
     snap = s.snapshot
-    assert snap is not None
-    states = [farm.own_state(snap, s.ctx.clock.now())]
-    # ponytail: ações em fazenda de amigo ainda recusadas (lista de amigos), então tudo falso
-    ids = [i for i in dict.fromkeys(msg.friendId) if i not in (0, s.player_id)][:MAX_IDS]
-    states += [pb.FriendFarmStateMsg(userId=i) for i in ids]
+    assert snap is not None and snap.castle is not None
+    now = s.ctx.clock.now()
+    states = [farm.own_state(snap, now)]
+    room = farm.waters_today(snap.castle, now)[1] < farm.FRIEND_TREE_DAILY
+    # ponytail: um snapshot por amigo (até 100); se pesar, ler só terras e castelos
+    for user_id in [i for i in dict.fromkeys(msg.friendId) if i not in (0, s.player_id)][:MAX_IDS]:
+        found = await _friend(s, user_id)
+        if found is None:
+            states.append(pb.FriendFarmStateMsg(userId=user_id))
+            continue
+        target, r = found
+        can_water = room and r.tree_day != gameday.today(now)
+        states.append(farm.friend_state(s.player_id, target, s.ctx.templates, now, can_water=can_water))
     s.send(S_CAN_WATER, b.complete(pb.LoadFarmRsp(friendFarmState=states)))

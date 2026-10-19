@@ -10,6 +10,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta
 
+from ..domain import gameday
 from ..domain.models import Castle, FarmLand, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
@@ -21,6 +22,13 @@ FARM_GRADE = 17  # UpGradeTempInfos.Types da fazenda
 TREE_COOLDOWN = 600  # TreeInfo.remainWaerTime: lastWaterTime + 10 min
 REWARD_PERCENT = 80  # ciftlik.json: rewardCount de moeda = 80% do Property3 (2400/3000, 20000/25000, 8000/10000)
 WORM_AT, GRASS_AT = (0.4, 0.6), (0.3, 0.5)  # FarmLandInfo.isWormNow / isGrassNow
+MAX_STOLEN, MIN_STEAL_OUTPUT = 3, 10  # FarmModel.MAX_STOLEN_COUNT; FarmLandInfo.canBeStolen (outputCount < 10)
+# (cliente) language EN farm.view.FarmResourcesView.helpContent: "energize your Tree of Ancients 3 times a day",
+# "energize the Tree of Ancients for your friends 200 times a day", "a friend's Tree of Ancients once a day"
+OWN_TREE_DAILY, FRIEND_TREE_DAILY = 3, 200
+# (internet) https://breezewiki.discard.no/wartune/wiki/Farm (espelho de wartune.fandom.com/wiki/Farm): o amigo
+# leva "a small portion of the plant's value (10%)", até 3 vezes; configurável em game_settings farm_steal_percent
+STEAL_PERCENT = 10
 
 
 def seed(templates: GameTemplates, template_id: int) -> Row | None:
@@ -69,6 +77,42 @@ def has_grass(land: FarmLand, now: datetime) -> bool:
     return _pest_now(land, land.grass, GRASS_AT, now)
 
 
+def is_alive_mature(land: FarmLand, row: Row | None, now: datetime) -> bool:
+    return is_mature(land, now) and not is_dead(land, row, now)
+
+
+def stolen_by(land: FarmLand) -> list[int]:
+    return [int(x) for x in land.stolen_by.split(",") if x]
+
+
+def can_steal(land: FarmLand, row: Row | None, thief_id: int, now: datetime) -> bool:
+    """``FarmLandInfo.canBeStolen`` + ``checkHasOperNow(5)``: madura e viva, não roubada por ele, menos de 3
+    roubos e ao menos 10 de produção."""
+    taken = stolen_by(land)
+    return (
+        is_alive_mature(land, row, now)
+        and thief_id not in taken
+        and len(taken) < MAX_STOLEN
+        and land.reward_count >= MIN_STEAL_OUTPUT
+    )
+
+
+def roll_day(castle: Castle, now: datetime) -> None:
+    """Zera os contadores do dia da fazenda (o dia do jogo vira às 5h)."""
+    if castle.farm_day != gameday.today(now):
+        castle.farm_day = gameday.today(now)
+        castle.farm_friend_gp = castle.farm_steals = castle.tree_water_today = castle.tree_friend_today = 0
+
+
+def add_friend_gp(castle: Castle, player_grade: int, templates: GameTemplates, gp: int, cap: int) -> int:
+    """EXP da fazenda vinda de amigo, até ``cap`` (Farm_TodayFromFriend_GP) no dia; no teto a ação vale e
+    rende 0 (FarmModel.expByOper, "dayGpFull"). Devolve o que entrou."""
+    gp = max(0, min(gp, cap - castle.farm_friend_gp))
+    castle.farm_friend_gp += gp
+    add_farm_gp(castle, player_grade, templates, gp)
+    return gp
+
+
 def add_farm_gp(castle: Castle, player_grade: int, templates: GameTemplates, gp: int) -> None:
     """Soma EXP da fazenda e sobe de nível; parada no nível do jogador, a EXP enche e trava
     (``FarmModel.expByOper``). No nível máximo não ganha mais nada."""
@@ -98,7 +142,8 @@ def land_msg(user_id: int, pos: int, land: FarmLand | None) -> pb.FarmLandInfoMs
         plantingTime=b.fmt_time(land.planted_at),
         matureTime=b.fmt_time(land.mature_at),
         accelerateCount=int(land.accelerated),
-        stolenCount=0,
+        stolenCount=len(stolen_by(land)),
+        stolenUsers=stolen_by(land),
         isWormParam1=land.worm == 1,
         isWormParam2=land.worm == 2,
         isGrassParam1=land.grass == 1,
@@ -137,6 +182,8 @@ def farm_info(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.FarmInfoR
     c, castle = snap.character, snap.castle
     assert castle is not None
     by_pos = {land.pos: land for land in snap.lands}
+    # os contadores do dia só valem na própria fazenda (o cliente lê do myFarm); a de amigo vem 0 (ciftlik #80)
+    today = own and castle.farm_day == gameday.today(now)
     return pb.FarmInfoRspMsg(
         userId=c.id or 0,
         nickName=c.nickname or "",
@@ -144,15 +191,40 @@ def farm_info(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.FarmInfoR
         landGrades=1,
         gp=castle.farm_gp,
         totalGp=castle.farm_gp,
-        todayFromFriendGp=0,
+        todayFromFriendGp=castle.farm_friend_gp if today else 0,
         farmLandInfo=[land_msg(c.id or 0, pos, by_pos.get(pos)) for pos in range(OPEN_LANDS)],
         treeInfo=tree_msg(snap, now, own=own),
-        todayStolenCount=0,
+        todayStolenCount=castle.farm_steals if today else 0,
     )
+
+
+def waters_today(castle: Castle, now: datetime) -> tuple[int, int]:
+    """Regas do dia (própria, de amigos) sem gravar a virada."""
+    return (castle.tree_water_today, castle.tree_friend_today) if castle.farm_day == gameday.today(now) else (0, 0)
 
 
 def own_state(snap: PlayerSnapshot, now: datetime) -> pb.FriendFarmStateMsg:
     """O 4190 do oficial começa pelo próprio jogador: ``isChargeEnergy`` libera regar a própria árvore."""
     assert snap.castle is not None
-    can_water = tree_left(snap.castle, now) <= 0 and snap.castle.tree_fruit == 0
+    can_water = (
+        tree_left(snap.castle, now) <= 0
+        and snap.castle.tree_fruit == 0
+        and waters_today(snap.castle, now)[0] < OWN_TREE_DAILY
+    )
     return pb.FriendFarmStateMsg(userId=snap.character.id or 0, isChargeEnergy=can_water)
+
+
+def friend_state(
+    viewer_id: int, target: PlayerSnapshot, templates: GameTemplates, now: datetime, *, can_water: bool
+) -> pb.FriendFarmStateMsg:
+    """4190 de um amigo (visto ciftlik #3): o que ``viewer_id`` pode fazer na fazenda dele agora."""
+    rows = [(land, seed(templates, land.item_template_id)) for land in target.lands]
+    return pb.FriendFarmStateMsg(
+        userId=target.character.id or 0,
+        isReap=any(can_steal(land, row, viewer_id, now) for land, row in rows),
+        isChargeEnergy=can_water,
+        isRevive=any(is_dead(land, row, now) for land, row in rows),
+        isWorm=any(has_worm(land, now) for land, _ in rows),
+        isGrass=any(has_grass(land, now) for land, _ in rows),
+        isFeed=False,
+    )

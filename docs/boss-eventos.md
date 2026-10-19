@@ -73,6 +73,10 @@ jogador revive sozinho com um 4175 `state` 0. Enquanto estiver morto, o 5125 só
 O **8264** revive na hora, cobrando `Live_Fight_Pay`: com payType 0 gasta primeiro o vinculado, com 1
 só diamante.
 
+**Missões.** Tipo 40 ("Participate in a World BOSS Battle": 759 ×10, 761 ×1) conta 1 no fim de cada luta no
+chefe (*dedução*: luta e não entrada; com entrada, a 759 pediria 10 entradas). Tipo 66 (183 "Spend Balens to begin
+the battle instantly ... 3 times") conta 1 em cada 8264 pago com sucesso. As duas mandam o 112 e gravam junto.
+
 **Sair (5025 ou desconexão).** O 22 `CampaignExitMsg` vai a todos no mapa, inclusive a quem sai
 (`exitBack`).
 
