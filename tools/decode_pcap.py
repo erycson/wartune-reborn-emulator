@@ -91,22 +91,25 @@ def tcp_payload(link: int, frame: bytes) -> tuple[str, int, str, int, int, bytes
         off, etype = 14, struct.unpack_from(">H", frame, 12)[0]
         while etype == 0x8100:
             etype, off = struct.unpack_from(">H", frame, off + 2)[0], off + 4
-        if etype != 0x0800:
+        if etype not in (0x0800, 0x86DD):
             return None
     elif link == 0:  # loopback BSD
         off = 4
-    elif link in (101, 228):  # IPv4 cru
+    elif link in (101, 228, 229):  # IP cru
         off = 0
     else:
         return None
     ip = frame[off:]
-    if len(ip) < 20 or ip[0] >> 4 != 4 or ip[9] != 6:
+    if len(ip) >= 20 and ip[0] >> 4 == 4 and ip[9] == 6:
+        ihl, total = (ip[0] & 15) * 4, struct.unpack_from(">H", ip, 2)[0]
+        tcp, src, dst = ip[ihl:total], ".".join(map(str, ip[12:16])), ".".join(map(str, ip[16:20]))
+    elif len(ip) >= 40 and ip[0] >> 4 == 6 and ip[6] == 6:  # IPv6 (oficial na Cloudflare), sem extensões
+        tcp, src, dst = ip[40 : 40 + struct.unpack_from(">H", ip, 4)[0]], ip[8:24].hex(), ip[24:40].hex()
+    else:
         return None
-    ihl, total = (ip[0] & 15) * 4, struct.unpack_from(">H", ip, 2)[0]
-    tcp = ip[ihl:total]
     sport, dport, seq = struct.unpack_from(">HHI", tcp, 0)
     payload = tcp[(tcp[12] >> 4) * 4 :]
-    return ".".join(map(str, ip[12:16])), sport, ".".join(map(str, ip[16:20])), dport, seq, bytes(payload)
+    return src, sport, dst, dport, seq, bytes(payload)
 
 
 def flows(path: Path, port: int) -> list[Flow]:
