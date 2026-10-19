@@ -10,7 +10,7 @@ from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-OPEN_DAY = datetime(2026, 10, 17, 9, 0, tzinfo=UTC)  # dentro da edição da 0041 (15 a 18, hora do jogo)
+OPEN_DAY = datetime(2026, 10, 17, 9, 0, tzinfo=UTC)  # dentro da edição da 0038 (15 a 18, hora do jogo)
 
 
 def _snap(g: Game) -> PlayerSnapshot:

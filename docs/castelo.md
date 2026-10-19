@@ -80,9 +80,9 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
   prédios + 300 de tecnologia + 30); sem terras selvagens, guilda e efeitos.
 - ~~**Fazenda de amigo**~~: feita (tabela acima). Quem pode: só amigo (`relation` 1, que já é dos dois lados).
   Contadores do dia no castelo de quem age (`farm_day`, `farm_friend_gp`, `farm_steals`, `tree_water_today`,
-  `tree_friend_today`, migração 0038); `todayFromFriendGp`/`todayStolenCount` vão no 4386 da própria fazenda.
+  `tree_friend_today`, migração 0037); `todayFromFriendGp`/`todayStolenCount` vão no 4386 da própria fazenda.
   Fontes: limites do cliente (`FarmModel`, `FarmLandInfo.canBeStolen`, `ConfigInfos` e o help EN da fazenda),
-  reviver e regar visto (ciftlik). **dedução / config** (`game_settings`, 0038): roubo de 10% (`farm_steal_percent`,
+  reviver e regar visto (ciftlik). **dedução / config** (`game_settings`, 0037): roubo de 10% (`farm_steal_percent`,
   internet: só o resumo da busca sobre https://breezewiki.discard.no/wartune/wiki/Farm, a página não abriu); grau de amizade = 1 + pontos // `friend_grade_step` (10; ciftlik: grau 4 com 34); amizade +1 dos dois
   lados; ouro da rega pelo nível de jogador do dono (o 66 do THoR também era o grau da fazenda); textos 146/83 em
   inglês montados com os termos do language EN. O dono online é mexido no snapshot da sessão dele; offline, pelo banco

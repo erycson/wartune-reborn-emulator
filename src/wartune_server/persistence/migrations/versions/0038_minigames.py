@@ -9,8 +9,8 @@ hora do jogo). As datas são do operador: fora delas o fundo fica fechado. ``tit
 ("钻石矿脉"); o cliente não mostra nenhum dos dois (``FundFrame`` usa o ``language.txt``), então vão em inglês
 (tradução nossa).
 
-Revision ID: 0041
-Revises: 0035
+Revision ID: 0038
+Revises: 0037
 Create Date: 2026-10-19 18:00:00.000000
 """
 
@@ -21,8 +21,8 @@ import json
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0041"
-down_revision = "0035"
+revision = "0038"
+down_revision = "0037"
 branch_labels = None
 depends_on = None
 

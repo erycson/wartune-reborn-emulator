@@ -84,7 +84,7 @@ def free_bugles(s: GameSession) -> int:
     """Cornetas pequenas grátis que restam hoje (o contador zera na virada do dia do servidor).
 
     Cota do ConfigInfo ``SMALL_BUGLE_FREE_COUNT`` (10, #2780) + ``vip_bugle_bonus[nível VIP]`` (``game_settings``,
-    migração 0037): nem o cliente nem a captura dizem se o VIP ganha mais, então o padrão é 0 (sem efeito).
+    migração 0036): nem o cliente nem a captura dizem se o VIP ganha mais, então o padrão é 0 (sem efeito).
     """
     from .vip import is_vip, vip_grade  # vip importa player, que importa este pacote
 

@@ -366,7 +366,7 @@ def store_cards(sy: PlayerSystems, found: dict[int, list[int]]) -> None:
 # card.CardSlotView.Notactive0..2: "4 cards from the same deck", "3 level 4 cards", "8 level 4 cards".
 # (visto) login #76: só a 1002, com 4 cartas, tem bufInfos (40001 = Property3); as de 3 cartas não têm.
 # (dedução) leitura: [cartas, grau mínimo de cada] = 4 de qualquer grau, 4 no grau 3, 4 no grau 8 (o turco diz 6).
-# Configurável: game_settings ``powcard_suite_slots`` (0038).
+# Configurável: game_settings ``powcard_suite_slots`` (0037).
 SUITE_SLOTS = [[4, 1], [4, 3], [4, 8]]
 
 

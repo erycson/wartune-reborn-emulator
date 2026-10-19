@@ -66,7 +66,7 @@ class Shared:
 
 
 def _cfg(s: GameSession) -> Mapping[str, Any]:
-    """``game_settings.gold_tree`` (0041, valores do #72). Sem a linha a árvore não existe."""
+    """``game_settings.gold_tree`` (0038, valores do #72). Sem a linha a árvore não existe."""
     return s.ctx.world.settings.get("gold_tree") or {}
 
 

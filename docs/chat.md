@@ -102,7 +102,7 @@ yanıtını bekleyin", 83 canal 3. `login.json #68/#79`: 4156 em 2 páginas, rel
 - 8198: mundo, para todos online. Gasta primeiro a cota grátis do dia (ConfigInfo
   `SMALL_BUGLE_FREE_COUNT` = 10, zera na virada do dia) e depois uma corneta 208003 (115 e 4500).
 - 8705: 4500 `paraInt1` = cornetas grátis restantes. Com VIP soma `game_settings.vip_bugle_bonus[nível VIP]`
-  (migração 0037, padrão 0): nem o cliente (`VipPrerogativeTempInfos` não tem esse tipo, `ConfigInfos` só tem o 10)
+  (migração 0036, padrão 0): nem o cliente (`VipPrerogativeTempInfos` não tem esse tipo, `ConfigInfos` só tem o 10)
   nem a captura (o único 4500 é o #2780, antes do cartão VIP do #3262) dizem se o VIP ganha mais.
   **Captura que falta**: com uma conta VIP (nível conhecido), abrir o chat World e capturar o 8705 → 4500.
 - 5011: corneta grande (canal 1), gasta o item 208002.

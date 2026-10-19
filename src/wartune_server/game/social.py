@@ -125,7 +125,7 @@ def sns_info(c: Character, p: SnsProfile | None) -> pb.SNSInfoMsg:
     )
 
 
-GRADE_STEP = 10  # padrão de game_settings friend_grade_step (0038)
+GRADE_STEP = 10  # padrão de game_settings friend_grade_step (0037)
 
 
 def friend_grade(ctx: GameContext, r: Relation) -> int:

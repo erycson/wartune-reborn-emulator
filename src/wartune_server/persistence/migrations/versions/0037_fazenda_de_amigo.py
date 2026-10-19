@@ -5,8 +5,8 @@ do jogo em ``farm_day``. ``farm_lands.stolen_by``: quem já roubou a terra (``st
 amizade (``friend_gp``, o "Friendship + 1" de ciftlik #87) e o dia em que regou a árvore do outro (``tree_day``).
 ``game_settings``: os números sem fonte melhor que a Internet ou dedução (ver docs/castelo.md e heroi-exercito.md).
 
-Revision ID: 0038
-Revises: 0035
+Revision ID: 0037
+Revises: 0036
 Create Date: 2026-10-19 13:00:00.000000
 """
 
@@ -17,8 +17,8 @@ import json
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0038"
-down_revision = "0035"
+revision = "0037"
+down_revision = "0036"
 branch_labels = None
 depends_on = None
 

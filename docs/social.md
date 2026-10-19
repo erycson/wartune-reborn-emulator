@@ -18,7 +18,7 @@ Alvo online vem de `OnlinePlayers` (snapshot); offline, do banco (`characters.by
 | `mails` / `mail_annexes` | correio e até 5 anexos por template (`taken`) ou por item de verdade (`item_id`, migração 0012); anexos caem com o correio |
 | `marriages` | uma linha por pessoa do casal: `mate_id`, `state` 1 noivo / 2 noivado cancelado / 3 casado / 4 divorciado, `spec_id`, `married_at` |
 | `characters` | + `refuse_friend`, `bugle_free_used`, `bugle_free_day` |
-| `relations` (0038) | + `friend_gp` (amizade; sobe 1 dos dois lados a cada rega de árvore de amigo) e `tree_day` (dia em que `character_id` regou a árvore de `other_id`) |
+| `relations` (0037) | + `friend_gp` (amizade; sobe 1 dos dois lados a cada rega de árvore de amigo) e `tree_day` (dia em que `character_id` regou a árvore de `other_id`) |
 
 Amizade: 78/165 levam `relationGp` = `friend_gp` e `relationGrade`; o 4156 leva `friendRp`/`friendGrade`. Grau =
 1 + `friend_gp` // `friend_grade_step` (game_settings, 10) só para amigo, 0 nos outros *(dedução: ciftlik #85 tem

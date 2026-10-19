@@ -48,7 +48,7 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 
 ### Itens com validade
 
-`Item.valid_date` (minutos) e `begin_date` (migração 0037) vão no 115 como `validDate` e `beginDate`
+`Item.valid_date` (minutos) e `begin_date` (migração 0036) vão no 115 como `validDate` e `beginDate`
 (`"YYYY-MM-DD hh:mm:ss"`, o mesmo `fmt_time` do `sysCurtime`, porque o cliente compara os dois) *(cliente)*
 `ItemHelper`, `GoodsInfo.leftTime`. Vence quando `agora - beginDate >= validDate` minutos (a conta do cliente).
 Só a loja dá validade (varredura do `tempinfos.xml`: nenhuma outra tabela tem `ValidDate`; a captura inglesa não tem `validDate` > 0): `ShopTempInfos.ValidDate` em minutos (as 10 medalhas da loja de honra, ShopType 3:

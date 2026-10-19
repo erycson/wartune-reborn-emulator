@@ -11,7 +11,7 @@ from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-# fundo normal da 0041 (hora do jogo; o harness roda em UTC+3): compra até 18 23:59:59, resgate de 19 a 23
+# fundo normal da 0038 (hora do jogo; o harness roda em UTC+3): compra até 18 23:59:59, resgate de 19 a 23
 BUYING = datetime(2026, 10, 17, 9, 0, tzinfo=UTC)
 HARVEST = datetime(2026, 10, 18, 21, 0, 1, tzinfo=UTC)  # 19 00:00:01 no jogo
 AFTER_FUND = datetime(2026, 11, 1, tzinfo=UTC)  # só depois do login: o ticket vence pelo relógio real

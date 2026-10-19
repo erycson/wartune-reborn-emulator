@@ -192,7 +192,7 @@ amigo do labirinto) recusam sem efeito. Calendário (quando cada um abre): `game
 ([configuracao.md](configuracao.md#calendário-dos-minigames)); sem a linha, fechado.
 
 **Fundo normal (8703, 4612)**: o mesmo código do novato (`Fund` em `minigames.py`), com a regra do cliente para
-o normal. Banco: `game_settings.normal_fund` (0041) = o 4612 do tutorial_en #86 ("钻石矿脉", Diamond Vein: níveis
+o normal. Banco: `game_settings.normal_fund` (0038) = o 4612 do tutorial_en #86 ("钻石矿脉", Diamond Vein: níveis
 1000/2000/10000 diamantes, 5 tiers um por dia).
 - `activeType` *(visto #86 = 1 dentro da compra)*: 1 entre `setStartDate` e `setEndDate`; 2 dali até `getEndDate`
   *(dedução: o cliente só resgata com 2, `getCanGetGift`)*; 0 fora (o botão some).
@@ -205,7 +205,7 @@ o normal. Banco: `game_settings.normal_fund` (0041) = o 4612 do tutorial_en #86 
 - `title`/`description` vieram em chinês; o cliente não mostra nenhum dos dois: vão em inglês (tradução nossa).
 
 **Árvore dourada ("Sacred Gold Tree", 8604)**: no cliente é a "garrafa" (`BottleManager`). Banco:
-`game_settings.gold_tree` (0041) = o 295 do tutorial_en #72 (70 itens, 5 baús de vezes, 5 de andar, fim). Preço:
+`game_settings.gold_tree` (0038) = o 295 do tutorial_en #72 (70 itens, 5 baús de vezes, 5 de andar, fim). Preço:
 `Bottle_Price` do template inglês = **65|650|3250** (1/10/50 vezes; o turco tinha 20|200|1000).
 
 | opType (`BottleOpMsg`) | o que faz | resposta | fonte |
@@ -376,4 +376,4 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 `gold_tree.login_push`), `handlers/__init__.py` (registro), `game/bag.py` (`side_fits`/`side_add`, bolsas de prêmio
 22 e 24), `handlers/items.py` (5005 da bolsa 22 para a mochila), `game/session.py` (`GameContext.gold_tree`) e
 `EventStateRepository.by_prefix`. O progresso dos fundos, da árvore e do labirinto usa `event_states`; as regras
-vêm da 0033 (novato) e da 0041 (normal, árvore).
+vêm da 0033 (novato) e da 0038 (normal, árvore).

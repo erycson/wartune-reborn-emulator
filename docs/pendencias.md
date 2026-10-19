@@ -21,7 +21,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 | Lojas pagas com pontuação (ShopType 8, 13, 15, 20) e `NeedItem` 2125048 (Cesur Dönüş Kitabı) | 79 | ok: recusado (moeda não existe aqui). **depende de**: pontuação de lordes, guerra de guildas, cristal de fada, volta de jogador |
 | Limite diário `VIP0Count` (o cliente chama de `OneDayCount`; não existe limite "uma vez na vida" na tabela) | 22 | ok na loja comum; **corrigido** no mercado da guilda (antes comprava sem limite) |
 | `NeedMinVip`, `VIP1Count`..`VIP6Count` | todos 0 / -1 | nada a fazer hoje |
-| Loja de honra (ShopType 3): medalhas com `ValidDate` (7, 15 e 30 dias) | 10 | ~~falta item com validade~~ **feito**: `items.valid_date`/`begin_date` (0037), no 115 e apagado no 8346, no login e no relógio (20008). **dedução**: apagar sem aviso e a varredura do servidor. **falta captura**: deixar uma medalha de 7 dias vencer no oficial e capturar o login e o 8346 (ver itens.md) |
+| Loja de honra (ShopType 3): medalhas com `ValidDate` (7, 15 e 30 dias) | 10 | ~~falta item com validade~~ **feito**: `items.valid_date`/`begin_date` (0036), no 115 e apagado no 8346, no login e no relógio (20008). **dedução**: apagar sem aviso e a varredura do servidor. **falta captura**: deixar uma medalha de 7 dias vencer no oficial e capturar o login e o 8346 (ver itens.md) |
 | Loja do labirinto (ShopType 4): moeda e preço (Labirent Parası, `MazeCoin`) conferidos na captura (105 e 110). Andar: o cliente esconde o botão com `MazeLayers` > `maxIndex` (60 fixo) ou `MazeLayers2` > 0, e o servidor recusa o mesmo | 119 (23 e 22 bloqueadas) | **dedução** no código. **falta**: o `maxIndex` depois de avançar no labirinto (captura de 4205 com o labirinto mais fundo). O progresso real do labirinto não existe aqui |
 | Loja misteriosa (ShopType 5): peso `Rands` | 110 | **dedução**: sorteio uniforme de 8 itens, sem o peso |
 | Presente para outro jogador (`receiveId`) | — | recusado. **depende de**: entrega pelo correio na compra |
@@ -40,12 +40,12 @@ Itens fora da loja:
 
 ## Minigames e eventos ([eventos.md](eventos.md))
 
-8 de 38 são reais: fundo de novato (8751), fundo normal (8703), árvore dourada (8604) e labirinto de gemas (9508, 9509, 9513, 9516, 9517). 2 recusam sem efeito (9510, 9515: ajuda de amigo do labirinto). Os outros 28 respondem o estado "fechado" que o cliente sabe mostrar. Calendário de cada um: `game_settings` (0041), do operador.
+8 de 38 são reais: fundo de novato (8751), fundo normal (8703), árvore dourada (8604) e labirinto de gemas (9508, 9509, 9513, 9516, 9517). 2 recusam sem efeito (9510, 9515: ajuda de amigo do labirinto). Os outros 28 respondem o estado "fechado" que o cliente sabe mostrar. Calendário de cada um: `game_settings` (0038), do operador.
 
 | Minigame | Opcodes | Falta |
 |---|---|---|
-| ~~Garrafa~~ Árvore dourada | 8604 | **real** (0041, #72). **dedução**: início da edição, pesos (uniforme), dono do andar = quem bateu, raro = `isNewItems`, ordem das respostas, "once per day" do help não aplicado. **precisa de captura**: 8604 de cada op e 4825 ([eventos.md](eventos.md)) |
-| ~~Fundo normal~~ | 8703 | **real** (0041, #86). **dedução**: `activeType` 2/0 fora da compra, compra recusada fora da janela. **precisa de captura**: compra e resgate |
+| ~~Garrafa~~ Árvore dourada | 8604 | **real** (0038, #72). **dedução**: início da edição, pesos (uniforme), dono do andar = quem bateu, raro = `isNewItems`, ordem das respostas, "once per day" do help não aplicado. **precisa de captura**: 8604 de cada op e 4825 ([eventos.md](eventos.md)) |
+| ~~Fundo normal~~ | 8703 | **real** (0038, #86). **dedução**: `activeType` 2/0 fora da compra, compra recusada fora da janela. **precisa de captura**: compra e resgate |
 | Quiz | 9501 | `HeartTempInfos` não tem resposta certa (são perguntas de personalidade); agenda do help (seg/qua/sex 19:30) diferente do template (1,3,5,6 às 14:35). **precisa de captura** de uma rodada |
 | Labirinto de gemas | 9508–9517 | **real** ([eventos.md](eventos.md)). **precisa de captura**: subida de nível (tabela de `maxExp`), pesos dos prêmios, o que o oficial faz com troca sem combinação, bolsa do prêmio das caixas (9513), período da renovação diária (dedução), ajuda de amigo (9510/9515/4925), ranking semanal, preço e teto da compra (dedução) |
 | Estrada dourada | 9520–9522 | casas (4933 `cellInfo`) e custo dos dados: **precisa de captura** (abrir e jogar nos 3 modos) |
@@ -173,7 +173,7 @@ Outros eventos:
 ## Social, chat e VIP ([social.md](social.md), [chat.md](chat.md))
 
 - Canal de time (6) no chat: recusado.
-- ~~VIP ignorado em limite de amigos e 5172 índice 0~~ **feito** pelo cliente (`VIPModel.vipFriendPrivilege`/`vipCoolPrivilege`). Cota de cornetas: `game_settings.vip_bugle_bonus` (0037), padrão 0 = **sem fonte**; **falta captura** do 8705 → 4500 de uma conta VIP (ver chat.md).
+- ~~VIP ignorado em limite de amigos e 5172 índice 0~~ **feito** pelo cliente (`VIPModel.vipFriendPrivilege`/`vipCoolPrivilege`). Cota de cornetas: `game_settings.vip_bugle_bonus` (0036), padrão 0 = **sem fonte**; **falta captura** do 8705 → 4500 de uma conta VIP (ver chat.md).
 - Presentes do VIP/contrato do rei para amigo (8513/8540): recusados (gravar outro personagem).
 - ~~Mochila de 42 espaços base em coliseu, fazenda, caixa por tempo, correio e `rewards.can_grant`~~ **feito**: todos usam `bag.free_positions` (`bag.capacity`: 42 + comprados, 217 alugada).
 

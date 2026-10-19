@@ -64,7 +64,7 @@ CLOSED, BUYING, HARVESTING = 0, 1, 2  # DepositActiveMsg.activeType (cliente Fun
 
 
 def _fund_cfg(s: GameSession, fund: Fund = NOVICE) -> Mapping[str, Any]:
-    """Fundo do banco (``game_settings``: ``novice_fund`` da 0033, tutorial_en #639; ``normal_fund`` da 0041, #86)."""
+    """Fundo do banco (``game_settings``: ``novice_fund`` da 0033, tutorial_en #639; ``normal_fund`` da 0038, #86)."""
     return s.ctx.world.settings.get(fund.setting) or {}
 
 

@@ -91,7 +91,7 @@ async def test_vip_amigos_corneta_e_aceleracao_gratis(tmp_path: Path) -> None:
         s, snap = _session(g), _snap(g)
         assert vip.friend_bonus(s, snap) == 0 and not vip.free_cool(s, snap)
         free = chat.free_bugles(s)
-        assert s.ctx.world.settings["vip_bugle_bonus"] == [0] * 10  # migração 0037: sem fonte, sem efeito
+        assert s.ctx.world.settings["vip_bugle_bonus"] == [0] * 10  # migração 0036: sem fonte, sem efeito
         bonus = {**s.ctx.world.settings, "vip_bugle_bonus": [0, 5] + [0] * 8}
         object.__setattr__(s.ctx.world, "settings", bonus)  # World é congelado; este servidor é só do teste
         assert chat.free_bugles(s) == free  # sem VIP: só a cota do ConfigInfo

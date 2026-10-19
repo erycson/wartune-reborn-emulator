@@ -8,7 +8,7 @@ vencido (``BaseBagListView``/``EquipBagII`` mandam 8346).
 (``VipPrerogativeTempInfos`` não tem esse tipo; ``ConfigInfos`` só tem ``SMALL_BUGLE_FREE_COUNT`` 10) nem a captura
 dizem quanto: padrão 0 (sem efeito) até capturar um 4500 de uma conta VIP.
 
-Revision ID: 0037
+Revision ID: 0036
 Revises: 0035
 Create Date: 2026-10-19 15:00:00.000000
 """
@@ -22,7 +22,7 @@ from alembic import op
 
 from wartune_server.persistence.schema import UTCDateTime
 
-revision = "0037"
+revision = "0036"
 down_revision = "0035"
 branch_labels = None
 depends_on = None

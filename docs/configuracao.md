@@ -61,7 +61,7 @@ Os horários do Sylph Atoll são escolha do dono (o padrão vem do help do clien
 
 ### Calendário dos minigames
 
-`game_settings` (migração 0041; regras em [eventos.md](eventos.md#minigames-handlersminigamespy)). Datas na hora do
+`game_settings` (migração 0038; regras em [eventos.md](eventos.md#minigames-handlersminigamespy)). Datas na hora do
 jogo (`WARTUNE_GAME_TIMEZONE`), formato `AAAA-MM-DD hh:mm:ss`. Sem a linha, o evento fica fechado.
 
 | chave | o quê |
@@ -89,7 +89,7 @@ código usa o mesmo padrão.
 | `game_settings` `star_open_next` | chance (0 a 1) de um sorteio de estrela acender o cristal seguinte (0.3) |
 | `game_settings` `gem_maze_reward_weights` | labirinto de gemas, um peso por prêmio na ordem 2060008 x1, 208027 x1, 208014 x2 (`[1, 1, 1]`) |
 | `game_settings` `vip_bugle_bonus` | cornetas pequenas grátis a mais por dia, por nível VIP (índice 0..9; padrão `[0, ...]`, sem fonte, ver chat.md) |
-| `game_settings` `gold_tree` → `drops[i][4]` | árvore dourada (8604), por item da lista (0041). Padrão 1 (uniforme) |
+| `game_settings` `gold_tree` → `drops[i][4]` | árvore dourada (8604), por item da lista (0038). Padrão 1 (uniforme) |
 
 ```sql
 UPDATE vip_wheel_prizes SET weight = 0.2 WHERE position = 4;          -- 500.000 de ouro 5x mais raro
@@ -97,7 +97,7 @@ UPDATE game_settings SET value = '[1, 1, 3]' WHERE key = 'gem_maze_reward_weight
 UPDATE game_settings SET value = '0.5' WHERE key = 'star_open_next';
 ```
 
-### Fazenda, amizade e cartas (0038)
+### Fazenda, amizade e cartas (0037)
 
 | `game_settings` | o quê |
 |---|---|
