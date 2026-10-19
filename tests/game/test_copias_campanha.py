@@ -26,7 +26,7 @@ async def test_buyuk_sefer_adds_one_entry_per_use_and_is_saved(tmp_path: Path) -
         assert codes(got) == [115, 4240, 111, 3]  # visto: 115, 4240, 111 e 3 (o 109 do castelo não é do item)
         copies = pb.MultiCampaignEnterCountMsg.FromString(got[1].body)
         assert (copies.campaignCount, copies.campaignMaxcount) == (2, 2)  # 1/1 do login + 1 uso
-        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Grup Ek Sahne yararı 1 kez arttı"
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Multi-player Dungeon attempts increased by 1"
         assert pb.PlayerMsg.FromString(got[3].body).campaignCount == 2
         assert item.count == 1
 

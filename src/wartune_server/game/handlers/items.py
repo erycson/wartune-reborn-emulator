@@ -288,7 +288,8 @@ async def _use_copies(s: GameSession, item: Item, n: int, times: int) -> bool:
 
     _send_items(s, changed, gone)
     send(s, S_COPIES, pb.MultiCampaignEnterCountMsg(campaignCount=count + times, campaignMaxcount=top + times))
-    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Grup Ek Sahne yararı {times} kez arttı"))
+    # texto deduzido (sem fonte no cliente/captura): o turco era "Grup Ek Sahne yararı N kez arttı"
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Multi-player Dungeon attempts increased by {times}"))
     _player(s)
     return True
 
