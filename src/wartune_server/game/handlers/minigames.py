@@ -2,7 +2,7 @@
 
 Os sistemas fechados respondem o estado que o cliente mostra sem eles (ícone escondido, tela vazia,
 botão desabilitado): nenhum fica sem resposta, e nenhum manda aberto o que não consegue servir.
-Fundo novato é real: custo em diamante via ``ledger``, prêmio pela tabela de ``data/events.json``.
+Fundo novato é real: custo em diamante via ``ledger``, prêmio pela tabela do banco (``game_settings``).
 Fontes e dependências de cada opcode em docs/eventos.md (tabela "Minigames").
 """
 
@@ -44,6 +44,11 @@ def _send(s: GameSession, code: int, msg: Any) -> None:
 # ---------------------------------------------------------------- fundo novato (8751 / 4640)
 
 
+def _fund_cfg(s: GameSession) -> Mapping[str, Any]:
+    """Fundo novato do banco (``game_settings`` ``novice_fund``, valores do oficial inglês, tutorial_en #639)."""
+    return s.ctx.world.settings.get("novice_fund") or {}
+
+
 def _level_cfg(cfg: Mapping[str, Any], level: int) -> Mapping[str, Any] | None:
     return next((lv for lv in cfg["levels"] if int(lv["level"]) == level), None)
 
@@ -54,9 +59,9 @@ def _level(snap: PlayerSnapshot) -> int:
 
 
 def _fund_msg(s: GameSession, snap: PlayerSnapshot) -> pb.DepositActiveMsg:
-    """DepositActiveMsg do fundo novato (4640). Níveis e tiers vêm de ``events.json``; o total do
-    cliente (``itemInfos``) é a soma dos tiers (conferido na captura: nível 1 = -500:100, -400:200)."""
-    cfg = s.ctx.events.novice_fund
+    """DepositActiveMsg do fundo novato (4640). Níveis e tiers vêm do banco; o total do
+    cliente (``itemInfos``) é a soma dos tiers (conferido no tutorial_en #639: nível 1 = -500:250, -400:500)."""
+    cfg = _fund_cfg(s)
     level = _level(snap)
     msg = pb.DepositActiveMsg(
         activeId=str(cfg["activeId"]), activeType=1, grades=int(cfg["minGrades"]), depositLevel=level
@@ -108,7 +113,7 @@ async def novice_fund(s: GameSession, msg: pb.DepositActiveMsg) -> None:
     mínimo); 2 = resgata o tier ``opParam`` (= ``times``) quando o nível do personagem chega ao tier."""
     snap = s.snapshot
     assert snap is not None
-    cfg = s.ctx.events.novice_fund
+    cfg = _fund_cfg(s)
     if not cfg:  # operador sem fundo: mesmo estado fechado do 8703
         _send(s, S_FUND_NOVICE, pb.DepositActiveMsg(activeType=0))
         return
@@ -177,11 +182,13 @@ async def normal_fund(s: GameSession, _: object) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """Login do oficial: o 4922 do labirinto (replay) e o 4640 do fundo novato (login.json #94)."""
+    """Login do oficial: o 4922 do labirinto (replay) e o 4640 do fundo novato (login.json #94), este só a partir
+    do nível ``openGrades`` (tutorial_en: o login no nível 1 não manda; o primeiro 4640, #639, sai no nível 6)."""
     gemmaze.login_push(s)
     snap = s.snapshot
     assert snap is not None
-    if s.ctx.events.novice_fund:
+    cfg = _fund_cfg(s)
+    if cfg and snap.character.grades >= int(cfg.get("openGrades", 0)):
         _send_fund(s, snap)
 
 

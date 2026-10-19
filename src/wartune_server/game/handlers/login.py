@@ -227,6 +227,7 @@ async def _login_state(s: GameSession) -> None:
     s.send(S_PET_ISLAND_BOSS, pb.PetIslandDefendStateMsg(**zero))
     from . import events
 
+    events.send_rate(s)  # 4247 logo depois do 4686 (tutorial_en #44-#45)
     events.login_push(s)
     # tropas do castelo (oficial: login.json #6); personagem sem tropas nem quartel não recebe
     if (pawns := castle_pawns(snap, s.ctx.templates)).armyPawn:

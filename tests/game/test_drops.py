@@ -27,7 +27,7 @@ async def test_carta_da_masmorra_como_no_replay(tmp_path: Path) -> None:
         assert (msg.index, msg.templateId, msg.count, msg.bind, msg.pay) == (2, item.template_id, 1, True, False)
         skills = [msg.randomSkill_1, msg.randomSkill_2, msg.randomSkill_3, msg.randomSkill_4, msg.randomSkill_5]
         assert skills == item.random_skills and sum(map(bool, skills)) == slots
-        assert text == f"Kazanılan:{row['TemplateName']} x1"  # #1242 "Kazanılan:Karanlık İzler x1"
+        assert text == f"Received: {row['TemplateName']} x1"  # inglês (tutorial_en #507); turco #1242 "Kazanılan:..."
 
         cid = snap.character.id or 0
         snap.items.extend(Item(cid, 2040101, pos=p) for p in range(bag.BAG_BASE) if not bag.at(snap, BagType.BAG, 0, p))

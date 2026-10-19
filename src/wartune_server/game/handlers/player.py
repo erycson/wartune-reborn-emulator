@@ -181,6 +181,10 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         castle_yield(s)
     if snap.character.grades > grades:
         _army(s)
+    from . import events  # events importa este módulo
+
+    if q.template_id == events.SERVEN_QUEST:  # tutorial_en #3192-#3194: o 4638 entre o 150 e o 3
+        events.send_serven(s)
     _player(s)
     if new:
         s.send(S_ITEMS, bag.moved(new, s.player_id))

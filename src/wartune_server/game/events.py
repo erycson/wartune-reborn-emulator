@@ -8,14 +8,13 @@ relógio que vai para o cliente no ``sysCurtime``).
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 from ..domain import gameday
 from ..domain.models import EventState, PlayerSnapshot
+from ..domain.world import ExpRate, World
 from ..templates.repository import GameTemplates
 
 TIME_FMT = "%Y-%m-%d %H:%M:%S"
@@ -44,6 +43,21 @@ def daily(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
     if not gameday.same_day(st.updated_at, now):
         st.value, st.text, st.updated_at = 0, "", now
     return st
+
+
+def rate_window(r: ExpRate) -> tuple[datetime, datetime]:
+    """Início e fim do evento de EXP (datas na hora do jogo). ``begin_time``/``end_time`` = segundos somados ao
+    dia (0/86399 = o dia inteiro, como o PlayerBufferManager conta).
+
+    ponytail: janela diária (outros ``begin_time``/``end_time``) vira um intervalo só; o oficial só mostrou 0/86399.
+    """
+    local = (datetime.strptime(t, TIME_FMT).replace(tzinfo=gameday.GAME_TZ) for t in (r.begin_day, r.end_day))
+    begin, end = local
+    return begin + timedelta(seconds=r.begin_time), end + timedelta(seconds=r.end_time)
+
+
+def running_rates(world: World, now: datetime) -> list[ExpRate]:
+    return [r for r in world.exp_rates if rate_window(r)[0] <= now <= rate_window(r)[1]]
 
 
 def config(templates: GameTemplates, name: str, default: str = "") -> str:
@@ -80,7 +94,6 @@ class EventCatalog:
 
     data_stamp: int = 0
     actives: tuple[Active, ...] = ()
-    novice_fund: Mapping[str, Any] = field(default_factory=dict)  # fundo novato (8751): ver docs/eventos.md
 
     @classmethod
     def load(cls, path: Path) -> EventCatalog:
@@ -110,7 +123,7 @@ class EventCatalog:
             )
             for a in data.get("actives", [])
         )
-        return cls(int(data.get("dataStamp", 1)), actives, data.get("novice_fund", {}))
+        return cls(int(data.get("dataStamp", 1)), actives)
 
     def active(self, active_id: str) -> Active | None:
         return next((a for a in self.actives if a.active_id == active_id), None)

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, PlayerSnapshot
 from wartune_server.game import events as ev
+from wartune_server.game.handlers import minigames
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
@@ -130,19 +131,19 @@ async def test_novice_fund_buys_one_level_and_harvests_each_tier_once(tmp_path: 
         fund = pb.DepositActiveMsg.FromString(_body(await g.idle(), 4640))
         assert (fund.depositLevel, c.point) == (0, 500) and await _ledger(g) == []
 
-        c.grades, c.point = 11, 100  # 200 diamantes para o nível 1
+        c.grades, c.point = 11, 100  # 500 diamantes para o nível 1 (tutorial_en #2784)
         g.client.send(8751, pb.DepositActiveMsg(opType=1, opParam=1))
         assert pb.DepositActiveMsg.FromString(_body(await g.idle(), 4640)).depositLevel == 0
         assert (c.point, await _ledger(g)) == (100, [])
 
-        c.point = 500
+        c.point = 600
         g.client.send(8751, pb.DepositActiveMsg(opType=1, opParam=1))
         fund = pb.DepositActiveMsg.FromString(_body(await g.idle(), 4640))
-        assert (fund.depositLevel, c.point) == (1, 300)
-        assert await _ledger(g) == [(-200, 0, "fund_novice")]
+        assert (fund.depositLevel, c.point) == (1, 100)
+        assert await _ledger(g) == [(-500, 0, "fund_novice")]
 
         g.client.send(8751, pb.DepositActiveMsg(opType=1, opParam=2))  # já comprou: recusa
-        assert await g.idle() != [] and c.point == 300
+        assert await g.idle() != [] and c.point == 100
 
         c.grades = 9  # tier 1 pede nível 10
         g.client.send(8751, pb.DepositActiveMsg(opType=2, opParam=1))
@@ -152,23 +153,37 @@ async def test_novice_fund_buys_one_level_and_harvests_each_tier_once(tmp_path: 
         g.client.send(8751, pb.DepositActiveMsg(opType=2, opParam=1))
         fund = pb.DepositActiveMsg.FromString(_body(await g.idle(), 4640))
         assert [log.type for log in fund.logs] == [1]
-        assert {(i.templateId, i.count) for i in fund.harvestedInfos} == {(-400, 100), (-500, 10)}
-        assert (c.point, c.gift_token) == (400, gift + 10)
-        assert await _ledger(g) == [(-200, 0, "fund_novice"), (100, 10, "fund_novice")]
+        assert {(i.templateId, i.count) for i in fund.harvestedInfos} == {(-400, 250), (-500, 25)}
+        assert (c.point, c.gift_token) == (350, gift + 25)
+        assert await _ledger(g) == [(-500, 0, "fund_novice"), (250, 25, "fund_novice")]
 
         g.client.send(8751, pb.DepositActiveMsg(opType=2, opParam=1))  # de novo: nada
-        assert c.point == 400
+        assert c.point == 350
 
         g.client.send(8751, pb.DepositActiveMsg(opType=2, opParam=2))  # tier 2 pede nível 20
-        assert c.point == 400
+        assert c.point == 350
 
         c.grades = 20
         g.client.send(8751, pb.DepositActiveMsg(opType=2, opParam=2))
         await g.idle()
-        assert c.point == 500
+        assert c.point == 600
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         state = ev.peek(saved, "fund:novice")
         assert state is not None and state.value == 1
         assert ev.peek(saved, "fund:novice:get:1") is not None and ev.peek(saved, "fund:novice:get:2") is not None
-        assert saved.character.point == 500
+        assert saved.character.point == 600
+
+
+async def test_novice_fund_login_push_only_from_level_6(tmp_path: Path) -> None:
+    """tutorial_en: o login no nível 1 não manda 4640; o primeiro sai no nível 6 (#639)."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        await g.idle()
+        _snap(g).character.grades = 5
+        minigames.login_push(session)
+        assert 4640 not in [p.code for p in await g.idle()]
+        _snap(g).character.grades = 6
+        minigames.login_push(session)
+        assert 4640 in [p.code for p in await g.idle()]

@@ -1,10 +1,15 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import CashLedger, PlayerSnapshot
+from wartune_server.domain.models import CashLedger, Item, PlayerSnapshot
+from wartune_server.game.builders import login as b
+from wartune_server.game.handlers import vip
 from wartune_server.protocol.messages import wartune_pb2 as pb
+
+TRIAL_CARD = 2031201  # VIP Trial Card
 
 
 def _snap(g: Game) -> PlayerSnapshot:
@@ -56,14 +61,17 @@ async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
         c.point = 400
         g.client.send(8513, pb.VipOpenInfoMsg(days=31))
         got = await g.until(4416)
-        vip = pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body)
-        assert (vip.isVip, vip.isExpirt, vip.isTakeGift, vip.vipGp, vip.vipGrade) == (True, False, True, 310, 3)
+        info = pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body)
+        assert (info.isVip, info.isExpirt, info.isTakeGift, info.vipGp, info.vipGrade) == (True, False, True, 310, 3)
         assert c.point == 102
 
         g.client.send(8505)  # presente semanal: VipDrop site 3
-        got = await g.until(83)
-        assert any(p.code == 115 for p in got)
-        assert pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body).isTakeGift is False
+        got = await g.idle()
+        assert [p.code for p in got if p.code not in (3, 109)] == [115, 111, 4410, 4539, 83]  # tutorial_en #3266-#3282
+        text = pb.ChatChannelMsg.FromString(next(p for p in got if p.code == 111).body).encodeMsg
+        assert text.startswith("Received: ") and pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == text
+        info = pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body)
+        assert info.isTakeGift is False and info.takeGiftDate == b.fmt_time(vip.next_gift(_now(g)))
         g.client.send(8505)  # mesma semana
         assert await g.idle() == []
 
@@ -76,5 +84,69 @@ async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
         assert len(king.kingContractInfos) == 7 and c.point == 12
         assert await _ledger(g) == [(-298, 0, "vip"), (-need[2], 0, "king_contract")]
 
-        g.client.send(8519, pb.VipRouletteMsg())  # sem tabela: 4414 vazio (o cliente só tira a máscara)
-        assert [p.code for p in await g.idle()] == [4414]
+        g.client.send(8519, pb.VipRouletteMsg())  # sem abrir a roleta: 4415 sem isStart
+        got = await g.idle()
+        assert [p.code for p in got] == [4415] and pb.VipRouletteMsg.FromString(got[0].body).isStart is False
+
+
+def _now(g: Game) -> datetime:
+    session = g.server.online.get(g.user_id)
+    assert session is not None
+    return session.ctx.clock.now()
+
+
+def test_weekly_gift_comes_back_on_the_monday_after_next() -> None:
+    sunday = datetime(2026, 10, 18, 15, 30, tzinfo=UTC)  # tutorial_en #3280
+    assert vip.next_gift(sunday) == datetime(2026, 10, 26, tzinfo=UTC)
+    assert vip.next_gift(datetime(2026, 10, 19, 9, tzinfo=UTC)) == datetime(2026, 10, 26, tzinfo=UTC)
+    assert vip.next_gift(datetime(2026, 10, 24, 23, tzinfo=UTC)) == datetime(2026, 10, 26, tzinfo=UTC)
+
+
+async def test_vip_trial_card_extends_and_marks_type_2(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = _snap(g)
+        hours = int(g.server.services.templates.get("ItemTempInfos", TRIAL_CARD)["Property3"])  # type: ignore[index]
+        card = Item(g.user_id, TRIAL_CARD, pos=0)
+        snap.items.append(card)
+        await g.server.services.characters.save(card)
+        g.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))
+        got = await g.idle()
+        assert [p.code for p in got] == [115, 111, 4410, 3]  # tutorial_en #3259-#3263
+        end = _now(g) + timedelta(hours=hours)
+        text = f"Your VIP service has been extended {hours} hours; new expiration date is {end:%Y-%m-%d}."
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == text
+        info = pb.VipInfoMsg.FromString(got[2].body)
+        assert (info.isVip, info.vipType, info.isTakeGift) == (True, 2, True)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert all(i.template_id != TRIAL_CARD for i in saved.items)
+
+
+async def test_vip_wheel_opens_18_prizes_and_quick_spins_while_tokens_last(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        g.client.send(8521)  # sem VIP: 4414 vazio, o cliente ignora
+        assert [pb.VipRouletteMsg.FromString(p.body).leftItem for p in await g.idle()] == [[]]
+
+        snap = _snap(g)
+        snap.character.point = 400
+        g.client.send(8513, pb.VipOpenInfoMsg(days=31))
+        await g.until(4416)
+        tokens = Item(g.user_id, vip.VIP_TOKEN, pos=0, count=5)
+        snap.items.append(tokens)
+        await g.server.services.characters.save(tokens)
+
+        g.client.send(8521)
+        wheel = pb.VipRouletteMsg.FromString((await g.until(4414))[-1].body)
+        assert (len(wheel.leftItem), wheel.leftCount, wheel.needVipItem) == (18, 8, 1)  # tutorial_en #3325
+
+        g.client.send(8519, pb.VipRouletteMsg(opType=vip.QUICK))  # 5 fichas: giro de 1 + giro de 2 (#3331-#3335)
+        got = await g.idle()
+        assert got[0].code == 115 and got[-1].code == 4415
+        spin = pb.VipRouletteMsg.FromString(got[-1].body)
+        assert (len(spin.openIndex), len(spin.takeItem), spin.leftCount, spin.needVipItem) == (2, 2, 6, 3)
+        assert spin.isStart and spin.opType == vip.QUICK
+        assert sum(i.count for i in snap.items if i.template_id == vip.VIP_TOKEN) == 2
+
+        g.client.send(8519, pb.VipRouletteMsg())  # 2 fichas, o terceiro custa 3
+        assert pb.VipRouletteMsg.FromString((await g.until(4415))[-1].body).isStart is False
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert sum(i.count for i in saved.items if i.template_id == vip.VIP_TOKEN) == 2

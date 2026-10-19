@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
+from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +109,20 @@ class WorldBossReward:
     daru: int
 
 
+@dataclass(frozen=True, slots=True)
+class ExpRate:
+    """Evento de EXP do servidor (``exp_rate_events``, 4247 ``RateUpdate``). ``begin_day``/``end_day`` na hora do
+    jogo; com ``begin_time`` 0 e ``end_time`` 86399 vale de ``begin_day`` até o fim de ``end_day`` (o cliente,
+    PlayerBufferManager, conta assim)."""
+
+    rate: int
+    begin_day: str
+    end_day: str
+    begin_time: int
+    end_time: int
+    buffer_type: int
+
+
 @dataclass(frozen=True)
 class World:
     mines: tuple[Mine, ...] = ()
@@ -120,6 +135,9 @@ class World:
     monster_drops: tuple[MonsterDrop, ...] = ()
     world_bosses: Mapping[int, WorldBoss] = field(default_factory=lambda: MappingProxyType({}))  # campanha ->
     world_boss_rewards: tuple[WorldBossReward, ...] = ()
+    settings: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))  # game_settings (JSON)
+    vip_wheel: tuple[tuple[int, int], ...] = ()  # (TemplateId, quantidade) na ordem do 4414
+    exp_rates: tuple[ExpRate, ...] = ()
 
     def mines_on(self, map_id: int) -> list[Mine]:
         return [m for m in self.mines if m.map_id == map_id]

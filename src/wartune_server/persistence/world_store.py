@@ -1,7 +1,8 @@
-"""Lê o catálogo do mundo (tabelas ``world_*``, semente nas migrações 0027 e 0028)."""
+"""Lê o catálogo do mundo (tabelas ``world_*``, semente nas migrações 0027 e 0028) e as regras de evento (0033)."""
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from types import MappingProxyType
 
@@ -9,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from ..domain.world import (
+    ExpRate,
     Mine,
     MonsterDrop,
     MonsterTemplate,
@@ -19,6 +21,9 @@ from ..domain.world import (
     WorldBossReward,
 )
 from .schema import (
+    exp_rate_events,
+    game_settings,
+    vip_wheel_prizes,
     world_boss_rewards,
     world_bosses,
     world_mine_guards,
@@ -44,6 +49,9 @@ async def load(engine: AsyncEngine) -> World:
         drops = await conn.execute(select(world_monster_drops).order_by(world_monster_drops.c.id))
         bosses = await conn.execute(select(world_bosses))
         boss_rewards = await conn.execute(select(world_boss_rewards).order_by(world_boss_rewards.c.id))
+        settings = await conn.execute(select(game_settings))
+        wheel = await conn.execute(select(vip_wheel_prizes).order_by(vip_wheel_prizes.c.position))
+        rates = await conn.execute(select(exp_rate_events).order_by(exp_rate_events.c.id))
         return World(
             mines=tuple(Mine(r.id, r.map_id, r.pos_x, r.pos_y, r.min_level, r.max_level) for r in mines),
             mine_guards=MappingProxyType({r.level: r.pawn_id for r in guards}),
@@ -65,5 +73,10 @@ async def load(engine: AsyncEngine) -> World:
             ),
             world_boss_rewards=tuple(
                 WorldBossReward(r.kind, r.rank_from, r.rank_to, r.share, r.gold, r.daru) for r in boss_rewards
+            ),
+            settings=MappingProxyType({r.key: json.loads(r.value) for r in settings}),
+            vip_wheel=tuple((r.template_id, r.quantity) for r in wheel),
+            exp_rates=tuple(
+                ExpRate(r.rate, r.begin_day, r.end_day, r.begin_time, r.end_time, r.buffer_type) for r in rates
             ),
         )

@@ -17,7 +17,7 @@ def _chats(got: list) -> list[pb.ChatChannelMsg]:  # type: ignore[type-arg]
 async def test_world_chat_reaches_everyone_with_the_server_filling_the_sender(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as a:
         b = await a.join("bruxa")
-        await _grade(a, 6)
+        await _grade(a, 20)
         await a.idle()
 
         forged = '<a t="1" id="1" name="GM"/>oi <b>todos</b>'
@@ -34,6 +34,21 @@ async def test_world_chat_reaches_everyone_with_the_server_filling_the_sender(tm
 
         a.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="de novo"))  # antes de 2 s
         assert _chats(await b.idle()) == []
+
+
+async def test_world_chat_needs_level_20_and_keeps_the_free_bugle(tmp_path: Path) -> None:
+    """tutorial_en #2779-#2782: no nível 14 o 8198 recebe só o 111; a cota grátis (SMALL_BUGLE_FREE_COUNT) fica."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        await _grade(a, 14)
+        await a.idle()
+        a.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="Olá"))
+        got = await a.idle()
+        assert [p.code for p in got] == [111]
+        assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg == "Requires character Level of 20"
+        assert _chats(await b.idle()) == []
+        a.client.send(8705)
+        assert pb.CampaignReqMsg.FromString((await a.until(4500))[-1].body).paraInt1 == 10
 
 
 async def test_chat_needs_level_6(tmp_path: Path) -> None:

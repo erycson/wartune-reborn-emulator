@@ -40,6 +40,7 @@ STACKABLE = (BagType.STORE, BagType.BAG)
 USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bound Balens"), 5: ("weary", "Stamina")}
 USE_KINDS |= {6: ("repute", "Honor"), 7: ("gp", "EXP"), 10: ("strategy", "Daru")}
 USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # Büyük Sefer (2032101): +1 entrada de campanha em grupo
+VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
 # Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,
 # porque o nome muda de idioma ("Değerli Taş Kutusu Lv.N" no turco, "Lvl. N Gem Pack" no inglês). O 2060006 fica
 # de fora de propósito: são duas pedras Lv.3 e chance de Lv.4 (no turco a descrição tinha '*'; no inglês não tem).
@@ -227,6 +228,10 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     c, now = snap.character, s.ctx.clock.now()
+    if int(row.get("Property1") or 0) == VIP_CARD:
+        from . import vip  # vip -> player -> login; aqui evita o ciclo na carga dos handlers
+
+        return await vip.use_trial_card(s, item, row, n)
     kind = USE_KINDS.get(int(row.get("Property1") or 0))
     amount = int(row.get("Property2") or 0) * n
     if kind is None or amount <= 0:

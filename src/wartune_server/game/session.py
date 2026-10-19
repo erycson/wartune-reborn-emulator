@@ -131,6 +131,7 @@ class GameSession:
         self.pet_offer: dict[int, int] = {}
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
+        self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
@@ -156,7 +157,7 @@ class GameSession:
     async def _save_logout(self) -> None:
         """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""
         assert self.snapshot is not None
-        timebox.on_logout(self.snapshot.character, self.ctx.clock.now())
+        timebox.on_logout(self.snapshot.character, self.ctx.clock.now(), counting=self.box_counting)
         try:
             await self.ctx.characters.save(self.snapshot.character)
         except Exception:  # banco fora do ar no desligamento: perde só o tempo desta sessão

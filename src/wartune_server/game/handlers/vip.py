@@ -4,18 +4,21 @@
 
 from __future__ import annotations
 
+import json
+import random
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 
-from ...domain.models import PlayerSnapshot
+from ...domain.models import Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
+from .. import bag, rewards
 from .. import events as ev
-from .. import rewards
 from ..builders import login as b
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from .player import alert, granted
+from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_VIP, S_ROULETTE, S_VIP_TIPS, S_KING = 4410, 4414, 4416, 4434
 S_LUCKY, S_SOUL, S_TRIAL = 4224, 4372, 4468
@@ -26,6 +29,11 @@ ALCHEMY_COUNT = 20  # login.json #9: remainCount 20 sem VIP
 MAX_COST = 40  # AlchemyFrame/SoulMakeFrame: (usos+1)*2, no máximo 40
 KING_BUFF, KING_BUFF_FROM = 7, 6  # contrato 6 dá o buff 7 (30 min) uma vez por dia (KingContractFrame)
 KING_ALL = (1, 2, 3, 4, 5, 6)  # "comprar todos" = All_KingContract
+S_VIP_FIRST, S_WHEEL_RESULT = 4539, 4415
+GIFT_NEXT, VIP_TYPE, WHEEL = "vipgift:next", "vip:type", "vipwheel"  # event_states
+TRIAL_TYPE = 2  # vipType depois do cartão de teste 2031201 (tutorial_en #3262)
+VIP_TOKEN, WHEEL_SPINS = 208015, 8  # VIP Token (SonType 292) e giros por roleta (VipBoxFrame: 8 desliga o botão)
+QUICK = 1  # VipRouletteMsg.opType: 1 = girar com todas as fichas (VipBoxFrame._quickStartRolette)
 
 
 def _cfg(s: GameSession, name: str) -> int:
@@ -71,31 +79,37 @@ def vip_right(s: GameSession, snap: PlayerSnapshot, kind: int) -> int:
     return int(row["para1"] or 0) if row else 0
 
 
-def _next_monday(now: datetime) -> datetime:
+def next_gift(now: datetime) -> datetime:
+    """Próxima liberação do presente semanal: a segunda-feira da semana seguinte, com a semana começando no
+    domingo. *(visto)* tutorial_en #3280: resgatado no domingo 2026-10-18, ``takeGiftDate`` 2026-10-26 00:00.
+    *(dedução)* um ponto só; "segunda da semana de domingo seguinte" é a regra que dá 10-26 a partir de domingo."""
     day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    return day + timedelta(days=7 - day.weekday())
+    sunday = day + timedelta(days=(6 - day.weekday()) % 7 or 7)  # weekday: segunda 0 ... domingo 6
+    return sunday + timedelta(days=1)
 
 
-def _week(now: datetime) -> str:
-    year, week, _ = now.isocalendar()
-    return f"{year}-{week}"
+def _gift_at(snap: PlayerSnapshot) -> datetime | None:
+    st = ev.peek(snap, GIFT_NEXT)
+    return ev.parse_time(st.text) if st and st.text else None
 
 
 def _vip_msg(s: GameSession, snap: PlayerSnapshot) -> pb.VipInfoMsg:
+    """4410. Sem resgate ainda, ``takeGiftDate`` (e ``expirtDate`` sem VIP) = criação do personagem (#96, #3262);
+    depois do resgate, a próxima liberação (#3280)."""
     now = s.ctx.clock.now()
     st = ev.peek(snap, "vip")
     vip = is_vip(snap, now)
-    gift = ev.peek(snap, "vipgift")
-    can_take = vip and (gift is None or gift.text != _week(now))
+    gift_at = _gift_at(snap)
+    kind = ev.peek(snap, VIP_TYPE)
     return pb.VipInfoMsg(
         isVip=vip,
         vipGp=st.value if st else 0,
         vipGrade=vip_grade(s, snap),
         expirtDate=b.fmt_time(_vip_expiry(snap) or snap.character.created_at),
-        isTakeGift=can_take,  # VipGiftItem: true = botão de resgatar
-        vipType=0,  # ponytail: o tipo 1 (ícone especial) não tem regra conhecida
+        isTakeGift=vip and (gift_at is None or now >= gift_at),  # VipGiftItem: true = botão de resgatar
+        vipType=kind.value if kind else 0,  # 2 = cartão de teste (#3262); ponytail: o 1 não tem regra conhecida
         isExpirt=not vip,
-        takeGiftDate=b.fmt_time(_next_monday(now)),
+        takeGiftDate=b.fmt_time(gift_at or snap.character.created_at),
     )
 
 
@@ -132,7 +146,8 @@ async def vip_open(s: GameSession, msg: pb.VipOpenInfoMsg) -> None:
 
 @router.on(8505)
 async def vip_gift(s: GameSession, _: object) -> None:
-    """Presente semanal do VIP: ``VipDrop.site`` = nível VIP; uma vez por semana (segunda 00:00)."""
+    """Presente semanal do VIP: ``VipDrop.site`` = nível VIP; de novo só a partir de ``next_gift``. Repetido: sem
+    resposta. Ordem do oficial (tutorial_en #3266-#3282): 115, 111, 4410, 4539 (vazio), 83."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -140,23 +155,132 @@ async def vip_gift(s: GameSession, _: object) -> None:
     if not _vip_msg(s, snap).isTakeGift or not drops or not rewards.can_grant(snap, s.ctx.templates, drops):
         s.log.info("8505 recusado")
         return
-    st = ev.state(snap, "vipgift", now)
-    st.text, st.updated_at = _week(now), now
+    st = ev.state(snap, GIFT_NEXT, now)
+    st.text, st.updated_at = b.fmt_time(next_gift(now)), now
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
+    if new:
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+    if any(t < 0 for t, _ in drops):  # ponytail: a captura só tem itens; moeda vai como nas outras recompensas
+        granted(s, [(t, n) for t, n in drops if t < 0], [], text, chat=False)
     alert(s, text)
     send_vip(s)
-    granted(s, drops, new, text)
+    s.send(S_VIP_FIRST)
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
-@router.on(8519, 8521)
-async def vip_roulette(s: GameSession, msg: object) -> None:
-    """Roleta VIP / moeda VIP. O cliente põe máscara antes do 8521 e só tira no 4414, então sempre
-    responde; com menos de 18 ``leftItem`` o cliente ignora (fecha nada, abre nada).
+async def use_trial_card(s: GameSession, item: Item, row: Mapping[str, str], n: int) -> bool:
+    """Cartão VIP de teste (SonType 203, ``Property1`` 12): ``Property3`` horas de VIP por unidade, somadas ao que
+    falta. Ordem do oficial (tutorial_en #3259-#3263): 115, 111, 4410 (``vipType`` 2), 3."""
+    snap = s.snapshot
+    assert snap is not None
+    hours = int(row.get("Property3") or 0) * n
+    if hours <= 0:
+        return False
+    now = s.ctx.clock.now()
+    gone = bag.take_one(snap, item, n)  # antes de qualquer await
+    st, kind = ev.state(snap, "vip", now), ev.state(snap, VIP_TYPE, now)
+    end = max(now, _vip_expiry(snap) or now) + timedelta(hours=hours)
+    st.text, st.updated_at = b.fmt_time(end), now
+    kind.value, kind.updated_at = TRIAL_TYPE, now
+    if gone:
+        await s.ctx.characters.save(st, kind, delete=(item,))
+    else:
+        await s.ctx.characters.save(st, kind, item)
+    s.send(S_ITEMS, bag.moved([] if gone else [item], s.player_id, empty=[item] if gone else []))
+    alert(s, f"Your VIP service has been extended {hours} hours; new expiration date is {end:%Y-%m-%d}.")
+    send_vip(s)
+    granted(s, [], [], "", chat=False)
+    return True
 
-    ponytail: a tabela de prêmios da roleta não está nos templates nem nas capturas."""
-    s.log.info("roleta VIP sem tabela de prêmios", pedido=str(msg))
-    s.send(S_ROULETTE, pb.VipRouletteMsg())
+
+def _wheel_taken(snap: PlayerSnapshot) -> list[int]:
+    st = ev.peek(snap, WHEEL)
+    return list(json.loads(st.text)) if st and st.text else []
+
+
+def _wheel_cost(s: GameSession, spins: int) -> int:
+    """VIP Tokens do próximo giro (``vip_wheel_costs`` no banco: o giro k custa k, #3325/#3335)."""
+    costs = s.ctx.world.settings.get("vip_wheel_costs") or [1]
+    return int(costs[min(spins, len(costs) - 1)])
+
+
+def _wheel_msg(s: GameSession, taken: list[int]) -> pb.VipRouletteMsg:
+    """``takeItem`` = tudo o que já saiu, o último por último (VipBoxFrame.__effctComplete lê o fim)."""
+    wheel = s.ctx.world.vip_wheel
+    msg = pb.VipRouletteMsg(leftCount=WHEEL_SPINS - len(taken), needVipItem=_wheel_cost(s, len(taken)))
+    for i in taken:
+        msg.takeItem.add(tempId=wheel[i][0], count=wheel[i][1])
+    return msg
+
+
+@router.on(8521)
+async def vip_wheel_open(s: GameSession, _: object) -> None:
+    """Abre a roleta usando o VIP Token da mochila, ou "atualizar" (o mesmo pedido): tabuleiro novo com os 18
+    prêmios (#3325) e o custo de volta a 1. O cliente põe máscara e só tira no 4414; com menos de 18 ``leftItem``
+    ele ignora, que é a resposta de quem não é VIP.
+
+    *(dedução)* abrir zera o tabuleiro: o cliente avisa que atualizar "reset all items on the wheel" e redesenha
+    tudo no 4414. ponytail: se o oficial cobra a atualização, o preço não está na evidência."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    if not is_vip(snap, now) or len(s.ctx.world.vip_wheel) < 18:
+        s.log.info("8521 recusado", vip=is_vip(snap, now))
+        s.send(S_ROULETTE, pb.VipRouletteMsg())
+        return
+    st = ev.state(snap, WHEEL, now)
+    st.text, st.updated_at = "[]", now
+    await s.ctx.characters.save(st)
+    msg = _wheel_msg(s, [])
+    for t, n in s.ctx.world.vip_wheel:
+        msg.leftItem.add(tempId=t, count=n)
+    s.send(S_ROULETTE, msg)
+
+
+@router.on(8519)
+async def vip_wheel_spin(s: GameSession, msg: pb.VipRouletteMsg) -> None:
+    """Gira: ``opType`` 0 uma vez, 1 enquanto houver fichas (#3331-#3335: 5 fichas -> 2 giros, 1 + 2). Prêmio
+    sorteado uniforme entre os que faltam (*dedução*: a captura não tem probabilidades). Ordem do oficial: 115
+    (fichas e prêmios), 109, 3, 4415. O texto do chat o cliente monta sozinho (VipBoxFrame.senChatData)."""
+    snap = s.snapshot
+    assert snap is not None
+    now, templates, wheel = s.ctx.clock.now(), s.ctx.templates, s.ctx.world.vip_wheel
+    taken = _wheel_taken(snap)
+    opened: list[int] = []
+    changed: list[Item] = []
+    gone: list[Item] = []
+    new: list[Item] = []
+    st = ev.peek(snap, WHEEL)
+    while st is not None and is_vip(snap, now) and len(taken) < min(WHEEL_SPINS, len(wheel)):
+        cost = _wheel_cost(s, len(taken))
+        index = random.choice([i for i in range(len(wheel)) if i not in taken])
+        if bag.count_of(snap, VIP_TOKEN) < cost or not rewards.can_grant(snap, templates, [wheel[index]]):
+            break
+        used, deleted = bag.take(snap, VIP_TOKEN, cost)
+        changed += used
+        gone += deleted
+        new += rewards.grant(snap, templates, [wheel[index]])[0]
+        taken.append(index)
+        opened.append(index)
+        if msg.opType != QUICK:
+            break
+    if not opened or st is None:
+        s.log.info("8519 recusado", fichas=bag.count_of(snap, VIP_TOKEN), giros=len(taken))
+        s.send(S_WHEEL_RESULT, _wheel_msg(s, taken))  # isStart falso: o cliente só reabilita os botões
+        return
+    st.text, st.updated_at = json.dumps(taken), now
+    kept = list(dict.fromkeys(i for i in changed if i not in gone))  # a mesma pilha pode pagar dois giros
+    await s.ctx.characters.save(*rewards.owners(snap), st, *kept, *new, delete=tuple(gone))
+    s.send(S_ITEMS, bag.moved([*kept, *new], s.player_id, empty=gone))
+    prizes = [wheel[i] for i in opened]
+    if any(t in (-100, -600) for t, _ in prizes):
+        castle_yield(s)
+    _player(s)
+    out = _wheel_msg(s, taken)
+    out.openIndex.extend(opened)  # só os abertos agora: o cliente tira cada um da roda que sobra
+    out.isStart, out.opType = True, msg.opType
+    s.send(S_WHEEL_RESULT, out)
 
 
 @router.on(8756)

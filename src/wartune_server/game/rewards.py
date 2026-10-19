@@ -39,12 +39,12 @@ def _name(templates: GameTemplates, template_id: int) -> str:
 
 
 def text(templates: GameTemplates, drops: Sequence[Drop], style: str = "bag") -> str:
-    """``Kazanılan:...`` como o oficial escreve: ``bag`` (pacote: ``Altın 3,000, Yüzük x1``) ou
-    ``active`` (atividades: ``Altın x 10000,Yüzük x 5``)."""
+    """``Received: ...`` como o oficial inglês escreve: ``bag`` (``50,000 Gold, Moderate HP Pack x1``, #2110) ou
+    ``active`` (atividades: ``Bound Balens x 10,Daru x 10000``, #2772)."""
     if style == "active":
-        return "Kazanılan:" + ",".join(f"{_name(templates, t)} x {n}" for t, n in drops)
-    return "Kazanılan:" + ", ".join(
-        f"{_name(templates, t)} {n:,}" if t < 0 else f"{_name(templates, t)} x{n}" for t, n in drops
+        return "Received: " + ",".join(f"{_name(templates, t)} x {n}" for t, n in drops)
+    return "Received: " + ", ".join(
+        f"{n:,} {_name(templates, t)}" if t < 0 else f"{_name(templates, t)} x{n}" for t, n in drops
     )
 
 
@@ -52,7 +52,7 @@ def grant(
     snap: PlayerSnapshot, templates: GameTemplates, drops: Sequence[Drop], style: str = "bag"
 ) -> tuple[list[Item], str]:
     """Aplica ``drops`` no snapshot (chame ``can_grant`` antes). Devolve os itens novos (sem id
-    ainda: grave com ``characters.save``) e o texto ``Kazanılan:...``."""
+    ainda: grave com ``characters.save``) e o texto ``Received: ...``."""
     c = snap.character
     new: list[Item] = []
     for template_id, count in drops:

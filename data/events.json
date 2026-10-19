@@ -1,13 +1,13 @@
 {
-  "_doc": "Atividades 'Sıcak Etkinlik' (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. Tipos com regra no servidor: 13 (dias de login no período, condição 14 = dias) e 14 (presente online diário, condição 15 = segundos online desde o último resgate). Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Ruh, -400 diamante, -500 diamante vinculado, -700 EXP).",
-  "dataStamp": 1,
+  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. Tipos com regra no servidor: 13 (dias de login no período, condição 14 = dias) e 14 (presente online diário, condição 15 = segundos online desde o último resgate). Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
+  "dataStamp": 2,
   "actives": [
     {
       "activeId": "A0000013-0000-0000-0000-000000000001",
       "activeType": 13,
-      "title": "Oyuna Giriş",
-      "detail": "Etkinlik süresinde oyuna giriş yaparak ödül kazanın.",
-      "conditionDetail": "Etkinlik süresinde oyuna giriş yaparak ödül kazanın.",
+      "title": "Login Bonus",
+      "detail": "During the event, login to receive daily rewards.",
+      "conditionDetail": "Claim them once everyday.",
       "getway": 3,
       "order": 1,
       "beginDate": "2026-01-01 00:00:00",
@@ -32,7 +32,7 @@
     {
       "activeId": "A0000014-0000-0000-0000-000000000001",
       "activeType": 14,
-      "title": "Online Hediyesi",
+      "title": "Online Gift",
       "detail": "-",
       "conditionDetail": "-",
       "getway": 3,
@@ -50,16 +50,5 @@
          "items": [[-500, 20], [21260987, 1]]}
       ]
     }
-  ],
-  "novice_fund": {
-    "_doc": "Fundo novato (8751/4640): valores da captura login.json #94. Cada tier: [nivel minimo (o cliente chama de intervalo), vez, itens]. O total mostrado pelo cliente e a soma dos tiers.",
-    "activeId": "-1234567890",
-    "minGrades": 11,
-    "endDate": "2099-12-31 23:59:59",
-    "levels": [
-      {"level": 1, "costDiamond": 200, "tiers": [[10, 1, [[-500, 10], [-400, 100]]], [20, 2, [[-500, 10], [-400, 100]]], [30, 3, [[-500, 10]]], [40, 4, [[-500, 20]]], [50, 5, [[-500, 50]]]]},
-      {"level": 2, "costDiamond": 2000, "tiers": [[10, 1, [[-500, 200], [-400, 1000]]], [20, 2, [[-500, 200], [-400, 1000]]], [30, 3, [[-500, 300]]], [40, 4, [[-500, 300]]], [50, 5, [[-500, 500]]]]},
-      {"level": 3, "costDiamond": 10000, "tiers": [[10, 1, [[-500, 1000], [-400, 5000]]], [20, 2, [[-500, 1000], [-400, 5000]]], [30, 3, [[-500, 1500]]], [40, 4, [[-500, 1500]]], [50, 5, [[-500, 5000]]]]}
-    ]
-  }
+  ]
 }

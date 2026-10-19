@@ -22,11 +22,12 @@ from .login import army
 from .player import alert, granted
 
 S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
-S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK = 83, 4152, 4150, 4412
+S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE = 83, 4152, 4150, 4412, 4247
+SERVEN_QUEST = 130  # a conclusão dela abre o guia de 7 dias (4638)
 PAGE = 10  # atividades por 4475 (o oficial manda ~11 por página)
 LOGIN_DAYS, ONLINE = 13, 14  # activeType com regra no servidor
 CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
-GIFT_OK = "Hediye Paketi başarıyle alındı"  # texto do oficial (com o erro de digitação)
+GIFT_OK = "Gift pack retrieval successful."  # texto do oficial inglês (tutorial_en #2770)
 LEED_BOX = (10, 40, 60, 80, 100)  # DayGuideCatecory.canPick: atividade mínima de cada baú 1..5
 LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Günlük Giriş", "Dünya Kanalında Sohbet"
 EMEK, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Emek Oranı"; QuestUpdatedRspMsg
@@ -76,8 +77,29 @@ def login_push(s: GameSession) -> None:
     offer.login_push(s)
     _send_leeds(s)
     _send_actives(s)
-    _send_serven(s)
+    send_serven(s)
     minigames.login_push(s)  # o 4640 vem logo depois do 4638, como no login do oficial (#93-94)
+
+
+def send_rate(s: GameSession) -> None:
+    """4247: evento de EXP do servidor em curso (``exp_rate_events``), no login logo depois do 4686 (tutorial_en
+    #44-#46). O cliente mostra "EXP received from dungeon increased by {rate}%" (PlayerBufferInfo, bufferType 0).
+
+    O multiplicador não é aplicado aqui: as duas capturas (inglês #45, turco login.json #47) foram feitas com o
+    evento ativo, e o EXP das lutas e do fim da masmorra já vem delas (630 = BaseGp 600 x 1,05, sem dobrar)."""
+    rates = ev.running_rates(s.ctx.world, s.ctx.clock.now())
+    if rates:
+        msg = pb.RateUpdateReqMsg()
+        for r in rates:
+            msg.rateInfo.add(
+                rate=r.rate,
+                beginTime=r.begin_time,
+                endTime=r.end_time,
+                beginDay=r.begin_day,
+                endDay=r.end_day,
+                bufferType=r.buffer_type,
+            )
+        s.send(S_RATE, msg)
 
 
 async def leave(s: GameSession) -> None:
@@ -395,11 +417,19 @@ def _task_done(s: GameSession, task_id: int) -> bool:
     return False
 
 
+def serven_start(snap: PlayerSnapshot) -> datetime | None:
+    """O guia de 7 dias começa na conclusão da missão 130 (tutorial_en #3187-#3193: ``beginTime`` = a
+    ``completedDate`` dela, e o login do personagem novo não manda 4638)."""
+    q = rules.quest(snap, SERVEN_QUEST)
+    return q.completed_at if q is not None and q.completed else None
+
+
 def _serven_msg(s: GameSession) -> pb.ServenDayLeadMsg:
     snap = s.snapshot
     assert snap is not None
     taken = _value(snap, "serven")
-    msg = pb.ServenDayLeadMsg(beginTime=b.fmt_time(snap.character.created_at), statu=int(taken != 0b11111110))
+    start = serven_start(snap) or snap.character.created_at
+    msg = pb.ServenDayLeadMsg(beginTime=b.fmt_time(start), statu=int(taken != 0b11111110))
     for day, tasks in SERVEN.items():
         d = msg.singleDay.add(day=day, getReward=int(bool(taken & 1 << day)))
         for t in tasks:
@@ -407,8 +437,11 @@ def _serven_msg(s: GameSession) -> pb.ServenDayLeadMsg:
     return msg
 
 
-def _send_serven(s: GameSession) -> None:
-    s.send(S_SERVEN, _serven_msg(s))
+def send_serven(s: GameSession) -> None:
+    """4638: no login de quem já concluiu a 130 e na conclusão dela (``player.quest_finish``)."""
+    assert s.snapshot is not None
+    if serven_start(s.snapshot) is not None:
+        s.send(S_SERVEN, _serven_msg(s))
 
 
 @router.on(8749)
@@ -419,7 +452,8 @@ async def serven_reward(s: GameSession, msg: pb.GetRewardMsg) -> None:
     assert snap is not None
     now = s.ctx.clock.now()
     st = ev.state(snap, "serven", now)
-    current = (now.date() - snap.character.created_at.date()).days + 1
+    start = serven_start(snap)
+    current = (now.date() - start.date()).days + 1 if start is not None else 0
     drops = [(int(r["TemplateId"]), int(r["Count"])) for r in s.ctx.templates.find("ServenLeadRewards", Day=msg.day)]
     ok = msg.day in SERVEN and msg.day <= current and not st.value & 1 << msg.day
     if (
@@ -433,5 +467,5 @@ async def serven_reward(s: GameSession, msg: pb.GetRewardMsg) -> None:
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     alert(s, text)
-    _send_serven(s)
+    send_serven(s)
     granted(s, drops, new, text)

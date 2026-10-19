@@ -11,7 +11,8 @@ código decompilado, *(dedução)* = nenhum dos dois mostra, escolha nossa.
   Toda marca/contador de personagem é uma linha. `game/events.py`: `state` cria, `peek` lê,
   `daily` zera se a última mudança foi em outro dia (UTC, o relógio do `sysCurtime`).
   Chaves: `login`, `relogin`, `sign`, `leed:<id>`, `leedbox`, `serven`, `sum:<active>[:<pacote>]`,
-  `vip` (value = vipGp, text = fim), `vipgift` (semana ISO), `king:<id>` (text = fim),
+  `vip` (value = vipGp, text = fim), `vipgift:next` (text = próxima liberação do presente),
+  `vip:type` (value = `vipType`), `vipwheel` (text = JSON das posições já tiradas), `king:<id>` (text = fim),
   `king:fetch`, `alchemy`, `soul`, `offer:list` (JSON das 4 vagas), `offer:task`, `offer:free`,
   `offer:count`, `ring`, `fund:novice`, `fund:novice:get:<times>`.
 - **`cash_ledger`** `(character_id, delta_point, delta_gift_token, balance_point,
@@ -44,7 +45,10 @@ captura virou -500).
 | 8586 type 2 | valida status=1 e mochila; ordem 111, 4476 parcial, 83, 4476 completo, 3, 109, 115 | (visto) online_odul… #38-46 |
 | 8266 | assina o dia: bit `1 << (dias_do_mês - dia)` em `signSite`; `SignDrop` ao chegar num `Times`; 4177 | (cliente) DayGuideCatecory |
 | 8496 | dia `index` do login acumulado (`ReloginDrops.Times`), exige `index <= dias logados`; 3 com `reloginProcess` | (cliente) |
-| 8749 | guia de 7 dias: dia alcançado, tarefas do dia feitas, `ServenLeadRewards`; 4638 | (visto) login.json #93 |
+| 8749 | guia de 7 dias: dia alcançado (contado da conclusão da missão 130), tarefas do dia feitas, `ServenLeadRewards`; 4638 | (visto) login.json #93 |
+| login, 5014 (130) | 4638 só depois de concluir a missão 130 (`beginTime` = conclusão dela) | (visto) tutorial_en #3187-#3193 |
+| login | 4247 com os eventos de EXP em curso (`exp_rate_events`), logo depois do 4686; multiplicador não aplicado (o EXP das capturas já inclui o evento) | (visto) tutorial_en #44-#46 |
+| 5019 | baú online: conta só depois do 1º 5019; resgate zera; 109 (ou 3), 115, 111, 4250, 4, 83 "Received: ...", 83 "Reward retrieval successful!" | (visto) tutorial_en #1594-#1598, #2097-#2114 |
 | 8234, 8322 | só devolvem 4152 (nenhuma tela manda; o progresso vem do servidor) | (cliente) |
 | 8235 | baú `site` 1..5 da atividade diária (10/40/60/80/100 pontos), `LeedDrop`; 4150 | (cliente) |
 | 8518 | 4412 vazio (contadores do painel do dia) | (cliente) |
@@ -68,15 +72,18 @@ captura virou -500).
 |---|---|---|
 | login | 4410 `VipInfoMsg`, 4434 com os 7 contratos | (visto) login.json #107, #15 |
 | 8513 | `days` 31/93/186 por `One/Three/Six_MonthPoint` (298/868/1588), só diamante; renova somando; 3, 4410, 4416 | (cliente) OpenSelfView |
-| 8505 | presente semanal `VipDrop.site` = nível VIP; `isTakeGift` = pode resgatar; `takeGiftDate` = próxima segunda | (cliente) VipGiftItem |
-| 8519, 8521 | 4414 vazio sempre (o 8521 põe máscara que só sai no 4414) | (cliente) VIPManager |
+| 8505 | presente semanal `VipDrop.site` = nível VIP; 115, 111, 4410, 4539, 83 ("Received: ..."); de novo na segunda da semana seguinte (semana começa no domingo, *dedução*: um ponto só); repetido sem resposta | (visto) tutorial_en #3266-#3282 |
+| 5006 (2031201) | cartão VIP de teste: `Property3` horas somadas ao fim; 115, 111 "Your VIP service has been extended N hours; new expiration date is AAAA-MM-DD.", 4410 `vipType` 2, 3 | (visto) tutorial_en #3259-#3263 |
+| 8521 | abre/atualiza a roleta: zera o tabuleiro, 4414 com os 18 prêmios (`vip_wheel_prizes`), `leftCount` 8, `needVipItem` 1; sem VIP 4414 vazio | (visto) #3325 |
+| 8519 | gira gastando VIP Token (208015): o giro k custa k (`game_settings.vip_wheel_costs`); `opType` 1 gira enquanto houver fichas; prêmio uniforme entre os que faltam (*dedução*); 115, 109, 3, 4415 (`openIndex` = abertos agora, `takeItem` = todos); recusa = 4415 sem `isStart` | (visto) #3331-#3335 |
 | 8756 | só registro (atendimento QQ) | (cliente) |
 | 8540 | compra `ids` (`NeedPoint` cada; os seis por `All_KingContract`=338), só diamante, renova somando 31 dias; `__use` com o contrato 6 ativa o 7 (30 min) uma vez por dia; 3 + 4434 | (cliente) KingContractFrame |
 
 - Nível VIP: `UpGradeTempInfos` `Types=4` (Data = vipGp acumulado).
 - ponytail: o vipGp do período (`Vip_DailyAddGp` x dias) entra todo na compra.
 - ponytail: presentear VIP/contrato a um amigo é recusado (exige gravar outro personagem).
-- `vipType` vai 0 (o 1 só muda o ícone; regra desconhecida).
+- `vipType` vai 0, ou 2 depois do cartão de teste (o 1 só muda o ícone; regra desconhecida).
+- ponytail: preço de "atualizar" a roleta e probabilidades dos prêmios não estão na captura.
 
 ## Alquimia, alma e loja do teste
 
@@ -116,7 +123,8 @@ Todo C>S da lista tem handler. Reais: **fundo novato** (8751) e **labirinto de g
 9516, 9517). Os que o servidor não joga respondem o estado fechado que o cliente mostra (ícone escondido, tela
 vazia), sem travar. 9510 e 9515 (ajuda de amigo do labirinto) recusam sem efeito.
 
-**Fundo novato (8751, 4640)** — `data/events.json` > `novice_fund` (valores da captura login.json #94).
+**Fundo novato (8751, 4640)** — banco: `game_settings.novice_fund` (migração 0033, valores do oficial
+inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a partir do nível `openGrades` (6).
 - `opType` 0 = estado (4640); 1 = compra o nível `opParam` (1..3): nível 11+ do personagem, uma vez,
   só diamante (`point`, como o `FundBuyItem` confere), `ledger.spend` com `reason` `fund_novice`.
 - 2 = resgata o tier `opParam` (= `times`, 1..5): `grades >= interval` (no ramo do fundo novato o
@@ -236,7 +244,6 @@ vazia), sem travar. 9510 e 9515 (ajuda de amigo do labirinto) recusam sem efeito
   (`currentLuckValue`) não é conhecida.
 - **Fundo normal (8703):** sem captura do 4612.
 
-**Alterações em arquivos compartilhados:** `data/events.json` (chave `novice_fund`),
-`game/events.py` (`EventCatalog.novice_fund`), `handlers/events.py` (`minigames.login_push` no login)
+**Alterações em arquivos compartilhados:** `handlers/events.py` (`minigames.login_push` no login)
 `domain/models.py` (`BagType.MAZE`), `handlers/minigames.py` (chama `gemmaze.login_push`) e
-`handlers/__init__.py` (registro). Sem migração: o fundo e o labirinto usam `event_states`.
+`handlers/__init__.py` (registro). O progresso do fundo e o labirinto usam `event_states`; a regra do fundo vem da 0033.

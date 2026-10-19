@@ -128,7 +128,7 @@ async def test_missao_19_compor_pedra_conta_so_pedra(tmp_path: Path) -> None:
 async def test_missao_63_emek_orani_guarda_o_total_da_atividade(tmp_path: Path) -> None:
     """Missão 863 "Emek Oranı" (Para2 20): vale o totalNum do 4152; login 5 + chat no mundo 5 = 10."""
     async with logged_in(tmp_path, novice=19000) as g:
-        snap = await _set(g, grades=6)
+        snap = await _set(g, grades=20)  # chat no mundo pede nível 20 (tutorial_en #2779)
         snap.quests.append(Quest(g.user_id, 863, datetime.now(UTC)))
 
         g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Dünya Kanalında Sohbet"

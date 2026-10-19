@@ -1,10 +1,14 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from tests.game.harness import Game, logged_in
+from wartune_server.domain.models import Quest
+from wartune_server.domain.world import ExpRate
 from wartune_server.game import events as ev
+from wartune_server.game.handlers import events as hev
 from wartune_server.game.session import GameSession
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
 
 LOGIN = "A0000013-0000-0000-0000-000000000001"  # data/events.json
 ONLINE = "A0000014-0000-0000-0000-000000000001"
@@ -40,7 +44,7 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=pkg, count=1))
         got = await g.idle()
         assert [p.code for p in got] == [111, 4476, 83, 4476, 3, 109, 115]
-        assert _alerts(got) == ["Hediye Paketi başarıyle alındı"]
+        assert _alerts(got) == ["Gift pack retrieval successful."]  # tutorial_en #2770
         assert _packs(got, LOGIN)[0] == (2, 0)
         assert s.snapshot.character.gold == gold + 200000  # type: ignore[union-attr]
 
@@ -86,7 +90,7 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         assert pb.LeedFinishedRspMsg.FromString((await g.until(4150))[-1].body).result is False
         g.client.send(8322, pb.ClientReqMsg(templateId=4))  # o cliente não conta: só devolve o estado
         assert pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body).totalNum == 5
-        snap.character.grades = 6
+        snap.character.grades = 20  # chat World: nível 20 (banco)
         g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Dünya Kanalında Sohbet"
         leeds = pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body)
         assert leeds.totalNum == 10
@@ -94,7 +98,7 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         got = await g.until(83)
         box = pb.LeedFinishedRspMsg.FromString(next(p for p in got if p.code == 4150).body)
         assert (box.result, box.leedProcess) == (True, 2)
-        assert _alerts(got) == ["Kazanılan:Gold 50,000"]  # LeedDrop site 1 (50000 de ouro no inglês), como o oficial
+        assert _alerts(got) == ["Received: 50,000 Gold"]  # LeedDrop site 1 (50000 de ouro no inglês), como o oficial
 
         g.client.send(8749, pb.GetRewardMsg(day=1))  # guia de 7 dias: tarefas do dia 1 não feitas
         assert await g.idle() == []
@@ -105,3 +109,40 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert ev.peek(saved, "login").value == 1  # type: ignore[union-attr]
         assert ev.peek(saved, "relogin").value == 1  # type: ignore[union-attr]
+
+
+def test_exp_rate_window_is_whole_days_in_game_time() -> None:
+    rate = ExpRate(100, "2026-10-08 00:00:00", "2026-10-21 00:00:00", 0, 86399, 0)  # tutorial_en #45
+    begin, end = ev.rate_window(rate)
+    assert begin == datetime(2026, 10, 8, tzinfo=ev.gameday.GAME_TZ)
+    assert end == datetime(2026, 10, 21, 23, 59, 59, tzinfo=ev.gameday.GAME_TZ)
+
+
+async def test_exp_rate_4247_only_inside_the_window(tmp_path: Path) -> None:
+    clock = FakeClock(datetime(2026, 10, 9, tzinfo=UTC))  # dentro da linha semeada na 0033
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        s = _session(g)
+        await g.idle()
+        [rate] = s.ctx.world.exp_rates
+        end = ev.rate_window(rate)[1]
+        hev.send_rate(s)
+        [p] = await g.idle()
+        info = pb.RateUpdateReqMsg.FromString(p.body).rateInfo[0]
+        assert (p.code, info.rate, info.beginDay, info.endTime) == (4247, 100, rate.begin_day, 86399)
+        clock.advance((end - clock.now()).total_seconds() + 1)
+        hev.send_rate(s)
+        assert await g.idle() == []
+
+
+async def test_seven_day_guide_starts_at_quest_130(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        snap = s.snapshot
+        assert snap is not None
+        hev.send_serven(s)  # personagem novo: o login não manda 4638 (tutorial_en)
+        assert await g.idle() == []
+        done = datetime(2026, 10, 18, 12, tzinfo=UTC)
+        snap.quests.append(Quest(snap.character.id or 0, hev.SERVEN_QUEST, done, completed=True, completed_at=done))
+        hev.send_serven(s)
+        [p] = await g.idle()
+        assert p.code == 4638 and pb.ServenDayLeadMsg.FromString(p.body).beginTime == hev.b.fmt_time(done)

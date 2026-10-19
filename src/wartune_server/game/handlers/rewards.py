@@ -6,7 +6,7 @@ from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import record_cash
 from .. import castle as cs
-from .. import rules, timebox
+from .. import rewards, rules, timebox
 from ..bag import BAG_BASE as BAG_SIZE  # ponytail: só os 42 base; comprados via bag.capacity
 from ..builders import login as b
 from ..builders.player import item_moved
@@ -19,21 +19,37 @@ S_PLAYER, S_BOX, S_ITEMS, S_ALERT = 3, 4, 115, 111
 RATES = {0: 1}  # rateCount do HookRewardFrame: 0 = x1, 15 = x1,5, 20 = x2
 
 
+S_BOX_STAR, S_CHAT = 4250, 83
+BOX_OK = "Reward retrieval successful!"  # tutorial_en #2114, #3360
+
+
 def box_msg(s: GameSession) -> pb.BoxBoxMsg:
     assert s.snapshot is not None
-    period, run = timebox.box_state(s.snapshot.character, s.ctx.clock.now())
+    period, run = timebox.box_state(s.snapshot.character, s.ctx.clock.now(), online=s.box_counting)
     return pb.BoxBoxMsg(time=period, operate=period > 0, timerun=run)
+
+
+def _box_star(s: GameSession) -> None:
+    """4250 (o cliente não escuta): o mesmo BoxBoxMsg com ``timerun`` 0, antes do 4 (#1597, #2111, #3357)."""
+    period = box_msg(s).time
+    s.send(S_BOX_STAR, pb.BoxBoxMsg(time=period, operate=period > 0, timerun=0))
 
 
 @router.on(5019)
 async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
-    """``operate=false`` sincroniza; ``operate=true, time=P`` recebe a caixa do período P (TimeDrop)."""
+    """``operate=false`` sincroniza; ``operate=true, time=P`` recebe a caixa do período P (TimeDrop).
+
+    O primeiro 5019 da sessão liga a contagem (antes dele o tempo online não conta). Pedido repetido ou antes da
+    hora recebe só o 4 com o estado (tutorial_en #2109, #3353: o oficial paga uma vez)."""
     snap = s.snapshot
     assert snap is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
-    timebox.settle_box(c, now)
+    timebox.settle_box(c, now, online=s.box_counting)
+    if not s.box_counting:
+        s.box_counting = True
     if not msg.operate:
         await s.ctx.characters.save(c)
+        _box_star(s)
         s.send(S_BOX, box_msg(s))
         return
     period = timebox.next_period(c, templates)
@@ -49,7 +65,7 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
         s.send(S_BOX, box_msg(s))  # o cliente reinicia o contador com o estado real
         return
 
-    c.box_period = period
+    c.box_period, c.box_seconds = period, 0  # o próximo período conta do resgate (o 4 volta com timerun 0)
     new: list[Item] = []
     for d in goods:
         new.append(Item(c.id or 0, int(d["TemplateId"]), count=int(d["Data"]), pos=rules.free_bag_pos(snap)))
@@ -66,12 +82,20 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
             changed.append(record_cash(c, *delta, reason="time_box", ref=f"period:{period}", now=now))
     await s.ctx.characters.save(*changed)
 
-    s.send(S_BOX, box_msg(s))
-    for item in new:
-        s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
+    # ordem do oficial (tutorial_en #2097-#2115, #3343-#3361): 109 (ouro) ou 3 (outras moedas), 115, 111, 4250,
+    # 4, 83 com o texto e 83 de sucesso; o texto lista do fim para o começo, como o pacote da mochila
     if any(f in ("gold", "crystals") for f, _ in currencies):
         cs.castle_yield(s)
-    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if any(f not in ("gold", "crystals") for f, _ in currencies):
+        s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    for item in new:
+        s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
+    text = rewards.text(templates, [(int(d["TemplateId"]), int(d["Data"])) for d in reversed(drops)])
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    _box_star(s)
+    s.send(S_BOX, box_msg(s))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=BOX_OK))
 
 
 @router.on(8287)

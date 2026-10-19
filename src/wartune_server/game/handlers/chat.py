@@ -14,6 +14,7 @@ from datetime import timedelta
 from ...domain import gameday
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
+from .. import events as ev
 from .. import guild, items, social
 from ..builders import login as b
 from ..router import router
@@ -29,7 +30,7 @@ COOLDOWN = {GUILD: timedelta(seconds=1), CURRENT: timedelta(seconds=10), WORLD: 
 PRIVATE_COOLDOWN = timedelta(seconds=1)  # ponytail: o cliente não limita o privado; 1 s contra spam
 OFFLINE = -1  # 4236.result: "o jogador não está online"
 SMALL_BUGLE, BIG_BUGLE_ITEM, CROSS_BUGLE_ITEM = 208003, 208002, 208025  # ShopGoodsInfo.*_BUGLE_TEMP_ID
-FREE_SMALL_BUGLES = 10  # ConfigInfo SMALL_BUGLE_FREE_COUNT ("每天免费小喇叭次数"); ver free_bugles
+S_ALERT = 111
 _TAG = re.compile(r"<[^>]*>")
 
 
@@ -82,14 +83,14 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
 def free_bugles(s: GameSession) -> int:
     """Cornetas pequenas grátis que restam hoje (o contador zera na virada do dia do servidor).
 
-    ponytail: cota fixa do ConfigInfo; o VIP do oficial pode aumentar (sem VIP ainda).
+    ponytail: cota do ConfigInfo ``SMALL_BUGLE_FREE_COUNT`` (10, #2780); o VIP do oficial pode aumentar.
     """
     assert s.snapshot is not None
     c = s.snapshot.character
     today = gameday.today(s.ctx.clock.now())
     if c.bugle_free_day != today:
         c.bugle_free_day, c.bugle_free_used = today, 0
-    return max(0, FREE_SMALL_BUGLES - c.bugle_free_used)
+    return max(0, int(ev.config(s.ctx.templates, "SMALL_BUGLE_FREE_COUNT", "0")) - c.bugle_free_used)
 
 
 async def _pay_bugle(s: GameSession, template_id: int, *, free: bool = False) -> bool:
@@ -113,15 +114,18 @@ async def _pay_bugle(s: GameSession, template_id: int, *, free: bool = False) ->
 
 @router.on(8198)
 async def world_chat(s: GameSession, msg: pb.ChatChannelMsg) -> None:
-    """Canal mundo (corneta pequena): cota grátis do dia e depois o item 208003."""
+    """Canal mundo (corneta pequena): nível mínimo ``world_chat_min_grade`` (banco), cota grátis do dia e depois o
+    item 208003. Abaixo do nível: 111 "Requires character Level of 20" (tutorial_en #2781-#2782, nível 14)."""
+    assert s.snapshot is not None
+    need = int(s.ctx.world.settings.get("world_chat_min_grade", MIN_GRADE))
+    if s.snapshot.character.grades < need:  # antes de marcar o intervalo e de gastar corneta
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Requires character Level of {need}"))
+        return
     text = _text(s, msg.encodeMsg, WORLD, COOLDOWN[WORLD])
     if text is None or not await _pay_bugle(s, SMALL_BUGLE, free=True):
         s.log.info("corneta pequena recusada", tamanho=len(msg.encodeMsg))
         return
     _broadcast(s, S_CHAT, _channel_msg(s, WORLD, text))
-    from . import events  # events importa login, que importa este pacote
-
-    await events.leed_done(s, events.WORLD_CHAT_LEED)
     from . import events  # events importa login, que importa este pacote
 
     await events.leed_done(s, events.WORLD_CHAT_LEED)

@@ -698,9 +698,28 @@ world_bosses = Table(
     "world_bosses",
     metadata,
     Column("campaign_id", Integer, primary_key=True, autoincrement=False),
-    *(_int(name) for name in ("hero_id", "son_type", "node_x", "node_y", "start_x", "start_y", "base_hp", "min_hp",
-                              "fast_seconds", "grow_pct", "shrink_pct", "kill_turn", "revive_seconds",
-                              "damage_per_gold", "battle_cap", "last_hit_gold", "last_hit_daru")),  # fmt: skip
+    *(
+        _int(name)
+        for name in (
+            "hero_id",
+            "son_type",
+            "node_x",
+            "node_y",
+            "start_x",
+            "start_y",
+            "base_hp",
+            "min_hp",
+            "fast_seconds",
+            "grow_pct",
+            "shrink_pct",
+            "kill_turn",
+            "revive_seconds",
+            "damage_per_gold",
+            "battle_cap",
+            "last_hit_gold",
+            "last_hit_daru",
+        )
+    ),  # fmt: skip
     Column("source", String(1000), server_default="", nullable=False),
 )
 world_boss_rewards = Table(
@@ -738,6 +757,34 @@ world_boss_wounds = Table(
     _int("job"),
     _int("wound"),
     UniqueConstraint("fight_id", "character_id"),
+)
+# novato, VIP e eventos (0033): regras do oficial que não estão no cliente; ``value`` em JSON
+game_settings = Table(
+    "game_settings",
+    metadata,
+    Column("key", String(64), primary_key=True),
+    Column("value", Text, nullable=False),
+    Column("source", String(1000), server_default="", nullable=False),
+)
+vip_wheel_prizes = Table(
+    "vip_wheel_prizes",
+    metadata,
+    Column("position", Integer, primary_key=True, autoincrement=False),
+    _int("template_id"),
+    _int("quantity"),
+    Column("source", String(255), server_default="", nullable=False),
+)
+exp_rate_events = Table(
+    "exp_rate_events",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _int("rate"),
+    Column("begin_day", String(19), nullable=False),  # hora do jogo (fuso do servidor), como o 4247 manda
+    Column("end_day", String(19), nullable=False),
+    _int("begin_time"),
+    _int("end_time"),
+    _int("buffer_type"),
+    Column("source", String(255), server_default="", nullable=False),
 )
 wild_boxes = Table(
     "wild_boxes",

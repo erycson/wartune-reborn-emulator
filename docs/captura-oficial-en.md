@@ -72,13 +72,19 @@ Correlações (missão ↔ item ↔ monstro ↔ texto):
 
 | sistema | captura | nós |
 |---|---|---|
-| baú online (`TimeDrop`, minutos) | contagem começa no 1º 5019 e zera a cada resgate; resgate manda 111, 4250, 4, 83×2 | conta segundos do dia; faltam as notificações |
-| EXP +100% | 4247 `rateInfo{rate:100, beginDay, endDay}`: evento do servidor por datas | falta |
-| cartão VIP de teste 2031201 (`Property1=12`, 1 h) | 5006 → 111, 4410 `vipType:2` | falta |
-| VipInfo no login | `takeGiftDate` = criação | próxima segunda |
-| presente semanal VIP (`VipDrop`) | 8505 → 115, 111, 4410, 4539, 83; próximo em 10-26 | igual, falta 4539, data diferente |
-| roleta VIP (8521/8519) | 18 prêmios em #3325 (só na captura, sem probabilidades) | 4414 vazio |
-| chat World | 111 "Requires character Level of 20" | nível 6 calado; `leed_done` duplicado |
-| anúncio Sylph Atoll | 83 canal 12 `isCenterTip` | falta |
-| fundo novato (4640) | custos 500/5000/30000 | valores turcos em `data/events.json` |
-| guia de 7 dias (4638) | `beginTime` = conclusão da missão 130 | `created_at`, no login |
+| baú online (`TimeDrop`, minutos) | contagem começa no 1º 5019 e zera a cada resgate; resgate manda 109 (ou 3), 115, 111, 4250, 4, 83×2 | **feito** (`handlers/rewards.py`, `timebox.py`) |
+| EXP +100% | 4247 `rateInfo{rate:100, beginDay, endDay}`: evento do servidor por datas | **feito**: tabela `exp_rate_events` (0033), 4247 no login; multiplicador não aplicado (o EXP das capturas já vem com o evento) |
+| cartão VIP de teste 2031201 (`Property1=12`, 1 h) | 5006 → 115, 111, 4410 `vipType:2`, 3 | **feito** (`vip.use_trial_card`) |
+| VipInfo no login | `takeGiftDate` = criação | **feito** |
+| presente semanal VIP (`VipDrop`) | 8505 → 115, 111, 4410, 4539, 83; próximo em 10-26 | **feito**: próxima liberação = segunda da semana seguinte (semana começa no domingo; dedução de um ponto só) |
+| roleta VIP (8521/8519) | 18 prêmios em #3325 (só na captura, sem probabilidades) | **feito**: tabela `vip_wheel_prizes`, custo k no giro k (`game_settings.vip_wheel_costs`), sorteio uniforme; preço de "atualizar" desconhecido |
+| chat World | 111 "Requires character Level of 20" | **feito**: `game_settings.world_chat_min_grade`; cota grátis de `SMALL_BUGLE_FREE_COUNT`; `leed_done` duplicado removido |
+| anúncio Sylph Atoll | 83 canal 12 `isCenterTip` | falta: textos em #3029/#3030, mas `petboss_time` = "全天" não dá horário |
+| fundo novato (4640) | custos 500/5000/30000 | **feito**: `game_settings.novice_fund` (inglês), 4640 no login só a partir do nível 6 |
+| guia de 7 dias (4638) | `beginTime` = conclusão da missão 130 | **feito**: 4638 no login só depois da 130 e na conclusão dela |
+
+Correlações:
+- 2031201 (VIP Trial Card) ↔ texto "Your VIP service has been extended N hours; new expiration date is AAAA-MM-DD." (#3260);
+- 208015 (VIP Token, SonType 292) ↔ fichas da roleta: `needVipItem` 1 → 3 e 5 → 2 fichas em dois giros (#3325-#3335);
+- `TimeDrop` ↔ texto do baú: "Received: 50,000 Gold, Moderate HP Pack x1", da última linha para a primeira (#2110), e "Reward retrieval successful!";
+- 4590 `param1` 2059 = cartão de super login, fechado também no oficial; 4475/4612/4422/4251 com os textos ingleses de `data/events.json` (tipos 13/14).
