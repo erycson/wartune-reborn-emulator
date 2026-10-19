@@ -21,6 +21,7 @@ from ..domain.models import (
     StarBag,
 )
 from ..templates.repository import GameTemplates, Row
+from . import buffs
 from .builders.login import QUEST_SITE_LEN, HeroStats
 
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
@@ -173,15 +174,15 @@ def building_row(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) 
     return None
 
 
-def population(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int, int]:
+def population(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> tuple[int, int]:
     """``(ocupada, máxima)``: soldados no castelo + exército x NeedPopulation; teto = Property2 da casa
-    (900 no nível 1, visto no relay #642/#646)."""
+    (900 no nível 1, visto no relay #642/#646) + o Population Expansion Scroll (``buffs.POPULATION``)."""
     used = 0
     for pawn in snap.pawns:
         tpl = templates.get("PawnTempInfos", pawn.template_id) or {}
         used += (pawn.castle_count + pawn.army_count) * int(tpl.get("NeedPopulation", 1))
     house = building_row(snap, templates, HOUSE)
-    return used, int(house["Property2"]) if house else 0
+    return used, buffs.boost(int(house["Property2"]) if house else 0, snap, buffs.POPULATION, now)
 
 
 def army_pawn(snap: PlayerSnapshot) -> Pawn | None:

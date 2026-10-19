@@ -19,7 +19,8 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
   Σ tecnologias de ouro (MasterType 13) `EffectTempInfos[Property1].Property1 × nível`. Teto =
   Property2 do depósito (301), 10000 sem depósito. Acumulada sob demanda (`settle`), guardando a
   fração de hora; ouro de outras fontes pode passar do teto e aí a produção para. População máxima
-  = Property2 da casa (1201). Cristais começam em 1000.
+  = Property2 da casa (1201). Cristais começam em 1000. Teto do armazém e população máxima sobem com
+  os pergaminhos 2010501 (efeito 2008) e 2010801 (2005) enquanto durarem (`game/buffs.py`, ver itens.md).
 - **Diamante** (`point`) e **diamante vinculado** (`gift_token`): todo débito/crédito passa por
   `services/ledger.py` e grava uma linha em `cash_ledger` na mesma transação.
 - **Fazenda** (`farm_lands` + colunas `farm_*`/`tree_*` em `castles`): só terras plantadas têm

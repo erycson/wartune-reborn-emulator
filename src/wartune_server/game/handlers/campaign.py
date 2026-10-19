@@ -20,7 +20,7 @@ from ...content import tutorial
 from ...domain.models import EventState, Item, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
-from .. import bag, drops, events, rewards, rules, space
+from .. import bag, buffs, drops, events, rewards, rules, space
 from .. import campaign as cm
 from ..battle import Battle, PlayerHero
 from ..builders import login as b
@@ -433,6 +433,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     assert snap is not None and snap.leader is not None
     s.battle, s.hero_sp = None, battle.player_sp
     gp = int(battle.spec.get("gpBonus", 0)) if won else 0
+    # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
+    gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
     strategy = int(battle.spec.get("strategyBonus", 0)) if won else 0
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)

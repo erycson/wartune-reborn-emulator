@@ -135,7 +135,7 @@ async def _pick(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg, la
     field = CURRENCIES.get(reward)
     if reward < 0 and field is None and reward != EXP:
         return False
-    if field == "gold" and cs.yield_msg(snap, templates, now).goldTotalCount >= cs.gold_max(snap, templates):
+    if field == "gold" and cs.yield_msg(snap, templates, now).goldTotalCount >= cs.gold_max(snap, templates, now):
         return False  # FarmLandItem.checkGoldLimit: o cliente também bloqueia
     item = Item(c.id or 0, reward, count=count, pos=rules.free_bag_pos(snap)) if reward > 0 else None
     full = sum(i.bag_type == BagType.BAG for i in snap.items) >= BAG_SIZE

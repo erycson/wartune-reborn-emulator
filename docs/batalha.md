@@ -82,4 +82,4 @@ No PvP ele morre de verdade (abaixo).
 | 10016 `AttackModeMsg` | 77 com a postura (2 ataque, 1 defesa); sem efeito no dano |
 | 10499, 10507, 10509 `BattleItemMsg` | 158 `result 1`: não há itens, provas nem skill de casal; o cliente libera a barra |
 | 8985 `BattleViewMsg` | 4804 `param7 true` (a batalha acabou): não há batalhas para assistir |
-| 10015, 10497, 10516, 8282, 8283, 10003 | nada (log): o cliente não espera resposta. QTE (bônus não modelado); 10497 e 10003 são código morto no cliente; 10516 é skill do filho; 8282 é estatística de combo; 8283 tira buff fora da batalha |
+| 10015, 10497, 10516, 8282, 10003 | nada (log): o cliente não espera resposta. QTE (bônus não modelado); 10497 e 10003 são código morto no cliente; 10516 é skill do filho; 8282 é estatística de combo (o 8283, tirar buff de pergaminho, está em itens.md) |

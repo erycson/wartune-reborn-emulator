@@ -53,9 +53,9 @@ async def battle_view(s: GameSession, msg: pb.BattleViewMsg) -> None:
     s.send(S_VIEW_INFO, pb.SimplePropertyMsg(param1=0, param7=True))
 
 
-@router.on(10015, 10497, 10516, 8283, 10003)
+@router.on(10015, 10497, 10516, 10003)
 async def ignored(s: GameSession, msg: object) -> None:
     """Sem resposta no cliente: QTE (10015, bônus não modelado), remover batalha (10497, código
-    morto), skill do filho (10516, não há filhos), tirar buff fora da batalha (8283, não há buffs) e a
-    batalha de depuração (10003). O combo (8282) vai para o 137 da masmorra (``handlers/campaign.py``)."""
+    morto), skill do filho (10516, não há filhos) e a batalha de depuração (10003). O combo (8282) vai para o
+    137 da masmorra (``handlers/campaign.py``); o 8283 (tirar efeito de pergaminho) para ``handlers/items.py``."""
     s.log.info("pacote de batalha ignorado", pedido=str(msg))

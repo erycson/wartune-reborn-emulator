@@ -11,12 +11,12 @@ from datetime import timedelta
 from google.protobuf.message import Message
 
 from ...domain import gameday
-from ...domain.models import BagType, Hero, Item, PlayerSnapshot
+from ...domain.models import BagType, EventState, Hero, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...services.ledger import item_entry
 from ...templates.repository import Row
-from .. import bag, daily, monsters, rules, space
+from .. import bag, buffs, daily, monsters, rules, space
 from ..builders import login as b
 from ..builders.player import fashion_book, item_info, item_moved
 from ..castle import castle_yield
@@ -28,7 +28,9 @@ from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
 S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (Büyük Sefer)
-BOX, USE, GEM_BOX, BLOOD = "298", "203", "206", "209"  # ItemTempInfo.SonType usáveis
+S_EFFECT, S_ITEM_BUFFER = 110, 4188  # PropertyUpdatedMsg e ItemBufferRspMsg dos pergaminhos de efeito
+BOX, USE, GEM_BOX, BLOOD, EFFECT = "298", "203", "206", "209", "201"  # ItemTempInfo.SonType usáveis
+PROTECTION = 2001  # City Protection Token (208006): o cliente conta pelo 4452 defenceLeftTime e para com o 8562
 STORE_STONE = 208014  # Şeytan Kristali (SonType 293): Property1 = EXP do cristal (8484)
 STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
 BAG_ROW, BAG_MAX = 7, 175  # 5010 compra de 7 em 7 até 175 espaços (PlayerInfo.PLAYER_BAG_MAX)
@@ -154,8 +156,8 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
 @router.on(5006)
 async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
     """Usa um item da mochila conforme o SonType: pacote (298), recurso (203), caixa de pedras
-    (206), poção de HP (209) ou Divine Light (316). Os outros dependem de sistemas que não existem e são
-    recusados."""
+    (206), poção de HP (209), pergaminho de efeito (201) ou Divine Light (316). Os outros dependem de
+    sistemas que não existem e são recusados."""
     snap = s.snapshot
     assert snap is not None
     item = bag.at(snap, BagType.BAG, 0, msg.pos) if msg.bagType == BagType.BAG else None
@@ -164,7 +166,7 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
         s.log.info("5006 recusado", pedido=str(msg))
         return
     n = max(1, min(msg.count, item.count))
-    uses = {BOX: _open_box, USE: _use_resource, GEM_BOX: _open_gem_box, BLOOD: _use_blood}
+    uses = {BOX: _open_box, USE: _use_resource, GEM_BOX: _open_gem_box, BLOOD: _use_blood, EFFECT: _use_effect}
     uses[monsters.FOG_SON_TYPE] = _use_divine_light
     use = uses.get(row.get("SonType", ""))
     if use is None or not await use(s, item, row, n):
@@ -360,6 +362,57 @@ async def _use_divine_light(s: GameSession, item: Item, row: Row, n: int) -> boo
     for other in {s, *viewers(s, map_id)}:
         send(other, S_FOG, pb.MapBossMsg(leftFogTime=monsters.FOG_SECONDS))
     return True
+
+
+def _effect_type(s: GameSession, effect: int) -> int:
+    return int((s.ctx.templates.get("EffectTempInfos", effect) or {}).get("PropertyType1") or 0)
+
+
+def send_buffers(s: GameSession, states: list[EventState]) -> None:
+    """4188 com os efeitos (``validityDate`` 0 tira o ícone)."""
+    send(s, S_ITEM_BUFFER, buffs.buffer_list(states, s.ctx.clock.now()))
+
+
+async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
+    """Pergaminho de efeito (SonType 201): Property1 = EffectTempInfo, Property2 = minutos, Property3 = grau
+    (``game/buffs.py``). (visto) captura turca ``exp_kitabi_kullanim...`` #2-#10, 2013002: 115, 110
+    ``{propertyType 30 (PropertyType1 do 2030), value 100}``, 4188 ``{2030, validityDate 60, grade 100, type 2,
+    typeTemplateid 2013002}`` e 3, sem texto (o 4902/150/4434 no meio são de outros sistemas)."""
+    snap = s.snapshot
+    assert snap is not None
+    effect, minutes, level = (int(row.get(f"Property{i}") or 0) for i in (1, 2, 3))
+    if effect == PROTECTION or minutes <= 0 or not _effect_type(s, effect):
+        return False
+    st = buffs.apply(snap, effect, item.template_id, level, minutes * n, s.ctx.clock.now())
+    if st is None:
+        return False  # grau menor que o ativo
+    changed, gone = _consume(snap, item, n)  # antes de qualquer await
+    await s.ctx.characters.save(st, *changed, delete=tuple(gone))
+
+    _send_items(s, changed, gone)
+    send(s, S_EFFECT, pb.PropertyUpdatedMsg(propertyType=_effect_type(s, effect), value=level))
+    send_buffers(s, [st])
+    if effect in (buffs.GOLD_MAX, buffs.POPULATION):
+        castle_yield(s)  # (dedução) teto do armazém/população novos na barra
+    _player(s)
+    return True
+
+
+@router.on(8283)
+async def effect_stop(s: GameSession, msg: pb.EffectRemoveReqMsg) -> None:
+    """C_EFFECT_STOP: o relógio do ícone chegou a 0 no cliente ou o jogador tirou o efeito (``PlayerBufferItem``,
+    "Are you sure you want to remove this buff?"). (dedução, sem captura) 110 com 0 e 4188 com ``validityDate`` 0."""
+    snap = s.snapshot
+    assert snap is not None
+    st = buffs.stop(snap, msg.templateId, s.ctx.clock.now())
+    if st is None:
+        s.log.info("8283 sem efeito", pedido=str(msg))
+        return
+    await s.ctx.characters.save(st)
+    send(s, S_EFFECT, pb.PropertyUpdatedMsg(propertyType=_effect_type(s, msg.templateId), value=0))
+    send_buffers(s, [st])
+    if msg.templateId in (buffs.GOLD_MAX, buffs.POPULATION):
+        castle_yield(s)
 
 
 # --- vender ---

@@ -74,7 +74,7 @@ async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     found, n = current_pawn(s, msg.tempateId), msg.ownPawns
-    used, cap = rules.population(snap, templates)
+    used, cap = rules.population(snap, templates, s.ctx.clock.now())
     grade, barracks = barracks_grade(snap, templates)
     if found is None or barracks is None or n <= 0:
         s.log.info("5155 recusado", pedido=str(msg))

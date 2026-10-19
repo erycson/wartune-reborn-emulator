@@ -49,8 +49,33 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 Poção de HP e Bağlı Elmas/Elmas vindos de item gravam o `cash_ledger` com `reason` `item`.
 Divine Light (SonType 316): um por uso, tira a névoa do mapa do castelo por 20 s (4939); ver
 [cidade-externa.md](cidade-externa.md).
-Depende de outro sistema (recusado com log no 5006): cristal (203/11), guilda (203/8), VIP (203/12),
-buffs (201), caixas 206 cujo conteúdo só está na descrição (Property1 = o próprio id).
+Depende de outro sistema (recusado com log no 5006): cristal (203/11), guilda (203/8), City Protection
+Token (201/2001, conta pelo 4452 `defenceLeftTime` e para com o 8562), caixas 206 cujo conteúdo só está na
+descrição (Property1 = o próprio id).
+
+### Pergaminhos de efeito (SonType 201)
+
+`game/buffs.py` + `items._use_effect`. Property1 = `EffectTempInfo` (chave do buff no cliente), Property2 =
+minutos por unidade (× `count`), Property3 = grau (o `{Grades}` da descrição). Estado em `event_states`: chave
+`buff:<efeito>`, `value` = grau, `text` = item, `updated_at` = fim (sobrevive a reinício; sem migração).
+
+| pacote | o que faz | fonte |
+|---|---|---|
+| 5006 → 115, 110 `PropertyUpdatedMsg{propertyType = PropertyType1 do efeito, value = grau}`, 4188 `ItemBufferRspMsg{templateId = efeito, validityDate = minutos restantes, grade, type 2, typeTemplateid = item, isCancel false}`, 3 (sem texto) | liga o efeito | *(visto)* captura turca `exp_kitabi_kullanim_kahraman_sarayi...` #2-#10, 2013002: `{30, 100}` e `{2030, 60, 100, 2, 2013002}` (o 4902/150/4434 no meio são de outros sistemas) |
+| + 109 | depois dos pergaminhos de ouro/população | *(dedução)* |
+| mesmo efeito, grau menor | recusa sem resposta | *(cliente)* `MulItemUseFrame` já barra: "Stronger buff already active, overlapping not allowed." |
+| mesmo efeito, grau igual / maior | soma o tempo / substitui grau e tempo | *(dedução)* |
+| 8283 `EffectRemoveReqMsg{templateId}` | o cliente manda quando o relógio do ícone zera ou o jogador tira o buff ("Are you sure you want to remove this buff?"): encerra, 110 `value 0`, 4188 `validityDate 0` (o cliente só apaga o ícone com ele) | *(cliente)* `PlayerBufferManager`/`PlayerBufferItem`; resposta *(dedução)* |
+| login | 4188 com os ativos, depois do 4247 | *(dedução)*: nenhuma captura de login com buff |
+
+`validityDate` arredonda os minutos para cima: o relógio do cliente acaba depois do servidor.
+Efeito aplicado: **2030 EXP Boost** (2013001-4, 50/100/200/1000%) multiplica o `gpBonus` de cada batalha
+de campanha/masmorra (`campaign._battle_over`; o 4103, o 83 e o 4382 levam o valor com bônus; o
+`gpBonus` capturado é a base). A EXP do relatório do fim da masmorra (`_dungeon_end`) fica sem bônus
+(*dedução*: "EXP received from dungeon"; sem captura). **2008** (Gold Expansion Scroll, "Warehouse Capacity
++25%") sobe o teto do armazém (`castle.gold_max`) e **2005** (Population Expansion Scroll) a população máxima
+(`rules.population`, também no recrutamento). Os outros 201 (poções de atributo 2135-2141, pergaminhos
+2041-2048, Camouflage 2000, Blessing 7001) ligam o ícone e o tempo, mas o efeito ainda não existe no servidor.
 
 ## Loja — `shop.py`
 

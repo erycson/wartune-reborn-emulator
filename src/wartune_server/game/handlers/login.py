@@ -16,7 +16,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import castle, daily, farm, guild, rules, social, space, timebox
+from .. import buffs, castle, daily, farm, guild, rules, social, space, timebox
 from ..builders import login as b
 from ..builders import player as pb_player
 from ..builders.army import army_pawn_msg, castle_pawns
@@ -47,6 +47,7 @@ S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
 S_PET_ISLAND_BOSS = 4686
+S_ITEM_BUFFER = 4188  # pergaminhos de efeito ativos (game/buffs.py)
 S_CASTLE_PAWNS = 100
 
 
@@ -228,6 +229,8 @@ async def _login_state(s: GameSession) -> None:
     from . import events
 
     events.send_rate(s)  # 4247 logo depois do 4686 (tutorial_en #44-#45)
+    if on := buffs.active(snap, s.ctx.clock.now()):  # (dedução) sem captura de login com pergaminho ativo
+        _send(s, S_ITEM_BUFFER, buffs.buffer_list(on, s.ctx.clock.now()))
     events.login_push(s)
     # tropas do castelo (oficial: login.json #6); personagem sem tropas nem quartel não recebe
     if (pawns := castle_pawns(snap, s.ctx.templates)).armyPawn:

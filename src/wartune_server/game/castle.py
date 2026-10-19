@@ -17,7 +17,7 @@ from ..domain import gameday
 from ..domain.models import Building, BuildOrder, Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
-from . import mines, rules
+from . import buffs, mines, rules
 from .builders import login as b
 from .session import GameSession
 
@@ -83,16 +83,11 @@ def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
     return total + mines.mine_gold(snap, templates)
 
 
-def gold_max(snap: PlayerSnapshot, templates: GameTemplates) -> int:
+def gold_max(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> int:
+    """Teto do armazém (301), + o Gold Expansion Scroll ("Warehouse Capacity +{Grades}%", ``buffs.GOLD_MAX``)."""
     depot = by_son_type(snap, templates, DEPOT)
     row = template(templates, depot.template_id) if depot else None
-    return int(row["Property2"]) if row else BASE_GOLD_MAX
-
-
-def max_population(snap: PlayerSnapshot, templates: GameTemplates) -> int:
-    house = by_son_type(snap, templates, HOUSE)
-    row = template(templates, house.template_id) if house else None
-    return int(row["Property2"]) if row else 0
+    return buffs.boost(int(row["Property2"]) if row else BASE_GOLD_MAX, snap, buffs.GOLD_MAX, now)
 
 
 def pending_gold(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> tuple[int, datetime | None]:
@@ -100,7 +95,7 @@ def pending_gold(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) 
     castle, gold = snap.castle, snap.character.gold
     if castle is None or castle.produced_at is None:
         return 0, None
-    per_hour, cap = gold_yield(snap, templates), gold_max(snap, templates)
+    per_hour, cap = gold_yield(snap, templates), gold_max(snap, templates, now)
     if per_hour <= 0 or gold >= cap or now <= castle.produced_at:
         return 0, max(now, castle.produced_at)
     gain = int(per_hour * (now - castle.produced_at).total_seconds() // 3600)
@@ -135,12 +130,13 @@ def start_production(snap: PlayerSnapshot, now: datetime) -> None:
 
 def yield_msg(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> pb.CastleYieldMsg:
     gain, _ = pending_gold(snap, templates, now)
+    used, top = rules.population(snap, templates, now)
     return pb.CastleYieldMsg(
         goldYield=gold_yield(snap, templates),
         goldTotalCount=snap.character.gold + gain,
-        goldMax=gold_max(snap, templates),
-        curPopulation=rules.population(snap, templates)[0],
-        maxPopulation=max_population(snap, templates),
+        goldMax=gold_max(snap, templates, now),
+        curPopulation=used,
+        maxPopulation=top,
         crystalsCount=snap.character.crystals,
     )
 
