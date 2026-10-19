@@ -1,4 +1,4 @@
-"""Campo de batalha (Savaş Alanı, campanhas 4001-4013) e mina de ametista (campanha 30000): fechados.
+"""Campo de batalha (Ancient Battleground, campanhas 4001-4013) e Amethyst Mine (campanha 30000): fechados.
 
 Os dois são mapas de campanha com muitos jogadores ao mesmo tempo (times, pontos, carrinhos de
 minério), em janelas diárias de 25 min. Sem esse mapa compartilhado, o servidor os mantém fechados

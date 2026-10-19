@@ -1,5 +1,6 @@
-"""Estrelas (kader): sortear nos cristais, recolher/vender, mover, equipar, devorar, compor, travar,
-comprar espaço e loja. Captura ``kader_sistemi.json``; cliente ``StarManager.as``.
+"""Estrelas (Astro/Astral): sortear nos cristais, recolher/vender, mover, equipar, devorar, compor, travar,
+comprar espaço e loja. Cliente ``StarManager.as``. As ações só têm a captura turca (só turco:
+``kader_sistemi``); o tutorial_en só tem o login (#49).
 
 Sacolas: 0 temporária (sorteadas, até 16), 1 mochila (8 + compradas), 2 equipadas.
 """
@@ -19,17 +20,17 @@ from ..session import GameSession
 from .player import _army, _player
 
 S_MOVE, S_PICK, S_RAND, S_COMPOSE = 4178, 4179, 4180, 4479
-SITE_COST = (4000, 5000, 6000, 8000, 10000)  # ouro por cristal (visto: 4000 no cristal 0)
+SITE_COST = (4000, 5000, 6000, 8000, 10000)  # ouro por cristal (só turco: 4000 no cristal 0, kader_sistemi)
 QUICK_MIN_GOLD = 20000  # StarRandView: sorteio rápido (site -1)
 TEMP_MAX, BAG_BASE, MAX_GRADE = 16, 8, 10
 JUNK, ENERGY = "1", "6"  # starTempInfo.Profile: lixo (vende sozinho) e fonte de energia
 EXP_TYPES = {"2": "9", "3": "10", "4": "11", "5": "12", "6": "13", "7": "22"}  # Profile -> UpGrade Types
 LOCK_QUEST = 53  # QuestCondictionInfos: travar estrela
-# 36 "Kader": QuestTemps 3 (nível 25, como a 623 de travar) manda clicar [Kader] e fazer "1 Kader" = sortear.
+# 36 "Astro": QuestTemps 3 (nível 25, como a 623 de travar) manda clicar [Astro] e "Upgrade 1 [Astro]" = sortear.
 # Para1 1 (a 622 tem 0): sem fonte do que é; todo sorteio passa 1 e conta cada estrela (dedução)
 RAND_QUEST, RAND_PARA1 = 36, 1
 # ponytail: o oficial não publica as chances do sorteio; pesos por qualidade (Profile) e cristal
-# tirados a olho da captura (lixo ~40%), e 30% de abrir o próximo cristal. Valem os do banco
+# tirados a olho da captura (só turco: kader_sistemi, lixo ~40%), e 30% de abrir o próximo cristal. Valem os do banco
 # (``game_settings`` ``star_weights`` e ``star_open_next``, migração 0035); estes são o padrão sem a linha
 WEIGHTS = {"1": (40,) * 5, "2": (35, 33, 30, 27, 24), "3": (18, 21, 24, 27, 30), "4": (5, 8, 11, 14, 17)}
 WEIGHTS |= {"5": (0, 2, 4, 6, 8), "7": (0, 0, 0, 0, 1), "6": (2,) * 5}
@@ -79,7 +80,7 @@ def equip_slots(snap: PlayerSnapshot) -> int:
 def value(templates: GameTemplates, star: Star) -> int:
     """EXP que a estrela dá ao ser devorada: SellGp + EXP dos graus já subidos + gp atual.
     Conferido: 1503 grau 1 devorou 8 estrelas verdes (10), duas 303/1003 (30) e uma 303 com 30 de
-    gp (60) = 200 -> grau 2 (70) com 130 sobrando (kader_sistemi #115)."""
+    gp (60) = 200 -> grau 2 (70) com 130 sobrando (só turco: kader_sistemi #115)."""
     tpl = star_tpl(templates, star)
     steps = exp_steps(templates, tpl)
     return int(tpl.get("SellGp", 0)) + sum(steps.get(g, 0) for g in range(2, star.grade + 1)) + star.gp
@@ -119,11 +120,13 @@ def move_msg(changes: list[tuple[int, int, Star | None]], player_id: int) -> pb.
 
 
 def login_stars(s: GameSession) -> None:
-    """Resposta ao flag ``star`` do 8224 (login.json #51-52): mochila + equipadas, e os cristais."""
+    """Resposta ao flag ``star`` do 8224: mochila + equipadas (4178, só se houver; só turco: login.json #51) e os
+    cristais (4180). Sem estrela, só o 4180 (tutorial_en #49)."""
     snap = s.snapshot
     assert snap is not None
     placed = [(st.bag_type, st.pos, st) for st in snap.stars if st.bag_type != StarBag.TEMP]
-    s.send(S_MOVE, move_msg(placed, s.player_id))  # type: ignore[arg-type]
+    if placed:
+        s.send(S_MOVE, move_msg(placed, s.player_id))  # type: ignore[arg-type]
     s.send(S_RAND, rand_msg(snap, bag(snap, StarBag.TEMP), s.player_id))
 
 
@@ -137,7 +140,7 @@ def roll(templates: GameTemplates, grade: int, site: int, table: Mapping[str, Se
 @router.on(8269)
 async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     """Sorteia no cristal ``site`` (ouro SITE_COST, ou um sorteio grátis do dia); -1 = rápido (repete
-    no melhor cristal aberto até encher ou acabar o ouro). Resposta (visto): 109, 3, 4180."""
+    no melhor cristal aberto até encher ou acabar o ouro). Resposta (só turco: kader_sistemi): 109, 3, 4180."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
@@ -163,7 +166,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)
         snap.stars.append(star)
         new.append(star)
-        if site:  # o cristal usado apaga; o 0 fica sempre aceso (captura)
+        if site:  # o cristal usado apaga; o 0 fica sempre aceso (só turco: kader_sistemi)
             opened[site] = 0
         if site + 1 < len(opened) and _rng.random() < open_next:
             opened[site + 1] = 1
@@ -179,7 +182,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     _player(s)
     from . import events  # handlers.events importa login, que importa player
 
-    await events.leed_done(s, events.ASTRAL_LEED)  # (visto) kader_sistemi #4-#7: 3, 4152, 3, 4180
+    await events.leed_done(s, events.ASTRAL_LEED)  # só turco: kader_sistemi #4-#7: 3, 4152, 3, 4180
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
     if quests:
         from .army import send_quests
@@ -191,7 +194,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
 async def star_pick(s: GameSession, msg: pb.StarPickReqMsg) -> None:
     """Recolhe da temporária (``dropsite`` -1 = todas): lixo é vendido (SellGold, bagType -1 no 4179),
     fonte de energia vira StarPoint, o resto vai para a mochila; ``way`` 1 vende qualquer uma.
-    Resposta (visto #56-60): 109 e 4179 dos vendidos, 4178 e 4179 dos recolhidos."""
+    Resposta (só turco: kader_sistemi #56-#60): 109 e 4179 dos vendidos, 4178 e 4179 dos recolhidos."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
@@ -234,7 +237,7 @@ async def star_pick(s: GameSession, msg: pb.StarPickReqMsg) -> None:
 @router.on(8267)
 async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
     """Move entre mochila (1) e equipadas (2). Destino ocupado: com ``eat`` a estrela do destino
-    devora a movida (visto #125-126), senão trocam. Equipadas: até min(8, nível/10), sem repetir
+    devora a movida (só turco: kader_sistemi #125-#126), senão trocam. Equipadas: até min(8, nível/10), sem repetir
     MasterType, sem lixo nem fonte de energia. Resposta: 4178 (+150 se mexeu nas equipadas)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
@@ -287,7 +290,7 @@ def equip_ok(snap: PlayerSnapshot, templates: GameTemplates, star: Star, kind: i
 @router.on(8331)
 async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
     """Composição rápida: a estrela em ``pos`` devora todas as outras não travadas da mesma sacola
-    (0 temporária, 1 mochila); o lixo da temporária é vendido. Resposta (visto #114-115): 109 e
+    (0 temporária, 1 mochila); o lixo da temporária é vendido. Resposta (só turco: kader_sistemi #114-#115): 109 e
     4479 com as que sobraram (temporária) ou 4178 (mochila, #120)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None

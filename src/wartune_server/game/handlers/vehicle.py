@@ -24,7 +24,7 @@ def owned(c: Character) -> list[int]:
 
 
 def _profile(c: Character) -> pb.PlayerVehicleProfileMsg:
-    # isFirst: o oficial manda true numa conta que já jogou (login.json #110); significado não conhecido
+    # isFirst: o oficial manda true numa conta que já jogou (só turco: login.json #110); significado não conhecido
     return pb.PlayerVehicleProfileMsg(
         exp=c.vehicle_exp, score=c.vehicle_score, defaultVehicle=c.vehicle_default, isFirst=True
     )
@@ -36,7 +36,8 @@ def _garage(c: Character) -> pb.PlayerVehicleListMsg:
 
 
 def login(s: GameSession) -> None:
-    """Estado de veículos no login (``login.json`` #83, #110-112)."""
+    """Estado de veículos no login (só turco: login.json #83, #110-#112; o tutorial_en, nível 1-15, não manda
+    nenhum dos quatro)."""
     assert s.snapshot is not None
     c = s.snapshot.character
     s.send(S_STATE, pb.MatchStateMsg(matchState=False))

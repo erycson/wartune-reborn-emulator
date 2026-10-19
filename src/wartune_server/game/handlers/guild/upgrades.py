@@ -62,7 +62,8 @@ def _today(m: ConsortiaMember, now: datetime) -> int:
 @router.on(5144)
 async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     """Doação: 1000 ouro (arredondado para baixo) ou 1 diamante = 1 de contribuição, para a
-    riqueza da guilda e para o jogador. Ordem do oficial: 109, 3, 111, 42, 164."""
+    riqueza da guilda e para o jogador. Ordem do oficial: 109, 3, 111, 42, 164 (só turco:
+    birlik_katkisi_ve_birlik_market_alisverisi #7-#18)."""
     mine = _mine(s)
     c = _char(s)
     gold = max(msg.offerGold, 0) // GOLD_PER_OFFER * GOLD_PER_OFFER
@@ -93,7 +94,8 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     _alert(s, "Contribution successful!")
     from .. import events  # handlers.events importa login, que importa a guilda
 
-    await events.leed_done(s, events.GUILD_OFFER_LEED)  # (visto) birlik_katkisi #10-#11: 111 e então o 4152
+    # 111 e então o 4152 (só turco: birlik_katkisi_ve_birlik_market_alisverisi #10-#11)
+    await events.leed_done(s, events.GUILD_OFFER_LEED)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))
@@ -225,7 +227,8 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
 
     Não tem opcode próprio: o cliente usa a compra genérica 5154 (``ShopManager.sendShoping``), e o
     handler dele (``handlers/shop.py``) chama esta função primeiro. Devolve False se o ``goodId`` não
-    é do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83.
+    é do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83 (só turco:
+    birlik_katkisi_ve_birlik_market_alisverisi #45-#62).
     """
     row = s.ctx.templates.get("ShopTempInfos", buy.goodId, key="Id")
     if row is None or row.get("ShopType") != GUILD_SHOP:

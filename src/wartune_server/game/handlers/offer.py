@@ -24,7 +24,7 @@ S_RING, S_RING_SUM = 4614, 4616
 SLOTS, OPEN_GRADE, BASE_COUNT = 4, 14, 20  # OfferRewardModel: MAX_OFFER_TASK_NUM, OPEN_REWARD_GRADE, BASE_REWARD_COUNT
 AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 2  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
 CAN_ACCEPT, ACCEPTED, COMPLETED = 1, 2, 3  # REWARD_STATE_*
-PASS_CONTRACT = 2  # KingContracts 2 "Ödül Yardımcısı": termina a tarefa na hora
+PASS_CONTRACT = 2  # KingContracts 2 "Bounty Helper": termina a tarefa na hora
 # ponytail: o sorteio de qualidade do oficial não é conhecido; pesos para 1..5 (5 = ouro, rende x6)
 QUALITY_WEIGHTS = (40, 30, 15, 10, 5)
 OFFER, RING = 0, 1  # RewardTemps.Type
@@ -338,14 +338,15 @@ async def ring_submit(s: GameSession, _: object) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """login.json #48 (4360), #56/#57 (anel), #58 (4198 da tarefa aceita)."""
+    """tutorial_en #46 (4360), #53 (4616 do anel) e #54 (4198, vazio sem tarefa): o anel vem antes do 4198.
+    O 4614 do anel em andamento e o 4198 com tarefa: só turco (login.json #56, #58)."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
     s.send(S_COUNT, pb.RewardCountUpdateRspMsg(rewardCount=0))  # ponytail: sem compra de vagas extras
+    _send_ring(s, snap, now)
     task = _task(snap, now)
     msg = pb.RewardUpdatedRspMsg()
     if task.value:
         msg.reward.append(_reward_info(task.value, int(_json(task).get("q", 1))))
     s.send(S_REWARD, msg)
-    _send_ring(s, snap, now)

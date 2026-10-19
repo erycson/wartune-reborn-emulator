@@ -40,19 +40,21 @@ S_LIST_BIDS, S_FIX, S_CANCEL, S_SEARCH = 4356, 4357, 4358, 4359
 OK, GONE, COUNT, PRICE, FIX_PRICE, HOUR = 0, -2, -3, -4, -5, -6
 BLOCKED, NO_ITEM, NO_POINT, NOT_AUCTION, FIX_FAIL, CANCEL_FAIL, OWN_FIX, OWN_BID = -7, -8, -11, -12, -14, -15, -16, -17
 SELL_MAX_COUNT = -18  # MALL_SELL_MAX_COUNT: mais de 9 unidades num anúncio
-DAILY_LIMIT = -52  # Auction.ResultAlert52: "İhale günlük satın alma sınırına ulaştı!" (fora do SellResultType)
-# -7 aqui é item travado (8809). O texto do cliente para -7 é "eşya bağlı halde" (vinculado): falta o dado de vínculo
+# só turco: Auction.ResultAlert52 (limite diário de compra) só existe no language.txt turco, fora do SellResultType;
+# o inglês não tem a chave
+DAILY_LIMIT = -52
+# -7 aqui é item travado (8809). O texto do cliente para -7 é "Item is bound!" (vinculado): falta o dado de vínculo
 
 GOODS, PET = 1, 2  # SellItemVO.itemType (e MallItemMsg.itemFrom): só item vai ao mercado
 # ponytail: a tela oferece 8, 24 e 48 h (Auction.SubmitHour1..3); o valor enviado não está no decompilado
 MIN_HOUR, MAX_HOUR = 1, 72
-MAX_COUNT = 9  # (cliente) Auction.ResultAlert18: "o item vendido tem no máximo 9 unidades" (por anúncio)
+MAX_COUNT = 9  # (cliente) Auction.ResultAlert18: "Number of items sold cannot exceed 9!" (por anúncio)
 # ponytail: a lista pede 9 por página (8449, 8452); o teto de 50 é dedução, a tela de leilão não está no decompilado
 PAGE, PAGE_MAX = 9, 50
-MIN_POINT = 2  # (cliente) Auction.SubmitAlert2: "İlk Fiyat 2'den az olamaz"
+MIN_POINT = 1  # (cliente) Auction.SubmitAlert2: "Starting price may not be zero; ... greater than zero"
 
-# (cliente) language.txt AuctionHelp.helpContent itens 9-11: limite diário de compra em diamante por nível,
-# Lv40-60 500, Lv60-70 1000, Lv70-80 1500.
+# (só turco) language.txt turco AuctionHelp.helpContent itens 9-11: limite diário de compra em diamante por nível,
+# Lv40-60 500, Lv60-70 1000, Lv70-80 1500. A ajuda inglesa termina no item 8 (sem limite diário).
 # ponytail: o texto repete 60 e 70 nas duas faixas; aqui 60 e 70 já são da faixa de cima. Abaixo de 40 vale
 # a primeira faixa e acima de 80 a última (o texto não diz). Conta o diamante pago (lance e preço fixo), e o
 # lance devolvido não volta para a cota (o texto não diz).
@@ -255,7 +257,7 @@ async def sell(s: GameSession, msg: pb.SellItemReqMsg) -> None:
         )
         await uow.save(listing)
         await uow.flush()
-        quests = rules.quest_event(snap, templates, rules.SELL_CONDITION, 0, 1)  # missão 56, "İhale"
+        quests = rules.quest_event(snap, templates, rules.SELL_CONDITION, 0, 1)  # condição 56, "Auction" (missão 825)
         for q in quests:
             await uow.save(q)
         out: list[tuple[int, Message]] = [

@@ -1,6 +1,7 @@
 """Torre (8297/8300) e guarda de batalha (8742).
 
-Estado parcial, documentado em docs/salas-campanha.md: o limite de entradas vem das capturas (visto), mas o
+Estado parcial, documentado em docs/salas-campanha.md: o limite de entradas vem das capturas turcas (só turco:
+yeralti_labirenti, labirent_sandik_toplama_odulu; o tutorial_en manda o 4373 vazio, #52), mas o
 progresso da torre (totalGp, itemTempIds, order) não é salvo, e as gemas da guarda não são modeladas.
 """
 
@@ -11,15 +12,17 @@ from ..router import router
 from ..session import GameSession
 
 S_TOWER_INFO, S_BATTLEGUARD = 4205, 4631
-MAZE_MAX_INDEX = 60  # maxIndex visto no labirinto 8001 (captura); a torre de referência ainda não tem o seu
-MAZE_CAMPAIGN = 8001  # campaignId do labirinto (visto: 4205 em labirent_sandik e yeralti_labirenti)
+# maxIndex do Forgotten Catacombs 8001 (só turco: login.json #55); a torre de referência ainda não tem o seu
+MAZE_MAX_INDEX = 60
+# campaignId do Forgotten Catacombs (só turco: 4205 em labirent_sandik_toplama_odulu #17 e yeralti_labirenti #1)
+MAZE_CAMPAIGN = 8001
 
 
 @router.on(8297)
 async def tower_info(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
-    """Info de uma torre (4205). (visto) capturas yeralti_labirenti #1 e labirent_sandik #17: sem entrada feita,
-    1 entrada livre de 1. ``index`` ecoa o pedido (MazeControler pede 0; a captura volta ``index: 0``);
-    ``towerIndex`` é o andar atual (capturas: 1, 2, 3, 5 conforme ``totalGp`` sobe; MazeView mostra esse valor).
+    """Info de uma torre (4205). Só turco (yeralti_labirenti #1, labirent_sandik_toplama_odulu #17): sem entrada
+    feita, 1 entrada livre de 1. ``index`` ecoa o pedido (MazeControler pede 0; a captura volta ``index: 0``);
+    ``towerIndex`` é o andar atual (capturas turcas: 1, 2, 3, 5 conforme ``totalGp`` sobe; MazeView mostra esse valor).
     Sem progresso salvo, o andar fica 0 (MazeMopupPrepareFrame trata 0 como "não começou") e ``totalGp`` 0."""
     s.send(
         S_TOWER_INFO,

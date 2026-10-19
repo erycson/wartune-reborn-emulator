@@ -1,8 +1,9 @@
 """Sistemas do herói guardados em ``PlayerSystems``: montaria, destino (roda), alma do dragão e cartas.
 
-Fontes: captura de login (4427/4426/4544/4555/4905) e a de treino de montaria
+Fontes: login do tutorial_en (#20 4427 sem montaria, #42 4544 vazio no nível 1); com o sistema aberto, só
+turco: login.json (#11-#12 4426/4427, #34 4544, #37 4555, #76 4905) e o treino de montaria
 (``online_odul_..._binek_upgrade``); o resto do cliente (MountsManager, FateRotarySkillInfo,
-PlayerManager.__dragonSoul*). Só pacotes S>C foram capturados: os campos dos pedidos vêm do cliente.
+PlayerManager.__dragonSoul*). Nas turcas só há pacotes S>C: os campos dos pedidos vêm do cliente.
 """
 
 from __future__ import annotations
@@ -31,7 +32,7 @@ QUEST_MOUNT_TRAIN = 71  # QuestCondictionInfos: treinar a montaria (Para2 1; uma
 # --- montaria -------------------------------------------------------------------------------
 MOUNT_TRAIN, MOUNT_CHANGE, MOUNT_INFO = 1, 2, 5  # MountsOpType
 FOOD = "290"  # SonType do item 208017 (comida de montaria)
-FOOD_GP = 10  # visto: 9 comidas = +90 de EXP em força
+FOOD_GP = 10  # 9 comidas = +90 de EXP em força (só turco: online_odul_..._binek_upgrade)
 PAY_POINT, PAY_FOOD = 0, 1  # DomesticatePayType
 # MountEditMsg.propertyType (PropertyInfo.getPropertyValue) -> índice em mount_gp
 MOUNT_PROPERTY = {0: 0, 2: 1, 5: 2, 1: 3}  # força, inteligência, físico (Stamina), agilidade (Armor)
@@ -42,7 +43,7 @@ def mount_gps(sy: PlayerSystems) -> list[int]:
 
 
 def mount_info(snap: PlayerSnapshot, templates: GameTemplates) -> pb.MountInfoMsg | None:
-    """4426 (visto): atributos já com o grau, EXP de cada um e o total."""
+    """4426 (só turco: login.json #12): atributos já com o grau, EXP de cada um e o total."""
     sy = rules.systems(snap)
     tpl = templates.get("MountTempInfos", sy.mount_template) if sy.mount_template else None
     if tpl is None:
@@ -64,7 +65,8 @@ def avatars(sy: PlayerSystems) -> list[int]:
 
 
 def avatar_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.MountAvatarMsg:
-    """4427 (visto): montarias possuídas; ``soulScore`` = soma dos SoulScore."""
+    """4427: montarias possuídas; ``soulScore`` = soma dos SoulScore (tutorial_en #20 sem montaria: vazio e 0;
+    com montaria, só turco: login.json #11)."""
     msg = pb.MountAvatarMsg(totalPage=1)
     since = fmt_time(snap.character.created_at)  # ponytail: a data de ativação não é guardada
     for mount in avatars(rules.systems(snap)):
@@ -83,7 +85,7 @@ def send_mount(s: GameSession) -> None:
 
 @router.on(8530)
 async def mount_avatar_list(s: GameSession, _: object) -> None:
-    """Login (#11-12): 4427 e, com montaria, 4426."""
+    """Login: 4427 (tutorial_en #19-#20) e, com montaria, 4426 (só turco: login.json #12)."""
     assert s.snapshot is not None
     s.send(S_MOUNT_AVATARS, avatar_msg(s.snapshot, s.ctx.templates))
     send_mount(s)
@@ -93,8 +95,8 @@ async def mount_avatar_list(s: GameSession, _: object) -> None:
 async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
     """op 1 treina ``propertyType`` com ``param1`` unidades (comida 208017 ou Mount_Point diamantes
     cada; 10 de EXP por unidade, até o grau levelMax); op 2 monta ``param1`` (precisa possuir);
-    op 5 manda a montaria do jogador ``param1`` (4459). Resposta do treino (visto #83-90):
-    109, 115, 3, 150, 4426."""
+    op 5 manda a montaria do jogador ``param1`` (4459). Resposta do treino: 109, 115, 3, 150, 4426 (só turco:
+    online_odul_..._binek_upgrade #83-#90)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy = rules.systems(snap)
@@ -156,7 +158,7 @@ async def mount_activity(s: GameSession, _: object) -> None:
 
 # --- destino (roda) -------------------------------------------------------------------------
 FATE_LEVEL = 55
-FATE_DEFAULT = "2000:0,3000:0"  # os dois tipos vistos no login (#34); 2100 e 2200 não sabemos abrir
+FATE_DEFAULT = "2000:0,3000:0"  # os dois tipos do login (só turco: login.json #34); 2100 e 2200 não sabemos abrir
 FATE_GRADE = "26"  # UpGradeTempInfo.Types: Data = EXP de cada grau (FateRotarySkillInfo.currentGp)
 FATE_STONE, FATE_STONE_ID = "307", 208024
 # ponytail: pesos da roda tirados do tamanho das fatias (FateRotaryModel.rndDic, em graus)
@@ -207,7 +209,7 @@ def open_fate(s: GameSession) -> PlayerSystems | None:
 
 @router.on(8628)
 async def fate_request(s: GameSession, _: object) -> None:
-    """Login (#34): 4544 com os tipos abertos (nível 55)."""
+    """4544 com os tipos abertos (nível 55; só turco: login.json #34)."""
     assert s.snapshot is not None
     if open_fate(s) is not None:
         s.send(S_FATE, fate_list(s.snapshot, s.ctx.templates))
@@ -300,7 +302,7 @@ def open_dragon(snap: PlayerSnapshot) -> PlayerSystems:
 
 @router.on(8642)
 async def dragon_request(s: GameSession, _: object) -> None:
-    """Login (#37): 4555 {fateTypes 101, totalGp, grades}."""
+    """4555 {fateTypes 101, totalGp, grades} (só turco: login.json #37; o tutorial_en não tem 4555)."""
     assert s.snapshot is not None
     s.send(S_DRAGON, dragon_list(open_dragon(s.snapshot)))
 
@@ -367,15 +369,15 @@ def store_cards(sy: PlayerSystems, found: dict[int, list[int]]) -> None:
 
 # Bônus da coleção: 3 degraus (MagicCardSlotView.updateBuffData). (cliente) language EN
 # card.CardSlotView.Notactive0..2: "4 cards from the same deck", "3 level 4 cards", "8 level 4 cards".
-# (visto) login #76: só a 1002, com 4 cartas, tem bufInfos (40001 = Property3); as de 3 cartas não têm.
-# (dedução) leitura: [cartas, grau mínimo de cada] = 4 de qualquer grau, 4 no grau 3, 4 no grau 8 (o turco diz 6).
+# (só turco: login.json #76) só a 1002, com 4 cartas, tem bufInfos (40001 = Property3); as de 3 cartas não têm.
+# (dedução) leitura: [cartas, grau mínimo de cada] = 4 de qualquer grau, 4 no grau 3, 4 no grau 8.
 # Configurável: game_settings ``powcard_suite_slots`` (0037).
 SUITE_SLOTS = [[4, 1], [4, 3], [4, 8]]
 
 
 def suite_buffs(suite: Row, owned: list[int], slots: list[list[int]]) -> list[tuple[int, int]]:
     """(sonType, bufId) de cada degrau aceso: o degrau k usa ``Template{3+k}s`` e ``Property{3+k}``
-    da PowCardSuiteTemInfos (1002 com 4 cartas: Template3s 1004, Property3 40001, como no #76)."""
+    da PowCardSuiteTemInfos (1002 com 4 cartas: Template3s 1004, Property3 40001, como no login.json #76, só turco)."""
     lit = []
     for k, (count, grade) in enumerate(slots):
         if sum(g >= grade for g in owned) < count:
@@ -387,8 +389,8 @@ def suite_buffs(suite: Row, owned: list[int], slots: list[list[int]]) -> list[tu
 def powcard_msg(
     snap: PlayerSnapshot, templates: GameTemplates, slots: list[list[int]] | None = None
 ) -> pb.PowCardSuiteListMsg:
-    """4905 (login #76): cartas por coleção; buf = BufId + grau - 1 (10001 grau 2 -> 3041); ``bufInfos`` da
-    coleção pelos degraus (``suite_buffs``)."""
+    """4905 (só turco: login.json #76): cartas por coleção; buf = BufId + grau - 1 (10001 grau 2 -> 3041);
+    ``bufInfos`` da coleção pelos degraus (``suite_buffs``)."""
     msg, suites = pb.PowCardSuiteListMsg(), {}
     owned: dict[int, list[int]] = {}
     for temp, (grade, gp, active) in cards(rules.systems(snap)).items():
@@ -405,7 +407,7 @@ def powcard_msg(
         if row is None:
             continue
         for son_type, buf_id in suite_buffs(row, owned[suite_id], slots or SUITE_SLOTS):
-            # (dedução) fixvalue/percent da linha da coleção (0/0 na 1002, igual ao #76)
+            # (dedução) fixvalue/percent da linha da coleção (0/0 na 1002, igual ao login.json #76, só turco)
             entry.bufInfos.add(sonType=son_type, bufId=buf_id, fixValue=int(row.get("fixvalue") or 0),
                                percent=int(row.get("percent") or 0))  # fmt: skip
     return msg

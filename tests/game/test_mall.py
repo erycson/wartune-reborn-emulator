@@ -436,10 +436,11 @@ async def test_bid_and_fixed_buy_stop_at_the_daily_limit(tmp_path: Path) -> None
         assert fresh.character.mall_spent == limit - 10  # gravado junto com o débito
 
 
-async def test_sell_refuses_a_start_price_below_two(tmp_path: Path) -> None:
+async def test_sell_refuses_a_zero_start_price(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         cheap = await _put(g, CHEAP, 1)
-        g.client.send(8448, _sell(cheap, point=1))  # (cliente) Auction.SubmitAlert2: StartingPrice 1, mas o piso é 2
+        # (cliente) Auction.SubmitAlert2 inglês: "Starting price may not be zero; ... greater than zero"
+        g.client.send(8448, _sell(cheap, point=0))
         assert last(await g.until(4352), pb.SellItemRspMsg).result == h.PRICE
-        g.client.send(8448, _sell(cheap, point=2))
+        g.client.send(8448, _sell(cheap, point=1))
         assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK
