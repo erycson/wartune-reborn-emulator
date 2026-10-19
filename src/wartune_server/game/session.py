@@ -20,6 +20,7 @@ from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
 from . import timebox
+from .announcements import Announcer
 from .boss_fight import Bosses
 from .events import EventCatalog
 from .guild import Guilds
@@ -56,6 +57,7 @@ class GameContext:
     world: World = World()  # catálogo do mundo (minas, robôs, chefes), do banco
     wilds: Wilds = field(default_factory=Wilds)  # névoa e monstros em luta (game/monsters.py)
     bosses: Bosses = field(default_factory=Bosses)  # chefe do mundo: vida compartilhada (game/boss_fight.py)
+    announcer: Announcer = field(default_factory=Announcer)  # anúncios agendados (game/announcements.py)
 
 
 class OnlinePlayers:

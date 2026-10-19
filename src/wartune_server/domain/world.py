@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import time
 from types import MappingProxyType
 from typing import Any
 
@@ -123,6 +124,20 @@ class ExpRate:
     buffer_type: int
 
 
+@dataclass(frozen=True, slots=True)
+class Announcement:
+    """Anúncio agendado (``scheduled_announcements``): um 83 para todos os online em cada ``times`` (``HH:MM`` na
+    hora do jogo) dos ``weekdays`` (ISO, 1 = segunda; vazio = todo dia). Mesmo horário: sai na ordem do ``id``."""
+
+    id: int
+    times: tuple[time, ...]
+    weekdays: frozenset[int]
+    channel: int
+    user_type: int
+    is_center_tip: bool
+    text: str
+
+
 @dataclass(frozen=True)
 class World:
     mines: tuple[Mine, ...] = ()
@@ -137,6 +152,8 @@ class World:
     world_boss_rewards: tuple[WorldBossReward, ...] = ()
     settings: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))  # game_settings (JSON)
     vip_wheel: tuple[tuple[int, int], ...] = ()  # (TemplateId, quantidade) na ordem do 4414
+    vip_wheel_weights: tuple[float, ...] = ()  # peso de cada prêmio de ``vip_wheel`` (mesma ordem)
+    announcements: tuple[Announcement, ...] = ()  # ativos, na ordem do id
     exp_rates: tuple[ExpRate, ...] = ()
     # campanha -> conteúdo (`campaign_contents`, JSON de tools/extract_dungeon.py: nós, batalhas, baús...)
     campaigns: Mapping[int, Mapping[str, Any]] = field(default_factory=lambda: MappingProxyType({}))

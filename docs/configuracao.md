@@ -34,6 +34,54 @@ sozinho na lista do portal.
 O portal tem a própria configuração em `D:\xampp\htdocs\wartune-reborn\portal\config.php`
 (DSN do mesmo banco, URL do portal, URL do CDN e validade do ticket).
 
+## Regras no banco
+
+O servidor lê estas tabelas uma vez, ao subir (`persistence/world_store.py`): **edite o banco e reinicie**.
+
+### Anúncios agendados
+
+`scheduled_announcements` (migração 0036; regras em [eventos.md](eventos.md#anúncios-agendados-gameannouncementspy)):
+uma linha por mensagem. `times` = horários do dia na hora do jogo (`WARTUNE_GAME_TIMEZONE`), separados por vírgula;
+`weekdays` = dias ISO (`1` segunda … `7` domingo) separados por vírgula, vazio = todo dia; `active` 0 desliga.
+Mesmo horário: sai na ordem do `id`. Horário inválido (`25:00`) derruba a subida, de propósito.
+
+```sql
+-- Sylph Atoll só às 18:55/19:00/19:30, de sábado e domingo
+UPDATE scheduled_announcements SET times = '18:55', weekdays = '6,7' WHERE name = 'sylph_atoll' AND text LIKE 'Sylph Atoll echoes%';
+UPDATE scheduled_announcements SET times = '18:55', weekdays = '6,7' WHERE name = 'sylph_atoll' AND text LIKE '%starting soon%';
+UPDATE scheduled_announcements SET times = '19:00', weekdays = '6,7' WHERE name = 'sylph_atoll' AND text LIKE '%has started%';
+UPDATE scheduled_announcements SET times = '19:30', weekdays = '6,7' WHERE name = 'sylph_atoll' AND text LIKE '%has ended';
+-- desligar o fim; anúncio novo no centro da tela
+UPDATE scheduled_announcements SET active = 0 WHERE text LIKE '%has ended';
+INSERT INTO scheduled_announcements (name, times, channel, user_type, is_center_tip, text)
+VALUES ('manutencao', '04:50', 12, 1, 1, 'Server maintenance in 10 minutes.');
+```
+
+Os horários do Sylph Atoll são escolha do dono (o padrão vem do help do cliente, ver [eventos.md](eventos.md)).
+
+### Chances dos sorteios
+
+Peso = chance relativa (só a proporção importa; 0 = nunca sai). Valores semeados na 0036; sem a linha no banco, o
+código usa o mesmo padrão.
+
+| onde | o quê |
+|---|---|
+| `vip_wheel_prizes.weight` | roleta VIP (8519), por prêmio (`position` = ordem do 4414). Padrão 1 (uniforme) |
+| `campaign_cards.weight` | carta do fim da masmorra, por campanha e item (0034; peso = vezes visto). Tudo 0 numa campanha = uniforme |
+| `game_settings` `star_weights` | estrelas (8269): `{"<Profile>": [peso no cristal 0, 1, 2, 3, 4]}`; Profile fora do JSON não sai |
+| `game_settings` `star_open_next` | chance (0 a 1) de um sorteio de estrela acender o cristal seguinte (0.3) |
+| `game_settings` `gem_maze_reward_weights` | labirinto de gemas, um peso por prêmio na ordem 2060008 x1, 208027 x1, 208014 x2 (`[1, 1, 1]`) |
+
+```sql
+UPDATE vip_wheel_prizes SET weight = 0.2 WHERE position = 4;          -- 500.000 de ouro 5x mais raro
+UPDATE game_settings SET value = '[1, 1, 3]' WHERE key = 'gem_maze_reward_weights';
+UPDATE game_settings SET value = '0.5' WHERE key = 'star_open_next';
+```
+
+Ficam no código (vêm do cliente, dos templates ou da internet): `Rands`/`TakeRandom` dos templates, a roda do
+destino (tamanho das fatias no cliente), o reforço (100% → 10%, wiki) e as quedas que já estão no banco
+(`world_monster_drops`, `campaign_contents`).
+
 ## CLI
 
 ```

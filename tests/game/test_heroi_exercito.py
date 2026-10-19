@@ -177,8 +177,8 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
     from wartune_server.game.handlers import stars
 
     rolls = iter(["202", "302", "4"])  # verde de ataque, verde de defesa, fonte de energia
-    monkeypatch.setattr(stars, "roll", lambda t, g, s: t.get("starTempInfos", int(next(rolls))))
-    monkeypatch.setattr(stars, "OPEN_NEXT", 0)
+    monkeypatch.setattr(stars, "roll", lambda t, g, s, w: t.get("starTempInfos", int(next(rolls))))
+    monkeypatch.setattr(stars._rng, "random", lambda: 1.0)  # nunca abre o próximo cristal
     async with logged_in(tmp_path, novice=19000) as g:
         snap = snap_of(g)
         snap.character.gold, snap.character.grades, snap.character.point = 8000, 20, 100

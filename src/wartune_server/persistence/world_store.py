@@ -1,15 +1,18 @@
-"""Lê o catálogo do mundo (``world_*`` e ``campaign_*``: migrações 0027, 0028 e 0034) e as regras de evento (0033)."""
+"""Lê o catálogo do mundo (``world_*`` e ``campaign_*``: migrações 0027, 0028 e 0034), as regras de evento (0033) e
+os anúncios agendados e pesos dos sorteios (0036)."""
 
 from __future__ import annotations
 
 import json
 from collections import defaultdict
+from datetime import time
 from types import MappingProxyType
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from ..domain.world import (
+    Announcement,
     ExpRate,
     Mine,
     MonsterDrop,
@@ -25,6 +28,7 @@ from .schema import (
     campaign_contents,
     exp_rate_events,
     game_settings,
+    scheduled_announcements,
     vip_wheel_prizes,
     world_boss_rewards,
     world_bosses,
@@ -52,9 +56,14 @@ async def load(engine: AsyncEngine) -> World:
         bosses = await conn.execute(select(world_bosses))
         boss_rewards = await conn.execute(select(world_boss_rewards).order_by(world_boss_rewards.c.id))
         settings = await conn.execute(select(game_settings))
-        wheel = await conn.execute(select(vip_wheel_prizes).order_by(vip_wheel_prizes.c.position))
+        wheel = list(await conn.execute(select(vip_wheel_prizes).order_by(vip_wheel_prizes.c.position)))
         rates = await conn.execute(select(exp_rate_events).order_by(exp_rate_events.c.id))
         contents = await conn.execute(select(campaign_contents))
+        notices = await conn.execute(
+            select(scheduled_announcements)
+            .where(scheduled_announcements.c.active)
+            .order_by(scheduled_announcements.c.id)
+        )
         cards: defaultdict[int, list[tuple[int, float]]] = defaultdict(list)
         for r in await conn.execute(select(campaign_cards).order_by(campaign_cards.c.id)):
             cards[r.campaign_id].append((r.template_id, r.weight))
@@ -82,9 +91,22 @@ async def load(engine: AsyncEngine) -> World:
             ),
             settings=MappingProxyType({r.key: json.loads(r.value) for r in settings}),
             vip_wheel=tuple((r.template_id, r.quantity) for r in wheel),
+            vip_wheel_weights=tuple(r.weight for r in wheel),
             exp_rates=tuple(
                 ExpRate(r.rate, r.begin_day, r.end_day, r.begin_time, r.end_time, r.buffer_type) for r in rates
             ),
             campaigns=MappingProxyType({r.campaign_id: json.loads(r.data) for r in contents}),
             campaign_cards=MappingProxyType({c: tuple(v) for c, v in cards.items()}),
+            announcements=tuple(
+                Announcement(
+                    r.id,
+                    tuple(time.fromisoformat(t.strip()) for t in r.times.split(",") if t.strip()),
+                    frozenset(int(d) for d in r.weekdays.split(",") if d.strip()),
+                    r.channel,
+                    r.user_type,
+                    r.is_center_tip,
+                    r.text,
+                )
+                for r in notices
+            ),
         )

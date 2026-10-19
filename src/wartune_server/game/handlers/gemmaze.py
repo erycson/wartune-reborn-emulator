@@ -156,7 +156,7 @@ async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
     now = s.ctx.clock.now()
     templates = s.ctx.templates
     game = _game(snap, now)
-    result = gm.play(game, msg.beginMark, msg.endMark, _rng)
+    result = gm.play(game, msg.beginMark, msg.endMark, _rng, s.ctx.world.settings.get("gem_maze_reward_weights"))
     if result is None or not _maze_fits(snap, templates, [(p.reward, p.count) for p in result.steps]):
         s.log.info("9509 recusado", inicio=msg.beginMark, fim=msg.endMark)
         _send(s, S_OP, pb.GemInviteOpMsg(playerId=OP_OK))

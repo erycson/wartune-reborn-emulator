@@ -773,6 +773,23 @@ vip_wheel_prizes = Table(
     _int("template_id"),
     _int("quantity"),
     Column("source", String(255), server_default="", nullable=False),
+    Column("weight", Float, nullable=False, default=1.0, server_default="1"),  # chance relativa no sorteio (0036)
+)
+# Anúncios agendados (0036): um 83 para todos os online em cada horário (hora do jogo, "HH:MM,HH:MM"), nos dias da
+# semana ``weekdays`` (ISO "1,2,..", 1 = segunda; vazio = todo dia). Mesmo horário: na ordem do id
+scheduled_announcements = Table(
+    "scheduled_announcements",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    _str("name", 64),
+    _str("times", 1000),
+    _str("weekdays", 32),
+    _int("channel", 12),
+    _int("user_type", 1),
+    _bool("is_center_tip"),
+    _text("text"),
+    _bool("active", True),
+    _str("source", 1000),
 )
 exp_rate_events = Table(
     "exp_rate_events",

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import random
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime, timedelta
 
 from ...domain.models import Item, PlayerSnapshot
@@ -34,6 +34,7 @@ GIFT_NEXT, VIP_TYPE, WHEEL = "vipgift:next", "vip:type", "vipwheel"  # event_sta
 TRIAL_TYPE = 2  # vipType depois do cartão de teste 2031201 (tutorial_en #3262)
 VIP_TOKEN, WHEEL_SPINS = 208015, 8  # VIP Token (SonType 292) e giros por roleta (VipBoxFrame: 8 desliga o botão)
 QUICK = 1  # VipRouletteMsg.opType: 1 = girar com todas as fichas (VipBoxFrame._quickStartRolette)
+_rng = random.Random()  # sorteio da roleta (os testes trocam por um com semente)
 
 
 def _cfg(s: GameSession, name: str) -> int:
@@ -199,6 +200,13 @@ def _wheel_taken(snap: PlayerSnapshot) -> list[int]:
     return list(json.loads(st.text)) if st and st.text else []
 
 
+def wheel_pick(weights: Sequence[float], taken: Collection[int], rng: random.Random) -> int | None:
+    """Posição do prêmio que sai, entre as que ainda não saíram, pelo peso (``vip_wheel_prizes.weight``, 0036;
+    padrão 1 = uniforme). Peso 0 nunca sai; ``None`` quando só sobram pesos 0 (o giro é recusado)."""
+    left = [i for i, w in enumerate(weights) if i not in taken and w > 0]
+    return rng.choices(left, [weights[i] for i in left])[0] if left else None
+
+
 def _wheel_cost(s: GameSession, spins: int) -> int:
     """VIP Tokens do próximo giro (``vip_wheel_costs`` no banco: o giro k custa k, #3325/#3335)."""
     costs = s.ctx.world.settings.get("vip_wheel_costs") or [1]
@@ -241,8 +249,9 @@ async def vip_wheel_open(s: GameSession, _: object) -> None:
 @router.on(8519)
 async def vip_wheel_spin(s: GameSession, msg: pb.VipRouletteMsg) -> None:
     """Gira: ``opType`` 0 uma vez, 1 enquanto houver fichas (#3331-#3335: 5 fichas -> 2 giros, 1 + 2). Prêmio
-    sorteado uniforme entre os que faltam (*dedução*: a captura não tem probabilidades). Ordem do oficial: 115
-    (fichas e prêmios), 109, 3, 4415. O texto do chat o cliente monta sozinho (VipBoxFrame.senChatData)."""
+    sorteado entre os que faltam pelo peso do banco (``wheel_pick``; a captura não tem probabilidades). Ordem
+    do oficial: 115 (fichas e prêmios), 109, 3, 4415. O texto do chat o cliente monta sozinho
+    (VipBoxFrame.senChatData)."""
     snap = s.snapshot
     assert snap is not None
     now, templates, wheel = s.ctx.clock.now(), s.ctx.templates, s.ctx.world.vip_wheel
@@ -254,8 +263,10 @@ async def vip_wheel_spin(s: GameSession, msg: pb.VipRouletteMsg) -> None:
     st = ev.peek(snap, WHEEL)
     while st is not None and is_vip(snap, now) and len(taken) < min(WHEEL_SPINS, len(wheel)):
         cost = _wheel_cost(s, len(taken))
-        index = random.choice([i for i in range(len(wheel)) if i not in taken])
-        if bag.count_of(snap, VIP_TOKEN) < cost or not rewards.can_grant(snap, templates, [wheel[index]]):
+        index = wheel_pick(s.ctx.world.vip_wheel_weights or (1.0,) * len(wheel), taken, _rng)
+        if index is None or bag.count_of(snap, VIP_TOKEN) < cost:
+            break
+        if not rewards.can_grant(snap, templates, [wheel[index]]):
             break
         used, deleted = bag.take(snap, VIP_TOKEN, cost)
         changed += used

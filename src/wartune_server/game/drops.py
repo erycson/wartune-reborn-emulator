@@ -41,7 +41,7 @@ def card(
     # amostra pequena (docs/drops-masmorras.md); cartas em grupo (9000+) precisam de mais capturas ou vídeos
     rng = rng or random.Random()
     items = [t for t, _ in table] or pool(templates, campaign_id)
-    weights = [w for _, w in table] or None
+    weights = [w for _, w in table] if sum(w for _, w in table) > 0 else None  # tudo 0 no banco: uniforme
     drop = [(rng.choices(items, weights)[0], 1)] if items else []
     if not drop or not rewards.can_grant(snap, templates, drop):
         return None

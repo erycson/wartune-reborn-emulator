@@ -7,6 +7,7 @@ Sacolas: 0 temporária (sorteadas, até 16), 1 mochila (8 + compradas), 2 equipa
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping, Sequence
 
 from ...domain.models import PlayerSnapshot, Star, StarBag
 from ...protocol.messages import wartune_pb2 as pb
@@ -28,10 +29,12 @@ LOCK_QUEST = 53  # QuestCondictionInfos: travar estrela
 # Para1 1 (a 622 tem 0): sem fonte do que é; todo sorteio passa 1 e conta cada estrela (dedução)
 RAND_QUEST, RAND_PARA1 = 36, 1
 # ponytail: o oficial não publica as chances do sorteio; pesos por qualidade (Profile) e cristal
-# tirados a olho da captura (lixo ~40%), e 30% de abrir o próximo cristal
+# tirados a olho da captura (lixo ~40%), e 30% de abrir o próximo cristal. Valem os do banco
+# (``game_settings`` ``star_weights`` e ``star_open_next``, migração 0036); estes são o padrão sem a linha
 WEIGHTS = {"1": (40,) * 5, "2": (35, 33, 30, 27, 24), "3": (18, 21, 24, 27, 30), "4": (5, 8, 11, 14, 17)}
 WEIGHTS |= {"5": (0, 2, 4, 6, 8), "7": (0, 0, 0, 0, 1), "6": (2,) * 5}
 OPEN_NEXT = 0.3
+_rng = random.Random()  # abrir o próximo cristal (os testes trocam)
 
 
 def star_tpl(templates: GameTemplates, star: Star) -> Row:
@@ -124,9 +127,10 @@ def login_stars(s: GameSession) -> None:
     s.send(S_RAND, rand_msg(snap, bag(snap, StarBag.TEMP), s.player_id))
 
 
-def roll(templates: GameTemplates, grade: int, site: int) -> Row:
-    pool = [r for r in templates.rows("starTempInfos") if int(r["NeedGrades"]) <= grade and r["Profile"] in WEIGHTS]
-    weights = [WEIGHTS[r["Profile"]][site] for r in pool]
+def roll(templates: GameTemplates, grade: int, site: int, table: Mapping[str, Sequence[float]] = WEIGHTS) -> Row:
+    """Estrela sorteada no cristal ``site``: peso ``table[Profile][site]`` (``star_weights`` do banco)."""
+    pool = [r for r in templates.rows("starTempInfos") if int(r["NeedGrades"]) <= grade and r["Profile"] in table]
+    weights = [table[r["Profile"]][site] for r in pool]
     return random.choices(pool, weights=weights)[0]
 
 
@@ -144,6 +148,8 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         s.log.info("8269 recusado", pedido=str(msg))
         return
     new: list[Star] = []
+    settings = s.ctx.world.settings
+    table, open_next = settings.get("star_weights") or WEIGHTS, float(settings.get("star_open_next", OPEN_NEXT))
     while (pos := free_pos(snap, StarBag.TEMP, TEMP_MAX)) is not None:
         site = max(i for i, o in enumerate(opened) if o) if quick else msg.site
         free = sy.star_free > 0
@@ -153,13 +159,13 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
             sy.star_free -= 1
         else:
             c.gold -= SITE_COST[site]
-        tpl = roll(templates, c.grades, site)
+        tpl = roll(templates, c.grades, site, table)
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)
         snap.stars.append(star)
         new.append(star)
         if site:  # o cristal usado apaga; o 0 fica sempre aceso (captura)
             opened[site] = 0
-        if site + 1 < len(opened) and random.random() < OPEN_NEXT:
+        if site + 1 < len(opened) and _rng.random() < open_next:
             opened[site + 1] = 1
         sy.star_sites = ",".join(map(str, opened))
         if not quick:

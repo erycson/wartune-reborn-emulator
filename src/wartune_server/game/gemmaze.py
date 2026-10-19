@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -183,8 +183,9 @@ def new_game(rng: random.Random) -> Game:
             return Game(board=board)
 
 
-def play(game: Game, begin: int, end: int, rng: random.Random) -> Play | None:
-    """Troca ``begin`` com ``end`` e resolve as combinações em cascata.
+def play(game: Game, begin: int, end: int, rng: random.Random, weights: Sequence[float] | None = None) -> Play | None:
+    """Troca ``begin`` com ``end`` e resolve as combinações em cascata. ``weights``: peso de cada um de ``REWARDS``
+    (``game_settings.gem_maze_reward_weights``, 0036); sem ele, uniforme.
 
     ``None``: pedido inválido (fora do tabuleiro, não vizinho ou sem movimento), nada muda.
     """
@@ -205,8 +206,8 @@ def play(game: Game, begin: int, end: int, rng: random.Random) -> Play | None:
                 color = rng.randint(1, COLORS)  # *(dedução)*: cor nova uniforme; a captura não mostra a regra
                 board[r * SIZE + c] = color
                 adds.append((r * SIZE + c, color))
-        # ponytail: prêmio sorteado uniforme entre os três vistos; a tabela oficial (pesos) precisa de captura
-        reward, count = rng.choice(REWARDS)
+        # ponytail: pesos dos três vistos no banco (padrão iguais); a tabela oficial precisa de captura
+        reward, count = rng.choices(REWARDS, weights)[0] if weights else rng.choice(REWARDS)
         steps.append(Step(tuple(dels), tuple(adds), 10 * units, units, reward, count))
     # ponytail: troca sem combinação é aceita e gasta movimento (o cliente troca na tela e não desfaz;
     # a captura não tem esse caso, então o oficial pode devolver a gema). Confirmar gravando uma troca errada.
