@@ -190,7 +190,9 @@ o normal. Banco: `game_settings.normal_fund` (0041) = o 4612 do tutorial_en #86 
 | 2 | armazém -> mochila, só se couber tudo | 115 | (cliente) `BottleStorageFrame` |
 | 5005 22 -> 1 | clique numa pilha do armazém | 115 | (cliente) `BottleBagCellClickMediator` |
 
-- Armazém = bolsa 22 (`BagType.BOTTLE`), 40 espaços: com mais de 8×5 itens o cliente não ativa *(cliente)*.
+- Armazém = bolsa 22 (`BagType.BOTTLE`): com mais de 8×5 pilhas o cliente não ativa *(cliente)*, mas não confere se
+  o sorteio cabe (a tela passa a 8×7); aqui cabem até 40 + 50 pilhas *(dedução)*. O login manda as pilhas da bolsa
+  22 com as outras (o 115 do login leva todas as bolsas).
 - Andares ("Lucky Level", help do `language.txt`): total de ativações do servidor na edição = soma do
   `goldtree:<id>` de cada personagem (lido uma vez, `EventStateRepository.by_prefix`, e mantido em `ctx.gold_tree`).
   O andar fica com quem fez a ativação que chegou nele *(dedução)*: linha `goldtree:<id>:floor:<andar>` no dono.

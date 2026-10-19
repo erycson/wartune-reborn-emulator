@@ -27,6 +27,7 @@ def test_wands_pay_one_activation_each_and_the_rest_is_diamond() -> None:
     assert gt.split_cost(10, 650, 65, wands=2, use_wands=True) == (2, 520)
     assert gt.split_cost(10, 650, 65, wands=2, use_wands=False) == (0, 650)
     assert gt.split_cost(1, 65, 65, wands=7, use_wands=True) == (1, 0)
+    assert gt.WAREHOUSE_MAX == 90  # com 40 no armazém ainda cabe uma ativação de 50
     weights = [(1, 1, 0, 0, 0), (2, 1, 0, 0, 1)]  # peso 0 nunca sai
     assert {d[0] for d in gt.draw(weights, 50, random.Random(1))} == {2}
 

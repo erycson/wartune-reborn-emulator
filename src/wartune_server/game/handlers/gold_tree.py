@@ -42,6 +42,8 @@ OPEN, SELL_ALL, LOOT_ALL, REFRESH, SHOW, COUNT_BOX, FLOOR_BOX = range(7)
 PULLS = {1: 1, 2: 10, 3: 50}  # (cliente) BottleFrame: alterType -> _openNum
 WAND = 208022  # Golden Wand: (cliente) BottleFrame._hammerNum; cada uma vale uma ativação (point + wands*preço1)
 WAREHOUSE = 40  # (cliente) BottleFrame: com mais de 8*5 itens no armazém a árvore não ativa
+# (dedução) o cliente não confere se o sorteio cabe (BottleBagView passa de 8x5 para 8x7): 40 + 50 de uma ativação
+WAREHOUSE_MAX = WAREHOUSE + max(PULLS.values())
 OWN, LUCK = 1, 2  # BottlePassMsg.passType: 1 = o que eu ganhei (soma), 2 = sorte do servidor (troca a lista)
 LUCK_KEEP = 20  # ponytail: linhas da sorte guardadas em memória (o #71 mostra 3); perdem-se no restart
 _rng = random.Random()
@@ -228,7 +230,7 @@ async def _activate(
         or not is_open(cfg, now)
         or snap.character.grades < int(cfg.get("minGrades", 0))
         or len(bag.in_bag(snap, BagType.BOTTLE)) > WAREHOUSE
-        or not bag.side_fits(snap, templates, [(int(g[0]), int(g[1])) for g in goods], BagType.BOTTLE, WAREHOUSE)
+        or not bag.side_fits(snap, templates, [(int(g[0]), int(g[1])) for g in goods], BagType.BOTTLE, WAREHOUSE_MAX)
     ):
         s.log.info("8604 ativação recusada", vezes=pulls)
         _send(s, S_RESULT, _score_msg(st, alter=True))
@@ -241,7 +243,7 @@ async def _activate(
     wand_changed, wand_gone = bag.take(snap, WAND, used) if used else ([], [])
     stored: list[Item] = []
     for g in goods:
-        stored += [i for i in bag.side_add(snap, templates, int(g[0]), int(g[1]), BagType.BOTTLE, WAREHOUSE)
+        stored += [i for i in bag.side_add(snap, templates, int(g[0]), int(g[1]), BagType.BOTTLE, WAREHOUSE_MAX)
                    if i not in stored]  # fmt: skip
     before = sh.total
     st.value += pulls
