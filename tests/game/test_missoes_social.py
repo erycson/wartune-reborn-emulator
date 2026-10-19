@@ -15,7 +15,7 @@ from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 S_QUESTS = 112
-HORN = 208002  # Büyük Borazan: StartingPrice 10 (tests/game/test_mall.py)
+HORN = 208002  # Bullhorn (Large): StartingPrice 10 (tests/game/test_mall.py)
 
 
 def _session(g: Game) -> GameSession:

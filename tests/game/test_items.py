@@ -6,11 +6,11 @@ from tests.game.test_shop import codes, me
 from wartune_server.domain.models import Item
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-WAND = 1013002  # Saray Rahibi Değneği: arma de mago (SonType 101, espaço 0), SellGold 150
-GOLD_BOX = 2030101  # Altın Kutusu: SonType 203, Property1 1 (ouro), Property2 1000
-EXP_BOOK = 2030701  # Küçük EXP Kitabı: EXP+500
-GEM_BOX = 2060008  # Değerli Taş Kutusu Lv.1
-SMALL_HP = 2090101  # Küçük HP Paketi: SonType 209, +10000 HP
+WAND = 1013002  # Templar Priest Staff: arma de mago (SonType 101, espaço 0), SellGold 150
+GOLD_BOX = 2030101  # Gold Chest: SonType 203, Property1 1 (ouro), Property2 1000
+EXP_BOOK = 2030701  # Lvl. 1 EXP Book: EXP+500
+GEM_BOX = 2060008  # Lvl. 1 Gem Pack
+SMALL_HP = 2090101  # Minor HP Pack: SonType 209, +10000 HP
 
 
 async def test_bag_move_checks_the_hero_slot(tmp_path: Path) -> None:

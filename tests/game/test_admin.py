@@ -93,7 +93,7 @@ async def test_opening_a_box_writes_cash_ledger_and_item_log(tmp_path: Path) -> 
         await g.until(3)
 
         (cash,) = await _rows(g, CashLedger)
-        # caixa 90105: 10 de Bound Balens no inglês (2 no turco)
+        # caixa 90105: 10 de Bound Balens
         assert (cash.character_id, cash.delta_point, cash.delta_gift_token) == (g.user_id, 0, 10)
         assert (cash.balance_gift_token, cash.reason, cash.ref, cash.gm) == (10, "item", f"5006:{NEWBIE_BOX}", None)
         logs = [(r.template_id, r.count, r.action) for r in await _rows(g, ItemLog)]

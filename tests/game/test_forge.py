@@ -8,11 +8,11 @@ from wartune_server.domain.models import Item
 from wartune_server.game.handlers import forge
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-WAND = 1013002  # Saray Rahibi Değneği: NeedGrades 1, Profile 2, StrengthenMax 3, sem furos
-LUCK_1 = 2040101  # Şans Taşı Lv.1: +10% no reforço
+WAND = 1013002  # Templar Priest Staff: NeedGrades 1, Profile 2, StrengthenMax 3, sem furos
+LUCK_1 = 2040101  # Lvl. 1 Luck Stone: +10% no reforço
 DRILL = 208004  # Elmas Delici
-ATTACK_1, ATTACK_2, MAGIC_1 = 2050101, 2050102, 2050201  # Saldırı Taşı Lv.1/2 e outra pedra Lv.1
-SWORD = 1011003  # Saray Süvarisi Kılıcı: refino com 2127001, 3 atributos
+ATTACK_1, ATTACK_2, MAGIC_1 = 2050101, 2050102, 2050201  # Lvl. 1/2 Physical Attack Gem e Lvl. 1 Physical Defense Gem
+SWORD = 1011003  # Templar Knight Long Sword: refino com 2127001, 3 atributos
 
 
 async def put(g: Game, *items: Item) -> None:
@@ -69,7 +69,7 @@ async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
         g.client.send(5151, pb.StoreReqMsg(mountPos=1, bagType=1, bagPos=1))
         got = await g.until(83)
         assert codes(got) == [109, 115, 115, 111, 83] and wand.join_1 == ATTACK_1
-        g.client.send(5151, pb.StoreReqMsg(mountPos=2, bagType=1, bagPos=2))  # mesmo atributo (Saldırı)
+        g.client.send(5151, pb.StoreReqMsg(mountPos=2, bagType=1, bagPos=2))  # mesmo atributo (Physical Attack)
         assert await g.idle() == []
 
         g.client.send(5152, pb.StoreReqMsg(holePos=1, operate=False))  # tirar custa 200 (Property3)

@@ -23,7 +23,7 @@ from wartune_server.templates.repository import Row
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 NOW = datetime(2026, 10, 17, 12, tzinfo=UTC)
-PILE_90 = 2100001  # condição da 90: 8 unidades (replay #1609: a pilha de 10 foi a zero na entrega)
+PILE_90 = 2100001  # condição da 90: 8 unidades (inglesa #1570: a pilha de 10 foi a zero na entrega)
 PILE_9 = 2125010  # condição da 9: 10 unidades; a 9 venceu em 2012, então nasce aberta nestes testes
 FILLER = 2040101  # item qualquer para encher a mochila (como em test_drops)
 
@@ -71,7 +71,7 @@ async def test_contagem_de_bolsa_so_conta_a_mochila(tmp_path: Path) -> None:
 
 
 async def test_entrega_consome_a_pilha_e_conclui(tmp_path: Path) -> None:
-    """90 (CT27 2100001 Para2 8, RewardStrategy 1000): a entrega gasta a pilha inteira (10, visto no replay #1609),
+    """90 (CT27 2100001 Para2 8, RewardStrategy 1000): a entrega gasta a pilha inteira (10, visto na inglesa #1570),
     conclui com o 52 e paga a RewardStrategy."""
     async with logged_in(tmp_path, novice=19000) as g:
         await _put(g, Item(g.user_id, PILE_90, pos=0, count=10))
@@ -291,7 +291,7 @@ async def test_nao_repetivel_concluida_nao_reabre(tmp_path: Path) -> None:
 
 
 async def test_bitmap_mantem_o_bit_da_repetivel_reaberta(tmp_path: Path) -> None:
-    """(citado em rules.ever_completed, login.json #89): a repetível reaberta mantém o bit do states ligado, e a
+    """(citado em rules.ever_completed; só turco: login.json #89): a repetível reaberta mantém o bit do states ligado, e a
     pré-missão do cliente (IsTaskFinish) continua a ler esse bit. Missão nunca concluída segue com o bit apagado."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _snap(g)

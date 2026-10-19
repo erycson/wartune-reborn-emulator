@@ -1,5 +1,5 @@
 """Missões da fazenda, da montaria, dos símbolos (runas), do torneio de fadas e do mapa da cidade (tipos 59,
-60, 61, 71, 76, 77, 78, 37, 87 e 36 = sorteio de estrela "Kader"). Cada tipo: a ação do cliente, o 112 com o progresso e, nos de estado
+60, 61, 71, 76, 77, 78, 37, 87 e 36 = sorteio de estrela, "Astro"). Cada tipo: a ação do cliente, o 112 com o progresso e, nos de estado
 (76, 78, 37), a missão aceita depois do fato já nascendo cumprida (``rules.update_state_quests``).
 """
 
@@ -20,7 +20,7 @@ from wartune_server.game import farm
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-SEED = 2160001  # Ucuz Altın İnciri: amadurece em 59 min (como em test_castelo)
+SEED = 2160001  # [L1] Gold Seed: amadurece em 59 min (como em test_castelo)
 BOOK, STONE, FOOD = 3020002, 3020010, 208017  # livro da runa 201 (tipo 2), pedra de EXP das runas, comida de montaria
 
 
@@ -123,7 +123,7 @@ async def test_quest_61_praga_conta_e_o_mato_nao(tmp_path: Path, monkeypatch: py
 
 
 async def test_quest_71_treino_de_montaria(tmp_path: Path) -> None:
-    """71 (QuestTemps 753, Para2 1): uma ação de treino (Kültür) conta, qualquer que seja a quantidade."""
+    """71 (QuestTemps 753, Para2 1): uma ação de treino (Mount Train) conta, qualquer que seja a quantidade."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = snap_of(g)
         sy = snap.systems
@@ -154,7 +154,7 @@ async def _learn_attack_rune(g: Game) -> None:
 
 
 async def test_quest_76_aprender_simbolo_e_aceitar_depois(tmp_path: Path) -> None:
-    """76 (QuestTemps 906, Para1 2 = Saldırma/ataque, Para2 1): aprender a runa conta. Aceita depois de
+    """76 (QuestTemps 906, Para1 2 = Brutality/ataque, Para2 1): aprender a runa conta. Aceita depois de
     aprendida, a missão nasce com 1 (o cliente julga pelo símbolo que o herói tem: checkRuneStudy)."""
     async with logged_in(tmp_path, novice=19000) as g:
         await _learn_attack_rune(g)
@@ -196,7 +196,7 @@ async def test_quest_78_grau_do_simbolo_e_aceitar_depois(tmp_path: Path) -> None
 
 
 async def test_quest_37_cidade_no_mapa_da_missao(tmp_path: Path) -> None:
-    """37 (QuestTemps 390 = mapa 2 'Sis Ormanı', Para2 2): transferir a cidade para o mapa 2 conta; mudar de
+    """37 (QuestTemps 390 = mapa 2 'Murken Forest', Para2 2): transferir a cidade para o mapa 2 conta; mudar de
     ponto dentro do mapa da instância (100000xxx) não conta; o 5014 fecha a missão."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = await _set(g, grades=25)
@@ -251,11 +251,11 @@ async def test_quest_37_vale_o_mapa_de_agora_nao_o_maior(tmp_path: Path) -> None
         assert 52 not in codes(await g.idle())
 
 
-# --- Kader / estrelas (36) -------------------------------------------------------------------------
+# --- Astro / estrelas (36) -------------------------------------------------------------------------
 
 
-async def test_quest_36_sortear_kader(tmp_path: Path) -> None:
-    """36 (QuestTemps 3 "Kader", Para1 1, Para2 1): um sorteio de estrela (8269) conta; o 112 sai depois do 4180."""
+async def test_quest_36_sortear_estrela(tmp_path: Path) -> None:
+    """36 (QuestTemps 3 "Astro", Para1 1, Para2 1): um sorteio de estrela (8269) conta; o 112 sai depois do 4180."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = await _set(g, grades=25, gold=8000)
         _accepted(g, 3)
@@ -271,7 +271,7 @@ async def test_quest_36_sortear_kader(tmp_path: Path) -> None:
 
 async def test_quest_87_torneio_de_fadas(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """87 (QuestTemps 504, Para2 1): participar do torneio conta ao fim da luta. Capturado: o 112 vem depois do
-    4103 (peri_turnuvasi #47 -> #52); só a vitória foi capturada, a derrota conta também (dedução)."""
+    4103 (só turco: peri_turnuvasi #47 -> #52); só a vitória foi capturada, a derrota conta também (dedução)."""
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.004)
     monkeypatch.setattr(A, "PET_NOTICE_FRAME", 150)
     async with logged_in(tmp_path, novice=30001) as g:

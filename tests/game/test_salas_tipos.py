@@ -50,10 +50,10 @@ async def test_link_de_sala_no_chat_devolve_o_estado(tmp_path: Path):
 
 async def test_pre_carga_do_mapa_vem_da_captura(tmp_path: Path):
     async with logged_in(tmp_path, novice=19000) as a:
-        a.client.send(5038, pb.CampaignReqMsg(paraInt1=1011))  # replay: 20 com soldado 2011, sem herói
+        a.client.send(5038, pb.CampaignReqMsg(paraInt1=1011))  # inglesa #874-#876: 20 com soldado 2011, sem herói
         army = _body(await a.idle(), SYSTEM_ARMY, pb.SystemArmyMsg)
         assert list(army.soldierTemplated) == [2011] and list(army.heroTemplated) == []
-        a.client.send(5038, pb.CampaignReqMsg(paraInt1=2011))  # peri_uyanis: herói 3011 e dois soldados
+        a.client.send(5038, pb.CampaignReqMsg(paraInt1=2011))  # só turco: peri_uyanis, herói 3011 e dois soldados
         army = _body(await a.idle(), SYSTEM_ARMY, pb.SystemArmyMsg)
         assert list(army.heroTemplated) == [3011] and list(army.soldierTemplated) == [4012, 4011]
         a.client.send(5038, pb.CampaignReqMsg(paraInt1=9999))  # mapa sem captura: lista vazia

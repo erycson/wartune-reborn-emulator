@@ -15,7 +15,7 @@ CODES = (
     + [8346, 8464, 8482, 8483, 8484, 8538, 8592, 8594, 8595, 8597, 8624, 8625, 8631, 8632, 8644, 8645, 8693]
     + [8781, 8809, 8819]
 )
-HOLY_SWORD = 1011004  # Adalet Kılıcı: Profile 4, refino 2127001, 5 atributos
+HOLY_SWORD = 1011004  # Sword of the Righteous: Profile 4, refino 2127001, 5 atributos
 
 
 def test_every_code_has_a_handler() -> None:
@@ -52,4 +52,4 @@ async def test_handlers_survive_empty_and_minimal_bodies(tmp_path: Path) -> None
                 await g.until(4234)
 
         assert c.store_gp == 2 and c.bag_count == 7 and c.rental_bag_until is not None
-        assert sword.join_4 == -1  # Adalet Kılıcı é Profile 4: o 4º furo é só do Profile 5
+        assert sword.join_4 == -1  # Sword of the Righteous é Profile 4: o 4º furo é só do Profile 5

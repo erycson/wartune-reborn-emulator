@@ -8,7 +8,7 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
 HORN = 602  # ShopTempInfo 602 (ShopType 1): Bullhorn (Large) (208002), 195 vinculado (GiftToken)
-SMALL_HP = 32  # ShopType 100: Küçük HP Paketi (2090101), 5000 Altın, +10000 HP
+SMALL_HP = 32  # ShopType 100: Minor HP Pack (2090101), 5000 de ouro, +10000 HP
 
 
 def codes(got: list) -> list[int]:  # type: ignore[type-arg]

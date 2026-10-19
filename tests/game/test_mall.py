@@ -20,7 +20,7 @@ from wartune_server.services.clock import FakeClock
 
 CODES = [8448, 8449, 8450, 8451, 8452, 8453, 8454, 8457]
 HORN = 208002  # Bullhorn (Large): StartingPrice 10, empilhável (MaxCount 999)
-CRYSTAL = 208014  # Şeytan Kristali: StartingPrice 0, o template não vai a leilão
+CRYSTAL = 208014  # Soul Crystal: StartingPrice 0, o template não vai a leilão
 CHEAP = 208027  # StartingPrice 1
 
 

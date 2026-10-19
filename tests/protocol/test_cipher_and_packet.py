@@ -11,7 +11,7 @@ from wartune_server.protocol import (
     StreamCipher,
 )
 
-# Primeiros 40 bytes cifrados de dois logins 20001 reais (logs do relay), com a chave padrão.
+# Primeiros 40 bytes cifrados de dois logins 20001 reais (logs do relay; só turco: a inglesa não tem o 20001), com a chave padrão.
 REAL_LOGIN_PREFIXES = [
     (bytes.fromhex("df137e3b281c5fd55ddd8f60ae4181584b9c684ce8363a6e8a7cb36d41126f7d609b929702f47342"), 72),
     (

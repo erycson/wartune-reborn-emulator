@@ -67,7 +67,7 @@ async def test_volta_igual_com_o_tempinfos_real(database: Database) -> None:
     await _round_trip(database, REAL_FILE.read_bytes())
     async with database.engine.connect() as conn:
         item = await conn.scalar(select(template_nodes.c.attrs).where(template_nodes.c.row_key == "2100001"))
-    assert item is not None and '"TemplateId":"2100001"' in item  # o Kurt Dişi da 1001, achado pelo id
+    assert item is not None and '"TemplateId":"2100001"' in item  # o Worg Tooth da 1001, achado pelo id
 
 
 async def test_servidor_le_do_banco_quando_importado_e_do_arquivo_senao(database: Database, tmp_path) -> None:  # type: ignore[no-untyped-def]

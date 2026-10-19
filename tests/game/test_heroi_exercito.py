@@ -32,12 +32,12 @@ async def test_recruit_put_in_army_and_dismiss(tmp_path: Path) -> None:
 
         g.client.send(5155, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=900))
         got = await g.until(111)
-        assert codes(got) == [109, 109, 100, 111]  # o 112 só vem com a missão 52 aberta (relay #643)
+        assert codes(got) == [109, 109, 100, 111]  # o 112 só vem com a missão 52 aberta (inglesa #653-#659: 112 da 52 em #656)
         assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 1001  # 2 de ouro por Lancer
         assert (pb.CastleYieldMsg.FromString(got[1].body).curPopulation, 900) == (900, 900)
         pawn = pb.ArmyPawnUpdatedMsg.FromString(got[2].body).armyPawn[0]
         assert (pawn.armyId, pawn.sonType, pawn.ownPawns, pawn.fightPos, len(pawn.pawnLive)) == (0, 101, 900, 3, 7)
-        assert [x.tempData for x in pawn.pawnLive] == [64, 50, 0, 40, 323, 64, 0]  # igual ao relay #647
+        assert [x.tempData for x in pawn.pawnLive] == [64, 50, 0, 40, 323, 64, 0]  # igual à inglesa #658
         assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Successfully Recruited 900 Lancer"
 
         g.client.send(5155, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=1))  # casa cheia
@@ -99,7 +99,7 @@ async def test_skills_second_set_and_reset(tmp_path: Path) -> None:
 
         g.client.send(5185, pb.HeroAddPointReqMsg(skillTempId=30111, type=0))
         got = await g.until(60)
-        assert codes(got) == [150, 60]  # relay #1175
+        assert codes(got) == [150, 60]  # inglesa #1141-#1143
         hero = pb.ArmyArmyMsg.FromString(got[0].body).simpleHeroInfo
         assert (hero.skillScript, hero.skillPoint) == ("30711,30811,30111,", 1)  # nível 8 = 4 - 3
         skill = pb.UpdatedSkillMsg.FromString(got[1].body)
@@ -189,7 +189,7 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
 
         g.client.send(8269, pb.StarRandReqMsg(site=0))  # grátis do dia
         got = await g.until(4180)
-        # 4152/83: leed 17 "Capture an Astral" (kader_sistemi #5), só no 1º sorteio do dia
+        # 4152/83: leed 17 "Capture an Astral" (só turco: kader_sistemi #5), só no 1º sorteio do dia
         assert codes(got) == [109, 3, 4152, 83, 4180] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
         for _ in range(2):
             g.client.send(8269, pb.StarRandReqMsg(site=0))
@@ -245,7 +245,7 @@ async def test_mount_list_train_and_change(tmp_path: Path) -> None:
         g.client.send(8530)
         got = await g.until(4426)
         assert codes(got) == [4427, 4426]
-        assert pb.MountAvatarMsg.FromString(got[0].body).soulScore == 400  # igual ao login #11
+        assert pb.MountAvatarMsg.FromString(got[0].body).soulScore == 400  # só turco: login #11
         info = pb.MountInfoMsg.FromString(got[1].body)
         assert (info.power, info.intellect, info.physique, info.agility, info.levelMax) == (65, 35, 55, 60, 25)
 
@@ -253,7 +253,7 @@ async def test_mount_list_train_and_change(tmp_path: Path) -> None:
         got = await g.until(4426)
         assert codes(got) == [115, 3, 150, 4426]
         info = pb.MountInfoMsg.FromString(got[-1].body)
-        assert (info.power, info.powerGp, info.mountTotalGp) == (70, 1700, 4100)  # captura de treino #90
+        assert (info.power, info.powerGp, info.mountTotalGp) == (70, 1700, 4100)  # só turco: captura de treino #90
         assert pb.ArmyArmyMsg.FromString(got[2].body).mountTempId == 1103
         g.client.send(8529, pb.MountEditMsg(op=1, propertyType=0, payType=1, param1=1))  # acabou a comida
         g.client.send(8529, pb.MountEditMsg(op=2, param1=2000))  # não possui
@@ -313,7 +313,7 @@ async def test_dragon_feed_and_powcard(tmp_path: Path) -> None:
 
         g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))
         card = pb.PowCardSuiteListMsg.FromString((await g.until(4905))[-1].body).suites[0].cardInfos[0]
-        assert (card.grade, card.gp, card.buf.bufId) == (2, 2, 3041)  # igual ao login #76
+        assert (card.grade, card.gp, card.buf.bufId) == (2, 2, 3041)  # só turco: login #76
         g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))  # faltam 30
         assert await g.idle() == []
 
@@ -359,7 +359,7 @@ async def test_pets_points_fight_and_slots(tmp_path: Path) -> None:
 
 
 def test_bonus_da_colecao_reproduz_o_login_76() -> None:
-    """login #76: 1000/1001/1003/1004 com 3 cartas sem bufInfos; 1002 com 4 cartas (graus 2,2,2,1) só com o
+    """(só turco) login #76: 1000/1001/1003/1004 com 3 cartas sem bufInfos; 1002 com 4 cartas (graus 2,2,2,1) só com o
     degrau 0 (Template3s 1004, Property3 40001)."""
     from wartune_server.domain.models import PlayerSystems
     from wartune_server.game.handlers.systems import powcard_msg

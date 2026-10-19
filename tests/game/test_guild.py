@@ -134,14 +134,14 @@ async def test_invite_answer_quit_cooldown_and_kick(tmp_path: Path) -> None:
 
 
 async def test_contribution_matches_the_capture(tmp_path: Path) -> None:
-    """Captura birlik_katkisi: -1000 ouro dá +1, -55000 dá +55 (hoje 1 -> 56)."""
+    """Captura birlik_katkisi (só turco): -1000 ouro dá +1, -55000 dá +55 (hoje 1 -> 56)."""
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         c = _char(a)
         gold = c.gold
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=1000))
         got = await a.idle()
-        leed = _one(got, 4152, pb.LeedUpdatedRspMsg)  # leed 8 "Contribute to your Guild" (birlik_katkisi #11)
+        leed = _one(got, 4152, pb.LeedUpdatedRspMsg)  # leed 8 "Contribute to your Guild" (só turco: birlik_katkisi #11)
         assert [(x.templateId, x.isComplete) for x in leed.leed] == [(8, True)]
         assert [p.code for p in got if p.code in (111, 4152, 42)] == [111, 4152, 42]
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=55999))
@@ -187,7 +187,7 @@ async def test_upgrade_cooldown_quick_and_learning(tmp_path: Path) -> None:
 
 
 async def test_guild_shop_pays_with_contribution(tmp_path: Path) -> None:
-    """Captura: goodId 19 = 2040106 "Şans Taşı Lv.6", 40 de contribuição, mercado nível 6."""
+    """Captura (só turco: birlik_katkisi): goodId 19 = 2040106 "Lvl. 6 Luck Stone", 40 de contribuição, mercado nível 6."""
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         s, c = _session(a), _char(a)
@@ -292,7 +292,7 @@ async def test_altar_open_needs_level_5_and_tells_members(tmp_path: Path) -> Non
 
 
 async def test_guild_shop_daily_limit(tmp_path: Path) -> None:
-    """goodId 665 (Lv.40 Efsane Taşı): VIP0Count 5 por dia, como a loja comum."""
+    """goodId 665 (Lvl. 40 Legendary Stone): VIP0Count 5 por dia, como a loja comum."""
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         s, c = _session(a), _char(a)

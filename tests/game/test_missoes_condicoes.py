@@ -24,7 +24,7 @@ pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/
 TINA_NODE = 2  # MapNodeInfos 10000/2 (MasterType 61: o cliente manda o 8692); missão 361 pede conversa com ela
 TINA_POS = (108, 88)  # PosX/PosY do nó; alcance = HandlerRange 4 + 5
 JESI_NODE = 9  # MasterType 1 (anda): o cliente nunca manda o 8692 para ele
-PERI_NODE, PERI_POS = 3, (36, 128)  # MapNodeInfos 10000/3 (Anna, Peri Turnuvası); missão 922 pede conversa com ela
+ARENA_NODE, ARENA_POS = 3, (36, 128)  # MapNodeInfos 10000/3 (Azrael, Sylph Arena); missão 922 pede conversa com ela
 
 
 def _session(g: Game) -> GameSession:
@@ -94,9 +94,9 @@ async def test_segundo_dia_de_login_conclui_missao_5(tmp_path: Path) -> None:
 
 async def test_falar_com_npc_conta_no_aceite_perto_do_no(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        assert rules.talk_nodes(g.server.services.templates, 922) == [PERI_NODE]
+        assert rules.talk_nodes(g.server.services.templates, 922) == [ARENA_NODE]
         _snap(g).character.grades = 50  # 922: nível 50, sem pré-requisito, janela aberta (a 361 já venceu)
-        _session(g).space_pos = PERI_POS
+        _session(g).space_pos = ARENA_POS
         g.client.send(5012, pb.QuestAddedMsg(questId=[922]))  # o cliente aceita no último passo do diálogo
         assert _quest(await g.until(112), 922).condition_1 == 1
 

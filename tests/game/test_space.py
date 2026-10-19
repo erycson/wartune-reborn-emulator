@@ -114,14 +114,14 @@ async def test_space_nodes_and_pet_island(tmp_path: Path) -> None:
         b = await a.join("bruxa")
         await a.idle()
         c = a.client
-        c.send(8692, pb.SimplePropertyMsg(param1=1))  # Ödül Paneli em (142,112): longe demais
+        c.send(8692, pb.SimplePropertyMsg(param1=1))  # Bounty Board em (142,112): longe demais
         assert _of(await a.idle(), 4601) == []
         c.send(8690, _walk(140, 112))
         c.send(8692, pb.SimplePropertyMsg(param1=1))
         assert [pb.SimplePropertyMsg.FromString(x).param1 for x in _of(await a.idle(), 4601)] == [1]
 
         c.send(8690, _walk(20, 112))
-        c.send(8692, pb.SimplePropertyMsg(param1=5))  # Peri Adası pede nível 50
+        c.send(8692, pb.SimplePropertyMsg(param1=5))  # Sylph Atoll pede nível 50
         assert await a.idle() == []
         session = a.server.online.get(a.user_id)
         assert session is not None and session.snapshot is not None

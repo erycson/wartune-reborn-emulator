@@ -35,7 +35,8 @@ NOT_IMPLEMENTED = {
     4542,  # livro de moda (8625)
     4122,  # patrulha dos monstros no mapa 10002
 }
-# diferenças conhecidas, todas fora do tutorial em si (docs/pendencias.md); #N = tools/dump_capture.py da inglesa:
+# diferenças conhecidas (docs/pendencias.md, "Oráculo do tutorial"); #N = tools/dump_capture.py da inglesa.
+# As duas últimas são do servidor, dentro do tutorial; as outras, ritmo ou outros jogadores:
 # - a missão 50 avança no 5017 20000 (#584, 112 a mais). O 112 do progresso antes da entrega só sai nos tipos
 #   23, 2 e 10 (a 52 não tem);
 # - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793) e 4248 (#133, estado da guerra 4008): do

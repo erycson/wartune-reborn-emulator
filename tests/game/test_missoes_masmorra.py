@@ -1,4 +1,4 @@
-"""Condições 14, 25, 26, 27 e 31 ligadas à masmorra Kurt İni, e Para1 em lista (14 e 26). Ver docs/missoes.md."""
+"""Condições 14, 25, 26, 27 e 31 ligadas à masmorra Worg Lair, e Para1 em lista (14 e 26). Ver docs/missoes.md."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from wartune_server.templates.repository import GameTemplates
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
-KURT_DIS, SANS_TASI = 2100001, 2040101
+WORG_TOOTH, LUCK_STONE = 2100001, 2040101
 
 
 def _snap(g: Game) -> PlayerSnapshot:
@@ -51,7 +51,7 @@ async def test_14_passou_a_campanha_casa_o_id_e_nao_soma(tmp_path: Path) -> None
         templates = g.server.services.templates
         snap = _snap(g)
         now = datetime.now(UTC)
-        q70 = Quest(g.user_id, 70, now)  # linha: tipo 14, Para1 1001 (Kurt İni)
+        q70 = Quest(g.user_id, 70, now)  # linha: tipo 14, Para1 1001 (Worg Lair)
         snap.quests.append(q70)
         assert rules.quest_event(snap, templates, rules.CAMPAIGN_CONDITION, 1002, 1) == []  # outra campanha
         assert rules.quest_event(snap, templates, rules.CAMPAIGN_CONDITION, 1001, 1) == [q70]
@@ -65,7 +65,7 @@ async def test_26_chefe_pelo_template_e_nao_pelo_mapa(tmp_path: Path) -> None:
         templates = g.server.services.templates
         snap = _snap(g)
         now = datetime.now(UTC)
-        q80 = Quest(g.user_id, 80, now)  # tipo 26, Para1 1011 = 'Wulfgar' (GameHeroTemp; 'Çene' no turco), Para3 1001
+        q80 = Quest(g.user_id, 80, now)  # tipo 26, Para1 1011 = 'Wulfgar' (GameHeroTemp), Para3 1001
         snap.quests.append(q80)
         assert templates.get("GameHeroTemp", 1011, key="TemplateId")["TemplateName"] == "Wulfgar"
         assert rules.quest_event(snap, templates, rules.HERO_KILL_CONDITION, 1031, 1) == []  # outro chefe
@@ -82,7 +82,7 @@ async def test_31_cena_solo_casa_a_capacidade(tmp_path: Path) -> None:
         assert rules.quest_event(snap, templates, rules.SOLO_CONDITION, 2, 1) == []
         assert rules.quest_event(snap, templates, rules.SOLO_CONDITION, 1, 1) == [q313]
         assert rules.progress_of(q313, 0) == 1
-        # Para2 3: "herhangi bir haritayı [3 kez] geç" (qualquer mapa, não só a 1001)
+        # Para2 3: "Complete Any Solo Dungeon" (qualquer mapa, não só a 1001)
         assert not rules.quest_done(snap, templates, q313, datetime.now(UTC))
         rules.quest_event(snap, templates, rules.SOLO_CONDITION, 1, 2)
         assert rules.quest_done(snap, templates, q313, datetime.now(UTC))
@@ -93,15 +93,15 @@ async def test_27_conta_a_bolsa_e_a_entrega_leva_todas_as_unidades(tmp_path: Pat
         templates = g.server.services.templates
         snap = _snap(g)
         now = datetime.now(UTC)
-        q90 = Quest(g.user_id, 90, now)  # tipo 27: 8 de 2100001 (Kurt Dişi)
+        q90 = Quest(g.user_id, 90, now)  # tipo 27: 8 de 2100001 (Worg Tooth)
         snap.quests.append(q90)
-        pile = Item(g.user_id, KURT_DIS, count=7, pos=0)
+        pile = Item(g.user_id, WORG_TOOTH, count=7, pos=0)
         snap.items.append(pile)
-        assert rules.goods_count(snap, KURT_DIS) == 7
+        assert rules.goods_count(snap, WORG_TOOTH) == 7
         assert not rules.quest_done(snap, templates, q90, now)  # 7 de 8
-        snap.items.append(Item(g.user_id, KURT_DIS, count=3, pos=1))
+        snap.items.append(Item(g.user_id, WORG_TOOTH, count=3, pos=1))
         assert rules.quest_done(snap, templates, q90, now)  # bolsa, não contador: sem quest_event
-        assert rules.goods_to_take(snap, templates, 90) == [(KURT_DIS, 10)]  # item de missão sai inteiro (replay)
+        assert rules.goods_to_take(snap, templates, 90) == [(WORG_TOOTH, 10)]  # item de missão sai inteiro (inglesa #1570)
 
 
 async def test_27_nao_conta_item_que_nao_esta_na_bolsa(tmp_path: Path) -> None:
@@ -110,20 +110,20 @@ async def test_27_nao_conta_item_que_nao_esta_na_bolsa(tmp_path: Path) -> None:
         snap = _snap(g)
         q90 = Quest(g.user_id, 90, datetime.now(UTC))
         snap.quests.append(q90)
-        snap.items.append(Item(g.user_id, KURT_DIS, count=9, pos=0, bag_type=BagType.HERO))  # fora da bolsa
-        assert rules.goods_count(snap, KURT_DIS) == 0
+        snap.items.append(Item(g.user_id, WORG_TOOTH, count=9, pos=0, bag_type=BagType.HERO))  # fora da bolsa
+        assert rules.goods_count(snap, WORG_TOOTH) == 0
         assert not rules.quest_done(snap, templates, q90, datetime.now(UTC))
 
 
 def test_drops_por_no_do_1021_como_visto_na_captura() -> None:
-    drops = content(1001)["drops"]  # [item, n, chance]; o Luck Stone (chance 0,5) é da captura turca
+    drops = content(1001)["drops"]  # [item, n, chance]; o Luck Stone (chance 0,5) é só turco (replay)
     assert drops == {
-        "102102": [[KURT_DIS, 2, 1.0], [SANS_TASI, 1, 0.5]],
-        "102103": [[KURT_DIS, 2, 1.0]],
-        "102105": [[KURT_DIS, 3, 1.0]],
-        "102106": [[KURT_DIS, 3, 1.0]],
+        "102102": [[WORG_TOOTH, 2, 1.0], [LUCK_STONE, 1, 0.5]],
+        "102103": [[WORG_TOOTH, 2, 1.0]],
+        "102105": [[WORG_TOOTH, 3, 1.0]],
+        "102106": [[WORG_TOOTH, 3, 1.0]],
     }
-    assert sum(n for nodo in drops.values() for t, n, _ in nodo if t == KURT_DIS) == 10  # 8 da 90, com folga
+    assert sum(n for nodo in drops.values() for t, n, _ in nodo if t == WORG_TOOTH) == 10  # 8 da 90, com folga
 
 
 def test_fim_de_mapa_so_com_o_grupo_caido_e_sem_param4() -> None:
@@ -142,8 +142,8 @@ def test_fim_de_mapa_so_com_o_grupo_caido_e_sem_param4() -> None:
 
 
 def test_kurt_dis_e_sans_tasi_existem_e_cabem_numa_pilha() -> None:
-    # (visto) ItemTempInfos: Worg Tooth (Kurt Dişi) MaxCount 999 no inglês (9999 no turco)
+    # (visto) ItemTempInfos: Worg Tooth MaxCount 999
     # então as 10 unidades do 1021 cabem numa pilha só
     templates = GameTemplates.parse(TEMPLATES.read_bytes())
-    assert templates.get("ItemTempInfos", SANS_TASI) is not None
-    assert bag.max_count(templates, KURT_DIS) >= 10
+    assert templates.get("ItemTempInfos", LUCK_STONE) is not None
+    assert bag.max_count(templates, WORG_TOOTH) >= 10

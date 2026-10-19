@@ -31,9 +31,9 @@ def test_window_uses_utc_plus_3_and_edges() -> None:
             ]
         }
     )
-    # captura (replay idx 78 -> 102): 5001=2 e 5003=1
+    # só turco (replay idx 78 -> 102): 5001=2 e 5003=1; a inglesa #103 também
     assert _states(worldboss.states_msg(templates, BEFORE_OPEN)) == [(5001, 2), (5003, 1)]
-    # captura login.json #120, 20:06 em UTC+3: o mesmo 5001=2 e 5003=1
+    # só turco: login.json #120, 20:06 em UTC+3: o mesmo 5001=2 e 5003=1
     assert _states(worldboss.states_msg(templates, datetime(2026, 5, 21, 17, 6, tzinfo=UTC))) == [(5001, 2), (5003, 1)]
     row = worldboss.boss(templates, 5001)
     assert row is not None

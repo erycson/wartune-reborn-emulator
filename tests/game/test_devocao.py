@@ -142,7 +142,7 @@ async def test_vip_3_soma_o_devotion_bonus(tmp_path: Path) -> None:
 
 
 async def test_gasto_de_diamante_conta_o_leed_15(tmp_path: Path) -> None:
-    """(visto) yeralti_labirenti #7-#8: o diamante cai e vem o 4152 do leed 15, depois da resposta do pedido."""
+    """(visto, só turco) yeralti_labirenti #7-#8: o diamante cai e vem o 4152 do leed 15, depois da resposta do pedido."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _session(g).snapshot
         assert snap is not None
@@ -155,7 +155,7 @@ async def test_gasto_de_diamante_conta_o_leed_15(tmp_path: Path) -> None:
 
 
 async def test_bencao_do_seminario_conta_o_leed_33(tmp_path: Path) -> None:
-    """(visto) city_city_upgrade #139-#140: 4152 do leed 33 "Spin the Blessing Wheel" logo antes do 4391."""
+    """(visto, só turco) city_city_upgrade #139-#140: 4152 do leed 33 "Spin the Blessing Wheel" logo antes do 4391."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _session(g).snapshot
         assert snap is not None
