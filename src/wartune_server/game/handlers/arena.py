@@ -23,6 +23,7 @@ from ..router import router
 from ..session import GameSession
 from .campaign import map_sync, player_hero
 from .login import army, player_info
+from .player import push_level
 from .vip import is_vip, vip_grade
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 150, 140
@@ -246,7 +247,7 @@ async def _colosseum_over(
     snap, arena, now = s.snapshot, _arena(s), s.ctx.clock.now()
     assert snap is not None and snap.character.id is not None
     s.battle, s.hero_sp = None, battle.player_sp
-    me, robot = snap.character.id, A.is_robot(target)
+    me, robot, before = snap.character.id, A.is_robot(target), snap.character.grades
     async with A.RANK_LOCK:  # posições relidas aqui: outra luta pode ter mexido nelas durante esta
         mine = await s.ctx.characters.arena_rank(me)
         theirs = 0 if robot else await s.ctx.characters.arena_rank(target)
@@ -276,9 +277,12 @@ async def _colosseum_over(
                     target, A.COLOSSEUM, now, me, c.nickname or "", False, not won, new_theirs, forward, c.grades, jt
                 )
             )
-        await s.ctx.characters.save(snap.character, snap.leader, arena, *logs, ranks=tuple(ranks))
+        await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, arena, *logs, ranks=tuple(ranks))
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
-    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    if snap.character.grades > before:
+        push_level(s, before)  # (dedução) como na entrega de missão
+    else:
+        s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, 0
     s.send(S_BATTLE_REPORT, report)

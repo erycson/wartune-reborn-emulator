@@ -23,7 +23,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import fashion
-from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, exp_text
+from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, exp_text, push_level
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
@@ -254,7 +254,7 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     gained = 0
     if field == "gp":
         gained = rules.add_gp(snap, s.ctx.templates, amount)
-        extra.append(snap.leader)
+        extra += [snap.leader, *snap.pawns]
     elif field in ("point", "gift_token"):
         point, gift = (amount, 0) if field == "point" else (0, amount)
         extra.append(cash.change(c, point, gift, "item", f"item:{item.template_id} x{n}", now))
@@ -272,7 +272,7 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     if field == "gp":
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
         if gained:
-            _army(s)
+            push_level(s, c.grades - gained)  # (dedução) a ordem da entrega de missão (5014)
     return True
 
 

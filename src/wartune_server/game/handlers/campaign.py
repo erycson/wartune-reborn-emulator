@@ -441,6 +441,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
     strategy = int(battle.spec.get("strategyBonus", 0)) if won else 0
+    before = snap.character.grades
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
     snap.character.strategy += strategy  # "Ruh" do chefe: (visto) captura #1711, strategyBonus 72
@@ -449,14 +450,21 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
     if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win:
-        await s.ctx.characters.save(snap.character, snap.leader, *loot.items, *loot.quests, *loot.end_quests)
+        await s.ctx.characters.save(
+            snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests
+        )
     s.battle_gp = 0 if dungeon else gp  # a masmorra guarda o 4382 no mapa (``over``), com o Daru do chefe
     await _push_player(s)
     _send(s, S_BATTLE_REPORT, _report(battle, won, gp, strategy))
     if gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
-    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
-    _send(s, S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
+    if snap.character.grades > before:
+        from .player import push_level  # player importa login, que importa este módulo
+
+        push_level(s, before)  # (dedução) 139, 100, 150 e 4640 como na entrega de missão
+    else:
+        _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
+        _send(s, S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     if s.campaign is None:
         return
     c = s.campaign
@@ -933,6 +941,7 @@ async def _dungeon_end(s: GameSession) -> None:
     # (cliente, ItemTempInfo 2013001-4). (dedução) o grau vai no propJoin (o "prop" do CampaignResultView)
     report.propJoin = buffs.grade(snap, buffs.EXP_BOOST, now)
     report.totalGp = buffs.boost(report.totalGp, snap, buffs.EXP_BOOST, now)
+    before = snap.character.grades
     rules.add_gp(snap, s.ctx.templates, report.totalGp)
     rank = events.state(snap, RANK_KEY.format(run.campaign_id), now)
     rank.value, rank.updated_at = max(rank.value, report.totalAppraisal), now
@@ -940,7 +949,7 @@ async def _dungeon_end(s: GameSession) -> None:
     stages = len((c.content or {}).get("stages", [])) or 1
     stage.value, stage.updated_at = (run.stage + 1) % stages, now
     saved: list[EventState] = [rank, stage]
-    await s.ctx.characters.save(snap.character, snap.leader, *saved)
+    await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, *saved)
     await _push_player(s)
     _send(s, S_REPORT, report)
     _send(s, S_RANK, _ranks(s))
@@ -951,7 +960,12 @@ async def _dungeon_end(s: GameSession) -> None:
         _send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     c.buffs = []
     _send(s, S_BUFFERS, _buffers(s))
-    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    if snap.character.grades > before:
+        from .player import push_level  # player importa login, que importa este módulo
+
+        push_level(s, before)  # (dedução) 139, 100, 150 e 4640 como na entrega de missão
+    else:
+        _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     from . import events as hev  # handlers.events importa login, que importa este módulo

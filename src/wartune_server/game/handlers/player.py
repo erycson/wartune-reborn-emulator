@@ -11,6 +11,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from .. import bag, daily, rewards, rules
 from ..arena import data_reset
 from ..builders import login as b
+from ..builders.army import castle_pawns, unlocked_pawns
 from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
@@ -20,6 +21,7 @@ from .space import talk
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
+S_SHORT, S_CASTLE_PAWNS = 139, 100  # U_C_ARMY_SUPPROT (vazio): faltou soldado para completar o exército
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
 # (dedução) a captura EN não tem a mochila cheia na entrega: o texto é o do language.txt inglês
 # (ConsortiaCaseCellClickMediator.command01), a mesma chave do "Çantanız Dolu" turco que se usava aqui
@@ -41,10 +43,35 @@ def _army(s: GameSession) -> None:
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
 
 
+def push_level(s: GameSession, before: int) -> None:
+    """Subiu do nível ``before`` (o exército já foi completado em ``rules.add_gp``). Ordem do oficial (EN #636-#639,
+    #1132-#1133, #1587-#1588, #3191-#3192; TR #625-#628, #938-#939): 139 se ainda falta soldado no exército (o
+    cliente mostra "Insufficient Troops!", ``BaseManager.__addPawnHandler``; EN #636 e TR #625 com o castelo vazio),
+    100 com o castelo (só depois do 8281 e com tropa ou quartel: nos níveis 2-5 da captura ainda não há prédio),
+    150 e, ao chegar no ``openGrades`` do fundo novato, o 4640 (EN #639, TR #628)."""
+    from .minigames import fund_opened  # minigames importa este módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    templates = s.ctx.templates
+    pawns = castle_pawns(snap, templates)
+    # os prédios do oficial nascem no 8281 (EN #578, antes o 4154 do login vem vazio); aqui nascem com o personagem,
+    # então "castelo aberto" é a produção já iniciada pelo 8281
+    if pawns.armyPawn and snap.castle is not None and snap.castle.produced_at is not None:
+        target = rules.army_pawn(snap) or next(iter([*snap.pawns, *unlocked_pawns(snap, templates)]), None)
+        if target is not None and target.army_count < rules.leader_stats(snap, templates).total["ConatArmy"]:
+            s.send(S_SHORT)
+        s.send(S_CASTLE_PAWNS, pawns)
+    _army(s)
+    fund_opened(s, before)
+
+
 def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True) -> None:
     """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro e cristais), 115 (itens) e o 83."""
     _player(s)
     if any(t == rewards.EXP for t, _ in drops):
+        # ponytail: só o 150; quem chama não passa o nível antigo, então sem o 139/100/4640 do push_level
+        # (o exército já foi completado em rules.add_gp). Passar o nível antigo se um pacote com EXP subir alguém.
         _army(s)
     if any(t in (-100, -600) for t, _ in drops):  # o 109 leva ouro e cristais
         castle_yield(s)
@@ -183,7 +210,9 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         guild.total_offer += guild_offer
         guilds_changed.append(guild)
     items = _unique([*taken, *new])  # uma pilha pode ser gasta e completada
-    await s.ctx.characters.save(snap.character, snap.leader, *items, *refresh, *guilds_changed, delete=tuple(gone))
+    await s.ctx.characters.save(
+        snap.character, snap.leader, *snap.pawns, *items, *refresh, *guilds_changed, delete=tuple(gone)
+    )
 
     if taken or gone:
         s.send(S_ITEMS, bag.moved(_unique(taken), s.player_id, empty=gone))
@@ -197,7 +226,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     if int(row.get("RewardGold", 0)) or int(row.get("RewardCrystal", 0)):  # o 109 leva ouro e cristais
         castle_yield(s)
     if snap.character.grades > grades:
-        _army(s)
+        push_level(s, grades)
     from . import events  # events importa este módulo
 
     if q.template_id == events.SERVEN_QUEST:  # tutorial_en #3192-#3194: o 4638 entre o 150 e o 3

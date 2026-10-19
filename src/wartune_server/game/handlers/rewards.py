@@ -12,7 +12,7 @@ from ..builders.player import item_moved
 from ..router import router
 from ..session import GameSession
 from .login import player_info
-from .player import CURRENCIES
+from .player import CURRENCIES, push_level
 
 S_PLAYER, S_BOX, S_ITEMS, S_ALERT = 3, 4, 115, 111
 RATES = {0: 1}  # rateCount do HookRewardFrame: 0 = x1, 15 = x1,5, 20 = x2
@@ -108,10 +108,12 @@ async def take_offline_reward(s: GameSession, msg: pb.OfflineRewardMsg) -> None:
     if gp <= 0 or msg.rateCount not in RATES:
         s.log.info("8287 recusado", gp=gp, rate=msg.rateCount)
         return
-    rules.add_gp(snap, s.ctx.templates, gp * RATES[msg.rateCount])
+    gained = rules.add_gp(snap, s.ctx.templates, gp * RATES[msg.rateCount])
     c.offline_seconds = 0
-    await s.ctx.characters.save(c, snap.leader)
+    await s.ctx.characters.save(c, snap.leader, *snap.pawns)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if gained:
+        push_level(s, c.grades - gained)  # (dedução) como na entrega de missão
 
 
 @router.on(8255)

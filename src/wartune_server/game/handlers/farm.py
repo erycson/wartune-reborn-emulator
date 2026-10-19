@@ -21,7 +21,7 @@ from ..builders.player import item_moved, quest_update
 from ..router import router
 from ..session import GameSession
 from .login import player_info
-from .player import CURRENCIES
+from .player import CURRENCIES, push_level
 
 S_PLAYER, S_CHAT, S_ITEMS, S_QUESTS = 3, 83, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
@@ -165,7 +165,7 @@ async def _pest(
 
 def _payout(
     s: GameSession, snap: PlayerSnapshot, reward: int, count: int, ref: str
-) -> tuple[list[object], Item | None] | None:
+) -> tuple[list[object], Item | None, int] | None:
     """Dá ``count`` de ``reward`` (moeda < 0, EXP -700 ou item) a quem colhe ou rouba. ``None`` = não cabe: ouro no
     teto (FarmLandItem.checkGoldLimit, o cliente também bloqueia), mochila cheia ou item sem template."""
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
@@ -179,12 +179,13 @@ def _payout(
     if item is not None and (full or not templates.get("ItemTempInfos", reward)):
         return None
     changed: list[object] = [c]
+    gained = 0
     if item is not None:
         snap.items.append(item)
         changed.append(item)
     elif reward == EXP:
-        rules.add_gp(snap, templates, count)
-        changed.append(snap.leader)
+        gained = rules.add_gp(snap, templates, count)
+        changed += [snap.leader, *snap.pawns]
     else:
         assert field is not None
         if field == "gold":
@@ -194,16 +195,18 @@ def _payout(
         if field in ("point", "gift_token"):
             delta = (count, 0) if field == "point" else (0, count)
             changed.append(record_cash(c, *delta, reason="farm_pick", ref=ref, now=now))
-    return changed, item
+    return changed, item, gained
 
 
-def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: Item | None) -> None:
+def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: Item | None, gained: int) -> None:
     if item is not None:
         s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
     if CURRENCIES.get(reward) in ("gold", "crystals"):
         cs.castle_yield(s)
     else:
         s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if gained:
+        push_level(s, snap.character.grades - gained)  # (dedução) como na entrega de missão
 
 
 async def _pick(
@@ -218,7 +221,7 @@ async def _pick(
     paid = _payout(s, snap, reward, land.reward_count, f"seed:{land.item_template_id}")
     if paid is None:
         return False
-    changed, item = paid
+    changed, item, gained = paid
     snap.lands.remove(land)
     quests = rules.quest_event(snap, templates, QUEST_HARVEST, OWN_FARM, 1)
     await s.ctx.characters.save(*changed, *quests, delete=(land,))
@@ -228,7 +231,7 @@ async def _pick(
     _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    _payout_sent(s, snap, reward, item)
+    _payout_sent(s, snap, reward, item, gained)
     return True
 
 
@@ -252,7 +255,7 @@ async def _steal(
     paid = _payout(s, snap, reward, amount, f"steal:{target.character.id}:{land.item_template_id}") if amount else None
     if paid is None:
         return False
-    changed, item = paid
+    changed, item, gained = paid
     land.reward_count -= amount
     land.stolen_by = ",".join(str(x) for x in [*farm.stolen_by(land), me])
     snap.castle.farm_steals += 1
@@ -262,7 +265,7 @@ async def _steal(
     _land_reply(s, target.character.id or 0, msg.pos, land, STEAL, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    _payout_sent(s, snap, reward, item)
+    _payout_sent(s, snap, reward, item, gained)
     return True
 
 

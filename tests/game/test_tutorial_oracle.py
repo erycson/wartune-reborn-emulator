@@ -34,13 +34,13 @@ NOT_IMPLEMENTED = {
     4122,  # patrulha dos monstros no mapa 10002
 }
 # diferenças conhecidas, todas fora do tutorial em si (docs/pendencias.md):
-# - presente da atividade de soma no 8586 (#678: 3, 109, 115, 111, 83): pacote não implementado;
 # - subida de nível na missão 51 (#625-#628: 139, 100, 150, 4640): aqui o nível não sobe nela (EXP das lutas
-#   diferente), e a entrega só manda o 150 quando sobe (como as duas capturas); a missão 50 avança no 5017 20000
-#   (112 a mais). O 112 do progresso antes da entrega só sai nos tipos 23, 2 e 10 (turco #657 e inglês: a 52 não tem);
+#   diferente); a sequência está em test_subida_de_nivel.py. A missão 50 avança no 5017 20000 (112 a mais). O 112 do
+#   progresso antes da entrega só sai nos tipos 23, 2 e 10 (turco #657 e inglês: a 52 não tem);
 # - 11 (salas de outros jogadores) e 4248 (estado do chefe mundial) ao aceitar missão;
 # - 140 ×2 da chegada do exército (#766): o timer é de 2,4 s reais e o próximo pacote chega antes.
-KNOWN_GAPS = Counter({83: 1, 140: 2, 11: 2, 109: 1, 3: 1, 150: 1, 100: 1, 115: 1, 111: 1, 4248: 1, 139: 1, 4640: 1})
+# O 8586 do #678 (login de 7 dias, dia 1) vai com o GUID do nosso pacote do mesmo tipo e ordem (_official_packages).
+KNOWN_GAPS = Counter({140: 2, 11: 2, 150: 1, 4248: 1})
 KNOWN_EXTRA = Counter({112: 1})
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
@@ -64,6 +64,17 @@ def _capture() -> list[dict]:  # type: ignore[type-arg]
     return [p for p in json.loads(CAPTURE.read_text(encoding="utf-8")) if FIRST <= p["index"] <= LAST]
 
 
+def _official_packages() -> dict[str, tuple[int, int]]:
+    """``packageId`` das atividades do oficial (4475 do login da captura) -> ``(activeType, order)``, para trocar
+    o pedido 8586 pelo pacote nosso do mesmo tipo e ordem (#678: login de 7 dias, dia 1)."""
+    out = {}
+    for p in json.loads(CAPTURE.read_text(encoding="utf-8")):
+        if not p["isClient"] and p["code"] == 4475:
+            for a in pb.SumActivesMsg.FromString(bytes.fromhex(p["bodyHex"])).actives:
+                out |= {pk.packageId: (a.activeType, pk.order) for pk in a.packages}
+    return out
+
+
 def _building_id(g: Game, son_type: int) -> int:
     session = g.server.online.get(g.user_id)
     assert session is not None and session.snapshot is not None
@@ -78,6 +89,7 @@ def _building_id(g: Game, son_type: int) -> int:
 async def test_tutorial_matches_capture(tmp_path: Path) -> None:
     registry = MessageRegistry.load_default()
     packets = _capture()
+    official_packages = _official_packages()
     official_army = 58073072
     expected = _filtered([p["code"] for p in packets if not p["isClient"]])
     # prédio oficial (4130) -> SonType, para trocar o buildingId do 8203 pelo nosso do mesmo tipo
@@ -117,6 +129,13 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
                 me = pb.HeroMsg(userId=g.user_id, livingId=hero_living)
                 collect(await g.fight(pb.BattlePrepareMsg(battleId=battle_id, heros=[me])))
             msg = registry.decode(p["code"], Direction.CLIENT_TO_SERVER, bytes.fromhex(p["bodyHex"]))
+            if isinstance(msg, pb.SumActiveGetPackageMsg) and msg.packageId in official_packages:
+                kind, order = official_packages[msg.packageId]
+                session = g.server.online.get(g.user_id)
+                assert session is not None
+                ours = next(a for a in session.ctx.events.actives if a.active_type == kind)
+                msg.activeId = ours.active_id
+                msg.packageId = next(pk.package_id for pk in ours.packages if pk.order == order)
             if msg is not None:
                 if "buildingId" in msg.DESCRIPTOR.fields_by_name and msg.buildingId in official_son:
                     msg.buildingId = _building_id(g, official_son[msg.buildingId])

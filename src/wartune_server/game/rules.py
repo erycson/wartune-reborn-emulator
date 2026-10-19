@@ -366,7 +366,19 @@ def add_gp(snap: PlayerSnapshot, templates: GameTemplates, gp: int) -> int:
         for attr, per_level in GROWTH[job_type(c.job)].items():
             setattr(leader, attr, getattr(leader, attr) + per_level * gained)
             setattr(leader, f"{attr}_point", getattr(leader, f"{attr}_point") + per_level * gained)
+        top_up_army(snap, templates)
     return gained
+
+
+def top_up_army(snap: PlayerSnapshot, templates: GameTemplates) -> None:
+    """Subiu de nível: completa o exército até a liderança nova com soldados do castelo do mesmo tipo. (visto) EN
+    #1132/#1133 e #1587/#1588, TR #938/#939: a liderança sobe 10, o castelo cai 10 (748 -> 738) e o exército sobe 10
+    (152 -> 162). Sem ninguém no exército, o tipo é o primeiro do castelo (*dedução*: as capturas só têm esse caso
+    com o castelo vazio). Quem chama ``add_gp`` grava ``snap.pawns``; o que faltou vira o 139 (``handlers.player``)."""
+    pawn = army_pawn(snap) or next(iter(snap.pawns), None)
+    if pawn is not None and snap.leader is not None:
+        moved = max(0, min(leader_stats(snap, templates).total["ConatArmy"] - pawn.army_count, pawn.castle_count))
+        pawn.castle_count, pawn.army_count = pawn.castle_count - moved, pawn.army_count + moved
 
 
 def skill_grades(templates: GameTemplates, script: str) -> int:

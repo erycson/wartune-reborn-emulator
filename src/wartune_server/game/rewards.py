@@ -85,8 +85,9 @@ def grant(
 
 
 def owners(snap: PlayerSnapshot) -> list[object]:
-    """O que um ``grant`` pode alterar além dos itens novos: personagem e líder (EXP sobe nível)."""
-    return [e for e in (snap.character, snap.leader) if e is not None]
+    """O que um ``grant`` pode alterar além dos itens novos: personagem, líder e tropas (EXP sobe nível e completa o
+    exército, ``rules.top_up_army``)."""
+    return [e for e in (snap.character, snap.leader, *snap.pawns) if e is not None]
 
 
 def items_msg(items: Sequence[Item], player_id: int) -> pb.ItemMovedListMsg:

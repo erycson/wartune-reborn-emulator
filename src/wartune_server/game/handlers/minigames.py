@@ -276,6 +276,15 @@ def login_push(s: GameSession) -> None:
     gold_tree.login_push(s)
 
 
+def fund_opened(s: GameSession, before: int) -> None:
+    """Subiu do nível ``before`` até o ``openGrades`` ou além: 4640 logo depois do 150 (EN #639, TR #628)."""
+    snap = s.snapshot
+    assert snap is not None
+    cfg = _fund_cfg(s)
+    if cfg and before < int(cfg.get("openGrades", 0)) <= snap.character.grades:
+        _send_fund(s, snap)
+
+
 # ---------------------------------------------------------------- recuperar EXP (9503)
 
 
