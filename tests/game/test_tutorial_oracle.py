@@ -13,6 +13,7 @@ import json
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -56,8 +57,14 @@ def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     # o oráculo reenvia as ordens (10008) da captura, em número fixo: sem sorteio (±8%, crítico, bloqueio)
     # cada luta dura as mesmas ações do herói que no oficial
-    for key, value in (("spread", 0.0), ("crit_base", 1.0), ("block_base", 1.0)):
-        monkeypatch.setitem(battle_mod.FORMULA, key, value)
+    # depois do __init__: o banco (game_settings.battle_formula, migração 0040) sobrepõe o FORMULA
+    init = battle_mod.Battle.__init__
+
+    def fixed(self: battle_mod.Battle, *args: Any, **kwargs: Any) -> None:
+        init(self, *args, **kwargs)
+        self.formula |= {"spread": 0.0, "crit_base": 1.0, "block_base": 1.0}
+
+    monkeypatch.setattr(battle_mod.Battle, "__init__", fixed)
 
 
 def _filtered(codes: list[int]) -> list[int]:
