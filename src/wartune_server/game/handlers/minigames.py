@@ -262,8 +262,9 @@ async def _harvest(s: GameSession, snap: PlayerSnapshot, fund: Fund, cfg: Mappin
 
 
 def login_push(s: GameSession) -> None:
-    """Login do oficial: o 4922 do labirinto (replay), o 4640 do fundo novato (login.json #94), este só a partir
-    do nível ``openGrades`` (tutorial_en: o login no nível 1 não manda; o primeiro 4640, #639, sai no nível 6), o 4612
+    """Login do oficial: o 4922 do labirinto de gemas só com tabuleiro gravado (só turco: replay #10, #12; o
+    tutorial_en, conta nova, não manda), o 4640 do fundo novato só a partir do nível ``openGrades`` (tutorial_en:
+    o login no nível 1 não manda; o primeiro 4640, #639, sai no nível 6), o 4612
     do fundo normal (tutorial_en #86, já no nível 1) e a árvore dourada (4497 e 295, #71-#72)."""
     gemmaze.login_push(s)
     snap = s.snapshot
@@ -277,7 +278,7 @@ def login_push(s: GameSession) -> None:
 
 
 def fund_opened(s: GameSession, before: int) -> None:
-    """Subiu do nível ``before`` até o ``openGrades`` ou além: 4640 logo depois do 150 (EN #639, TR #628)."""
+    """Subiu do nível ``before`` até o ``openGrades`` ou além: 4640 logo depois do 150 (tutorial_en #639)."""
     snap = s.snapshot
     assert snap is not None
     cfg = _fund_cfg(s)
@@ -293,7 +294,8 @@ async def recover(s: GameSession, msg: pb.RecoverReqMsg) -> None:
     """Lista de recuperação (4912) sempre vazia: o servidor não conta as atividades perdidas de ontem
     (campanha, arena, boss, imposto...). Com a lista vazia o cliente não mostra o aviso de EXP.
 
-    Custos da lista conferidos na captura (login.json #54) como fórmula, para quando a contagem existir:
+    O tutorial_en manda o 4912 vazio (#51), como aqui. Custos da lista conferidos como fórmula, para quando a
+    contagem existir (só turco: login.json #54):
     ``itemCost = num*ItemCount``, ``goldCost = num*Gold``, ``goldReward = itemReward*GoldPercent/ItemPercent``
     (linhas de RecoverInfos). Pedido de resgate (type != 0) é recusado: não há EXP para recuperar."""
     if msg.type != RECOVER_LIST:
@@ -312,7 +314,7 @@ async def questionnaire(s: GameSession, _: object) -> None:
 
 @router.on(8574)
 async def rebate(s: GameSession, _: object) -> None:
-    """Reembolso (4461 com ``id`` vazio = esconde). A única captura (2026-05-18..20) já terminou."""
+    """Reembolso (4461 com ``id`` vazio = esconde), como o tutorial_en #59 no login."""
     _send(s, S_REBATE, pb.RebateInfoMsg())
 
 
@@ -412,7 +414,8 @@ async def icon_numbers(s: GameSession, _: object) -> None:
 
 @router.on(9610)
 async def lucky_exchange(s: GameSession, _: object) -> None:
-    """Troca da sorte sem tabela vigente: a da captura (login.json #96) terminou em 2026-05-17.
+    """Troca da sorte sem tabela vigente: no tutorial_en (#88, #102) "Little Windmill" terminou em 2026-10-14 e
+    "Nostalgic Times Exchange" só começa em 2026-10-23; o servidor não tem tabela das edições.
     364 vem antes do 363 (o cliente busca o valor da sorte pelo id)."""
     _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
     _send(s, S_LUCKY_TEMP, pb.LuckExchangeTempListMsg())

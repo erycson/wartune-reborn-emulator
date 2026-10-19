@@ -129,8 +129,9 @@ GRADE_STEP = 10  # padrão de game_settings friend_grade_step (0037)
 
 
 def friend_grade(ctx: GameContext, r: Relation) -> int:
-    """Grau de amizade (``relationGrade``/``friendGrade``). (dedução) 1 + pontos // passo: ciftlik #85 tem grau 4
-    com 34 pontos; a tabela real não está no cliente nem nos templates. Só amigo tem grau."""
+    """Grau de amizade (``relationGrade``/``friendGrade``). (dedução) 1 + pontos // passo:
+    (só turco) ciftlik #85 tem grau 4 com 34 pontos; a tabela real não está no cliente nem nos templates.
+    Só amigo tem grau."""
     if r.relation != RelationType.FRIEND:
         return 0
     return 1 + r.friend_gp // max(1, int(ctx.world.settings.get("friend_grade_step", GRADE_STEP)))

@@ -114,7 +114,7 @@ async def test_move_castle_to_another_map_spends_energy_and_answers_105(tmp_path
         castle = snap.castle
         assert castle is not None
         castle.energy = 500
-        other = 1  # Özgürlük Otlağı: nível 11 (WorldMapHelper)
+        other = 1  # mapa 1: nível 11 (WorldMapHelper)
         centre = oc.centre(g.server.services.templates, other)
 
         g.client.send(5176, pb.CastleReqMsg(magId=other, posX=0, posY=0, payType=1))
@@ -178,7 +178,7 @@ async def test_castelo_novo_no_ponto_do_guia(tmp_path: Path) -> None:
 
 
 async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Missão 60 (replay #706-#795): as minas vêm no 4129, o 5160 numa livre abre a luta com o guarda
+    """Missão 60 (inglesa #718-#821): as minas vêm no 4129, o 5160 numa livre abre a luta com o guarda
     e a vitória deixa a mina do jogador, conta na missão e soma o ouro dela no castelo."""
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     clock = FakeClock()
@@ -207,7 +207,7 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         got = await g.until(157)
         assert [p.code for p in got] == [140, 140, 140, 157]
         assert pb.MapUpdatedMsg.FromString(got[2].body).wildLand.state == mines.MINE_FIGHTING
-        # replay #715: exército compacto com heroTempId e job (o cliente grava heroTempId no herói; com 0 a luta
+        # inglesa #721: exército compacto com heroTempId e job (o cliente grava heroTempId no herói; com 0 a luta
         # trava em ResourceModel.loadBattleJobUI e o boneco perde o corpo)
         army_msg = pb.MapUpdatedMsg.FromString(got[0].body).army
         assert snap.leader is not None
@@ -217,7 +217,7 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         assert prepare.battleType == 1 and [(x.tempId, x.side, x.hp) for x in prepare.soldiers] == [
             (10101, 1, 242), (10101, 1, 242), (guard, 2, 175)
         ]  # fmt: skip
-        assert list(prepare.soldiers[0].skillId) == [10, 11] * 5 and prepare.heros[0].pawnTempId == 10101  # #718
+        assert list(prepare.soldiers[0].skillId) == [10, 11] * 5 and prepare.heros[0].pawnTempId == 10101  # inglesa #727
 
         got = await g.fight(prepare)
         got += await g.idle()
@@ -247,13 +247,13 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
 
 async def test_refresh_de_12_horas_sorteia_nivel_e_guarda(tmp_path: Path) -> None:
     """RefreshTime 43200 s: o ciclo é do jogador e começa no login. O nível sai entre 8 e 10 e o guarda
-    acompanha (replay: nível 8 com o guarda 6504; níveis 9 e 10 com 6505); o createDate vem no fuso do jogo."""
+    acompanha (níveis 9 e 10 com 6505: inglesa #718; nível 8 com 6504: só turco, replay); o createDate vem no fuso do jogo."""
     clock = FakeClock(datetime(2026, 5, 21, 9, 19, 54, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
         castle = snap.castle
         assert castle is not None and castle.mines_at == clock.now()  # o login abriu o ciclo
-        assert mines.game_date(castle.mines_at) == "2026-05-21 12:19:54"  # replay #706: 09:19:54 UTC
+        assert mines.game_date(castle.mines_at) == "2026-05-21 12:19:54"  # só turco: replay #706, 09:19:54 UTC em UTC+3
         world, templates = g.server.services.world, g.server.services.templates
         start = castle.mines_at
         draws = []
@@ -326,7 +326,7 @@ async def test_ouro_de_outro_handler_para_no_fim_do_ciclo(tmp_path: Path) -> Non
 
 
 async def test_mina_de_outro_jogador_nao_bloqueia_a_instancia(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """O mapa do castelo é uma instância de cada conta (replay #706 e cevre #11: mesmas minas, instâncias,
+    """O mapa do castelo é uma instância de cada conta (só turco: replay #706 e cevre #11, mesmas minas, instâncias,
     robôs e createDate diferentes). A mina que outro jogador ocupou aparece livre e abre a luta (missão 60),
     e o castelo dele não entra no 4129 da instância."""
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
@@ -367,7 +367,7 @@ async def test_castelo_de_outro_jogador_num_mapa_compartilhado(tmp_path: Path) -
 
 
 async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
-    """Missão 100 (cevre #11, replay #706): o robô de (44,22) vem no 4129 da grade 0_0 com o próprio castelo,
+    """Missão 100 (captura inglesa #532): o robô de (44,22) vem no 4129 da grade 0_0 com o próprio castelo,
     o de (59,56) na grade 1_1, com grau 8 e o nome da conta. Em outro mapa, nenhum."""
     async with logged_in(tmp_path, novice=19000) as g:
         castle = _snap(g).castle
@@ -377,7 +377,7 @@ async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
         [robo] = [c for c in page.baseCastle if c.id == 765958]
         assert (robo.mapId, robo.posX, robo.posY, robo.type, robo.state, robo.grade) == (castle.map_id, 44, 22, 1, 1, 8)
         assert robo.occupyPlayerId == robots.ROBOT_USER_BASE and robo.castleName == robo.occupyPlayerName
-        assert robo.occupyPlayerName in {"♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"}
+        assert robo.occupyPlayerName in {"Aillendre", "Addyn"}
         again = await _grid(g, "0_0")  # o nome sai da conta: o mesmo pedido devolve o mesmo nome
         twice = pb.PhysicListUpdateMsg.FromString(next(p.body for p in again if p.code == 4129))
         assert [c.occupyPlayerName for c in twice.baseCastle if c.id == 765958] == [robo.occupyPlayerName]
@@ -528,7 +528,7 @@ async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None
 
 
 async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
-    """Minas, guardas, robôs e monstros saem das tabelas das migrações 0027 e 0028, na ordem da captura."""
+    """Minas, guardas, robôs e monstros saem das tabelas das migrações 0027, 0028 e 0040, na ordem da captura."""
     async with logged_in(tmp_path, novice=22500) as g:
         world = g.server.services.world
         assert [(m.id, m.x, m.y, m.levels) for m in world.mines] == [
@@ -537,7 +537,7 @@ async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
         ]  # fmt: skip
         assert dict(world.mine_guards) == {8: 6504, 9: 6505, 10: 6505}
         assert [(r.id, r.x, r.y, r.grade) for r in world.robots] == [(765958, 44, 22, 8), (765957, 59, 56, 8)]
-        assert [str(n) for n in world.robot_names] == ["♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"]
+        assert [str(n) for n in world.robot_names] == ["Aillendre", "Addyn"]
         assert dict(world.monster_counts[2]) == {1: 40, 2: 20, 3: 5} and 100 not in world.monster_counts
         assert world.monsters[210127].fight_capacity == 746796 and world.monsters[210101].fight_capacity == 0
 
@@ -584,7 +584,7 @@ async def test_ocupacao_sem_nivel_gravado_e_completada_no_login(tmp_path: Path) 
 
 async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
     """9525 -> 4938 com os 5 chefes (bossType 3) do sorteio do mapa 2, iguais em todo pedido do ciclo, e o
-    relógio que as duas capturas mostram: 2026-05-21 19:00 UTC menos 4828 s (transfer) e 5775 s (cevre)."""
+    relógio que as duas capturas mostram: 2026-05-21 19:00 UTC menos 4828 s (transfer) e 5775 s (cevre) (só turco)."""
     clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, 290000, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
@@ -600,12 +600,12 @@ async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
         g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
         assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).bosslist == msg.bosslist
 
-        g.client.send(9525, pb.MapBossQuestMsg(mapId=100))  # instância do castelo: sem chefes (cevre)
+        g.client.send(9525, pb.MapBossQuestMsg(mapId=100))  # instância do castelo: sem chefes (inglesa #526: 4938 sem bosslist)
         msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
         assert (len(msg.bosslist), msg.leftBossTime) == (0, 4828)
 
         left = functools.partial(monsters.refresh_left, templates)
-        assert left(datetime(2026, 5, 21, 17, 23, 44, 227000, tzinfo=UTC)) == 5775  # cevre #3
+        assert left(datetime(2026, 5, 21, 17, 23, 44, 227000, tzinfo=UTC)) == 5775  # só turco: cevre #3
         assert left(datetime(2026, 5, 21, 19, 0, tzinfo=UTC)) == 7200  # 22:00 em UTC+3: o próximo é 00:00
         assert left(datetime(2026, 5, 21, 18, 59, 59, 900000, tzinfo=UTC)) == 1  # nunca 0
         assert left(datetime(2026, 5, 22, 0, 0, tzinfo=UTC)) == 5 * 3600  # 03:00: sem refresh até as 08:00
@@ -614,7 +614,7 @@ async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
 
 
 async def test_monstros_dos_wilds_no_4129_como_na_captura(tmp_path: Path) -> None:
-    """8201 numa grade do mapa 2 com monstro: type 21 como o 210127 da transfer #14 (sem armyPawn, refreshTime
+    """8201 numa grade do mapa 2 com monstro: type 21 como o 210127 da transfer #14 (só turco) (sem armyPawn, refreshTime
     0, size = Property2, createDate = começo do ciclo). O ciclo novo sorteia outros pontos."""
     clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))  # 20:39 em UTC+3: ciclo das 20:00
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:

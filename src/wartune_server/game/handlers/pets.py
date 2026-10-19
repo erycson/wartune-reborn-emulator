@@ -1,6 +1,6 @@
 """Pets (``PlayerPetOpMsg`` 8621, ficha de outro jogador 8702).
 
-Fonte: login #30 (4540 com um pet completo, ``petCount`` 6) e ``ConfigInfos`` (pet_reset_att,
+Fonte: só turco, login.json #30 (4540 com um pet completo, ``petCount`` 6) e ``ConfigInfos`` (pet_reset_att,
 add_pet_count). O 4540 é incremental: só os pets que mudaram (``isDel`` apaga).
 Composição de um pet (13, cliente ``PetSocketOut.composePet``): receitas de ``PetComponseInfos``.
 """
@@ -54,8 +54,8 @@ def pet_info(pet: Pet, templates: GameTemplates) -> pb.PetInfoMsg:
     )
     for attr, col in zip(ATTRS, TPL_ATTRS, strict=True):
         apti = getattr(pet, f"{attr}_apti")
-        # ponytail: atributo = template + pontos + nível x aptidão/100 (aproxima o login #30; fórmula real
-        # fica no servidor oficial)
+        # ponytail: atributo = template + pontos + nível x aptidão/100 (aproxima o login.json #30, só turco;
+        # fórmula real fica no servidor oficial)
         setattr(msg, attr, int(tpl.get(col, 0)) + getattr(pet, attr) + pet.grade * apti // 100)
         name = attr.capitalize()
         for prefix in ("init", "", "next"):

@@ -27,7 +27,8 @@ resolve o tipo protobuf de cada lado e dá nome aos opcodes com `ProtocolType.as
 
 ## `tools/decode_pcap.py`
 
-Decifra as capturas do Wireshark do oficial (`D:\wartune\server-relay\all pcaps\*.pcapng`, uma por
+Decifra as capturas do oficial: a inglesa (`tutorial-en.pcapng`, porta 5002, ver
+[captura-oficial-en.md](captura-oficial-en.md)) e as turcas antigas (`D:\wartune\server-relay\all pcaps\*.pcapng`, uma por
 sistema) para o formato do `replay_packets.json`, que o `dump_capture.py` lê. Remonta cada fluxo TCP
 da porta 5000 pela sequência. As capturas começam no meio da sessão, sem o 20001 com a chave, então
 a chave é recuperada pelo cabeçalho: cada byte dela só evolui com o texto cifrado, e o cabeçalho tem
@@ -37,11 +38,14 @@ cliente; os pedidos do cliente saem do código decompilado. A saída fica em `ca
 tem dados do jogador da captura).
 
 ```
-uv run python tools/decode_pcap.py "D:/wartune/server-relay/all pcaps/"*.pcapng -o captures
+uv run python tools/decode_pcap.py D:/wartune/server-relay/tutorial-en.pcapng --port 5002 -o captures
+uv run python tools/decode_pcap.py "D:/wartune/server-relay/all pcaps/"*.pcapng -o captures   # turcas
 uv run python tools/dump_capture.py captures/kader_sistemi.json
 ```
 
 ## `tools/export_captures.py`
+
+**Legado da CDN turca**: monta(va) a CDN turca (`data/overlay` → `wartune-reborn/cdn-turco`). A CDN ativa é a inglesa (res134, `tools/fetch_missing.py`); o arquivo fica até o dono decidir remover as pastas fora do repo.
 
 Exporta as sessões HTTP capturadas no Fiddler (só status 200, sem chunked e sem Content-Encoding)
 para `data/overlay/` (586 arquivos). Esse diretório inclui o `client/config.xml` oficial usado como
@@ -49,6 +53,8 @@ modelo e o `xml/tempinfos.xml` (zlib). Fica fora do git, então rode o script de
 `uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw`.
 
 ## `tools/build_cdn_overrides.py`
+
+**Legado da CDN turca**: monta(va) a CDN turca (`data/overlay` → `wartune-reborn/cdn-turco`). A CDN ativa é a inglesa (res134, `tools/fetch_missing.py`); o arquivo fica até o dono decidir remover as pastas fora do repo.
 
 Monta `D:\xampp\htdocs\wartune-reborn\cdn`: copia de `data/overlay` e do `public` do relay os
 arquivos que faltam no CDN completo ou que têm conteúdo diferente (os `.png` de código, por exemplo),
@@ -68,8 +74,8 @@ Depois ela ajusta os módulos de código (`N.png`, que começam com `road7` + md
 
 O `wartune-cdn` foi montado das capturas, então só tem o que o jogador capturado (job 6, mago,
 sexo 0) carregou: faltam os assets de outras classes e sexos (corpo padrão de batalha, efeitos de
-skill, figura de level-up...). O CDN oficial (`res114lortr.creaction-network.com:8080`) ainda está
-no ar e é o mesmo build (md5 idêntico nos arquivos em comum). A ferramenta lê os 404 do
+skill, figura de level-up...). O CDN oficial inglês (`res134-bmclas-sq.7road.net`) está no ar; o turco
+(`res114lortr.creaction-network.com:8080`) é legado. A ferramenta lê os 404 do
 `access.log` do Apache e baixa os originais para o `wartune-cdn`, sem alterar nada. Rode depois de
 jogar com uma classe nova:
 
@@ -84,8 +90,9 @@ o arquivo certo está no oficial.
 
 ## Capturas de referência
 
-`tests/fixtures/pcap_samples.json` traz até 3 amostras por opcode de uma sessão oficial
-(333 pacotes, 194 opcodes). Para ver uma mensagem real:
+`tests/fixtures/pcap_samples.json` traz até 3 amostras por opcode da captura inglesa
+(`captures/tutorial_en.json`), mais as turcas dos 8 opcodes que ela não tem (430 pacotes, 234 opcodes;
+lista em `tests/protocol/test_messages_against_pcap.py`). Para ver uma mensagem real:
 
 ```python
 from wartune_server.protocol.registry import MessageRegistry, Direction

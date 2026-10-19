@@ -1,7 +1,8 @@
 """Salas de campanha em grupo (PvE): criar, listar, procurar, entrar, lugares, dono, expulsar e sair.
 
-Estado em ``GameContext.rooms`` (``game/rooms.py``). Sequência vista na captura da sala "Büyük Kristal"
-(exp_kitabi...ek_sahne): 5023 -> 12 RoomMsg, 17 PlaceStateRspMsg, 32 EditRoomRspMsg, 120 RoomPlayerListMsg.
+Estado em ``GameContext.rooms`` (``game/rooms.py``). Sequência vista numa sala da campanha 9001 (Claristun) (só turco:
+exp_kitabi_kullanim_kahraman_sarayi_ve_ek_sahne_giris_ek_sahne_mob #17-#23): 5023 -> 12 RoomMsg,
+17 PlaceStateRspMsg, 32 EditRoomRspMsg, 120 RoomPlayerListMsg.
 Escolher a campanha da sala e começar a campanha (125/21) dependem de um pedido ainda não identificado
 no cliente decompilado; ver docs/salas-campanha.md.
 """
@@ -18,7 +19,7 @@ S_ROOM, S_ROOM_LIST, S_PLACE, S_EDIT, S_MEMBERS = 12, 13, 17, 32, 120
 S_EXIT, S_KILL, S_MASTER = 15, 28, 121
 S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
 S_ROOM_STATE = 4913  # SimplePropertyMsg: sala do link no chat (9504), BaseManager.__mulityCampaignRequestHandler
-PLAYER_READY = 2  # playerState do dono na captura; os demais ainda não foram vistos, usam o mesmo valor
+PLAYER_READY = 2  # playerState do dono (só turco, #20); os demais ainda não foram vistos, usam o mesmo valor
 
 
 def _room_msg(room: Room) -> pb.RoomMsg:

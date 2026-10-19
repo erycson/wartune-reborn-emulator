@@ -3,7 +3,7 @@
 
 Preço e moeda seguem ``ShopGoodsInfo.setPrice`` do cliente: a primeira coluna > 0 entre Point,
 GiftToken, Gold, Honor, ConsortiaOffer e MazeCoin. Honor e MazeCoin são itens na mochila
-(208001 Madalya, 208009 Labirent Parası). Toda compra com elmas grava o ``cash_ledger``.
+(208001 Insignia, 208009 Crypt Tokens). Toda compra com diamante grava o ``cash_ledger``.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ OK, NO_PLAYER, NO_ITEM, NO_MONEY, LIMIT, VIP, GONE, GUILD, LEVEL, FAIL = 1, 2, 3
 CURRENCY_ITEMS = {"Honor": 208001, "MazeCoin": 208009}  # BuyFrameI.PayMoney
 PRICE_COLUMNS = ("Point", "GiftToken", "Gold", "Honor", "ConsortiaOffer", "MazeCoin")
 MYSTERY, BLOOD, MAIN_OFFER = "5", "100", "99"  # ShopType: misteriosa, poção de HP, itens das ofertas da home
-MAZE = "4"  # ShopType: loja do labirinto, preço em Labirent Parası (208009, MazeCoin)
+MAZE = "4"  # ShopType: loja do labirinto, preço em Crypt Tokens (208009, MazeCoin)
 MYSTERY_FRESH = timedelta(seconds=14400)  # cliente: MysteryShopModel.remainTime = 14400 - (agora - freshLastdate)
 MYSTERY_GOODS = 8  # ponytail: a tela da loja misteriosa não está no cliente decompilado; 8 é palpite
 MAX_COUNT = 999
@@ -392,7 +392,7 @@ async def mystery_fresh(s: GameSession, msg: pb.ShopFreshReqMsg) -> None:
             snap.character, _config(s, "ShopFresh_NeedDiamond", 10), msg.payType, "shop", "mystery:fresh", now
         )
         if ledger is None:
-            s.log.info("8483 recusado: sem elmas")
+            s.log.info("8483 recusado: sem diamante")
             send(s, S_MYSTERY_LIST, _mystery_list(s, shop))
             return
         shop.goods, shop.bought, shop.fresh_at = ",".join(map(str, _roll(s, snap))), "", now

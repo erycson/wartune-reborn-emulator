@@ -67,7 +67,7 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     pawn = army_pawn_msg(snap, templates, snap.character.id)
     mount = rules.systems(snap).mount_template
     msg = b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount)
-    if pet := next((p for p in snap.pets if p.is_fight), None):  # login #5: o pet em batalha
+    if pet := next((p for p in snap.pets if p.is_fight), None):  # o pet em batalha (só turco: login.json #5)
         msg.petTempId, msg.petQuqlity, msg.petName = pet.template_id, pet.quality, pet.name
     return msg, stats.fighting_capacity
 
@@ -189,7 +189,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
-        if snap.pets:  # login #30; sem pet o oficial não manda
+        if snap.pets:  # só turco: login.json #30; sem pet o oficial não manda (tutorial_en #24-#136: nenhum 4540)
             from .pets import S_PETS, pets_msg
 
             s.send(S_PETS, pets_msg(snap, s.ctx.templates))
@@ -197,7 +197,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
 
         login_stars(s)
-    if msg.powcardInfo:  # login #76
+    if msg.powcardInfo:  # só turco: login.json #76 (nível 56); o inglês (nível 1, #24-#136) não manda 4905
         from .systems import S_POWCARD, powcard_msg
 
         s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots")))
@@ -226,9 +226,9 @@ async def _login_state(s: GameSession) -> None:
         s.send(S_ITEMS, bag)
     _send(s, S_FASHION_BOOK, pb_player.fashion_book(snap, s.ctx.templates))
     s.send(S_SMITHY, pb_player.smithy(s.ctx.templates))
-    if snap.character.novice_process >= space.POST_TUTORIAL:  # a conta nova do replay não recebe
+    if snap.character.novice_process >= space.POST_TUTORIAL:  # conta nova não recebe (tutorial_en #24-#136: sem 4512)
         vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
-    # ilha dos pets: sem invasão do chefe em andamento (login.json #39, todos os campos zerados)
+    # ilha dos pets: sem invasão do chefe em andamento (tutorial_en #44, todos os campos zerados)
     zero = dict.fromkeys(("leftTime", "mapId", "bossId", "peaceMiddle", "peaceHigh", "peaceBoss", "ragePoint"), 0)
     s.send(S_PET_ISLAND_BOSS, pb.PetIslandDefendStateMsg(**zero))
     from . import events
@@ -237,13 +237,12 @@ async def _login_state(s: GameSession) -> None:
     if on := buffs.active(snap, s.ctx.clock.now()):  # (dedução) sem captura de login com pergaminho ativo
         _send(s, S_ITEM_BUFFER, buffs.buffer_list(on, s.ctx.clock.now()))
     events.login_push(s)
-    # tropas do castelo (oficial: login.json #6); personagem sem tropas nem quartel não recebe
-    if (pawns := castle_pawns(snap, s.ctx.templates)).armyPawn:
-        s.send(S_CASTLE_PAWNS, pawns)
+    # tropas do castelo: o oficial manda o 100 mesmo vazio, para personagem sem tropas nem quartel (tutorial_en #39)
+    s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
-    if snap.marriage is not None:  # solteiro não recebe nada (login.json)
+    if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)
         _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
     space.enter(s)  # o oficial cria a cidade do céu logo depois do 6
     guild.on_login(s)

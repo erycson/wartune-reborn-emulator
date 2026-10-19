@@ -4,7 +4,7 @@ from tests.game.harness import logged_in
 from wartune_server.domain.models import Item
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-NEWBIE_BOX = 2060101  # Lvl. 5 Starter Pack (guerreiro), GradeDrop 90105: 10 de Bound Balens no inglês (2 no turco)
+NEWBIE_BOX = 2060101  # Lvl. 5 Starter Pack (guerreiro), GradeDrop 90105: 10 de Bound Balens
 
 
 async def test_opening_the_newbie_box_swaps_it_for_its_drop(tmp_path: Path) -> None:

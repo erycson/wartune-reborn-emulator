@@ -25,7 +25,7 @@ S_EVENT, S_STAND, S_QUESTS = 4601, 4126, 112  # 112: QuestUpdatedRspMsg
 S_MAP_SYNC, S_ROOM_CREATED, S_ROOM_ENTER, S_NODES = 140, 125, 21, 127
 PATROL, TRANSFER = "1", "171"  # MasterType: NPC que anda (o cliente resolve sozinho) e teleporte
 REACH = 5  # o cliente dispara a até HandlerRange+5 tiles (SpaceArmyViewHelper.selfArmyToEnd)
-ROOM_ENTER = 1  # RoomCreatedMsg.createdType da captura
+ROOM_ENTER = 1  # RoomCreatedMsg.createdType ao entrar num mapa (tutorial_en #116)
 
 
 def _node(s: GameSession, node_id: int) -> Row | None:
@@ -99,9 +99,9 @@ async def _transfer(s: GameSession, node: Row) -> None:
 
 
 def enter_pet_island(s: GameSession, map_id: int) -> None:
-    """Ilha dos pets como no oficial (``peri_adasi_tp.json`` #3-8): 140, 125, 21, 127.
+    """Ilha dos pets como no oficial (só turco: peri_adasi_tp #3-#8): 140, 125, 21, 127.
 
-    ponytail: mapa por sessão com os nós da captura; pets selvagens, coleta e o chefe (4686)
+    ponytail: mapa por sessão com os nós da captura (só turco: #8); pets selvagens, coleta e o chefe (4686)
     dependem do sistema de pets/campanha. Sai pelo botão de sair (5025) ou indo ao space (8688).
     """
     data = pet_island()["maps"][str(map_id)]
@@ -129,7 +129,8 @@ async def enter_pet_land(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
 @router.on(5025)
 async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
-    """Botão de sair (5025): na ilha dos pets volta para a cidade do céu com 4606 (``gokyuzu_...json`` #1);
+    """Botão de sair (5025): na ilha dos pets volta para a Cloud City com 4606 (só turco:
+    gokyuzu_sehrine_teleport_ve_yurume_sistemi #1);
     fora dela, sai da sala de campanha em grupo se estiver numa (``handlers/room.py``).
     """
     if s.campaign is not None and s.campaign.map_id in PET_ISLANDS:

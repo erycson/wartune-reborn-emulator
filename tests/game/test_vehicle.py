@@ -3,7 +3,7 @@ from pathlib import Path
 from tests.game.harness import logged_in
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
-FREE, PAID = 2, 3  # VehicleObjectTempInfos: Öfkeli Mayın (0 diamante), Kara Şimşek (1000, NeedGrades 365)
+FREE, PAID = 2, 3  # VehicleObjectTempInfos: Mauler (0 diamante), Nightwolf (1000, NeedGrades 365)
 
 
 async def test_vehicle_garage_activate_and_choose(tmp_path: Path) -> None:

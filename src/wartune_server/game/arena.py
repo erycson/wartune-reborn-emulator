@@ -24,7 +24,7 @@ from .battle import STATS
 
 COLOSSEUM, PETS = 0, 1  # ChallengeRequestMsg/ChallengeCoolTimeMsg.type e ChallengeLog.kind
 FREE_COUNT, MAX_BUY = 10, 10  # coliseu: tentativas grátis e compráveis por dia (totalCount/totalBuyCount)
-COLOSSEUM_COOL, PET_COOL = 600, 300  # segundos de espera depois de lutar (4176 nas capturas)
+COLOSSEUM_COOL, PET_COOL = 600, 300  # segundos de espera depois de lutar (só turco: 4176 do coliseu e do torneio)
 ATTACK_FREE = 5  # attackLeftCount do dia (PlayerMsg; o AttackAlertFrame mostra "x/5")
 ROBOT_BASE = 1_300_000_000  # userId dos robôs (capturas: 13000xxxxx); nunca viram personagem
 PET_ROBOT_BASE = ROBOT_BASE + 1400
@@ -151,7 +151,7 @@ def period(now: datetime) -> tuple[str, int]:
 
 
 def rank_reward(rank: int) -> tuple[int, int]:
-    """(ouro, Ruh) da posição; (0, 0) fora do ranking."""
+    """(ouro, Daru) da posição; (0, 0) fora do ranking."""
     for tier in rewards()["rank_rewards"]:
         first, last = tier["ranks"]
         if rank > 0 and first <= rank <= last:
@@ -247,12 +247,12 @@ def snapshot_player(snap: PlayerSnapshot, templates: GameTemplates, rank: int, n
 
 # -- montagem das batalhas ------------------------------------------------------------------------
 
-ENEMY_HERO = 7  # livingId da captura do coliseu (#6)
+ENEMY_HERO = 7  # livingId (só turco: captura do coliseu meydan_okuma #6)
 PLAYER_LIVING, PLAYER_POS = 3, 6
 
 
 def npc_hero(**fields: Any) -> dict[str, Any]:
-    """Herói do lado 2 como NPC: ``type 2``, ``userId 0`` (captura do coliseu #6)."""
+    """Herói do lado 2 como NPC: ``type 2``, ``userId 0`` (coliseu turco #6; igual no inglês #1657, castelo-robô)."""
     base: dict[str, Any] = {
         "heroId": ROBOT_BASE,
         "livingId": ENEMY_HERO,
@@ -301,7 +301,7 @@ def robot_spec(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """(soldados, heróis) do robô. O herói é o do template, com vida e ataque proporcionais aos do
     jogador: o robô existe para o servidor vazio, e a primeira vitória é a porta do ranking.
-    ponytail: a captura tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha soldados;
+    ponytail: a captura (só turco: coliseu) tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha soldados;
     aqui o jogador não tem, e com eles o robô do template ganhava quase sempre (simulado do nível
     11 ao 30). Voltar com os soldados quando o exército do jogador entrar na batalha."""
     row = templates.get("GameHeroTemp", robot.hero_template) or {}
@@ -358,14 +358,14 @@ def colosseum_spec(soldiers: list[dict[str, Any]], heroes: list[dict[str, Any]])
 
 # -- torneio de fadas -----------------------------------------------------------------------------
 
-PET_ROBOT_PETS = (101102, 102102, 104102)  # captura: Amazon Kraliçesi, Liris, Pan, nível 50, qualidade 6
+PET_ROBOT_PETS = (101102, 102102, 104102)  # Amazon Queen, Iris, Pan, nível 50, qualidade 6 (só turco: torneio de fadas)
 PET_ROBOT_GRADE, PET_ROBOT_QUALITY = 50, 6
 PET_NOTICE_FRAME, PET_DAMAGE_IMPROVE = 1500, 50  # 4361 aos 60 s: dano +50%
-PET_WIN_SCORE, PET_LOSE_SCORE = 5, 0  # "Puan +5" na captura; ponytail: perda não observada, não tira pontos
+PET_WIN_SCORE, PET_LOSE_SCORE = 5, 0  # "Points +5" (só turco: torneio); ponytail: perda não vista, não tira pontos
 
 
 def pet_hp(template: int, grade: int, templates: GameTemplates) -> int:
-    # ponytail: fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura
+    # ponytail: fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura (só turco)
     row = templates.get("PetTempInfos", template) or {}
     return int(row.get("MaxHp", 1000)) + grade * int(row.get("GrowthRate", 600)) // 9
 
@@ -382,7 +382,7 @@ def pet_unit(
     templates: GameTemplates,
     skills: str = "",
 ) -> dict[str, Any]:
-    """Pet no ``BattlePrepareMsg.pets`` (captura do torneio #7). ``userId`` = dono no lado do jogador
+    """Pet no ``BattlePrepareMsg.pets`` (só turco: captura do torneio de fadas #7). ``userId`` = dono no lado do jogador
     (o cliente acha "os meus" por ele; sem nenhum a batalha não inicializa) e 0 nos robôs."""
     row = templates.get("PetTempInfos", template) or {}
     hp = pet_hp(template, grade, templates)
@@ -406,7 +406,7 @@ def pet_unit(
         "serverName": "",
         "livingId2": 0,
         "petQuality": quality,
-        # ponytail: ~ o dano da captura (golpe básico ≈ vida/40): sem defesa, (A - 0) × 0,5 = vida/40
+        # ponytail: ~ o dano da captura turca do torneio (golpe básico ≈ vida/40): sem defesa, (A - 0) × 0,5 = vida/40
         "attack": hp // 20,
         "defaultSkill": int(row.get("DefaultSkills", 0) or 0),
     }

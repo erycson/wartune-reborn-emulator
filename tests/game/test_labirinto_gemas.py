@@ -1,7 +1,7 @@
 """Labirinto de gemas (9508..9517): a regra da troca e da cascata contra a captura oficial, e os pedidos.
 
 Os dados de ``CAPTURED_*`` vêm de ``captures/av_askeri_ve_odul_toplama.json`` (4922 e 4923/4924, 7 trocas,
-10 passos). Cada passo é (marcas que saem, gemas novas, pontos, EXP, prêmio) como o servidor oficial mandou.
+10 passos) (só turco: a captura inglesa não tem o labirinto; ver docs/fontes-turcas.md). Cada passo é (marcas que saem, gemas novas, pontos, EXP, prêmio) como o servidor oficial mandou.
 """
 
 import random
@@ -205,7 +205,7 @@ async def test_move_plays_the_cascade_pays_the_maze_bag_and_unlocks_the_client(t
         assert list(updates[0].score) == [20] and updates[0].curExp == 63
         assert all(len(u.rewardInfo) == 1 for u in updates)
         assert [p.code for p in got][-1] == 4924
-        assert any(p.code == 83 and b"Puan 20" in p.body for p in got)
+        assert any(p.code == 83 and b"Points 20" in p.body for p in got)
         snap = _snap(g)
         maze = [i for i in snap.items if i.bag_type == BagType.MAZE]
         paid = sum(dict(gm.REWARDS)[u.rewardInfo[0].rewardId] for u in updates)  # 208014 vem 2 por passo

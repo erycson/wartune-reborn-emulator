@@ -1,5 +1,8 @@
 """Exporta respostas HTTP capturadas (dumps do Fiddler) para uma árvore de arquivos estáticos.
 
+Legado da CDN turca: as sessões são do oficial turco e alimentavam ``data/overlay`` (CDN turca);
+a CDN ativa é a inglesa. Ver docs/ferramentas.md.
+
 Cada sessão ``NNN_c.txt`` (requisição) / ``NNN_s.txt`` (resposta) vira
 ``<saida>/<caminho da URL>`` com o corpo **exatamente como o Flash o recebia**:
 sem ``Transfer-Encoding: chunked`` e sem ``Content-Encoding`` (gzip/deflate de

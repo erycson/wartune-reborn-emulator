@@ -22,7 +22,7 @@ from .player import alert, granted
 
 S_MAP_BOX = 4940
 MAIL_TITLE, MAIL_TEXT = "Wilds Chest", "Your bag was full, so the chest's contents were sent by mail."
-BAG_FULL_MAIL = "Bag full, check your mail."
+BAG_FULL_MAIL = "Inventory full, check your mail!"  # (cliente) language.txt inglês, VipBoxFrame.command03
 _rng = random.Random()
 
 
@@ -50,8 +50,7 @@ async def drop_box(s: GameSession, m: monsters.Monster) -> None:
 
 async def _by_mail(s: GameSession, box: WildBox, drops: list[tuple[int, int]]) -> None:
     """Mochila cheia: o conteúdo vai como anexo no correio do jogo (5 por carta), na mesma transação que apaga o
-    baú. Texto (dedução): o cliente só tem o aviso em turco ("Çanta dolu, postanızı kontrol edin",
-    ``VipBoxFrame.command03``)."""
+    baú. Aviso: o do baú VIP (``VipBoxFrame.command03``); título e texto da carta são dedução."""
     now = s.ctx.clock.now()
     mails = [Mail(box.character_id, now, MAIL_TITLE, MAIL_TEXT, mail_type=MailType.SYSTEM,
                   send_type=mailbox.SYSTEM_SENDER) for _ in range(0, len(drops), mailbox.MAX_ANNEXES)]  # fmt: skip

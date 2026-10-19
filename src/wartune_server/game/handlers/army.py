@@ -22,12 +22,12 @@ from ..router import router
 from ..session import GameSession
 from .player import _army, _player
 
-S_CASTLE_PAWNS, S_ARMY_EDIT, S_PAWN, S_QUESTS, S_ALERT = 100, 93, 116, 112, 111
+S_CASTLE_PAWNS, S_ARMY_EDIT, S_PAWN, S_QUESTS, S_ALERT, S_CHAT = 100, 93, 116, 112, 111, 83
 S_TELEPORT, S_TELEPORT_FAIL, S_ARMY_POS, S_TEAM_POS = 4237, 4263, 4241, 4186
 RECRUIT, PAWN_LEVEL, FORMATION, COMPREHEND = 3, 10, 34, 52  # QuestCondictionInfos.CondictionType
-PAWN_UPGRADE = "1"  # UpGradeTempInfo.Types: TemplateId = próximo nível, Data = custo em Ruh
+PAWN_UPGRADE = "1"  # UpGradeTempInfo.Types: TemplateId = próximo nível, Data = custo em Daru
 SPECIAL_BLESS = "16"  # UpGradeTempInfo.Types: Data = bênção máxima no grau da especialidade
-COMPREHEND_COST = 1_000_000  # Ruh (PawnSpecialAbilityFrame)
+COMPREHEND_COST = 1_000_000  # Daru (PawnSpecialAbilityFrame)
 CHANGE_POINT, CHANGE_SOUL, CHANGE_LEVEL = 200, 2_000_000, 10  # PawnAbilityConvertFrame
 TELEPORT_ENERGY, TELEPORT_POINT = 100, 100  # TransmitHandler
 
@@ -70,7 +70,7 @@ def send_quests(s: GameSession, quests: list) -> None:  # type: ignore[type-arg]
 @router.on(5155)
 async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     """Recruta no castelo: ouro = GoldConsume por soldado (menos o desconto Property4 do quartel),
-    população = NeedPopulation por soldado. Relay #643: 109, 112, 109, 100, 111."""
+    população = NeedPopulation por soldado. tutorial_en #653-#659: 109, 112, 109, 100, 111."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     found, n = current_pawn(s, msg.tempateId), msg.ownPawns
@@ -103,7 +103,7 @@ async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
 @router.on(5156)
 async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     """Põe ``ownPawns`` soldados do tipo no exército (o resto volta ao castelo). Limite: liderança
-    do herói (totalConatArmy). Relay #666: 150, 93, 100."""
+    do herói (totalConatArmy). tutorial_en #665-#669: 150, 93, 100."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None and snap.leader is not None
     pawn = pawn_of(snap, msg.tempateId // 100)
@@ -152,8 +152,9 @@ def send_pawn(s: GameSession, pawn: Pawn) -> None:
 
 @router.on(5158)
 async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
-    """Evolui o tipo para NextLevelTemplateId: custa Ruh (UpGrade Types 1) e exige quartel no nível
-    seguinte. Captura city_city_upgrade_academy_upgrade #138-148: 3, 116, 150, 109."""
+    """Evolui o tipo para NextLevelTemplateId: custa Daru (UpGrade Types 1) e exige quartel no nível
+    seguinte. tutorial_en #2089-#2094: 3, 116, 150 e o 83 "Lancer successfully upgraded to Lvl. 2" (sem 109 nem 112:
+    a missão 101 "Upgrade Lancers" só aparece no 5014, #2179-#2180)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None and snap.leader is not None
     found = current_pawn(s, msg.tempateId)
@@ -171,7 +172,7 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     cost, level = int(cost_row["Data"]), int(nxt["Level"])
     # o cliente só oferece se Level < nível do herói - 3 (PawnLevelUpFrame) e o quartel alcança
     if grade < level or int(tpl["Level"]) >= snap.leader.grades - 3 or snap.character.strategy < cost:
-        s.log.info("5158 recusado", pedido=str(msg), quartel=grade, ruh=snap.character.strategy)
+        s.log.info("5158 recusado", pedido=str(msg), quartel=grade, daru=snap.character.strategy)
         return
     snap.character.strategy -= cost
     pawn.template_id = int(nxt["TemplateId"])
@@ -182,14 +183,13 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     _player(s)
     send_pawn(s, pawn)
     _army(s)
-    castle_yield(s)
-    send_quests(s, quests)
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{nxt['PawnName']} successfully upgraded to Lvl. {level}"))
 
 
 @router.on(8580)
 async def pawn_change(s: GameSession, msg: pb.PawnChangeMsg) -> None:
     """Troca as especialidades de dois tipos de nível >= 10: 200 diamantes (payType 1; 3 = vinculado
-    primeiro) ou 2.000.000 de Ruh (2). Resposta: 3 e 116 de cada tropa (dedução)."""
+    primeiro) ou 2.000.000 de Daru (2). Resposta: 3 e 116 de cada tropa (dedução)."""
     snap = s.snapshot
     assert snap is not None
     a, t = current_pawn(s, msg.curPawnTempId), current_pawn(s, msg.tarPawnTempId)
@@ -223,7 +223,7 @@ def special_pick(templates: GameTemplates, master_type: str, grade: int) -> Row 
 
 @router.on(8455)
 async def comprehend(s: GameSession, msg: pb.ComprehendMsg) -> None:
-    """Sorteia uma especialidade (1.000.000 de Ruh) em ``comprehednTempIds``; cada tentativa enche a
+    """Sorteia uma especialidade (1.000.000 de Daru) em ``comprehednTempIds``; cada tentativa enche a
     bênção, e com ela cheia o sorteio sobe um grau. Resposta: 3 e 116."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None

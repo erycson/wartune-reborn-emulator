@@ -1,5 +1,5 @@
 """Loja do labirinto (ShopType 4): a compra com Crypt Tokens (208009, a coluna ``MazeCoin``) contra a captura
-``yeralti_labirent_marketi_alisveris`` (5154 goodId 105 e 110), e o andar que o cliente esconde (GoodsItem.as:380)."""
+``yeralti_labirent_marketi_alisveris`` (só turco) (5154 goodId 105 e 110), e o andar que o cliente esconde (GoodsItem.as:380)."""
 
 from pathlib import Path
 

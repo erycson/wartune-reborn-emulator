@@ -83,7 +83,7 @@ async def fashion_special(s: GameSession, msg: pb.FashionMsg) -> None:
 
 @router.on(8781)
 async def fashion_appraisal(s: GameSession, msg: pb.FashionMsg) -> None:
-    # a avaliação sorteia o appraisalSkill da moda (5211, 5260 nas capturas) por uma tabela que não
+    # a avaliação sorteia o appraisalSkill da moda (5211, 5260; só turco: login.json #44) por uma tabela que não
     # está nos templates: recusa e reenvia o livro como está
     snap = s.snapshot
     assert snap is not None

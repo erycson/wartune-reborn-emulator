@@ -174,7 +174,7 @@ async def test_second_map_to_castle(tmp_path: Path) -> None:
         c.send(8281)
         got = await g.until(104)
         assert codes(got) == [109, 109, 100, 4130, 104]
-        # replay #578: o Er vem com 0 e libera o "Asker Al" do quartel (canRecruit no cliente)
+        # inglesa #578-#581: o Lancer vem com 0 e libera o recrutar do quartel (canRecruit no cliente)
         pawn = pb.ArmyPawnUpdatedMsg.FromString(got[2].body).armyPawn
         assert [(p.tempateId, p.ownPawns) for p in pawn] == [(10101, 0)]
 

@@ -5,8 +5,8 @@ Regra da troca e da cascata em ``game/gemmaze.py``. O estado fica numa linha ``E
 ``gemmaze``, ``text`` em JSON). Cada pedido valida tudo antes, muda o snapshot, grava uma vez e só então
 manda os pacotes.
 
-Fontes: *(visto)* captura ``av_askeri_ve_odul_toplama.json`` (4922, 4923 por passo, 4924 depois de cada
-movimento, 115 da bolsa 24 e o "Başarıyla alındı!" do 9517) e o login da replay (4922 de personagem novo);
+Fontes: *(visto, só turco)* captura ``av_askeri_ve_odul_toplama.json`` (4922, 4923 por passo, 4924 depois de cada
+movimento, 115 da bolsa 24 e o aviso do 9517) e o login do replay turco (4922 de personagem novo);
 *(cliente)* ``GemMazeManager``, ``GemMazeView``, ``GemMazeFrame`` (compra de movimentos), ``GemMazeBagView``.
 """
 
@@ -33,7 +33,9 @@ from .player import alert
 KEY = "gemmaze"  # EventState do tabuleiro (text = Game.dump)
 MAZE_SIZE = 48  # (cliente) GemMazeView: com 48 itens na bolsa a troca nem sai
 BOX_IDS = (2131035, 2131036, 2131037, 2131038, 2131039)  # (visto) 4922: as 5 caixas de tesouro do labirinto
-OP_OK = 1  # (visto) playerId da 4924 em todas as capturas; o cliente só usa a mensagem para liberar a troca
+# (visto, só turco: av_askeri_ve_odul_toplama #11, #18...) playerId da 4924; o cliente só usa a mensagem para liberar
+# a troca
+OP_OK = 1
 S_INFO, S_UPDATE, S_OP, S_CHAT, S_ITEMS, S_BUY, S_BOX = 4922, 4923, 4924, 83, 115, 4927, 4928
 _rng = random.Random()
 
@@ -117,7 +119,7 @@ async def open_maze(s: GameSession, _: object) -> None:
 @router.on(9509)
 async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
     """Troca ``beginMark``/``endMark``: resolve a cascata inteira em memória, põe cada prêmio na bolsa 24,
-    grava uma vez e manda, por passo, o 115 (bolsa), os "Puan"/"EXP" e o 4923; por fim o 4924 libera a troca.
+    grava uma vez e manda, por passo, o 115 (bolsa), os "Points"/"EXP" e o 4923; por fim o 4924 libera a troca.
     Pedido inválido ou bolsa sem espaço para os prêmios: nada muda e só o 4924 (o cliente não trava)."""
     snap = _snap(s)
     now = s.ctx.clock.now()
@@ -135,7 +137,7 @@ async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
         game.exp += step.exp
         items = _add_maze(snap, templates, step.reward, step.count)
         changed += [i for i in items if i not in changed]
-        out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Puan {step.points}")))
+        out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points {step.points}")))  # (só turco: "Puan")
         out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"EXP {step.exp}")))
         out.append((S_ITEMS, _items_msg(items, s.player_id)))  # montado agora: a pilha muda no passo seguinte
         out.append((S_UPDATE, _update_msg(step, game)))
@@ -265,8 +267,9 @@ async def get_all(s: GameSession, _: object) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """Login: o 4922 só quando a conta já tem tabuleiro gravado. O login.json (4638 e 4640, #93-94) não tem
-    nenhum 4922; o replay (pacotes 10 e 12, depois do 4900) tem, com o tabuleiro já aberto (*dedução*). Não grava."""
+    """Login: o 4922 só quando a conta já tem tabuleiro gravado. O login inglês (tutorial_en, conta nova: 4900 no
+    #100) não tem nenhum 4922; o replay turco (pacotes 10 e 12, depois do 4900) tem, com o tabuleiro já aberto
+    (*dedução*). Não grava."""
     snap = _snap(s)
     if ev.peek(snap, KEY) is not None:
         _send(s, S_INFO, _info_msg(_game(snap, s.ctx.clock.now())))

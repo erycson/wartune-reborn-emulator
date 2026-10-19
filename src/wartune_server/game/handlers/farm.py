@@ -34,7 +34,7 @@ BUG_PARA1 = 1  # Para1 da praga: vale a fazenda própria ou de amigo (QuestTemps
 OWN_FARM, FRIEND_FARM = 0, 1  # Para1 do tipo 60: 263/860 a própria, 266/861 a de amigo
 OWN_TREE, FRIEND_TREE = 1, 0  # Para1 do tipo 20: 260 a própria, 22/261/271 a de amigo
 MAX_IDS = 100  # listas de amigos que o cliente manda (8219/8231)
-REVIVE_BACK = timedelta(minutes=1)  # (visto) ciftlik #88-#89: reviver às 20:22:41 dá matureTime 20:21:42
+REVIVE_BACK = timedelta(minutes=1)  # (visto, só turco: ciftlik #88-#89) reviver às 20:22:41 dá matureTime 20:21:42
 
 
 def _config(s: GameSession, name: str, default: int) -> int:
@@ -272,8 +272,8 @@ async def _steal(
 async def _revive(
     s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
 ) -> bool:
-    """Revive a planta morta do amigo (só amigo revive: "Dead crops must be revived by friends"). (visto)
-    ciftlik #88-#105: só o ``matureTime`` muda, para 1 minuto antes de agora; produção, roubos e pragas ficam.
+    """Revive a planta morta do amigo (só amigo revive: "Dead crops must be revived by friends"). (visto, só
+    turco: ciftlik #88-#105) só o ``matureTime`` muda, para 1 minuto antes de agora; produção, roubos e pragas ficam.
     EXP ``FarmCrop_Operate_GP`` (expByOper, caso 6)."""
     assert snap.castle is not None
     now = s.ctx.clock.now()
@@ -318,7 +318,7 @@ async def _clear(
 
 @router.on(15017)
 async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
-    """Rega a própria árvore a cada 10 minutos, 3 vezes por dia (ciftlik.json #5-#10: ouro, energia e EXP da
+    """Rega a própria árvore a cada 10 minutos, 3 vezes por dia (só turco: ciftlik #5-#10: ouro, energia e EXP da
     fazenda); com ``userId`` de amigo, a árvore dele (``_water_friend``)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
@@ -330,7 +330,8 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     if farm.tree_left(castle, now) > 0 or castle.tree_fruit > 0 or castle.tree_water_today >= farm.OWN_TREE_DAILY:
         s.log.info("15017 recusado", motivo="em espera, com fruto ou 3 no dia", hoje=castle.tree_water_today)
         return
-    # ouro = nível do dono x 20: visto em 2 capturas (220 no nível 11, 1.320 na árvore de amigo de nível 66)
+    # ouro = nível do dono x 20: (visto, só turco: ciftlik #5-#10 e #81-#87) 220 no nível 11, 1.320 na árvore de
+    # amigo de nível 66
     gold = c.grades * 20
     cs.settle(snap, templates, now)
     c.gold += gold
@@ -343,7 +344,8 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, OWN_TREE, 1)
     await s.ctx.characters.save(c, castle, *quests)
     cs.castle_yield(s)
-    # (visto) #8: 146 com as 3 linhas antes do 83; textos em inglês deduzidos (termo Energize do language.txt)
+    # (visto, só turco: ciftlik #8) 146 com as 3 linhas antes do 83; textos em inglês deduzidos (termo Energize do
+    # language.txt)
     s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=["Energy + 1", f"Gold + {gold:,}", "Farm EXP + 1"]))
     s.send(
         S_CHAT,
@@ -355,10 +357,11 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
 
 
 async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> None:
-    """Rega a árvore de um amigo: uma vez por dia por amigo, até 200 no dia (help do cliente). (visto) ciftlik
-    #81-#87: quem rega ganha ouro = nível do dono x 20 (1.320 com o dono no 66) e EXP da fazenda = grau de amizade
-    (+4 no grau 4; expByOper caso 8, dentro do teto do dia); a árvore do dono ganha 1 de carga (8 -> 9) sem mexer
-    no tempo de espera dele; a amizade sobe 1. Pacotes: 4158, 109, 147 (a dele, depois a minha), 165, 146, 83."""
+    """Rega a árvore de um amigo: uma vez por dia por amigo, até 200 no dia (help do cliente). (visto, só
+    turco: ciftlik #81-#87) quem rega ganha ouro = nível do dono x 20 (1.320 com o dono no 66) e EXP da fazenda =
+    grau de amizade (+4 no grau 4; expByOper caso 8, dentro do teto do dia); a árvore do dono ganha 1 de carga
+    (8 -> 9) sem mexer no tempo de espera dele; a amizade sobe 1. Pacotes: 4158, 109, 147 (a dele, depois a
+    minha), 165, 146, 83."""
     assert snap.castle is not None
     found = await _friend(s, user_id)
     c, castle, templates, now = snap.character, snap.castle, s.ctx.templates, s.ctx.clock.now()
@@ -426,7 +429,7 @@ async def friend_trees(s: GameSession, msg: pb.FriendTreeReq) -> None:
 
 @router.on(8231)
 async def friend_farm_state(s: GameSession, msg: pb.FriendUserIdsMsg) -> None:
-    """4190: o que dá para fazer em cada fazenda. O oficial põe o próprio jogador primeiro (ciftlik #3)."""
+    """4190: o que dá para fazer em cada fazenda. O oficial põe o próprio jogador primeiro (só turco: ciftlik #3)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     now = s.ctx.clock.now()

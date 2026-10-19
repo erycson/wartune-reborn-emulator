@@ -13,10 +13,10 @@ from wartune_server.game.handlers import forge
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 READY = 20000  # castelo pronto (como em test_castelo.py)
-WAND = 1013002  # Saray Rahibi Değneği: StrengthenMax 3, sem furos
+WAND = 1013002  # Templar Priest Staff: StrengthenMax 3, sem furos
 DRILL = 208004  # Elmas Delici
-ATTACK_1, ATTACK_2 = 2050101, 2050102  # Saldırı Taşı Lv.1 e Lv.2
-SWORD = 1011003  # Saray Süvarisi Kılıcı: refino com 2127001
+ATTACK_1, ATTACK_2 = 2050101, 2050102  # Lvl. 1 e Lvl. 2 Physical Attack Gem
+SWORD = 1011003  # Templar Knight Long Sword: refino com 2127001
 STONE_REFINE = 2127001
 
 
@@ -50,7 +50,7 @@ def _progress(got: list) -> tuple[int, int]:
 
 
 async def test_missao_12_acelerar_fila_de_predio_conta_uma_acao(tmp_path: Path) -> None:
-    """Missão 111 "Bekleme Süresini Kaldır" (Para1 1 = fila de prédio): o 5172 numa fila de prédio avança 1."""
+    """Missão 111 "Accelerate Building Construction Cooldown 1 time" (Para1 1 = fila de prédio): o 5172 numa fila de prédio avança 1."""
     async with logged_in(tmp_path, novice=READY) as g:
         snap = await _set(g, grades=2, gold=1000, point=5)
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 90101)))  # cria a fila de prédio
@@ -63,7 +63,7 @@ async def test_missao_12_acelerar_fila_de_predio_conta_uma_acao(tmp_path: Path) 
 
 
 async def test_missao_42_altin_topla_conta_cada_cobranca(tmp_path: Path) -> None:
-    """Missão 763 "Altın Topla" (Para1 0): a cobrança de ouro no conselho (8327) avança 1."""
+    """Missão 763 "Collect Levy" (Para1 0): a cobrança de ouro no conselho (8327) avança 1."""
     async with logged_in(tmp_path, novice=READY) as g:
         snap = await _set(g, grades=14, gold=0, point=100)
         snap.quests.append(Quest(g.user_id, 763, datetime.now(UTC)))
@@ -96,7 +96,7 @@ async def test_missao_17_reforco_conta_quando_o_grau_passa_do_minimo(
 
 
 async def test_missao_18_qualquer_mosaico_avanca(tmp_path: Path) -> None:
-    """Missão 281 (Detail: Atölye > Mozaik, "herhangi bir değerli taş"): o mosaico (5151) de qualquer pedra avança 1."""
+    """Missão 281 ("Socket a Gem", qualquer pedra): o mosaico (5151) de qualquer pedra avança 1."""
     async with logged_in(tmp_path, novice=19000) as g:
         me(g).character.gold = 1000
         wand = Item(g.user_id, WAND, bag_type=0, pos=0)
@@ -112,7 +112,7 @@ async def test_missao_18_qualquer_mosaico_avanca(tmp_path: Path) -> None:
 
 
 async def test_missao_19_compor_pedra_conta_so_pedra(tmp_path: Path) -> None:
-    """Missão 311 (Para1 0): 4 x Saldırı Taşı Lv.1 -> Lv.2 (receita 33) é pedra e avança 1."""
+    """Missão 311 (Para1 0): 4 x Lvl. 1 Physical Attack Gem -> Lvl. 2 (receita 33) é pedra e avança 1."""
     async with logged_in(tmp_path, novice=19000) as g:
         c = me(g).character
         c.gold, c.grades = 50000, 20
@@ -125,13 +125,13 @@ async def test_missao_19_compor_pedra_conta_so_pedra(tmp_path: Path) -> None:
         assert any(i.template_id == ATTACK_2 for i in me(g).items)
 
 
-async def test_missao_63_emek_orani_guarda_o_total_da_atividade(tmp_path: Path) -> None:
-    """Missão 863 "Emek Oranı" (Para2 20): vale o totalNum do 4152; login 5 + chat no mundo 5 = 10."""
+async def test_missao_63_devotion_guarda_o_total_da_atividade(tmp_path: Path) -> None:
+    """Missão 863 "Increasing Devotion (VIP Daily)" (Para2 20): vale o totalNum do 4152; login 5 + chat no mundo 5 = 10."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = await _set(g, grades=20)  # chat no mundo pede nível 20 (tutorial_en #2779)
         snap.quests.append(Quest(g.user_id, 863, datetime.now(UTC)))
 
-        g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Dünya Kanalında Sohbet"
+        g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Speak in world chat"
         got = await g.until(112)
         assert pb.LeedUpdatedRspMsg.FromString(next(p for p in got if p.code == 4152).body).totalNum == 10
         assert _progress(got) == (863, 10)
@@ -140,7 +140,7 @@ async def test_missao_63_emek_orani_guarda_o_total_da_atividade(tmp_path: Path) 
 
 
 async def test_missao_47_arita_conta_cada_sorteio(tmp_path: Path) -> None:
-    """Missão 769 "Ekipman Arıt" (Para1 0): o 8336 que gasta a pedra de refino avança 1."""
+    """Missão 769 "Equipment Refine" (Para1 0): o 8336 que gasta a pedra de refino avança 1."""
     async with logged_in(tmp_path, novice=19000) as g:
         sword = Item(g.user_id, SWORD, bag_type=0, pos=0, random_skill=70302)
         await put(g, sword, Item(g.user_id, STONE_REFINE, pos=0))

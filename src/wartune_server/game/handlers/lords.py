@@ -14,7 +14,7 @@ from ..session import GameSession
 S_MAIN, S_START, S_BET_LIST, S_AWARD_LIST, S_OPEN, S_CLOSE, S_LOCAL_FINAL = 4529, 4530, 4531, 4532, 4535, 4536, 4537
 S_TIMER, S_MATE_MAIN = 4776, 4799
 CLOSED = 0  # WarlordsModel.process READY
-LORDS_TIMER = 4  # TimerInfoMsg.type do 4776 na captura do login
+LORDS_TIMER = 4  # TimerInfoMsg.type do 4776 do login (tutorial_en #106)
 PAST = "2000-01-01 00:00:00"  # datas no passado: o botão da barra superior fica escondido
 
 

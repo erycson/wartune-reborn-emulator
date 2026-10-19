@@ -1,7 +1,7 @@
 """Mensagens do login montadas a partir do banco (``PlayerSnapshot``) + templates.
 
 Valores fixos vêm do que o servidor oficial manda para um personagem novo
-(captura em ``tests/fixtures/pcap_samples.json``).
+(só turco: captura em ``tests/fixtures/pcap_samples.json``; trocar pelo login da captura inglesa).
 """
 
 from __future__ import annotations
@@ -84,7 +84,7 @@ class HeroStats:
     def of(cls, hero: Hero, tpl: HeroTemplate, bonuses: Sequence[Row] = ()) -> HeroStats:
         """``bonuses``: linhas de template dos equipamentos e dos atributos sorteados deles.
 
-        Fórmulas tiradas da captura (maga níveis 1, 3 e 5, com e sem arma); o cliente não calcula
+        Fórmulas conferidas na captura inglesa (maga níveis 1 a 10, com e sem equipamento); o cliente não calcula
         nada disso, o servidor manda pronto.
         """
         own = {"Power": hero.power, "Agility": hero.agility, "Intellect": hero.intellect}
@@ -266,7 +266,7 @@ def army_msg(
 
 
 def brief_army(full: pb.ArmyArmyMsg, job: int, hero_template: int, state: int) -> pb.ArmyArmyMsg:
-    """Exército compacto do 140/169 (replay #709, #715): sem armyPawn e sem simpleHeroInfo, com ``heroTempId`` e
+    """Exército compacto do 140/169 (inglês #5): sem armyPawn e sem simpleHeroInfo, com ``heroTempId`` e
     ``job``. O cliente (ThaneInfoHelper.readOuterCityArmyInfo) grava ``heroTempId`` no template do herói: sem ele
     vem 0, o herói fica sem template (corpo some do mapa e a luta trava em ResourceModel.loadBattleJobUI)."""
     return pb.ArmyArmyMsg(

@@ -30,12 +30,13 @@ Cliente: `m2/scripts/map/space/manager/SpaceSocketManager.as`, `SpaceManager.as`
 
 *(visto)*:
 
-- `login.json`:
-  - #100: 4598.
-  - #104: 4595 com o próprio jogador em (72,74).
-  - #131: 4597 com 14 jogadores.
-  - #152: 4607.
-- `gokyuzu_sehrine_teleport_ve_yurume_sistemi.json`:
+- inglesa:
+  - #7: 4595 com o próprio jogador em (76,76).
+  - #91: 4598.
+  - #2126: 4597 com 12 jogadores (na volta da pedreira 6001).
+  - #2147 e #2148: um 4597 com 1 jogador, seguido de um 4594 com a posição dele.
+- só turco: `login.json` #152: 4607.
+- só turco: `gokyuzu_sehrine_teleport_ve_yurume_sistemi.json`:
   - #1: 4606.
   - #3 e #4: 4607.
   - #5 e #6: um 4597 com 3 jogadores, seguido de um 4594 com as 3 posições.
@@ -80,8 +81,8 @@ Atualizações vivas:
 - **4167** `PosMoveMsg`: rota de outro exército.
 - **4168** `ArmyRemoveMsg`: o exército saiu.
 
-*(visto)* `cevre_altin_madeni_savasi.json` #11: três castelos na cidade externa. Dois são de robôs
-(ids 13000027xx), ou seja, o oficial preenche as vagas com robôs.
+*(visto)* inglesa #718: três castelos na cidade externa. Dois são de robôs
+(ids 13000014xx), ou seja, o oficial preenche as vagas com robôs.
 
 Clicar num castelo dá estas opções:
 
@@ -174,7 +175,7 @@ Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/han
 - `space.refresh_look(s)` manda `HeroEquUpdatedMsg{playerId, armStr, clothStr}` aos outros do space.
 - O 5005 (mochila <-> herói) chama essa função. Quem implementar moda chama a mesma `refresh_look`.
 - Asa, chapéu e moda vão vazios até existirem.
-- Fontes: *(visto)* `exp_kitabi_...json` #22; *(cliente)* `SpaceSocketManager.as:186`.
+- Fontes: *(visto)* só turco: `exp_kitabi_...json` #22; *(cliente)* `SpaceSocketManager.as:186`.
 
 **Nós (8692)**
 - Vêm de `MapNodeInfos` do tempinfos.xml com `MapId=10000` (70 nós).
@@ -188,7 +189,7 @@ Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/han
     cliente abre a janela (`Param3` = "frameType,título,nível").
 
 **Ilha dos pets (20001)**
-- Entra pelo nó 5 ou pelo 8694, com a sequência da captura `peri_adasi_tp.json` #3-8:
+- Entra pelo nó 5 ou pelo 8694, com a sequência da captura `peri_adasi_tp.json` #3-8 (só turco):
   1. 140
   2. 125 `{createdType 1, campaignId 20001}`
   3. 21, com o jogador em (141,171)
@@ -199,7 +200,7 @@ Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/han
   confirmação. O servidor responde 4606 e o jogador reaparece para os outros. O 8688 também traz de volta.
   - ponytail: o 5025 só é tratado na ilha dos pets; o 5025 das salas em grupo é do sistema de salas (C).
 - O 8694 também confere a distância até o nó de teleporte.
-- No login vai 4686 `PetIslandDefendStateMsg` zerado, ou seja, sem invasão do chefe (`login.json` #39).
+- No login vai 4686 `PetIslandDefendStateMsg` zerado, ou seja, sem invasão do chefe (inglesa #44).
 - ponytail: mapa por sessão, sem outros jogadores. Pets selvagens (masterType 91), coleta (1003), loja
   (888) e o chefe dependem do sistema de pets/campanha.
 

@@ -1,7 +1,7 @@
 # Drops das masmorras
 
 A carta do fim da etapa é sorteada pela tabela `campaign_cards` (migração 0034), no formato (campanha, item,
-peso, fonte). O peso é quantas vezes o item saiu nas capturas, inglesa e turca. Os itens da coluna `Item` de
+peso, fonte). O peso é quantas vezes o item saiu nas capturas (inglesa; as cartas 1080013 e 1080002 só turco: replay). Os itens da coluna `Item` de
 `Campaigns` que nunca foram vistos pesam 1. Uma campanha sem linhas na tabela usa a coluna `Item` com pesos iguais
 (`game/drops.py`). As tabelas por campanha abaixo são um retrato do template, para conferir com vídeos e capturas.
 
@@ -10,7 +10,7 @@ peso, fonte). O peso é quantas vezes o item saiu nas capturas, inglesa e turca.
 - *(visto)* Inglesa #1102-#1123 (1001): 135 (5 cartas, `payCardCount` 5, `price` 0), depois 5122 → 115, 26 e 83
   "Received: Banshee Plume x1". O 134 só vem como resposta do 5180.
 - *(visto)* Cartas da 1001: 1080012 Banshee Plume duas vezes (inglesa #1122 e #1544, mago); 1080013 e 1080002 uma
-  vez cada (turca #1241 e #1744).
+  vez cada (só turco: replay #1241 e #1744).
 - *(visto)* Cartas da 1002: 2040102 Lvl. 2 Luck Stone nas duas (#2727, #3181). Esse item **não está** no
   `CampaignInfo.Item` da 1002, então o sorteio do oficial não é a lista do template.
 - *(dedução)* O peso vem da contagem dessa amostra pequena. Não há filtro de classe: o mesmo personagem tirou
@@ -33,20 +33,20 @@ Drops das lutas, por nó:
 
 | Nó | Item | Quantidade | Chance | Visto em |
 |---|---|---|---|---|
-| 102102 | Worg Tooth (2100001) | 2 | 1 | inglesa e turca (#1360) |
-| 102102 | Lvl. 1 Luck Stone (2040101) | 1 | 0,5 *(dedução)* | só na turca (#1355, #1386); a inglesa não deu |
+| 102102 | Worg Tooth (2100001) | 2 | 1 | inglesa #1216-#1220 |
+| 102102 | Lvl. 1 Luck Stone (2040101) | 1 | 0,5 *(dedução)* | (só turco: replay #1355, #1386); a inglesa não deu |
 | 102103 | Worg Tooth (2100001) | 2 | 1 | inglesa #1275-#1280 |
-| 102105 | Worg Tooth (2100001) | 3 | 1 | inglesa e turca |
+| 102105 | Worg Tooth (2100001) | 3 | 1 | inglesa #1355-#1358 |
 | 102106 | Worg Tooth (2100001) | 3 | 1 | inglesa #1397-#1418 |
-| 1011 (101102 a 101109) e 102109 | nenhum | — | — | sem item nas duas capturas |
+| 1011 (101102 a 101109) e 102109 | nenhum | — | — | sem item na inglesa |
 
 Cartas:
 
 | Item | Nome | Classe | Atributos | Peso | Visto em |
 |---|---|---|---|---|---|
-| 1080003 | Kazılmış Damga | guerreiro/arqueiro | 3 | 1 |  |
-| 1080013 | Karanlık İzler | mago | 3 | 1 | turca #1241 |
-| 1080002 | Parlak İşaret | guerreiro/arqueiro | 1 | 1 | turca #1744 |
+| 1080003 | Stigma Crest | guerreiro/arqueiro | 3 | 1 |  |
+| 1080013 | Duskan Glyph | mago | 3 | 1 | (só turco: replay #1241) |
+| 1080002 | Coruscan Crest | guerreiro/arqueiro | 1 | 1 | (só turco: replay #1744) |
 | 1080012 | Banshee Plume | mago | 1 | 2 | inglesa #1122, #1544 |
 | 2040101 | Lvl. 1 Luck Stone | todas | 0 | 1 |  |
 
@@ -60,1050 +60,1050 @@ a tumba 114105 dá 5.000 Daru.
 | Item | Nome | Classe | Atributos | Peso | Visto em |
 |---|---|---|---|---|---|
 | 2040102 | Lvl. 2 Luck Stone | todas | 0 | 2 | inglesa #2727, #3181 (fora do `CampaignInfo.Item`) |
-| 1011104 | Dev Kılıç | guerreiro | 3 | 1 |  |
-| 1012104 | Bıçak Kemik Rüzgar Yaran | arqueiro | 5 | 1 |  |
-| 1013104 | Kan Ruhu Asa | mago | 5 | 1 |  |
-| 1011102 | Adalet Kılıcı | guerreiro | 1 | 1 |  |
-| 1012102 | Karanlık Kemik Yayı | arqueiro | 1 | 1 |  |
-| 1013102 | Ay Taşı Değneği | mago | 1 | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 | 1 |  |
+| 1011104 | Indomitable Long Sword | guerreiro | 3 | 1 |  |
+| 1012104 | Crackwind Bone Bow | arqueiro | 5 | 1 |  |
+| 1013104 | Summoner's Blood Staff | mago | 5 | 1 |  |
+| 1011102 | Ethereal Battle Sword | guerreiro | 1 | 1 |  |
+| 1012102 | Tenebra Bone Bow | arqueiro | 1 | 1 |  |
+| 1013102 | Lunalurite Staff | mago | 1 | 1 |  |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 | 1 |  |
 
 ## 6001 Resource Quarry (pedreira)
 
 Não tem carta. Cada colheita (5032 numa pilha, sonType 2352) dá Wood (2100022) x2 ou x3, e a luta do 8699 dá
 Wood x18 (inglesa #2050-#2066), ganhando ou perdendo.
 
-## 1003 Juits Dış Saray (Lv 11, solo)
+## 1003 Temple of Ibalize (Outer) (Lv 11, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1030103 | Dövüşçü Kaskı | todas | 3 |  |
-| 1030102 | Sadık Şapkası | todas | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| 1030103 | Martial Helmet | todas | 3 |  |
+| 1030102 | Wizard Cap | todas | 1 |  |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 |  |
 
-## 1004 Juits Sarayı (Lv 13, solo)
+## 1004 Temple of Ibalize (Inner) (Lv 13, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070103 | Üzücü Yüzük | todas | 3 |  |
-| 1070102 | Şifalı Yüzük | todas | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| 1070103 | Lamenter's Band | todas | 3 |  |
+| 1070102 | Healing Ring | todas | 1 |  |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 |  |
 
-## 1005 Vahşiler Düzlüğü (Lv 15, solo)
+## 1005 Orc Plains (Lv 15, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041103 | Muhafızın Zırhı | guerreiro | 3 |  |
-| 1042103 | Savunmacı Zırhı | arqueiro | 3 |  |
-| 1043103 | Gizemli Rozet Pelerini | mago | 3 |  |
-| 1043102 | Eski Pelerin | mago | 1 |  |
-| 1042102 | Canavar Savaş Zırhı | arqueiro | 1 |  |
-| 1041102 | Boğa Başlılar Zırhı | guerreiro | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| 1041103 | Sentinel Armor | guerreiro | 3 |  |
+| 1042103 | Defender's Leather Armor | arqueiro | 3 |  |
+| 1043103 | Regalian Robe | mago | 3 |  |
+| 1043102 | Elders Robe | mago | 1 |  |
+| 1042102 | Tharg Battle Leather Armor | arqueiro | 1 |  |
+| 1041102 | Tauran Armor | guerreiro | 1 |  |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 |  |
 
-## 1006 Kabile Dağlığı (Lv 17, solo)
+## 1006 Tribal Plateau (Lv 17, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1060103 | Kanlı Lanet Kolyesi | todas | 3 |  |
-| 1060102 | Cin Kolyesi | todas | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| 1060103 | Blood Priest Necklace | todas | 3 |  |
+| 1060102 | Elven Pendant | todas | 1 |  |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 |  |
 
-## 1007 Carlo Kampı (Lv 19, solo)
+## 1007 Camp Calorn (Lv 19, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080103 | Süvari Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080113 | Kanlı Canavar Simgesi | mago | 3 |  |
-| 1080102 | Öncü Madalyası | guerreiro/arqueiro | 1 |  |
-| 1080112 | Uçurum Kolyesi | mago | 1 |  |
-| 2040101 | Şans Taşı Lv.1 | todas | 0 |  |
+| 1080103 | Knight Crest | guerreiro/arqueiro | 3 |  |
+| 1080113 | Gorefiend Talisman | mago | 3 |  |
+| 1080102 | Harbinger Medal | guerreiro/arqueiro | 1 |  |
+| 1080112 | Abyssal Necklace | mago | 1 |  |
+| 2040101 | Lvl. 1 Luck Stone | todas | 0 |  |
 
-## 1101 Derin Uçurum (Lv 20, solo)
+## 1101 Bretheran Abyss (Lv 20, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1011203 | Çılgın Kılıç | guerreiro | 3 |  |
-| 1012203 | Uzun Savaş Oku | arqueiro | 3 |  |
-| 1013203 | Sihirli Kan Asa | mago | 3 |  |
-| 1011202 | Mezarlık Kılıcı | guerreiro | 1 |  |
-| 1012202 | Uzun Kertenkele Oku | arqueiro | 1 |  |
-| 1013202 | Büyük Savaş Asası | mago | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1011203 | Berseker Rune Sword | guerreiro | 3 |  |
+| 1012203 | Battalion Long Bow | arqueiro | 3 |  |
+| 1013203 | Bloodforged Staff | mago | 3 |  |
+| 1011202 | Vigilante Rune Sword | guerreiro | 1 |  |
+| 1012202 | Daradon Long Bow | arqueiro | 1 |  |
+| 1013202 | Battle Staff | mago | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1102 Bağırma Bataklığı (Lv 21, solo)
+## 1102 Roaring Wetlands (Lv 21, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1030203 | Uçurum Gözü Şapkası | todas | 3 |  |
-| 1030202 | Süvari Kaskı | todas | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1030203 | Profundity Hood | todas | 3 |  |
+| 1030202 | Knight's Helmet | todas | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1103 Seher Savaş Alanı (Lv 23, solo)
+## 1103 Duskin Arena (Lv 23, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070203 | Gölge Yüzüğü | todas | 3 |  |
-| 1070202 | Dev Taş Yüzüğü | todas | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1070203 | Leonopteryx Ring | todas | 3 |  |
+| 1070202 | Crag Ring | todas | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1104 Yılan Kartal Yuvası (Lv 23, solo)
+## 1104 Serpent's Den (Lv 23, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070203 | Gölge Yüzüğü | todas | 3 |  |
-| 1070202 | Dev Taş Yüzüğü | todas | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1070203 | Leonopteryx Ring | todas | 3 |  |
+| 1070202 | Crag Ring | todas | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1105 Karanlık Orman (Lv 24, solo)
+## 1105 Forest of Doom (Lv 24, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041203 | Saldırı Zırhı | guerreiro | 3 |  |
-| 1042203 | Canavar Avcısı Zırhı | arqueiro | 3 |  |
-| 1043203 | Kara Yolculuk Pelerin | mago | 3 |  |
-| 1041202 | Şanslı Zırh | guerreiro | 1 |  |
-| 1042202 | Öncü Koruma Zırhı | arqueiro | 1 |  |
-| 1043202 | Gecenin Büyüsü Pelerini | mago | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1041203 | Stormer's Chainmail | guerreiro | 3 |  |
+| 1042203 | Magican Breasplate | arqueiro | 3 |  |
+| 1043203 | Dakan Walker's Robe | mago | 3 |  |
+| 1041202 | Panegyre Chainmail | guerreiro | 1 |  |
+| 1042202 | Harbinger Breastplate | arqueiro | 1 |  |
+| 1043202 | Night Veil Robe | mago | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1106 Loya Köyü (Lv 26, solo)
+## 1106 Edena Village (Lv 26, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1060203 | Unutulmuş Kolye | todas | 3 |  |
-| 1060202 | Lanetli Kolye | todas | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1060203 | Forsaken Pendant | todas | 3 |  |
+| 1060202 | Maledine Necklace | todas | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1107 Hedef Uçurum (Lv 28, solo)
+## 1107 Termini Cliff (Lv 28, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080203 | Sönmez Ruh Taşı | guerreiro/arqueiro | 3 |  |
-| 1080213 | Unutulmuş Sihirli Göz | mago | 3 |  |
-| 1080202 | Nefret Kalbi | guerreiro/arqueiro | 1 |  |
-| 1080212 | Lanet Simgesi | mago | 1 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040102 | Şans Taşı Lv.2 | todas | 0 |  |
+| 1080203 | Immortal Soul Stone | guerreiro/arqueiro | 3 |  |
+| 1080213 | Eye of the Forgotten | mago | 3 |  |
+| 1080202 | Loathsome Heart | guerreiro/arqueiro | 1 |  |
+| 1080212 | Cursed Crest | mago | 1 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040102 | Lvl. 2 Luck Stone | todas | 0 |  |
 
-## 1201 Ölüm Perisi Sulağı (Lv 30, solo)
+## 1201 Banshee Wetlands (Lv 30, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1011303 | Ağlayan Cadı Bıçağı | guerreiro | 3 |  |
-| 1012303 | Suikastçı Yayı | arqueiro | 3 |  |
-| 1013303 | Güçlü Ruh Değneği | mago | 3 |  |
-| 1011302 | Yıkıcı Bıçağı | guerreiro | 1 |  |
-| 1012302 | Kızgın Alev Yayı | arqueiro | 1 |  |
-| 1013302 | Cüce Ustası Değneği | mago | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1011303 | Weeping Widow Battle Axe | guerreiro | 3 |  |
+| 1012303 | Assassin's Glyph Bow | arqueiro | 3 |  |
+| 1013303 | Enchanted Essence Staff | mago | 3 |  |
+| 1011302 | Destroyer Battle Axe | guerreiro | 1 |  |
+| 1012302 | Ragefire Glyph Bow | arqueiro | 1 |  |
+| 1013302 | Dwarven Warlock Stock | mago | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1202 Karanlık Bataklık (Lv 32, solo)
+## 1202 Delphinian Swamp (Lv 32, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1030303 | Deri Şapkası | todas | 3 |  |
-| 1030302 | Seyahat Şapkası | todas | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1030303 | Yaron Fur Cap | todas | 3 |  |
+| 1030302 | Traveller's Hood | todas | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1203 Ölüm Bataklığı (Lv 34, solo)
+## 1203 Swamp of the Undead (Lv 34, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070303 | Simgeli Yüzük | todas | 3 |  |
-| 1070302 | Buzlu Yüzük | todas | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1070303 | Heiro Ring | todas | 3 |  |
+| 1070302 | Hailstone Ring | todas | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1204 Huzur Gölü (Lv 34, solo)
+## 1204 Serenity Lake (Lv 34, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070303 | Simgeli Yüzük | todas | 3 |  |
-| 1070302 | Buzlu Yüzük | todas | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1070303 | Heiro Ring | todas | 3 |  |
+| 1070302 | Hailstone Ring | todas | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1205 Buda Türbesi (Lv 36, solo)
+## 1205 Shrine of Sakaiya (Lv 36, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041303 | Zincirli Akıncı Zırhı | guerreiro | 3 |  |
-| 1042303 | Şerefli Zırh | arqueiro | 3 |  |
-| 1043303 | Görkemli Pelerin | mago | 3 |  |
-| 1041302 | Gümüş Zırhı | guerreiro | 1 |  |
-| 1042302 | Korkusuz Işık Zırhı | arqueiro | 1 |  |
-| 1043302 | Karanlık Haberci Pelerini | mago | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1041303 | Stormbreaker Banded Mail | guerreiro | 3 |  |
+| 1042303 | Ilustran Light Armor | arqueiro | 3 |  |
+| 1043303 | Glitzton Robe | mago | 3 |  |
+| 1041302 | Mithril Banded Mail | guerreiro | 1 |  |
+| 1042302 | Intrepid Light Armor | arqueiro | 1 |  |
+| 1043302 | Dakan Angel Robe | mago | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1206 Ölümsüz Harabe (Lv 38, solo)
+## 1206 Immortal Ruins (Lv 38, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1060303 | Düğümlü Kolye | todas | 3 |  |
-| 1060302 | Tövbe Kolyesi | todas | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1060303 | Winder's Necklace | todas | 3 |  |
+| 1060302 | Repentor's Necklace | todas | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1207 Dinlenme Yeri (Lv 38, solo)
+## 1207 Boneyard (Lv 38, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080303 | Gölge Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080313 | Kaybolan Simge | mago | 3 |  |
-| 1080302 | Ölümsüz Oyma | guerreiro/arqueiro | 1 |  |
-| 1080312 | Üzücü İzleri | mago | 1 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
+| 1080303 | Umbral Crest | guerreiro/arqueiro | 3 |  |
+| 1080313 | Mark of the Lost | mago | 3 |  |
+| 1080302 | Undead Carving | guerreiro/arqueiro | 1 |  |
+| 1080312 | Repentor's Glyph | mago | 1 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
 
-## 1301 Alev Taşı (Lv 40, solo)
+## 1301 Blazing Desert (Lv 40, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1011403 | Sihirli Büyük Kılıç | guerreiro | 3 |  |
-| 1012403 | Antik Yay | arqueiro | 3 |  |
-| 1013403 | Gölge Değneği | mago | 3 |  |
-| 1011402 | Aydınlık Kılıcı | guerreiro | 1 |  |
-| 1012402 | Avcı Oku | arqueiro | 1 |  |
-| 1013402 | Yıldırım Değneği | mago | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1011403 | Magic Slayer Broadsword | guerreiro | 3 |  |
+| 1012403 | Ancient Battle Bow | arqueiro | 3 |  |
+| 1013403 | Phantom Shadow Staff | mago | 3 |  |
+| 1011402 | Luminite Broadsword | guerreiro | 1 |  |
+| 1012402 | Butcher's Bow | arqueiro | 1 |  |
+| 1013402 | Phantom Thunder Staff | mago | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1302 Lanetli Çöl (Lv 42, solo)
+## 1302 Desert of Curses (Lv 42, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1030403 | Hayal Kaskı | todas | 3 |  |
-| 1030402 | Yeşil Ejderha Kaskı | todas | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1030403 | Phantasmal Helmet | todas | 3 |  |
+| 1030402 | Green Dragon Feather Cap | todas | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1303 Alacakaranlık Savaş Alanı (Lv 44, solo)
+## 1303 Twilight Arena (Lv 44, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070403 | Kasırga Yüzüğü | todas | 3 |  |
-| 1070402 | Dağılmış Ruh Yüzüğü | todas | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1070403 | Hoarfrost Ring | todas | 3 |  |
+| 1070402 | Soul Catcher Ring | todas | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1304 Ölü kum tepesi (Lv 46, solo)
+## 1304 The Forgotten Dunes (Lv 46, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041403 | Asil Süvari Zırhı | guerreiro | 3 |  |
-| 1042403 | Tanrı Sözü Zırhı | arqueiro | 3 |  |
-| 1043403 | Sabah Meleği Pelerini | mago | 3 |  |
-| 1041402 | Ağır Canavar Zırhı | guerreiro | 1 |  |
-| 1042402 | Doğal Zırh | arqueiro | 1 |  |
-| 1043402 | Şafak Pelerini | mago | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1041403 | Imperial Knight Armor | guerreiro | 3 |  |
+| 1042403 | Oracle Light Armor | arqueiro | 3 |  |
+| 1043403 | Sunton Seer Robe | mago | 3 |  |
+| 1041402 | Slagard Heavy Armor | guerreiro | 1 |  |
+| 1042402 | Naruturan Light Armor | arqueiro | 1 |  |
+| 1043402 | Auroran Robe | mago | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1305 Umutsuzluk Çölü (Lv 46, solo)
+## 1305 Desert of Despair (Lv 46, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041403 | Asil Süvari Zırhı | guerreiro | 3 |  |
-| 1042403 | Tanrı Sözü Zırhı | arqueiro | 3 |  |
-| 1043403 | Sabah Meleği Pelerini | mago | 3 |  |
-| 1041402 | Ağır Canavar Zırhı | guerreiro | 1 |  |
-| 1042402 | Doğal Zırh | arqueiro | 1 |  |
-| 1043402 | Şafak Pelerini | mago | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1041403 | Imperial Knight Armor | guerreiro | 3 |  |
+| 1042403 | Oracle Light Armor | arqueiro | 3 |  |
+| 1043403 | Sunton Seer Robe | mago | 3 |  |
+| 1041402 | Slagard Heavy Armor | guerreiro | 1 |  |
+| 1042402 | Naruturan Light Armor | arqueiro | 1 |  |
+| 1043402 | Auroran Robe | mago | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1306 Kanat Bataklığı (Lv 47, solo)
+## 1306 Ukiah Sands (Lv 47, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1060403 | Katil Şeytan Kolyesi | todas | 3 |  |
-| 1060402 | Temizlik Kolyesi | todas | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1060403 | Manadon's Pendant | todas | 3 |  |
+| 1060402 | Purity Necklace | todas | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1307 Ölüm İllüzyonu (Lv 48, solo)
+## 1307 Reaper's Illusion (Lv 48, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080403 | Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080413 | Kraliçe Simgesi | mago | 3 |  |
-| 1080402 | Eşsiz Simge | guerreiro/arqueiro | 1 |  |
-| 1080412 | Kızgın Avcı Simgesi | mago | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1080403 | Twilight Talisman | guerreiro/arqueiro | 3 |  |
+| 1080413 | Ice Queen Talisman | mago | 3 |  |
+| 1080402 | Delphic Crest | guerreiro/arqueiro | 1 |  |
+| 1080412 | Growler Regalia | mago | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1308 Ejderha Mezarlığı (Lv 48, solo)
+## 1308 Buradoth's Grave (Lv 48, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080403 | Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080413 | Kraliçe Simgesi | mago | 3 |  |
-| 1080402 | Eşsiz Simge | guerreiro/arqueiro | 1 |  |
-| 1080412 | Kızgın Avcı Simgesi | mago | 1 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
+| 1080403 | Twilight Talisman | guerreiro/arqueiro | 3 |  |
+| 1080413 | Ice Queen Talisman | mago | 3 |  |
+| 1080402 | Delphic Crest | guerreiro/arqueiro | 1 |  |
+| 1080412 | Growler Regalia | mago | 1 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
 
-## 1401 Cesaret Denemesi (Lv 50, solo)
+## 1401 Desert of Palms (Lv 50, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1011503 | Kara Kristal Kılıcı | guerreiro | 3 |  |
-| 1012503 | Lanetli Kristal Yayı | arqueiro | 3 |  |
-| 1013503 | Ateş Kölesi Değneği | mago | 3 |  |
-| 1011502 | Kristal Kılıcı | guerreiro | 1 |  |
-| 1012502 | Goblin Yayı | arqueiro | 1 |  |
-| 1013502 | Magma Değneği | mago | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1011503 | Dakan Crystal Sword | guerreiro | 3 |  |
+| 1012503 | Cursed Crystalan Bow | arqueiro | 3 |  |
+| 1013503 | Fire Idol Staff | mago | 3 |  |
+| 1011502 | Crystalan Sword | guerreiro | 1 |  |
+| 1012502 | Goblin Bow | arqueiro | 1 |  |
+| 1013502 | Basalt Staff | mago | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1402 Kanlı Deneme (Lv 52, solo)
+## 1402 Blood Moorland (Lv 52, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1030503 | Ölümsüz Kask | todas | 3 |  |
-| 1030502 | Lanetli Göz Kaskı | todas | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1030503 | Undead Helmet | todas | 3 |  |
+| 1030502 | Satan's Eye Feather Cap | todas | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1403 Kabus Deneme (Lv 54, solo)
+## 1403 Nightmare Ruins (Lv 54, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070503 | Gezegen Yüzüğü | todas | 3 |  |
-| 1070502 | Sert Vuruş Yüzüğü | todas | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1070503 | Fallen Celestial Band | todas | 3 |  |
+| 1070502 | Algid Ring | todas | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1404 Şeytani Deneme (Lv 54, solo)
+## 1404 Demon's Rill (Lv 54, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070503 | Gezegen Yüzüğü | todas | 3 |  |
-| 1070502 | Sert Vuruş Yüzüğü | todas | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1070503 | Fallen Celestial Band | todas | 3 |  |
+| 1070502 | Algid Ring | todas | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1405 Kaos Deneme (Lv 56, solo)
+## 1405 Forest of Chaos (Lv 56, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041503 | Mavi Kristal Zırhı | guerreiro | 3 |  |
-| 1042503 | Öfkeli Zırhı | arqueiro | 3 |  |
-| 1043503 | Büyücü Pelerini | mago | 3 |  |
-| 1041502 | Ejderha Zırhı | guerreiro | 1 |  |
-| 1042502 | Zehirli Arı Zırhı | arqueiro | 1 |  |
-| 1043502 | Şeytan Pelerini | mago | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1041503 | Azure Armor | guerreiro | 3 |  |
+| 1042503 | Syr Light Armor | arqueiro | 3 |  |
+| 1043503 | Warlock Exile's Robe | mago | 3 |  |
+| 1041502 | Dragus Heavy Armor | guerreiro | 1 |  |
+| 1042502 | Vespine Light Armor | arqueiro | 1 |  |
+| 1043502 | Belial Robe | mago | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1406 Ölüm Deneme (Lv 56, solo)
+## 1406 Devil's Trail (Lv 56, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041503 | Mavi Kristal Zırhı | guerreiro | 3 |  |
-| 1042503 | Öfkeli Zırhı | arqueiro | 3 |  |
-| 1043503 | Büyücü Pelerini | mago | 3 |  |
-| 1041502 | Ejderha Zırhı | guerreiro | 1 |  |
-| 1042502 | Zehirli Arı Zırhı | arqueiro | 1 |  |
-| 1043502 | Şeytan Pelerini | mago | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1041503 | Azure Armor | guerreiro | 3 |  |
+| 1042503 | Syr Light Armor | arqueiro | 3 |  |
+| 1043503 | Warlock Exile's Robe | mago | 3 |  |
+| 1041502 | Dragus Heavy Armor | guerreiro | 1 |  |
+| 1042502 | Vespine Light Armor | arqueiro | 1 |  |
+| 1043502 | Belial Robe | mago | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1407 Ruh Deneme (Lv 58, solo)
+## 1407 Soul Trials (Lv 58, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080503 | Batan Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080513 | Element Fırtına Simgesi | mago | 3 |  |
-| 1080502 | Parlak Beyaz Simge | guerreiro/arqueiro | 1 |  |
-| 1080512 | Kardeş Simgesi | mago | 1 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1080503 | Duskan Talisman | guerreiro/arqueiro | 3 |  |
+| 1080513 | Elemental Storm Talisman | mago | 3 |  |
+| 1080502 | Purity Crest | guerreiro/arqueiro | 1 |  |
+| 1080512 | Prince Regalia | mago | 1 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1501 Gece Kanyonu (Lv 60, solo)
+## 1501 Bloodnite Canyon (Lv 60, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1011603 | Kırık Sihirli Kılıç | guerreiro | 3 |  |
-| 1012603 | Yıldızlı Sihirli Yay | arqueiro | 3 |  |
-| 1013603 | Hayalet Kadrosu | mago | 3 |  |
-| 1011602 | Uygulama Kılıcı | guerreiro | 1 |  |
-| 1012602 | Gece Klan Savaşı Yayı | arqueiro | 1 |  |
-| 1013602 | Meteor Kristali | mago | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1011603 | Soulrip Hexed Sword | guerreiro | 3 |  |
+| 1012603 | Hexed Crossbow | arqueiro | 3 |  |
+| 1013603 | Cosmic Beast's Staff | mago | 3 |  |
+| 1011602 | Iron Great Sword | guerreiro | 1 |  |
+| 1012602 | Duskan Crossbow | arqueiro | 1 |  |
+| 1013602 | Crystalan Staff | mago | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1502 Yanan Tapınak (Lv 62, solo)
+## 1502 Temple of Fire (Lv 62, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1030603 | Magma Arıtma Kaskı | todas | 3 |  |
-| 1030602 | Dev Kemik Kask | todas | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1030603 | Lava Helmet | todas | 3 |  |
+| 1030602 | Giant Bone Helmet | todas | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1503 Sihirli Deneme Alanı (Lv 64, solo)
+## 1503 Hall of Judgment (Lv 64, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070603 | Yeşil Ejderha Yüzüğü | todas | 3 |  |
-| 1070602 | Lanetli Yüzük | todas | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1070603 | Green Dragon Ring | todas | 3 |  |
+| 1070602 | Tiger-Eye Ring | todas | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1504 Ruh Mezarlığı (Lv 64, solo)
+## 1504 Soulless Tomb (Lv 64, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1070603 | Yeşil Ejderha Yüzüğü | todas | 3 |  |
-| 1070602 | Lanetli Yüzük | todas | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1070603 | Green Dragon Ring | todas | 3 |  |
+| 1070602 | Tiger-Eye Ring | todas | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1505 Yabani Tapınak (Lv 66, solo)
+## 1505 Palace of Corruption (Lv 66, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1041603 | Devlerin Savaş Zırhı | guerreiro | 3 |  |
-| 1042603 | Devlerin Savaş Zırhı | arqueiro | 3 |  |
-| 1043603 | Keskin Nişancı Zırhı | mago | 3 |  |
-| 1041602 | Ejderha Sırtı Zırhı | guerreiro | 1 |  |
-| 1042602 | Ejderha Sırtı Zırhı | arqueiro | 1 |  |
-| 1043602 | Adelan Koruma Zırhı | mago | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1041603 | Apostle Armor | guerreiro | 3 |  |
+| 1042603 | Heavy Leather Armor | arqueiro | 3 |  |
+| 1043603 | Sniper's Light Armor | mago | 3 |  |
+| 1041602 | Rebirth Necklace | guerreiro | 1 |  |
+| 1042602 | Dragon Bone Heavy Armor | arqueiro | 1 |  |
+| 1043602 | Sunbright Armor | mago | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1506 Azap Tahtı (Lv 68, solo)
+## 1506 Throne of Yaros (Lv 68, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080603 | Gravür Dev Ayı | guerreiro/arqueiro | 3 |  |
-| 1080613 | Alev Büyüsü Gravürü | mago | 3 |  |
-| 1080602 | Barbar Simgesi | guerreiro/arqueiro | 1 |  |
-| 1080612 | Büyük Büyücü Arması | mago | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1080603 | Giant Bear Jewel | guerreiro/arqueiro | 3 |  |
+| 1080613 | Jewel of Yaros | mago | 3 |  |
+| 1080602 | Mark of Savage | guerreiro/arqueiro | 1 |  |
+| 1080612 | Archmage Regalia | mago | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1507 Lanet Kaynağı (Lv 68, solo)
+## 1507 Cursed Lair (Lv 68, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1080603 | Gravür Dev Ayı | guerreiro/arqueiro | 3 |  |
-| 1080613 | Alev Büyüsü Gravürü | mago | 3 |  |
-| 1080602 | Barbar Simgesi | guerreiro/arqueiro | 1 |  |
-| 1080612 | Büyük Büyücü Arması | mago | 1 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1080603 | Giant Bear Jewel | guerreiro/arqueiro | 3 |  |
+| 1080613 | Jewel of Yaros | mago | 3 |  |
+| 1080602 | Mark of Savage | guerreiro/arqueiro | 1 |  |
+| 1080612 | Archmage Regalia | mago | 1 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1601 Sonsuz Tapınak (Lv 70, solo)
+## 1601 Eternal Sanctuary (Lv 70, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1011703 | Ejderha Dişi Kılıç | guerreiro | 3 |  |
-| 1012703 | Ölüm Perisi Yayı | arqueiro | 3 |  |
-| 1013703 | Antik Gizemli Değnek | mago | 3 |  |
-| 1030703 | Araf Kaskı | todas | 3 |  |
-| 1080703 | Girdap Madalyası | guerreiro/arqueiro | 3 |  |
-| 1080713 | Tabu Mühürü | mago | 3 |  |
-| 2129006 | Şeytan Taşı Lv.6 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1011703 | Emerald Terror | guerreiro | 3 |  |
+| 1012703 | Succubus' Crossbow | arqueiro | 3 |  |
+| 1013703 | Old Cabala Staff | mago | 3 |  |
+| 1030703 | Devil's Helmet | todas | 3 |  |
+| 1080703 | Vortex Medallion | guerreiro/arqueiro | 3 |  |
+| 1080713 | Jewel of Secrets | mago | 3 |  |
+| 2129006 | Lvl. 6 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 1602 Sonsuz Yol (Lv 70, solo)
+## 1602 Endless Path (Lv 70, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1060703 | Dansçı Kolyesi | todas | 3 |  |
-| 1070703 | Koç Kafası Yüzük | todas | 3 |  |
-| 1041703 | Kaos Zırhı | guerreiro | 3 |  |
-| 1042703 | Ejderha Kanı Zırhı | arqueiro | 3 |  |
-| 1043703 | Kara Ay Pelerini | mago | 3 |  |
-| 2129006 | Şeytan Taşı Lv.6 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
+| 1060703 | Dancer's Necklace | todas | 3 |  |
+| 1070703 | Tauren Skull Ring | todas | 3 |  |
+| 1041703 | Chaos Armor | guerreiro | 3 |  |
+| 1042703 | Dragon Blood Armor | arqueiro | 3 |  |
+| 1043703 | Oblivion Robe | mago | 3 |  |
+| 2129006 | Lvl. 6 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
 
-## 8200 Kule Kralı (Lv 38, grupo (4))
+## 8200 Tower of Kings (Lv 38, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2131002 | Kralın Bakır Hazinesi | todas | 0 |  |
+| 2131002 | Bronze King Chest | todas | 0 |  |
 
-## 8201 Deneme Kulesi (Lv 46, grupo (4))
+## 8201 The Spire (Lv 46, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2060045 | Deneme Hazinesi | todas | 0 |  |
+| 2060045 | Spire Chest | todas | 0 |  |
 
-## 8202 Kule Kralı (Lv 38, grupo (4))
+## 8202 Tower of Kings (Lv 38, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2131003 | Kralın Gümüş Hazinesi | todas | 0 |  |
+| 2131003 | Silver King Chest | todas | 0 |  |
 
-## 8203 Kule Kralı (Lv 38, grupo (4))
+## 8203 Tower of Kings (Lv 38, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2131004 | Kralın Altın Hazinesi | todas | 0 |  |
+| 2131004 | Gold King Chest | todas | 0 |  |
 
-## 8204 Kule Kralı (Lv 38, grupo (4))
+## 8204 Tower of Kings (Lv 38, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2131005 | Kralın Elmas Hazinesi | todas | 0 |  |
+| 2131005 | Diamond King Chest | todas | 0 |  |
 
-## 9000 Saklı Orman (Lv 20, grupo (4))
+## 9000 Nether Forest (Lv 20, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991011 | İnanç Kılıcı | guerreiro | 5 |  |
-| 1991013 | İnanç Kaskı | guerreiro | 5 |  |
-| 1992011 | Yayın Kaderi | arqueiro | 5 |  |
-| 1992013 | Başarı Kaderi Şapkası | arqueiro | 5 |  |
-| 1993011 | Şeref Değneği | mago | 5 |  |
-| 1993013 | Şeref Şapkası | mago | 5 |  |
-| 1011204 | Lanet Kılıcı | guerreiro | 5 |  |
-| 1012204 | Sonsuzluk Yayı | arqueiro | 5 |  |
-| 1013204 | Kaos Şeytanı Değneği | mago | 5 |  |
-| 1030204 | Sonsuz Güç Kaskı | todas | 5 |  |
-| 2128101 | Parçalanmış Silah | todas | 0 |  |
-| 2128103 | Parçalanmış Kask | todas | 0 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
-| 1011203 | Çılgın Kılıç | guerreiro | 3 |  |
-| 1012203 | Uzun Savaş Oku | arqueiro | 3 |  |
-| 1013203 | Sihirli Kan Asa | mago | 3 |  |
-| 1030203 | Uçurum Gözü Şapkası | todas | 3 |  |
-| 1070203 | Gölge Yüzüğü | todas | 3 |  |
+| 1991011 | Gartan Sword | guerreiro | 5 |  |
+| 1991013 | Gartan Helmet | guerreiro | 5 |  |
+| 1992011 | Moirai Bow | arqueiro | 5 |  |
+| 1992013 | Moirai Helmet | arqueiro | 5 |  |
+| 1993011 | Gloridon Staff | mago | 5 |  |
+| 1993013 | Gloridon Hat | mago | 5 |  |
+| 1011204 | Soul Destroyer Sword | guerreiro | 5 |  |
+| 1012204 | Doomsday Bow | arqueiro | 5 |  |
+| 1013204 | Babelian Staff | mago | 5 |  |
+| 1030204 | Inifity Helmet | todas | 5 |  |
+| 2128101 | Broken Weapon | todas | 0 |  |
+| 2128103 | Broken Helmet | todas | 0 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
+| 1011203 | Berseker Rune Sword | guerreiro | 3 |  |
+| 1012203 | Battalion Long Bow | arqueiro | 3 |  |
+| 1013203 | Bloodforged Staff | mago | 3 |  |
+| 1030203 | Profundity Hood | todas | 3 |  |
+| 1070203 | Leonopteryx Ring | todas | 3 |  |
 
-## 9001 Büyük Kristal (Lv 25, grupo (4))
+## 9001 Claristun (Lv 25, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991014 | İnanç Zırhı | guerreiro | 5 |  |
-| 1991016 | İnanç Kolyesi | guerreiro | 5 |  |
-| 1992014 | Başarı Kaderi Zırhı | arqueiro | 5 |  |
-| 1992016 | Başarı Kaderi Zinciri | arqueiro | 5 |  |
-| 1993014 | Şeref Pelerini | mago | 5 |  |
-| 1993016 | Şeref Zinciri | mago | 5 |  |
-| 1041204 | Vahşi Kralı Zırhı | guerreiro | 5 |  |
-| 1042204 | İzinsizlik Zırhı | arqueiro | 5 |  |
-| 1043204 | Şeytanın Nefesi Pelerini | mago | 5 |  |
-| 1060204 | Umut Gözyaşı Kolyesi | todas | 5 |  |
-| 2128102 | Parçalanmış Zırh | todas | 0 |  |
-| 2128104 | Parçalanmış Kolye | todas | 0 |  |
-| 2128101 | Parçalanmış Silah | todas | 0 |  |
-| 2128103 | Parçalanmış Kask | todas | 0 |  |
-| 2129001 | Şeytan Taşı Lv.1 | todas | 0 |  |
-| 2040103 | Şans Taşı Lv.3 | todas | 0 |  |
-| 1041203 | Saldırı Zırhı | guerreiro | 3 |  |
-| 1042203 | Canavar Avcısı Zırhı | arqueiro | 3 |  |
-| 1043203 | Kara Yolculuk Pelerin | mago | 3 |  |
-| 1060203 | Unutulmuş Kolye | todas | 3 |  |
-| 1080203 | Sönmez Ruh Taşı | guerreiro/arqueiro | 3 |  |
-| 1080213 | Unutulmuş Sihirli Göz | mago | 3 |  |
+| 1991014 | Gartan Armor | guerreiro | 5 |  |
+| 1991016 | Gartan Necklace | guerreiro | 5 |  |
+| 1992014 | Moirai Armor | arqueiro | 5 |  |
+| 1992016 | Moirai Necklace | arqueiro | 5 |  |
+| 1993014 | Gloridon Robe | mago | 5 |  |
+| 1993016 | Gloridon Necklace | mago | 5 |  |
+| 1041204 | Imperial Heavy Armor | guerreiro | 5 |  |
+| 1042204 | Manon Seal Armor | arqueiro | 5 |  |
+| 1043204 | Burning Vestment | mago | 5 |  |
+| 1060204 | Murloc's Tears | todas | 5 |  |
+| 2128102 | Broken Armor | todas | 0 |  |
+| 2128104 | Broken Necklace | todas | 0 |  |
+| 2128101 | Broken Weapon | todas | 0 |  |
+| 2128103 | Broken Helmet | todas | 0 |  |
+| 2129001 | Lvl. 1 Crystaloid | todas | 0 |  |
+| 2040103 | Lvl. 3 Luck Stone | todas | 0 |  |
+| 1041203 | Stormer's Chainmail | guerreiro | 3 |  |
+| 1042203 | Magican Breasplate | arqueiro | 3 |  |
+| 1043203 | Dakan Walker's Robe | mago | 3 |  |
+| 1060203 | Forsaken Pendant | todas | 3 |  |
+| 1080203 | Immortal Soul Stone | guerreiro/arqueiro | 3 |  |
+| 1080213 | Eye of the Forgotten | mago | 3 |  |
 
-## 9002 Karanlık Mezarlık (Lv 30, grupo (4))
+## 9002 The Graveyard (Lv 30, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991021 | Korkusuz Kılıç | guerreiro | 5 |  |
-| 1991023 | Korkusuz Kask | guerreiro | 5 |  |
-| 1992021 | Rüzgar Ustanın Yayı | arqueiro | 5 |  |
-| 1992023 | Rüzgar Ustanın Şapkası | arqueiro | 5 |  |
-| 1993021 | Bilginin Değneği | mago | 5 |  |
-| 1993023 | Bilginin Şapkası | mago | 5 |  |
-| 1011304 | Şimşek Gölge Kılıcı | guerreiro | 5 |  |
-| 1012304 | Ejderha Yok Edici Ok | arqueiro | 5 |  |
-| 1013304 | Sakin Ruh Değneği | mago | 5 |  |
-| 1030304 | İmza Koruyucusu Kaskı | todas | 5 |  |
-| 2128201 | Eski Silah | todas | 0 |  |
-| 2128203 | Eski Kask | todas | 0 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
-| 1011303 | Ağlayan Cadı Bıçağı | guerreiro | 3 |  |
-| 1012303 | Suikastçı Yayı | arqueiro | 3 |  |
-| 1013303 | Güçlü Ruh Değneği | mago | 3 |  |
-| 1030303 | Deri Şapkası | todas | 3 |  |
-| 1070303 | Simgeli Yüzük | todas | 3 |  |
+| 1991021 | Valoran Sword | guerreiro | 5 |  |
+| 1991023 | Valoran Helmet | guerreiro | 5 |  |
+| 1992021 | Phoenix Bow | arqueiro | 5 |  |
+| 1992023 | Phoenix Cap | arqueiro | 5 |  |
+| 1993021 | Lorekeeper Staff | mago | 5 |  |
+| 1993023 | Lorekeeper Hat | mago | 5 |  |
+| 1011304 | Sacred Shadow Destroyer | guerreiro | 5 |  |
+| 1012304 | Sacred Dragonslayer Bow | arqueiro | 5 |  |
+| 1013304 | Requiem Staff | mago | 5 |  |
+| 1030304 | Sealer's Helmet | todas | 5 |  |
+| 2128201 | Worn Weapon | todas | 0 |  |
+| 2128203 | Worn Helmet | todas | 0 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
+| 1011303 | Weeping Widow Battle Axe | guerreiro | 3 |  |
+| 1012303 | Assassin's Glyph Bow | arqueiro | 3 |  |
+| 1013303 | Enchanted Essence Staff | mago | 3 |  |
+| 1030303 | Yaron Fur Cap | todas | 3 |  |
+| 1070303 | Heiro Ring | todas | 3 |  |
 
-## 9003 Kan Banyosu (Lv 35, grupo (4))
+## 9003 The Bloodlands (Lv 35, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991024 | Korkusuz Zırh | guerreiro | 5 |  |
-| 1991026 | Korkusuz Kalp | guerreiro | 5 |  |
-| 1992024 | Rüzgar Ustanın Zırhı | arqueiro | 5 |  |
-| 1992026 | Rüzgar Ustanın İnancı | arqueiro | 5 |  |
-| 1993024 | Bilginin Pelerini | mago | 5 |  |
-| 1993026 | Bilginin Yüreği | mago | 5 |  |
-| 1041304 | Kutsal Savaş Zırhı | guerreiro | 5 |  |
-| 1042304 | Rüzgar Yaratıcısı Zırhı | arqueiro | 5 |  |
-| 1043304 | Gizemli İzler Pelerini | mago | 5 |  |
-| 1060304 | Uçurum Kolyesi | todas | 5 |  |
-| 2128202 | Eski Zırh | todas | 0 |  |
-| 2128204 | Eski Kolye | todas | 0 |  |
-| 2128201 | Eski Silah | todas | 0 |  |
-| 2128203 | Eski Kask | todas | 0 |  |
-| 2129002 | Şeytan Taşı Lv.2 | todas | 0 |  |
-| 2040104 | Şans Taşı Lv.4 | todas | 0 |  |
-| 1041303 | Zincirli Akıncı Zırhı | guerreiro | 3 |  |
-| 1042303 | Şerefli Zırh | arqueiro | 3 |  |
-| 1043303 | Görkemli Pelerin | mago | 3 |  |
-| 1060303 | Düğümlü Kolye | todas | 3 |  |
-| 1080303 | Gölge Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080313 | Kaybolan Simge | mago | 3 |  |
+| 1991024 | Valoran Armor | guerreiro | 5 |  |
+| 1991026 | Valoran Brooch | guerreiro | 5 |  |
+| 1992024 | Phoenix Armor | arqueiro | 5 |  |
+| 1992026 | Phoenix Brooch | arqueiro | 5 |  |
+| 1993024 | Lorekeeper Robe | mago | 5 |  |
+| 1993026 | Lorekeeper Brooch | mago | 5 |  |
+| 1041304 | Apollo's Glory | guerreiro | 5 |  |
+| 1042304 | Skylorn Impenetrable Armor | arqueiro | 5 |  |
+| 1043304 | Arcanum Vestment | mago | 5 |  |
+| 1060304 | Void Pointer | todas | 5 |  |
+| 2128202 | Worn Armor | todas | 0 |  |
+| 2128204 | Worn Necklace | todas | 0 |  |
+| 2128201 | Worn Weapon | todas | 0 |  |
+| 2128203 | Worn Helmet | todas | 0 |  |
+| 2129002 | Lvl. 2 Crystaloid | todas | 0 |  |
+| 2040104 | Lvl. 4 Luck Stone | todas | 0 |  |
+| 1041303 | Stormbreaker Banded Mail | guerreiro | 3 |  |
+| 1042303 | Ilustran Light Armor | arqueiro | 3 |  |
+| 1043303 | Glitzton Robe | mago | 3 |  |
+| 1060303 | Winder's Necklace | todas | 3 |  |
+| 1080303 | Umbral Crest | guerreiro/arqueiro | 3 |  |
+| 1080313 | Mark of the Lost | mago | 3 |  |
 
-## 9004 Uçurum Kapısı (Lv 40, grupo (4))
+## 9004 The Void (Lv 40, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991031 | Büyük Usta Kılıcı | guerreiro | 5 |  |
-| 1991033 | Büyük Usta Kaskı | guerreiro | 5 |  |
-| 1992031 | İsabetli Yaycı Yayı | arqueiro | 5 |  |
-| 1992033 | İsabetli Yaycı Şapkası | arqueiro | 5 |  |
-| 1993031 | Element Ustası Değneği | mago | 5 |  |
-| 1993033 | Element Ustası Şapkası | mago | 5 |  |
-| 1011404 | Ejderha Kanı Bıçağı | guerreiro | 5 |  |
-| 1012404 | Parlak Ay Yayı | arqueiro | 5 |  |
-| 1013404 | Ejderha Pençesi Değneği | mago | 5 |  |
-| 1030404 | Lanet Temizleyicisi Kaskı | todas | 5 |  |
-| 2128301 | Paslanmış Silah | todas | 0 |  |
-| 2128303 | Paslanmış Kask | todas | 0 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1011403 | Sihirli Büyük Kılıç | guerreiro | 3 |  |
-| 1012403 | Antik Yay | arqueiro | 3 |  |
-| 1013403 | Gölge Değneği | mago | 3 |  |
-| 1030403 | Hayal Kaskı | todas | 3 |  |
-| 1070403 | Kasırga Yüzüğü | todas | 3 |  |
+| 1991031 | Crotian Sword | guerreiro | 5 |  |
+| 1991033 | Crotian Helmet | guerreiro | 5 |  |
+| 1992031 | Aerial Crossbow | arqueiro | 5 |  |
+| 1992033 | Aerial Cap | arqueiro | 5 |  |
+| 1993031 | Bender Staff | mago | 5 |  |
+| 1993033 | Bender Hat | mago | 5 |  |
+| 1011404 | Bloodsoaked Dragon Sword | guerreiro | 5 |  |
+| 1012404 | Crescent Star Bow | arqueiro | 5 |  |
+| 1013404 | Soul Collector Dragon Staff | mago | 5 |  |
+| 1030404 | Exorcist Cap | todas | 5 |  |
+| 2128301 | Dismal Weapon | todas | 0 |  |
+| 2128303 | Dismal Helmet | todas | 0 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1011403 | Magic Slayer Broadsword | guerreiro | 3 |  |
+| 1012403 | Ancient Battle Bow | arqueiro | 3 |  |
+| 1013403 | Phantom Shadow Staff | mago | 3 |  |
+| 1030403 | Phantasmal Helmet | todas | 3 |  |
+| 1070403 | Hoarfrost Ring | todas | 3 |  |
 
-## 9005 Çöl Kıyameti (Lv 45, grupo (4))
+## 9005 The Badlands (Lv 45, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991034 | Büyük Usta Zırhı | guerreiro | 5 |  |
-| 1991036 | Büyük Usta Ruhu | guerreiro | 5 |  |
-| 1992034 | İsabetli Yaycı Zırhı | arqueiro | 5 |  |
-| 1992036 | İsabetli Yaycı Ruhu | arqueiro | 5 |  |
-| 1993034 | Element Ustası  Pelerini | mago | 5 |  |
-| 1993036 | Element Ustası  Ruhu | mago | 5 |  |
-| 1041404 | Kutsal Koruyucu Zırhı | guerreiro | 5 |  |
-| 1042404 | Ejderha Pulu·Zırhı | arqueiro | 5 |  |
-| 1043404 | Peygamberin Gücü Pelerini | mago | 5 |  |
-| 1060404 | Kara Ejderha Kalbi | todas | 5 |  |
-| 2128302 | Paslanmış Zırh | todas | 0 |  |
-| 2128304 | Paslanmış Kolye | todas | 0 |  |
-| 2128301 | Paslanmış Silah | todas | 0 |  |
-| 2128303 | Paslanmış Kask | todas | 0 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1041403 | Asil Süvari Zırhı | guerreiro | 3 |  |
-| 1042403 | Tanrı Sözü Zırhı | arqueiro | 3 |  |
-| 1043403 | Sabah Meleği Pelerini | mago | 3 |  |
-| 1060403 | Katil Şeytan Kolyesi | todas | 3 |  |
-| 1080403 | Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080413 | Kraliçe Simgesi | mago | 3 |  |
+| 1991034 | Crotian Armor | guerreiro | 5 |  |
+| 1991036 | Crotian Brooch | guerreiro | 5 |  |
+| 1992034 | Aerial Armor | arqueiro | 5 |  |
+| 1992036 | Aerial Brooch | arqueiro | 5 |  |
+| 1993034 | Bender Robe | mago | 5 |  |
+| 1993036 | Bender Brooch | mago | 5 |  |
+| 1041404 | Sacred Defender Armor | guerreiro | 5 |  |
+| 1042404 | Dragon's Rage | arqueiro | 5 |  |
+| 1043404 | Prophet's Vestment | mago | 5 |  |
+| 1060404 | Black Dragon Heart | todas | 5 |  |
+| 2128302 | Dismal Armor | todas | 0 |  |
+| 2128304 | Dismal Necklace | todas | 0 |  |
+| 2128301 | Dismal Weapon | todas | 0 |  |
+| 2128303 | Dismal Helmet | todas | 0 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1041403 | Imperial Knight Armor | guerreiro | 3 |  |
+| 1042403 | Oracle Light Armor | arqueiro | 3 |  |
+| 1043403 | Sunton Seer Robe | mago | 3 |  |
+| 1060403 | Manadon's Pendant | todas | 3 |  |
+| 1080403 | Twilight Talisman | guerreiro/arqueiro | 3 |  |
+| 1080413 | Ice Queen Talisman | mago | 3 |  |
 
-## 9006 Ölüm Sırrı (Lv 50, grupo (4))
+## 9006 Garden of Death (Lv 50, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991061 | Canavar Büyücü Kılıcı | guerreiro | 5 |  |
-| 1991063 | Canavar Büyücü Kaskı | guerreiro | 5 |  |
-| 1992061 | Ejderha Avcısı Yayı | arqueiro | 5 |  |
-| 1992063 | Ejderha Avcısı Şapkası | arqueiro | 5 |  |
-| 1993061 | Şeytan Hocası Değneği | mago | 5 |  |
-| 1993063 | Şeytan Hocası Şapkası | mago | 5 |  |
-| 1011504 | Kalp Delici Kılıcı | guerreiro | 5 |  |
-| 1012504 | Sihirli Yay - Ruh Parçalayıcı | arqueiro | 5 |  |
-| 1013504 | Ölüm Ruhu Değneği | mago | 5 |  |
-| 1030504 | Lanetli Cadı Kaskı | todas | 5 |  |
-| 2128401 | Gizemli Silah | todas | 0 |  |
-| 2128403 | Gizemli Kask | todas | 0 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1011503 | Kara Kristal Kılıcı | guerreiro | 3 |  |
-| 1012503 | Lanetli Kristal Yayı | arqueiro | 3 |  |
-| 1013503 | Ateş Kölesi Değneği | mago | 3 |  |
-| 1030503 | Ölümsüz Kask | todas | 3 |  |
-| 1070503 | Gezegen Yüzüğü | todas | 3 |  |
+| 1991061 | Titan Sword | guerreiro | 5 |  |
+| 1991063 | Titan Helmet | guerreiro | 5 |  |
+| 1992061 | Harpy Bow | arqueiro | 5 |  |
+| 1992063 | Harpy Cap | arqueiro | 5 |  |
+| 1993061 | Magister Staff | mago | 5 |  |
+| 1993063 | Magister Hat | mago | 5 |  |
+| 1011504 | Heart Breaker Cursed Sword. | guerreiro | 5 |  |
+| 1012504 | Barathrum's Bow | arqueiro | 5 |  |
+| 1013504 | Necromancer's Staff | mago | 5 |  |
+| 1030504 | Banshee Feather Cap | todas | 5 |  |
+| 2128401 | Mystic Weapon | todas | 0 |  |
+| 2128403 | Mystic Hat | todas | 0 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1011503 | Dakan Crystal Sword | guerreiro | 3 |  |
+| 1012503 | Cursed Crystalan Bow | arqueiro | 3 |  |
+| 1013503 | Fire Idol Staff | mago | 3 |  |
+| 1030503 | Undead Helmet | todas | 3 |  |
+| 1070503 | Fallen Celestial Band | todas | 3 |  |
 
-## 9007 Sihirli Ejder Yuvası (Lv 55, grupo (4))
+## 9007 Tarraton's Lair (Lv 55, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991064 | Canavar Büyücü Zırhı | guerreiro | 5 |  |
-| 1991066 | Canavar Büyücü Ruhu | guerreiro | 5 |  |
-| 1992064 | Ejderha Avcısı Zırhı | arqueiro | 5 |  |
-| 1992066 | Ejderha Avcısı Ruhu | arqueiro | 5 |  |
-| 1993064 | Şeytan Hocası Pelerini | mago | 5 |  |
-| 1993066 | Şeytan Hocası Ruhu | mago | 5 |  |
-| 1041504 | Kara Delik Zırhı | guerreiro | 5 |  |
-| 1042504 | Kanlı Ejderha Zırhı | arqueiro | 5 |  |
-| 1043504 | Drama Pelerini | mago | 5 |  |
-| 1060504 | Su Tanrısı Özü | todas | 5 |  |
-| 2128402 | Gizemli Zırh | todas | 0 |  |
-| 2128404 | Gizemli Kolye | todas | 0 |  |
-| 2128401 | Gizemli Silah | todas | 0 |  |
-| 2128403 | Gizemli Kask | todas | 0 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1041503 | Mavi Kristal Zırhı | guerreiro | 3 |  |
-| 1042503 | Öfkeli Zırhı | arqueiro | 3 |  |
-| 1043503 | Büyücü Pelerini | mago | 3 |  |
-| 1060503 | Katil Şeytan Kolyesi | todas | 3 |  |
-| 1080503 | Batan Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080513 | Element Fırtına Simgesi | mago | 3 |  |
+| 1991064 | Titan Armor | guerreiro | 5 |  |
+| 1991066 | Titan Brooch | guerreiro | 5 |  |
+| 1992064 | Harpy Armor | arqueiro | 5 |  |
+| 1992066 | Harpy Brooch | arqueiro | 5 |  |
+| 1993064 | Magister Robe | mago | 5 |  |
+| 1993066 | Magister Brooch | mago | 5 |  |
+| 1041504 | Black Hole Ultimate Armor | guerreiro | 5 |  |
+| 1042504 | Dragonus Blood Armor | arqueiro | 5 |  |
+| 1043504 | Spellbinder's Robe | mago | 5 |  |
+| 1060504 | Galene Brooch | todas | 5 |  |
+| 2128402 | Mystic Armor | todas | 0 |  |
+| 2128404 | Mystic Necklace | todas | 0 |  |
+| 2128401 | Mystic Weapon | todas | 0 |  |
+| 2128403 | Mystic Hat | todas | 0 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1041503 | Azure Armor | guerreiro | 3 |  |
+| 1042503 | Syr Light Armor | arqueiro | 3 |  |
+| 1043503 | Warlock Exile's Robe | mago | 3 |  |
+| 1060503 | Manadon's Pendant | todas | 3 |  |
+| 1080503 | Duskan Talisman | guerreiro/arqueiro | 3 |  |
+| 1080513 | Elemental Storm Talisman | mago | 3 |  |
 
-## 9008 Sihirli Kabile (Lv 60, grupo (4))
+## 9008 Moonevil Den (Lv 60, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991081 | Ejderha Süvari Kılıcı | guerreiro | 5 |  |
-| 1991083 | Ejderha Süvari Kaskı | guerreiro | 5 |  |
-| 1992081 | Elf Kralının Yayı | arqueiro | 5 |  |
-| 1992083 | Elf Kralının Şapkası | arqueiro | 5 |  |
-| 1993081 | Büyük Bilge Değneği | mago | 5 |  |
-| 1993083 | Büyük Bilge Şapkası | mago | 5 |  |
-| 1011604 | Şeytan Kesme | guerreiro | 5 |  |
-| 1012604 | Hayalet Kalbi | arqueiro | 5 |  |
-| 1013604 | Sihirli Ateş | mago | 5 |  |
-| 1030604 | Kanlı Kurt Savaşı Kaskı | todas | 5 |  |
-| 2128501 | Antika Silah | todas | 0 |  |
-| 2128503 | Antika Kask | todas | 0 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1011603 | Kırık Sihirli Kılıç | guerreiro | 3 |  |
-| 1012603 | Yıldızlı Sihirli Yay | arqueiro | 3 |  |
-| 1013603 | Hayalet Kadrosu | mago | 3 |  |
-| 1030603 | Magma Arıtma Kaskı | todas | 3 |  |
-| 1070603 | Yeşil Ejderha Yüzüğü | todas | 3 |  |
+| 1991081 | Wyvern Sword | guerreiro | 5 |  |
+| 1991083 | Wyvern Helmet | guerreiro | 5 |  |
+| 1992081 | Elven Crossbow | arqueiro | 5 |  |
+| 1992083 | Elven Cap | arqueiro | 5 |  |
+| 1993081 | Sage Staff | mago | 5 |  |
+| 1993083 | Sage Hat | mago | 5 |  |
+| 1011604 | God Slayer Sword | guerreiro | 5 |  |
+| 1012604 | Heart Crossbow | arqueiro | 5 |  |
+| 1013604 | Burning Sun Staff | mago | 5 |  |
+| 1030604 | Bloody Wolf Helmet | todas | 5 |  |
+| 2128501 | Ancient Weapon | todas | 0 |  |
+| 2128503 | Ancient Helmet | todas | 0 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1011603 | Soulrip Hexed Sword | guerreiro | 3 |  |
+| 1012603 | Hexed Crossbow | arqueiro | 3 |  |
+| 1013603 | Cosmic Beast's Staff | mago | 3 |  |
+| 1030603 | Lava Helmet | todas | 3 |  |
+| 1070603 | Green Dragon Ring | todas | 3 |  |
 
-## 9009 Şeytan Türbesi (Lv 65, grupo (4))
+## 9009 Demon Temple (Lv 65, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991084 | Ejderha Süvari Zırhı | guerreiro | 5 |  |
-| 1991086 | Ejderha Süvari Ruhu | guerreiro | 5 |  |
-| 1992084 | Elf Kralının Derisi | arqueiro | 5 |  |
-| 1992086 | Elf Kralının Ruhu | arqueiro | 5 |  |
-| 1993084 | Büyük Bilge Pelerini | mago | 5 |  |
-| 1993086 | Büyük Bilge Ruhu | mago | 5 |  |
-| 1041604 | Kutsal Yabani | guerreiro | 5 |  |
-| 1042604 | Parlak·Zırh | arqueiro | 5 |  |
-| 1043604 | Cinli Zırh | mago | 5 |  |
-| 1060604 | Su Tanrısı Özü | todas | 5 |  |
-| 2128502 | Antika Zırh | todas | 0 |  |
-| 2128504 | Antika Kolye | todas | 0 |  |
-| 2128501 | Antika Silah | todas | 0 |  |
-| 2128503 | Antika Kask | todas | 0 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1041603 | Devlerin Savaş Zırhı | guerreiro | 3 |  |
-| 1042603 | Devlerin Savaş Zırhı | arqueiro | 3 |  |
-| 1043603 | Keskin Nişancı Zırhı | mago | 3 |  |
-| 1060603 | Sihirli Kolye | todas | 3 |  |
-| 1080603 | Gravür Dev Ayı | guerreiro/arqueiro | 3 |  |
-| 1080613 | Alev Büyüsü Gravürü | mago | 3 |  |
+| 1991084 | Wyvern Armor | guerreiro | 5 |  |
+| 1991086 | Wyvern Brooch | guerreiro | 5 |  |
+| 1992084 | Elven Armor | arqueiro | 5 |  |
+| 1992086 | Elven Brooch | arqueiro | 5 |  |
+| 1993084 | Sage Robe | mago | 5 |  |
+| 1993086 | Sage Brooch | mago | 5 |  |
+| 1041604 | Fallen Armor | guerreiro | 5 |  |
+| 1042604 | Glory Armor | arqueiro | 5 |  |
+| 1043604 | Star Spirit Armor | mago | 5 |  |
+| 1060604 | Enchanted Brooch | todas | 5 |  |
+| 2128502 | Ancient Armor | todas | 0 |  |
+| 2128504 | Ancient Necklace | todas | 0 |  |
+| 2128501 | Ancient Weapon | todas | 0 |  |
+| 2128503 | Ancient Helmet | todas | 0 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1041603 | Apostle Armor | guerreiro | 3 |  |
+| 1042603 | Heavy Leather Armor | arqueiro | 3 |  |
+| 1043603 | Sniper's Light Armor | mago | 3 |  |
+| 1060603 | Arcane Necklace | todas | 3 |  |
+| 1080603 | Giant Bear Jewel | guerreiro/arqueiro | 3 |  |
+| 1080613 | Jewel of Yaros | mago | 3 |  |
 
-## 9010 Hicret Bölgesi (Lv 70, grupo (4))
+## 9010 Samsara (Lv 70, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991091 | Yüce Ares Kılıcı | guerreiro | 5 |  |
-| 1991093 | Yüce Ares Kaskı | guerreiro | 5 |  |
-| 1992091 | Yabani Peri Yayı | arqueiro | 5 |  |
-| 1992093 | Yabani Peri Kaskı | arqueiro | 5 |  |
-| 1993091 | Antik Büyü Değneği | mago | 5 |  |
-| 1993093 | Antik Büyü Kaskı | mago | 5 |  |
-| 1011704 | Kılıç Gökyüzü | guerreiro | 5 |  |
-| 1012704 | Kutsal Yay | arqueiro | 5 |  |
-| 1013704 | Sakin Ruh Efsane | mago | 5 |  |
-| 1030704 | Kral Ejderha Kaskı | todas | 5 |  |
-| 2128601 | Antik Silah | todas | 0 |  |
-| 2128603 | Antik Kask | todas | 0 |  |
-| 2129006 | Şeytan Taşı Lv.6 | todas | 0 |  |
-| 2040106 | Şans Taşı Lv.6 | todas | 0 |  |
-| 1011703 | Ejderha Dişi Kılıç | guerreiro | 3 |  |
-| 1012703 | Ölüm Perisi Yayı | arqueiro | 3 |  |
-| 1013703 | Antik Gizemli Değnek | mago | 3 |  |
-| 1030703 | Araf Kaskı | todas | 3 |  |
-| 1070703 | Koç Kafası Yüzük | todas | 3 |  |
+| 1991091 | Apollo's Sword | guerreiro | 5 |  |
+| 1991093 | Apollo's Helmet | guerreiro | 5 |  |
+| 1992091 | Angel's Crossbow | arqueiro | 5 |  |
+| 1992093 | Angel's Cap | arqueiro | 5 |  |
+| 1993091 | Ethereal Staff | mago | 5 |  |
+| 1993093 | Ethereal Hat | mago | 5 |  |
+| 1011704 | Skyrender | guerreiro | 5 |  |
+| 1012704 | The Eliminator | arqueiro | 5 |  |
+| 1013704 | Fabled Holy Staff | mago | 5 |  |
+| 1030704 | Dragonscale Helmet | todas | 5 |  |
+| 2128601 | Archaic Weapon | todas | 0 |  |
+| 2128603 | Archaic Helmet | todas | 0 |  |
+| 2129006 | Lvl. 6 Crystaloid | todas | 0 |  |
+| 2040106 | Lvl. 6 Luck Stone | todas | 0 |  |
+| 1011703 | Emerald Terror | guerreiro | 3 |  |
+| 1012703 | Succubus' Crossbow | arqueiro | 3 |  |
+| 1013703 | Old Cabala Staff | mago | 3 |  |
+| 1030703 | Devil's Helmet | todas | 3 |  |
+| 1070703 | Tauren Skull Ring | todas | 3 |  |
 
-## 9011 Hayalet Alanı (Lv 70, grupo (4))
+## 9011 Lych's Lair (Lv 70, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 1991094 | Yüce Ares Zırhı | guerreiro | 5 |  |
-| 1991096 | Yüce Ares Ruhu | guerreiro | 5 |  |
-| 1992094 | Yabani Peri Kuş Tüyü | arqueiro | 5 |  |
-| 1992096 | Yabani Peri Ruhu | arqueiro | 5 |  |
-| 1993094 | Antik Büyü Pelerini | mago | 5 |  |
-| 1993096 | Antik Büyü Ruhu | mago | 5 |  |
-| 1041704 | Büyülü Sonsuzluk Kaskı | guerreiro | 5 |  |
-| 1042704 | Kutsal Kask - Büyülü İz | arqueiro | 5 |  |
-| 1043704 | Pelerin Yeniden Doğmak | mago | 5 |  |
-| 1060704 | Deneme Tekeri | todas | 5 |  |
-| 2128602 | Antik Zırh | todas | 0 |  |
-| 2128604 | Antik Kolye | todas | 0 |  |
-| 2129006 | Şeytan Taşı Lv.6 | todas | 0 |  |
-| 2040106 | Şans Taşı Lv.6 | todas | 0 |  |
-| 1041703 | Kaos Zırhı | guerreiro | 3 |  |
-| 1042703 | Ejderha Kanı Zırhı | arqueiro | 3 |  |
-| 1043703 | Kara Ay Pelerini | mago | 3 |  |
-| 1060703 | Dansçı Kolyesi | todas | 3 |  |
-| 1080703 | Girdap Madalyası | guerreiro/arqueiro | 3 |  |
-| 1080713 | Tabu Mühürü | mago | 3 |  |
+| 1991094 | Apollo's Armor | guerreiro | 5 |  |
+| 1991096 | Apollo's Brooch | guerreiro | 5 |  |
+| 1992094 | Angel's Armor | arqueiro | 5 |  |
+| 1992096 | Angel's Brooch | arqueiro | 5 |  |
+| 1993094 | Ethereal Robe | mago | 5 |  |
+| 1993096 | Ethereal Brooch | mago | 5 |  |
+| 1041704 | Divine Armor | guerreiro | 5 |  |
+| 1042704 | Angelic Armor | arqueiro | 5 |  |
+| 1043704 | Atonement Robe | mago | 5 |  |
+| 1060704 | Brooch of Trials | todas | 5 |  |
+| 2128602 | Archaic Armor | todas | 0 |  |
+| 2128604 | Archaic Necklace | todas | 0 |  |
+| 2129006 | Lvl. 6 Crystaloid | todas | 0 |  |
+| 2040106 | Lvl. 6 Luck Stone | todas | 0 |  |
+| 1041703 | Chaos Armor | guerreiro | 3 |  |
+| 1042703 | Dragon Blood Armor | arqueiro | 3 |  |
+| 1043703 | Oblivion Robe | mago | 3 |  |
+| 1060703 | Dancer's Necklace | todas | 3 |  |
+| 1080703 | Vortex Medallion | guerreiro/arqueiro | 3 |  |
+| 1080713 | Jewel of Secrets | mago | 3 |  |
 
-## 9012 Nirvana Tanrısı (Lv 80, grupo (4))
+## 9012 Nirvana (Lv 80, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129800 | Lv.80 Efsane Taşı | todas | 0 |  |
-| 2040107 | Şans Taşı Lv.7 | todas | 0 |  |
-| 1041803 | Royal Zırhı | guerreiro | 3 |  |
-| 1042803 | Sürgün Zırhı | arqueiro | 3 |  |
-| 1043803 | Yılan Derisi Pelerin | mago | 3 |  |
-| 1060803 | Ateş Yüzüğü | todas | 3 |  |
-| 1080803 | Şahin Gözü | guerreiro/arqueiro | 3 |  |
-| 1080813 | Sonsuz Rune Taşı | mago | 3 |  |
+| 2129800 | Lvl. 80 Legendary Stone | todas | 0 |  |
+| 2040107 | Lvl. 7 Luck Stone | todas | 0 |  |
+| 1041803 | Royal Knight Armor | guerreiro | 3 |  |
+| 1042803 | Forsaken Leather Armor | arqueiro | 3 |  |
+| 1043803 | Serpent’s Cursed Robe | mago | 3 |  |
+| 1060803 | Ancient Gem Necklace | todas | 3 |  |
+| 1080803 | Broken Eagle Eye | guerreiro/arqueiro | 3 |  |
+| 1080813 | Endless Blessing Stone | mago | 3 |  |
 
-## 9104 Uçurum Kapısı (Lv 40, grupo (4))
+## 9104 The Void(Nightmare) (Lv 40, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129400 | Lv.40 Efsane Taşı | todas | 0 |  |
-| 1991031 | Büyük Usta Kılıcı | guerreiro | 5 |  |
-| 1991033 | Büyük Usta Kaskı | guerreiro | 5 |  |
-| 1992031 | İsabetli Yaycı Yayı | arqueiro | 5 |  |
-| 1992033 | İsabetli Yaycı Şapkası | arqueiro | 5 |  |
-| 1993031 | Element Ustası Değneği | mago | 5 |  |
-| 1993033 | Element Ustası Şapkası | mago | 5 |  |
-| 1011404 | Ejderha Kanı Bıçağı | guerreiro | 5 |  |
-| 1012404 | Parlak Ay Yayı | arqueiro | 5 |  |
-| 1013404 | Ejderha Pençesi Değneği | mago | 5 |  |
-| 1030404 | Lanet Temizleyicisi Kaskı | todas | 5 |  |
-| 2128301 | Paslanmış Silah | todas | 0 |  |
-| 2128303 | Paslanmış Kask | todas | 0 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1011403 | Sihirli Büyük Kılıç | guerreiro | 3 |  |
-| 1012403 | Antik Yay | arqueiro | 3 |  |
-| 1013403 | Gölge Değneği | mago | 3 |  |
-| 1030403 | Hayal Kaskı | todas | 3 |  |
-| 1070403 | Kasırga Yüzüğü | todas | 3 |  |
+| 2129400 | Lvl. 40 Legendary Stone | todas | 0 |  |
+| 1991031 | Crotian Sword | guerreiro | 5 |  |
+| 1991033 | Crotian Helmet | guerreiro | 5 |  |
+| 1992031 | Aerial Crossbow | arqueiro | 5 |  |
+| 1992033 | Aerial Cap | arqueiro | 5 |  |
+| 1993031 | Bender Staff | mago | 5 |  |
+| 1993033 | Bender Hat | mago | 5 |  |
+| 1011404 | Bloodsoaked Dragon Sword | guerreiro | 5 |  |
+| 1012404 | Crescent Star Bow | arqueiro | 5 |  |
+| 1013404 | Soul Collector Dragon Staff | mago | 5 |  |
+| 1030404 | Exorcist Cap | todas | 5 |  |
+| 2128301 | Dismal Weapon | todas | 0 |  |
+| 2128303 | Dismal Helmet | todas | 0 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1011403 | Magic Slayer Broadsword | guerreiro | 3 |  |
+| 1012403 | Ancient Battle Bow | arqueiro | 3 |  |
+| 1013403 | Phantom Shadow Staff | mago | 3 |  |
+| 1030403 | Phantasmal Helmet | todas | 3 |  |
+| 1070403 | Hoarfrost Ring | todas | 3 |  |
 
-## 9105 Çöl Kıyameti (Lv 45, grupo (4))
+## 9105 The Badlands(Nightmare) (Lv 45, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129400 | Lv.40 Efsane Taşı | todas | 0 |  |
-| 1991034 | Büyük Usta Zırhı | guerreiro | 5 |  |
-| 1991036 | Büyük Usta Ruhu | guerreiro | 5 |  |
-| 1992034 | İsabetli Yaycı Zırhı | arqueiro | 5 |  |
-| 1992036 | İsabetli Yaycı Ruhu | arqueiro | 5 |  |
-| 1993034 | Element Ustası  Pelerini | mago | 5 |  |
-| 1993036 | Element Ustası  Ruhu | mago | 5 |  |
-| 1041404 | Kutsal Koruyucu Zırhı | guerreiro | 5 |  |
-| 1042404 | Ejderha Pulu·Zırhı | arqueiro | 5 |  |
-| 1043404 | Peygamberin Gücü Pelerini | mago | 5 |  |
-| 1060404 | Kara Ejderha Kalbi | todas | 5 |  |
-| 2128302 | Paslanmış Zırh | todas | 0 |  |
-| 2128304 | Paslanmış Kolye | todas | 0 |  |
-| 2128301 | Paslanmış Silah | todas | 0 |  |
-| 2128303 | Paslanmış Kask | todas | 0 |  |
-| 2129003 | Şeytan Taşı Lv.3 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1041403 | Asil Süvari Zırhı | guerreiro | 3 |  |
-| 1042403 | Tanrı Sözü Zırhı | arqueiro | 3 |  |
-| 1043403 | Sabah Meleği Pelerini | mago | 3 |  |
-| 1060403 | Katil Şeytan Kolyesi | todas | 3 |  |
-| 1080403 | Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080413 | Kraliçe Simgesi | mago | 3 |  |
+| 2129400 | Lvl. 40 Legendary Stone | todas | 0 |  |
+| 1991034 | Crotian Armor | guerreiro | 5 |  |
+| 1991036 | Crotian Brooch | guerreiro | 5 |  |
+| 1992034 | Aerial Armor | arqueiro | 5 |  |
+| 1992036 | Aerial Brooch | arqueiro | 5 |  |
+| 1993034 | Bender Robe | mago | 5 |  |
+| 1993036 | Bender Brooch | mago | 5 |  |
+| 1041404 | Sacred Defender Armor | guerreiro | 5 |  |
+| 1042404 | Dragon's Rage | arqueiro | 5 |  |
+| 1043404 | Prophet's Vestment | mago | 5 |  |
+| 1060404 | Black Dragon Heart | todas | 5 |  |
+| 2128302 | Dismal Armor | todas | 0 |  |
+| 2128304 | Dismal Necklace | todas | 0 |  |
+| 2128301 | Dismal Weapon | todas | 0 |  |
+| 2128303 | Dismal Helmet | todas | 0 |  |
+| 2129003 | Lvl. 3 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1041403 | Imperial Knight Armor | guerreiro | 3 |  |
+| 1042403 | Oracle Light Armor | arqueiro | 3 |  |
+| 1043403 | Sunton Seer Robe | mago | 3 |  |
+| 1060403 | Manadon's Pendant | todas | 3 |  |
+| 1080403 | Twilight Talisman | guerreiro/arqueiro | 3 |  |
+| 1080413 | Ice Queen Talisman | mago | 3 |  |
 
-## 9106 Ölüm Sırrı (Lv 50, grupo (4))
+## 9106 Garden of Death(Nightmare) (Lv 50, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129500 | Lv.50 Efsane Taşı | todas | 0 |  |
-| 1991061 | Canavar Büyücü Kılıcı | guerreiro | 5 |  |
-| 1991063 | Canavar Büyücü Kaskı | guerreiro | 5 |  |
-| 1992061 | Ejderha Avcısı Yayı | arqueiro | 5 |  |
-| 1992063 | Ejderha Avcısı Şapkası | arqueiro | 5 |  |
-| 1993061 | Şeytan Hocası Değneği | mago | 5 |  |
-| 1993063 | Şeytan Hocası Şapkası | mago | 5 |  |
-| 1011504 | Kalp Delici Kılıcı | guerreiro | 5 |  |
-| 1012504 | Sihirli Yay - Ruh Parçalayıcı | arqueiro | 5 |  |
-| 1013504 | Ölüm Ruhu Değneği | mago | 5 |  |
-| 1030504 | Lanetli Cadı Kaskı | todas | 5 |  |
-| 2128401 | Gizemli Silah | todas | 0 |  |
-| 2128403 | Gizemli Kask | todas | 0 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1011503 | Kara Kristal Kılıcı | guerreiro | 3 |  |
-| 1012503 | Lanetli Kristal Yayı | arqueiro | 3 |  |
-| 1013503 | Ateş Kölesi Değneği | mago | 3 |  |
-| 1030503 | Ölümsüz Kask | todas | 3 |  |
-| 1070503 | Gezegen Yüzüğü | todas | 3 |  |
+| 2129500 | Lvl. 50 Legendary Stone | todas | 0 |  |
+| 1991061 | Titan Sword | guerreiro | 5 |  |
+| 1991063 | Titan Helmet | guerreiro | 5 |  |
+| 1992061 | Harpy Bow | arqueiro | 5 |  |
+| 1992063 | Harpy Cap | arqueiro | 5 |  |
+| 1993061 | Magister Staff | mago | 5 |  |
+| 1993063 | Magister Hat | mago | 5 |  |
+| 1011504 | Heart Breaker Cursed Sword. | guerreiro | 5 |  |
+| 1012504 | Barathrum's Bow | arqueiro | 5 |  |
+| 1013504 | Necromancer's Staff | mago | 5 |  |
+| 1030504 | Banshee Feather Cap | todas | 5 |  |
+| 2128401 | Mystic Weapon | todas | 0 |  |
+| 2128403 | Mystic Hat | todas | 0 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1011503 | Dakan Crystal Sword | guerreiro | 3 |  |
+| 1012503 | Cursed Crystalan Bow | arqueiro | 3 |  |
+| 1013503 | Fire Idol Staff | mago | 3 |  |
+| 1030503 | Undead Helmet | todas | 3 |  |
+| 1070503 | Fallen Celestial Band | todas | 3 |  |
 
-## 9107 Sihirli Ejder Yuvası (Lv 55, grupo (4))
+## 9107 Tarraton's Liar(Nightmare) (Lv 55, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129500 | Lv.50 Efsane Taşı | todas | 0 |  |
-| 1991064 | Canavar Büyücü Zırhı | guerreiro | 5 |  |
-| 1991066 | Canavar Büyücü Ruhu | guerreiro | 5 |  |
-| 1992064 | Ejderha Avcısı Zırhı | arqueiro | 5 |  |
-| 1992066 | Ejderha Avcısı Ruhu | arqueiro | 5 |  |
-| 1993064 | Şeytan Hocası Pelerini | mago | 5 |  |
-| 1993066 | Şeytan Hocası Ruhu | mago | 5 |  |
-| 1041504 | Kara Delik Zırhı | guerreiro | 5 |  |
-| 1042504 | Kanlı Ejderha Zırhı | arqueiro | 5 |  |
-| 1043504 | Drama Pelerini | mago | 5 |  |
-| 1060504 | Su Tanrısı Özü | todas | 5 |  |
-| 2128402 | Gizemli Zırh | todas | 0 |  |
-| 2128404 | Gizemli Kolye | todas | 0 |  |
-| 2128401 | Gizemli Silah | todas | 0 |  |
-| 2128403 | Gizemli Kask | todas | 0 |  |
-| 2129004 | Şeytan Taşı Lv.4 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1041503 | Mavi Kristal Zırhı | guerreiro | 3 |  |
-| 1042503 | Öfkeli Zırhı | arqueiro | 3 |  |
-| 1043503 | Büyücü Pelerini | mago | 3 |  |
-| 1060503 | Katil Şeytan Kolyesi | todas | 3 |  |
-| 1080503 | Batan Güneş Simgesi | guerreiro/arqueiro | 3 |  |
-| 1080513 | Element Fırtına Simgesi | mago | 3 |  |
+| 2129500 | Lvl. 50 Legendary Stone | todas | 0 |  |
+| 1991064 | Titan Armor | guerreiro | 5 |  |
+| 1991066 | Titan Brooch | guerreiro | 5 |  |
+| 1992064 | Harpy Armor | arqueiro | 5 |  |
+| 1992066 | Harpy Brooch | arqueiro | 5 |  |
+| 1993064 | Magister Robe | mago | 5 |  |
+| 1993066 | Magister Brooch | mago | 5 |  |
+| 1041504 | Black Hole Ultimate Armor | guerreiro | 5 |  |
+| 1042504 | Dragonus Blood Armor | arqueiro | 5 |  |
+| 1043504 | Spellbinder's Robe | mago | 5 |  |
+| 1060504 | Galene Brooch | todas | 5 |  |
+| 2128402 | Mystic Armor | todas | 0 |  |
+| 2128404 | Mystic Necklace | todas | 0 |  |
+| 2128401 | Mystic Weapon | todas | 0 |  |
+| 2128403 | Mystic Hat | todas | 0 |  |
+| 2129004 | Lvl. 4 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1041503 | Azure Armor | guerreiro | 3 |  |
+| 1042503 | Syr Light Armor | arqueiro | 3 |  |
+| 1043503 | Warlock Exile's Robe | mago | 3 |  |
+| 1060503 | Manadon's Pendant | todas | 3 |  |
+| 1080503 | Duskan Talisman | guerreiro/arqueiro | 3 |  |
+| 1080513 | Elemental Storm Talisman | mago | 3 |  |
 
-## 9108 Sihirli Kabile (Lv 60, grupo (4))
+## 9108 Moonevil Den(Nightmare) (Lv 60, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129600 | Lv.60 Efsane Taşı | todas | 0 |  |
-| 1991081 | Ejderha Süvari Kılıcı | guerreiro | 5 |  |
-| 1991083 | Ejderha Süvari Kaskı | guerreiro | 5 |  |
-| 1992081 | Elf Kralının Yayı | arqueiro | 5 |  |
-| 1992083 | Elf Kralının Şapkası | arqueiro | 5 |  |
-| 1993081 | Büyük Bilge Değneği | mago | 5 |  |
-| 1993083 | Büyük Bilge Şapkası | mago | 5 |  |
-| 1011604 | Şeytan Kesme | guerreiro | 5 |  |
-| 1012604 | Hayalet Kalbi | arqueiro | 5 |  |
-| 1013604 | Sihirli Ateş | mago | 5 |  |
-| 1030604 | Kanlı Kurt Savaşı Kaskı | todas | 5 |  |
-| 2128501 | Antika Silah | todas | 0 |  |
-| 2128503 | Antika Kask | todas | 0 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1011603 | Kırık Sihirli Kılıç | guerreiro | 3 |  |
-| 1012603 | Yıldızlı Sihirli Yay | arqueiro | 3 |  |
-| 1013603 | Hayalet Kadrosu | mago | 3 |  |
-| 1030603 | Magma Arıtma Kaskı | todas | 3 |  |
-| 1070603 | Yeşil Ejderha Yüzüğü | todas | 3 |  |
+| 2129600 | Lvl. 60 Legendary Stone | todas | 0 |  |
+| 1991081 | Wyvern Sword | guerreiro | 5 |  |
+| 1991083 | Wyvern Helmet | guerreiro | 5 |  |
+| 1992081 | Elven Crossbow | arqueiro | 5 |  |
+| 1992083 | Elven Cap | arqueiro | 5 |  |
+| 1993081 | Sage Staff | mago | 5 |  |
+| 1993083 | Sage Hat | mago | 5 |  |
+| 1011604 | God Slayer Sword | guerreiro | 5 |  |
+| 1012604 | Heart Crossbow | arqueiro | 5 |  |
+| 1013604 | Burning Sun Staff | mago | 5 |  |
+| 1030604 | Bloody Wolf Helmet | todas | 5 |  |
+| 2128501 | Ancient Weapon | todas | 0 |  |
+| 2128503 | Ancient Helmet | todas | 0 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1011603 | Soulrip Hexed Sword | guerreiro | 3 |  |
+| 1012603 | Hexed Crossbow | arqueiro | 3 |  |
+| 1013603 | Cosmic Beast's Staff | mago | 3 |  |
+| 1030603 | Lava Helmet | todas | 3 |  |
+| 1070603 | Green Dragon Ring | todas | 3 |  |
 
-## 9109 Şeytan Türbesi (Lv 65, grupo (4))
+## 9109 Demon Temple(Nightmare) (Lv 65, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129600 | Lv.60 Efsane Taşı | todas | 0 |  |
-| 1991084 | Ejderha Süvari Zırhı | guerreiro | 5 |  |
-| 1991086 | Ejderha Süvari Ruhu | guerreiro | 5 |  |
-| 1992084 | Elf Kralının Derisi | arqueiro | 5 |  |
-| 1992086 | Elf Kralının Ruhu | arqueiro | 5 |  |
-| 1993084 | Büyük Bilge Pelerini | mago | 5 |  |
-| 1993086 | Büyük Bilge Ruhu | mago | 5 |  |
-| 1041604 | Kutsal Yabani | guerreiro | 5 |  |
-| 1042604 | Parlak·Zırh | arqueiro | 5 |  |
-| 1043604 | Cinli Zırh | mago | 5 |  |
-| 1060604 | Su Tanrısı Özü | todas | 5 |  |
-| 2128502 | Antika Zırh | todas | 0 |  |
-| 2128504 | Antika Kolye | todas | 0 |  |
-| 2128501 | Antika Silah | todas | 0 |  |
-| 2128503 | Antika Kask | todas | 0 |  |
-| 2129005 | Şeytan Taşı Lv.5 | todas | 0 |  |
-| 2040105 | Şans Taşı Lv.5 | todas | 0 |  |
-| 1041603 | Devlerin Savaş Zırhı | guerreiro | 3 |  |
-| 1042603 | Devlerin Savaş Zırhı | arqueiro | 3 |  |
-| 1043603 | Keskin Nişancı Zırhı | mago | 3 |  |
-| 1060603 | Sihirli Kolye | todas | 3 |  |
-| 1080603 | Gravür Dev Ayı | guerreiro/arqueiro | 3 |  |
-| 1080613 | Alev Büyüsü Gravürü | mago | 3 |  |
+| 2129600 | Lvl. 60 Legendary Stone | todas | 0 |  |
+| 1991084 | Wyvern Armor | guerreiro | 5 |  |
+| 1991086 | Wyvern Brooch | guerreiro | 5 |  |
+| 1992084 | Elven Armor | arqueiro | 5 |  |
+| 1992086 | Elven Brooch | arqueiro | 5 |  |
+| 1993084 | Sage Robe | mago | 5 |  |
+| 1993086 | Sage Brooch | mago | 5 |  |
+| 1041604 | Fallen Armor | guerreiro | 5 |  |
+| 1042604 | Glory Armor | arqueiro | 5 |  |
+| 1043604 | Star Spirit Armor | mago | 5 |  |
+| 1060604 | Enchanted Brooch | todas | 5 |  |
+| 2128502 | Ancient Armor | todas | 0 |  |
+| 2128504 | Ancient Necklace | todas | 0 |  |
+| 2128501 | Ancient Weapon | todas | 0 |  |
+| 2128503 | Ancient Helmet | todas | 0 |  |
+| 2129005 | Lvl. 5 Crystaloid | todas | 0 |  |
+| 2040105 | Lvl. 5 Luck Stone | todas | 0 |  |
+| 1041603 | Apostle Armor | guerreiro | 3 |  |
+| 1042603 | Heavy Leather Armor | arqueiro | 3 |  |
+| 1043603 | Sniper's Light Armor | mago | 3 |  |
+| 1060603 | Arcane Necklace | todas | 3 |  |
+| 1080603 | Giant Bear Jewel | guerreiro/arqueiro | 3 |  |
+| 1080613 | Jewel of Yaros | mago | 3 |  |
 
-## 9110 Hicret Bölgesi (Lv 70, grupo (4))
+## 9110 Samsara(Nightmare) (Lv 70, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129700 | Lv.70 Efsane Taşı | todas | 0 |  |
-| 2129701 | Lv.70 Epik Silah Parçası | todas | 0 |  |
-| 2129703 | Lv.70 Epik Kask Parçası | todas | 0 |  |
-| 2129704 | Lv.70 Epik Kıyafet Parçası | todas | 0 |  |
-| 2129706 | Lv.70 Epik Kolye Parçası | todas | 0 |  |
-| 1991091 | Yüce Ares Kılıcı | guerreiro | 5 |  |
-| 1991093 | Yüce Ares Kaskı | guerreiro | 5 |  |
-| 1992091 | Yabani Peri Yayı | arqueiro | 5 |  |
-| 1992093 | Yabani Peri Kaskı | arqueiro | 5 |  |
-| 1993091 | Antik Büyü Değneği | mago | 5 |  |
-| 1993093 | Antik Büyü Kaskı | mago | 5 |  |
-| 1011704 | Kılıç Gökyüzü | guerreiro | 5 |  |
-| 1012704 | Kutsal Yay | arqueiro | 5 |  |
-| 1013704 | Sakin Ruh Efsane | mago | 5 |  |
-| 1030704 | Kral Ejderha Kaskı | todas | 5 |  |
-| 2128601 | Antik Silah | todas | 0 |  |
-| 2128603 | Antik Kask | todas | 0 |  |
-| 2129006 | Şeytan Taşı Lv.6 | todas | 0 |  |
-| 2040106 | Şans Taşı Lv.6 | todas | 0 |  |
-| 1011703 | Ejderha Dişi Kılıç | guerreiro | 3 |  |
-| 1012703 | Ölüm Perisi Yayı | arqueiro | 3 |  |
-| 1013703 | Antik Gizemli Değnek | mago | 3 |  |
-| 1030703 | Araf Kaskı | todas | 3 |  |
-| 1070703 | Koç Kafası Yüzük | todas | 3 |  |
+| 2129700 | Lvl. 70 Legendary Stone | todas | 0 |  |
+| 2129701 | Lvl. 70 Legendary Weapon Shard | todas | 0 |  |
+| 2129703 | Lvl. 70 Legendary Helmet Shard | todas | 0 |  |
+| 2129704 | Lvl. 70 Legendary Armor Shard | todas | 0 |  |
+| 2129706 | Lvl. 70 Legendary Necklace Shard | todas | 0 |  |
+| 1991091 | Apollo's Sword | guerreiro | 5 |  |
+| 1991093 | Apollo's Helmet | guerreiro | 5 |  |
+| 1992091 | Angel's Crossbow | arqueiro | 5 |  |
+| 1992093 | Angel's Cap | arqueiro | 5 |  |
+| 1993091 | Ethereal Staff | mago | 5 |  |
+| 1993093 | Ethereal Hat | mago | 5 |  |
+| 1011704 | Skyrender | guerreiro | 5 |  |
+| 1012704 | The Eliminator | arqueiro | 5 |  |
+| 1013704 | Fabled Holy Staff | mago | 5 |  |
+| 1030704 | Dragonscale Helmet | todas | 5 |  |
+| 2128601 | Archaic Weapon | todas | 0 |  |
+| 2128603 | Archaic Helmet | todas | 0 |  |
+| 2129006 | Lvl. 6 Crystaloid | todas | 0 |  |
+| 2040106 | Lvl. 6 Luck Stone | todas | 0 |  |
+| 1011703 | Emerald Terror | guerreiro | 3 |  |
+| 1012703 | Succubus' Crossbow | arqueiro | 3 |  |
+| 1013703 | Old Cabala Staff | mago | 3 |  |
+| 1030703 | Devil's Helmet | todas | 3 |  |
+| 1070703 | Tauren Skull Ring | todas | 3 |  |
 
-## 9111 Hayalet Alanı (Lv 70, grupo (4))
+## 9111 Lych's Lair(Nightmare) (Lv 70, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129700 | Lv.70 Efsane Taşı | todas | 0 |  |
-| 2129701 | Lv.70 Epik Silah Parçası | todas | 0 |  |
-| 2129703 | Lv.70 Epik Kask Parçası | todas | 0 |  |
-| 2129704 | Lv.70 Epik Kıyafet Parçası | todas | 0 |  |
-| 2129706 | Lv.70 Epik Kolye Parçası | todas | 0 |  |
-| 1991094 | Yüce Ares Zırhı | guerreiro | 5 |  |
-| 1991096 | Yüce Ares Ruhu | guerreiro | 5 |  |
-| 1992094 | Yabani Peri Kuş Tüyü | arqueiro | 5 |  |
-| 1992096 | Yabani Peri Ruhu | arqueiro | 5 |  |
-| 1993094 | Antik Büyü Pelerini | mago | 5 |  |
-| 1993096 | Antik Büyü Ruhu | mago | 5 |  |
-| 1041704 | Büyülü Sonsuzluk Kaskı | guerreiro | 5 |  |
-| 1042704 | Kutsal Kask - Büyülü İz | arqueiro | 5 |  |
-| 1043704 | Pelerin Yeniden Doğmak | mago | 5 |  |
-| 1060704 | Deneme Tekeri | todas | 5 |  |
-| 2128602 | Antik Zırh | todas | 0 |  |
-| 2128604 | Antik Kolye | todas | 0 |  |
-| 2129006 | Şeytan Taşı Lv.6 | todas | 0 |  |
-| 2040106 | Şans Taşı Lv.6 | todas | 0 |  |
-| 1041703 | Kaos Zırhı | guerreiro | 3 |  |
-| 1042703 | Ejderha Kanı Zırhı | arqueiro | 3 |  |
-| 1043703 | Kara Ay Pelerini | mago | 3 |  |
-| 1060703 | Dansçı Kolyesi | todas | 3 |  |
-| 1080703 | Girdap Madalyası | guerreiro/arqueiro | 3 |  |
-| 1080713 | Tabu Mühürü | mago | 3 |  |
+| 2129700 | Lvl. 70 Legendary Stone | todas | 0 |  |
+| 2129701 | Lvl. 70 Legendary Weapon Shard | todas | 0 |  |
+| 2129703 | Lvl. 70 Legendary Helmet Shard | todas | 0 |  |
+| 2129704 | Lvl. 70 Legendary Armor Shard | todas | 0 |  |
+| 2129706 | Lvl. 70 Legendary Necklace Shard | todas | 0 |  |
+| 1991094 | Apollo's Armor | guerreiro | 5 |  |
+| 1991096 | Apollo's Brooch | guerreiro | 5 |  |
+| 1992094 | Angel's Armor | arqueiro | 5 |  |
+| 1992096 | Angel's Brooch | arqueiro | 5 |  |
+| 1993094 | Ethereal Robe | mago | 5 |  |
+| 1993096 | Ethereal Brooch | mago | 5 |  |
+| 1041704 | Divine Armor | guerreiro | 5 |  |
+| 1042704 | Angelic Armor | arqueiro | 5 |  |
+| 1043704 | Atonement Robe | mago | 5 |  |
+| 1060704 | Brooch of Trials | todas | 5 |  |
+| 2128602 | Archaic Armor | todas | 0 |  |
+| 2128604 | Archaic Necklace | todas | 0 |  |
+| 2129006 | Lvl. 6 Crystaloid | todas | 0 |  |
+| 2040106 | Lvl. 6 Luck Stone | todas | 0 |  |
+| 1041703 | Chaos Armor | guerreiro | 3 |  |
+| 1042703 | Dragon Blood Armor | arqueiro | 3 |  |
+| 1043703 | Oblivion Robe | mago | 3 |  |
+| 1060703 | Dancer's Necklace | todas | 3 |  |
+| 1080703 | Vortex Medallion | guerreiro/arqueiro | 3 |  |
+| 1080713 | Jewel of Secrets | mago | 3 |  |
 
-## 9112 Nirvana Tanrısı (Lv 80, grupo (4))
+## 9112 Nirvana (Nightmare) (Lv 80, grupo (4))
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
-| 2129800 | Lv.80 Efsane Taşı | todas | 0 |  |
-| 2040107 | Şans Taşı Lv.7 | todas | 0 |  |
-| 1041803 | Royal Zırhı | guerreiro | 3 |  |
-| 1042803 | Sürgün Zırhı | arqueiro | 3 |  |
-| 1043803 | Yılan Derisi Pelerin | mago | 3 |  |
-| 1060803 | Ateş Yüzüğü | todas | 3 |  |
-| 1080803 | Şahin Gözü | guerreiro/arqueiro | 3 |  |
-| 1080813 | Sonsuz Rune Taşı | mago | 3 |  |
+| 2129800 | Lvl. 80 Legendary Stone | todas | 0 |  |
+| 2040107 | Lvl. 7 Luck Stone | todas | 0 |  |
+| 1041803 | Royal Knight Armor | guerreiro | 3 |  |
+| 1042803 | Forsaken Leather Armor | arqueiro | 3 |  |
+| 1043803 | Serpent’s Cursed Robe | mago | 3 |  |
+| 1060803 | Ancient Gem Necklace | todas | 3 |  |
+| 1080803 | Broken Eagle Eye | guerreiro/arqueiro | 3 |  |
+| 1080813 | Endless Blessing Stone | mago | 3 |  |

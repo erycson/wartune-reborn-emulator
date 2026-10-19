@@ -27,7 +27,7 @@ VIP_GRADE = 4  # UpGradeTempInfos.Types da VIP (Data = vipGp acumulado)
 ALCHEMY_RIGHT, SOUL_RIGHT = 8, 9  # VipPrerogativeTempInfos.type: usos extras por dia
 VIP_COOL = 16  # VIPModel.VIP_COOL: type do "Speed up cool down timer for free"
 VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2) e o 50 fixo de vipFriendPrivilege
-ALCHEMY_COUNT = 20  # login.json #9: remainCount 20 sem VIP
+ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (só turco: login.json #9; o tutorial_en não manda o 4224)
 MAX_COST = 40  # AlchemyFrame/SoulMakeFrame: (usos+1)*2, no máximo 40
 KING_BUFF, KING_BUFF_FROM = 7, 6  # contrato 6 dá o buff 7 (30 min) uma vez por dia (KingContractFrame)
 KING_ALL = (1, 2, 3, 4, 5, 6)  # "comprar todos" = All_KingContract
@@ -397,7 +397,7 @@ def _cost(used: int) -> int:
 
 
 def _alchemy_gold(s: GameSession, snap: PlayerSnapshot) -> int:
-    """AlchemyFrame.refreshView: Meclis (901) Property1 x 10 + Altın Ocağı (101) Property1 x 5."""
+    """AlchemyFrame.refreshView: Town Hall (901) Property1 x 10 + Gold Refinery (101) Property1 x 5."""
     return int(_building(s, snap, 901).get("Property1", 0)) * 10 + int(_building(s, snap, 101).get("Property1", 0)) * 5
 
 
@@ -435,7 +435,8 @@ async def alchemy(s: GameSession, _: object) -> None:
 
 
 def _soul_amount(s: GameSession, snap: PlayerSnapshot) -> int:
-    """Kışla (402) e 1201 pelo nível x RefiningSoul_ArmyHouseMut / _PeopleMut (login.json #10)."""
+    """Barracks (402) e Cottage (1201) pelo nível x RefiningSoul_ArmyHouseMut / _PeopleMut (só turco:
+    login.json #10)."""
     barracks = int(_building(s, snap, 402).get("BuildingGrade", 0))
     people = int(_building(s, snap, 1201).get("BuildingGrade", 0))
     return barracks * _cfg(s, "RefiningSoul_ArmyHouseMut") + people * _cfg(s, "RefiningSoul_PeopleMut")
@@ -494,7 +495,8 @@ async def trial_buy(s: GameSession, msg: pb.TrialInfoMsg) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """Estados que o oficial manda no login (login.json #9, #10, #15, #107)."""
+    """Estados que o oficial manda no login: 4434 (tutorial_en #58) e 4410 (#96). O 4224 e o 4372 são só turco
+    (login.json #9, #10): o tutorial_en não manda nenhum dos dois, nem em resposta ao 8320/8466 (#17-#18)."""
     assert s.snapshot is not None
     s.send(S_LUCKY, _lucky_msg(s, s.snapshot))
     s.send(S_SOUL, _soul_msg(s, s.snapshot))

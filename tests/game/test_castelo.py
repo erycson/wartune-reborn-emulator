@@ -58,7 +58,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         await _set(g, point=5)
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))
         got = await g.until(102)
-        assert [p.code for p in got] == [3, 4152, 83, 111, 102]  # leed 15 "Consume Balens" (replay #1289)
+        assert [p.code for p in got] == [3, 4152, 83, 111, 102]  # leed 15 "Consume Balens" (só turco: replay #1289)
         assert pb.OrderQuickRspMsg.FromString(got[4].body).orderInfo[0].remainTime == 0
 
         saved = await g.server.services.characters.snapshot(g.user_id)
@@ -72,6 +72,23 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         assert 4130 in [p.code for p in await g.until(83)]
 
 
+async def test_barracks_level_that_unlocks_a_troop_sends_100_before_the_order(tmp_path: Path) -> None:
+    """tutorial_en #2208-#2213 (Barracks Lvl. 4 libera o Hunter): 109, 100 com as tropas do castelo e o 10201 com 0,
+    151, 4130, 83."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _set(g, grades=10, gold=1000)
+        council = next(b for b in snap.buildings if b.template_id == 90101)
+        barracks = next(b for b in snap.buildings if b.template_id == 40201)
+        council.template_id, barracks.template_id = 90104, 40203
+        await g.server.services.characters.save(council, barracks)
+
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=barracks.id or 0))
+        got = await g.until(83)
+        assert [p.code for p in got] == [109, 100, 151, 4130, 83]
+        pawns = pb.ArmyPawnUpdatedMsg.FromString(got[1].body).armyPawn
+        assert (10201, 0) in [(a.tempateId, a.ownPawns) for a in pawns]
+
+
 async def test_refuses_without_gold_player_grade_or_someone_elses_building(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=READY) as g:
         other = await g.join("outro")
@@ -83,7 +100,7 @@ async def test_refuses_without_gold_player_grade_or_someone_elses_building(tmp_p
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=theirs))
         assert await g.idle() == []
         await _set(g, grades=1, gold=1000)
-        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=mine))  # Meclis 2 pede nível 2
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=mine))  # Town Hall 2 pede nível 2
         assert await g.idle() == []
         assert (await g.server.services.characters.snapshot(g.user_id)).character.gold == 1000
 
@@ -146,14 +163,14 @@ async def test_gold_is_produced_per_hour_up_to_the_depot(tmp_path: Path) -> None
         assert (await g.server.services.characters.snapshot(g.user_id)).character.gold == 450000
 
 
-SEED = 2160001  # [L1] Gold Seed: 3000 de ouro em 60 min (rende 2400, amadurece em 59, ciftlik.json)
+SEED = 2160001  # [L1] Gold Seed: 3000 de ouro em 60 min (rende 2400, amadurece em 59; só turco: ciftlik.json)
 
 
 async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
     clock = FakeClock()
     async with logged_in(tmp_path, novice=READY, clock=clock) as g:
         row = g.server.services.templates.get("ConfigInfos", "Farm_Accelerate_Point", key="ConfigName")
-        cost = int(row["ConfigValue"])  # Farm_Accelerate_Point: 35 no inglês (10 no turco)
+        cost = int(row["ConfigValue"])  # Farm_Accelerate_Point: 35
         snap = await _set(g, gold=0, point=cost)
         seeds = Item(g.user_id, SEED, pos=0, count=2)
         snap.items.append(seeds)
@@ -211,7 +228,7 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
 
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
         got = await g.until(147)
-        assert [p.code for p in got] == [109, 146, 83, 147]  # ciftlik #7-#10
+        assert [p.code for p in got] == [109, 146, 83, 147]  # só turco: ciftlik #7-#10
         assert pb.TreeUpdateRsp.FromString(got[1].body).harvestMsg == ["Energy + 1", "Gold + 220", "Farm EXP + 1"]
         assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg.startswith("Energize successful! Gold + 220,")
         tree = pb.TreeUpdateRsp.FromString(got[3].body).tree[0]
@@ -252,7 +269,7 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         now = clock.now()
         await _set(g, gold=0, grades=11)
         owner = await _set(other, grades=66)
-        await _friends(g, other, gp=33)  # grau 4 (ciftlik #85: 34 depois de regar)
+        await _friends(g, other, gp=33)  # grau 4 (só turco: ciftlik #85, 34 depois de regar)
         lands = [
             FarmLand(other.user_id, 0, SEED, now - timedelta(hours=2), now - timedelta(minutes=30), 2400),  # madura
             FarmLand(other.user_id, 1, SEED, now - timedelta(hours=4), now - timedelta(hours=3), 2400),  # morta
@@ -290,7 +307,7 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         await g.idle()
         g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))
         got = await g.until(83)
-        assert [p.code for p in got] == [4158, 109, 147, 165, 146, 83]  # ciftlik #82-#87
+        assert [p.code for p in got] == [4158, 109, 147, 165, 146, 83]  # só turco: ciftlik #82-#87
         assert pb.CastleYieldMsg.FromString(got[1].body).goldTotalCount == 240 + 1320
         trees = pb.TreeUpdateRsp.FromString(got[2].body).tree
         assert [(t.userId, t.waterCount) for t in trees] == [(other.user_id, 1), (g.user_id, 0)]

@@ -67,8 +67,8 @@ def count_of(snap: PlayerSnapshot, template_id: int) -> int:
 
 def random_skill_pool(templates: GameTemplates) -> list[int]:
     """Atributos que o refino (8336) e a carta da masmorra sorteiam."""
-    # Grades 0 são placeholders (+0 com valor 500000, "Asker Miktarı" inteiro): nenhum dos 42 atributos
-    # sorteados nas capturas tem Grades 0; os demais têm 1 a 10
+    # Grades 0 são placeholders (+0 com valor 500000, "Troop Count" inteiro): nenhum dos 7 atributos
+    # sorteados na captura inglesa tem Grades 0 (têm 2 a 4); os demais têm 1 a 10
     if not _random_pool:
         _random_pool.extend(
             int(r["TemplateId"])

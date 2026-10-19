@@ -1,5 +1,5 @@
 """Pergaminhos de efeito (SonType 201, ``game/buffs.py``): 115, 110 e 4188 como na captura turca
-``exp_kitabi_kullanim...`` (2013002); EXP Boost dobra a EXP da batalha de campanha só dentro do prazo."""
+``exp_kitabi_kullanim...`` (2013002; só turco: a inglesa não usa o pergaminho); EXP Boost dobra a EXP da batalha de campanha só dentro do prazo."""
 
 from __future__ import annotations
 

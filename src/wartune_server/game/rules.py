@@ -35,7 +35,8 @@ WING, HAT, FASHION_CLOTH, FASHION_ARM = "109", "110", "112", "111"
 HERO_BAGS = (BagType.RUNE, BagType.HONOR, BagType.HERO)  # bolsas do herói que somam atributos
 
 # ganho de atributos por nível, por JobType (1 guerreiro, 2 caçador, 3 mago). O mago foi medido na
-# captura (níveis 1, 3 e 5); ponytail: guerreiro e caçador são o espelho dele, trocar quando houver captura.
+# captura inglesa (níveis 1 a 10, os 150 de builders/login.py); ponytail: guerreiro e caçador são o espelho
+# dele, trocar quando houver captura.
 GROWTH = {
     1: {"power": 3, "agility": 1, "captain": 10, "physique": 1},
     2: {"agility": 3, "power": 1, "captain": 10, "physique": 1},
@@ -119,7 +120,7 @@ def mount_grade(templates: GameTemplates, gp: int, cap: int) -> int:
 
 
 def mount_stats(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, int]:
-    """Atributos da montaria em uso: valor do template + 5 por grau (conferido na captura de login:
+    """Atributos da montaria em uso: valor do template + 5 por grau (só turco: login.json,
     1610 de EXP = grau 11 = 10 + 55 de força)."""
     sy = systems(snap)
     tpl = templates.get("MountTempInfos", sy.mount_template) if sy.mount_template else None
@@ -178,7 +179,7 @@ def building_row(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) 
 
 def population(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> tuple[int, int]:
     """``(ocupada, máxima)``: soldados no castelo + exército x NeedPopulation; teto = Property2 da casa
-    (900 no nível 1, visto no relay #642/#646) + o Population Expansion Scroll (``buffs.POPULATION``)."""
+    (900 no nível 1, visto no inglês #712) + o Population Expansion Scroll (``buffs.POPULATION``)."""
     used = 0
     for pawn in snap.pawns:
         tpl = templates.get("PawnTempInfos", pawn.template_id) or {}
@@ -242,24 +243,24 @@ FRIEND_CONDITION = 21  # ter amigo: checkFriendsCount, tamanho da lista de amigo
 GUILD_JOIN_CONDITION = 22  # estar em guilda: checkJoinConsortia, consortiaID > 0
 OFFER_CONDITION = 29  # contribuição total: checkConsortiaOffer, consortiaTotalOffer >= Para2
 GUILD_LEVEL_CONDITION = 51  # nível da guilda: checkConsortuaGrade; Para1 = prédio (GUILD_LEVEL_ATTRS)
-# (visto) tempinfos QuestTemps 241 Detail: [Birlik İnşaatı] > [İbadethane] > [1 kez İbadet Et] = altar (5145)
+# (visto) tempinfos QuestTemps 241 Detail: [Guild] > [Guild Territory] > [Altar] > [spin] = altar (5145)
 BLESS_CONDITION = 30  # bênção do altar, uma por dia (5145)
 # (visto) tempinfos QuestTemps 260 = própria (Para1 1); 22, 261 e 271 = de amigo (Para1 0)
-TREE_CONDITION = 20  # regar a árvore (15017); (visto) captura #5 de ciftlik.json é a própria
-# (visto) tempinfos QuestTemps 825 Detail: [Pazar] > ekipmanı [1 defa İhaleye Ver] = pôr à venda (8448)
+TREE_CONDITION = 20  # regar a árvore (15017); (só turco) captura #5 de ciftlik.json é a própria
+# (visto) tempinfos QuestTemps 825 Detail: [Market] > Auction any item = pôr à venda (8448)
 SELL_CONDITION = 56  # pôr item no leilão (8448), +1 por anúncio
-# (visto) tempinfos QuestTemps 857 Detail: [Akademi] > [Bereket Ruleti] > [Rulet Aç];
+# (visto) tempinfos QuestTemps 857 Detail: [Academy] > [Blessing Wheel] > Start the [Blessing Wheel];
 # (cliente) SeminaryBlessFrame.as manda 8489 no confirmar
 SEMINARY_CONDITION = 57  # bênção do seminário (8489)
 # Masmorra (campanha): só o servidor sabe quando o jogador passou; (cliente) TaskTemplate.as checkCount só lê o contador
-CAMPAIGN_CONDITION = 14  # passar a campanha Para1 (CampaignId, ex. 70 -> 1001); (visto) captura #1215 -> #1222
-# (visto) tempinfos: a 80 pede o chefe 1011 ('Çene') na campanha 1001 (Para3); (visto) captura #1714: o 112 do chefe
+CAMPAIGN_CONDITION = 14  # passar a campanha Para1 (CampaignId, ex. 70 -> 1001); (visto) inglês #1098 -> #1103
+# (visto) tempinfos: a 80 pede o chefe 1011 ('Wulfgar') na campanha 1001 (Para3); (visto) inglês #1513: o 112 do chefe
 HERO_KILL_CONDITION = 26  # matar o chefe Para1 (GameHeroTemp); Para3 = campanha
 # (dedução) 25 conta os soldados do lado 2 da batalha vencida pelo tempId; nenhuma missão de 25 aponta para a 1001
 PAWN_KILL_CONDITION = 25  # matar Para2 soldados do tipo Para1 (PawnTempInfos) numa campanha
 SOLO_CONDITION = 31  # passar cena com Para1 jogadores (Campaigns.Capacity); (visto) tempinfos: 313 = 1, 371 = 2
 # Os de nível guardam o maior valor: evoluir tropa até Para2 (10) e os que o cliente confere pelo estado
-# 63: Emek Oranı (total da atividade diária); 78: grau do símbolo; 14: passou a campanha (um sim, não soma)
+# 63: Devotion (total da atividade diária); 78: grau do símbolo; 14: passou a campanha (um sim, não soma)
 LEVEL_CONDITIONS = {
     10,
     63,
@@ -374,7 +375,7 @@ def add_gp(snap: PlayerSnapshot, templates: GameTemplates, gp: int) -> int:
 
 def top_up_army(snap: PlayerSnapshot, templates: GameTemplates) -> None:
     """Subiu de nível: completa o exército até a liderança nova com soldados do castelo do mesmo tipo. (visto) EN
-    #1132/#1133 e #1587/#1588, TR #938/#939: a liderança sobe 10, o castelo cai 10 (748 -> 738) e o exército sobe 10
+    #1132/#1133 e #1587/#1588: a liderança sobe 10, o castelo cai 10 (748 -> 738) e o exército sobe 10
     (152 -> 162). Sem ninguém no exército, o tipo é o primeiro do castelo (*dedução*: as capturas só têm esse caso
     com o castelo vazio). Quem chama ``add_gp`` grava ``snap.pawns``; o que faltou vira o 139 (``handlers.player``)."""
     pawn = army_pawn(snap) or next(iter(snap.pawns), None)
@@ -407,8 +408,9 @@ def talent_points(hero: Hero, templates: GameTemplates) -> int:
 
 
 def ever_completed(q: Quest) -> bool:
-    """Já foi concluída alguma vez. O bit do ``states`` continua ligado quando a repetível reabre (login.json #89:
-    id 241 aberta com o bit 1), e a pré-missão do cliente (checkPreTask, IsTaskFinish) lê esse bit."""
+    """Já foi concluída alguma vez. O bit do ``states`` continua ligado quando a repetível reabre
+    (só turco: login.json #89, id 241 aberta com o bit 1), e a pré-missão do cliente (checkPreTask, IsTaskFinish)
+    lê esse bit."""
     return q.completed or q.completed_at is not None
 
 
@@ -598,7 +600,7 @@ def finish_progress(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) ->
 
 
 def goods_to_take(snap: PlayerSnapshot, templates: GameTemplates, template_id: int) -> list[tuple[int, int]]:
-    """(templateId, quantidade) que a entrega consome, de cada condição de bolsa. (visto) captura #1609 (replay): o
+    """(templateId, quantidade) que a entrega consome, de cada condição de bolsa. (visto) inglês #1397 -> #1570: o
     2100001 (SonType 210, item de missão) saiu inteiro, 10 unidades, na entrega da 90, cuja condição pede 8. Por isso
     esse tipo tira tudo. (dedução) Os demais (comprados ou de receita) só a quantidade pedida, para não zerar a reserva
     do jogador; a captura não cobre esse caso."""
@@ -613,7 +615,7 @@ def goods_to_take(snap: PlayerSnapshot, templates: GameTemplates, template_id: i
 
 
 def pay_quest_rewards(snap: PlayerSnapshot, templates: GameTemplates, row: Row) -> tuple[int, int]:
-    """Paga EXP (com o bônus diário), ouro, RewardStrategy (ruh), RewardCrystal e RewardPlayerOffer, como a tela do
+    """Paga EXP (com o bônus diário), ouro, RewardStrategy (Daru), RewardCrystal e RewardPlayerOffer, como a tela do
     cliente (TaskRewardViewII._rewardList). Os itens (QuestGoods) são de quem chama, que confere a mochila. Devolve
     ``(EXP, RewardConsortiaOffer)``: quem chama credita a oferta da guilda se o jogador tiver guilda. RewardMoney,
     RewardHeroGP e RewardDower não são pagos: a tela não mostra o primeiro (só a missão 1, expirada) e os outros dois

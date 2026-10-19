@@ -26,7 +26,7 @@ da barra não abre a fila (`TopToolsBar.as`).
 
 | C>S | O que o servidor faz | Fonte |
 |---|---|---|
-| login (depois do tutorial) | 4512 `matchState=false`, 4515 perfil, 4516 garagem, 4501 `param1=0` (tecnologia). A conta nova do replay não recebe esses pacotes. | *(visto)* `login.json` #83, #110-112 |
+| login (depois do tutorial) | 4512 `matchState=false`, 4515 perfil, 4516 garagem, 4501 `param1=0` (tecnologia). A conta nova da captura inglesa também não recebe esses pacotes (nenhum na captura inteira). | *(visto)* `login.json` #83, #110-112 (só turco: `login`) |
 | 8608 fila rápida | Registra no log e não responde. Sem a cena, não há sala para criar (o oficial responderia com 125 `campaignId=3001`). | *(cliente)* `RoomListSocketOutManager.as:80`, `BaseManager.as:1469` |
 | 8609 cancelar fila | Nada; o cliente não espera resposta | *(cliente)* `RoomListSocketOutManager.as:86` |
 | 8611 escolher veículo `paraInt1` | Só aceita veículo que o jogador já tem. Grava `vehicle_default` e responde 4515. | *(cliente)* `PlayerManager.as:1407`, `:1108` |
@@ -84,10 +84,10 @@ No login, o 4173 vai com `isCloseAAS=true` e `sysSwitch=false`. Isso desliga o s
 - O reset apaga a senha `VP_RESET_DAYS` (3) dias depois do pedido. Isso é conferido no login e no 8806.
   *(dedução)*: o prazo real não está no cliente nem nas capturas.
 
-**Fontes.** *(cliente)* `mainBar/vicePassword/VicePasswordUtil.as:28`, `PlayerManager.as:211-286`; *(visto)* `login.json` #99.
+**Fontes.** *(cliente)* `mainBar/vicePassword/VicePasswordUtil.as:28`, `PlayerManager.as:211-286`; *(visto)* `login.json` #99 (só turco: `login`; a captura inglesa não tem 4696).
 
 **Fica para depois.**
-- 4696 `opType=6` no login (*(visto)* #99, `result=1`) mostra o bloco de recompensa por definir a senha.
+- 4696 `opType=6` no login (*(visto)* `login.json` #99, `result=1`; só turco: `login`) mostra o bloco de recompensa por definir a senha.
   Não mandamos, porque essa recompensa não existe aqui.
 - Trancar e destrancar item (8809) é do dono da mochila e deve exigir `s.vice_confirmed`.
 
@@ -95,11 +95,11 @@ No login, o 4173 vai com `isCloseAAS=true` e `sysSwitch=false`. Isso desliga o s
 
 | C>S | O que o servidor faz | Fonte |
 |---|---|---|
-| 8516 "tem captcha?" | Nada. O oficial só responde (4402) quando aplica captcha. | *(visto)* `replay_packets.json` #126 sem resposta; *(cliente)* `MainToolBar.as:970` |
+| 8516 "tem captcha?" | Nada. O oficial só responde (4402) quando aplica captcha. | *(visto)* inglesa #125 sem resposta; *(cliente)* `MainToolBar.as:970` |
 | 8514 resposta do captcha | Registra no log; nenhum captcha pendente | *(cliente)* `managers/SocketSecurityCodeMessageManager.as:17` |
 | 8524 "já informou o telefone?" | 4420 `CheckSend{canSend=-1}`: telefone não informado (o SMS é por HTTP e não existe aqui) | *(cliente)* `managers/TaskSocketManager.as:49`, `m15/.../TaskMobilePhoneView.as:259` |
 | 8352 código do SMS | Registra no log e recusa; vínculo de celular não existe | *(cliente)* `m15/.../TaskSocketSendManager.as:18` |
-| 20010 batida do relógio | Sem resposta, como o oficial. Se chegar antes de 80% de 60 s depois da anterior, registra `possível speed-hack` no log | *(visto)* `replay_packets.json`: 12 pacotes a cada ~60 s, sem resposta; *(cliente)* `PlayerModel.as:286` |
+| 20010 batida do relógio | Sem resposta, como o oficial. Se chegar antes de 80% de 60 s depois da anterior, registra `possível speed-hack` no log | *(visto)* inglesa (#130, #192, ...): 33 pacotes a cada ~62 s, sem resposta; *(cliente)* `PlayerModel.as:286` |
 | 20009 acelerador detectado | Registra aviso no log. Não tem chamador no cliente decompilado. | *(cliente)* `PlayerManager.as:1357` |
 | 5041 dados do launcher | Ignora. Leva usuário, senha e token da plataforma, por isso **não vai para o log**. | *(cliente)* `PlayerManager.as:900` |
 | 5020 estado de login | Nada: `SocketSendManager.loginState()` não tem chamador; o estado vai no 6 | *(cliente)* `SocketSendManager.as:73` |
@@ -110,8 +110,9 @@ No login, o 4173 vai com `isCloseAAS=true` e `sysSwitch=false`. Isso desliga o s
 
 ## Pacotes do login oficial que o servidor não manda
 
-Comparação de `captures/login.json` (conta nível 56) e do início de `server-relay/replay_packets.json`
-(conta nova) com `handlers/login.py`:
+Comparação de `login.json` (conta nível 56; só turco: `login`) e do início de `server-relay/replay_packets.json`
+(conta nova; só turco: replay) com `handlers/login.py`. O login da conta nova inglesa (#1–#115) já está conferido em
+[sequencia-login.md](sequencia-login.md):
 
 - Desta fatia, passamos a mandar: 4512, 4515, 4516, 4501 (veículos) e 4686 (chefe da ilha dos pets, tudo zerado).
 - 4173 já era mandado.
@@ -119,7 +120,7 @@ Comparação de `captures/login.json` (conta nível 56) e do início de `server-
 O conjunto comparado são os pacotes que `socket_login`, `login_load`, `_login_state`, `space.enter` e
 `vehicle.login` mandam. Ficam fora:
 - as respostas a pedidos do cliente (por exemplo 109 do 5015);
-- o tutorial do replay (1, 21, 125, 127, 130, 140, 143), que vem dos handlers da campanha.
+- o tutorial (inglesa #116–#122: 125, 140, 21, 127, 130, 143; o 1 vem depois, #165), que vem dos handlers da campanha.
 
 Os pacotes abaixo continuam faltando. O cliente aguenta sem eles: cada um preenche o próprio painel quando chega.
 
@@ -142,8 +143,8 @@ Os pacotes abaixo continuam faltando. O cliente aguenta sem eles: cada um preenc
 | 85, 4232, 4497 | recomendação de amigos, estado do chat, garrafa | amigos / [chat.md](chat.md) |
 | 152, 110, 4438, 4434, 4529, 4662 | segurança do castelo, efeito, prosperidade, contrato, lordes, casamento | castelo / eventos |
 | 11 | lista de espera da campanha | [mundo-compartilhado.md](mundo-compartilhado.md) C |
-| 100 | `ArmyPawnUpdatedMsg` das tropas, sem pedido (#6, #29) | exército / tropas |
-| 109 | `CastleYieldMsg` empurrado no fim (#133); hoje só vai em resposta ao 5015 | castelo |
-| 83, 111 | mensagens de sistema e o alerta de recompensa do guia de tarefas (#2, #148, #150) | [chat.md](chat.md) / missões (leed) |
+| 100 | `ArmyPawnUpdatedMsg` das tropas, sem pedido (inglesa #13, #39, vazio na conta nova) | exército / tropas |
+| 109 | `CastleYieldMsg` empurrado no fim (#133 da captura turca; só turco: `login`); hoje só vai em resposta ao 5015, como na inglesa (#123→#124) | castelo |
+| 83, 111 | mensagens de sistema (83 de devoção, inglesa #16) e o alerta de recompensa do guia de tarefas (111: #2, #148, #150 da captura turca; só turco: `login`) | [chat.md](chat.md) / missões (leed) |
 | 4696 `opType=6` | bloco de recompensa da senha secundária (ver acima) | senha secundária (esta fatia), quando houver a recompensa |
 | 462 | sem nome no `opcodes.json` (corpo `3800`) | desconhecido |

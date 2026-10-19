@@ -49,14 +49,16 @@ ORDER_DELAY = 25  # ordem recebida -> golpe
 END_DELAY = 90  # último golpe -> 154
 COUNTDOWN_MS = 60000
 DAMAGE_HP, DAMAGE_SP = 6, 9  # DamageMsg.damageType: vida (bloodA), fúria (cliente BloodType)
-VICTORY, DEFEAT = 3, 4  # PrepareOverLivingMsg.calcType = SkillTempInfo "Zafer"/"Başarısız"
+VICTORY, DEFEAT = 3, 4  # PrepareOverLivingMsg.calcType = SkillTempInfo 3 "Victory!"/4 "Failure!"
 ALL_ENEMIES, SELF = "3", "4"  # SkillTempInfo.AcceptObject
 PASSIVE = "2"  # SkillTempInfo.UseWay: passiva (vira buffer no 157, não se usa)
 MAGIC = "2"  # SkillTempInfo.CountWay: 2 mágico (maga 30000/30711/30811), 1 e 3 físico (visto tutorial_en)
 PLAYER_SIDE = 1
 AUTO = 1  # AttackModeMsg.mode / BattlePrepareMsg.attackModel
 ORDER_TIMEOUT = 112  # PvP: sem ordem em 4,5 s (castTime do herói) o herói age sozinho
-ENEMY_CAST_MS = 3500  # HeroOrderMsg.castTime do herói inimigo na captura do coliseu
+# HeroOrderMsg.castTime do herói inimigo: 3500 no 10711 (inglês #1662, castelo-robô; o coliseu turco também);
+# o inglês tem 4500 no 10000 e 4900 no 10811 (#1675, #1689): ponytail: a regra por skill não foi decifrada
+ENEMY_CAST_MS = 3500
 
 # Fórmula de dano (visto tutorial_en, 153 contra os atributos do 150 e dos templates; docs/batalha.md):
 # base = max((A - D) × defence_factor, A × floor); golpe = base × Parameter1/100 + Parameter2, ±spread,
@@ -490,7 +492,7 @@ class Battle:
                 unit.hp = self.shared.hp()
 
     def _announce(self, unit: Unit, skill: int) -> None:
-        """75 do herói inimigo: o cliente mostra a skill que ele vai usar (captura do coliseu #9)."""
+        """75 do herói inimigo: o cliente mostra a skill que ele vai usar (inglês #1662)."""
         msg = pb.HeroOrderMsg(battleId=self.id, heroIndexId=unit.living_id, skillId=skill, result=0)
         msg.castTime, msg.qteTime = ENEMY_CAST_MS, 0
         msg.targetIndexs.extend(t.living_id for t in self._targets(unit, skill))

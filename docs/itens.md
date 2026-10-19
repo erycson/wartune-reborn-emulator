@@ -27,21 +27,21 @@ o tira) e pelo mercado ([mercado.md](mercado.md)), posição 0. Não são movív
 (guilda), 22–26 (mascote) e 32 (depósito) dependem de sistemas que não existem e são recusados no 5005.
 
 Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros furos ficam −1
-(fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates). *(visto)* o Kronos’un Yetkisi (1991017, `RandomSkillCount` 5) comprado na loja do labirinto chegou no 115 com `join_1` 0 e cinco `randomSkill` (70407, 71123, 70509, 70719, 70209); aqui sai só o `DefaultSkill`. Falta a regra do sorteio.
+(fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates). *(visto, só turco: "yeraltı labirent marketi alışveriş")* o Kronos' Authority (1991017, `RandomSkillCount` 5) comprado na loja do labirinto chegou no 115 com `join_1` 0 e cinco `randomSkill` (70407, 71123, 70509, 70719, 70209); aqui sai só o `DefaultSkill`. Falta a regra do sorteio.
 
 ## Mochila e uso — `items.py`
 
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
 | 5005 ItemReqMsg | move entre os bags 0–4; destino ocupado: empilha (mesmo item, mochila/bancada) ou troca (o outro precisa caber na origem). Da bancada para a mochila o cliente manda `endPos` 0: o servidor escolhe o primeiro livre. Vestir moda pela primeira vez põe no livro (4542) | 3, 150, 115 origem, 115 destino (+4542) | *(visto)* ordem; validações *(cliente)* |
-| 5006 ItemUseMsg | 298 pacote: troca pelo `GradeDrop`; 203 recurso: Property1 1 ouro, 3 elmas, 4 elmas vinculado, 5 Beden (até `weary_limit`), 6 prestígio, 7 EXP, 10 Ruh × Property2 × `count`; **15 entrada de campanha em grupo** (Büyük Sefer: `times` = Property2 × `count`, ver salas-campanha.md); 206 caixas de pedras (`GEM_BOX_LEVELS`, ids 2060008 a 2060020): pedra aleatória do nível (`TransformInfos`); 209 poção de HP: `blood` += Property1 | 203: 115, 111 "Tebrikler! Kazanılan:Altın x1000", 109 (ouro) ou 3 (+83 "5,000 EXP kazanıldı" na EXP); 206: 115, 115, 111, 3, 83; 15: 115, 4240, 111, 3; 209: 115, 113, 150, 3 | *(visto)* |
+| 5006 ItemUseMsg | 298 pacote: troca pelo `GradeDrop`; 203 recurso: Property1 1 ouro, 3 Balens, 4 Bound Balens, 5 Stamina (até `weary_limit`), 6 prestígio, 7 EXP, 10 Daru × Property2 × `count`; **15 entrada de campanha em grupo** (The Empire Crusade: `times` = Property2 × `count`, ver salas-campanha.md); 206 caixas de pedras (`GEM_BOX_LEVELS`, ids 2060008 a 2060020): pedra aleatória do nível (`TransformInfos`); 209 poção de HP: `blood` += Property1 | 203: 115, 111 "Received: 1,000 Gold", 109 (ouro) ou 3 (+83 "Received 5,000 EXP " na EXP; texto inglês do `items.py`, a forma do EXP é a da inglesa #428); 206: 115, 115, 111, 3, 83; 15: 115, 4240, 111, 3; 209: 115, 113, 150, 3 | *(visto, só turco: "büyük exp kitabı-orta ruh incisi-altın kutusu kullanımı", "lvl1 değerli taş sandığı açımı…", "büyük sefer kullanımı…", "büyük hp iksiri kullanım")* |
 | 5007 ItemReqMsg.beginPos | vende a pilha toda | 115, 109 | preço `GoodsHelp.getSellGold` *(cliente)* |
 | 8624 ItemSellReqMsg | venda em lote (pos, count) | 115, 109 | *(cliente)* |
 | 8220 ArrangeReq | aplica a ordem que o cliente calculou (`BaseBagListView.sort`: cada item `oldplace`→índice), sem colisão nem fora da mochila; `isStackItem` junta pilhas incompletas (mesmo item e mesmo cadeado) e fecha os buracos | 115 com a mochila | *(cliente)*; pilhas *(dedução)* |
 | 8346 ItemRemoveMsg `{bagType, pos}` | tira item vencido: o servidor confere `validDate`/`beginDate` e apaga (ainda válido: ignora). Bolsa do herói: também 3 e 150 | 115 com a posição vazia | pedido *(cliente)* `BaseBagListView`/`EquipBagII`; resposta *(dedução)* |
 | 8809 LockAndUnlockMsg | opType 1 mochila, 3 equipamento, 4 medalha: alterna `isLocked`. Item travado não é vendido nem usado | 115 | *(cliente)* |
-| 8484 ItemUseStoreReqMsg | gasta `count` Şeytan Kristali (208014, Property1 = EXP) no cristal: `storeGp` e `storeGrade` (`UpGradeTempInfos` Types 15, `Data` = total) | 115, 3 | *(cliente)* |
-| 5010 PayTypeMsg | compra `property1` linhas de 7 espaços (até 175); linha i custa (i+1)×10 elmas até a 10ª, depois 100 (`BagBuyFrame`) | 3 (`bagCount`) | *(cliente)* |
+| 8484 ItemUseStoreReqMsg | gasta `count` Soul Crystal (208014, Property1 = EXP) no cristal: `storeGp` e `storeGrade` (`UpGradeTempInfos` Types 15, `Data` = total) | 115, 3 | *(cliente)* |
+| 5010 PayTypeMsg | compra `property1` linhas de 7 espaços (até 175); linha i custa (i+1)×10 Balens até a 10ª, depois 100 (`BagBuyFrame`) | 3 (`bagCount`) | *(cliente)* |
 | 8819 RentalBagOpReqMsg | aluga a mochila de 217 por `param2` dias (`rental_bag_day_cost` × 2 páginas), `param1` = payType; renovar soma ao prazo | 3, 4709 `{opType, rentalBagTime, status 1}` | *(cliente)* |
 | 8199 DetailReqMsg | ficha de outro jogador (online ou do banco): equipamento do líder, atributos, `hideFashion`, `storeGrade`, `appellId` | 4125 DetailRspMsg | *(cliente)* `PlayerInfoFrameII` |
 | 5129 CampaignReqMsg | baú caído na campanha: os drops de campanha não existem | 4268 BattleReportMsg `{signId}` vazio (o cliente limpa o nó) | *(cliente)* `CampaignMapController` |
@@ -60,7 +60,7 @@ não mostra nada ao mandar o 8346 *(dedução)*.
 **Captura que falta**: no oficial, comprar uma medalha de 7 dias (Honor Shop), deixar vencer com ela na mochila e
 outra vestida, e capturar o login seguinte e o 8346 → resposta (algum 83/111 ou correio avisando?).
 
-Poção de HP e Bağlı Elmas/Elmas vindos de item gravam o `cash_ledger` com `reason` `item`.
+Poção de HP e Bound Balens/Balens vindos de item gravam o `cash_ledger` com `reason` `item`.
 Divine Light (SonType 316): um por uso, tira a névoa do mapa do castelo por 20 s (4939); ver
 [cidade-externa.md](cidade-externa.md).
 Depende de outro sistema (recusado com log no 5006): cristal (203/11), guilda (203/8), City Protection
@@ -75,7 +75,7 @@ minutos por unidade (× `count`), Property3 = grau (o `{Grades}` da descrição)
 
 | pacote | o que faz | fonte |
 |---|---|---|
-| 5006 → 115, 110 `PropertyUpdatedMsg{propertyType = PropertyType1 do efeito, value = grau}`, 4188 `ItemBufferRspMsg{templateId = efeito, validityDate = minutos restantes, grade, type 2, typeTemplateid = item, isCancel false}`, 3 (sem texto) | liga o efeito | *(visto)* captura turca `exp_kitabi_kullanim_kahraman_sarayi...` #2-#10, 2013002: `{30, 100}` e `{2030, 60, 100, 2, 2013002}` (o 4902/150/4434 no meio são de outros sistemas) |
+| 5006 → 115, 110 `PropertyUpdatedMsg{propertyType = PropertyType1 do efeito, value = grau}`, 4188 `ItemBufferRspMsg{templateId = efeito, validityDate = minutos restantes, grade, type 2, typeTemplateid = item, isCancel false}`, 3 (sem texto) | liga o efeito | *(visto, só turco: `exp_kitabi_kullanim_kahraman_sarayi...` #2-#10)*, 2013002: `{30, 100}` e `{2030, 60, 100, 2, 2013002}` (o 4902/150/4434 no meio são de outros sistemas) |
 | + 109 | depois dos pergaminhos de ouro/população | *(dedução)* |
 | mesmo efeito, grau menor | recusa sem resposta | *(cliente)* `MulItemUseFrame` já barra: "Stronger buff already active, overlapping not allowed." |
 | mesmo efeito, grau igual / maior | soma o tempo / substitui grau e tempo | *(dedução)* |
@@ -113,7 +113,7 @@ dela; terminar uma etapa de masmorra solo com o 2013002 ativo e gravar o 137 (`t
 Preço e moeda como `ShopGoodsInfo.setPrice` *(cliente)*: a primeira coluna > 0 entre `Point`,
 `GiftToken`, `Gold`, `Honor` (item 208001), `ConsortiaOffer` (guilda: não suportado) e `MazeCoin`
 (item 208009). Preço em `GiftToken` aceita vinculado: `payType` 0 usa o vinculado primeiro e completa
-com elmas; 1 só elmas. Preço em `Point` só aceita elmas. Lojas de pontuação (ShopType 8, 13, 15, 20)
+com Balens; 1 só Balens. Preço em `Point` só aceita Balens. Lojas de pontuação (ShopType 8, 13, 15, 20)
 ficam sem suporte.
 
 `BuyInfo.result` *(cliente, `ShopManager`)*: 1 ok, 2 jogador ausente (presente para outro: depende
@@ -123,7 +123,7 @@ correio, 12).
 
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
-| 5154 ShopMsg | compra (o registro decodifica como FashionShopMsg; o handler relê como ShopMsg) | 3 ou 109 (ou 115 da moeda-item), 115 do item, 111 e 83 "{nome} x{n} başarıyla alındı!", 90 ShopMsg `{buyInfo + result}` | *(visto)* |
+| 5154 ShopMsg | compra (o registro decodifica como FashionShopMsg; o handler relê como ShopMsg) | 3 ou 109 (ou 115 da moeda-item), 115 do item, 111 e 83 "{nome} x{n} purchased successfully!", 90 ShopMsg `{buyInfo + result}` | *(visto, só turco: "market alışveriş")* |
 | 8592 FashionShopMsg | compra de moda, uma ou várias | o mesmo por item (90 cada) e 4486 `{result}` no fim | *(cliente)* `FashionAllBuyFrame` |
 | 5633 ShopMsg | compra e usa a poção de HP (ShopType 100) | 109/3, 113 `{heroId, hp, blood, bloodId}`, 170 `{result, templateId}` | *(visto)* |
 | 8218 | compras de hoje | 4145 `hasDataInfo[{userId, itemId, counts, buyDate}]` | *(visto)* |
@@ -138,9 +138,9 @@ Misteriosa: 8 itens sorteados pelo peso `Rands` entre os do nível do jogador; t
 por dia (`# ponytail:`, a tela não está no cliente decompilado). Limite diário por item em
 `shop_buys` (zera quando muda o dia).
 
-Loja do labirinto (ShopType 4, 119 linhas, todas com preço só em `MazeCoin`): paga com Labirent Parası (208009). *(visto)*
-`yeralti_labirent_marketi_alisveris`: o 105 (Altın Kutusu, 1 moeda, andar 5) tirou 1 (118 → 117) e o 110 (Kronos’un
-Yetkisi, 25 moedas, andar 15) tirou 25 (117 → 92). A resposta é a da loja comum: 115 da moeda, 115 do item, 111, 83 e 90
+Loja do labirinto (ShopType 4, 119 linhas, todas com preço só em `MazeCoin`): paga com Crypt Tokens (208009). *(visto, só turco)*
+`yeralti_labirent_marketi_alisveris`: o 105 (Gold Chest, 1 moeda, andar 5) tirou 1 (118 → 117) e o 110 (Kronos'
+Authority, 25 moedas, andar 15) tirou 25 (117 → 92). A resposta é a da loja comum: 115 da moeda, 115 do item, 111, 83 e 90
 (o 4476, 4426 e 4484 da mesma captura são de outros sistemas, não da compra). O andar (`MazeLayers`, `MazeLayers2`): o
 cliente esconde o botão quando o andar passa de `towerInfo1.maxIndex` (`GoodsItem.as:380`) ou de `towerInfo2.maxIndex`
 (`:384`). O servidor manda `maxIndex` 60 fixo no 4205 (`MAZE_MAX_INDEX`) e nunca manda o segundo labirinto; por isso
@@ -155,12 +155,12 @@ O cliente põe o equipamento na bancada (5005 para o bag 0, pos 0) e manda a ope
 
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
-| 5150 (vazio) | reforço: taxa `clamp(100 − g×10, 10, 100)` + Property1 da pedra da sorte (bancada pos 1, SonType 204); ouro `NG≥80 ? (NG/10+1)²×P×(g+1)^2.1×10 : 1.5^(NG/10+1)×(P+1)×(g+1)^2.2×5+500`; até `StrengthenMax`. A pedra vai mesmo na falha e o nível não cai | 115 da pedra, 109, (115 do item no sucesso), 86 StoreRspMsg `{strengResult, strengthenGrade}` | *(visto)* falha; fórmulas *(cliente)* |
-| 5151 StoreReqMsg `{mountPos, bagType, bagPos}` | engasta a pedra (SonType 205) no furo aberto; furo ocupado troca e cobra o Property3 da antiga, que volta para a mochila; nunca duas do mesmo atributo (Property1) | 109, 115 da pedra, 115 do item, 111/83 "Başarıyla mozaik yapıldı!" | *(visto)* |
-| 5152 StoreReqMsg `{holePos, operate}` | true: abre o furo com 1 Elmas Delici (208004); o 4º só em item Profile 5. false: tira a pedra (Property3 em ouro) e devolve | abrir: 115, 115; tirar: 109, 115, 115, 111 "Başarıyla söküldü!", 83 "…Kazanılan:{pedra} x1!" | *(visto)*; abrir *(cliente)* |
-| 5153 StoreReqMsg `{composeId, composeNum}` | receita `ComposeTempInfos` (Material1–4 × Count × n, NeedGold × n, NeedMinLevel) | 115, 109, 115, 111 "Kazanılan:{nome} x{n}", 89 `{composeResult false, composeTemplateId −1}`, 83 | *(visto)* |
-| 8538 StoreReqMsg `{srcItemid, desItemid, count}` | troca pedras do mesmo nível (`TransformInfos`, CostGold × count) | 115, 109, 115, 111/83 "Dönüşüm başarılı" | *(visto)* |
-| 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm. Pool: `SkillTempInfos` 70000–77199 com `Grades` > 0 e `SkillPropertyTempInfos` (1584 de 2157) | 115, 4258 `{randomSkill[]}` | *(cliente)*; pool *(visto)*: os 42 atributos das capturas têm `Grades` 1–10, nenhum 0 (0 = placeholder: +0 com 500000, "Asker Miktarı"); peso *(dedução)* uniforme |
+| 5150 (vazio) | reforço: taxa `clamp(100 − g×10, 10, 100)` + Property1 da pedra da sorte (bancada pos 1, SonType 204); ouro `NG≥80 ? (NG/10+1)²×P×(g+1)^2.1×10 : 1.5^(NG/10+1)×(P+1)×(g+1)^2.2×5+500`; até `StrengthenMax`. A pedra vai mesmo na falha e o nível não cai | 115 da pedra, 109, (115 do item no sucesso), 86 StoreRspMsg `{strengResult, strengthenGrade}` | *(visto)* falha (só turco: "atölye item basma ve mozaik"); sucesso sem pedra na inglesa #3207-#3212 (109, 109, 115 do item, 86); fórmulas *(cliente)* |
+| 5151 StoreReqMsg `{mountPos, bagType, bagPos}` | engasta a pedra (SonType 205) no furo aberto; furo ocupado troca e cobra o Property3 da antiga, que volta para a mochila; nunca duas do mesmo atributo (Property1) | 109, 115 da pedra, 115 do item, 111/83 "Socketing successful!" | *(visto, só turco: "atölye item basma ve mozaik")* |
+| 5152 StoreReqMsg `{holePos, operate}` | true: abre o furo com 1 Socketing Rod (208004); o 4º só em item Profile 5. false: tira a pedra (Property3 em ouro) e devolve | abrir: 115, 115; tirar: 109, 115, 115, 111 "Unsocketing successful!", 83 "Unsocketing successful! Received: {pedra} x1!" | *(visto, só turco)*; abrir *(cliente)* |
+| 5153 StoreReqMsg `{composeId, composeNum}` | receita `ComposeTempInfos` (Material1–4 × Count × n, NeedGold × n, NeedMinLevel) | 115, 109, 115, 111 "Received: {nome} x{n}", 89 `{composeResult false, composeTemplateId −1}`, 83 | *(visto, só turco: "değerli taş birleştirme")* |
+| 8538 StoreReqMsg `{srcItemid, desItemid, count}` | troca pedras do mesmo nível (`TransformInfos`, CostGold × count) | 115, 109, 115, 111/83 "Conversion successful" | *(visto, só turco)* |
+| 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm. Pool: `SkillTempInfos` 70000–77199 com `Grades` > 0 e `SkillPropertyTempInfos` (1584 de 2157) | 115, 4258 `{randomSkill[]}` | *(cliente)*; pool *(visto, só turco)*: os 42 atributos das capturas têm `Grades` 1–10, nenhum 0 (0 = placeholder: +0 com 500000, "Troop Count"); peso *(dedução)* uniforme |
 | 8339 (vazio) | aplica o último sorteio | 4259 `{result}`, 115 | *(cliente)* |
 | 8464 RefreshPropertyReqMsg `{itemId}` | atributos sorteados do item (o pendente, se houver) | 4368 `{randomSkill[], lockPos[], result}` | *(dedução)* |
 | 8340 (vazio) | decomposição: sem chamador no cliente decompilado (`sendResolve`) e sem tabela de produtos nos templates; falta captura | 4260 `{result false}` | *(cliente)* |
@@ -192,7 +192,7 @@ Login: 4542 depois dos itens *(visto)*. A moda entra no livro na primeira vez qu
 `services/cash.py`: `pay(c, total, pay_type, reason, ref, now, gift_ok)` debita (vinculado primeiro
 com `payType` 0 quando o preço aceita) e devolve o `CashLedger`; `change(...)` para créditos e GM.
 Quem chama passa o registro para a mesma `CharacterService.save` da operação. `reason` em uso: `shop`
-(loja e misteriosa), `bag` (5010), `rental_bag` (8819), `item` (elmas vindos de item). Ouro não grava.
+(loja e misteriosa), `bag` (5010), `rental_bag` (8819), `item` (Balens vindos de item). Ouro não grava.
 
 ## Dependências de outros sistemas
 

@@ -1,6 +1,5 @@
 """Subida de nível na entrega de missão: o exército é completado com o castelo até a liderança nova e saem 139 (se
-faltou soldado), 100, 150 e o 4640 ao chegar no nível do fundo novato (tutorial_en #636-#639 e #1132-#1133, replay
-#625-#628 e #938-#939). Ver docs/cidade-externa.md."""
+faltou soldado), 100, 150 e o 4640 ao chegar no nível do fundo novato (tutorial_en #636-#639 e #1132-#1133). Ver docs/cidade-externa.md."""
 
 from datetime import UTC, datetime
 from pathlib import Path

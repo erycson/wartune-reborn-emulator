@@ -24,7 +24,7 @@ S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
 S_SHORT, S_CASTLE_PAWNS = 139, 100  # U_C_ARMY_SUPPROT (vazio): faltou soldado para completar o exército
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
 # (dedução) a captura EN não tem a mochila cheia na entrega: o texto é o do language.txt inglês
-# (ConsortiaCaseCellClickMediator.command01), a mesma chave do "Çantanız Dolu" turco que se usava aqui
+# (ConsortiaCaseCellClickMediator.command01)
 BAG_FULL = "Inventory Full"
 
 
@@ -44,11 +44,11 @@ def _army(s: GameSession) -> None:
 
 
 def push_level(s: GameSession, before: int) -> None:
-    """Subiu do nível ``before`` (o exército já foi completado em ``rules.add_gp``). Ordem do oficial (EN #636-#639,
-    #1132-#1133, #1587-#1588, #3191-#3192; TR #625-#628, #938-#939): 139 se ainda falta soldado no exército (o
-    cliente mostra "Insufficient Troops!", ``BaseManager.__addPawnHandler``; EN #636 e TR #625 com o castelo vazio),
-    100 com o castelo (só depois do 8281 e com tropa ou quartel: nos níveis 2-5 da captura ainda não há prédio),
-    150 e, ao chegar no ``openGrades`` do fundo novato, o 4640 (EN #639, TR #628)."""
+    """Subiu do nível ``before`` (o exército já foi completado em ``rules.add_gp``). Ordem do oficial (tutorial_en
+    #636-#639, #1132-#1133, #1587-#1588, #3191-#3192): 139 se ainda falta soldado no exército (o cliente mostra
+    "Insufficient Troops!", ``BaseManager.__addPawnHandler``; #636 com o castelo vazio), 100 com o castelo (só
+    depois do 8281 e com tropa ou quartel: nos níveis 2-5 da captura ainda não há prédio), 150 e, ao chegar no
+    ``openGrades`` do fundo novato, o 4640 (#639)."""
     from .minigames import fund_opened  # minigames importa este módulo
 
     snap = s.snapshot

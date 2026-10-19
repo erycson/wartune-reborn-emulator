@@ -41,11 +41,12 @@ S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
-# replay #761-#767: 18 tiles em 2,43 s. ponytail: velocidade fixa, sem montaria nem efeitos
-WALK_SECONDS_PER_TILE = 0.134
+# tutorial_en #773-#777: 18 tiles em 2,34 s (do 140 andando ao 140 parado). ponytail: velocidade fixa, sem
+# montaria nem efeitos
+WALK_SECONDS_PER_TILE = 0.13
 MAP_ARMY, MAP_WILD = 3, 1  # MapUpdatedMsg.updatedType
 OCCUPY = 7  # QuestCondictionInfos.CondictionType: ocupar terra (Para1 = SonType, missão 60)
-LEED_MINE = 9  # LeedTemp: ocupar mina (replay #741)
+LEED_MINE = 9  # LeedTemp: ocupar mina (tutorial_en #748)
 ATTACK_CASTLE = 8  # QuestCondictionInfos.CondictionType: atacar cidade (100, 411 e 765; Para1 1 = vitória)
 
 
@@ -155,14 +156,14 @@ async def user_display(s: GameSession, msg: pb.OutercityReqMsg) -> None:
 
 @router.on(5181)
 async def army_grid(s: GameSession, msg: pb.OutercityReqMsg) -> None:
-    """Grade de exércitos (``files`` = "x_y,..."). Sem resposta própria: nas capturas (transfer #12-15,
-    cevre #11-12) o 5181 não tem S>C; a grade vem no 169 que o 8201 manda logo depois (ver 8201)."""
+    """Grade de exércitos (``files`` = "x_y,..."). Sem resposta própria: no oficial (tutorial_en
+    #529-#533) o 5181 não tem S>C; a grade vem no 169 que o 8201 manda logo depois (ver 8201)."""
     s.log.info("5181 grade", mapa=msg.mapId, grades=len(msg.files.split(",")))
 
 
 async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Castle, str]]:
     """Castelos de outros jogadores nas grades pedidas de um mapa compartilhado (1 a 5). A instância
-    100000xxx é do jogador: no oficial ela só tem o castelo dele e 2 robôs (replay #706, cevre #11)."""
+    100000xxx é do jogador: no oficial ela só tem o castelo dele e 2 robôs (tutorial_en #532)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     if map_id != snap.castle.map_id or oc.template_of(map_id) == oc.BASE_MAP:
@@ -191,7 +192,7 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     await refresh(s)
     grids = {g for g in msg.reqGrid.split(",") if g}
     reply = pb.PhysicListUpdateMsg(reqGrid=msg.reqGrid)
-    if oc.template_of(msg.mapId) == oc.BASE_MAP:  # replay #706: as minas vêm antes do castelo
+    if oc.template_of(msg.mapId) == oc.BASE_MAP:  # tutorial_en #532: as minas vêm antes do castelo
         for mine in mines.mines_in(s.ctx.world, grids):
             land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s))
             reply.wildLand.append(land)
@@ -200,11 +201,11 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
         s.outer_view = (msg.mapId, grids, monsters.cycle_start(s.ctx.templates, now))
         killed = await _killed(s, msg.mapId, now)
         for m in found:
-            # (visto) transfer #14: no meio das terras, antes dos castelos
+            # no meio das terras, antes dos castelos (só turco: transfer_kampi_sistemi #14)
             if oc.grid_of(m.x, m.y) in grids and (state := s.ctx.wilds.state(m, killed)) != monsters.MONSTER_GONE:
                 reply.wildLand.append(monsters.monster_msg(s.ctx.world, s.ctx.templates, m, state))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
-    # (visto) cevre #11: os robôs vêm junto com o castelo
+    # (visto) tutorial_en #532: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
         reply.baseCastle.add().CopyFrom(b.complete(robots.robot_castle_msg(snap, s.ctx.world, robot)))
     for castle, name in await _rivals(s, grids, msg.mapId):
@@ -235,7 +236,7 @@ def roll_monsters(s: GameSession) -> None:
 
 @router.on(8254)
 async def army_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
-    """O exército andou: guarda o último ponto (pixels // 20). Como no replay (#761-#767): 140 ×2
+    """O exército andou: guarda o último ponto (pixels // 20). Como no oficial (tutorial_en #773-#777): 140 ×2
     andando no ponto de saída e, na chegada, 140 ×2 parado no destino. Sem outro jogador no mapa não
     há o que avisar (4167). Outro exército, mapa diferente, rota vazia ou fora do mapa: ignorado."""
     snap = s.snapshot
@@ -299,7 +300,7 @@ def _army_sync(s: GameSession, state: int) -> None:
 
 @router.on(5160)
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
-    """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (replay #713-#795): 140 do
+    """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (tutorial_en #723-#727): 140 do
     exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô: luta (ver ``_attack_robot``).
     Monstro dos Wilds: luta (ver ``_attack_monster``). Mina já ocupada, castelo de outro jogador, terra ou
     tesouro: o exército só para (140 parado)."""
@@ -337,7 +338,7 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
 
 
 async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> None:
-    """Fim da luta da mina, na ordem do replay (#734-#744): 150, 4103, 150, 100, 140 ×2; vencendo,
+    """Fim da luta da mina, na ordem do oficial (tutorial_en #741-#752): 150, 4103, 150, 100, 140 ×2; vencendo,
     a mina fica do jogador: 112 da missão 60, 4152, 109, 152 com o rendimento e 140 da mina ocupada."""
     snap = s.snapshot
     assert snap is not None
@@ -367,7 +368,7 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     s.send(S_POLITICS, politics_msg(snap, templates))
     _mine_sync(s, mine, mines.MINE_FREE)
     map_id, x, y = oc.position(snap.castle, s.outer_army)
-    s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # replay #749
+    s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # tutorial_en #754
 
 
 async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:

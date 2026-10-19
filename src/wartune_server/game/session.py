@@ -160,7 +160,7 @@ class GameSession:
         point, gift = (c.point, c.gift_token) if c is not None else (0, 0)
         await handler(self, message)
         # LeedTemp 15 "Consume Balens/Bound Balens": qualquer gasto de diamante, de qualquer pedido. (visto)
-        # yeralti_labirenti #7-#8: 3 com o vinculado a menos e então o 4152. Aqui, depois do handler inteiro.
+        # (só turco) yeralti_labirenti #7-#8: 3 com o vinculado a menos e então o 4152. Aqui, depois do handler inteiro.
         snap = self.snapshot
         if c is not None and snap is not None and snap.character is c and (c.point < point or c.gift_token < gift):
             from .handlers import events  # handlers importa este módulo

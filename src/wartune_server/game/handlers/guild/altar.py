@@ -65,7 +65,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     ``blessSite`` é a posição na lista do 4144 (-1 = nada). O prêmio fica na linha do membro até o 8216.
 
     ponytail: a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item
-    do mercado da guilda liberado pelo nível do altar, na casa "Market Eşyası" (Site 1). A bênção
+    do mercado da guilda liberado pelo nível do altar, na casa "Shop Item" (Site 1). A bênção
     rápida (``param1`` > 1, VIP 6) fica recusada: o m6 (ConsortiaAltarFrame) mostra o VIP 6 e as 10
     bênçãos, mas não o custo nem a forma da resposta.
     """

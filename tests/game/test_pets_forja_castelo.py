@@ -19,7 +19,7 @@ pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/
 PAN_T1_S4 = 104104  # receita 4: 10 de 2125054 + 1000 de 2125057 + 5 milhões de ouro
 PAN_T2_S4 = 104204  # resultado da receita 4 (tier 2, mesma estrela)
 PAN_T1_S1 = 104101  # estrela 1: nenhuma receita de um pet só
-ORE, STAR_DUST = 2125054, 2125057  # Yıldız Kırığı-Rüzgar, Yıldız Tozu
+ORE, STAR_DUST = 2125054, 2125057  # Star Tear - Wind, Star Sand
 GOLD = 5_000_000
 
 
@@ -116,8 +116,8 @@ def test_refino_sorteia_so_atributos_com_grade() -> None:
     templates = GameTemplates.parse(TEMPLATES.read_bytes())
     bag._random_pool.clear()
     pool = set(bag.random_skill_pool(templates))
-    # atributos vistos nas capturas (login, ciftlik, atolye_item_basma_ve_mozaik): todos com Grades 1-10
+    # atributos vistos nas capturas (só turco: login, ciftlik, atolye_item_basma_ve_mozaik): todos com Grades 1-10
     assert {70941, 71157, 72141, 70218, 71033, 70302} <= pool
-    # +0 com valor 500000 (Güç+0), Sihirli Saldırı de Grades 0 e "Asker Miktarı" (Conat) nunca saem
+    # +0 com valor 500000 (Power+0), MATK de Grades 0 e Conat (tropas) nunca saem
     assert not pool & {70100, 70800, 71200}
     bag._random_pool.clear()

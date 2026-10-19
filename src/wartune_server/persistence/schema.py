@@ -814,7 +814,7 @@ exp_rate_events = Table(
     Column("source", String(255), server_default="", nullable=False),
 )
 # Campanhas (0034): o conteúdo de cada uma (nós, batalhas, baús, diálogos; tools/extract_dungeon.py) em JSON e a
-# tabela de sorteio das cartas do fim (peso = vezes vista nas capturas)
+# tabela de sorteio das cartas do fim (peso = vezes vista na captura inglesa, 0040)
 campaign_contents = Table(
     "campaign_contents",
     metadata,

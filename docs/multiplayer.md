@@ -12,19 +12,20 @@ seu documento:
 
 ## O que é fato e o que é dedução
 
-- **Nenhuma captura tem pacotes C>S.** Os `captures/*.json` só guardam o que o servidor mandou.
+- **Nenhuma captura turca tem pacotes C>S** (a inglesa, `tutorial_en.json`, tem). As turcas só guardam o que o
+  servidor mandou.
   Todo formato de pedido do cliente nestes documentos vem do código decompilado
   (`D:/wartune/decompiled`) e está marcado como *(cliente)*.
 - **Nenhuma captura tem chat entre jogadores, time ou sala com 2 jogadores, ataque a castelo ou
   boss mundial.** Esses fluxos são *(dedução)*: montados do código do cliente e do formato das
   mensagens.
-- O que tem índice de captura (`login.json #131`) foi *(visto)*.
+- O que tem índice de captura (`inglesa #2126`; turco: `login.json #131`) foi *(visto)*.
 
 Correções em relação aos nomes dos arquivos de captura:
 
 - `savasa_baskin_ve_elmas_ile_hizlandirma.json` é **varredura de campanha** (4425
   `CampaignSweepRsp`), sem batalha. Não é ataque a castelo.
-- `cevre_altin_madeni_savasi.json` é PvE contra a guarnição NPC de uma mina sem dono.
+- `cevre_altin_madeni_savasi.json` é PvE contra a guarnição NPC de uma mina sem dono (como a inglesa #723-#754).
 
 ## Armadilhas do cliente
 

@@ -1,10 +1,10 @@
 # Tutorial (campanha de treino)
 
 Personagem novo com `noviceProcess < 19000` (o padrão; `WARTUNE_SKIP_TUTORIAL=true` pula) começa na campanha de
-treino: dois mapas, 10001 e 10002 ("Ryan Yolu"), com cinco batalhas, um baú com a arma da
+treino: dois mapas, 10001 e 10002 ("Enna Pass"), com cinco batalhas, um baú com a arma da
 classe, a Dinah como escolta e, no fim, a batalha do chefe na cidade externa para retomar o
-castelo. Tudo foi reproduzido da captura oficial (`server-relay/replay_packets.json`, pacotes
-116 a 580).
+castelo. Tudo foi reproduzido da captura oficial (`captures/tutorial_en.json`, pacotes
+98 a 822).
 
 ## De onde vem o conteúdo
 
@@ -33,7 +33,7 @@ Cada nó tem dois ids. O de execução (`nodeId`, 9544…) vai nos pacotes 127, 
 | 5017 `noviceProcess` | (112 se uma missão cumpriu a condição), 3, 1; no 14000 o portal aparece | `novice` |
 | 5012 / 5014 | aceitar / entregar missão (ver Missões) | `handlers/player.py` |
 | 5005 | equipar ou trocar item: 3, 150, 115 (origem), 115 (destino) | `bag_move` |
-| 5006 num pacote (SonType 298) | 115 (posição vazia), 150, (109), 115 com os itens novos, 111/83 "Kazanılan:…", 3. Troca o pacote pelo `GradeDrop` `DropId=Property1` numa transação; moedas negativas: -100 ouro, -300 Ruh (`strategy`), -400 elmas (`point`), -500 bağlı elmas (`gift_token`). Recusa se faltar nível (`NeedGrades`), espaço (42) ou se o drop tiver algo desconhecido | `use_item` |
+| 5006 num pacote (SonType 298) | 115 (posição vazia), 150, (109), 115 com os itens novos, 111/83 "Received: …", 3. Troca o pacote pelo `GradeDrop` `DropId=Property1` numa transação; moedas negativas: -100 ouro, -300 Daru (`strategy`), -400 Balens (`point`), -500 Bound Balens (`gift_token`). Recusa se faltar nível (`NeedGrades`), espaço (42) ou se o drop tiver algo desconhecido | `use_item` |
 | 5035 `{state:4}` | 4382 com a EXP da última batalha | `client_state` |
 | 5015 / 20008 / 5167 | 109 / 4234 / 64 | `handlers/player.py` |
 
@@ -42,11 +42,11 @@ Roteiro dos nós (constantes no topo de `game/handlers/campaign.py`):
 | nó | evento |
 |---|---|
 | 1000103, 1000104 (Huntera) | chegada: batalha |
-| 1000110 (gatilho) | chegada: diálogo 0. 1º 5032: câmera na Tina, o urso pisca, diálogo 1. 2º 5032: o jogador anda até `param4` e o gatilho some |
-| 1000106 (urso) | chegada: diálogo 2. 5032 com o urso de pé: batalha; vitória: 1000109 aparece. 5032 com o urso derrotado (no 15300): a Tina passa a seguir |
+| 1000110 (gatilho) | chegada: diálogo 0. 1º 5032: câmera na Dinah, o urso pisca, diálogo 1. 2º 5032: o jogador anda até `param4` e o gatilho some |
+| 1000106 (urso) | chegada: diálogo 2. 5032 com o urso de pé: batalha; vitória: 1000109 aparece. 5032 com o urso derrotado (no 15300): a Dinah passa a seguir |
 | 1000108 (portal) | aparece no `noviceProcess` 14000. Chegada: 4208 e mapa 10002 (`createdType:3`) |
 | 1000202 (baú) | chegada: arma da classe (`param3`, índice `job-1`) com o atributo sorteado `DefaultSkill`, 115, 111, 128, 150 |
-| 1000203 (urso) | chegada: batalha tipo 18 com a Tina |
+| 1000203 (urso) | chegada: batalha tipo 18 com a Dinah |
 | 1000208 (gatilho) | chegada: o jogador anda até `param4` com a câmera |
 | 1000205 (Brutal Bloodhoof) | chegada: diálogo 3. 5032: batalha. Vitória: saída 1000206 e 1000207 aparecem |
 | 1000206 (saída) | chegada: 4165, 150, 140, 134. O cliente vai para a cidade externa |
@@ -68,7 +68,7 @@ ao relogar), e o baú não dá a arma de novo se ela já está na mochila.
 | ≥ 12000 | 10001 | 1000104 derrotado |
 | ≥ 13500 | 10001 | gatilho 1000110 usado, 1000106 derrotado, 1000109 visível |
 | ≥ 14000 | 10001 | portal 1000108 visível |
-| ≥ 15300 | 10001 e 10002 | a Tina segue o jogador (4124 ao entrar) |
+| ≥ 15300 | 10001 e 10002 | a Dinah segue o jogador (4124 ao entrar) |
 | ≥ 16700 | 10002 | baú 1000202 aberto |
 | ≥ 17500 | 10002 | 1000203 derrotado |
 | ≥ 18500 | 10002 | gatilho 1000208 usado, 1000205 derrotado, 1000206/1000207 visíveis |
@@ -108,7 +108,7 @@ sem arma:
 | liderança do exército | liderança |
 
 Os atributos dos itens equipados e o atributo sorteado (`SkillPropertyTempInfo`, ex.: 70302
-"Zeka+2") entram nos atributos antes das fórmulas; os bônus fixos (`Attack`, `MagicAttack`…) só
+"Intellect +2") entram nos atributos antes das fórmulas; os bônus fixos (`Attack`, `MagicAttack`…) só
 no total. O poder de combate bate com os 150 da captura (fórmula em [heroi-exercito.md](heroi-exercito.md#atributos-do-herói)).
 
 ## Testes
@@ -116,7 +116,7 @@ no total. O poder de combate bate com os 150 da captura (fórmula em [heroi-exer
 - `tests/game/test_tutorial.py`: cliente falso nos trechos principais (primeira batalha, missão
   com subida de nível, portal, baú e equipar, mapa 10002 até o castelo, retomada).
 - `tests/game/test_tutorial_oracle.py`: reenvia ao servidor todos os pacotes do cliente da
-  captura (116 a 580) e compara quantas respostas de cada opcode saem. Fora: golpes da batalha,
+  captura (98 a 822) e compara quantas respostas de cada opcode saem. Fora: golpes da batalha,
   sistemas que não existem aqui (atividades, títulos, moda, patrulha dos monstros) e duas
   respostas deixadas de lado de propósito.
 

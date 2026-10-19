@@ -1,7 +1,8 @@
 """Cidade externa (mapa-múndi): posição do exército, grade visível e castelo que muda de lugar.
 
 Regras vindas do cliente (`OuterCityController`, `WorldMapControler`, `WorldMapHelper`) e da captura
-`transfer_kampi_sistemi.json` (5176 -> 140, 152, 105). O mapa 100000xxx do castelo é uma instância
+`transfer_kampi_sistemi.json` (só turco: 5176 -> 140, 152, 105; a inglesa não muda o castelo de mapa).
+O mapa 100000xxx do castelo é uma instância
 de cada jogador (o próprio castelo, os 2 castelos-robô e as 4 minas do mapa 100); nos mapas 1 a 5,
 compartilhados, aparecem os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando
 de outro jogador e terra selvagem fora das 4 minas não existem aqui. Minas em ``mines.py``, castelos-robô em
@@ -23,7 +24,7 @@ HOME_OFFSET = 2  # army_msg: o exército fica 2 tiles antes do castelo
 # 100 é só o saldo mínimo que o AttackAlertFrame confere antes de mandar o 9506
 ATTACK_PRICE = 100
 ENERGY_SAME_MAP = 100  # MapPhysicsCastle: energia para mudar de posição no mesmo mapa
-ENERGY_OTHER_MAP = 200  # WorldMapControler: energia para mudar de mapa (captura: 500 -> 300)
+ENERGY_OTHER_MAP = 200  # WorldMapControler: energia para mudar de mapa (só turco: transfer, 500 -> 300)
 BASE_MAP, INSTANCE_MAP = 100, 100_000  # mapas do castelo começam em 100000xxx (characters.GridCastlePlacement)
 
 
@@ -50,7 +51,7 @@ def map_allowed(map_id: int, grade: int) -> bool:
 
 
 def template_of(map_id: int) -> int:
-    """O mapa do castelo (100000xxx) é uma cópia do modelo 100 (Loş Sahil), como no OuterCityController."""
+    """O mapa do castelo (100000xxx) é uma cópia do modelo 100 (Twilight Sands), como no OuterCityController."""
     return BASE_MAP if map_id >= INSTANCE_MAP else map_id
 
 
@@ -70,7 +71,7 @@ def inside(templates: GameTemplates, map_id: int, x: int, y: int) -> bool:
 def centre(templates: GameTemplates, map_id: int) -> tuple[int, int]:
     """Onde o castelo cai ao chegar num mapa novo.
 
-    ponytail: o oficial escolhe um ponto livre; usamos o centro (captura: mapa 2 em 2191,1952, perto do
+    ponytail: o oficial escolhe um ponto livre; usamos o centro (só turco: transfer, mapa 2 em 2191,1952, perto do
     centro de 4000×4000 tiles), então dois castelos que mudam para o mesmo mapa ficam no mesmo ponto até um
     deles se mover (5176 no mesmo mapa). Subir: procurar ponto livre com ``CastleRepository.on_map``.
     """
@@ -87,14 +88,14 @@ def energy_diamonds(castle: Castle, top: int, need: int) -> int:
 
 
 def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[dict[str, object]], int]:
-    """As tropas do exército na luta (replay #718): duas pilhas (pos 3 e 9, livingId 1 e 2). A vida total
+    """As tropas do exército na luta (inglês #727): duas pilhas (pos 3 e 9, livingId 1 e 2). A vida total
     Live × soldados / 100 se divide arredondando para cima na primeira (visto tutorial_en: 523 -> 262/261,
     637 -> 319/318). Devolve as pilhas e o template da tropa (0 sem tropa)."""
     soldiers: list[dict[str, object]] = []
     pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
     if pawn is not None and tpl is not None:
-        # replay #718: [DefaultSkill, HighSkill] repetido 5 vezes (10,11 do Lancer)
+        # inglês #727: [DefaultSkill, HighSkill] repetido 5 vezes (10,11 do Lancer)
         skills = [int(s) for s in (tpl["DefaultSkill"], tpl.get("HighSkill", "")) if s] * 5
         total = max(1, int(tpl["Live"]) * pawn.army_count // 100)
         first = (total + 1) // 2 if pawn.army_count > 1 else total
@@ -110,9 +111,10 @@ def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[
 
 
 def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> dict[str, object]:
-    """Spec da luta contra um guarda no mapa 100 (replay #718, a mina): battleType 1, as tropas do exército
+    """Spec da luta contra um guarda no mapa 100 (inglês #727, a mina): battleType 1, as tropas do exército
     (``army_soldiers``), o herói na 4 e o guarda na 5 com a vida de um soldado (Live / 100). Serve também
-    ao castelo-robô (dedução: não há captura de luta com castelo; o guarda é o da mina do mesmo grau)."""
+    ao castelo-robô (dedução: o guarda da mina do mesmo grau). ponytail: o inglês tem a luta com o robô (#1657:
+    battleType 4, mapTempId 993, herói 11008 com o nome do robô, 2 pilhas 10102 nas pos 1 e 7); trocar por ela."""
     soldiers, pawn_tpl = army_soldiers(snap, templates)
     guard_row = templates.get("PawnTempInfos", guard) or {}
     hp = max(1, int(guard_row.get("Live", 100)) // 100)
@@ -133,7 +135,7 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
 
 def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
     """Castelo de outro jogador num mapa compartilhado (o do próprio jogador é ``builders.login.castle_msg``).
-    (dedução) os mesmos campos do castelo próprio na transfer #14; a captura não tem castelo de outro jogador."""
+    (dedução) os mesmos campos do castelo próprio no 4129 (inglês #532); nenhuma captura tem castelo de outro."""
     return pb.BaseCastleMsg(
         id=castle.id or 0,
         mapId=castle.map_id,

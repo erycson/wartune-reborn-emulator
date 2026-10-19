@@ -27,9 +27,9 @@ S_PLAYER, S_CHAT, S_ALERT, S_QUESTS = 3, 83, 111, 112
 S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 104, 102, 4187
 S_IMPOSE, S_TRANSFER, S_UNOCCUPY, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 108, 4452, 100
 BUY_ORDER_PRICE = 100  # "mainBar.QueueBar.content" (QueueBar.buyQueueItem)
-IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; captura: 151 com remainTime 3600
+IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
-# (visto) tempinfos: 111-113 (Detail "İnşaat Bekleme Süresini kaldır" [1/3/7 kez]) e 763 ("Vergi Topla")
+# (visto) tempinfos: 111-113 ("Accelerate Building Construction Cooldown 1/3/7 times") e 763 ("Collect Levy")
 ACCELERATE, LEVY = 12, 42  # QuestCondictionInfos.CondictionType
 
 
@@ -126,14 +126,15 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
     after = cs.yield_msg(snap, templates, now)
     if after != paid:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
         s.send(cs.S_CASTLE_YIELD, after)
-    s.send(S_ORDER_USE, cs.order_info(order, now))
-    s.send(S_BUILDINGS, _buildings(s, [building, *unlocked]))
-    # tipo de tropa que este nível do quartel libera (NeedBuilding = o template novo) vem com 0; subir
-    # sem liberar nada não manda o 100 (replay #649-#653, Kışla Lv.2)
+    # nível do quartel que libera um tipo de tropa (NeedBuilding = o template novo): 100 com todas as tropas do
+    # castelo e o tipo novo com 0, antes do 151 (tutorial_en #2208-#2213, Barracks Lvl. 4: 109, 100, 151, 4130, 83);
+    # subir sem liberar nada não manda o 100 (tutorial_en #1577-#1581, Barracks Lvl. 2)
     fresh = [p for p in unlocked_pawns(snap, templates) if _need_building(templates, p.template_id) in {
         b.template_id for b in (building, *unlocked)}]  # fmt: skip
     if fresh:
-        s.send(S_ARMY_PAWN, castle_pawns(snap, templates, fresh))
+        s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
+    s.send(S_ORDER_USE, cs.order_info(order, now))
+    s.send(S_BUILDINGS, _buildings(s, [building, *unlocked]))
     # texto do oficial inglês (83, tutorial_en #594: "Town Hall has been upgraded to Lvl. 2")
     text = f"{target['BuildingName']} has been upgraded to Lvl. {target['BuildingGrade']}"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
@@ -198,7 +199,7 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
         return
     for o in orders:
         o.begin_at, o.need_time = now, 0
-    # (visto) tempinfos: Para1 1 = cs.BUILD (fila de prédio), Detail "[1 kez]" = 1 por ação;
+    # (visto) tempinfos: Para1 1 = cs.BUILD (fila de prédio), Title "... 1 time" = 1 por ação;
     # (cliente) NewbieBaseActionMediator.as case 12 = QueueBar
     build = any(o.order_type == cs.BUILD for o in orders)
     quests = rules.quest_event(snap, s.ctx.templates, ACCELERATE, cs.BUILD, 1) if build else []
@@ -206,8 +207,9 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     _send_player(s)
     from . import events  # handlers.events importa login, que importa este módulo
 
-    # LeedTemp 15 "Consume Balens/Bound Balens": (visto) replay #1288-#1294, 3, 4152 (totalNum 25), 150, 4434, 111,
-    # 102 e o 83 "Emek oranınız 25'a ulaştı." (aqui o 83 vai logo depois do 4152, como nos outros leeds)
+    # LeedTemp 15 "Consume Balens/Bound Balens": (visto, só turco: replay #1288-#1294) 3, 4152 (totalNum 25), 150,
+    # 4434, 111, 102 e o 83 da devoção ("Your devotion level has increased to N.", tutorial_en #16); aqui o 83 vai
+    # logo depois do 4152, como nos outros leeds
     # chamado aqui para sair antes do 111/102, como na captura; o gancho geral do on_packet (session.py) vê o leed
     # já feito no dia e não repete. VIP grátis (index 0) não gasta diamante: não conta
     if entry is not None:
@@ -241,7 +243,7 @@ async def order_add(s: GameSession, msg: pb.PayTypeMsg) -> None:
 @router.on(8327)
 async def gold_impose(s: GameSession, _: object) -> None:
     """Cobrança de ouro no conselho (LevyView): 901.Property1*6 + mina.Property1*3, 5 por dia,
-    fila tipo 3 ocupada por 1 hora. Login.json/city: 46.620 = 7320*6 + 900*3."""
+    fila tipo 3 ocupada por 1 hora. (só turco: login.json/city) 46.620 = 7320*6 + 900*3."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
@@ -257,7 +259,7 @@ async def gold_impose(s: GameSession, _: object) -> None:
     c.gold += gold
     snap.castle.impose_used, snap.castle.imposed_at = used + 1, now
     order.begin_at, order.need_time = now, IMPOSE_COOLDOWN
-    # (visto) tempinfos: 763 = tipo 42, Para1 0, Detail "Vergi Topla" no Meclis; (cliente) case 16 = levyBtn
+    # (visto) tempinfos: 763 = tipo 42, Para1 0, "Collect Levy" no Town Hall; (cliente) case 16 = levyBtn
     quests = rules.quest_event(snap, templates, LEVY, 0, 1)  # cada cobrança conta 1 (dedução)
     await s.ctx.characters.save(c, snap.castle, order, *quests)
     castle_yield(s)
@@ -331,7 +333,8 @@ async def seminary_bless(s: GameSession, _: object) -> None:
     await s.ctx.characters.save(c, *quests)
     from . import events  # handlers.events importa login, que importa este módulo
 
-    # LeedTemp 33 "Spin the Blessing Wheel" é esta bênção: (visto) city_city_upgrade #139-#140, 4152 antes do 4391
+    # LeedTemp 33 "Spin the Blessing Wheel" é esta bênção: (visto, só turco: city_city_upgrade #139-#140) 4152 antes
+    # do 4391
     await events.leed_done(s, events.WHEEL_LEED)
     s.send(S_BLESSING, b.complete(pb.BlessingMsg(increase=c.seminary_effect, usedCount=c.seminary_count)))
     castle_yield(s)  # 109: o contador de cristais do cliente

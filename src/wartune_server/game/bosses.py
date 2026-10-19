@@ -1,9 +1,9 @@
 """Painel "Current map BOSS info" da cidade externa (9525 -> 4938).
 
-Lista: os chefes (``bossType`` 3) vivos do mapa, de ``monsters.on_map``. (visto) o bosslist do mapa 2 na
-transfer traz 5 monstros, todos de ``Property1`` 3, e o 210127 (``bossType`` 2) do 4129 da mesma sessão fica
-de fora. x e y em tiles (o radar do cliente faz x * 20). A instância do castelo vem vazia (cevre): não está
-em ``world_monster_counts``.
+Lista: os chefes (``bossType`` 3) vivos do mapa, de ``monsters.on_map``. (só turco: o bosslist do mapa
+2 na transfer_kampi_sistemi traz 5 monstros, todos de ``Property1`` 3, e o 210127, ``bossType`` 2, do 4129 da
+mesma sessão fica de fora). x e y em tiles (o radar do cliente faz x * 20). A instância do castelo vem vazia
+(inglês #526: 4938 com count1..3 em 0): não está em ``world_monster_counts``.
 """
 
 from __future__ import annotations

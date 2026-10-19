@@ -5,7 +5,7 @@ Uma linha por pacote: índice, direção, opcode, nome, extend1/extend2 e a mens
 
 Uso::
 
-    uv run python tools/dump_capture.py D:/wartune/server-relay/replay_packets.json --from 100 --to 200
+    uv run python tools/dump_capture.py captures/tutorial_en.json --from 100 --to 200
 """
 
 from __future__ import annotations

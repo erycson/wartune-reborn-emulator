@@ -71,7 +71,7 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6, clock: Clock
         rsa_key_file=tmp_path / "rsa.pem",
         log_dir=tmp_path / "logs",
         skip_tutorial=False,
-        game_timezone="+03:00",  # os testes reproduzem as capturas do servidor turco (UTC+3)
+        game_timezone="+03:00",  # os testes reproduzem as capturas do servidor turco (UTC+3; só turco, docs/fontes-turcas.md)
         _env_file=None,  # type: ignore[call-arg]
     )
     services = await build_services(settings, clock)

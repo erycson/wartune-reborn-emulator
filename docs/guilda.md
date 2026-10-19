@@ -30,7 +30,7 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 ## Regras do cliente
 
 - **Cargos** 1 chefe, 2 vice, 3 ancião, 4 e 5 membros. Os direitos são bitmaps copiados do 4137
-  oficial *(visto)* `login.json #116`, bit `i-1` LSB primeiro (`BitArray.getBit`, m2). Índices usados:
+  oficial *(visto)* `login.json #116` (só turco: `login`), bit `i-1` LSB primeiro (`BitArray.getBit`, m2). Índices usados:
   1 chefe, 2 pesquisa, 3 melhoria/abrir altar, 4 avisos, 5 expulsar, 6 convidar, 9 aceitar e
   `openApp`, 18 renomear, 19 cargos, 30 descrição, 33 recusar *(cliente)* m6 `ConsortiaStaffPage`,
   `ConsortiaPlayerMenu`. Só o chefe tem o 3; o vice tem o 2.
@@ -53,10 +53,10 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 |---|---|---|---|
 | 5130 | criar | 117, 3 e 109 para quem criou; 164 para os membros | *(cliente)* m6 `CreatConsortiaFrame`, m2 `ConsortiaControler` |
 | 8213 | buscar guildas | 4139 `ConsortiaSearchRspMsg` | *(cliente)* m6 `ConsortiaSocektSendManager` |
-| 8212 | informações | 4138 | *(visto)* `login.json` |
+| 8212 | informações | 4138 | *(visto)* `login.json` (só turco: `login`) |
 | 8343 | link de guilda do chat | 4267 `ConsortiaLinkRspMsg` | *(cliente)* m2 |
-| 8211 | cargos | 4137 com os bitmaps | *(visto)* `login.json #116` |
-| 8207 | membros | 4133 em pedaços | *(visto)* `login.json` |
+| 8211 | cargos | 4137 com os bitmaps | *(visto)* `login.json #116` (só turco: `login`) |
+| 8207 | membros | 4133 em pedaços | *(visto)* `login.json` (só turco: `login`) |
 | 8210 | eventos | 4136 | *(cliente)* m2 |
 | 8209 | candidaturas e convites do jogador | 4135 | *(cliente)* m2 |
 | 5135 | candidatar-se | 35 `{applyId}`; 4266 para quem pode aceitar | *(cliente)* m2 `__joinConsortiaHandler` |
@@ -73,8 +73,8 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 5137 | mudar cargo (direito 19) | 50 `{otherId, positionId}` para os membros | *(cliente)* m2 |
 | 5139, 5140, 8544 | aviso, descrição, aviso do grupo | 164 | *(cliente)* m6 |
 | 5148 | renomear (direito 18, 1000 diamantes) | 49, 3, 164; 3 para os membros | *(cliente)* m6 `ConsortiaRenameFrame` |
-| 5144 | contribuir | 109, 3, 111, 42, 164 | *(visto)* `birlik_katkisi...json` #15–17, #38–39 |
-| 8208 | ranking de contribuição | 4134 | *(visto)* `birlik_katkisi...json` #5 |
+| 5144 | contribuir | 109, 3, 111, 42, 164 | *(visto)* `birlik_katkisi...json` #15–17, #38–39 (só turco: `birlik_katkisi`) |
+| 8208 | ranking de contribuição | 4134 | *(visto)* `birlik_katkisi...json` #5 (só turco: `birlik_katkisi`) |
 | 5133 | melhorar prédio (1–5) / pesquisar habilidade (6–12) | 164 | *(cliente)* m6 `ConsortiaUpgradeFrame`; templates `ConsortiaLevelInfos` |
 | 8545 | acabar a espera da melhoria | 3, 164 | *(cliente)* m6 |
 | 5147 | aprender habilidade | 3, 150 | *(cliente)* m2 `consortiaStudy` |
@@ -82,7 +82,7 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8217 | casas da roleta | 4144 `site[]` (`DropViewInfos.Site`) | *(cliente)* m2 `ConsortiaDropTemplateCate` |
 | 5145 | bênção | 45 `{blessLeftTime, blessSite, blessTempId, blessCount}`; `blessSite` = posição no 4144, -1 = nada; o prêmio fica no membro até o 8216 | *(cliente)* m2 `__getAltarBlessInfo`, m6 `ConsortiaAltarFrame` |
 | 8216 | pegar o prêmio da bênção (sem espaço livre: 4143 `result` falso e o prêmio fica) | 115, 4143 `{result}` | *(cliente)* m2 `__addFreshItem` |
-| 8577 | baú | 4466 | *(visto)* `birlik_katkisi...json` #4 |
+| 8577 | baú | 4466 | *(visto)* `birlik_katkisi...json` #4 (só turco: `birlik_katkisi`) |
 | 8579 | membros para distribuir | 4465 | *(cliente)* m6 |
 | 8578 | distribuir (chefe) | 115 para quem está online e tem espaço; 148 quando vai pelo correio (*dedução*); 4466 | *(cliente)* m6 |
 | 8241 | eleição: candidatos | 4389 | *(cliente)* m2 `__setVotingUsers` |
@@ -109,7 +109,7 @@ de `ShopTempInfos.ShopType` 2 (41 linhas no tempinfos; são as únicas com `Cons
 `NeedConsortiaLevels`): preço na coluna `ConsortiaOffer`
 (contribuição pessoal), `NeedConsortiaLevels` contra o nível do mercado, `NeedGrades` contra o
 nível do jogador. A compra certa responde 3, 115, 111, 90 `ShopMsg{buyInfo}`, 83 canal 3 *(visto)*
-`birlik_katkisi...json` #60 (goodId 19, 2040106, 40 de contribuição). A recusa responde só 90 com
+`birlik_katkisi...json` #60 (goodId 19, 2040106, 40 de contribuição; só turco: `birlik_katkisi`). A recusa responde só 90 com
 `buyInfo.result`: 9 sem guilda ou nível do mercado baixo, 10 nível do jogador, 2 presente para
 outro jogador (exige gravar outro personagem), 3 quantidade ou item, 4 contribuição, 11 mochila
 (`ShopManager.shopingResult` *(cliente)*; o 0 não tem texto lá, por isso não é usado). A mochila é a da loja comum (`bag.fits`/`bag.add`): espaços comprados contam

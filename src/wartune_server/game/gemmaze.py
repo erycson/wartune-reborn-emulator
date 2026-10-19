@@ -1,9 +1,10 @@
 """Labirinto de gemas (9508..9517): tabuleiro 5x5, troca de duas gemas vizinhas, combinação de 3 ou mais
 na linha ou na coluna, gravidade e cascata. Só a regra: quem fala com o cliente é ``handlers/gemmaze.py``.
 
-Fontes: *(visto)* captura ``av_askeri_ve_odul_toplama.json``: 7 trocas e 10 passos (4923). Em cada troca,
+Fontes (só turco: a captura inglesa não abre o labirinto): *(visto)* ``av_askeri_ve_odul_toplama.json``: 7 trocas
+e 10 passos (4923). Em cada troca,
 a única vizinha que forma a combinação é a que o cliente mandou, e cada cascata bate com a gravidade
-(``tests/game/test_labirinto_gemas.py``). *(visto)* replay de personagem novo (4922): 20 movimentos, 5
+(``tests/game/test_labirinto_gemas.py``). *(visto)* replay_packets.json, personagem novo (4922): 20 movimentos, 5
 ajudas, nível 0 e 0/30 de EXP. *(cliente)* ``GemMazeView.isUpon``: vizinho ortogonal, sem dar a volta na
 linha; ``GemMazeView.updateMoveData``: o cliente faz a gravidade sozinho, então o servidor manda só as
 gemas novas (``gemAdd``) e as que saíram (``gemDel``).
@@ -26,7 +27,7 @@ TIMES_START = 20  # (visto) movimentos do personagem novo
 HELP_START = 5  # (visto) ajudas de amigos do personagem novo
 MAX_EXP_START = 30  # (visto) EXP para o próximo nível no nível 0
 # (visto) prêmios (item, quantidade) que saíram nos 10 passos da captura: 208014 vem sempre 2 por passo
-# (115 com count 2 e 4, "Şeytan Kristali x 2"), os outros 1. Nenhum template liga prêmio a cor ou tamanho
+# (115 com count 2 e 4, "Soul Crystal x 2"), os outros 1. Nenhum template liga prêmio a cor ou tamanho
 # (a mesma cor 4 deu 208027 e 2060008), então o sorteio entre os três é dedução.
 REWARDS = ((2060008, 1), (208027, 1), (208014, 2))
 # (cliente) GemMazeBoxView.SORT_INDEX_ARRAY do CDN res134 (era 500/1000/2000/3500/6000): pontos de cada caixa

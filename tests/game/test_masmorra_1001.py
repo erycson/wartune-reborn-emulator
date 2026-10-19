@@ -403,15 +403,15 @@ async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path:
 
 
 async def test_guia_depois_da_70_aprende_a_skill_e_avanca_o_novice(tmp_path: Path) -> None:
-    # (visto) replay: 5185 (30111) e 5017 (25500) logo após a entrega da 70 (#1175-#1176). Respostas: 60 com
-    # {30111, index 2, type 0} (#1254) e 1, o U_C_PLAYER_NOVICE vazio (#1257). O novice vinha de 24000 (5017 de #927).
+    # (visto) inglesa: 5185 (30111) e 5017 (25500) logo após a entrega da 70 (#1141, #1144). Respostas: 60 com
+    # {30111, index 2, type 0} (#1143) e 1, o U_C_PLAYER_NOVICE vazio (#1146). O novice vinha de 24000 (5017 de #875).
     async with logged_in(tmp_path, novice=24000) as g:
         _done(g, 60)
         g.client.send(5012, pb.QuestAddedMsg(questId=[70]))
         await g.until(112)
         await play_1011(g)
         await entrega(g, 70)
-        # (visto) replay #1202: herói no nível 7 com 30711 e 30811 aprendidas e 1 ponto de skill (30111 gasta o ponto)
+        # (visto, só turco) replay #1202: herói no nível 7 com 30711 e 30811 aprendidas e 1 ponto de skill (30111 gasta o ponto)
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None and session.snapshot.leader is not None
         session.snapshot.leader.grades, session.snapshot.leader.skill_script = 7, "30711,30811,"
