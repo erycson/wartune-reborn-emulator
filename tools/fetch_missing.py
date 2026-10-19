@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path, PurePosixPath
 
-OFFICIAL = "http://res134-bmclas-sq.7road.net/"  # build inglês (o turco, legado: res114lortr.creaction-network.com:8080)
+OFFICIAL = "http://res134-bmclas-sq.7road.net/"  # inglês (turco, legado: res114lortr.creaction-network.com:8080)
 LOG = Path("D:/xampp/apache/logs/access.log")
 CDN = Path("D:/xampp/htdocs/wartune-reborn/cdn")  # link para mirror/res134-bmclas-sq.7road.net
 PREFIX = "/wartune-reborn/cdn/"
