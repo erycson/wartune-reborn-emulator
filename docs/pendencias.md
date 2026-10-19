@@ -3,7 +3,7 @@
 Todo opcode que o cliente manda tem handler (`tests/game/test_cobertura_c2s.py`), mas "tem handler" não é
 "faz o que o oficial faz". Esta é a lista do que falta, por sistema, com o motivo. O detalhe de cada item
 está na doc do sistema (link na coluna). No fim, a lista gerada de todas as simplificações marcadas no
-código com `# ponytail:`.
+código com `# ponytail:`. O que capturar no oficial, junto e por sessão de jogo: [roteiro-captura.md](roteiro-captura.md).
 
 Motivos usados abaixo:
 - **sem dado**: o comportamento depende de tabela ou captura do oficial que não temos (templates, `captures/`).
