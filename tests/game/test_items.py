@@ -51,7 +51,7 @@ async def test_using_resources_potions_and_gem_boxes(tmp_path: Path) -> None:
         g.client.send(5006, pb.ItemUseMsg(pos=0, count=2, bagType=1))
         got = await g.until(109)
         assert codes(got) == [115, 111, 109]
-        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Tebrikler! Kazanılan:Altın x2000"
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Received: 2,000 Gold"
         assert (c.gold, items[0].count) == (gold + 2000, 1)
 
         g.client.send(5006, pb.ItemUseMsg(pos=1, count=1, bagType=1))

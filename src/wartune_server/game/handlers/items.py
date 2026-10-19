@@ -23,7 +23,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import fashion
-from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player
+from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, exp_text
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
@@ -35,9 +35,11 @@ BAG_ROW, BAG_MAX = 7, 175  # 5010 compra de 7 em 7 até 175 espaços (PlayerInfo
 MOVABLE = (BagType.STORE, BagType.BAG, BagType.RUNE, BagType.HONOR, BagType.HERO)
 STACKABLE = (BagType.STORE, BagType.BAG)
 # 203 por Property1 (Property2 = quantidade): campo do personagem e nome no texto do oficial
-USE_KINDS = {1: ("gold", "Altın"), 3: ("point", "Elmas"), 4: ("gift_token", "Bağlı Elmas"), 5: ("weary", "Beden")}
-USE_KINDS |= {6: ("repute", "Prestij"), 7: ("gp", "Lord EXP"), 10: ("strategy", "Ruh")}
-USE_KINDS[15] = ("copies", "Grup Ek Sahne yararı")  # Büyük Sefer (2032101): +1 entrada de campanha em grupo
+# nomes do inglês: ItemTempInfo -100/-400/-500/-300/-700 e language.txt (Honor, Multi-player Dungeon); Stamina: a
+# captura EN escreve "deducted 20 stamina" na entrada da masmorra
+USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bound Balens"), 5: ("weary", "Stamina")}
+USE_KINDS |= {6: ("repute", "Honor"), 7: ("gp", "EXP"), 10: ("strategy", "Daru")}
+USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # Büyük Sefer (2032101): +1 entrada de campanha em grupo
 # Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,
 # porque o nome muda de idioma ("Değerli Taş Kutusu Lv.N" no turco, "Lvl. N Gem Pack" no inglês). O 2060006 fica
 # de fora de propósito: são duas pedras Lv.3 e chance de Lv.4 (no turco a descrição tinha '*'; no inglês não tem).
@@ -209,9 +211,11 @@ async def _open_box(s: GameSession, box: Item, row: Row, _: int) -> bool:
 
     def label(d: Row) -> str:
         name = (templates.get("ItemTempInfos", int(d["TemplateId"])) or {}).get("TemplateName", d["TemplateId"])
-        return f"{name} {int(d['Data']):,}" if int(d["TemplateId"]) < 0 else f"{name} x{d['Data']}"
+        tid, n = int(d["TemplateId"]), int(d["Data"])
+        # (visto) captura EN #689: "Received:  10 Bound Balens, 3,000 Gold, Amethyst Ring x1, ..." (-500: espaço antes)
+        return f"{' ' if tid == -500 else ''}{n:,} {name}" if tid < 0 else f"{name} x{n}"
 
-    text = "Kazanılan:" + ", ".join(label(d) for d in reversed(drops))  # o oficial lista do fim para o começo
+    text = "Received: " + ", ".join(label(d) for d in reversed(drops))  # o oficial lista do fim para o começo
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     _player(s)
@@ -249,14 +253,14 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     await s.ctx.characters.save(c, *changed, *extra, delete=tuple(gone))
 
     _send_items(s, changed, gone)
-    text = f"Kazanılan:{label} x{amount}" if field == "weary" else f"Tebrikler! Kazanılan:{label} x{amount}"
+    text = f"Received: {amount:,} {label}"  # (dedução) como o pacote (captura EN #1563 "Received: 50,000 Gold")
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     if field == "gold":
         castle_yield(s)
         return True
     _player(s)
     if field == "gp":
-        send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{amount:,} EXP kazanıldı"))
+        send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
         if gained:
             _army(s)
     return True
@@ -309,7 +313,7 @@ async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
 
     _send_items(s, changed, gone)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    text = "Kazanılan:" + ", ".join(f"{bag.name(templates, tid)} x{count}" for tid, count in stones.items())
+    text = "Received: " + ", ".join(f"{bag.name(templates, tid)} x{count}" for tid, count in stones.items())
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     _player(s)
     send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

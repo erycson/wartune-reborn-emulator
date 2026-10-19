@@ -43,12 +43,14 @@ async def _set(g: Game, **fields: int) -> PlayerSnapshot:
 
 
 def quest_msgs(packets: list[Any]) -> dict[int, int]:
-    """Missão -> condition_1 (progresso) de cada 112 recebido."""
+    """Missão -> condition_1 (progresso) de cada 112 recebido. Sem a 10: ela nasce com o personagem e o aceite de
+    outra missão a devolve junto quando o noviceProcess já passou dela (``accept_quest``)."""
     return {
         q.templateId: q.condition_1
         for p in packets
         if p.code == 112
         for q in pb.QuestUpdatedRspMsg.FromString(p.body).quest
+        if q.templateId != 10
     }
 
 

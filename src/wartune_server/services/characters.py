@@ -28,6 +28,7 @@ from ..domain.models import (
     MysteryShop,
     PlayerSnapshot,
     PlayerSystems,
+    Quest,
     ShopBuy,
     TreasureMap,
     WildBox,
@@ -35,6 +36,7 @@ from ..domain.models import (
 )
 from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
+from .clock import Clock, SystemClock
 
 NICK_MIN, NICK_MAX = 2, 14
 _FORBIDDEN = re.compile(r"[<>&\"'|\\/%\s]")
@@ -85,6 +87,15 @@ STARTING_BUILDINGS = (
 )
 
 
+def starting_quests(templates: GameTemplates) -> list[int]:
+    """Missões do tutorial (condição 23) sem pré-requisito que o nível 1 aceita: nascem com o personagem. (visto)
+    captura EN #81: a 10 vem no 112 do login com o addDate da criação, e o cliente nunca manda o 5012 dela. Nos dados
+    só a 10 passa (a 187, a outra 23 sem pré-requisito, pede nível 15)."""
+    ids = {int(c["TemplateId"]) for c in templates.find("QuestCondictionInfos", CondictionType=23)}
+    rows = [(i, templates.get("QuestTemps", i)) for i in sorted(ids)]
+    return [i for i, row in rows if row is not None and not row.get("PreQuestId") and int(row["NeedMinLevel"]) <= 1]
+
+
 @dataclass(frozen=True, slots=True)
 class RegistrationRequest:
     character_id: int
@@ -95,10 +106,13 @@ class RegistrationRequest:
 
 
 class CharacterService:
-    def __init__(self, uow: UnitOfWorkFactory, templates: GameTemplates, placement: CastlePlacement) -> None:
+    def __init__(
+        self, uow: UnitOfWorkFactory, templates: GameTemplates, placement: CastlePlacement, clock: Clock | None = None
+    ) -> None:
         self._uow = uow
         self._templates = templates
         self._placement = placement
+        self._clock = clock or SystemClock()
 
     async def register(self, req: RegistrationRequest) -> Character:
         nickname = normalize_nickname(req.nickname)
@@ -143,6 +157,8 @@ class CharacterService:
                 if next(self._templates.find("BuildingTempInfos", TemplateId=template_id), None) is None:
                     raise NotFoundError(f"template de prédio {template_id} ausente no tempinfos")
                 await uow.buildings.add(Building(character.id, template_id))
+            for template_id in starting_quests(self._templates):
+                await uow.save(Quest(character.id, template_id, self._clock.now()))
             await uow.commit()
             return character
 

@@ -17,6 +17,7 @@ from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.characters import starting_quests
 from wartune_server.templates.repository import Row
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -75,25 +76,35 @@ async def test_entrega_consome_a_pilha_e_conclui(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         await _put(g, Item(g.user_id, PILE_90, pos=0, count=10))
         snap = _snap(g)
+        templates = g.server.services.templates
+        level_7 = dict(rules.grade_steps(templates))[7]
+        rules.add_gp(snap, templates, level_7 + 4736 - snap.character.total_gp)  # nível 7 com 4736, como em #1571
         strategy = snap.character.strategy
         snap.quests.append(Quest(g.user_id, 90, NOW))  # aberta; o pré-requisito (70) só o aceite confere
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=90))
         got = await g.until(52)
-        assert _quest(got, 90).isComplete
-        assert {112, 115, 52} <= set(_codes(got))
+        # captura EN #1570-#1576: sem 112 de progresso (tipo 27), 115 do gasto, 3, 112 concluída com condition 0, 3 da
+        # RewardStrategy, 3 da EXP (sem 150: não subiu de nível), 52 e o 83 da EXP
+        assert _codes(got) == [115, 3, 112, 3, 3, 52]
+        assert _quest(got, 90).isComplete and _quest(got, 90).condition_1 == 0
+        paid, exp = (pb.PlayerMsg.FromString(p.body) for p in got[3:5])
+        assert (paid.strategy, paid.gp) == (strategy + 1000, pb.PlayerMsg.FromString(got[1].body).gp)
+        assert exp.gp != paid.gp
+        chat = await g.until(83)
+        assert pb.ChatChannelMsg.FromString(chat[-1].body).encodeMsg == "Received 3,000 EXP "
         assert rules.goods_count(snap, PILE_90) == 0
         assert snap.character.strategy == strategy + 1000
 
 
 async def test_entrega_com_pouco_recusa_e_responde_o_progresso(tmp_path: Path) -> None:
-    """Com 7 de 8 da 90 o 5014 não conclui: o 112 volta com o progresso (7) e isComplete falso, sem 52, e nada é gasto."""
+    """Com 7 de 8 da 90 o 5014 não conclui: o 112 volta com isComplete falso, sem 52, e nada é gasto."""
     async with logged_in(tmp_path, novice=19000) as g:
         await _put(g, Item(g.user_id, PILE_90, pos=0, count=7))
         snap = _snap(g)
         snap.quests.append(Quest(g.user_id, 90, NOW))
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=90))
         got = await g.until(112)
-        assert _quest(got, 90).condition_1 == 7
+        assert _quest(got, 90).condition_1 == 0  # bolsa: o oficial não conta no 112 (captura EN #1140, #1572)
         assert not _quest(got, 90).isComplete
         assert 52 not in _codes(await g.idle())
         assert rules.goods_count(snap, PILE_90) == 7
@@ -111,7 +122,7 @@ async def test_missao_sem_linhas_de_condicao_nao_conclui(tmp_path: Path) -> None
 
 async def test_entrega_sem_espaco_para_a_recompensa_recusa(tmp_path: Path) -> None:
     """9 (CT27 2125010 Para2 10; QuestGoods 2060013 e 208005 x2): com a mochila cheia, a pilha entregue libera 1
-    espaço e a recompensa pede 2. Recusa com o aviso "Çantanız dolu." e não gasta nada."""
+    espaço e a recompensa pede 2. Recusa com o aviso "Inventory Full" e não gasta nada."""
     async with logged_in(tmp_path, novice=19000) as g:
         now = datetime.now(UTC)
         cap = bag.capacity(_snap(g).character, now)
@@ -123,7 +134,8 @@ async def test_entrega_sem_espaco_para_a_recompensa_recusa(tmp_path: Path) -> No
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=9))
         got = await g.until(112)
         assert not _quest(got, 9).isComplete
-        assert 111 in _codes(got)  # o aviso
+        alert = next(p for p in got if p.code == 111)  # o aviso
+        assert pb.ChatChannelMsg.FromString(alert.body).encodeMsg == "Inventory Full"
         assert 52 not in _codes(await g.idle())
         assert rules.goods_count(snap, PILE_9) == 10
 
@@ -141,6 +153,16 @@ async def test_entrega_cabe_quando_a_pilha_libera_espaco(tmp_path: Path) -> None
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=9))
         got = await g.until(52)
         assert _quest(got, 9).isComplete
+        # captura EN #489-#505 (45): o 115 dos itens ganhos depois do 3, um 111 por item e o 52; depois os 83 (#506-#507)
+        assert _codes(got)[-4:] == [115, 111, 111, 52]
+        names = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
+        assert names == [
+            f"Received: {bag.name(g.server.services.templates, t)} x{n}" for t, n in ((2060013, 1), (208005, 2))
+        ]
+        chat = [
+            pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in await g.until(83) + await g.idle() if p.code == 83
+        ]
+        assert chat[-2:] == names and chat[0].startswith("Received ") and chat[0].endswith(" EXP ")
         assert rules.goods_count(snap, PILE_9) == 0
         rewards = sorted((i.template_id, i.count) for i in snap.items if i.template_id in (2060013, 208005))
         assert rewards == [(208005, 2), (2060013, 1)]
@@ -285,8 +307,8 @@ async def test_aceite_devolve_as_outras_missoes_que_ele_mudou(tmp_path: Path) ->
     async with logged_in(tmp_path, novice=0) as g:
         templates, snap = g.server.services.templates, _snap(g)
         snap.character.grades = 40
-        q10 = Quest(g.user_id, 10, NOW)
-        snap.quests.append(q10)
+        q10 = rules.quest(snap, 10)  # nasce com o personagem
+        assert q10 is not None
         snap.character.novice_process = 19000
         accepted = rules.accept_quest(snap, templates, 183, NOW, False)
         assert accepted is not None
@@ -298,8 +320,7 @@ async def test_5012_manda_112_com_as_outras_missoes_que_mudaram(tmp_path: Path) 
     async with logged_in(tmp_path, novice=0) as g:
         snap = _snap(g)
         snap.character.grades = 40
-        snap.quests.append(Quest(g.user_id, 10, NOW))
-        snap.character.novice_process = 19000
+        snap.character.novice_process = 19000  # a 10 nasce com o personagem
         g.client.send(5012, pb.QuestAddedMsg(questId=[183]))
         got = await g.until(112)
         assert _quest(got, 183).templateId == 183
@@ -332,20 +353,31 @@ async def test_recompensas_estrategia_cristal_oferta_e_bonus_diario(tmp_path: Pa
 
 async def test_missao_de_guilda_entrega_a_bolsa_e_credita_as_ofertas(tmp_path: Path) -> None:
     """847 (IsLeague, nível 31-35, CT49 208012 x8; RewardConsortiaOffer 20 e RewardPlayerOffer 20): com guilda e a bolsa
-    com 208012, aceita já com 8; a entrega consome as unidades e credita a oferta do jogador e a da guilda."""
+    com 208012, aceita (condition_1 0, como o oficial na bolsa); a entrega consome as unidades e credita a oferta do jogador e a da guilda."""
     async with logged_in(tmp_path, novice=19000) as g:
         await _create_guild(g)  # IsLeague: o cliente só mostra a 847 para quem tem guilda
         snap = _snap(g)
         snap.character.grades = 31
         await _put(g, Item(g.user_id, 208012, pos=0, count=8))
         g.client.send(5012, pb.QuestAddedMsg(questId=[847]))
-        assert _quest(await g.until(112), 847).condition_1 == 8  # a bolsa conta já no aceite
+        assert _quest(await g.until(112), 847).condition_1 == 0  # bolsa: o cliente conta a mochila (checkGoodsCount)
         player_offer, guild_offer = snap.character.consortia_offer, _guild(g).offer
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=847))
         assert _quest(await g.until(52), 847).isComplete
         assert rules.goods_count(snap, 208012) == 0
         assert snap.character.consortia_offer == player_offer + 20  # RewardPlayerOffer
         assert _guild(g).offer == guild_offer + 20  # RewardConsortiaOffer, na guilda
+
+
+async def test_missao_10_nasce_com_o_personagem_e_vem_no_login(tmp_path: Path) -> None:
+    """(visto) captura EN #81: a 10 vem no 112 do login, com o addDate da criação, sem 5012. Pelos dados: a única
+    missão de tutorial (23) sem pré-requisito que o nível 1 aceita (a 187 pede nível 15)."""
+    async with logged_in(tmp_path, novice=0) as g:
+        assert starting_quests(g.server.services.templates) == [10]
+        q = rules.quest(_snap(g), 10)
+        assert q is not None and not q.completed and q.progress == 0
+        saved = await g.server.services.characters.snapshot(g.user_id)  # gravada no banco, não só na sessão
+        assert [x.template_id for x in saved.quests] == [10]
 
 
 # --- passo do novice (5017) ------------------------------------------------------------------------

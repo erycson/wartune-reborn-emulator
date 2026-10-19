@@ -6,7 +6,8 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 1. **Aceite (5012)**: `quest_add` chama `rules.accept_quest`, que confere o que o cliente confere antes de aceitar (`TaskManage.isAvailableTask`, em `rules.can_accept`): janela `StartDate`..`EndDate`, `NeedMinLevel`..`NeedMaxLevel`, `IsLeague` (exige guilda) e `PreQuestId` (lista com vírgula é E; pré-requisito que não existe nos dados é ignorado). Missão já aberta não reabre. Repetível (`IsRepeat`) concluída reabre na mesma linha, só quando o dia do jogo mudou (o dia vira às 5h, como `checkInRepeatTime`). Depois roda as condições de tutorial (23), de prédio (2) e de estado (bolsa, mapa da cidade, símbolos). Missões de conversa (85) são conferidas aqui também. O aceite devolve também as missões que ele mudou (tutorial, prédio, estado): o 5012 grava e manda o 112 de todas, não só da aceita.
 2. **Progresso**: cada ação chama `rules.quest_event(snap, templates, tipo, para1, valor)`. Em cada missão aberta, cada linha com `CondictionType == tipo` e `Para1` igual (0 = qualquer) avança o contador da sua posição. Depois grava e manda o 112.
-3. **Conclusão (5014)**: `quest_finish` atualiza o estado de bolsa e `rules.quest_done(snap, templates, q, agora)` confere. Se alguma condição não bate, responde o 112 com o progresso atual (`isComplete` falso, sem 52). Se bate, confere se a recompensa cabe depois de tirar o que a entrega consome, manda o 112 do progresso, consome, paga a recompensa (`rules.pay_quest_rewards`), grava tudo de uma vez e manda 115 (bolsa), 3, 112 (concluída), 109 (ouro ou cristal, se houver), 83 (EXP), 150, 3, os avisos dos itens e 52. Detalhes em "Entrega (5014)" abaixo.
+3. **Conclusão (5014)**: `quest_finish` atualiza o estado (mapa, símbolos, social) e `rules.quest_done(snap, templates, q, agora)` confere. Se alguma condição não bate, responde o 112 com o progresso atual (`isComplete` falso, sem 52). Se bate, confere se a recompensa cabe depois de tirar o que a entrega consome, consome, paga a recompensa (`rules.pay_quest_rewards`), grava tudo de uma vez e manda os pacotes na ordem do oficial inglês (seção "Ordem da entrega" abaixo).
+4. **Missão que nasce com o personagem**: `services/characters.starting_quests` (missão de tutorial, tipo 23, sem pré-requisito e com `NeedMinLevel` 1: nos dados só a 10) é gravada no registro, com `addDate` = hora da criação. (visto) captura EN #81: a 10 vem no 112 do login com `addDate` 18:21:49, antes do primeiro login do socket (18:24:23), e o cliente nunca manda o 5012 dela. As outras missões têm `addDate` = hora do aceite (a 30 nasce no mesmo segundo do `completedDate` da 10, #213/#224). Personagem antigo sem a 10 continua recebendo pelo 5012 do cliente (`IsAuto`).
 
 ## Várias condições (condition_1..4)
 
@@ -22,15 +23,35 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 - **Estado, lido na conclusão**: tipo 1 (nível do personagem) e 39 (dia do login). Não gravam progresso; `quest_done` lê o snapshot na hora.
 - **Estado, gravado quando muda**: tipo 23 (passo do tutorial, no aceite e quando o guia avança) e tipo 2 (nível do prédio, no aceite e quando o prédio sobe).
 - **Conversa**: tipo 85, marcado uma vez quando o jogador fala com o NPC perto dele.
-- **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O servidor conta a quantidade atual do item na mochila (`rules.goods_count`, só `BagType.BAG`, como `GoodsManager.countGoods`) no aceite, a cada mudança de estado e na entrega. Na entrega, a condição consome o item (abaixo).
+- **Bolsa (quantidade atual)**: tipos 27, 28, 32 e 49. No cliente é `checkGoodsCount`, a quantidade do item `Para1` na bolsa `>= Para2`. O servidor confere a quantidade atual do item na mochila (`rules.goods_count`, só `BagType.BAG`, como `GoodsManager.countGoods`) na entrega, mas não grava no `condition_N`, que fica em 0. (visto) captura EN: a 90 e a 102 só têm 112 com 0 (aceite #1140 e #1800, conclusão #1572 e #2081), e os drops do Worg Tooth (#1276, #1408) não mandam 112. Na entrega, a condição consome o item (abaixo).
+- **Tutorial (23)**: no aceite e quando o guia passa do `Para1`, o `condition_N` vira o `Para2` (1, captura EN #205). Na entrega vira o `noviceProcess` de agora (#211: 12000 na 10; #483: 18500 na 45), em `rules.finish_progress`.
 - **Estado de mapa e de símbolo (37, 76, 77, 78)**: `update_state_quests` julga pelo que já existe (`checkMapId`, `checkRuneStudy`, `checkRuneGrade`), então quem aceita depois do fato já nasce com o progresso.
 
 ## Entrega (5014)
 
 - **Reavaliação**: os três caminhos do cliente que mandam o 5014 (`TaskFrameII.as:590`, `TaskTraceItem.as:583`, `CompleteTaskTip.as:115`) só agem com `isCompleted` local. Por isso o servidor reavalia no 5014 e conclui quando a condição bate, sem guardar "entrega pendente". (visto) captura: 70, 80 e 82 chegam com o contador cumprido e `isComplete` falso no 112, e a conclusão aparece depois do 5014. A ordem entre pacotes S>C e C>S não é confiável (o S>C atrasa de 2 a 110 linhas), então isso é a ordem observada, não prova de causa.
-- **Recusa**: sem a condição, o 5014 responde o 112 com o progresso atual (`condition_N` = quantidade atual), `isComplete` falso e sem 52. Antes a resposta era silêncio, e o botão de entrega ficava sem retorno.
+- **Recusa**: sem a condição, o 5014 responde o 112 com o progresso atual (na bolsa, 0), `isComplete` falso e sem 52. Antes a resposta era silêncio, e o botão de entrega ficava sem retorno.
 - **Consumo de bolsa**: a entrega tira da mochila o `Para1` de cada condição de bolsa (`rules.goods_to_take`). Item de missão (`SonType` 210, como o 2100001) sai inteiro: (visto) replay #1609, a pilha do 2100001 foi de 10 para zero ao entregar a 90, cuja condição pede 8. Os demais tiram só `Para2` (o 2125010, `SonType` 201, da 9): (dedução) a captura não cobre esse caso; se o oficial tirar tudo, muda uma linha em `goods_to_take`. Testes: `test_entrega_gasta_so_a_quantidade_pedida_fora_do_item_de_missao` e `test_entrega_de_item_comum_deixa_o_resto_na_bolsa`.
-- **Mochila**: a conferência é feita numa cópia, depois de tirar o que a entrega consome (`bag.fits`: casa livre ou pilha do mesmo item com espaço). Se a recompensa não couber, aviso 111 "Çantanız dolu." e recusa sem consumir nada. (dedução) O texto não está no decompilado: o cliente monta esse aviso com chave de idioma.
+- **Mochila**: a conferência é feita numa cópia, depois de tirar o que a entrega consome (`bag.fits`: casa livre ou pilha do mesmo item com espaço). Se a recompensa não couber, aviso 111 "Inventory Full" e recusa sem consumir nada. (dedução) A captura EN não tem mochila cheia na entrega: o texto é o do `language.txt` inglês na chave `ConsortiaCaseCellClickMediator.command01`, a mesma do "Çantanız Dolu" turco que se usava.
+
+### Ordem da entrega
+
+(visto) captura EN, as 19 entregas (10 a 130): #210-#218, #482-#507, #1569-#1576, #2077-#2085, #2242-#2265. A captura turca (replay #208-#657) tem a mesma ordem.
+
+1. 112 do progresso (`isComplete` falso), **só** quando a missão tem condição de tipo 23, 2 ou 10 (`rules.PROGRESS_BEFORE_FINISH`). Nos tipos 3, 7, 8, 14, 26, 27 e 32 o oficial não manda (52 #700, 60 #834, 70 #1129, 110 #2242...).
+2. 115 do que a entrega gasta (bolsa: 90 #1570, 102 #2079).
+3. 3 já com o bit da missão no `questSite`, mas antes da recompensa (gp e strategy antigos).
+4. 112 concluída (`condition` da bolsa em 0; tipo 3 guarda a soma: 52 = 900, 110 = 460).
+5. 3 só com a `RewardStrategy` paga, quando há (90 #1573, 101 #2183); o EXP vem no 3 seguinte.
+6. 109 quando a recompensa tem ouro ou cristal.
+7. 150 **só** quando sobe de nível (50, 52, 60, 80, 90, 100, 102 não mandam).
+8. 3 com tudo pago.
+9. 115 dos itens ganhos (45 #489, 110 #2250).
+10. 111 "Received: <nome> x<n>" de cada item (#504, #2262).
+11. 52.
+12. 83 "Received 3,000 EXP " (vírgula de milhar e espaço no fim) e o 83 de cada item com o mesmo texto do 111.
+
+Fora do que o servidor manda na entrega: 100 (tropas) junto da subida de nível com tropa (51, 70, 81, 110, 130), 139 na 51, 4640/4638 (fundo e guia de 7 dias), 4476/4484 (atividades e títulos).
 - **Sem linha de condição**: a missão não conclui (`quest_done` devolve falso). Nenhuma missão dos dados está assim; o caso existe para id inexistente.
 
 ## Recompensas (5014)

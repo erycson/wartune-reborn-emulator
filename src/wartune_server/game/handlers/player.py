@@ -20,8 +20,14 @@ from .space import talk
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
-# (dedução) texto sem fonte: o cliente monta esses avisos com chave de idioma, que não está no decompilado
-BAG_FULL = "Çantanız dolu."
+# (dedução) a captura EN não tem a mochila cheia na entrega: o texto é o do language.txt inglês
+# (ConsortiaCaseCellClickMediator.command01), a mesma chave do "Çantanız Dolu" turco que se usava aqui
+BAG_FULL = "Inventory Full"
+
+
+def exp_text(gp: int) -> str:
+    """(visto) captura EN #218, #506: "Received 3,000 EXP ", com vírgula de milhar e o espaço no fim."""
+    return f"Received {gp:,} EXP "
 
 
 def _player(s: GameSession) -> None:
@@ -138,39 +144,51 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         await s.ctx.characters.save(*refresh)
         s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))
         return
-    # progresso antes da entrega (o oficial manda o 112 do progresso, depois a bolsa, o jogador e a 112 concluída)
-    s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))
-    changed: list[Item] = []
+    # Ordem da captura EN (#210-#218, #482-#507, #1569-#1576, #2077-#2085, #2242-#2265): 112 do progresso (só tipos
+    # 23, 2 e 10), 115 do que a entrega gasta, 3 (já com o bit da missão), 112 concluída, 3 da RewardStrategy, 109,
+    # 150 (só quando sobe de nível), 3, 115 dos itens ganhos, 111 de cada item, 52, 83 da EXP e 83 de cada item.
+    if rules.finish_progress(snap, templates, q):
+        s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
+    taken: list[Item] = []
     gone: list[Item] = []
     for template_id, count in take:
-        taken, deleted = bag.take(snap, template_id, count)
-        changed += taken
+        changed, deleted = bag.take(snap, template_id, count)
+        taken += changed
         gone += deleted
-    for template_id, count in goods:
-        changed += bag.add(snap, templates, template_id, count, now)
-    changed = _unique(changed)  # uma pilha pode ser completada mais de uma vez
-    rules.update_state_quests(snap, templates, [q])  # a bolsa depois da entrega (condition_N volta ao que sobrou)
-    gp, guild_offer = rules.pay_quest_rewards(snap, templates, row)
     q.completed, q.completed_at = True, now
+    before = b.complete(player_info(s, snap))  # o 3 antes da recompensa
+    grades, strategy = snap.character.grades, snap.character.strategy
+    gp, guild_offer = rules.pay_quest_rewards(snap, templates, row)
+    new = _unique(i for template_id, count in goods for i in bag.add(snap, templates, template_id, count, now))
     guilds_changed: list[Consortia] = []
     if guild_offer and guild is not None:  # RewardConsortiaOffer: a riqueza da guilda (sem guilda, não há onde pôr)
         guild.offer += guild_offer
         guild.total_offer += guild_offer
         guilds_changed.append(guild)
-    await s.ctx.characters.save(snap.character, snap.leader, *changed, *refresh, *guilds_changed, delete=tuple(gone))
+    items = _unique([*taken, *new])  # uma pilha pode ser gasta e completada
+    await s.ctx.characters.save(snap.character, snap.leader, *items, *refresh, *guilds_changed, delete=tuple(gone))
 
-    if changed or gone:
-        s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
-    _player(s)
-    s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))  # concluída
+    if taken or gone:
+        s.send(S_ITEMS, bag.moved(_unique(taken), s.player_id, empty=gone))
+    s.send(S_PLAYER, before)
+    s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))  # concluída
+    if snap.character.strategy != strategy:  # (visto #1573, #2183) um 3 só com a RewardStrategy, o EXP vem no seguinte
+        paid = pb.PlayerMsg()
+        paid.CopyFrom(before)
+        paid.strategy = snap.character.strategy
+        s.send(S_PLAYER, paid)
     if int(row.get("RewardGold", 0)) or int(row.get("RewardCrystal", 0)):  # o 109 leva ouro e cristais
         castle_yield(s)
-    if gp:
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp:,} EXP kazanıldı"))
-    _army(s)
+    if snap.character.grades > grades:
+        _army(s)
     _player(s)
-    for template_id, count in goods:
-        text = f"Kazanılan:{bag.name(templates, template_id)} x{count}"
-        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if new:
+        s.send(S_ITEMS, bag.moved(new, s.player_id))
+    texts = [f"Received: {bag.name(templates, template_id)} x{count}" for template_id, count in goods]
+    for text in texts:
+        alert(s, text)
     s.send(S_QUEST_DONE, pb.QuestFinishedRspMsg(templateId=q.template_id))
+    if gp:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(gp)))
+    for text in texts:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

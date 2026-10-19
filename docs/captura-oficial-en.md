@@ -15,6 +15,7 @@ trocar `game.jsp` por `Loading.swf` e abrir no projector; `pktmon filter add -p 
 
 - Tutorial: falas e nomes oficiais (`tools/extract_tutorial.py captures/tutorial_en.json`).
   `roleId` do jogador nas falas = `job`.
+- Missões: entrega (5014) na ordem e com os textos do oficial, missão 10 no registro (seção Missões).
 
 ## Campanhas novas
 
@@ -38,14 +39,34 @@ cliente desenha sozinho. Nossa batalha ainda não tem efeitos de controle.
 
 ## Missões (10 → 130, todas na captura)
 
-Recompensas batem com `QuestTempInfo`/`QuestGoods`. Diferenças nossas:
-- textos turcos ("EXP kazanıldı", "Kazanılan:", "Çantanız dolu."); oficial: "Received 3,000 EXP ",
-  "Received: X x1";
-- 112 de progresso antes da entrega só nos tipos 23, 2 e 10; no tipo 23 o `condition_1` vira o
-  `noviceProcess`; tipos 27/32 deixam `condition` 0;
-- 150 na entrega só quando sobe de nível;
-- a missão 10 nasce com o personagem (o oficial nunca recebe 5012 dela);
-- diária vista: 863 (tipo 63, VIP, nível 10), aceita pelo cliente.
+Recompensas batem com `QuestTempInfo`/`QuestGoods`. Feito (detalhes em [missoes.md](missoes.md), "Ordem da entrega"):
+- [x] textos da entrega e da mochila em inglês: "Received 3,000 EXP " (vírgula e espaço no fim),
+  "Received: Lvl. 5 Starter Pack x1", pacote (5006) "Received:  10 Bound Balens, 3,000 Gold, Amethyst Ring x1, ..."
+  (#689, do fim para o começo, o -500 com espaço antes), recurso "Received: 2,000 Gold" (dedução) e mochila cheia
+  "Inventory Full" (dedução: `language.txt`, a captura não tem);
+- [x] 112 de progresso antes da entrega só nos tipos 23, 2 e 10; no tipo 23 o `condition_1` vira o
+  `noviceProcess`; bolsa (27/28/32/49) deixa `condition` em 0 sempre (nem no aceite nem nos drops o oficial conta);
+- [x] ordem 115 (gasto), 3, 112, 3 (strategy), 109, 150, 3, 115 (ganhos), 111, 52, 83;
+- [x] 150 na entrega só quando sobe de nível;
+- [x] a missão 10 nasce com o personagem (`addDate` = criação; o oficial nunca recebe 5012 dela);
+- [ ] 100 (tropas) e 139 junto da subida de nível: o `add_gp` não manda (vale para toda subida, não só missão);
+- [ ] diária 863 (tipo 63 "Devotion", VIP, nível 10): aceita pelo cliente junto da 160 (#3195) com `condition_1` 0,
+  embora a devoção do dia já estivesse em 20 (#1652 "Your devotion level has increased to 20."). A fonte é a devoção
+  (`dayGuide`: "Receive {1} devotion by ..."), que o servidor não tem; não há entrega dela na captura.
+
+Tipos conferidos nos 21 aceites/entregas: 23 (10, 30, 40, 45, 50), 2 (51, 81, 82), 3 (52 = 900, 110 = 460: soma,
+passa do `Para2`), 7 (60 = 2), 14 (70; 120 e 130 pedem a 1002, sem nós aqui), 26 (80), 27 (90), 8 (100, robô),
+10 (101 = 3), 32 (102: a fonte é a 6001, recusada), 34 (160, só aceite), 63 (863, só aceite).
+
+Correlações (missão ↔ item ↔ monstro ↔ texto):
+- 90 "Collect Worg Teeth" ↔ 2100001 Worg Tooth ↔ Grassland Worgs da Worg Lair (1001): "Received: Worg Tooth x2" (#1276);
+  a entrega tira a pilha inteira (#1570);
+- 102 "Collect Lumber" ↔ 2100022 Wood (SonType 210) ↔ Resource Quarry (6001, 5032 `cmd:2`): "Received: Wood x2/x3/x18"
+  (#1875, #1906, #2061); NPC "Welcome to the Resource Quarry! ..." (#2090);
+- 80 "Defeat Wulfgar" ↔ chefe `GameHeroTemp` 1011 da 1001;
+- 45 → 2060301 Lvl. 5 Starter Pack (mago) → GradeDrop 90305 → #689 (10 Bound Balens, 3,000 Gold, Amethyst Ring,
+  Banshee Plume, Lvl. 10 Starter Pack); 50 → Mana Robe; 110 → 2030401 Bound Balens (10 Pack) x8;
+- 90 e 101 pagam `RewardStrategy` (1000 e 2000 de Daru): o 3 dela vem antes do 3 da EXP.
 
 ## Novato, VIP e eventos
 

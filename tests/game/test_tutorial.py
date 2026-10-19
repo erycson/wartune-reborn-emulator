@@ -26,9 +26,10 @@ def codes(packets: list) -> list[int]:  # type: ignore[type-arg]
 
 async def test_first_map_battle_and_quest(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=11000) as g:
-        c = g.client
-        c.send(5012, pb.QuestAddedMsg(questId=[10]))
-        assert codes(await g.until(112)) == [112]
+        c = g.client  # a missão 10 já nasce com o personagem (captura EN #81, sem 5012)
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        assert [q.template_id for q in session.snapshot.quests] == [10]
 
         c.send(5127, pb.NoviceReqMsgMsg(type=1))
         got = await g.until(143)
@@ -72,11 +73,16 @@ async def test_first_map_battle_and_quest(tmp_path: Path) -> None:
 
         c.send(5014, pb.QuestFinishedReqMsg(templateId=10))
         got = await g.until(52)
-        assert codes(got) == [112, 3, 112, 83, 150, 3, 52]
+        assert codes(got) == [112, 3, 112, 150, 3, 52]  # captura EN #211-#216; o 83 da EXP vem depois do 52 (#218)
+        progress = pb.QuestUpdatedRspMsg.FromString(got[0].body).quest[0]
+        assert (progress.condition_1, progress.isComplete) == (12000, False)  # tipo 23: o noviceProcess (#211)
+        assert pb.PlayerMsg.FromString(got[1].body).grades == 1  # o 3 antes da recompensa
+        exp = await g.until(83)
+        assert pb.ChatChannelMsg.FromString(exp[-1].body).encodeMsg == "Received 3,000 EXP "
         player = pb.PlayerMsg.FromString(got[-2].body)
         assert (player.grades, player.gp, player.totalGp) == (2, 5, 3005)
         assert player.questSite[1] == 0x02  # bit da missão 10
-        hero = pb.ArmyArmyMsg.FromString(got[4].body).simpleHeroInfo
+        hero = pb.ArmyArmyMsg.FromString(got[3].body).simpleHeroInfo
         assert (hero.totalIntellect, hero.intellectPoint, hero.totalLive) == (8, 3, 230)
         assert hero.grade == 2  # sem isso o cliente zera o nível e não aceita missões (NeedMinLevel)
 

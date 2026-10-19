@@ -292,7 +292,11 @@ PLAYER_LEVEL_CONDITION = 1  # nível do jogador >= Para2, lido na hora (cliente:
 LOGIN_DAY_CONDITION = 39  # entrar num dia diferente do da aceitação (cliente: checkSencondLogin)
 TALK_CONDITION = 85  # falar com o NPC do nó Para4 ("mapa,nó"): vem do 8692 ou do aceite (cliente: finishStory)
 PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
-GOODS_CONDITIONS = {27, 28, 32, 49}  # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount)
+# bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount). O condition_N fica em 0: (visto)
+# captura EN, a 90 e a 102 só têm 112 com 0 (#1140, #1572, #1800, #2081), nem nos drops do Worg Tooth (#1276, #1408)
+GOODS_CONDITIONS = {27, 28, 32, 49}
+# (visto) captura EN: só estes tipos mandam o 112 do progresso antes da entrega (5014): 23 (#211), 2 (#631), 10 (#2180)
+PROGRESS_BEFORE_FINISH = {NOVICE_CONDITION, BUILDING_CONDITION, 10}
 QUEST_GOODS_SON = "210"  # SonType do item só de missão (2100001): a entrega tira todas as unidades (goods_to_take)
 # (cliente) newbie.xml (overlay/ui/zh_cn), saveId: o maior salto do guia é 28500 -> 32000 (3500)
 # ponytail: teto de salto em vez da lista exata de saveId; a lista seria o próximo passo
@@ -532,9 +536,7 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
                 mine = [r for r in runes if para1 in (0, int(r["RuneType"]))]
                 value = len(mine) if kind == RUNE_STUDY else max((int(r["RuneGrade"]) for r in mine), default=0)
                 value = max(value, old)
-            elif kind in GOODS_CONDITIONS:  # a quantidade atual na bolsa (cliente: checkGoodsCount)
-                value = goods_count(snap, int(cond["Para1"]))
-            else:
+            else:  # bolsa (GOODS_CONDITIONS) fica em 0: o cliente conta a mochila (checkGoodsCount), quest_done também
                 continue
             if value != old:
                 set_progress(q, k, value)
@@ -563,6 +565,18 @@ def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: da
         if have < need:
             return False
     return True
+
+
+def finish_progress(snap: PlayerSnapshot, templates: GameTemplates, q: Quest) -> bool:
+    """Na entrega já aceita: o tipo 23 grava o noviceProcess de agora (visto: captura EN #211, 12000 na 10; #483, 18500
+    na 45). Devolve se a missão manda o 112 do progresso antes da conclusão (``PROGRESS_BEFORE_FINISH``)."""
+    first = False
+    for k, cond in enumerate(conditions(templates, q.template_id)):
+        kind = int(cond["CondictionType"])
+        if kind == NOVICE_CONDITION:
+            set_progress(q, k, snap.character.novice_process)
+        first = first or kind in PROGRESS_BEFORE_FINISH
+    return first
 
 
 def goods_to_take(snap: PlayerSnapshot, templates: GameTemplates, template_id: int) -> list[tuple[int, int]]:

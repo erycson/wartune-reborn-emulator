@@ -71,7 +71,7 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
         return SqlAlchemyUnitOfWork(database.sessions)
 
     sessions = InMemoryLoginSessionStore(clock, settings.socket_session_ttl_seconds)
-    characters = CharacterService(uow, templates, GridCastlePlacement())
+    characters = CharacterService(uow, templates, GridCastlePlacement(), clock)
     return Services(
         database=database,
         login=LoginService(uow, keys, sessions, clock, settings.server_id),

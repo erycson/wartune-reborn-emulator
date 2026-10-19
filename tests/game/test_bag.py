@@ -26,7 +26,7 @@ async def test_opening_the_newbie_box_swaps_it_for_its_drop(tmp_path: Path) -> N
         text = pb.ChatChannelMsg.FromString(got[4].body).encodeMsg
         assert (
             text
-            == "Kazanılan:Bound Balens 10, Gold 3,000, Amethyst Ring x1, Coruscan Crest x1, Lvl. 10 Starter Pack x1"
+            == "Received:  10 Bound Balens, 3,000 Gold, Amethyst Ring x1, Coruscan Crest x1, Lvl. 10 Starter Pack x1"
         )
         assert pb.PlayerMsg.FromString(got[6].body).giftToken == 10
 
