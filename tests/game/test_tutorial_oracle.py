@@ -4,7 +4,7 @@ Reenvia cada pacote do cliente (com os ids trocados pelos nossos) e compara quan
 cada opcode saem, contra o servidor oficial. A ordem fina (que oscila com o ritmo da batalha e do
 cliente) fica com ``test_tutorial.py``; aqui o que importa é não faltar nem sobrar resposta.
 Ignora os golpes da batalha e o que ainda não existe aqui (``NOT_IMPLEMENTED``). Precisa da
-captura do relay.
+captura inglesa (``captures/tutorial_en.json`` do checkout principal, fora do git).
 """
 
 from __future__ import annotations
@@ -24,8 +24,9 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.protocol.registry import Direction, MessageRegistry
 from wartune_server.services.clock import FakeClock
 
-CAPTURE = Path("D:/wartune/server-relay/replay_packets.json")
-FIRST, LAST = 116, 813  # 5127 (entra no tutorial) .. 4129 com as duas minas ocupadas (missão 60)
+CAPTURE = Path("D:/wartune/servidor/captures/tutorial_en.json")
+FIRST, LAST = 98, 822  # 5127 (entra no tutorial) .. 169 depois do 4129 com as duas minas ocupadas (missão 60)
+LOGIN_TAIL = range(99, 116)  # fim do login do oficial (4471 .. 4685): chega depois do 5127, não é resposta dele
 TIMING = {153, 75, 156, 69}  # golpes e confirmações saem no ritmo da batalha
 NOT_IMPLEMENTED = {
     4476,  # SumActiveDataMsg (atividades)
@@ -34,20 +35,22 @@ NOT_IMPLEMENTED = {
     4542,  # livro de moda (8625)
     4122,  # patrulha dos monstros no mapa 10002
 }
-# diferenças conhecidas, todas fora do tutorial em si (docs/pendencias.md):
-# - subida de nível na missão 51 (#625-#628: 139, 100, 150, 4640): aqui o nível não sobe nela (EXP das lutas
-#   diferente); a sequência está em test_subida_de_nivel.py. A missão 50 avança no 5017 20000 (112 a mais). O 112 do
-#   progresso antes da entrega só sai nos tipos 23, 2 e 10 (turco #657 e inglês: a 52 não tem);
-# - 11 (salas de outros jogadores) e 4248 (estado do chefe mundial) ao aceitar missão;
-# - 140 ×2 da chegada do exército (#766): o timer é de 2,4 s reais e o próximo pacote chega antes.
+# diferenças conhecidas, todas fora do tutorial em si (docs/pendencias.md); #N = tools/dump_capture.py da inglesa:
+# - a missão 50 avança no 5017 20000 (#584, 112 a mais). O 112 do progresso antes da entrega só sai nos tipos
+#   23, 2 e 10 (a 52 não tem);
+# - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793) e 4248 (#133, estado da guerra 4008): do
+#   servidor, não respostas;
+# - 140 ×2 da chegada do exército (#776-#777): o timer é de 2,4 s reais e o próximo pacote chega antes;
+# - 150 ×2 idênticos na saída do mapa do tutorial (#518-#519, 5125 1000206): aqui sai um;
+# - 2 (U_C_PLAYER_GRADE, corpo 32023332, sem mensagem conhecida) depois do Lvl. 5 Starter Pack (#690): não existe aqui.
 # O 8586 do #678 (login de 7 dias, dia 1) vai com o GUID do nosso pacote do mesmo tipo e ordem (_official_packages).
-KNOWN_GAPS = Counter({140: 2, 11: 2, 150: 1, 4248: 1})
+KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 150: 1, 2: 1})
 KNOWN_EXTRA = Counter({112: 1})
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
 
 pytestmark = [
-    pytest.mark.skipif(not CAPTURE.exists(), reason="precisa da captura do relay"),
+    pytest.mark.skipif(not CAPTURE.exists(), reason="precisa de captures/tutorial_en.json"),
     pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates"),
 ]
 
@@ -86,6 +89,12 @@ def _official_packages() -> dict[str, tuple[int, int]]:
     return out
 
 
+def _castle_map(g: Game) -> int:
+    session = g.server.online.get(g.user_id)
+    assert session is not None and session.snapshot is not None and session.snapshot.castle is not None
+    return session.snapshot.castle.map_id
+
+
 def _building_id(g: Game, son_type: int) -> int:
     session = g.server.online.get(g.user_id)
     assert session is not None and session.snapshot is not None
@@ -101,8 +110,8 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
     registry = MessageRegistry.load_default()
     packets = _capture()
     official_packages = _official_packages()
-    official_army = 58073072
-    expected = _filtered([p["code"] for p in packets if not p["isClient"]])
+    official_army, official_map = 6837, 100000042  # exército e mapa da cidade externa no oficial
+    expected = _filtered([p["code"] for p in packets if not p["isClient"] and p["index"] not in LOGIN_TAIL])
     # prédio oficial (4130) -> SonType, para trocar o buildingId do 8203 pelo nosso do mesmo tipo
     official_son = {
         b.buildingId: b.sonType
@@ -114,7 +123,7 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
     # o relógio anda como na captura: obras (10 s) e produção terminam no mesmo ponto que no oficial
     clock = FakeClock(datetime.fromtimestamp(packets[0]["time"], UTC))
     async with logged_in(tmp_path, novice=11000, clock=clock) as g:
-        # a 10 nasce com o personagem (captura EN #81); o 5012 dela do turco (#97) fica antes do FIRST
+        # a 10 nasce com o personagem (#81, antes do FIRST: o oficial nunca manda 5012 dela)
         got: list[int] = []
         battle_id, hero_id, hero_living, fighting = "", 0, 0, False
 
@@ -150,6 +159,8 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
             if msg is not None:
                 if "buildingId" in msg.DESCRIPTOR.fields_by_name and msg.buildingId in official_son:
                     msg.buildingId = _building_id(g, official_son[msg.buildingId])
+                if "mapId" in msg.DESCRIPTOR.fields_by_name and msg.mapId == official_map:
+                    msg.mapId = _castle_map(g)
                 for field in ("armyId", "battleId", "endObjId"):
                     if field in msg.DESCRIPTOR.fields_by_name and msg.HasField(field):
                         value = getattr(msg, field)
