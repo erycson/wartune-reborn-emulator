@@ -1,7 +1,7 @@
 """Labirinto de gemas (9508..9517): a regra da troca e da cascata contra a captura oficial, e os pedidos.
 
 Os dados de ``CAPTURED_*`` vêm de ``captures/av_askeri_ve_odul_toplama.json`` (4922 e 4923/4924, 7 trocas,
-10 passos). Cada passo é (marcas que saem, gemas novas, pontos, EXP, prêmio) como o servidor oficial mandou.
+10 passos) (só turco: a captura inglesa não tem o labirinto; ver docs/fontes-turcas.md). Cada passo é (marcas que saem, gemas novas, pontos, EXP, prêmio) como o servidor oficial mandou.
 """
 
 import random

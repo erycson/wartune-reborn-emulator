@@ -2,6 +2,10 @@
 
 Para cada amostra com mensagem conhecida: decodifica, exige que não sobrem campos
 desconhecidos (sinal de número/tipo errado) e que a re-codificação gere os mesmos bytes.
+
+``pcap_samples.json``: até 3 corpos distintos por (direção, opcode) de ``captures/tutorial_en.json`` (inglesa),
+mais as amostras turcas antigas dos opcodes que a inglesa não tem (só turco: c2s 5172, 8574, 10020, 20001;
+s2c 102, 4224, 4463, 4922).
 """
 
 import json
@@ -20,7 +24,13 @@ def _known(sample: dict[str, str]) -> bool:
     return REGISTRY.message_type(int(sample["code"]), Direction(sample["dir"])) is not None
 
 
-CASES = [s for s in SAMPLES if _known(s)]
+# o .proto (gerado do cliente) ainda não tem estes campos que o oficial inglês manda
+PROTO_GAPS = {("s2c", 4238): "ShopMainRspMsg: campo 4 (varint, 6 na inglesa) fora do .proto"}
+CASES = [
+    pytest.param(s, marks=pytest.mark.xfail(reason=PROTO_GAPS[key], strict=True)) if key in PROTO_GAPS else s
+    for s in SAMPLES
+    if _known(s) and (key := (s["dir"], s["code"]))
+]
 
 
 def test_most_captured_opcodes_have_a_message() -> None:
