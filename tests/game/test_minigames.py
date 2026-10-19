@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import select
@@ -8,6 +9,13 @@ from wartune_server.game import events as ev
 from wartune_server.game.handlers import minigames
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
+
+# fundo normal da 0041 (hora do jogo; o harness roda em UTC+3): compra até 18 23:59:59, resgate de 19 a 23
+BUYING = datetime(2026, 10, 17, 9, 0, tzinfo=UTC)
+HARVEST = datetime(2026, 10, 18, 21, 0, 1, tzinfo=UTC)  # 19 00:00:01 no jogo
+AFTER_FUND = datetime(2026, 11, 1, tzinfo=UTC)  # só depois do login: o ticket vence pelo relógio real
+BEFORE_FUND = datetime(2026, 10, 1, tzinfo=UTC)
 
 MINIGAME_CODES = [
     8534,
@@ -77,7 +85,7 @@ async def test_every_minigame_opcode_answers_empty_body_without_dropping_the_ses
 
 
 async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as g:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(BEFORE_FUND)) as g:
         g.client.send(9500)
         slot = pb.SlotActiveMsg.FromString(_body(await g.idle(), 4901))
         assert slot.open is False
@@ -173,6 +181,45 @@ async def test_novice_fund_buys_one_level_and_harvests_each_tier_once(tmp_path: 
         assert state is not None and state.value == 1
         assert ev.peek(saved, "fund:novice:get:1") is not None and ev.peek(saved, "fund:novice:get:2") is not None
         assert saved.character.point == 600
+
+
+async def test_normal_fund_buys_in_the_buy_window_and_harvests_one_tier_per_day(tmp_path: Path) -> None:
+    clock = FakeClock(BUYING)
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        c = _snap(g).character
+        c.grades, c.point = 11, 1500
+        g.client.send(8703, pb.DepositActiveMsg())
+        fund = pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612))
+        assert (fund.activeType, fund.setEndDate, len(fund.activeParams)) == (1, "2026-10-18 23:59:59", 3)
+        assert [(i.templateId, i.count) for i in fund.activeParams[0].itemInfos][0] == (2126025, 25)  # #86
+
+        g.client.send(8703, pb.DepositActiveMsg(opType=1, opParam=1))  # 1000 diamantes
+        fund = pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612))
+        assert (fund.depositLevel, c.point) == (1, 500) and await _ledger(g) == [(-1000, 0, "fund_normal")]
+
+        g.client.send(8703, pb.DepositActiveMsg(opType=2, opParam=1))  # ainda na compra: sem resgate
+        assert pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612)).logs == []
+
+        clock._now = HARVEST
+        g.client.send(8703, pb.DepositActiveMsg(opType=2, opParam=1))
+        fund = pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612))
+        assert fund.activeType == 2 and [log.type for log in fund.logs] == [1]
+        g.client.send(8703, pb.DepositActiveMsg(opType=2, opParam=2))  # o 2º tier só 1440 min depois
+        assert [log.type for log in pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612)).logs] == [1]
+        clock.advance(timedelta(minutes=1440).total_seconds())
+        g.client.send(8703, pb.DepositActiveMsg(opType=2, opParam=2))
+        assert [log.type for log in pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612)).logs] == [1, 2]
+
+        c.point = 5000
+        g.client.send(8703, pb.DepositActiveMsg(opType=1, opParam=2))  # fora da compra: recusa
+        await g.idle()
+        assert c.point == 5000
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert ev.peek(saved, "fund:normal:AEECCD60-F30C-8381-38D0-CD64DD26B34F:get:2") is not None
+
+        clock._now = AFTER_FUND
+        g.client.send(8703, pb.DepositActiveMsg())
+        assert pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612)).activeType == 0
 
 
 async def test_novice_fund_login_push_only_from_level_6(tmp_path: Path) -> None:
