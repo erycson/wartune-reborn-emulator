@@ -6,8 +6,8 @@ janela (``WorldBossFight``) e o dano de cada um (``WorldBossWound``), gravados n
 a cheia menos a soma dos danos, então um restart só perde a luta em curso.
 
 Fontes (docs/boss-eventos.md):
-- (cliente) help ``worldboss.view.BaseHelpFrame.helpText``: ouro e Ruh por golpe, "HP e tropas não se esgotam",
-  prêmio do último golpe (Şanslı Ödülü), top 10 do dano, prêmio por 0,3%/0,5%/0,8% do dano total.
+- (cliente) help ``worldboss.view.BaseHelpFrame.helpText``: ouro e Daru por golpe, "HP e tropas não se esgotam",
+  prêmio do último golpe (Lucky Prize), top 10 do dano, prêmio por 0,3%/0,5%/0,8% do dano total.
 - (cliente) ``WoundInfoView.buffTip``/``buffGradeTip``: a moral sobe a cada 500 mil do maior dano e dá
   ``bufferGrade * 500``; ``WorldBossModel.commit`` guarda até 30 e monta o top 10 geral e o da classe.
 - (internet) a config de cada chefe e dos prêmios, no banco (``world_bosses``, ``world_boss_rewards``).

@@ -1,16 +1,16 @@
 """Monstros dos Wilds (``WildLandMsg`` type 21) nos mapas compartilhados: o relógio, o sorteio, a luta, os
 abates e a névoa.
 
-Relógio (visto): transfer #8/#10 (mapa 2, 4828 s às 17:39:31 UTC) e cevre #3/#9/#43/#44 (instância do
-castelo, 5775 s às 17:23:44 UTC) caem no mesmo instante, 2026-05-21 19:00:00 UTC (22:00 no fuso do jogo),
-em mapas diferentes; e o monstro da transfer #14 nasceu às 20:00:50. As horas são as do ``ConfigInfos
+Relógio (visto): o 4938 da captura inglesa #526 (instância do castelo, 5449 s às 01:29:12 UTC) cai às 20:00
+do Pacífico. Só turco (transfer #8/#10 no mapa 2 e cevre #3/#9/#43/#44): o mesmo instante em mapas diferentes,
+e o monstro da transfer #14 nasceu às 20:00:50. As horas são as do ``ConfigInfos
 WorldMapFreshTime`` (0,8,10,...,22) no fuso do jogo, como diz o help do cliente: "Monsters will reset every
 2 hours from 08:00 to 24:00" (language helpContent), "in random positions".
 
 Os monstros de um mapa saem de um sorteio com semente (mapa, ciclo): todo jogador vê os mesmos, e um
 restart no meio do ciclo não muda nada, sem tabela de estado. Quantos de cada ``bossType`` vem do catálogo
 (``world_monster_counts``); o template é sorteado entre os ``MapPhysicsTempInfos`` ``MasterType`` 21 do tipo
-(``Property1``), sem regra de nível por mapa (o mapa 2 tem monstros de nível 20 a 80 na transfer).
+(``Property1``), sem regra de nível por mapa (só turco: o mapa 2 tem monstros de nível 20 a 80 na transfer).
 
 O que muda no ciclo fica fora do sorteio: o abate vai para o banco (``wild_monster_kills``, chave com o
 começo do ciclo, porque o id se repete) e quem está em luta e a névoa ficam em ``Wilds``, só no processo.
@@ -54,7 +54,7 @@ FOG_SECONDS = 20  # só a descrição do item diz: "disperse the Wilds’ dark f
 NO_REWARD_GAP = 15  # help: monstro 15 níveis abaixo do jogador não dá prêmio nem conta
 KILL_FIELDS = {1: "kills_normal", 2: "kills_elite", 3: "kills_boss"}  # bossType -> Character
 BATTLE_TYPE = 2  # NPC_WILDLAND_BATTLE (cliente)
-ENEMY = {"livingId": 4, "side": 2, "pos": 5}  # como o guarda da mina (replay #718)
+ENEMY = {"livingId": 4, "side": 2, "pos": 5}  # como o guarda da mina (inglês #727)
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,8 +112,9 @@ def on_map(world: World, templates: GameTemplates, map_id: int, now: datetime) -
 
 
 def monster_msg(world: World, templates: GameTemplates, m: Monster, state: int = MONSTER_ALIVE) -> pb.WildLandMsg:
-    """Como o 210127 da transfer #14: sem ``armyPawn``, ``refreshTime`` 0, ``size`` = ``Property2`` (10; 12 nos
-    chefes), ``createDate`` = começo do ciclo. ``fightCapaity``: só o do 210127 foi visto; os outros vão 0."""
+    """Como o 210127 da transfer #14 (só turco: a inglesa não tem monstro dos Wilds): sem ``armyPawn``,
+    ``refreshTime`` 0, ``size`` = ``Property2`` (10; 12 nos chefes), ``createDate`` = começo do ciclo.
+    ``fightCapaity``: só o do 210127 foi visto; os outros vão 0."""
     row = templates.get("MapPhysicsTempInfos", m.template_id) or {}
     return pb.WildLandMsg(
         id=m.id,

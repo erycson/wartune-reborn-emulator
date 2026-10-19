@@ -3,7 +3,7 @@ construção e templates de prédio. Quem chama grava as entidades alteradas num
 
 Produção: o ouro rende ``goldYield`` por hora (conselho 901 + mina 101 + tecnologia de ouro) até o
 teto do armazém (301); ouro ganho por outras fontes pode passar do teto, e aí a produção só para
-(captura do tutorial: 200872 com teto 10000). O rendimento é acumulado sob demanda (``settle``):
+(captura inglesa #1562: 56724 com teto 10000). O rendimento é acumulado sob demanda (``settle``):
 quem gasta ouro chama ``settle`` antes e grava personagem + castelo juntos.
 """
 
@@ -25,7 +25,7 @@ S_CASTLE_YIELD = 109
 COUNCIL, MINE, DEPOT, HOUSE, ACADEMY = 901, 101, 301, 1201, 501
 GOLD_TECH = ("13",)  # MasterType das tecnologias de ouro (1304, 2304): EffectTempInfos.Property1 por nível
 TECH = ("13", "14")  # MasterType das tecnologias: usam a fila de tecnologia
-BASE_GOLD_MAX = 10000  # teto sem armazém (captura do tutorial, antes de existir o 301)
+BASE_GOLD_MAX = 10000  # teto sem armazém (inglês #124, antes de existir o 301)
 BUILD, TECH_ORDER, IMPOSE = 1, 2, 3  # OrderInfoMsg.orderType
 BUILD_ORDER_LIMIT = 2  # BuildingModel.buildOrderLimit
 TRANSFER = 1511
@@ -79,7 +79,7 @@ def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
             effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
             total += int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
     # ponytail: sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem
-    # (login.json: 8550 = 8220 dos prédios + 300 da tecnologia + 30)
+    # (só turco: login.json, 8550 = 8220 dos prédios + 300 da tecnologia + 30)
     return total + mines.mine_gold(snap, templates)
 
 
@@ -148,8 +148,8 @@ def castle_yield(s: GameSession) -> None:
 
 
 def politics_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.CastleYieldMsg:
-    """152 (conselho): o rendimento dos prédios e uma linha por mina ocupada. Como no replay (#743,
-    #794), ``goldYield`` e ``goldTotalCount`` ficam só com os prédios e ``goldWildLandYield`` em 0."""
+    """152 (conselho): o rendimento dos prédios e uma linha por mina ocupada. Como no inglês (#751,
+    #804), ``goldYield`` e ``goldTotalCount`` ficam só com os prédios e ``goldWildLandYield`` em 0."""
     total = gold_yield(snap, templates) - mines.mine_gold(snap, templates)
     msg = pb.CastleYieldMsg(goldYield=total, goldWildLandYield=0, goldTechnology=0, goldWonder=0)
     msg.goldTotalCount = total

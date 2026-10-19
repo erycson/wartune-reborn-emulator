@@ -1,10 +1,9 @@
 """Carta do fim da masmorra: um item da lista ``Campaigns.Item`` da campanha (ver docs/drops-masmorras.md).
 
-*(visto)* replay #1221-#1243 e #1725-#1747 (Kurt İni, 1001): 135 (5 cartas), 115 com o item na mochila,
-26 com a carta (``index`` escolhido no 5122, ``count`` 1, ``bind``, os ``randomSkill`` já sorteados), 83
-``Kazanılan:<nome> x1`` e 134. No inglês (#1121-#1126) o 83 é ``Received: <nome> x1`` e o 134 só vem como
-resposta do 5180 (sair). Lista vazia (tutorial, chefe do mundo, guilda) = sem carta: o oficial não
-manda 26 no fim do tutorial (replay #525).
+*(visto)* captura inglesa #1102-#1126 e #1526-#1547 (Worg Lair, 1001): 135 (5 cartas), 115 com o item na
+mochila, 26 com a carta (``index`` escolhido no 5122, ``count`` 1, ``bind``, os ``randomSkill`` já sorteados), 83
+``Received: <nome> x1`` e o 134 como resposta do 5180 (sair). Lista vazia (tutorial, chefe do mundo, guilda) =
+sem carta: os quatro 26 da captura inglesa são só das masmorras, nenhum no fim do tutorial.
 """
 
 from __future__ import annotations
@@ -40,7 +39,8 @@ def card(
     ``table``: (TemplateId, peso) do banco (``campaign_cards``, migração 0034); vazia = ``Campaigns.Item`` com
     pesos iguais. Como ``rewards.grant``, só altera o snapshot: quem chama grava o item e manda 115, 26 e 83.
     """
-    # ponytail: sem filtro de classe (o mesmo mago tirou 1080013, Job 3, e 1080002, Job 1,2); peso = vezes visto,
+    # ponytail: sem filtro de classe (só turco: replay #1241/#1744, o mesmo mago tirou 1080013, Job 3, e 1080002,
+    # Job 1,2; o inglês só deu 1080012, Job 3); peso = vezes visto na captura inglesa,
     # amostra pequena (docs/drops-masmorras.md); cartas em grupo (9000+) precisam de mais capturas ou vídeos
     rng = rng or random.Random()
     items = [t for t, _ in table] or pool(templates, campaign_id)
@@ -52,7 +52,7 @@ def card(
     text = rewards.received(templates, drop)  # (visto) inglesa #1123 "Received: Banshee Plume x1"
     item = new[0]
     slots = int((templates.get("ItemTempInfos", item.template_id) or {}).get("RandomSkillCount") or 0)
-    if slots:  # #1241: 3 atributos no 1080013 (RandomSkillCount 3); #1744: 1 no 1080002
+    if slots:  # inglês #1122/#1544: 1 atributo no 1080012 (RandomSkillCount 1); 3 no 1080013 só turco (replay #1241)
         skills = bag.random_skill_pool(templates)
         item.random_skills = [rng.choice(skills) for _ in range(slots)]
     s1, s2, s3, s4, s5 = item.random_skills

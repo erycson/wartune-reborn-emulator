@@ -1,4 +1,4 @@
-"""Mensagens de tropas (``ArmyPawnInfoMsg``), no formato das capturas (relay #647, #668-670)."""
+"""Mensagens de tropas (``ArmyPawnInfoMsg``), no formato da captura inglesa (#581, 100 com as 7 pawnLive)."""
 
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ def castle_pawns(
     snap: PlayerSnapshot, templates: GameTemplates, pawns: list[Pawn] | None = None
 ) -> pb.ArmyPawnUpdatedMsg:
     """100: tropas no castelo (``armyId`` 0); sem ``pawns``, todas mais os tipos que o quartel já
-    libera, com 0 (replay #578: 10101 ownPawns 0). Só esse 100 põe ``canRecruit`` no cliente
-    (``ArmyManager.getCasernPawn``); sem ele a célula mostra "Gereken Kışla1" e some o "Asker Al"."""
+    libera, com 0 (inglês #581: 10101 ownPawns 0). Só esse 100 põe ``canRecruit`` no cliente
+    (``ArmyManager.getCasernPawn``); sem ele a célula mostra "Requires Barracks Lvl. 1" e some o "Recruit"."""
     msg = pb.ArmyPawnUpdatedMsg()
     if pawns is None:
         pawns = [*snap.pawns, *unlocked_pawns(snap, templates)]

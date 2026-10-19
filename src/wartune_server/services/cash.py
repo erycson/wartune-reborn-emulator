@@ -1,4 +1,4 @@
-"""Moeda premium (``point`` = elmas, ``gift_token`` = elmas vinculado) com registro no ``cash_ledger``.
+"""Moeda premium (``point`` = Balens, ``gift_token`` = Bound Balens) com registro no ``cash_ledger``.
 
 Quem chama altera o personagem com ``change``/``pay`` e passa o ``CashLedger`` devolvido para o
 mesmo ``CharacterService.save`` da compra: o débito, o item e o registro entram numa transação só.
@@ -10,7 +10,7 @@ from datetime import datetime
 
 from ..domain.models import CashLedger, Character
 
-BIND_FIRST = 0  # payType dos pacotes: 0 = "Öncelikle Bağlı Elmas kullanılır" marcado, 1 = só elmas
+BIND_FIRST = 0  # payType dos pacotes: 0 = "Use Bound Balens first" marcado, 1 = só Balens
 
 
 def change(
@@ -25,10 +25,10 @@ def change(
 
 
 def split(c: Character, total: int, pay_type: int, gift_ok: bool = True) -> tuple[int, int] | None:
-    """Quanto sai de cada moeda para pagar ``total`` elmas, ou None se não dá.
+    """Quanto sai de cada moeda para pagar ``total`` Balens, ou None se não dá.
 
-    Com ``BIND_FIRST`` (e se o preço aceita vinculado) usa o vinculado primeiro e completa com elmas,
-    como ``BuyFrameI.PayMoney`` (giftToken + point); senão só elmas.
+    Com ``BIND_FIRST`` (e se o preço aceita vinculado) usa o vinculado primeiro e completa com Balens,
+    como ``BuyFrameI.PayMoney`` (giftToken + point); senão só Balens.
     """
     if total < 0:
         return None
@@ -40,7 +40,7 @@ def split(c: Character, total: int, pay_type: int, gift_ok: bool = True) -> tupl
 def pay(
     c: Character, total: int, pay_type: int, reason: str, ref: str, now: datetime, gift_ok: bool = True
 ) -> CashLedger | None:
-    """Debita ``total`` elmas conforme ``split``; None (nada muda) se faltar saldo."""
+    """Debita ``total`` Balens conforme ``split``; None (nada muda) se faltar saldo."""
     parts = split(c, total, pay_type, gift_ok)
     if parts is None:
         return None

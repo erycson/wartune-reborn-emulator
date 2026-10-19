@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from .session import GameContext, GameSession
 
 CHAIRMAN, VICE, ELDER, MEMBER = 1, 2, 3, 5
-# direitos por cargo, copiados do oficial (login.json #116); bit i-1 = getRightsByIndex(i)
+# direitos por cargo, copiados do oficial (só turco: login.json #116); bit i-1 = getRightsByIndex(i)
 RIGHTS = {
     1: bytes.fromhex("ffff7fe87f"),
     2: bytes.fromhex("baff744855"),

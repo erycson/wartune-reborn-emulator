@@ -42,12 +42,9 @@ def _name(templates: GameTemplates, template_id: int) -> str:
 
 def received(templates: GameTemplates, drops: Sequence[Drop]) -> str:
     """O texto do oficial inglês nas campanhas: moeda com o valor antes ("Received: 500 Gold", "Received: 10,000
-    Daru"), item com ``x`` ("Received: Worg Tooth x2"): captura inglesa #946, #1216, #2631, #1123.
-
-    ponytail: ``text`` (abaixo) ainda é o turco das missões e eventos; quando ele virar inglês, este some nele."""
-    return "Received: " + ", ".join(
-        f"{n:,} {_name(templates, t)}" if t < 0 else f"{_name(templates, t)} x{n}" for t, n in drops
-    )
+    Daru"), item com ``x`` ("Received: Worg Tooth x2"): captura inglesa #946, #1216, #2631, #1123. É o ``text`` no
+    estilo ``bag``."""
+    return text(templates, drops)
 
 
 def text(templates: GameTemplates, drops: Sequence[Drop], style: str = "bag") -> str:

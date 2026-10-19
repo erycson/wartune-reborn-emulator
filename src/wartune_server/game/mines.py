@@ -1,7 +1,8 @@
 """Minas de ouro do mapa do castelo (``WildLandMsg`` type 20). As minas vêm do catálogo do mundo
 (``domain/world.py``); o ciclo e as ocupações são do jogador (``Castle.mines_at`` e ``wild_lands``).
 
-Cada conta tem a sua cópia das minas (replay #706, cevre #11): a instância, os robôs, os ids do armyPawn e o
+Cada conta tem a sua cópia das minas (inglês #532 contra o turco replay #706: mesmos ids e tiles): a
+instância, os robôs, os ids do armyPawn e o
 createDate mudam de uma para a outra, e a ocupação de outro jogador não aparece nem bloqueia. O guia do
 tutorial (m8 NewbieBaseActionMediator, alvo 80) procura as duas primeiras pelos pixels (320,680) e (720,680).
 """
@@ -22,10 +23,9 @@ MINE_TYPE, MINE_SON_TYPE = 20, 2006  # WildLandMsg.type; MapPhysicsTempInfos.Son
 MINE_FREE, MINE_FIGHTING = 1, 4  # WildLandMsg.state
 MINE_CAPACITY = 324  # fightCapaity da mina livre nas capturas
 # Refresh: RefreshTime 43200 s em todas as minas (MapPhysicsTempInfos). O ciclo é do jogador
-# (``Castle.mines_at``): o createDate vem no fuso do jogo (UTC+3) e cai na entrada da conta, não numa
-# hora do mundo. Replay: 12:19:54 = 09:19:54 UTC, 1 s antes do primeiro pacote; cevre: 19:48:57 =
-# 16:48:57 UTC, 73 s antes do signDate 19:50:10 do mesmo asiesat (login.json), e o relogin das 17:05
-# UTC não mudou o createDate. As duas fases ficam 7 h 29 min distantes: não há hora do mundo.
+# (``Castle.mines_at``): o createDate vem no fuso do jogo e cai na entrada da conta, não numa hora do mundo.
+# Inglês #532: 18:21:37 (Pacífico), 2 s antes do beginDate 18:21:39 das 4152 da conta nova (#50). Só turco
+# (cevre e login.json): o relogin não mudou o createDate, e duas contas ficaram 7 h 29 min distantes.
 # ponytail: (dedução) o ciclo vencido só renova no próximo acerto de ouro, login, 8201 ou 5160 e começa nessa hora;
 # quem fica online pode ver o oficial renovar na hora certa (sem captura de um refresh ao vivo).
 MINE_PERIOD = timedelta(hours=12)
@@ -143,7 +143,7 @@ def mine_msg(
 
 
 def mine_yield(snap: PlayerSnapshot, templates: GameTemplates) -> list[pb.WildYieldMsg]:
-    """152: uma linha por mina ocupada no ciclo atual (replay #743, #794), com o nível gravado nela."""
+    """152: uma linha por mina ocupada no ciclo atual (inglês #751, #804), com o nível gravado nela."""
     out = []
     for land in _current(snap):
         row = templates.get("MapPhysicsTempInfos", land.template_id) or {}
@@ -165,5 +165,5 @@ def mine_yield(snap: PlayerSnapshot, templates: GameTemplates) -> list[pb.WildYi
 
 
 def mine_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
-    """Ouro por hora das minas ocupadas (replay: o goldYield do 109 vai de 280 para 960 com a 1ª)."""
+    """Ouro por hora das minas ocupadas (inglês: o goldYield do 109 vai de 280, #749, a 1040 com a 1ª, #772)."""
     return sum(y.wildYield for y in mine_yield(snap, templates))

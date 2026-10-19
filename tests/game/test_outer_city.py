@@ -367,7 +367,7 @@ async def test_castelo_de_outro_jogador_num_mapa_compartilhado(tmp_path: Path) -
 
 
 async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
-    """Missão 100 (cevre #11, replay #706): o robô de (44,22) vem no 4129 da grade 0_0 com o próprio castelo,
+    """Missão 100 (captura inglesa #532): o robô de (44,22) vem no 4129 da grade 0_0 com o próprio castelo,
     o de (59,56) na grade 1_1, com grau 8 e o nome da conta. Em outro mapa, nenhum."""
     async with logged_in(tmp_path, novice=19000) as g:
         castle = _snap(g).castle
@@ -377,7 +377,7 @@ async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
         [robo] = [c for c in page.baseCastle if c.id == 765958]
         assert (robo.mapId, robo.posX, robo.posY, robo.type, robo.state, robo.grade) == (castle.map_id, 44, 22, 1, 1, 8)
         assert robo.occupyPlayerId == robots.ROBOT_USER_BASE and robo.castleName == robo.occupyPlayerName
-        assert robo.occupyPlayerName in {"♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"}
+        assert robo.occupyPlayerName in {"Aillendre", "Addyn"}
         again = await _grid(g, "0_0")  # o nome sai da conta: o mesmo pedido devolve o mesmo nome
         twice = pb.PhysicListUpdateMsg.FromString(next(p.body for p in again if p.code == 4129))
         assert [c.occupyPlayerName for c in twice.baseCastle if c.id == 765958] == [robo.occupyPlayerName]
@@ -528,7 +528,7 @@ async def test_ocupacao_vence_ao_logar_depois_do_refresh(tmp_path: Path) -> None
 
 
 async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
-    """Minas, guardas, robôs e monstros saem das tabelas das migrações 0027 e 0028, na ordem da captura."""
+    """Minas, guardas, robôs e monstros saem das tabelas das migrações 0027, 0028 e 0040, na ordem da captura."""
     async with logged_in(tmp_path, novice=22500) as g:
         world = g.server.services.world
         assert [(m.id, m.x, m.y, m.levels) for m in world.mines] == [
@@ -537,7 +537,7 @@ async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
         ]  # fmt: skip
         assert dict(world.mine_guards) == {8: 6504, 9: 6505, 10: 6505}
         assert [(r.id, r.x, r.y, r.grade) for r in world.robots] == [(765958, 44, 22, 8), (765957, 59, 56, 8)]
-        assert [str(n) for n in world.robot_names] == ["♣Chloe♣", "♫Elizabeth♫", "►Abigail◄"]
+        assert [str(n) for n in world.robot_names] == ["Aillendre", "Addyn"]
         assert dict(world.monster_counts[2]) == {1: 40, 2: 20, 3: 5} and 100 not in world.monster_counts
         assert world.monsters[210127].fight_capacity == 746796 and world.monsters[210101].fight_capacity == 0
 

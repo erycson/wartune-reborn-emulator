@@ -29,7 +29,7 @@ def parse_timezone(text: str) -> tzinfo:
     return timezone(sign * timedelta(hours=int(fixed.group(2)), minutes=int(fixed.group(3) or 0)))
 
 
-# Padrão UTC; o oficial inglês segue o horário do Pacífico (troca PDT/PST) e as capturas são do turco (UTC+3).
+# Padrão UTC; o oficial inglês segue o horário do Pacífico (troca PDT/PST; captura inglesa #72: fim às 23:59:59).
 # ``set_timezone`` na subida (``build_services``). Leia sempre como ``gameday.GAME_TZ`` (o valor é trocado).
 GAME_TZ: tzinfo = UTC
 

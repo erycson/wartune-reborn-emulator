@@ -1,10 +1,10 @@
-"""Chefe do mundo (Dünya Boss): agenda de hoje (4182) e a leitura dos templates.
+"""Chefe do mundo (World Boss): agenda de hoje (4182) e a leitura dos templates.
 
 Os chefes são as campanhas com ``Types=1`` (5001 e 5003). O cliente guarda todo campanha com
 ``Types>=1`` (menos 5 e 9) e derruba com um id fora desse dicionário, então o 4182 manda só estes.
-Os horários (``OpenTime``/``StopTime``) são do jogo no fuso do servidor (``gameday.GAME_TZ``). No turco era UTC+3: a
-captura de 4182 em ``replay_packets.json`` (pacotes 78 -> 102, 12:20 em UTC+3) mostra 5001 já fechado (passou das 12:00)
-e 5003 ainda não aberto (antes das 21:35). Em UTC o mesmo instante daria 5001 aberto.
+Os horários (``OpenTime``/``StopTime``) são do jogo no fuso do servidor (``gameday.GAME_TZ``). O inglês segue o
+Pacífico: o 4182 da captura inglesa (#103, 18:24 no Pacífico) mostra 5001 já fechado (passou das 12:00) e 5003
+ainda não aberto (antes das 21:35).
 """
 
 from __future__ import annotations

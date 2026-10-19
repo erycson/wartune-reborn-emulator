@@ -60,7 +60,7 @@ class CastlePlacement(Protocol):
 class GridCastlePlacement:
     """Distribui castelos numa grade fixa de um mapa.
 
-    O padrão põe todo castelo novo em (26,46), como o oficial (replay e cevre: exército em 24,44): o
+    O padrão põe todo castelo novo em (26,46), como o oficial (inglês #532: castelo em 26,46; #3: exército em 24,44): o
     guia do tutorial procura o castelo no pixel (520,920) e as minas em volta (world_mines).
     ponytail: cada jogador só vê o próprio castelo, então dividir o ponto não colide; com mapa
     compartilhado, uma instância 100000xxx por grupo de jogadores, como o oficial.

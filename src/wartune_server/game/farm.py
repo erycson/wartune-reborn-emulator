@@ -20,7 +20,7 @@ SEED = "216"
 OPEN_LANDS = 3  # FarmModel.DEFAULT_OPEN_LAND; ponytail: sem upgrade de terra (opType 9 não tem sender)
 FARM_GRADE = 17  # UpGradeTempInfos.Types da fazenda
 TREE_COOLDOWN = 600  # TreeInfo.remainWaerTime: lastWaterTime + 10 min
-REWARD_PERCENT = 80  # ciftlik.json: rewardCount de moeda = 80% do Property3 (2400/3000, 20000/25000, 8000/10000)
+REWARD_PERCENT = 80  # (só turco: ciftlik) rewardCount de moeda = 80% do Property3 (2400/3000, 20000/25000, 8000/10000)
 WORM_AT, GRASS_AT = (0.4, 0.6), (0.3, 0.5)  # FarmLandInfo.isWormNow / isGrassNow
 MAX_STOLEN, MIN_STEAL_OUTPUT = 3, 10  # FarmModel.MAX_STOLEN_COUNT; FarmLandInfo.canBeStolen (outputCount < 10)
 # (cliente) language EN farm.view.FarmResourcesView.helpContent: "energize your Tree of Ancients 3 times a day",
@@ -45,7 +45,7 @@ def plant(snap: PlayerSnapshot, row: Row, pos: int, now: datetime) -> FarmLand:
         pos,
         int(row["TemplateId"]),
         now,
-        # ciftlik.json: amadurece 1 minuto antes do Property1 (60 -> 59 min, 720 -> 719 min)
+        # (só turco: ciftlik.json) amadurece 1 minuto antes do Property1 (60 -> 59 min, 720 -> 719 min)
         now + timedelta(minutes=max(minutes - 1, 0)),
         int(row["Property3"]) * (REWARD_PERCENT if int(row["Property2"]) < 0 else 100) // 100,
         random.choice((1, 2)) if pests else 0,
@@ -183,7 +183,7 @@ def farm_info(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.FarmInfoR
     c, castle = snap.character, snap.castle
     assert castle is not None
     by_pos = {land.pos: land for land in snap.lands}
-    # os contadores do dia só valem na própria fazenda (o cliente lê do myFarm); a de amigo vem 0 (ciftlik #80)
+    # os contadores do dia só valem na própria fazenda (o cliente lê do myFarm); a amiga vem 0 (só turco: ciftlik #80)
     today = own and castle.farm_day == gameday.today(now)
     return pb.FarmInfoRspMsg(
         userId=c.id or 0,
@@ -218,7 +218,7 @@ def own_state(snap: PlayerSnapshot, now: datetime) -> pb.FriendFarmStateMsg:
 def friend_state(
     viewer_id: int, target: PlayerSnapshot, templates: GameTemplates, now: datetime, *, can_water: bool
 ) -> pb.FriendFarmStateMsg:
-    """4190 de um amigo (visto ciftlik #3): o que ``viewer_id`` pode fazer na fazenda dele agora."""
+    """4190 de um amigo (só turco: ciftlik #3): o que ``viewer_id`` pode fazer na fazenda dele agora."""
     rows = [(land, seed(templates, land.item_template_id)) for land in target.lands]
     return pb.FriendFarmStateMsg(
         userId=target.character.id or 0,

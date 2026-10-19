@@ -1,6 +1,6 @@
 """Campanha de treino (mapas 10001 e 10002): estado do mapa de uma sessão.
 
-Os nós, tropas e diálogos vêm de ``content/tutorial.json`` (extraído da captura oficial). Cada nó
+Os nós, tropas e diálogos vêm de ``content/tutorial.json`` (extraído da captura do oficial inglês). Cada nó
 tem dois ids: o de execução (``nodeId``, usado nos pacotes 127/128/4105/4122/4124) e o do template
 (``campDataId``, usado pelo cliente em 5125/8196/5032).
 
@@ -35,7 +35,7 @@ MONSTER, TRIGGER, PANDORA = 42, 53, 61  # masterType (61 também é o baú de ou
 BOSS, COLLECT = 41, 91  # masterType: chefe (a vitória fecha o mapa) e pilha da pedreira (6001)
 SHOW = 2  # ação do param4 sem ``,ação`` (1002: "113106"): o nó aparece só com o 128, sem FLICKER (#2471)
 AGGRESSIVE = 1  # attackTypes: persegue o jogador (8196 -> 4105)
-FLICKER_DELAY, DISAPPEAR_DELAY = 85, 35  # delay das PlayerMovieMsg de liberar/esconder um nó (replay #1595/#1597)
+FLICKER_DELAY, DISAPPEAR_DELAY = 85, 35  # delay das PlayerMovieMsg de liberar/esconder um nó (inglês #1414/#1412)
 
 # noviceProcess gravado -> estados dos nós que já tinham mudado (campDataId -> estado)
 RESUME: dict[int, list[tuple[int, dict[int, int]]]] = {
@@ -182,8 +182,8 @@ def battle_spec(camp: int) -> dict[str, Any] | None:
 
 
 # -- relatório do fim da etapa (137) ---------------------------------------------------------------
-# (visto) os seis 137 das capturas (inglesa #1098, #1521, #2705, #3157; turca #1215, #1722) têm notas 1, 5, 5 e 4:
-# dano causado / StandardDamage de 0,17 a 0,51 é D, dano sofrido / StandardHurt abaixo de 0,18 é S, sem derrota é S.
+# (visto) os quatro 137 da captura inglesa (#1098, #1521, #2705, #3157) têm notas 1, 5, 5 e 4: dano causado /
+# StandardDamage de 0,17 a 0,49 é D, dano sofrido / StandardHurt até 0,17 é S, sem derrota é S.
 # (dedução) os degraus abaixo e a nota total = média arredondada; nada além disso fecha com as amostras.
 WOUND_STEPS = (0.6, 0.7, 0.8, 1.0)  # causado/StandardDamage: abaixo do 1º = D (1) ... a partir do último = S (5)
 HURT_STEPS = (0.2, 0.4, 0.6, 0.8)  # sofrido/StandardHurt: até o 1º = S (5) ... acima do último = D (1)

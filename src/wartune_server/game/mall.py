@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 log = structlog.get_logger(__name__)
 
-DIAMOND = -400  # TemplateId da moeda no correio (CURRENCIES, handlers/player.py): elmas não vinculados
+DIAMOND = -400  # TemplateId da moeda no correio (CURRENCIES, handlers/player.py): Balens não vinculados
 
 # ponytail: lock global do processo (um servidor por processo). Por anúncio se a fila pesar.
 MALL_LOCK = asyncio.Lock()

@@ -101,7 +101,7 @@ class Character:
     gold: int = 0
     point: int = 0  # moeda premium
     gift_token: int = 0
-    strategy: int = 0  # "Ruh" (alma), moeda -300
+    strategy: int = 0  # Daru, moeda -300
     crystals: int = 1000  # cristais (-600): custo das tecnologias; o oficial começa com 1000
     weary: int = 200
     weary_limit: int = 200
@@ -154,7 +154,7 @@ class Character:
     offline_seconds: int = 0  # tempo offline ainda não resgatado (8287)
     # campanha em grupo (4240): entradas que sobram e o máximo de ``multi_copy_day``; outro dia = o base
     multi_copy_count: int = 0  # PlayerMsg.campaignCount
-    multi_copy_max: int = 0  # PlayerMsg.campaignMaxcount (base + Büyük Sefer usados no dia)
+    multi_copy_max: int = 0  # PlayerMsg.campaignMaxcount (base + The Empire Crusade usados no dia)
     multi_copy_day: str = ""  # "YYYY-MM-DD"
     reset_day: str = ""  # último dia do jogo já virado (energia, stamina): game/daily.py
     weary_potions: int = 0  # stamina tomada em poções no dia (PlayerMsg.wearyLimit; teto 300)
@@ -624,7 +624,7 @@ class Arena:
     pet_count: int = 0  # torneio de fadas: tentativas usadas hoje
     pet_buy_count: int = 0
     pet_cool_until: datetime | None = None
-    pet_score: int = 1000  # pontos iniciais da captura
+    pet_score: int = 1000  # pontos iniciais (só turco: captura do torneio de fadas, peri_turnuvasi)
     pet_formation: str = ""  # chaPos: "petId,-1,..."
     pet_reward_day: str = ""  # dia da recompensa diária resgatada
     pet_reward_week: str = ""  # semana ISO (AAAA-Wnn) da recompensa semanal resgatada
