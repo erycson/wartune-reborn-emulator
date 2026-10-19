@@ -459,6 +459,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if dungeon:
         c.over = (gp, strategy)  # (visto) inglesa #1094-#1096: o 4382 sai na volta ao mapa (5035 state 4)
     if not won:
+        c.talked.discard(camp)  # tumba/caixa perdida: o 29 volta a perguntar (dedução, sem captura de derrota)
         _node_update(s, camp, NORMAL)
         return
     if loot.items:  # (visto) inglesa #1275-#1280: 115, 111, 128 e só depois o 83

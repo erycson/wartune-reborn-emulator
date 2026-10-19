@@ -144,6 +144,35 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
         assert (await characters.snapshot(g.user_id)).character.strategy == before + 5000
         assert await arrive(g, 114105) == []  # já aberta
 
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None and session.snapshot.leader is not None
+        session.snapshot.leader.grades = 40  # a Karda vem com três heróis: o mago de teste precisa aguentar
+        for camp in (114102, 114104):
+            g.client.send(5125, pb.CampaignReqMsg(paraInt1=camp, paraBool1=True))
+            await won(g)
+        got = await arrive(g, 114106)
+        assert codes(got) == [4208, 125, 127, 130, 21, 131]  # inglesa #2956-#2962
+        assert pb.RoomCreatedMsg.FromString(got[1].body).room.campaignId == 1142
+
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=114202, paraBool1=True))
+        await won(g)
+        daru = (await characters.snapshot(g.user_id)).character.strategy
+        cache = await confirm(g, 114203)
+        after = await g.fight(pb.BattlePrepareMsg.FromString(cache[-1].body)) + await g.idle()
+        assert text(after[codes(after).index(126)]) == "Received: 10,000 Daru"
+        assert (await characters.snapshot(g.user_id)).character.strategy == daru + 10000 + 15  # + strategyBonus
+        movie = await back_to_map(g)
+        assert pb.FightOverMoiveMsg.FromString(movie[0].body).strategy == 15  # inglesa #3076
+
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=114206, paraBool1=True))  # Karda: luta na chegada
+        end = await won(g)
+        assert 138 not in codes(end)
+        assert codes(end)[-10:] == [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140]  # inglesa #3155-#3166
+        rank = pb.RankListRspMsg.FromString(next(p.body for p in end if p.code == 4151))
+        assert [r.campaignId for r in rank.rankInfo] == [1002]
+        snap = await characters.snapshot(g.user_id)
+        assert {e.key: e.value for e in snap.events}["campaign_stage:1002"] == 0  # volta ao 1131
+
 
 async def test_pedreira_entra_colhe_luta_e_sai(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
