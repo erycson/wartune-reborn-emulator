@@ -148,15 +148,17 @@ STAR_ATTRS = {"Power", "Agility", "Intellect", "Captain", "Physique", "Attack", 
 STAR_ATTRS |= {"MagicDefence", "ForceHit", "Parry", "Live", "Conat"}
 
 
-def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> HeroStats:
-    """Atributos do líder: herói + equipamentos + montaria + estrelas equipadas + poções ativas (``buffs``).
+def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime | None) -> HeroStats:
+    """Atributos do líder: herói + equipamentos + montaria + estrelas equipadas + poções ativas (``buffs``; ``now``
+    ``None`` = sem as poções).
 
     Talento, runas, destino e alma do dragão não somam atributo fixo: nos templates eles são
     skills/buffs (SkillTempInfos/TalentEffectTempInfos) que agem na batalha.
     """
     leader = snap.leader
     assert leader is not None
-    bonuses = equipment(snap, templates) + star_bonuses(snap, templates) + buffs.stat_bonuses(snap, templates, now)
+    potions = buffs.stat_bonuses(snap, templates, now) if now is not None else []
+    bonuses = equipment(snap, templates) + star_bonuses(snap, templates) + potions
     if mount := mount_stats(snap, templates):
         bonuses.append({k: str(v) for k, v in mount.items()})
     return HeroStats.of(leader, templates.hero(leader.template_id), bonuses)
@@ -377,7 +379,8 @@ def top_up_army(snap: PlayerSnapshot, templates: GameTemplates) -> None:
     com o castelo vazio). Quem chama ``add_gp`` grava ``snap.pawns``; o que faltou vira o 139 (``handlers.player``)."""
     pawn = army_pawn(snap) or next(iter(snap.pawns), None)
     if pawn is not None and snap.leader is not None:
-        moved = max(0, min(leader_stats(snap, templates).total["ConatArmy"] - pawn.army_count, pawn.castle_count))
+        # ponytail: sem a poção de Captain (add_gp não recebe a hora); passar now por add_gp/grant se pesar
+        moved = max(0, min(leader_stats(snap, templates, None).total["ConatArmy"] - pawn.army_count, pawn.castle_count))
         pawn.castle_count, pawn.army_count = pawn.castle_count - moved, pawn.army_count + moved
 
 

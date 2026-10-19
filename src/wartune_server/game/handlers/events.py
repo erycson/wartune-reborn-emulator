@@ -25,7 +25,7 @@ S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
 S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE = 83, 4152, 4150, 4412, 4247
 SERVEN_QUEST = 130  # a conclusão dela abre o guia de 7 dias (4638)
 PAGE = 10  # atividades por 4475 (o oficial manda ~11 por página)
-LOGIN_DAYS, ONLINE = 13, 14  # activeType com regra no servidor
+LOGIN_DAYS, ONLINE, DEVOTION = 13, 14, 12  # activeType com regra aqui (os contados por ação: ev.COUNTED)
 CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
 GIFT_OK = "Gift pack retrieval successful."  # texto do oficial inglês (tutorial_en #2770)
 LEED_BOX = (10, 40, 60, 80, 100)  # DayGuideCatecory.canPick: atividade mínima de cada baú 1..5
@@ -170,10 +170,31 @@ def _flush_online(s: GameSession, now: datetime) -> list[EventState]:
     return changed
 
 
+def _daily(a: ev.Active) -> bool:
+    """Pacote que volta a valer no dia seguinte: presente online, devoção (zera no dia; *dedução*) e os contadores
+    diários de ``ev.COUNTED``."""
+    return a.active_type in (ONLINE, DEVOTION) or ev.COUNTED.get(a.active_type, False)
+
+
 def _taken(snap: PlayerSnapshot, a: ev.Active, p: ev.Package, now: datetime) -> bool:
     key = f"sum:{a.active_id}:{p.package_id}"
-    st = ev.daily(snap, key, now) if a.active_type == ONLINE else ev.peek(snap, key)
+    st = ev.daily(snap, key, now) if _daily(a) else ev.peek(snap, key)
     return st is not None and st.value > 0
+
+
+def _progress(s: GameSession, a: ev.Active, now: datetime) -> int | None:
+    """Quanto o jogador fez para a atividade ``a`` (``ActiveData.value``, o ``finishNum`` do cliente); None = o
+    servidor não conta esse tipo (fica "ainda não")."""
+    snap = s.snapshot
+    assert snap is not None
+    if a.active_type == LOGIN_DAYS:
+        return _value(snap, f"sum:{a.active_id}")
+    if a.active_type == DEVOTION:  # condição 13 ACTIVE_VALUE: a devoção de hoje (totalNum do 4152)
+        return _leeds(s, now)[1]
+    if a.active_type in ev.COUNTED:
+        key = f"sum:{a.active_id}"
+        return ev.daily(snap, key, now).value if ev.COUNTED[a.active_type] else _value(snap, key)
+    return None
 
 
 def _status(s: GameSession, a: ev.Active, now: datetime) -> list[tuple[ev.Package, int, int]]:
@@ -192,13 +213,13 @@ def _status(s: GameSession, a: ev.Active, now: datetime) -> list[tuple[ev.Packag
                 ready = p is nxt and elapsed >= p.condition[1]
                 out.append((p, CAN if ready else NOT_YET, max(0, p.condition[1] - elapsed)))
         return out
-    days = _value(snap, f"sum:{a.active_id}")
+    done = _progress(s, a, now)
     for p in a.packages:
         if _taken(snap, a, p, now):
             out.append((p, TAKEN, 0))
         else:
-            # ponytail: só os tipos 13 e 14 têm regra; os outros ficam "ainda não" até alguém implementar
-            ok = a.active_type == LOGIN_DAYS and days >= p.condition[1]
+            # tipos sem contador no servidor (recarga, gasto, troca, montaria...) ficam "ainda não": docs/eventos.md
+            ok = done is not None and done >= p.condition[1]
             out.append((p, CAN if ok else NOT_YET, 0))
     return out
 
@@ -207,7 +228,10 @@ def _active_data(s: GameSession, actives: Sequence[ev.Active]) -> pb.SumActiveDa
     now = s.ctx.clock.now()
     msg = pb.SumActiveDataMsg()
     for a in actives:
-        data = msg.datas.add(activeId=a.active_id, isShow=True, type=a.active_type, value=0, activeCharge=0)
+        # value = finishNum do cliente; nos tipos 13/14 o oficial manda 0 (login.json #69); nos contados vai o
+        # progresso, que o texto da tela mostra (FunnyHelper.processText, *dedução* sem captura)
+        value = _progress(s, a, now) if a.active_type in ev.COUNTED else 0
+        data = msg.datas.add(activeId=a.active_id, isShow=True, type=a.active_type, value=value or 0, activeCharge=0)
         for p, status, countdown in _status(s, a, now):
             pd = data.packdata.add(packId=p.package_id, status=status, isShow=True)
             if a.active_type == ONLINE:
@@ -239,7 +263,8 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
         return
     p = found[0][0]
     changed = _flush_online(s, now)
-    mark = ev.state(snap, f"sum:{a.active_id}:{p.package_id}", now)
+    key = f"sum:{a.active_id}:{p.package_id}"
+    mark = ev.daily(snap, key, now) if _daily(a) else ev.state(snap, key, now)
     mark.value, mark.updated_at = 1, now
     if a.active_type == ONLINE:  # o próximo presente conta do zero
         st = ev.daily(snap, f"sum:{a.active_id}", now)

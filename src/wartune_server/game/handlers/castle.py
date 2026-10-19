@@ -204,6 +204,13 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     quests = rules.quest_event(snap, s.ctx.templates, ACCELERATE, cs.BUILD, 1) if build else []
     await s.ctx.characters.save(c, *([entry] if entry else []), *orders, *quests)
     _send_player(s)
+    from . import events  # handlers.events importa login, que importa este módulo
+
+    # LeedTemp 15 "Consume Balens/Bound Balens": (visto) replay #1288-#1294, 3, 4152 (totalNum 25), 150, 4434, 111,
+    # 102 e o 83 "Emek oranınız 25'a ulaştı." (aqui o 83 vai logo depois do 4152, como nos outros leeds)
+    # chamado aqui para sair antes do 111/102, como na captura; o gancho geral do on_packet (session.py) vê o leed
+    # já feito no dia e não repete
+    await events.leed_done(s, events.BALEN_LEED)
     # texto deduzido (sem fonte no cliente/captura)
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Cooldown removed."))
     s.send(S_ORDER_QUICK, pb.OrderQuickRspMsg(orderInfo=[cs.order_info(o, now) for o in orders]))

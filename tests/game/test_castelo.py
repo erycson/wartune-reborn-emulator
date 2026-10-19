@@ -58,9 +58,8 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         await _set(g, point=5)
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))
         got = await g.until(102)
-        assert [p.code for p in got] == [3, 111, 102]
-        assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
-        assert pb.OrderQuickRspMsg.FromString(got[2].body).orderInfo[0].remainTime == 0
+        assert [p.code for p in got] == [3, 4152, 83, 111, 102]  # leed 15 "Consume Balens" (replay #1289)
+        assert pb.OrderQuickRspMsg.FromString(got[4].body).orderInfo[0].remainTime == 0
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert (saved.character.gold, saved.character.point) == (800, 4)

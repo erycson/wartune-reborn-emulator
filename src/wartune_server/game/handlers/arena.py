@@ -15,6 +15,7 @@ from ...domain.models import ArenaRank, BagType, ChallengeLog, Item, PlayerSnaps
 from ...protocol.messages import wartune_pb2 as pb
 from .. import arena as A
 from .. import bag, rules
+from .. import events as ev
 from ..battle import Battle
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -230,7 +231,9 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         await _colosseum_over(s, battle, won, target, name, grade, job)
 
     s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished)
-    await s.ctx.characters.save(snap.character, arena)  # gasta antes da luta: cair não devolve
+    # gasta antes da luta: cair não devolve; a atividade "Solo Arena" (tipo 26) conta a participação, como o leed 19
+    counted = ev.count(snap, s.ctx.events, ev.CHALLENGE, s.ctx.clock.now())
+    await s.ctx.characters.save(snap.character, arena, *counted)
     s.log.info("coliseu", alvo=target, battle=s.battle.id)
     s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
     s.battle.start()
@@ -509,7 +512,8 @@ async def _pet_over(s: GameSession, won: bool, target: int, name: str) -> None:
     if not A.is_robot(target):  # só o histórico do atacado muda; os pontos dele não (não observado)
         logs.append(ChallengeLog(target, A.PETS, now, me, c.nickname or "", False, not won, 0))
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_PET_TOURNAMENT, 0, 1)  # participar conta, ganhando ou não
-    await s.ctx.characters.save(arena, *logs, *quests)
+    counted = ev.count(snap, s.ctx.events, ev.PET_CHALLENGE, now)  # atividade "Sylph Arena" (tipo 110), idem
+    await s.ctx.characters.save(arena, *logs, *quests, *counted)
     _cool(s, A.PETS)
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=0)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 19, 0, 0, 0

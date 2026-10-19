@@ -425,7 +425,8 @@ async def alchemy(s: GameSession, _: object) -> None:
     st = ev.daily(snap, "alchemy", now)
     st.value, st.updated_at = st.value + 1, now
     snap.character.gold += info.gold
-    await s.ctx.characters.save(snap.character, st, spent)
+    counted = ev.count(snap, s.ctx.events, ev.ALCHEMY, now)  # atividade "Gold Alchemy" (tipo 21)
+    await s.ctx.characters.save(snap.character, st, spent, *counted)
     granted(s, [(-100, info.gold)], [], "", chat=False)  # 3 + 109
     s.send(S_LUCKY, _lucky_msg(s, snap))  # gold = quanto cada uso rende (texto do cliente)
 
@@ -465,7 +466,8 @@ async def soul(s: GameSession, _: object) -> None:
     st = ev.daily(snap, "soul", now)
     st.value, st.updated_at = st.value + 1, now
     snap.character.strategy += info.soul
-    await s.ctx.characters.save(snap.character, st, spent)
+    counted = ev.count(snap, s.ctx.events, ev.REFINE_SOUL, now)  # atividade "Daru Alchemy" (tipo 22)
+    await s.ctx.characters.save(snap.character, st, spent, *counted)
     granted(s, [], [], "", chat=False)
     s.send(S_SOUL, _soul_msg(s, snap))
 

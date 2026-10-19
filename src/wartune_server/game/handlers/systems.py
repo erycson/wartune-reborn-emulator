@@ -13,6 +13,7 @@ from ...domain import gameday
 from ...domain.models import BagType, Item, PlayerSnapshot, PlayerSystems
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, Row
+from .. import events as ev
 from .. import rules
 from ..builders.login import NEVER, fmt_time
 from ..builders.player import quest_update
@@ -228,7 +229,8 @@ async def fate_train(s: GameSession, msg: pb.FateEditMsg) -> None:
     gps = fate(sy)
     gps[msg.skillSonType] += n  # ponytail: 1 de EXP por pedra (sem captura do treino)
     sy.fate = ",".join(f"{k}:{v}" for k, v in gps.items())
-    await s.ctx.characters.save(sy, *changed, delete=tuple(deleted))
+    counted = ev.count(snap, s.ctx.events, ev.FATE_EAT, s.ctx.clock.now(), n)  # atividade "Fate Stones" (tipo 109)
+    await s.ctx.characters.save(sy, *changed, *counted, delete=tuple(deleted))
     send_items(s, changed, deleted)
     s.send(S_FATE, fate_list(snap, templates, msg.skillSonType))
 
@@ -267,7 +269,8 @@ async def fate_turn(s: GameSession, msg: pb.FateEditMsg) -> None:
     rewards = random.choices(list(WHEEL), weights=list(WHEEL.values()), k=turns)
     sy.fate_turns += turns
     item = give_item(snap, FATE_STONE_ID, sum(rewards))
-    await s.ctx.characters.save(sy, snap.character, item)
+    counted = ev.count(snap, s.ctx.events, ev.FATE_TURN, s.ctx.clock.now(), turns)  # "Wheel of Fate" (tipo 108)
+    await s.ctx.characters.save(sy, snap.character, item, *counted)
     s.send(S_FATE_TURN, pb.FateEditMsg(isSuccess=True, currCount=sy.fate_turns, count=rewards, turnNum=turns))
     send_items(s, [item], [])
     if cost:

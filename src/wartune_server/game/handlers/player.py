@@ -59,7 +59,8 @@ def push_level(s: GameSession, before: int) -> None:
     # então "castelo aberto" é a produção já iniciada pelo 8281
     if pawns.armyPawn and snap.castle is not None and snap.castle.produced_at is not None:
         target = rules.army_pawn(snap) or next(iter([*snap.pawns, *unlocked_pawns(snap, templates)]), None)
-        if target is not None and target.army_count < rules.leader_stats(snap, templates).total["ConatArmy"]:
+        lead = rules.leader_stats(snap, templates, s.ctx.clock.now()).total["ConatArmy"]
+        if target is not None and target.army_count < lead:
             s.send(S_SHORT)
         s.send(S_CASTLE_PAWNS, pawns)
     _army(s)

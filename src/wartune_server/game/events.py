@@ -130,3 +130,22 @@ class EventCatalog:
 
     def running(self, now: datetime) -> list[Active]:
         return [a for a in self.actives if a.begin <= now <= a.end]
+
+
+# activeType que o servidor conta com ``count`` -> se o contador zera no dia (FunnyType do cliente; "today" no texto
+# do progresso, funny.FunnyRightView.processNN, = diário; sem "today" conta o período todo, *dedução*)
+ALCHEMY, REFINE_SOUL, CHALLENGE, FATE_TURN, FATE_EAT, PET_CHALLENGE = 21, 22, 26, 108, 109, 110
+COUNTED = {ALCHEMY: False, REFINE_SOUL: False, CHALLENGE: False, FATE_TURN: True, FATE_EAT: True, PET_CHALLENGE: True}
+
+
+def count(snap: PlayerSnapshot, catalog: EventCatalog, active_type: int, now: datetime, n: int = 1) -> list[EventState]:
+    """A ação que as atividades ``active_type`` contam aconteceu ``n`` vezes: soma em cada uma que está correndo.
+    Devolve as linhas para quem chama gravar."""
+    out = []
+    for a in catalog.running(now):
+        if a.active_type == active_type:
+            key = f"sum:{a.active_id}"
+            st = daily(snap, key, now) if COUNTED[active_type] else state(snap, key, now)
+            st.value, st.updated_at = st.value + n, now
+            out.append(st)
+    return out
