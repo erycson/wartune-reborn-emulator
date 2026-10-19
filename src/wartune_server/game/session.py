@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from google.protobuf.message import Message
@@ -58,6 +58,8 @@ class GameContext:
     wilds: Wilds = field(default_factory=Wilds)  # névoa e monstros em luta (game/monsters.py)
     bosses: Bosses = field(default_factory=Bosses)  # chefe do mundo: vida compartilhada (game/boss_fight.py)
     announcer: Announcer = field(default_factory=Announcer)  # anúncios agendados (game/announcements.py)
+    # árvore dourada: andares e sorte por edição (handlers/gold_tree.py)
+    gold_tree: dict[str, Any] = field(default_factory=dict)
 
 
 class OnlinePlayers:

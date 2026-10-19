@@ -156,9 +156,52 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 
 ## Minigames (`handlers/minigames.py`)
 
-Todo C>S da lista tem handler. Reais: **fundo novato** (8751) e **labirinto de gemas** (9508, 9509, 9513,
-9516, 9517). Os que o servidor não joga respondem o estado fechado que o cliente mostra (ícone escondido, tela
-vazia), sem travar. 9510 e 9515 (ajuda de amigo do labirinto) recusam sem efeito.
+Todo C>S da lista tem handler. Reais: **fundo novato** (8751), **fundo normal** (8703), **árvore dourada** (8604,
+`handlers/gold_tree.py`) e **labirinto de gemas** (9508, 9509, 9513, 9516, 9517). Os que o servidor não joga
+respondem o estado fechado que o cliente mostra (ícone escondido, tela vazia), sem travar. 9510 e 9515 (ajuda de
+amigo do labirinto) recusam sem efeito. Calendário (quando cada um abre): `game_settings`, do operador
+([configuracao.md](configuracao.md#calendário-dos-minigames)); sem a linha, fechado.
+
+**Fundo normal (8703, 4612)**: o mesmo código do novato (`Fund` em `minigames.py`), com a regra do cliente para
+o normal. Banco: `game_settings.normal_fund` (0041) = o 4612 do tutorial_en #86 ("钻石矿脉", Diamond Vein: níveis
+1000/2000/10000 diamantes, 5 tiers um por dia).
+- `activeType` *(visto #86 = 1 dentro da compra)*: 1 entre `setStartDate` e `setEndDate`; 2 dali até `getEndDate`
+  *(dedução: o cliente só resgata com 2, `getCanGetGift`)*; 0 fora (o botão some).
+- Compra: nível 11 (`FundManager.getShowBtn`), uma vez por edição, só diamante (`point`), só na janela de compra
+  *(dedução: o cliente não confere a data)*. `cash_ledger` `reason` `fund_normal`.
+- Tier: *(cliente)* `FundRewardItem`: libera quando `sysCurtime >= getStartDate + interval` minutos; aqui também só
+  até o `getEndDate`.
+- Estado por edição: `fund:normal:<activeId>` e `fund:normal:<activeId>:get:<vez>` (edição nova = todos compram de
+  novo). Login: 4612 sempre que há a linha (#86 manda já no nível 1).
+- `title`/`description` vieram em chinês; o cliente não mostra nenhum dos dois: vão em inglês (tradução nossa).
+
+**Árvore dourada ("Sacred Gold Tree", 8604)**: no cliente é a "garrafa" (`BottleManager`). Banco:
+`game_settings.gold_tree` (0041) = o 295 do tutorial_en #72 (70 itens, 5 baús de vezes, 5 de andar, fim). Preço:
+`Bottle_Price` do template inglês = **65|650|3250** (1/10/50 vezes; o turco tinha 20|200|1000).
+
+| opType (`BottleOpMsg`) | o que faz | resposta | fonte |
+|---|---|---|---|
+| 4 (botão do topo) | abre a tela (nível 11, dentro da edição) | 4825, 4497 sorte, 4526 `openView` | (cliente) `TopToolsBar`, `BottleModel.isOpenFrame` |
+| 0 (`alterType` 1/2/3) | ativa 1/10/50 vezes: varinhas (208022) primeiro se `stickFirst` 0, uma por vez; o resto em diamante (`point`) | 3, 115 (varinhas e bolsa 22), 4497 `passType` 1, 4526 `alterBottle`, 4825 se pegou andar, 4497 `passType` 2 a todos se saiu item raro | (cliente) `BottleFrame.openCall` |
+| 3 | atualiza depois da animação | 4825, 4526 | (cliente) |
+| 5 (`alterType` = vezes) | baú de vezes: `count >= param`, uma vez; marca "1" no `treeStatus` (índice na ordem do `param`) | 3/115 (prêmio na mochila), 4526 | (cliente) `BottleBottomIntergalBoxView` |
+| 6 (`alterType` = andar) | baú de andar: só o dono, uma vez (`state` 1) | prêmio, 4825 | (cliente) `BottleIntergalBoxView` |
+| 1 | vende o armazém (`GoodsHelp.getSellGold`, como o 5007) | 115, 109 | (cliente) `BottleStorageFrame` |
+| 2 | armazém -> mochila, só se couber tudo | 115 | (cliente) `BottleStorageFrame` |
+| 5005 22 -> 1 | clique numa pilha do armazém | 115 | (cliente) `BottleBagCellClickMediator` |
+
+- Armazém = bolsa 22 (`BagType.BOTTLE`), 40 espaços: com mais de 8×5 itens o cliente não ativa *(cliente)*.
+- Andares ("Lucky Level", help do `language.txt`): total de ativações do servidor na edição = soma do
+  `goldtree:<id>` de cada personagem (lido uma vez, `EventStateRepository.by_prefix`, e mantido em `ctx.gold_tree`).
+  O andar fica com quem fez a ativação que chegou nele *(dedução)*: linha `goldtree:<id>:floor:<andar>` no dono.
+- Linhas da sorte (4497 `passType` 2) no formato do #71 (links de jogador e item); raro = `isNewItems`
+  *(dedução: as 3 linhas do #71 são de itens com isNewItems, um deles com isShow falso)*; as 20 últimas, em memória
+  *(ponytail: somem no restart)*. A linha própria (`passType` 1) usa o mesmo texto *(dedução)*.
+- Sorteio: com reposição, pelo peso de cada item (`drops[i][4]`, padrão 1 = uniforme; *dedução*). O `BottleItems` do
+  tempinfos (58 linhas) não é lido pelo cliente: vale a lista do 295.
+- Início da edição: *dedução* (o 295 só traz o `endTime`, 2026-10-18 23:59:59 no Pacífico). "Uma vez por dia" do help
+  não está implementado (não se sabe o quê).
+- Login: 4497 (sorte) e 295, nessa ordem (#71-#72), sempre que há a linha.
 
 **Fundo novato (8751, 4640)** — banco: `game_settings.novice_fund` (migração 0033, valores do oficial
 inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a partir do nível `openGrades` (6).
@@ -176,7 +219,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
 | 8751 | fundo novato, real (acima) | (visto) login #94 + (cliente) FundManager, FundBuyItem, FundRewardItem |
-| 8703 | 4612 `activeType` 0 (fundo normal fechado) | (cliente) sem captura |
+| 8703 | fundo normal, real (acima) | (visto) tutorial_en #86 + (cliente) FundManager, FundRewardItem |
 | 9503 | 4912 vazio sempre; resgate recusado. Fórmula de custo para quando houver contagem: `itemCost = num*ItemCount`, `goldCost = num*Gold`, `goldReward = itemReward*GoldPercent/ItemPercent` (conferida nos sonTypes 1, 2 e 4 da captura #54) | (visto) login #54 + (cliente) ExpBackManager |
 | 8534 | 4428 vazio (igual ao login #60) | (visto) |
 | 8574 | 4461 com `id` vazio (esconde; a captura de 2026-05-18..20 já terminou) | (visto) login #62 |
@@ -204,7 +247,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 9550 | 4980 lista vazia | (cliente) InfoTipsManager |
 | 9610 | 364 e depois 363 vazios (tabela da captura #96 expirou em 2026-05-17) | (visto) login #96 |
 | 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) login #127 |
-| 8604 | 295 `open` falso; 4526 `openView` falso (295 sem captura) | (cliente) BottleManager |
+| 8604 | árvore dourada, real (acima); sem a linha no banco: 295 `open` falso e 4526 `openView` falso | (visto) tutorial_en #71-#72 + (cliente) BottleManager, BottleFrame |
 | 9645 | 190 e 4590 fechados (o código não diz qual dos dois; os dois fechados é o estado certo) | (visto) login #125, #126 |
 
 **Labirinto de gemas (9508–9517, real)**: `handlers/gemmaze.py`; a regra da troca e da cascata está em
@@ -259,28 +302,47 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 - Ranking semanal (`scoreOrder`, `weekScore`): gravar o 4922 de outra semana e de um jogador de topo.
 - Bolsa do labirinto cheia (48 itens): gravar o que o oficial manda ao trocar e ao receber tudo.
 
-**Dependências (sistema fechado, com o motivo):**
-- **Garrafa (8604):** `BottleItems` (58 sorteios) e `Bottle_Price` 20|200|1000 existem. Falta o
-  armazenamento (opType 1/2 e `UPDATE_BOTTLE_BAG`), o martelo (`_hammerNum`), as tabelas de caixa por
-  pontuação e por andar (`score`/`storey` de 295 não estão em lugar nenhum) e os pesos do sorteio.
-- **Quiz (9501):** `HeartTempInfos` (perguntas) e `Dati_Day`/`AnswerQuestionTime` existem, mas a
-  banca não traz a resposta certa.
-- **Pesca (9507):** `FishTemplateInfos` e `Fish_*` existem; faltam as regras de surgimento e captura
-  (sem captura de 9507, inventar seria chutar).
-- **Caça ao tesouro (9502):** `treasure_*` existe; faltam os nós (posição e nome).
-- **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` existe; sem tabela de células.
+**Captura que falta — fundo normal e árvore dourada:**
+- Fundo normal: comprar um nível dentro da compra e gravar o 8703/4612 (e o 3); voltar no resgate e pegar o 1º
+  tier (4612 com `activeType` 2? `logs`?); abrir o fundo depois do `getEndDate` (`activeType` 0 ou 3?).
+- Árvore dourada: clicar no botão do topo (8604 op 4) e gravar a resposta inteira (4526? 4825? 4497?); ativar 1x
+  e 10x com e sem varinhas (115 da bolsa 22, 4497 `passType` 1, 4526, 3); pegar um baú de vezes (op 5: o prêmio
+  vai para a mochila? 4526 `treeStatus`); vender e tirar do armazém (op 1/2); gravar o 4825 de um servidor com
+  andares batidos (quem fica com o andar, `state`, `isVip`); ativar no dia seguinte (o que o "once per day" do help
+  limita). Tudo isso dá também os pesos, se forem muitas ativações.
+
+**Dependências (sistema fechado, com o motivo e o que capturar):**
+- **Quiz (9501):** `HeartTempInfos` são perguntas de personalidade ("which finger will you wear it on?"), sem
+  resposta certa em lugar nenhum (`QuestionReplyInfoResolve` é o atendimento, não o quiz). Agenda em conflito: help
+  inglês "Monday, Wednesday, Friday 19:30-20:00", template `Dati_Day` 1,3,5,6 às `AnswerQuestionTime` 14:35.
+  **Captura que falta**: uma rodada inteira (9501, 4907/4908/4909/4910): o 4909 com `answer` no estado 4 diz qual
+  opção valeu; gravar várias perguntas para ver se a certa é fixa ou a mais votada.
+- **Pesca (9507):** `FishTemplateInfos` (13 peixes com prêmio) e `Fish_*` (20 tentativas, ajuda 15 diamantes)
+  existem; faltam o surgimento e a captura. **Captura que falta**: abrir a pesca (4916 piscina, 4918) e pescar
+  algumas vezes (o que o servidor manda por peixe, o 4917/resultado).
+- **Caça ao tesouro (9502):** `treasure_*` (refresh 120 diamantes ou 8 itens, cavar já 25) existe; faltam os nós.
+  **Captura que falta**: abrir o mapa (4914 com `seekNodeList`) e cavar um nó.
+- **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` 50 e o help ("Normal 1x, Double 2x, Quintuple 5x",
+  casas "?", 100 pontos) existem; as casas (4933 `cellInfo`) e o custo de cada dado vêm do servidor. **Captura que
+  falta**: abrir (4933) e jogar o dado nos três modos (4934 `CastDiceMsg`), mais o "refresh".
 - **Minério (9645):** `MineOfActiveTime`, `Mine_Level`, `FreshManDepositCost` existem; sem tabela de
   recompensa da mineração (op 1/2). **Super assinatura** (9645): sem template.
 - **Corneta (8638..8640):** `SinglePass_Count` existe; sem item nem tabela do passe.
 - **Loteria (8748/8750), caça-níquel (9500), cadeiras (9638), recompensa de grupo (9523), caixa de
-  ano novo (8994), história (8629/8630):** sem template nem config no servidor.
+  ano novo (8994), história (8629/8630):** sem template nem config no servidor; a captura inglesa só os mostra
+  fechados (4637 #107, 4901 #87, 414 #112). O caça-níquel tem regra no help (`slot.slotHelpFrame.describe`: um
+  dígito por dia, prêmio no último dia), mas não a tabela de prêmios. **Captura que falta**: cada um num dia em que
+  o oficial o abre (o 4637/4901/414 com `true`), abrir a tela e jogar uma vez.
 - **360 (8722/8723):** `PrivilegeDrops` existe, mas o cliente só mostra com `isIn360Agent`.
 - **Recuperação (9503):** lista vazia porque nenhum sistema conta as atividades perdidas (campanha,
-  arena, boss, imposto). Quando houver a contagem, a fórmula acima já confere.
+  arena, boss, imposto; `RecoverInfos` tem 10 linhas). **depende de** cada sistema gravar a participação do dia;
+  quando houver, a fórmula acima já confere. O tutorial_en #51 manda o 4912 vazio (personagem novo).
 - **Troca da sorte (9610):** a captura #96 tinha a tabela, mas expirou; a sorte atual
   (`currentLuckValue`) não é conhecida.
-- **Fundo normal (8703):** sem captura do 4612.
 
 **Alterações em arquivos compartilhados:** `handlers/events.py` (`minigames.login_push` no login)
-`domain/models.py` (`BagType.MAZE`), `handlers/minigames.py` (chama `gemmaze.login_push`) e
-`handlers/__init__.py` (registro). O progresso do fundo e o labirinto usam `event_states`; a regra do fundo vem da 0033.
+`domain/models.py` (`BagType.MAZE`, `BagType.BOTTLE`), `handlers/minigames.py` (chama `gemmaze.login_push` e
+`gold_tree.login_push`), `handlers/__init__.py` (registro), `game/bag.py` (`side_fits`/`side_add`, bolsas de prêmio
+22 e 24), `handlers/items.py` (5005 da bolsa 22 para a mochila), `game/session.py` (`GameContext.gold_tree`) e
+`EventStateRepository.by_prefix`. O progresso dos fundos, da árvore e do labirinto usa `event_states`; as regras
+vêm da 0033 (novato) e da 0041 (normal, árvore).

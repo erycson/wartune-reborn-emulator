@@ -376,6 +376,17 @@ class SqlEventStateRepository(_Repo):
         query = select(EventState).where(EventState.character_id == character_id).order_by(EventState.id)  # type: ignore[arg-type]
         return list(await self._s.scalars(query))
 
+    async def by_prefix(self, server_id: int, prefix: str) -> list[EventState]:
+        """Linhas de todos os personagens do servidor com `key` começando por `prefix` (estado compartilhado
+        guardado por personagem, como os andares da árvore dourada)."""
+        query = (
+            select(EventState)
+            .join(Character, Character.id == EventState.character_id)  # type: ignore[arg-type]
+            .where(Character.server_id == server_id, EventState.key.startswith(prefix, autoescape=True))  # type: ignore[arg-type,call-arg]
+            .order_by(EventState.id)  # type: ignore[arg-type]
+        )
+        return list(await self._s.scalars(query))
+
 
 class SqlWildKillRepository(_Repo):
     """Abates de monstros dos Wilds (de todos os jogadores) no ciclo."""

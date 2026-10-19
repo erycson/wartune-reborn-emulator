@@ -108,7 +108,9 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         end_pos = free[0] if free else -1
     end = (end_bag, end_obj, end_pos)
     other = bag.at(snap, *end)
-    ok = item is not None and begin[0] in MOVABLE and end_bag in MOVABLE and begin != end
+    # (cliente) BottleBagCellClickMediator: clicar no armazém da árvore dourada leva a pilha para um espaço livre
+    from_bottle = begin[0] == BagType.BOTTLE and end_bag == BagType.BAG and other is None
+    ok = item is not None and (begin[0] in MOVABLE or from_bottle) and end_bag in MOVABLE and begin != end
     ok = ok and item is not None and _place_ok(s, item, *end)
     stack = (
         ok

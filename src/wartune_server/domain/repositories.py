@@ -161,6 +161,7 @@ class FarmLandRepository(Protocol):
 
 class EventStateRepository(Protocol):
     async def by_character(self, character_id: int) -> list[EventState]: ...
+    async def by_prefix(self, server_id: int, prefix: str) -> list[EventState]: ...
 
 
 class WildKillRepository(Protocol):

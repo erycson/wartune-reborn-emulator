@@ -163,6 +163,49 @@ def expire(snap: PlayerSnapshot, now: datetime) -> list[Item]:
     return gone
 
 
+def side_fits(
+    snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[int, int]], bag: int, size: int
+) -> bool:
+    """Cabem todos os ``(item, quantidade)`` numa bolsa de prêmios (labirinto 24, árvore dourada 22) de ``size``
+    espaços? Empilha até o ``MaxCount``; o que sobra abre espaço."""
+    held = in_bag(snap, bag)
+    free = size - len(held)
+    room: dict[int, int] = {}
+    for tid, n in goods:
+        top = max_count(templates, tid)
+        if tid not in room:
+            room[tid] = sum(top - i.count for i in held if i.template_id == tid and i.count < top)
+        while n > 0:
+            if room[tid] == 0:
+                free -= 1
+                room[tid] = top
+            take = min(n, room[tid])
+            room[tid] -= take
+            n -= take
+    return free >= 0
+
+
+def side_add(snap: PlayerSnapshot, templates: GameTemplates, tid: int, count: int, bag: int, size: int) -> list[Item]:
+    """Um prêmio numa bolsa de prêmios: empilha na primeira pilha com espaço, senão no menor espaço livre.
+    Quem chama já conferiu com ``side_fits``."""
+    top = max_count(templates, tid)
+    out: list[Item] = []
+    while count > 0:
+        held = sorted(in_bag(snap, bag), key=lambda i: i.pos)
+        stack = next((i for i in held if i.template_id == tid and i.count < top), None)
+        if stack is None:
+            used = {i.pos for i in held}
+            stack = new_item(snap, templates, tid, 0)
+            stack.bag_type = bag
+            stack.pos = next(p for p in range(size) if p not in used)
+            snap.items.append(stack)
+        take = min(count, top - stack.count)
+        stack.count += take
+        count -= take
+        out.append(stack)
+    return out
+
+
 def take(snap: PlayerSnapshot, template_id: int, count: int) -> tuple[list[Item], list[Item]]:
     """Consome ``count`` das pilhas da mochila (as menores primeiro). Devolve (alterados, apagados)."""
     changed, gone = [], []

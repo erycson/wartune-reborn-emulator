@@ -14,6 +14,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     forge,
     friends,
     gemmaze,
+    gold_tree,
     guild,
     guild_events,
     hangup,

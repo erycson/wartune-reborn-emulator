@@ -22,7 +22,7 @@ from .. import rewards
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
-from . import gemmaze
+from . import gemmaze, gold_tree
 from .player import alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
@@ -31,7 +31,7 @@ S_BUGLE_REQ, S_BUGLE_REWARD, S_NEW_YEAR, S_SLOT = 4553, 4554, 4811, 4901
 S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
-S_ORE, S_TOP_TOOL, S_BOTTLE_DROP, S_BOTTLE_RESULT = 190, 4590, 295, 4526
+S_ORE, S_TOP_TOOL = 190, 4590
 
 FUND = "fund:novice"  # value = nível comprado (0 = nenhum), text = data da compra
 FUND_GET = "fund:novice:get:{}"  # uma marca por vez (times) já resgatada
@@ -273,6 +273,7 @@ def login_push(s: GameSession) -> None:
         _send_fund(s, snap)
     if _fund_cfg(s, NORMAL):
         _send_fund(s, snap, NORMAL)
+    gold_tree.login_push(s)
 
 
 # ---------------------------------------------------------------- recuperar EXP (9503)
@@ -413,14 +414,6 @@ async def chairs(s: GameSession, _: object) -> None:
     """Cadeiras fechadas: 414 falso esconde o ícone; 415 vazio (obrigatório se a tela abrir)."""
     _send(s, S_CHAIRS_OPEN, pb.SimplePropertyMsg(param7=False))
     _send(s, S_CHAIRS, pb.ChairsListMsg())
-
-
-@router.on(8604)
-async def bottle(s: GameSession, _: object) -> None:
-    """Garrafa fechada (295 open falso, 4526 openView falso). O ciclo (armazenamento, caixas por
-    pontuação e andar, martelo) não tem dado no servidor; ver docs/eventos.md."""
-    _send(s, S_BOTTLE_DROP, pb.BottleDropListMsg(open=False))
-    _send(s, S_BOTTLE_RESULT, pb.BottleScoreMsg(openView=False))
 
 
 @router.on(9645)

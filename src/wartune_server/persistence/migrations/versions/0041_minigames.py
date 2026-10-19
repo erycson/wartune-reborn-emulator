@@ -1,4 +1,7 @@
-"""minigames: fundo normal ("Diamond Vein") no banco
+"""minigames: fundo normal ("Diamond Vein") e árvore dourada ("Sacred Gold Tree") no banco
+
+``game_settings.gold_tree``: o 295 do #72 (70 itens, 5 baús de vezes, 5 de andar e o fim da edição). Início da
+edição e pesos do sorteio não foram capturados (dedução, configuráveis).
 
 ``game_settings.normal_fund``: o 4612 da captura do oficial inglês (#86, ``tools/dump_capture.py
 captures/tutorial_en.json``), com as datas da edição capturada (compra 2026-10-15..18, resgate 2026-10-19..23,
@@ -48,12 +51,50 @@ NORMAL_FUND = {
         {"level": 3, "costDiamond": 10000, "tiers": _tiers([[2126025, 30], [2125059, 24], [3240102, 8]])},
     ],
 }
+# 295 #72: (item, quantidade, isShow, isNewItems, peso). O peso não está em lugar nenhum: 1 = uniforme (dedução).
+# O BottleItems do tempinfos (58 linhas, outra geração de equipamento) não é lido pelo cliente: vale a lista do 295.
+DROPS = [
+    (2125059, 100, 0, 0, 1), (3120003, 1, 0, 0, 1), (3120604, 1, 0, 0, 1), (3120504, 1, 0, 0, 1),
+    (2125057, 10, 0, 0, 1), (208017, 10, 0, 0, 1), (208023, 10, 0, 0, 1), (2100035, 10, 0, 0, 1),
+    (3120102, 1, 0, 0, 1), (3120202, 1, 0, 0, 1), (2125059, 10, 0, 0, 1), (2031303, 1, 0, 0, 1),
+    (2030502, 3, 0, 0, 1), (2190004, 1, 0, 0, 1), (208014, 50, 0, 0, 1), (3020001, 1, 0, 0, 1),
+    (3020002, 1, 0, 0, 1), (3020003, 1, 0, 0, 1), (3020009, 1, 0, 0, 1), (3020004, 1, 0, 0, 1),
+    (3020006, 1, 0, 0, 1), (3020008, 1, 0, 0, 1), (3020005, 1, 0, 0, 1), (3020007, 1, 0, 0, 1),
+    (2060066, 1, 0, 0, 1), (208021, 1, 0, 0, 1), (2125059, 5, 0, 0, 1), (2030501, 5, 0, 0, 1),
+    (208005, 3, 0, 0, 1), (2014501, 2, 0, 0, 1), (2014701, 2, 0, 0, 1), (3061001, 1, 0, 0, 1),
+    (3063001, 1, 0, 0, 1), (208017, 5, 0, 0, 1), (208023, 5, 0, 0, 1), (208024, 3, 0, 0, 1),
+    (2040109, 1, 0, 0, 1), (2060064, 1, 0, 0, 1), (2060065, 1, 0, 0, 1), (2013002, 1, 0, 0, 1),
+    (2160052, 2, 0, 0, 1), (2160048, 2, 0, 0, 1), (208028, 10, 0, 0, 1), (2130005, 1, 0, 0, 1),
+    (2050603, 2, 0, 0, 1), (3040001, 3, 0, 0, 1), (2050602, 1, 0, 0, 1), (2031001, 3, 0, 0, 1),
+    (208012, 3, 0, 0, 1), (208017, 3, 0, 0, 1), (1108274, 1, 0, 1, 1), (208008, 1, 0, 0, 1),
+    (2030102, 10, 0, 0, 1), (208023, 3, 0, 0, 1), (2127002, 1, 0, 0, 1), (2030102, 5, 0, 0, 1),
+    (208024, 3, 0, 0, 1), (208045, 3, 0, 0, 1), (3040002, 3, 0, 0, 1), (2125123, 10, 0, 0, 1),
+    (2125124, 10, 0, 0, 1), (1118274, 1, 0, 1, 1), (2125125, 5, 0, 0, 1), (3120006, 1, 0, 0, 1),
+    (3240103, 10, 1, 1, 1), (3065005, 1, 1, 1, 1), (2183370, 1, 1, 1, 1), (1098274, 1, 1, 1, 1),
+    (1128274, 1, 1, 1, 1), (3290105, 1, 1, 1, 1),
+]  # fmt: skip
+GOLD_TREE = {
+    "id": "2026-10-15",  # edição: muda = vezes, baús e andares começam do zero
+    "startDate": "2026-10-15 00:00:00",  # (dedução) o 295 só traz o fim; mesmo início da compra do fundo (#86)
+    "endDate": "2026-10-18 23:59:59",  # #72 endTime 1792393199000 = 23:59:59 do dia 18 no horário do Pacífico
+    "minGrades": 11,  # TopToolsBar.showBottleBtn (cliente)
+    "drops": DROPS,
+    # [param, item, quantidade] na ordem do #72 (o cliente ordena): 208022 = Golden Wand
+    "score": [[50, 208022, 7], [20, 208022, 3], [500, 208022, 70], [150, 208022, 20], [1000, 208022, 100]],
+    "storey": [[2000, 2125125, 5], [500, 2125123, 10], [200, -500, 1000], [1000, 2125124, 10], [3500, 2183370, 1]],
+}
 SETTINGS = [
     (
         "normal_fund",
         NORMAL_FUND,
         f"{CAPTURE} #86 (4612): níveis, custos e tiers; datas da edição capturada (do operador); title/description "
         "traduzidos do chinês (o cliente não mostra)",
+    ),
+    (
+        "gold_tree",
+        GOLD_TREE,
+        f"{CAPTURE} #72 (295): itens, baús de vezes e de andar, fim; início e pesos (1 = uniforme) são dedução; "
+        "datas do operador",
     ),
 ]
 

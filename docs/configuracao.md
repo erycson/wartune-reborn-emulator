@@ -59,6 +59,23 @@ VALUES ('manutencao', '04:50', 12, 1, 1, 'Server maintenance in 10 minutes.');
 
 Os horários do Sylph Atoll são escolha do dono (o padrão vem do help do cliente, ver [eventos.md](eventos.md)).
 
+### Calendário dos minigames
+
+`game_settings` (migração 0041; regras em [eventos.md](eventos.md#minigames-handlersminigamespy)). Datas na hora do
+jogo (`WARTUNE_GAME_TIMEZONE`), formato `AAAA-MM-DD hh:mm:ss`. Sem a linha, o evento fica fechado.
+
+| chave | o quê |
+|---|---|
+| `normal_fund` | fundo normal (8703/4612): `activeId` (trocar = edição nova, todos compram de novo), `setStartDate`/`setEndDate` (compra), `getStartDate`/`getEndDate` (resgate), `levels` (custo e tiers `[minutos depois do getStartDate, vez, [[item, qtd]...]]`). Padrão: a edição da captura (#86), já vencida |
+| `gold_tree` | árvore dourada (8604): `id` (trocar = vezes, baús e andares do zero), `startDate`/`endDate`, `minGrades`, `drops` (`[item, qtd, isShow, isNewItems, peso]`), `score` e `storey` (`[param, item, qtd]`). Padrão: a edição da captura (#72), já vencida |
+
+```sql
+-- árvore dourada de novo, por uma semana, edição nova
+UPDATE game_settings SET value = json_set(value, '$.id', '2026-11-01', '$.startDate', '2026-11-01 00:00:00',
+  '$.endDate', '2026-11-07 23:59:59') WHERE key = 'gold_tree';
+DELETE FROM game_settings WHERE key = 'normal_fund';  -- sem fundo normal
+```
+
 ### Chances dos sorteios
 
 Peso = chance relativa (só a proporção importa; 0 = nunca sai). Valores semeados na 0035; sem a linha no banco, o
@@ -72,6 +89,7 @@ código usa o mesmo padrão.
 | `game_settings` `star_open_next` | chance (0 a 1) de um sorteio de estrela acender o cristal seguinte (0.3) |
 | `game_settings` `gem_maze_reward_weights` | labirinto de gemas, um peso por prêmio na ordem 2060008 x1, 208027 x1, 208014 x2 (`[1, 1, 1]`) |
 | `game_settings` `vip_bugle_bonus` | cornetas pequenas grátis a mais por dia, por nível VIP (índice 0..9; padrão `[0, ...]`, sem fonte, ver chat.md) |
+| `game_settings` `gold_tree` → `drops[i][4]` | árvore dourada (8604), por item da lista (0041). Padrão 1 (uniforme) |
 
 ```sql
 UPDATE vip_wheel_prizes SET weight = 0.2 WHERE position = 4;          -- 500.000 de ouro 5x mais raro

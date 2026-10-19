@@ -143,8 +143,8 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         # 4247 só dentro de um exp_rate_events (data); 4638 só depois da missão 130; 4640 só a partir do nível 6
         assert [p.code for p in got if p.code != 4247] == [
             112, 4542, 4184, 4512, 4515, 4516, 4501, 4686,
-            4224, 4372, 4434, 4410, 4360, 4198, 4616, 4152, 4475, 100, 4598, 150, 6,
-        ]  # fmt: skip
+            4224, 4372, 4434, 4410, 4360, 4198, 4616, 4152, 4475, 4612, 4497, 295, 100, 4598, 150, 6,
+        ]  # fmt: skip  (4612 fundo normal, 4497/295 árvore dourada: 0041, como o tutorial_en #71-#86)
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
         assert len(server.online) == 1
 

@@ -87,44 +87,11 @@ def _buy_info(templates: GameTemplates) -> tuple[int, int, int]:
 
 
 def _maze_fits(snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[int, int]]) -> bool:
-    """Cabem todos os prêmios ``(item, quantidade)`` na bolsa do labirinto? Empilha até o ``MaxCount``;
-    o que sobra abre espaço."""
-    held = [i for i in snap.items if i.bag_type == BagType.MAZE]
-    free = MAZE_SIZE - len(held)
-    room: dict[int, int] = {}
-    for tid, n in goods:
-        top = bag.max_count(templates, tid)
-        if tid not in room:
-            room[tid] = sum(top - i.count for i in held if i.template_id == tid and i.count < top)
-        while n > 0:
-            if room[tid] == 0:
-                free -= 1
-                room[tid] = top
-            take = min(n, room[tid])
-            room[tid] -= take
-            n -= take
-    return free >= 0
+    return bag.side_fits(snap, templates, goods, BagType.MAZE, MAZE_SIZE)
 
 
 def _add_maze(snap: PlayerSnapshot, templates: GameTemplates, tid: int, count: int) -> list[Item]:
-    """Um prêmio na bolsa do labirinto: empilha na primeira pilha com espaço, senão no menor espaço livre.
-    Quem chama já conferiu com ``_maze_fits``."""
-    top = bag.max_count(templates, tid)
-    out: list[Item] = []
-    while count > 0:
-        held = sorted((i for i in snap.items if i.bag_type == BagType.MAZE), key=lambda i: i.pos)
-        stack = next((i for i in held if i.template_id == tid and i.count < top), None)
-        if stack is None:
-            used = {i.pos for i in held}
-            stack = bag.new_item(snap, templates, tid, 0)
-            stack.bag_type = BagType.MAZE
-            stack.pos = next(p for p in range(MAZE_SIZE) if p not in used)
-            snap.items.append(stack)
-        take = min(count, top - stack.count)
-        stack.count += take
-        count -= take
-        out.append(stack)
-    return out
+    return bag.side_add(snap, templates, tid, count, BagType.MAZE, MAZE_SIZE)
 
 
 def _items_msg(items: Iterable[Item], player_id: int) -> pb.ItemMovedListMsg:
