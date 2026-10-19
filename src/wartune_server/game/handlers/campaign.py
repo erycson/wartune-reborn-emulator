@@ -323,6 +323,9 @@ async def _leave_campaign(s: GameSession) -> None:
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     _send(s, S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+    from . import events as hev  # handlers.events importa login, que importa este módulo
+
+    await hev.leed_done(s, hev.CAMPAIGN_LEED)  # (visto) tutorial_en #520-#523: 140, 4152 (leed 4), 83, 134
     _send(s, S_CAMPAIGN_FINISH)
     s.campaign = None
 
@@ -945,6 +948,11 @@ async def _dungeon_end(s: GameSession) -> None:
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+    from . import events as hev  # handlers.events importa login, que importa este módulo
+
+    # (dedução) a captura só tem o leed 4 na saída do mapa do tutorial (#521); aqui vai no fim da etapa final,
+    # solo ou em grupo pela Capacity da campanha
+    await hev.leed_done(s, hev.MULTI_CAMPAIGN_LEED if int(row.get("Capacity") or 1) > 1 else hev.CAMPAIGN_LEED)
 
 
 @router.on(5122)

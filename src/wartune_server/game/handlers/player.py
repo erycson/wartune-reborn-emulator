@@ -209,3 +209,5 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(gp)))
     for text in texts:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if row.get("TemplateType") == "1":  # (cliente) TaskTraceItem: tipo 1 = "Daily"; leed 20 "Complete a daily quest"
+        await events.leed_done(s, events.DAILY_QUEST_LEED)

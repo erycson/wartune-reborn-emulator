@@ -110,6 +110,9 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     )
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    from .. import events  # handlers.events importa login, que importa a guilda
+
+    await events.leed_done(s, events.BLESS_LEED)  # LeedTemp 12 "Perform a guild blessing" (PassCount 2)
 
 
 @router.on(8216)

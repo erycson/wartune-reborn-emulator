@@ -127,10 +127,14 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
         g.client.send(5032, pb.CallBackReqMsg(mapId=1827, nodeId=113205, cmd=2))
         g.client.send(8282, pb.BatterLastInfoMsg(count=7))
         end = await won(g)
-        assert codes(end)[-10:] == [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140]  # inglesa #2703-#2714
+        # inglesa #2703-#2714; o 4152 e o 83 a mais são a devoção do leed 4, que a inglesa já tinha do tutorial (#521)
+        assert codes(end)[-12:] == [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140, 4152, 83]
         msg = pb.CampaignReportMsg.FromString(next(p.body for p in end if p.code == 137))
         assert (msg.totalGp, msg.batter, msg.failedCount) == (839, 7, 0)
-        assert [text(p) for p in end if p.code == 83][-1] == "Received 839 EXP "
+        assert [text(p) for p in end if p.code == 83][-2:] == [
+            "Received 839 EXP ",
+            "Your devotion level has increased to 10.",
+        ]
         rank = pb.RankListRspMsg.FromString(next(p.body for p in end if p.code == 4151))
         assert [r.campaignId for r in rank.rankInfo] == [1002]
 

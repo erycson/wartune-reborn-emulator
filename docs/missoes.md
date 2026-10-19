@@ -195,7 +195,7 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 59 | Çiftlikte Ürün Ek | 0 / 1 | 2 (262, 859) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 60 | Çiftliğini Topla | 0 / 2; 1 / 2 | 4 (263, 266, 860, 861) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 61 | Böcek Temizle | 1 / 2 | 2 (267, 862) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 63 | Emek Oranı | 0 / 20 | 1 (863) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 63 | Devotion (Emek Oranı) | 0 / 20 | 1 (863, diária `IsRepeat`) | `checkCount` | sim: maior total de devoção do dia (`LEVEL_CONDITIONS`) | `handlers/events.leed_gain`/`devotion_quests` (ganhos e 1º login do dia) | aceite nasce com 0 mesmo com devoção já ganha (visto, tutorial_en #3199); só o próximo ganho grava o total. Reabre no dia do jogo seguinte (`_repeat_ok`) | — |
 | 64 | Simya | 0 / 3 | 1 (184) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 65 | Ruh Topla | 0 / 3 | 1 (185) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 66 | Dünya BOSS'ta Hemen Savaş | 0 / 3 | 1 (183) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |

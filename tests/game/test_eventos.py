@@ -91,9 +91,11 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         g.client.send(8322, pb.ClientReqMsg(templateId=4))  # o cliente não conta: só devolve o estado
         assert pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body).totalNum == 5
         snap.character.grades = 20  # chat World: nível 20 (banco)
-        g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Dünya Kanalında Sohbet"
+        g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Speak in world chat"
         leeds = pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body)
-        assert leeds.totalNum == 10
+        assert leeds.totalNum == 10 and [x.templateId for x in leeds.leed] == [16]  # só o que mudou (tutorial_en #521)
+        devotion = pb.ChatChannelMsg.FromString((await g.until(83))[-1].body)
+        assert (devotion.channel, devotion.encodeMsg) == (3, "Your devotion level has increased to 10.")
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))
         got = await g.until(83)
         box = pb.LeedFinishedRspMsg.FromString(next(p for p in got if p.code == 4150).body)

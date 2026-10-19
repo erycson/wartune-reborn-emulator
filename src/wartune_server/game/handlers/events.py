@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from ...domain import gameday
-from ...domain.models import EventState, PlayerSnapshot
+from ...domain.models import EventState, PlayerSnapshot, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from .. import events as ev
 from .. import rewards, rules
@@ -29,8 +29,13 @@ LOGIN_DAYS, ONLINE = 13, 14  # activeType com regra no servidor
 CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
 GIFT_OK = "Gift pack retrieval successful."  # texto do oficial inglês (tutorial_en #2770)
 LEED_BOX = (10, 40, 60, 80, 100)  # DayGuideCatecory.canPick: atividade mínima de cada baú 1..5
-LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Günlük Giriş", "Dünya Kanalında Sohbet"
-EMEK, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Emek Oranı"; QuestUpdatedRspMsg
+LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Daily Login", "Speak in world chat"
+# LeedTemp "Complete a solo dungeon", "... multi-player dungeon", "Plunder another player", "Perform a guild blessing",
+# "Challenge another player", "Complete a daily quest" (o 4 e o 10: tutorial_en #521 e #1649)
+CAMPAIGN_LEED, MULTI_CAMPAIGN_LEED, PLUNDER_LEED, BLESS_LEED, CHALLENGE_LEED, DAILY_QUEST_LEED = 4, 5, 10, 12, 19, 20
+EMEK, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Devotion"; QuestUpdatedRspMsg
+# (visto) tutorial_en #16 (login), #522, #753, #1652: canal 3, quando o total (totalNum do 4152) sobe
+DEVOTION_UP = "Your devotion level has increased to {}."
 RELOGIN_DAYS = 7  # ReloginDrops.Times 1..7
 # ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (login.json #93)
 SERVEN: dict[int, tuple[int, ...]] = {1: (1, 2, 3, 4), 2: (5, 6, 7, 8), 3: (9, 10, 11, 12), 4: (13, 14, 15, 16)}
@@ -317,7 +322,8 @@ def _leeds(s: GameSession, now: datetime) -> tuple[list[pb.LeedData], int]:
     snap = s.snapshot
     assert snap is not None
     out, total = [], 0
-    for row in s.ctx.templates.rows("LeedTemp"):
+    # (visto) tutorial_en #50: a lista do login vem do maior TemplateId para o menor
+    for row in sorted(s.ctx.templates.rows("LeedTemp"), key=lambda r: -int(r["TemplateId"])):
         tid = int(row["TemplateId"])
         st = ev.daily(snap, f"leed:{tid}", now)
         count = min(st.value, int(row["PassCount"]))
@@ -340,22 +346,46 @@ def _send_leeds(s: GameSession) -> None:
     s.send(S_LEED_UPDATE, msg)
 
 
-async def leed_done(s: GameSession, template_id: int) -> None:
-    """A ação do ``LeedTemp`` aconteceu (o sistema dela chama): +1 até o PassCount, grava e manda o 4152."""
+def devotion_quests(s: GameSession) -> list[Quest]:
+    """Missões de devoção (tipo 63) com o total de hoje. (visto) captura savasa_baskin_ve_elmas_ile_hizlandirma
+    #11/#18: "Emek oranı" = totalNum do 4152; tempinfos: 863 = tipo 63, Para1 0, Para2 20: vale o maior total."""
+    assert s.snapshot is not None
+    return rules.quest_event(s.snapshot, s.ctx.templates, EMEK, 0, _leeds(s, s.ctx.clock.now())[1])
+
+
+def say_devotion(s: GameSession) -> None:
+    """83 "Your devotion level has increased to N." com o total de hoje."""
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=DEVOTION_UP.format(_leeds(s, s.ctx.clock.now())[1])))
+
+
+def leed_gain(s: GameSession, template_id: int) -> list[EventState | Quest]:
+    """A ação do ``LeedTemp`` aconteceu: +1 até o PassCount e manda, na ordem do oficial (tutorial_en #521-#522,
+    #1649-#1652), o 4152 só com esse leed, o 83 quando o total sobe e o 112 das missões de devoção. Sem await:
+    devolve as linhas para quem chama gravar (o ataque ao castelo grava depois de criar a luta)."""
     snap = s.snapshot
     assert snap is not None
     row = s.ctx.templates.get("LeedTemp", template_id)
     now = s.ctx.clock.now()
     if row is None or ev.daily(snap, f"leed:{template_id}", now).value >= int(row["PassCount"]):
-        return
+        return []
+    before = _leeds(s, now)[1]
     st = leed_progress(snap, template_id, now)
-    # (visto) captura savasa_baskin_ve_elmas_ile_hizlandirma #11/#18: "Emek oranı" = totalNum do 4152;
-    # (visto) tempinfos: 863 = tipo 63, Para1 0, Para2 20 "Emek Oranını 20 yap": vale o maior total
-    quests = rules.quest_event(snap, s.ctx.templates, EMEK, 0, _leeds(s, now)[1])
-    await s.ctx.characters.save(st, *quests)
-    _send_leeds(s)
+    leeds, total = _leeds(s, now)
+    quests = devotion_quests(s)
+    msg = pb.LeedUpdatedRspMsg(leedProcess=ev.daily(snap, "leedbox", now).value, totalNum=total)
+    msg.leed.extend(x for x in leeds if x.templateId == template_id)
+    s.send(S_LEED_UPDATE, msg)
+    if total > before:  # (dedução) com PassCount > 1 os passos do meio não dão devoção, então sem 83
+        say_devotion(s)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    return [st, *quests]
+
+
+async def leed_done(s: GameSession, template_id: int) -> None:
+    """``leed_gain`` e grava."""
+    if rows := leed_gain(s, template_id):
+        await s.ctx.characters.save(*rows)
 
 
 @router.on(8234, 8322)

@@ -142,11 +142,13 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
 
     # primeiro login do dia (login acumulado, atividades de login) antes do PlayerMsg que mostra isso
     if touched := events.touch_login(snap, s.ctx.clock.now(), s.ctx.events):
-        await s.ctx.characters.save(*touched)
+        await s.ctx.characters.save(*touched, *events.devotion_quests(s))  # o 112 vem no 8224 (user)
 
     s.send(S_LOGIN_OK)
     _send(s, S_PLAYER_INFO, player_info(s, snap))
     _send(s, S_ARMY, army(s, snap)[0])
+    if touched:  # (visto) tutorial_en #16: devoção do login (leed 1) logo depois do PlayerMsg
+        events.say_devotion(s)
 
 
 @router.on(8224)

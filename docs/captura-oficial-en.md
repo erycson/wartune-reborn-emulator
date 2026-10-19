@@ -46,9 +46,12 @@ Recompensas batem com `QuestTempInfo`/`QuestGoods`. Feito (detalhes em [missoes.
 - [x] 150 na entrega só quando sobe de nível;
 - [x] a missão 10 nasce com o personagem (`addDate` = criação; o oficial nunca recebe 5012 dela);
 - [x] 100 e 139: vêm vazios (o 100 depois de quase todo 150, não só na subida; o 139 uma vez, #636). Sem dado, não mandamos;
-- [ ] diária 863 (tipo 63 "Devotion", VIP, nível 10): aceita pelo cliente junto da 160 (#3195) com `condition_1` 0,
-  embora a devoção do dia já estivesse em 20 (#1652 "Your devotion level has increased to 20."). A fonte é a devoção
-  (`dayGuide`: "Receive {1} devotion by ..."), que o servidor não tem; não há entrega dela na captura.
+- [x] diária 863 (tipo 63 "Devotion", VIP, nível 10): aceita pelo cliente junto da 160 (#3195) com `condition_1` 0,
+  embora a devoção do dia já estivesse em 20 (#1652). Devoção = leed (`docs/eventos.md`): 5 no login (#16), 10 na
+  saída do mapa do tutorial (leed 4, #521), 15 na 1ª mina (leed 9, #748), 20 no ataque ao castelo-robô (leed 10,
+  #1649); cada ganho manda o 4152 só com o leed e o 83 "Your devotion level has increased to N.". A 863 guarda o
+  maior total depois do aceite e reabre no dia do jogo seguinte. Não há entrega dela na captura (dedução: 5014
+  comum, paga o VIP Token x10 do `QuestGoods`).
 
 Tipos conferidos nos 21 aceites/entregas: 23 (10, 30, 40, 45, 50), 2 (51, 81, 82), 3 (52 = 900, 110 = 460: soma,
 passa do `Para2`), 7 (60 = 2), 14 (70; 120 e 130 pedem a 1002, feita), 26 (80), 27 (90), 8 (100, robô),

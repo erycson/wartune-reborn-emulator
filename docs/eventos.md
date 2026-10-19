@@ -62,8 +62,19 @@ captura virou -500).
   último resgate (zera a cada presente, gravado na desconexão e no resgate).
 - Outros `activeType` ficam "ainda não" (3): cada um depende do sistema dele (recarga, troca,
   montaria...).
-- Leed: só o login (1) e o chat no mundo (16) contam. **Dependência:** os outros sistemas chamam
-  `events.leed_done(s, template_id)` quando a ação acontece.
+- Leed = **devoção** (dayGuide "Daily devotion"; `totalNum` do 4152 = soma dos `Num` dos `LeedTemp` completos no
+  dia; zera na virada do dia do jogo, `ev.daily`). Contam: login 1 (1º login do dia), 4 "Complete a solo dungeon"
+  (saída do mapa do tutorial, tutorial_en #521, e fim de etapa de campanha com `Capacity` 1), 5 (fim de etapa com
+  `Capacity` > 1, dedução), 9 (ocupar mina, #748), 10 "Plunder another player" (5160 no castelo-robô, já no ataque,
+  #1649), 12 (bênção da guilda, 5145), 16 (chat no mundo), 19 (desafio do coliseu, 8253), 20 (entrega de missão
+  `TemplateType` 1 "Daily"). Os outros (`LeedTemp` 8, 13, 15, 17, 18, 22-28, 33) ainda não têm gancho:
+  o sistema chama `events.leed_done(s, template_id)` (ou `leed_gain`, sem await, e grava depois).
+- Ganho (visto tutorial_en #521-#522, #748-#753, #1649-#1652): 4152 **só com o leed que mudou** (a lista completa só
+  no login, #50, do maior `TemplateId` para o menor), 83 canal 3 "Your devotion level has increased to N." quando o
+  total sobe (no login, logo depois do PlayerMsg, #16) e o 112 das missões tipo 63 (863). O oficial manda o 83 depois
+  dos 140 seguintes; aqui vai logo depois do 4152. (dedução) passos do meio de `PassCount` > 1 não mandam 83.
+- VIP: o cliente mostra uma linha "VIP login" (`templateId` -1, `VipPrerogativeTemp` tipo 9) para VIP 3+, mas nesta
+  versão o tipo 9 é "Add Daru Alchemy Attempts": não somado. Sem prêmio por nível de devoção além dos baús (8235).
 - Guia de 7 dias: só tarefas `SimpleTasks` tipo 4 (nível) e 22 (poder de combate) são verificadas.
 
 ## VIP e contrato do rei

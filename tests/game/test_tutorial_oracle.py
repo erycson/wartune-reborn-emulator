@@ -32,17 +32,15 @@ NOT_IMPLEMENTED = {
     4434,  # contrato do rei
     4542,  # livro de moda (8625)
     4122,  # patrulha dos monstros no mapa 10002
-    4152,  # LeedUpdatedRspMsg (guia de metas)
 }
 # diferenças conhecidas, todas fora do tutorial em si (docs/pendencias.md):
-# - "Emek oranınız ..." (83, taxa de trabalho: sistema que não existe aqui), uma no tutorial e uma por mina;
 # - presente da atividade de soma no 8586 (#678: 3, 109, 115, 111, 83): pacote não implementado;
 # - subida de nível na missão 51 (#625-#628: 139, 100, 150, 4640): aqui o nível não sobe nela (EXP das lutas
 #   diferente), e a entrega só manda o 150 quando sobe (como as duas capturas); a missão 50 avança no 5017 20000
 #   (112 a mais). O 112 do progresso antes da entrega só sai nos tipos 23, 2 e 10 (turco #657 e inglês: a 52 não tem);
 # - 11 (salas de outros jogadores) e 4248 (estado do chefe mundial) ao aceitar missão;
 # - 140 ×2 da chegada do exército (#766): o timer é de 2,4 s reais e o próximo pacote chega antes.
-KNOWN_GAPS = Counter({83: 3, 140: 2, 11: 2, 109: 1, 3: 1, 150: 1, 100: 1, 115: 1, 111: 1, 4248: 1, 139: 1, 4640: 1})
+KNOWN_GAPS = Counter({83: 1, 140: 2, 11: 2, 109: 1, 3: 1, 150: 1, 100: 1, 115: 1, 111: 1, 4248: 1, 139: 1, 4640: 1})
 KNOWN_EXTRA = Counter({112: 1})
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial

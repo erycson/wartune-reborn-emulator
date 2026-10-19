@@ -11,7 +11,9 @@ async def _grade(g: Game, grades: int) -> None:
 
 
 def _chats(got: list) -> list[pb.ChatChannelMsg]:  # type: ignore[type-arg]
-    return [pb.ChatChannelMsg.FromString(p.body) for p in got if p.code == 83]
+    """Mensagens de chat, fora as do sistema (canal 3: a devoção do leed 16)."""
+    msgs = [pb.ChatChannelMsg.FromString(p.body) for p in got if p.code == 83]
+    return [m for m in msgs if m.channel != 3]
 
 
 async def test_world_chat_reaches_everyone_with_the_server_filling_the_sender(tmp_path: Path) -> None:

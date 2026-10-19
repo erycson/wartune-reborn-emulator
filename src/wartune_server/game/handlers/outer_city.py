@@ -16,7 +16,7 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 
-from ...domain.models import Castle, WildMonsterKill
+from ...domain.models import Castle, EventState, Quest, WildMonsterKill
 from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
@@ -308,7 +308,8 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     _stop_walk(s)
     robot = robots.robot_at(snap, s.ctx.world, msg.mapId, msg.posX, msg.posY)
     if robot is not None:
-        _attack_robot(s, robot)
+        if rows := _attack_robot(s, robot):
+            await s.ctx.characters.save(*rows)
         return
     found = monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now())
     if (monster := monsters.at(found, msg.posX, msg.posY)) is not None:
@@ -423,11 +424,12 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     await _boss_info(s, m.map_id)
 
 
-def _attack_robot(s: GameSession, robot: RobotCastle) -> None:
+def _attack_robot(s: GameSession, robot: RobotCastle) -> list[EventState | Quest]:
     """Ataque a um castelo-robô (cliente: MapPhysicsCastle.attack e CityInfoFrame). Recusa com 140 parado,
     sem luta, se já há luta, se não há ataque no dia (``attackCount`` do cliente) ou se a diferença de nível
     para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque e luta com o guarda de grau 8.
-    (dedução) o ataque sai do contador do dia (o mesmo do 9506). A gravação vem no fim da luta."""
+    (dedução) o ataque sai do contador do dia (o mesmo do 9506). A gravação vem no fim da luta, menos a devoção
+    (leed 10, logo no ataque: tutorial_en #1648-#1649), que volta para quem chama gravar depois da luta criada."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None and snap.arena is not None
     c, arena, now = snap.character, snap.arena, s.ctx.clock.now()
@@ -436,8 +438,9 @@ def _attack_robot(s: GameSession, robot: RobotCastle) -> None:
     if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - robot.grade) >= 10:
         s.log.info("5160 castelo-robô recusado", castelo=robot.id, ataques=arena.attack_left, nivel=c.grades)
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
-        return
+        return []
     arena.attack_left -= 1  # sem await até criar a luta: dois 5160 seguidos não gastam o mesmo ataque
+    rows = events.leed_gain(s, events.PLUNDER_LEED)
     _army_sync(s, ARMY_FIGHTING)
     spec = oc.guard_battle(snap, s.ctx.templates, s.ctx.world.mine_guards.get(robot.grade, 0))
 
@@ -447,6 +450,7 @@ def _attack_robot(s: GameSession, robot: RobotCastle) -> None:
     s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
     s.log.info("batalha com castelo-robô", castelo=robot.id, battle=s.battle.id)
     s.battle.start()
+    return rows
 
 
 async def _castle_over(s: GameSession, battle: Battle, won: bool) -> None:

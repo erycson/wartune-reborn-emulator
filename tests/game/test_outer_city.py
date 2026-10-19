@@ -222,7 +222,8 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
         assert (report.battleResult, report.battleScene) == (1, 4)
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
-        assert after == [150, 4103, 150, 100, 140, 140, 112, 4152, 109, 152, 140, 169]
+        # o 83 da devoção (leed 9) logo depois do 4152; o oficial manda depois do 140 (tutorial_en #748-#753)
+        assert after == [150, 4103, 150, 100, 140, 140, 112, 4152, 83, 109, 152, 140, 169]
         quest = pb.QuestUpdatedRspMsg.FromString(next(p for p in got if p.code == 112).body).quest[0]
         assert (quest.templateId, quest.condition_1) == (60, 1)
         land = pb.MapUpdatedMsg.FromString([p for p in got if p.code == 140][-1].body).wildLand
@@ -410,7 +411,11 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
 
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))
         got = await g.until(157)
-        assert [p.code for p in got] == [140, 140, 157]
+        # devoção do leed 10 "Plunder another player" no ataque, antes da luta (tutorial_en #1648-#1652; lá o 83 vem
+        # depois dos 140)
+        assert [p.code for p in got] == [4152, 83, 140, 140, 157]
+        leed = pb.LeedUpdatedRspMsg.FromString(got[0].body)
+        assert ([x.templateId for x in leed.leed], leed.totalNum) == ([10], 10)
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
         assert prepare.battleType == 1 and [(x.tempId, x.side) for x in prepare.soldiers] == [
             (10101, 1),

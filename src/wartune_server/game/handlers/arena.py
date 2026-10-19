@@ -236,6 +236,9 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     s.battle.start()
     if bought:
         s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    from . import events  # handlers.events importa login, que importa este módulo
+
+    await events.leed_done(s, events.CHALLENGE_LEED)  # LeedTemp 19 "Challenge another player" (PassCount 10)
 
 
 async def _colosseum_over(

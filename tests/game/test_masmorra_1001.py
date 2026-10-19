@@ -27,8 +27,10 @@ pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/
 SEED = Path(wartune_server.__file__).parent / "persistence/migrations/versions/0034_campanhas.json"
 WOLVES_1011 = (101102, 101103, 101105, 101106, 101109)  # o 101109 fecha o grupo e o mapa
 WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que libera o chefe 102109
-END = [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140]  # (visto) inglesa #1096-#1107, sem o 20 do 5038
-END_COM_70 = [4382, 3, 137, 4151, 83, 135, 112, 4165, 150, 150, 140]  # com a 70: o 112 entre o 135 e o 4165
+# (visto) inglesa #1096-#1107, sem o 20 do 5038. O 4152 e o 83 do fim são a devoção do leed 4: o personagem do teste
+# não passou pela saída do tutorial, onde a inglesa ganhou o leed 4 do dia (#521)
+END = [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140, 4152, 83]
+END_COM_70 = [4382, 3, 137, 4151, 83, 135, 112, 4165, 150, 150, 140, 4152, 83]  # com a 70: o 112 entre o 135 e o 4165
 CARD = [115, 26, 83]  # resposta do 5122 (inglesa #1111-#1123, sem 4476/4484); o 134 vem no 5180
 WORG_TOOTH, LUCK_STONE = 2100001, 2040101  # drops dos lobos do 1021
 
@@ -229,8 +231,8 @@ async def test_mapa_1011_fecha_e_a_carta_do_5122_fica_gravada(tmp_path: Path) ->
                                                                          + report.failedAppraisal) / 3)  # fmt: skip
         rank = pb.RankListRspMsg.FromString(next(p.body for p in end if p.code == 4151))
         assert [(r.campaignId, r.rank) for r in rank.rankInfo] == [(1001, report.totalAppraisal)]
-        exp = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83][-1]
-        assert exp == "Received 630 EXP "
+        exp = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83][-2:]
+        assert exp == ["Received 630 EXP ", "Your devotion level has increased to 10."]
         assert codes(await take(g, 5)) == []  # index fora das 5 cartas (0..4)
 
         got = await take(g, 2)
@@ -280,7 +282,7 @@ async def test_grupo_de_1021_libera_o_chefe_e_fecha_a_masmorra(tmp_path: Path) -
         characters = g.server.services.characters
         strategy = (await characters.snapshot(g.user_id)).character.strategy
         boss = await battle(g, 102109)
-        assert codes(boss)[-len(END) :] == END
+        assert codes(boss)[-len(END) + 2 :] == END[:-2]  # a devoção do leed 4 já saiu no fim do 1011
         assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 88  # inglesa #1509
         assert codes(await take(g, 1)) == CARD  # a carta do 1021 é outra, uma também
         snap = await characters.snapshot(g.user_id)
