@@ -248,7 +248,7 @@ async def test_receive_all_moves_the_maze_bag_into_the_main_bag(tmp_path: Path) 
         await g.idle()
         g.client.send(9517)
         got = await g.idle()
-        assert any(p.code == 111 and b"Ba\xc5\x9far" in p.body for p in got)  # "Başarıyla alındı!"
+        assert any(p.code == 111 and b"Reward retrieval successful!" in p.body for p in got)
         snap = _snap(g)
         assert not [i for i in snap.items if i.bag_type == BagType.MAZE]
         rewards = {2060008, 208027, 208014}

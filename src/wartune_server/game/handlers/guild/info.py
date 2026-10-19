@@ -68,7 +68,8 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22: criar
     guild = Consortia(c.server_id, name, s.player_id, c.nickname or "", s.player_id, now)
     member = ConsortiaMember(0, s.player_id, now, duty_id=gd.CHAIRMAN)
-    event = ConsortiaEvent(0, now, f"{c.nickname} birliği kurdu."[:255])
+    # texto deduzido (sem fonte no cliente/captura)
+    event = ConsortiaEvent(0, now, f"{c.nickname} founded the guild."[:255])
     gone = g.invites_of(s.player_id)
     # tira as candidaturas da memória antes do await: outra guilda não aceita (5134) no meio da criação
     g.invites = [i for i in g.invites if i.user_id != s.player_id]

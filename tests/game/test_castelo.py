@@ -47,7 +47,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         order = pb.OrderInfoMsg.FromString(got[2].body)
         assert (order.orderId, order.orderType, order.remainTime) == (1, 1, 10)
         assert pb.BuildingInfoListMsg.FromString(got[3].body).building[0].templateId == 90102
-        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Geliştirilen Seviye: Town Hall Lv.2"
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Town Hall has been upgraded to Lvl. 2"
         await g.idle()
 
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 10101)))  # fila ocupada
@@ -210,7 +210,7 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
         got = await g.until(147)
         assert [p.code for p in got] == [109, 83, 147]
-        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg.startswith("Doldurma başarılıAltın + 220,")
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg.startswith("Energize successful! Gold + 220,")
         tree = pb.TreeUpdateRsp.FromString(got[2].body).tree[0]
         assert (tree.waterCount, tree.leftTime) == (1, 600)
 

@@ -368,8 +368,8 @@ async def bid(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
                     uow,
                     listing.bidder_id,
                     now,
-                    "Teklif iadesi",
-                    f"{_label(templates, item)}: teklifiniz geri döndü.",
+                    "Bid Refund",  # texto deduzido (sem fonte no cliente/captura)
+                    f"{_label(templates, item)}: your bid has been returned.",
                     goods=[(market.DIAMOND, listing.point)],
                 )
             )
@@ -430,8 +430,8 @@ async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
                     uow,
                     listing.bidder_id,
                     now,
-                    "Teklif iadesi",
-                    f"{_label(templates, item)}: teklifiniz geri döndü.",
+                    "Bid Refund",  # texto deduzido (sem fonte no cliente/captura)
+                    f"{_label(templates, item)}: your bid has been returned.",
                     goods=[(market.DIAMOND, listing.point)],
                 )
             )
@@ -440,15 +440,21 @@ async def buy_now(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
                 uow,
                 listing.seller_id,
                 now,
-                "Satış geliri",
-                f"{_label(templates, item)} satıldı.",
+                "Sale Income",  # texto deduzido (sem fonte no cliente/captura)
+                f"{_label(templates, item)} has been sold.",
                 goods=[(market.DIAMOND, market.income(listing.fix_point))],
             )
         )
         label = _label(templates, item)
         reply.mails.append(
             await market.post(
-                uow, s.player_id, now, "Satın alınan eşya", f"{label}: sabit fiyatla alındı.", items=[item]
+                # texto deduzido (sem fonte no cliente/captura); termo Buy-It-Now do language.txt
+                uow,
+                s.player_id,
+                now,
+                "Purchased Item",
+                f"{label}: bought at the Buy-It-Now price.",
+                items=[item],
             )
         )
         for bid in await uow.mall.bids_of(listing.id or 0):

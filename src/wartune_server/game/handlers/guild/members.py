@@ -156,7 +156,8 @@ async def apply_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         return
     member, gone = _join(s, guild, app.user_id)
     who = _profile(s, app.user_id)
-    event = _event(s, guild, f"{who.nickname if who else app.user_id} birliğe katıldı.")
+    # texto deduzido (sem fonte no cliente/captura)
+    event = _event(s, guild, f"{who.nickname if who else app.user_id} joined the guild.")
     # offline: a missão 22 dele avança no 5014 (rules.social_state_quests)
     other = s.ctx.online.get(app.user_id)
     snap = other.snapshot if other is not None else None
@@ -238,7 +239,8 @@ async def invite_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         await s.ctx.characters.save(delete=(inv,))
         return
     member, gone = _join(s, guild, s.player_id)
-    event = _event(s, guild, f"{_char(s).nickname} birliğe katıldı.")
+    # texto deduzido (sem fonte no cliente/captura)
+    event = _event(s, guild, f"{_char(s).nickname} joined the guild.")
     snap = s.snapshot
     assert snap is not None
     quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22
@@ -281,7 +283,8 @@ async def quit_(s: GameSession, msg: pb.ConsortiaQuitReqMsg) -> None:
     else:
         del g.members[s.player_id]
         gone.append(member)
-        changed = [c, _event(s, guild, f"{c.nickname} birlikten ayrıldı.")]
+        # texto deduzido (sem fonte no cliente/captura)
+        changed = [c, _event(s, guild, f"{c.nickname} left the guild.")]
     if card is not None and card.count > 0:
         changed.append(card)
     await s.ctx.characters.save(*changed, delete=tuple(gone))
@@ -303,7 +306,8 @@ async def kick(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     guild.kick_count += 1
     guild.kick_at = _now(s)
     who = _profile(s, msg.otherId)
-    event = _event(s, guild, f"{who.nickname if who else msg.otherId} birlikten çıkarıldı.")
+    # texto deduzido (sem fonte no cliente/captura)
+    event = _event(s, guild, f"{who.nickname if who else msg.otherId} was expelled from the guild.")
     await s.ctx.characters.save(guild, event, delete=(target,))
     _left(s, msg.otherId, guild)
 
@@ -322,7 +326,8 @@ async def transfer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         return
     target.duty_id, me.duty_id, guild.chairman_id = gd.CHAIRMAN, gd.MEMBER, msg.otherId
     who = _profile(s, msg.otherId)
-    event = _event(s, guild, f"Birlik başkanlığı {who.nickname if who else msg.otherId} oyuncusuna devredildi.")
+    # texto deduzido (sem fonte no cliente/captura)
+    event = _event(s, guild, f"Guild Master title transferred to {who.nickname if who else msg.otherId}.")
     await s.ctx.characters.save(guild, target, me, event)
     _push_info(s, guild)
 

@@ -38,7 +38,7 @@ async def test_recruit_put_in_army_and_dismiss(tmp_path: Path) -> None:
         pawn = pb.ArmyPawnUpdatedMsg.FromString(got[2].body).armyPawn[0]
         assert (pawn.armyId, pawn.sonType, pawn.ownPawns, pawn.fightPos, len(pawn.pawnLive)) == (0, 101, 900, 3, 7)
         assert [x.tempData for x in pawn.pawnLive] == [64, 50, 0, 40, 323, 64, 0]  # igual ao relay #647
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Tebrikler,900 tane Lancer alındı"
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Successfully Recruited 900 Lancer"
 
         g.client.send(5155, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=1))  # casa cheia
         assert await g.idle() == []

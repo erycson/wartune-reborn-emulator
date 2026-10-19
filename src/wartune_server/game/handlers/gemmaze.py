@@ -173,7 +173,8 @@ async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
         out.append((S_ITEMS, _items_msg(items, s.player_id)))  # montado agora: a pilha muda no passo seguinte
         out.append((S_UPDATE, _update_msg(step, game)))
         name = (templates.get("ItemTempInfos", step.reward) or {}).get("TemplateName", str(step.reward))
-        out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Kazanılan:{name} x {step.count}")))
+        # formato do oficial inglês (tutorial_en: "Received: Bound Balens x 10,Daru x 10000,...")
+        out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Received: {name} x {step.count}")))
     game.board, game.times = result.board, result.times
     game.score += sum(p.points for p in result.steps)
     # ponytail: o semanal soma o mesmo que o do dia e zera na semana nova (``gm.refresh``, dedução)
@@ -292,7 +293,8 @@ async def get_all(s: GameSession, _: object) -> None:
         removed.moved.add(changeType=BagType.MAZE, changeObjId=0, changePos=item.pos)
     _send(s, S_ITEMS, removed)
     _send(s, S_ITEMS, rewards.items_msg(changed, s.player_id))
-    alert(s, "Başarıyla alındı!")
+    # texto do oficial inglês (83, tutorial_en #2114)
+    alert(s, "Reward retrieval successful!")
 
 
 def login_push(s: GameSession) -> None:

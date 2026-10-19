@@ -91,7 +91,13 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
             )
             mails.append(
                 await post(
-                    uow, listing.bidder_id, now, "Kazanılan eşya", f"{label}: en yüksek teklif sizde.", items=[item]
+                    # texto deduzido (sem fonte no cliente/captura)
+                    uow,
+                    listing.bidder_id,
+                    now,
+                    "Won Item",
+                    f"{label}: you are the highest bidder.",
+                    items=[item],
                 )
             )
             mails.append(
@@ -99,14 +105,15 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
                     uow,
                     listing.seller_id,
                     now,
-                    "Satış geliri",
-                    f"{label} satıldı.",
+                    "Sale Income",  # texto deduzido (sem fonte no cliente/captura)
+                    f"{label} has been sold.",
                     goods=[(DIAMOND, income(listing.point))],
                 )
             )
         else:
             mails.append(
-                await post(uow, listing.seller_id, now, "Geri dönen eşya", f"{label}: alıcı çıkmadı.", items=[item])
+                # texto deduzido (sem fonte no cliente/captura)
+                await post(uow, listing.seller_id, now, "Returned Item", f"{label}: no buyer was found.", items=[item])
             )
     return mails
 

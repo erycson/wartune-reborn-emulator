@@ -24,6 +24,10 @@ def dungeon() -> dict[str, Any]:
 
 @cache
 def pet_island() -> dict[str, Any]:
-    """Nós da ilha dos pets (mapa 20001) como o oficial mandou no 127 (``captures/peri_adasi_tp.json`` #8)."""
+    """Nós da ilha dos pets (mapa 20001) como o oficial mandou no 127 (``captures/peri_adasi_tp.json`` #8).
+
+    Textos em inglês: tempinfos (heróis 75102/20010/5101, MapNodeInfo 4 do Alice, item 2100028) e language.txt
+    (PetBossInfoView.monsterText0/1, PetExchangeShopFrame.title, Mystic's Gate, Sylph Atoll); texto deduzido (sem
+    fonte no cliente/captura): o "I"/"Floor 2" dos nomes, "Leave" e o diálogo do The Stranger."""
     text = resources.files(__package__).joinpath("petisland.json").read_text(encoding="utf-8")
     return json.loads(text)  # type: ignore[no-any-return]

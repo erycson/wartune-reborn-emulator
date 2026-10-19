@@ -12,7 +12,8 @@ from dataclasses import dataclass, field
 
 PVE = 0  # RoomMsg.roomType das salas de campanha (PVP e veículo usam outros)
 MAX_SEATS = 4  # o oficial tem 4 lugares (visto: ek sahne, capacity 4)
-NAME_NEW = "Savaş seçilmedi"  # nome de sala sem campanha escolhida (visto: 12/32)
+# texto deduzido (sem fonte no cliente/captura)
+NAME_NEW = "No battle selected"  # nome de sala sem campanha escolhida (visto: 12/32)
 OPEN, CLOSED = 0, -1  # valor de um lugar livre aberto ou fechado (PlaceStateRspMsg); userId = ocupado
 
 

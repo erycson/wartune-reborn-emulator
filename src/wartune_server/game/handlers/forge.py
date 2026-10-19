@@ -145,7 +145,8 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     castle_yield(s)
     send(s, S_ITEMS, bag.moved([*changed, *back], s.player_id, empty=gone))
     send(s, S_ITEMS, bag.moved([item], s.player_id))
-    alert(s, "Başarıyla mozaik yapıldı!")
+    # texto deduzido (sem fonte no cliente/captura); termo Socketing do language.txt
+    alert(s, "Socketing successful!")
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
@@ -190,8 +191,10 @@ async def inlay_join(s: GameSession, msg: pb.StoreReqMsg) -> None:
     castle_yield(s)
     send(s, S_ITEMS, bag.moved([item], s.player_id))
     send(s, S_ITEMS, bag.moved(back, s.player_id))
-    send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Başarıyla söküldü!"))
-    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=f"Başarıyla söküldü! Kazanılan:{bag.name(templates, hole)} x1!"))
+    # texto deduzido (sem fonte no cliente/captura); termo Unsocketing do language.txt
+    send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Unsocketing successful!"))
+    text = f"Unsocketing successful! Received: {bag.name(templates, hole)} x1!"
+    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 # --- composição ---
@@ -244,7 +247,8 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    text = f"Kazanılan:{bag.name(templates, product)} x{made}"
+    # formato do oficial inglês (111, tutorial_en: "Received: Worg Tooth x2")
+    text = f"Received: {bag.name(templates, product)} x{made}"
     send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))  # como o oficial
     send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
@@ -354,7 +358,8 @@ async def transform(s: GameSession, msg: pb.StoreReqMsg) -> None:
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    alert(s, "Dönüşüm başarılı")
+    # texto deduzido (sem fonte no cliente/captura); termo conversion do language.txt
+    alert(s, "Conversion successful")
 
 
 @router.on(8644)

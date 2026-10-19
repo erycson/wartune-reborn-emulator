@@ -96,7 +96,8 @@ async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     send_quests(s, quests)
     castle_yield(s)
     s.send(S_CASTLE_PAWNS, castle_pawns(snap, templates, [pawn]))
-    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Tebrikler,{n} tane {tpl['PawnName']} alındı"))
+    # texto do oficial inglês (111, tutorial_en #659: "Successfully Recruited 900 Lancer")
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Successfully Recruited {n} {tpl['PawnName']}"))
 
 
 @router.on(5156)

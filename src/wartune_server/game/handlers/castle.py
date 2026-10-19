@@ -133,7 +133,8 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
         b.template_id for b in (building, *unlocked)}]  # fmt: skip
     if fresh:
         s.send(S_ARMY_PAWN, castle_pawns(snap, templates, fresh))
-    text = f"Geliştirilen Seviye: {target['BuildingName']} Lv.{target['BuildingGrade']}"
+    # texto do oficial inglês (83, tutorial_en #594: "Town Hall has been upgraded to Lvl. 2")
+    text = f"{target['BuildingName']} has been upgraded to Lvl. {target['BuildingGrade']}"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
@@ -200,7 +201,8 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     quests = rules.quest_event(snap, s.ctx.templates, ACCELERATE, cs.BUILD, 1) if build else []
     await s.ctx.characters.save(c, entry, *orders, *quests)
     _send_player(s)
-    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Bekleme Süresi kaldırıldı."))
+    # texto deduzido (sem fonte no cliente/captura)
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Cooldown removed."))
     s.send(S_ORDER_QUICK, pb.OrderQuickRspMsg(orderInfo=[cs.order_info(o, now) for o in orders]))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
@@ -248,7 +250,8 @@ async def gold_impose(s: GameSession, _: object) -> None:
     quests = rules.quest_event(snap, templates, LEVY, 0, 1)  # cada cobrança conta 1 (dedução)
     await s.ctx.characters.save(c, snap.castle, order, *quests)
     castle_yield(s)
-    text = f"{gold:,} Altın başarıyla alındı."
+    # texto deduzido (sem fonte no cliente/captura)
+    text = f"Successfully collected {gold:,} Gold."
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     s.send(S_ORDER_USE, cs.order_info(order, now))  # antes do 4242: a LevyView redesenha nele
     s.send(S_IMPOSE, pb.GoldImposeMsg(leftImpose=used + 1, maxImpose=b.MAX_IMPOSE))

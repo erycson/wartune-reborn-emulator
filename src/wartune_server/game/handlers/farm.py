@@ -220,7 +220,8 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, 1, 1)
     await s.ctx.characters.save(c, castle, *quests)
     cs.castle_yield(s)
-    text = f"Doldurma başarılıAltın + {gold},Enerji + 1,Çiftlik EXP  + 1"  # sic, como no oficial
+    # texto deduzido (sem fonte no cliente/captura); termo Energize do language.txt
+    text = f"Energize successful! Gold + {gold:,}, Energy + 1, Farm EXP + 1"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
     if quests:

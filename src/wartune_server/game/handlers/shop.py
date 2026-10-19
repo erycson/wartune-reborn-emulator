@@ -197,7 +197,8 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    alert(s, f"{bag.name(templates, tid)} x{info.count} başarıyla alındı!")
+    # texto deduzido (sem fonte no cliente/captura)
+    alert(s, f"{bag.name(templates, tid)} x{info.count} purchased successfully!")
     return OK
 
 
@@ -431,7 +432,8 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    alert(s, f"{bag.name(templates, tid)} x1 başarıyla alındı!")
+    # texto deduzido (sem fonte no cliente/captura)
+    alert(s, f"{bag.name(templates, tid)} x1 purchased successfully!")
     send(s, S_MYSTERY_BUY, pb.ShopItemBuyRspMsg(result=OK, buyCount=shop.buy_count, score=0))
     send(s, S_MYSTERY_LIST, _mystery_list(s, shop))
 

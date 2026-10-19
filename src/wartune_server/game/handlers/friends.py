@@ -62,12 +62,13 @@ SEARCH_FIELDS = {  # FriendSearchConditionReqMsg -> SnsProfile (0 = qualquer)
 _TAG = re.compile(r"<[^>]*>")
 # textos curtos no idioma do servidor oficial (os do cliente estão no pacote de idioma)
 NOT_FOUND, REFUSES, ALREADY, FULL = (
-    "Oyuncu bulunamadı",
-    "Oyuncu arkadaşlık isteklerini kabul etmiyor",
-    "Zaten listede",
-    "Liste dolu",
+    "Player not found!",  # language.txt ConsortiaTransferFrame.command06 (TR "Oyuncu bulunamıyor!")
+    "Player is not accepting friend requests",  # texto deduzido (sem fonte no cliente/captura)
+    "Already on the list",  # texto deduzido (sem fonte no cliente/captura)
+    "List is full",  # texto deduzido (sem fonte no cliente/captura)
 )
-WAITING, ADDED = "Eklendi,yanıtını bekleyin.", "Yeni arkadaşı eklediniz"  # arkadas_istegi_gonderme #2-3
+# texto deduzido (sem fonte no cliente/captura)
+WAITING, ADDED = "Added, waiting for a reply.", "You have added a new friend"  # arkadas_istegi_gonderme #2-3
 
 
 def _fail(s: GameSession, text: str) -> None:

@@ -153,7 +153,8 @@ def mine_yield(snap: PlayerSnapshot, templates: GameTemplates) -> list[pb.WildYi
                 wildPoxName=f"({land.pos_x},{land.pos_y})",
                 wildPox=f"{land.pos_x},{land.pos_y}",
                 wildGrade=grade,
-                wildName=f"{row.get('MapPhysicsTempName', '')} {grade} seviye",
+                # formato do oficial inglês (152, tutorial_en #751: "Gold Mine Lvl. 10")
+                wildName=f"{row.get('MapPhysicsTempName', '')} Lvl. {grade}",
                 wildYield=int(row.get("Property4", 0)),
                 wildRefreshTime=int(row.get("RefreshTime", 0)),
                 mapId=BASE_MAP,

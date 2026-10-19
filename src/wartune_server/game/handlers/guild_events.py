@@ -44,7 +44,8 @@ async def altar_open(s: GameSession, msg: pb.ConsortiaAltarOpenReqMsg) -> None:
     guild.offer -= cost
     guild.altar_state, guild.altar_at = gd.ALTAR_OPEN, now
     c = _char(s)
-    event = s.ctx.guilds.add_event(guild.id or 0, now, f"{c.nickname} şeytan sunağını açtı.")
+    # texto deduzido (sem fonte no cliente/captura); nome do language.txt consortiaDemonBtnTipData
+    event = s.ctx.guilds.add_event(guild.id or 0, now, f"{c.nickname} opened the Divine Altar.")
     await s.ctx.characters.save(guild, event)
     out = pb.ConsortiaAltarOpenRspMsg(
         consortiaId=guild.id,

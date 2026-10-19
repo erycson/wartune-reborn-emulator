@@ -89,7 +89,8 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     if gold:
         castle_yield(s)
     _player(s)
-    _alert(s, "Başarıyla katkı yapıldı!")
+    # texto deduzido (sem fonte no cliente/captura)
+    _alert(s, "Contribution successful!")
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))
@@ -261,7 +262,8 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     await s.ctx.characters.save(c, *got, count_buy(snap, buy.goodId, count, now))
     _player(s)
     s.send(S_ITEMS, bag.moved(got, s.player_id))
-    text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} başarıyla alındı!"
+    # texto deduzido (sem fonte no cliente/captura)
+    text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} purchased successfully!"
     _alert(s, text)
     _buy_result(s, buy, 1)
     s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))

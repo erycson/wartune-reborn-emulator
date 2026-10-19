@@ -208,8 +208,8 @@ async def test_bids_refund_the_outbid_player_by_mail_and_show_in_my_bids(tmp_pat
         assert me(c).character.point == 70
 
         # o lance devolvido vai pelo correio: o diamante só entra no 5022
-        assert "Teklif iadesi" in await _inbox(b)
-        refund = await _mail_id(b, "Teklif iadesi")
+        assert "Bid Refund" in await _inbox(b)
+        refund = await _mail_id(b, "Bid Refund")
         assert me(b).character.point == 80
         assert await _pick(b, refund) == [True]
         assert me(b).character.point == 100
@@ -242,10 +242,10 @@ async def test_fixed_price_buy_mails_the_item_to_the_buyer_and_the_taxed_price_t
         assert _purchases(tmp_path) == [(me(b).character.id, "mall", listing.id, HORN, 1, "Point", 50)]
         assert await _owned(b, HORN) == [(BagType.MAIL, 0, 1)]
         assert await _listings(a) == []
-        assert await _pick(b, await _mail_id(b, "Satın alınan eşya")) == [True]
+        assert await _pick(b, await _mail_id(b, "Purchased Item")) == [True]
         assert [bag for bag, _, _ in await _owned(b, HORN)] == [BagType.BAG]
 
-        sale = await _mail_id(a, "Satış geliri")  # vendedor online: recebe pelo correio mesmo assim
+        sale = await _mail_id(a, "Sale Income")  # vendedor online: recebe pelo correio mesmo assim
         assert await _pick(a, sale) == [True]
         assert me(a).character.point == seller_before + 40  # 50 menos 20% de imposto
 
@@ -304,7 +304,7 @@ async def test_expired_auctions_settle_by_mail_even_for_an_offline_seller(tmp_pa
         assert await _owned(b, HORN) == [(BagType.MAIL, 0, 1)]  # o lance vencedor: item na caixa de correio
         assert _purchases(tmp_path) == [(me(b).character.id, "mall_lance", win.id, HORN, 1, "Point", 15)]
 
-        won = await _mail_id(b, "Kazanılan eşya")
+        won = await _mail_id(b, "Won Item")
         b.client.send(8206, pb.MailDelReqMsg(delList=[won]))  # item ainda não retirado: o correio não some
         assert list(last(await b.until(4132), pb.MailDelReqMsg).delList) == []
         assert await _pick(b, won) == [True]
@@ -312,9 +312,9 @@ async def test_expired_auctions_settle_by_mail_even_for_an_offline_seller(tmp_pa
 
         a2 = await a.connect()  # o vendedor volta: diamante do lance e item sem lance, tudo pelo correio
         before = me(a2).character.point
-        assert await _pick(a2, await _mail_id(a2, "Satış geliri")) == [True]
+        assert await _pick(a2, await _mail_id(a2, "Sale Income")) == [True]
         assert me(a2).character.point == before + 12  # 15 menos 20% de imposto, para baixo
-        assert await _pick(a2, await _mail_id(a2, "Geri dönen eşya")) == [True]
+        assert await _pick(a2, await _mail_id(a2, "Returned Item")) == [True]
         assert [bag for bag, _, _ in await _owned(a2, HORN)] == [BagType.BAG]  # o sem lance voltou; o vendido é de b
 
 

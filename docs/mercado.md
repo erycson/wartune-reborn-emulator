@@ -86,12 +86,12 @@ genérica). Mudou nesta revisão: template sem `StartingPrice` dava −7; o text
 
 - **Lance (8451)**: o primeiro lance é ≥ o inicial *(dedução)*; os seguintes são > o último. Lance ≥ `fixPoint`
   é recusado: a compra é pelo 8453. O diamante sai agora (`ledger.pay`, `reason` `mall`); quem já
-  lidera paga só a diferença *(dedução)*. O lance superado vai pelo correio ("Teklif iadesi", anexo −400 com o
+  lidera paga só a diferença *(dedução)*. O lance superado vai pelo correio ("Bid Refund", anexo −400 com o
   valor). O `mall_bids` guarda um registro por jogador e por anúncio.
 - **Compra (8453)**: paga `fixPoint` (ou a diferença, se já é o líder). O item vai ao comprador pelo correio
-  ("Satın alınan eşya") *(cliente, ajuda item 3: "a compra chega pela mensagem do sistema"; o 4357 do cliente só tira
+  ("Purchased Item") *(cliente, ajuda item 3: "a compra chega pela mensagem do sistema"; o 4357 do cliente só tira
   a linha da lista)*, então mochila cheia não recusa a compra. O diamante do vendedor vai pelo correio
-  ("Satış geliri"); o lance superado vai de volta pelo correio; os lances e o anúncio são apagados.
+  ("Sale Income"); o lance superado vai de volta pelo correio; os lances e o anúncio são apagados.
 - **Imposto da venda**: o vendedor recebe 80% do preço (`game/mall.py` `income`) *(cliente, ajuda item 7: "o sistema
   tira 20% de imposto do vendedor")*, na compra pelo fixo e no vencido com lance. *ponytail*: arredondado para baixo,
   o texto não diz.
@@ -109,9 +109,9 @@ genérica). Mudou nesta revisão: template sem `StartingPrice` dava −7; o text
     um pedido nunca vê um anúncio vencido aberto.
 
   `settle` encerra os anúncios com `ends_at <= agora`:
-  - com lance: o item vai ao vencedor pelo correio ("Kazanılan eşya") e o diamante, menos 20%, ao vendedor
-    ("Satış geliri");
-  - sem lance: o item volta ao vendedor pelo correio ("Geri dönen eşya").
+  - com lance: o item vai ao vencedor pelo correio ("Won Item") e o diamante, menos 20%, ao vendedor
+    ("Sale Income");
+  - sem lance: o item volta ao vendedor pelo correio ("Returned Item").
 
   Os lances do anúncio são apagados. Isto vale também para vendedor fora do jogo: a carta fica no banco
   até ele entrar e pegar no 5022. O 148 sai depois do commit, só para quem está online.
@@ -194,7 +194,7 @@ inventa formato:
 - **Encerramento agendado**: a cada 60 s, sem dormir até o menor `ends_at` (*ponytail*: até 60 s de atraso no fim).
   O pedido do mercado ainda encerra na hora. **Precisa de captura** para o formato das cartas do oficial: deixar um
   anúncio vencer com lance e sem lance, comprar pelo fixo, e gravar o título, o anexo e o momento da carta. Os títulos
-  ("Kazanılan eşya", "Satış geliri", "Geri dönen eşya", "Teklif iadesi", "Satın alınan eşya") são do servidor, não do
+  ("Won Item", "Sale Income", "Returned Item", "Bid Refund", "Purchased Item") são do servidor, não do
   oficial. A ajuda (item 8) diz que o anúncio novo aparece "pouco depois" na vitrine; aqui aparece na hora.
 - **`orderBy` / `orderType`**: ignorados em todas as listas (8449, 8450, 8452, 8457). A ordem é a do
   anúncio mais novo primeiro. Parcial em 8450 e 8457: o sentido da ordenação não aparece no cliente.

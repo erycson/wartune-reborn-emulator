@@ -281,7 +281,8 @@ async def _colosseum_over(
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, 0
     s.send(S_BATTLE_REPORT, report)
     if gp:
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{gp:,} EXP kazanıldı"))
+        # texto do oficial inglês (83, tutorial_en: "Received 3,000 EXP ", com o espaço)
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Received {gp:,} EXP "))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _cool(s, A.COLOSSEUM)
 
