@@ -27,8 +27,9 @@ SETTINGS = [
     (
         "farm_steal_percent",
         10,
-        "(internet) https://breezewiki.discard.no/wartune/wiki/Farm (espelho de wartune.fandom.com/wiki/Farm): "
-        "o amigo leva 'a small portion of the plant's value (10%)', até 3 vezes; % do rewardCount por roubo",
+        "(internet) resumo de busca sobre https://breezewiki.discard.no/wartune/wiki/Farm (espelho de "
+        "wartune.fandom.com/wiki/Farm; a página não abriu): pequena parte (10%) do valor, até 3 vezes; "
+        "% do rewardCount por roubo. Conferir com captura",
     ),
     (
         "friend_grade_step",

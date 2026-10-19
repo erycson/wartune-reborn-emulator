@@ -34,6 +34,7 @@ from ..session import GameSession
 from . import events
 from .campaign import player_hero, quarry_fight
 from .login import army, player_info
+from .player import alert
 from .wild_boxes import drop_box, send_boxes
 
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
@@ -507,6 +508,7 @@ async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     entry = pay(c, price, bind=msg.type == 2, reason="attack_count", ref="outer_city", now=now)
     if entry is None:
         s.log.info("9506 recusado", motivo="sem diamantes")
+        alert(s, "Not enough Diamonds.")  # o cliente só confere 100: entre 100 e o preço, sem isso nada aparece
         return
     arena.attack_left += 1
     await s.ctx.characters.save(c, arena, entry)

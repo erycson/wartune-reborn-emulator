@@ -83,7 +83,7 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
   `tree_friend_today`, migração 0038); `todayFromFriendGp`/`todayStolenCount` vão no 4386 da própria fazenda.
   Fontes: limites do cliente (`FarmModel`, `FarmLandInfo.canBeStolen`, `ConfigInfos` e o help EN da fazenda),
   reviver e regar visto (ciftlik). **dedução / config** (`game_settings`, 0038): roubo de 10% (`farm_steal_percent`,
-  internet); grau de amizade = 1 + pontos // `friend_grade_step` (10; ciftlik: grau 4 com 34); amizade +1 dos dois
+  internet: só o resumo da busca sobre https://breezewiki.discard.no/wartune/wiki/Farm, a página não abriu); grau de amizade = 1 + pontos // `friend_grade_step` (10; ciftlik: grau 4 com 34); amizade +1 dos dois
   lados; ouro da rega pelo nível de jogador do dono (o 66 do THoR também era o grau da fazenda); textos 146/83 em
   inglês montados com os termos do language EN. O dono online é mexido no snapshot da sessão dele; offline, pelo banco
   (ponytail: dois ladrões ao mesmo tempo com o dono offline podem se sobrepor).

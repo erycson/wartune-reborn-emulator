@@ -156,7 +156,7 @@ Outros eventos:
 - Recompensa offline ×1,5/×2 (8287): preço desconhecido. **sem dado**.
 - 8255 (batalha em grupo), 8562 (trégua), 5179 (terras selvagens): respondem vazio. **depende de** esses sistemas.
 - Rendimento: o oficial soma +30/h que não explicamos; sem bônus de terras, guilda ou efeitos.
-- **dedução**: EXP offline = nível × minutos (até 8 h), acelerar a fazenda amadurece na hora, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto (nível do dono × 20).
+- **dedução**: EXP offline = nível × minutos (até 8 h), acelerar a fazenda amadurece na hora, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto (× 20); que seja o nível de jogador do dono (e não o grau da fazenda) é dedução.
 
 ## PvP ([pvp.md](pvp.md))
 

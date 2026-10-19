@@ -92,7 +92,7 @@ async def test_attack_extra_costs_diamonds_and_is_capped_at_five(tmp_path: Path)
         assert snap.character.point == 50
 
         g.client.send(9506, pb.OutercityReqMsg(mapId=0, attackCount=1, type=1))  # sem diamante suficiente
-        assert await g.idle() == []
+        assert [p.code for p in await g.idle()] == [111]  # aviso: o cliente só confere 100
 
         snap.character.gift_token = price  # tipo 2: o vinculado paga primeiro
         g.client.send(9506, pb.OutercityReqMsg(type=2))

@@ -26,8 +26,9 @@ MAX_STOLEN, MIN_STEAL_OUTPUT = 3, 10  # FarmModel.MAX_STOLEN_COUNT; FarmLandInfo
 # (cliente) language EN farm.view.FarmResourcesView.helpContent: "energize your Tree of Ancients 3 times a day",
 # "energize the Tree of Ancients for your friends 200 times a day", "a friend's Tree of Ancients once a day"
 OWN_TREE_DAILY, FRIEND_TREE_DAILY = 3, 200
-# (internet) https://breezewiki.discard.no/wartune/wiki/Farm (espelho de wartune.fandom.com/wiki/Farm): o amigo
-# leva "a small portion of the plant's value (10%)", até 3 vezes; configurável em game_settings farm_steal_percent
+# (internet) resumo da busca sobre https://breezewiki.discard.no/wartune/wiki/Farm (espelho de
+# wartune.fandom.com/wiki/Farm; a página não abriu): o amigo leva uma pequena parte (10%) do valor, até 3 vezes.
+# Configurável em game_settings farm_steal_percent
 STEAL_PERCENT = 10
 
 
