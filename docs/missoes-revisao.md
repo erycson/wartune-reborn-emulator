@@ -4,6 +4,11 @@ Revisão de leitura (agentes Haiku 5.5, 2026-10-17) das 339 missões de `QuestTe
 (`QuestCondictionInfos`), guia do cliente e entregar (5014). Retrato do código em `milestone-1` antes da leva de
 correções das missões; o estado atual de cada tipo de condição fica em [missoes.md](missoes.md).
 
+> **2026-10-19 (captura do oficial inglês, [captura-oficial-en.md](captura-oficial-en.md)):** as campanhas
+> 1001, 1002 e 6001 agora têm conteúdo no banco (`campaign_contents`, migração 0034; `dungeon_1001.json` saiu).
+> Com isso 102 (madeira da 6001), 120 e 130 (1002) deixam de travar. As linhas abaixo que citam a 6001 recusada,
+> `dungeon_1001.json` ou a 1002 sem nós são anteriores a isso.
+
 Resultado: **22 ok**, **36 parcial**, **281 trava**. Em milestone-1 eram 18 ok, 34 parcial e 287 trava. O núcleo (revisão de 2026-10-17) não mudou a contagem, e a masmorra 1001 passou 70, 80 e 90 de trava para ok. A cidade externa passou 100 de trava para ok, e 411 e 765 de trava para parcial. Se o desenho excluir o robô (ver a cidade externa abaixo), a conta volta a 21 ok, 34 parcial e 284 trava. O 18/36/285 do worktree da cidade externa é sobre milestone-1, sem a masmorra.
 
 Atualização de 2026-10-17 (worktree `wf_e40d1fc5-675-1`): o servidor conta a bolsa (27, 28, 32 e 49), confere o aceite como o cliente (janela, nível, guilda, pré-requisito e repetição pelo dia do jogo, com a virada às 5h), responde o 5014 recusado com o 112 do progresso, consome os itens da entrega, paga RewardStrategy, RewardCrystal e as ofertas, e limita o 5017 a passos plausíveis (salto de até 3500, o maior do newbie.xml). No núcleo, nenhum veredito mudou de contagem: nenhuma missão ficou concluível do zero, porque cada uma tem outro bloqueio (fonte do item, pré-requisito ou NeedFightId). As notas na coluna Motivo, marcadas com "Revisão 2026-10-17". Continuam sem pagamento RewardMoney, RewardHeroGP e RewardDower, e sem contagem os tipos 20, 45, 64, 65 e 66 (o 8 conta a vitória no castelo-robô, ver a cidade externa abaixo; o 31 conta parcialmente na 1001, ver abaixo).

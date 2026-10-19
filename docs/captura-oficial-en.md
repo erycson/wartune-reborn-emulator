@@ -45,14 +45,14 @@ Recompensas batem com `QuestTempInfo`/`QuestGoods`. Feito (detalhes em [missoes.
 - [x] ordem 115 (gasto), 3, 112, 3 (strategy), 109, 150, 3, 115 (ganhos), 111, 52, 83;
 - [x] 150 na entrega só quando sobe de nível;
 - [x] a missão 10 nasce com o personagem (`addDate` = criação; o oficial nunca recebe 5012 dela);
-- [ ] 100 (tropas) e 139 junto da subida de nível: o `add_gp` não manda (vale para toda subida, não só missão);
+- [x] 100 e 139: vêm vazios (o 100 depois de quase todo 150, não só na subida; o 139 uma vez, #636). Sem dado, não mandamos;
 - [ ] diária 863 (tipo 63 "Devotion", VIP, nível 10): aceita pelo cliente junto da 160 (#3195) com `condition_1` 0,
   embora a devoção do dia já estivesse em 20 (#1652 "Your devotion level has increased to 20."). A fonte é a devoção
   (`dayGuide`: "Receive {1} devotion by ..."), que o servidor não tem; não há entrega dela na captura.
 
 Tipos conferidos nos 21 aceites/entregas: 23 (10, 30, 40, 45, 50), 2 (51, 81, 82), 3 (52 = 900, 110 = 460: soma,
-passa do `Para2`), 7 (60 = 2), 14 (70; 120 e 130 pedem a 1002, sem nós aqui), 26 (80), 27 (90), 8 (100, robô),
-10 (101 = 3), 32 (102: a fonte é a 6001, recusada), 34 (160, só aceite), 63 (863, só aceite).
+passa do `Para2`), 7 (60 = 2), 14 (70; 120 e 130 pedem a 1002, feita), 26 (80), 27 (90), 8 (100, robô),
+10 (101 = 3), 32 (102: a fonte é a 6001, feita), 34 (160, só aceite), 63 (863, só aceite).
 
 Correlações (missão ↔ item ↔ monstro ↔ texto):
 - 90 "Collect Worg Teeth" ↔ 2100001 Worg Tooth ↔ Grassland Worgs da Worg Lair (1001): "Received: Worg Tooth x2" (#1276);
