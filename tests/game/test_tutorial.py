@@ -41,7 +41,7 @@ async def test_first_map_battle_and_quest(tmp_path: Path) -> None:
         assert codes(await g.until(1)) == [3, 1]
         c.send(8196, pb.NodeLockReqMsg(nodeId=1000103, lock=True))
         chase = pb.NPCChaseMsg.FromString((await g.until(4105))[-1].body)
-        assert chase.nodeId == 9545
+        assert chase.nodeId == 14037
 
         c.send(5124, pb.PosMoveMsg(mapId=10001, armyId=g.user_id, routes=[pb.RouteMsg(x=800, y=1180)]))
         c.send(5125, pb.CampaignReqMsg(paraInt1=1000103, paraBool1=True))
@@ -115,7 +115,7 @@ def test_resume_states() -> None:
     first = CampaignMap.enter(10001, 13000)
     assert first.node(1000104)["state"] == DONE and first.node(1000106)["state"] == NORMAL  # type: ignore[index]
     second = CampaignMap.enter(10002, 18500)
-    assert second.escort == 9548 and second.node(1000206)["state"] == NORMAL  # type: ignore[index]
+    assert second.escort == 14040 and second.node(1000206)["state"] == NORMAL  # type: ignore[index]
 
 
 async def test_second_map_to_castle(tmp_path: Path) -> None:
@@ -140,7 +140,7 @@ async def test_second_map_to_castle(tmp_path: Path) -> None:
         assert prepare.battleType == 18 and any(h.tempId == 1005 for h in prepare.heros)  # Tina aliada
         got = await g.fight(prepare)
         updates = [pb.CampaignNodeUpdateMsg.FromString(p.body) for p in got if p.code == 128]
-        assert [(u.nodeId, u.nodeState) for u in updates] == [(9555, 8), (9556, 1), (9557, 1)]
+        assert [(u.nodeId, u.nodeState) for u in updates] == [(14047, 8), (14048, 1), (14049, 1)]
 
         c.send(5017, pb.NoviceReqMsgMsg(noviceProcess=18600))
         await g.until(1)
@@ -180,7 +180,7 @@ async def test_escort_survives_relog(tmp_path: Path, callbacks: int) -> None:
         g.client.send(5127, pb.NoviceReqMsgMsg(type=1))
         got = await g.until(143)
         assert codes(got) == [125, 140, 21, 127, 130, 4124, 143]
-        assert pb.NPCFollowMsg.FromString(got[5].body).escortId == 9548
+        assert pb.NPCFollowMsg.FromString(got[5].body).escortId == 14040
         for _ in range(callbacks):
             g.client.send(5032, pb.CallBackReqMsg(mapId=10001, nodeId=1000106, cmd=2))
             assert codes(await g.until(4122)) == [128, 4124, 4122]

@@ -2,7 +2,7 @@
 
 Personagem novo com `noviceProcess < 19000` (o padrão; `WARTUNE_SKIP_TUTORIAL=true` pula) começa na campanha de
 treino: dois mapas, 10001 e 10002 ("Ryan Yolu"), com cinco batalhas, um baú com a arma da
-classe, a Tina como escolta e, no fim, a batalha do chefe na cidade externa para retomar o
+classe, a Dinah como escolta e, no fim, a batalha do chefe na cidade externa para retomar o
 castelo. Tudo foi reproduzido da captura oficial (`server-relay/replay_packets.json`, pacotes
 116 a 580).
 
@@ -41,14 +41,14 @@ Roteiro dos nós (constantes no topo de `game/handlers/campaign.py`):
 
 | nó | evento |
 |---|---|
-| 1000103, 1000104 (Avcı) | chegada: batalha |
+| 1000103, 1000104 (Huntera) | chegada: batalha |
 | 1000110 (gatilho) | chegada: diálogo 0. 1º 5032: câmera na Tina, o urso pisca, diálogo 1. 2º 5032: o jogador anda até `param4` e o gatilho some |
 | 1000106 (urso) | chegada: diálogo 2. 5032 com o urso de pé: batalha; vitória: 1000109 aparece. 5032 com o urso derrotado (no 15300): a Tina passa a seguir |
 | 1000108 (portal) | aparece no `noviceProcess` 14000. Chegada: 4208 e mapa 10002 (`createdType:3`) |
 | 1000202 (baú) | chegada: arma da classe (`param3`, índice `job-1`) com o atributo sorteado `DefaultSkill`, 115, 111, 128, 150 |
 | 1000203 (urso) | chegada: batalha tipo 18 com a Tina |
 | 1000208 (gatilho) | chegada: o jogador anda até `param4` com a câmera |
-| 1000205 (Acımasız Kan) | chegada: diálogo 3. 5032: batalha. Vitória: saída 1000206 e 1000207 aparecem |
+| 1000205 (Brutal Bloodhoof) | chegada: diálogo 3. 5032: batalha. Vitória: saída 1000206 e 1000207 aparecem |
 | 1000206 (saída) | chegada: 4165, 150, 140, 134. O cliente vai para a cidade externa |
 
 Cidade externa (`handlers/outer_city.py`): 9525 → 4938; 8201 → 4129 (o próprio castelo) e 169;

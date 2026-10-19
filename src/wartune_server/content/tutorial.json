@@ -7,7 +7,7 @@
    ],
    "nodes": [
     {
-     "nodeId": 9544,
+     "nodeId": 14036,
      "campDataId": 1000101,
      "nodeName": "",
      "masterType": 40,
@@ -41,7 +41,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9545,
+     "nodeId": 14037,
      "campDataId": 1000103,
      "nodeName": "Huntera",
      "masterType": 42,
@@ -75,7 +75,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9546,
+     "nodeId": 14038,
      "campDataId": 1000104,
      "nodeName": "Huntera",
      "masterType": 42,
@@ -109,7 +109,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9547,
+     "nodeId": 14039,
      "campDataId": 1000106,
      "nodeName": "Gold Mountain Bear",
      "masterType": 42,
@@ -143,7 +143,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9548,
+     "nodeId": 14040,
      "campDataId": 1000107,
      "nodeName": "Dinah",
      "masterType": 42,
@@ -177,7 +177,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9549,
+     "nodeId": 14041,
      "campDataId": 1000108,
      "nodeName": "",
      "masterType": 62,
@@ -211,7 +211,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9550,
+     "nodeId": 14042,
      "campDataId": 1000109,
      "nodeName": "",
      "masterType": 53,
@@ -245,7 +245,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9551,
+     "nodeId": 14043,
      "campDataId": 1000110,
      "nodeName": "",
      "masterType": 53,
@@ -283,7 +283,7 @@
   "10002": {
    "nodes": [
     {
-     "nodeId": 9548,
+     "nodeId": 14040,
      "campDataId": 1000107,
      "nodeName": "Dinah",
      "masterType": 42,
@@ -317,7 +317,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9558,
+     "nodeId": 14050,
      "campDataId": 1000208,
      "nodeName": "",
      "masterType": 53,
@@ -351,9 +351,9 @@
      "param5": ""
     },
     {
-     "nodeId": 9559,
+     "nodeId": 14051,
      "campDataId": 1000209,
-     "nodeName": "Cow",
+     "nodeName": "Cattle",
      "masterType": 42,
      "sonType": 2301,
      "preNodeIds": "0",
@@ -385,7 +385,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9552,
+     "nodeId": 14044,
      "campDataId": 1000201,
      "nodeName": "",
      "masterType": 62,
@@ -419,7 +419,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9553,
+     "nodeId": 14045,
      "campDataId": 1000202,
      "nodeName": "",
      "masterType": 42,
@@ -453,7 +453,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9554,
+     "nodeId": 14046,
      "campDataId": 1000203,
      "nodeName": "Gold Mountain Bear",
      "masterType": 42,
@@ -487,9 +487,9 @@
      "param5": ""
     },
     {
-     "nodeId": 9555,
+     "nodeId": 14047,
      "campDataId": 1000205,
-     "nodeName": "Tauren Gladiator",
+     "nodeName": "Brutal Bloodhoof",
      "masterType": 42,
      "sonType": 2138,
      "preNodeIds": "0",
@@ -521,7 +521,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9556,
+     "nodeId": 14048,
      "campDataId": 1000206,
      "nodeName": "",
      "masterType": 41,
@@ -555,7 +555,7 @@
      "param5": ""
     },
     {
-     "nodeId": 9557,
+     "nodeId": 14049,
      "campDataId": 1000207,
      "nodeName": "",
      "masterType": 53,
@@ -599,7 +599,7 @@
   "1000103": {
    "battleType": 6,
    "mapTempId": 10001,
-   "attackModel": 0,
+   "attackModel": 2,
    "soldiers": [
     {
      "livingId": 2,
@@ -1146,15 +1146,15 @@
       "roleName": "Dinah",
       "event": "",
       "param": "",
-      "text": "Yardım edin!"
+      "text": "Help me!"
      },
      {
       "index": 0,
       "direction": 1,
-      "roleId": 6,
+      "roleId": 3,
       "roleName": "",
       "event": "SESSION_OVER",
-      "param": "mapId:877|nodeId:1000110|command:2",
+      "param": "mapId:1820|nodeId:1000110|command:2",
       "text": ""
      }
     ]
@@ -1174,7 +1174,7 @@
       "roleName": "Gold Mountain Bear",
       "event": "",
       "param": "",
-      "text": "Büyük Rahibe<font color='#ef0101'><b>Tina</b></font>，bizden kaçamazsınız!"
+      "text": "<font color='#ef0101'><b>Helpless girl</b></font>, there is no where to run!"
      },
      {
       "index": 2,
@@ -1183,24 +1183,24 @@
       "roleName": "Dinah",
       "event": "",
       "param": "",
-      "text": "Beni öldürsen bile kötülüklerin sonsuza kadar zaferden yoksun kalacak."
+      "text": "Please, someone save me!"
      },
      {
       "index": 3,
       "direction": 0,
-      "roleId": 6,
+      "roleId": 3,
       "roleName": "{nick}",
       "event": "",
       "param": "",
-      "text": "Dur!"
+      "text": "Hey, you! Why don't you pick on someone your own size?"
      },
      {
       "index": 0,
       "direction": 1,
-      "roleId": 6,
+      "roleId": 3,
       "roleName": "",
       "event": "SESSION_OVER",
-      "param": "mapId:877|nodeId:1000110|command:2",
+      "param": "mapId:1820|nodeId:1000110|command:2",
       "text": ""
      }
     ]
@@ -1220,7 +1220,7 @@
       "roleName": "Gold Mountain Bear",
       "event": "",
       "param": "",
-      "text": "Hemen defolun buradan. "
+      "text": "Oh, good. My dessert has arrived!"
      },
      {
       "index": 2,
@@ -1229,15 +1229,15 @@
       "roleName": "Dinah",
       "event": "",
       "param": "",
-      "text": "Bu canavar özel güçlerle donatılmış,dikkatli olun! "
+      "text": "This beast has been infected by the forces of evil! Look out! "
      },
      {
       "index": 0,
       "direction": 1,
-      "roleId": 6,
+      "roleId": 3,
       "roleName": "",
       "event": "SESSION_OVER",
-      "param": "mapId:877|nodeId:1000106|command:2",
+      "param": "mapId:1820|nodeId:1000106|command:2",
       "text": ""
      }
     ]
@@ -1254,10 +1254,10 @@
       "index": 1,
       "direction": 1,
       "roleId": 14,
-      "roleName": "Tauren Guard",
+      "roleName": "Tauren Gladiator",
       "event": "",
       "param": "",
-      "text": "Büyük Rahibe Tina,buraya kendi ayağınla geleceğini hiç düşünmemiştim..."
+      "text": "High Priestess Dinah, you have arrived at just the right time!"
      },
      {
       "index": 2,
@@ -1266,33 +1266,33 @@
       "roleName": "Dinah",
       "event": "",
       "param": "",
-      "text": "Lütfen artık masum insanların hayatlarını mahvetmeyi bırakın! Eğer buna bir son verirseniz,Tanrı sizi affedecektir.  "
+      "text": "You must stop hurting those innocent villagers! Cease this senseless killing and I will entreat the gods to forgive you."
      },
      {
       "index": 3,
       "direction": 1,
       "roleId": 14,
-      "roleName": "Tauren Guard",
+      "roleName": "Tauren Gladiator",
       "event": "",
       "param": "",
-      "text": "Siz insanlar bizim kölemiz olana kadar durmaya niyetimiz yok. "
+      "text": "Mwahahaha! Who needs your silly gods? They are nothing compared to the great Karnatog! We will soon regain our place in this miserable world!"
      },
      {
       "index": 4,
       "direction": 0,
-      "roleId": 6,
+      "roleId": 3,
       "roleName": "{nick}",
       "event": "",
       "param": "",
-      "text": "Lanet olası Boğa Başlılar! Ahmaklığınızın bedelini ödeyeceksiniz!"
+      "text": "Get out of my way, you witless beast! The days of the Tauren are long over!"
      },
      {
       "index": 0,
       "direction": 1,
-      "roleId": 6,
+      "roleId": 3,
       "roleName": "",
       "event": "SESSION_OVER",
-      "param": "mapId:878|nodeId:1000205|command:2",
+      "param": "mapId:1821|nodeId:1000205|command:2",
       "text": ""
      }
     ]

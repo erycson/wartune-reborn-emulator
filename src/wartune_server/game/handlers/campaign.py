@@ -147,10 +147,12 @@ def _send_plot(s: GameSession, entry: dict[str, Any]) -> None:
     cls = s.ctx.registry.message_type(S_PLOT, Direction.SERVER_TO_CLIENT)
     assert cls is not None
     msg = ParseDict(entry["plot"], cls())
-    nick = s.snapshot.character.nickname if s.snapshot else ""
+    me = s.snapshot.character if s.snapshot else None
     for info in getattr(msg, "info", []):
         if info.roleName == "{nick}":
-            info.roleName = nick or ""
+            info.roleName = (me.nickname if me else None) or ""
+            if me:
+                info.roleId = me.job  # retrato de quem fala: o oficial manda o job (6 na captura turca, 3 na inglesa)
     _send(s, S_PLOT, msg, extend2=entry["extend2"])
 
 
