@@ -73,7 +73,7 @@ captura virou -500).
   | Leed | Título | Gancho | Fonte |
   |---|---|---|---|
   | 8 | Contribute to your Guild | doação 5144 (`guild/upgrades.contribute`), depois do 111 | *(visto)* turca birlik_katkisi #10-#11 |
-  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend` e o `gd.pay_points` da guilda) | *(visto)* turca yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152) |
+  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend` e o `gd.pay_points` da guilda) | *(visto)* turca yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152); sem contraexemplo: a aceleração paga da savasa_baskin (gift 5 → 0, sem 4152 do 15) já está com total 37, depois do labirinto (22); a inglesa não gasta diamante |
   | 17 | Capture an Astral | sorteio de estrela 8269, antes do 4180 | *(visto)* turca kader_sistemi #4-#7 |
   | 18 | Fight a World BOSS | `worldboss.boss_attack`, já no ataque (como o 10) | *(dedução)* pelo título |
   | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(dedução)* pelo título (PassCount 5) |
