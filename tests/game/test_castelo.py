@@ -100,7 +100,7 @@ async def test_refuses_without_gold_player_grade_or_someone_elses_building(tmp_p
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=theirs))
         assert await g.idle() == []
         await _set(g, grades=1, gold=1000)
-        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=mine))  # Meclis 2 pede nível 2
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=mine))  # Town Hall 2 pede nível 2
         assert await g.idle() == []
         assert (await g.server.services.characters.snapshot(g.user_id)).character.gold == 1000
 

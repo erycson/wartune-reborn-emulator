@@ -524,7 +524,7 @@ async def _pet_over(s: GameSession, won: bool, target: int, name: str) -> None:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     if delta:
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Puan  {delta:+d}"))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points  {delta:+d}"))  # (só turco: "Puan")
 
 
 @router.on(8725)

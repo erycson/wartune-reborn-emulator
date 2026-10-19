@@ -205,7 +205,7 @@ async def test_move_plays_the_cascade_pays_the_maze_bag_and_unlocks_the_client(t
         assert list(updates[0].score) == [20] and updates[0].curExp == 63
         assert all(len(u.rewardInfo) == 1 for u in updates)
         assert [p.code for p in got][-1] == 4924
-        assert any(p.code == 83 and b"Puan 20" in p.body for p in got)
+        assert any(p.code == 83 and b"Points 20" in p.body for p in got)
         snap = _snap(g)
         maze = [i for i in snap.items if i.bag_type == BagType.MAZE]
         paid = sum(dict(gm.REWARDS)[u.rewardInfo[0].rewardId] for u in updates)  # 208014 vem 2 por passo

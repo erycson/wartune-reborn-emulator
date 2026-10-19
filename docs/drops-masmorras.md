@@ -1,7 +1,7 @@
 # Drops das masmorras
 
 A carta do fim da etapa é sorteada pela tabela `campaign_cards` (migração 0034), no formato (campanha, item,
-peso, fonte). O peso é quantas vezes o item saiu nas capturas (inglesa; 1080013, 1080002 e a Luck Stone do 102102 só turco: replay). Os itens da coluna `Item` de
+peso, fonte). O peso é quantas vezes o item saiu nas capturas (inglesa; as cartas 1080013 e 1080002 só turco: replay). Os itens da coluna `Item` de
 `Campaigns` que nunca foram vistos pesam 1. Uma campanha sem linhas na tabela usa a coluna `Item` com pesos iguais
 (`game/drops.py`). As tabelas por campanha abaixo são um retrato do template, para conferir com vídeos e capturas.
 

@@ -119,7 +119,7 @@ async def open_maze(s: GameSession, _: object) -> None:
 @router.on(9509)
 async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
     """Troca ``beginMark``/``endMark``: resolve a cascata inteira em memória, põe cada prêmio na bolsa 24,
-    grava uma vez e manda, por passo, o 115 (bolsa), os "Puan"/"EXP" e o 4923; por fim o 4924 libera a troca.
+    grava uma vez e manda, por passo, o 115 (bolsa), os "Points"/"EXP" e o 4923; por fim o 4924 libera a troca.
     Pedido inválido ou bolsa sem espaço para os prêmios: nada muda e só o 4924 (o cliente não trava)."""
     snap = _snap(s)
     now = s.ctx.clock.now()
@@ -137,7 +137,7 @@ async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
         game.exp += step.exp
         items = _add_maze(snap, templates, step.reward, step.count)
         changed += [i for i in items if i not in changed]
-        out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Puan {step.points}")))
+        out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points {step.points}")))  # (só turco: "Puan")
         out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"EXP {step.exp}")))
         out.append((S_ITEMS, _items_msg(items, s.player_id)))  # montado agora: a pilha muda no passo seguinte
         out.append((S_UPDATE, _update_msg(step, game)))

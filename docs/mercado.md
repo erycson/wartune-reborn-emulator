@@ -68,8 +68,8 @@ genérica). Mudou nesta revisão: template sem `StartingPrice` dava −7; o text
 
 - Só item da mochila (bolsa 1) com `sellType` 1. Mascote (`sellType` 2) não tem leilão.
 - Template com `StartingPrice` > 0 em `ItemTempInfos` (`tempinfos.xml`). O preço inicial mínimo é
-  `StartingPrice × count` *(dedução)* e nunca menos de 2 *(cliente, `Auction.SubmitAlert2` "İlk Fiyat 2'den az
-  olamaz")*: o template define o piso, e o jogador escolhe acima.
+  `StartingPrice × count` *(dedução)* e nunca menos de 1 *(cliente, `Auction.SubmitAlert2` inglês: "greater than
+  zero"; o turco dizia 2)*: o template define o piso, e o jogador escolhe acima.
 - A ajuda diz que anunciar cobra ouro de imposto *(cliente, ajuda item 4)*. O valor não está no cliente: o servidor
   não cobra (ver Dependências).
 - Duração: a tela oferece 8, 24 ou 48 h (`Auction.SubmitHour1..3`); o servidor aceita 1 a 72 *(dedução)*, porque o
@@ -165,8 +165,8 @@ inventa formato:
   faz com 10 unidades.
 - **Página**: a lista pede 9 por página *(cliente: `sendMyAuctionListReq(1,9,1)`)*. O teto de 50 é *(dedução)*.
   O 8457 não manda tamanho e usa 9.
-- **Preço inicial**: o piso é `StartingPrice × count` *(dedução)*, nunca abaixo de 2 *(cliente, `SubmitAlert2`)*.
-  "İlk Fiyat fazla düşük" (`SubmitAlert5`) não tem o número. **Precisa de captura**: anunciar exatamente em
+- **Preço inicial**: o piso é `StartingPrice × count` *(dedução)*, nunca abaixo de 1 *(cliente, `SubmitAlert2` inglês)*.
+  O aviso de preço baixo (`SubmitAlert5`) não tem o número. **Precisa de captura**: anunciar exatamente em
   `StartingPrice × count` e um abaixo, e ler o código.
 - **Preço fixo**: `fixPoint` 0 = sem compra imediata. O cliente tem "Sabit Fiyat, İlk Fiyattan yüksek olmak zorundadır"
   (`SubmitAlert4`), que é o −5 e confere. "Sabit Fiyat girin" (`SubmitAlert3`) não diz se o campo é obrigatório.

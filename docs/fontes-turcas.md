@@ -29,4 +29,11 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Login 20001 | relay | chave e corpo cifrado do 20001 (`test_cipher_and_packet`, `pcap_samples` c2s 20001) | tests/protocol | capturar desde o login (a inglesa começa no meio) |
 | Amostras do .proto | replay | c2s 5172, 8574, 10020; s2c 102, 4224, 4463, 4922 | test_messages_against_pcap | usar esses sistemas |
 | Fuso dos testes | todas as turcas | `game_timezone="+03:00"` em tests/game/harness.py | conftest, harness, configuracao.md | (trocar só junto com os dados acima) |
-| Textos do leilão e do help | language.txt turco | `Auction.*`, "Şanslı Ödülü", "Çanta dolu..." | mercado.md, boss-eventos.md | language.txt inglês do CDN res134 |
+| Limite diário do leilão | language.txt turco | `Auction.ResultAlert52` e faixas 500/1000/1500 (`handlers/mall.py`); o cliente inglês não tem a chave | mercado.md | comprar no leilão até passar do limite (ou decidir tirar o limite) |
+| Textos de pontos | meydan_okuma, av_askeri | "Puan" do chat virou "Points" por dedução (`arena.py`, `gemmaze.py`) | pvp.md, eventos.md | uma luta no torneio e uma troca no labirinto |
+| Cartas das masmorras | replay #1241/#1355/#1744 | sem filtro de classe, 3 atributos no 1080013, Lvl. 1 Luck Stone 0,5 no 102102 (migração 0034) | drops-masmorras.md | rodar a 1001 mais vezes |
+| Forgotten Catacombs | login.json #55, yeralti_labirenti, labirent_sandik | 4205, maxIndex 60, campanha 8001 (`handlers/tower.py`) | salas-campanha.md | abrir e entrar |
+| Sala em grupo | exp_kitabi_…_ek_sahne_mob #17-#23 | 12/17/32/120, playerState 2 (`handlers/room.py`) | salas-campanha.md | criar sala de campanha em grupo |
+| Forja | atolye_item_basma_ve_mozaik, degerli_tas_birlestirme | aviso do engaste, 5153 de síntese | itens.md | engastar e sintetizar pedras |
+| Login de conta avançada | login.json | 4224/4372 (alquimia e alma), 4912 (recuperar EXP), 4614/4198 (anel em andamento), 4540 e pet no 150, 4905, 4201, appraisalSkill, 4426/4555 (roda, alma do dragão), bit da repetível, +30 de ouro | diversos.md, eventos.md | logar com conta de nível alto, guilda, pet, montaria |
+| Castelo | city_city_upgrade, login.json | cobrança 8327 (remainTime 3600, fórmula), bênção 8489 (4152 antes do 4391) | castelo.md | cobrar impostos e usar o seminário |
