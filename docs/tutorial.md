@@ -94,7 +94,8 @@ com o progresso. As concluídas formam o bitmap
 EXP do jogador pela tabela `UpGradeTempInfo Types=3` (`Data` = EXP do nível anterior até este,
 acumulada: 3000, 7000, 12000…); o líder sobe junto. O mago ganha por nível inteligência +3,
 agilidade +1, liderança +10, físico +1 (`GROWTH` em `game/rules.py`; guerreiro e caçador são um
-palpite espelhado). Os derivados (`HeroStats.of`) batem com a captura nos níveis 1, 3 e 5, com e
+palpite espelhado). Na subida o exército pega do castelo as tropas que a liderança nova permite (castelo 748→738,
+exército 152→162, tutorial_en; `rules.top_up_army`). Os derivados (`HeroStats.of`) batem com a captura nos níveis 1, 3 e 5, com e
 sem arma:
 
 | atributo | fórmula |

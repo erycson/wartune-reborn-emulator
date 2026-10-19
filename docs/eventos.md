@@ -60,8 +60,19 @@ captura virou -500).
   batalha, 35 fadas.
 - Tipo 13 conta dias de login (primeiro login do dia); tipo 14 soma segundos online desde o
   último resgate (zera a cada presente, gravado na desconexão e no resgate).
-- Outros `activeType` ficam "ainda não" (3): cada um depende do sistema dele (recarga, troca,
-  montaria...).
+- Contadores por ação (`game/events.py` `count`, estado `sum:<activeId>`; o 4476 leva o contador em `value`):
+  21 Gold Alchemy (8321), 22 Daru Alchemy (8467), 26 desafio do coliseu (8253, no início), 108 giro do destino
+  (8627, por giro), 109 fusão do destino (8626, por carta) e 110 Sylph Arena (fim da luta de fadas). 12 =
+  devoção do dia (soma dos `Num` dos leeds de hoje, condição 13). Diário (zera no dia do jogo): 12, 14, 108, 109
+  e 110, pelos textos "today" do cliente (`funny.FunnyRightView`); 21, 22 e 26 contam o período todo (texto sem
+  "today": **dedução**). O resgate do diário marca o dia; o do período, o período.
+- Outros `activeType` ficam "ainda não" (3), cada um **depende de** um sistema: 1 gasto e 15 recarga de Balens
+  (cash), 10 troca, 18 cultivo de montaria, 2 montaria, 5 refino, 7 honra, 9 recarga, 11 moda, 19 selo de alma,
+  20 astrologia, 23 recompensa, 24 mistério, 25 runa, 27 anfiteatro, 28 campo de batalha, 100-102 runas e cartas,
+  105 torre do rei, 106/107 roda, 111 campo minado, 112 pesca, 113 trilhas, 118 labirinto. **precisa de captura**:
+  se o oficial empurra 4476 quando um contador sobe (aqui só vai no pedido 8586 tipo 1).
+- 8586 tipo 2 do replay #678 (pacote do login de 7 dias) é o mesmo resgate; a recusa vinha só dos GUIDs do
+  catálogo do operador, diferentes dos oficiais (o oráculo do tutorial troca pelos nossos).
 - Leed = **devoção** (dayGuide "Daily devotion"; `totalNum` do 4152 = soma dos `Num` dos `LeedTemp` completos no
   dia; zera na virada do dia do jogo, `ev.daily`). Contam: login 1 (1º login do dia), 4 "Complete a solo dungeon"
   (saída do mapa do tutorial, tutorial_en #521, e fim de etapa de campanha com `Capacity` 1), 5 (fim de etapa com
@@ -73,7 +84,7 @@ captura virou -500).
   | Leed | Título | Gancho | Fonte |
   |---|---|---|---|
   | 8 | Contribute to your Guild | doação 5144 (`guild/upgrades.contribute`), depois do 111 | *(visto)* turca birlik_katkisi #10-#11 |
-  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend` e o `gd.pay_points` da guilda) | *(visto)* turca yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152); sem contraexemplo: a aceleração paga da savasa_baskin (gift 5 → 0, sem 4152 do 15) já está com total 37, depois do labirinto (22); a inglesa não gasta diamante |
+  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend` e o `gd.pay_points` da guilda) | *(visto)* a aceleração paga 5172 chama antes do 111/102 (replay #1289-#1294: o "Emek oranınız 25'a ulaştı." é este 83); turca yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152); sem contraexemplo: a aceleração paga da savasa_baskin (gift 5 → 0, sem 4152 do 15) já está com total 37, depois do labirinto (22); a inglesa não gasta diamante |
   | 17 | Capture an Astral | sorteio de estrela 8269, antes do 4180 | *(visto)* turca kader_sistemi #4-#7 |
   | 18 | Fight a World BOSS | `worldboss.boss_attack`, já no ataque (como o 10) | *(dedução)* pelo título |
   | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(dedução)* pelo título (PassCount 5) |
@@ -110,7 +121,7 @@ captura virou -500).
 
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
-| login | 4410 `VipInfoMsg`, 4434 com os 7 contratos | (visto) login.json #107, #15 |
+| login | 4410 `VipInfoMsg`, 4434 só com os contratos já comprados (conta sem contrato = vazio) | (visto) login.json #107; tutorial_en #10-#11 e replay #4 vazios |
 | 8513 | `days` 31/93/186 por `One/Three/Six_MonthPoint` (298/868/1588), só diamante; renova somando; 3, 4410, 4416 | (cliente) OpenSelfView |
 | 8505 | presente semanal `VipDrop.site` = nível VIP; 115, 111, 4410, 4539, 83 ("Received: ..."); de novo na segunda da semana seguinte (semana começa no domingo, *dedução*: um ponto só); repetido sem resposta | (visto) tutorial_en #3266-#3282 |
 | 5006 (2031201) | cartão VIP de teste: `Property3` horas somadas ao fim; 115, 111 "Your VIP service has been extended N hours; new expiration date is AAAA-MM-DD.", 4410 `vipType` 2, 3 | (visto) tutorial_en #3259-#3263 |

@@ -71,6 +71,10 @@ Atributos derivados do herói (ataque, defesa, vida e poder de luta) são calcul
 As fórmulas atuais foram calibradas com essa única amostra (dá 199 de poder de luta na maga nível 1),
 por isso estão marcadas com `ponytail:` para serem revistas quando houver mais capturas.
 
-Na captura oficial o servidor ainda manda, logo depois do 20001, os pacotes 4434, 83, 100, 4224,
-4900, 4922 e 4590, e responde a 8320, 8466, 8530, 8218, 8209, 8625 e 8322. Eles não são necessários
-para chegar ao castelo, mas são os próximos candidatos se o cliente reclamar de algum dado ausente.
+Pacotes extras do login, conferidos com `captures/tutorial_en.json` (conta nova):
+- Mandados: 4434 (vazio sem contrato comprado, como o oficial), 83 (devoção, #16), 4224/4372 (alquimia), 4922
+  (só com tabuleiro gravado) e as respostas a 8320, 8466, 8530, 8218, 8209, 8625 e 8322.
+- Não mandados, de propósito: 100 vazio (#13, #39) e 4900 `KingTowerInfoMsg {0, 0}` (#100) só levam o padrão
+  do protobuf, igual ao estado inicial do cliente; a torre do rei não existe aqui. 4590 (cartão de assinatura,
+  #110) leva datas do evento do servidor: **sem dado** para um evento nosso.
+- Diferença conhecida: o oficial não manda 4224/4372 no login da conta nova; aqui vão (o cliente aceita).

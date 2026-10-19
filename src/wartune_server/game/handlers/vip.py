@@ -335,12 +335,15 @@ def has_contract(snap: PlayerSnapshot, cid: int, now: datetime) -> bool:
 
 
 def send_king(s: GameSession) -> None:
+    """Só os contratos já comprados: (visto) tutorial_en #10-#11, conta nova = 4434 vazio; (cliente)
+    KingContractInfo.endData null = sem contrato (leftTime -1)."""
     snap = s.snapshot
     assert snap is not None
     msg = pb.KingContractMsg()
     for row in s.ctx.templates.rows("KingContracts"):
         cid = int(row["Id"])
-        msg.kingContractInfos.add(contractId=cid, endData=b.fmt_time(_king_end(snap, cid) or snap.character.created_at))
+        if (end := _king_end(snap, cid)) is not None:
+            msg.kingContractInfos.add(contractId=cid, endData=b.fmt_time(end))
     s.send(S_KING, msg)
 
 

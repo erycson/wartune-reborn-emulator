@@ -171,7 +171,9 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=114206, paraBool1=True))  # Karda: luta na chegada
         end = await won(g)
         assert 138 not in codes(end)
-        assert codes(end)[-10:] == [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140]  # inglesa #3155-#3166
+        # inglesa #3155-#3166 (lá sem subida de nível; aqui o mago de teste sobe e vêm 139/100 do push_level)
+        tail = [c for c in codes(end) if c not in (139, 100)][-10:]
+        assert tail == [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140]
         rank = pb.RankListRspMsg.FromString(next(p.body for p in end if p.code == 4151))
         assert [r.campaignId for r in rank.rankInfo] == [1002]
         snap = await characters.snapshot(g.user_id)

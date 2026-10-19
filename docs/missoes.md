@@ -51,7 +51,10 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 11. 52.
 12. 83 "Received 3,000 EXP " (vírgula de milhar e espaço no fim) e o 83 de cada item com o mesmo texto do 111.
 
-Fora do que o servidor manda na entrega: 100 (tropas) junto da subida de nível com tropa (51, 70, 81, 110, 130), 139 na 51, 4640/4638 (fundo e guia de 7 dias), 4476/4484 (atividades e títulos).
+Na subida de nível da entrega (`player.push_level`, (visto) replay #625-#628 e tutorial_en): o exército completa com
+as tropas do castelo até a nova liderança (+10 no mago); com o castelo já criado (8281) vão 139 se o castelo não tem
+tropa para completar, 100 (tropas do castelo), o 150 e 4640 quando o nível chega ao `openGrades` do fundo de novato
+(6). Fora: 4638 (guia de 7 dias, na missão 130) e 4476/4484 (atividades e títulos).
 - **Sem linha de condição**: a missão não conclui (`quest_done` devolve falso). Nenhuma missão dos dados está assim; o caso existe para id inexistente.
 
 ## Recompensas (5014)

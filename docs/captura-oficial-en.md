@@ -45,7 +45,9 @@ Recompensas batem com `QuestTempInfo`/`QuestGoods`. Feito (detalhes em [missoes.
 - [x] ordem 115 (gasto), 3, 112, 3 (strategy), 109, 150, 3, 115 (ganhos), 111, 52, 83;
 - [x] 150 na entrega só quando sobe de nível;
 - [x] a missão 10 nasce com o personagem (`addDate` = criação; o oficial nunca recebe 5012 dela);
-- [x] 100 e 139: vêm vazios (o 100 depois de quase todo 150, não só na subida; o 139 uma vez, #636). Sem dado, não mandamos;
+- [x] 100 e 139: o 139 uma vez (#636, subida 5→6 com o castelo vazio); o 100 depois do 150 da subida, já com o
+  castelo criado (8281, #578). Mandados na subida de nível (`player.push_level`). O 100 depois de outros 150 sem
+  subida não vai (**dedução**: sem mudança de tropa não há dado novo);
 - [x] diária 863 (tipo 63 "Devotion", VIP, nível 10): aceita pelo cliente junto da 160 (#3195) com `condition_1` 0,
   embora a devoção do dia já estivesse em 20 (#1652). Devoção = leed (`docs/eventos.md`): 5 no login (#16), 10 na
   saída do mapa do tutorial (leed 4, #521), 15 na 1ª mina (leed 9, #748), 20 no ataque ao castelo-robô (leed 10,
