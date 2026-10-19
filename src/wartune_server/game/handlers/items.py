@@ -27,11 +27,11 @@ from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, exp_te
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
-S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (Büyük Sefer)
+S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (The Empire Crusade)
 S_EFFECT, S_ITEM_BUFFER = 110, 4188  # PropertyUpdatedMsg e ItemBufferRspMsg dos pergaminhos de efeito
 BOX, USE, GEM_BOX, BLOOD, EFFECT = "298", "203", "206", "209", "201"  # ItemTempInfo.SonType usáveis
 PROTECTION = 2001  # City Protection Token (208006): o cliente conta pelo 4452 defenceLeftTime e para com o 8562
-STORE_STONE = 208014  # Şeytan Kristali (SonType 293): Property1 = EXP do cristal (8484)
+STORE_STONE = 208014  # Soul Crystal (SonType 293): Property1 = EXP do cristal (8484)
 STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
 BAG_ROW, BAG_MAX = 7, 175  # 5010 compra de 7 em 7 até 175 espaços (PlayerInfo.PLAYER_BAG_MAX)
 MOVABLE = (BagType.STORE, BagType.BAG, BagType.RUNE, BagType.HONOR, BagType.HERO)
@@ -41,11 +41,11 @@ STACKABLE = (BagType.STORE, BagType.BAG)
 # captura EN escreve "deducted 20 stamina" na entrada da masmorra
 USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bound Balens"), 5: ("weary", "Stamina")}
 USE_KINDS |= {6: ("repute", "Honor"), 7: ("gp", "EXP"), 10: ("strategy", "Daru")}
-USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # Büyük Sefer (2032101): +1 entrada de campanha em grupo
+USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (2032101): +1 entrada de campanha em grupo
 VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
 # Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,
-# porque o nome muda de idioma ("Değerli Taş Kutusu Lv.N" no turco, "Lvl. N Gem Pack" no inglês). O 2060006 fica
-# de fora de propósito: são duas pedras Lv.3 e chance de Lv.4 (no turco a descrição tinha '*'; no inglês não tem).
+# porque o nome depende do idioma ("Lvl. N Gem Pack" no inglês). O 2060006 fica de fora de propósito: são duas
+# pedras Lv.3 e chance de Lv.4.
 GEM_BOX_LEVELS = {
     2060008: (1, 1),
     2060009: (2, 2),
@@ -277,23 +277,23 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
 
 
 async def _use_copies(s: GameSession, item: Item, n: int, times: int) -> bool:
-    """Büyük Sefer (203, Property1 15): ``times`` entradas de campanha em grupo a mais, nas que sobram e no
-    máximo do dia (4240 com os dois). Visto (buyuk_sefer_kullanimi_grup_sahne_yarari_1): 1/1 -> 2/2, o 115 do
-    item, o 111 "Grup Ek Sahne yararı 1 kez arttı" e o 3. Vale só no dia do uso (``Character.multi_copies``).
+    """The Empire Crusade (203, Property1 15): ``times`` entradas de campanha em grupo a mais, nas que sobram e no
+    máximo do dia (4240 com os dois). (visto, só turco: buyuk_sefer_kullanimi_grup_sahne_yarari_1) 1/1 -> 2/2, o
+    115 do item, o 111 com o aviso e o 3. Vale só no dia do uso (``Character.multi_copies``).
     *(dedução)* o texto com ``times`` > 1 não foi visto."""
     snap = s.snapshot
     assert snap is not None
     c, now = snap.character, s.ctx.clock.now()
     count, top = c.multi_copies(rules.copies_base(s.ctx.templates), now)
     c.multi_copy_count, c.multi_copy_max, c.multi_copy_day = count + times, top + times, gameday.today(now)
-    # ponytail: sem teto de uso por dia (a captura tem um uso só); o gasto da entrada não existe aqui, falta
+    # ponytail: sem teto de uso por dia (a captura turca tem um uso só); o gasto da entrada não existe aqui, falta
     # captura de entrar numa campanha em grupo (5039 não tem handler)
     changed, gone = _consume(snap, item, n)  # antes de qualquer await
     await s.ctx.characters.save(c, *changed, delete=tuple(gone))
 
     _send_items(s, changed, gone)
     send(s, S_COPIES, pb.MultiCampaignEnterCountMsg(campaignCount=count + times, campaignMaxcount=top + times))
-    # texto deduzido (sem fonte no cliente/captura): o turco era "Grup Ek Sahne yararı N kez arttı"
+    # texto deduzido (sem fonte inglesa no cliente/captura)
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Multi-player Dungeon attempts increased by {times}"))
     _player(s)
     return True
@@ -378,8 +378,8 @@ def send_buffers(s: GameSession, states: list[EventState]) -> None:
 
 async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
     """Pergaminho de efeito (SonType 201): Property1 = EffectTempInfo, Property2 = minutos, Property3 = grau
-    (``game/buffs.py``). (visto) captura turca ``exp_kitabi_kullanim...`` #2-#10, 2013002: 115, 110
-    ``{propertyType 30 (PropertyType1 do 2030), value 100}``, 4188 ``{2030, validityDate 60, grade 100, type 2,
+    (``game/buffs.py``). (visto, só turco: ``exp_kitabi_kullanim...`` #2-#10) 2013002 (Lvl. 2 Bonus EXP Scroll):
+    115, 110 ``{propertyType 30 (PropertyType1 do 2030), value 100}``, 4188 ``{2030, validityDate 60, grade 100, type 2,
     typeTemplateid 2013002}`` e 3, sem texto (o 4902/150/4434 no meio são de outros sistemas)."""
     snap = s.snapshot
     assert snap is not None
@@ -571,12 +571,12 @@ async def lock_item(s: GameSession, msg: pb.LockAndUnlockMsg) -> None:
     _send_items(s, [item], [])
 
 
-# --- cristal (Şeytan Kristali) ---
+# --- cristal (Soul Crystal) ---
 
 
 @router.on(8484)
 async def use_store(s: GameSession, msg: pb.ItemUseStoreReqMsg) -> None:
-    """Gasta ``count`` Şeytan Kristali no cristal do jogador (``storeGp``/``storeGrade``)."""
+    """Gasta ``count`` Soul Crystal no cristal do jogador (``storeGp``/``storeGrade``)."""
     snap = s.snapshot
     assert snap is not None
     c, templates = snap.character, s.ctx.templates
@@ -597,7 +597,7 @@ async def use_store(s: GameSession, msg: pb.ItemUseStoreReqMsg) -> None:
 
 
 def bag_row_cost(index: int) -> int:
-    """Elmas da linha ``index`` (0 = primeira comprada), ``BagBuyFrame``: 10, 20 ... 100 e depois 100."""
+    """Diamantes da linha ``index`` (0 = primeira comprada), ``BagBuyFrame``: 10, 20 ... 100 e depois 100."""
     return (index + 1) * 10 if index < 10 else 100
 
 

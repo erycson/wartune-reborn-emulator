@@ -83,10 +83,11 @@ async def test_pawn_upgrade_costs_soul_and_needs_barracks(tmp_path: Path) -> Non
         await g.server.services.characters.save(barracks)
 
         g.client.send(5158, pb.ArmyPawnInfoMsg(tempateId=10101))
-        got = await g.until(109)
-        assert codes(got) == [3, 116, 150, 109]
-        assert pb.PlayerMsg.FromString(got[0].body).strategy == 84  # 16 de Ruh (UpGrade Types 1)
+        got = await g.until(83)
+        assert codes(got) == [3, 116, 150, 83]  # tutorial_en #2089-#2094
+        assert pb.PlayerMsg.FromString(got[0].body).strategy == 84  # 16 de Daru (UpGrade Types 1)
         assert pb.ArmyPawnInfoMsg.FromString(got[1].body).tempateId == 10102
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Lancer successfully upgraded to Lvl. 2"
 
 
 async def test_skills_second_set_and_reset(tmp_path: Path) -> None:

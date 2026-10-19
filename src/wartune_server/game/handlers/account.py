@@ -146,7 +146,7 @@ async def accelerator(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 async def check_accelerator(s: GameSession, _: object) -> None:
     """Batida de 60 s do relógio do cliente; chegando mais rápido, o relógio dele está acelerado.
 
-    O oficial não responde (``replay_packets.json``: 12 pacotes 20010, nenhuma resposta); só registra.
+    O oficial não responde (tutorial_en: 33 pacotes 20010, #130 o primeiro, nenhuma resposta); só registra.
     """
     now = time.monotonic()
     last, s.accelerator_at = s.accelerator_at, now

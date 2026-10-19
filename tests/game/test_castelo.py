@@ -72,6 +72,23 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         assert 4130 in [p.code for p in await g.until(83)]
 
 
+async def test_barracks_level_that_unlocks_a_troop_sends_100_before_the_order(tmp_path: Path) -> None:
+    """tutorial_en #2208-#2213 (Barracks Lvl. 4 libera o Hunter): 109, 100 com as tropas do castelo e o 10201 com 0,
+    151, 4130, 83."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _set(g, grades=10, gold=1000)
+        council = next(b for b in snap.buildings if b.template_id == 90101)
+        barracks = next(b for b in snap.buildings if b.template_id == 40201)
+        council.template_id, barracks.template_id = 90104, 40203
+        await g.server.services.characters.save(council, barracks)
+
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=barracks.id or 0))
+        got = await g.until(83)
+        assert [p.code for p in got] == [109, 100, 151, 4130, 83]
+        pawns = pb.ArmyPawnUpdatedMsg.FromString(got[1].body).armyPawn
+        assert (10201, 0) in [(a.tempateId, a.ownPawns) for a in pawns]
+
+
 async def test_refuses_without_gold_player_grade_or_someone_elses_building(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=READY) as g:
         other = await g.join("outro")

@@ -1,7 +1,7 @@
 """Amigos, lista negra, grupos, perfil SNS, busca e dados de outros jogadores; troca de nome.
 
 Formatos e textos conferidos no cliente (``FriendManager``, ``FriendSocketOutManager``,
-``SNSManager``, ``RenameView``) e em ``arkadas_istegi_gonderme.json``; ver docs/social.md.
+``SNSManager``, ``RenameView``) e (só turco) em ``arkadas_istegi_gonderme.json``; ver docs/social.md.
 """
 
 from __future__ import annotations
@@ -63,13 +63,13 @@ SEARCH_FIELDS = {  # FriendSearchConditionReqMsg -> SnsProfile (0 = qualquer)
 _TAG = re.compile(r"<[^>]*>")
 # textos curtos no idioma do servidor oficial (os do cliente estão no pacote de idioma)
 NOT_FOUND, REFUSES, ALREADY, FULL = (
-    "Player not found!",  # language.txt ConsortiaTransferFrame.command06 (TR "Oyuncu bulunamıyor!")
+    "Player not found!",  # language.txt inglês ConsortiaTransferFrame.command06
     "Player is not accepting friend requests",  # texto deduzido (sem fonte no cliente/captura)
     "Already on the list",  # texto deduzido (sem fonte no cliente/captura)
     "List is full",  # texto deduzido (sem fonte no cliente/captura)
 )
 # texto deduzido (sem fonte no cliente/captura)
-WAITING, ADDED = "Added, waiting for a reply.", "You have added a new friend"  # arkadas_istegi_gonderme #2-3
+WAITING, ADDED = "Added, waiting for a reply.", "You have added a new friend"  # só turco: arkadas_istegi_gonderme #2-3
 
 
 def _fail(s: GameSession, text: str) -> None:
@@ -118,7 +118,7 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
     else:
         mine.relation, mine.group_id = RelationType.PENDING, social.NO_GROUP
     # pedido pendente ou aceito conta: (cliente) FriendManager.as __addFriend dispara ADD_FRIEND;
-    # (visto) captura arkadas_istegi_gonderme #1 (78 com relation 3, pendente)
+    # (visto, só turco: arkadas_istegi_gonderme #1) 78 com relation 3, pendente
     quests: list[Quest] = []
     if relation == RelationType.FRIEND:
         quests = rules.quest_event(snap, s.ctx.templates, rules.FRIEND_CONDITION, 0, len(snap.relations))

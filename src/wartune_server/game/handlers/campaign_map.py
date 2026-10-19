@@ -15,7 +15,7 @@ S_SYSTEM_ARMY = 20
 # exército do sistema dos mapas fora das campanhas no banco (SystemArmyMsg); as masmorras e a pedreira levam o seu
 # no conteúdo (``maps[mapa]["army"]``, migração 0034, inglesa #924, #1524, #2513). Os demais ficam vazios
 SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplated, soldierTemplated)
-    # (visto) peri_uyanis #89-90: 5038 paraInt1=2011 -> 20
+    # (visto, só turco: peri_uyanis #89-90) 5038 paraInt1=2011 -> 20
     2011: ([3011], [4012, 4011]),
 }
 
@@ -24,8 +24,8 @@ SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplate
 async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     """Pré-carga de batalha do mapa (``PreLoadNextCampaign``, ``paraInt1`` = mapa): responde 20 com a lista do mapa.
 
-    (cliente) o 20 só alimenta ``BattleResPreloadManager``. (visto) um 20 para cada 5038 na masmorra (#923 ->
-    #924 ... #1650 -> #1718, com o atraso do S>C no relay). Responder logo a cada 5038; o cliente remove o
+    (cliente) o 20 só alimenta ``BattleResPreloadManager``. (visto) um 20 para cada 5038 na masmorra (tutorial_en
+    #922 -> #924 ... #1518 -> #1524). Responder logo a cada 5038; o cliente remove o
     listener do 20 depois do primeiro (``PreLoadNextCampaign``, linhas 46 e 80).
     """
     key = str(msg.paraInt1)
@@ -47,7 +47,7 @@ async def campaign_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
 @router.on(5126)
 async def fog_update(s: GameSession, msg: pb.CampaignFogDataListReqMsg) -> None:
-    # na masmorra o servidor devolve a névoa revelada (19 com os mesmos índices, replay #950 -> #953); no
+    # na masmorra o servidor devolve a névoa revelada (19 com os mesmos índices, tutorial_en #881 -> #883); no
     # tutorial a névoa não é guardada (130 volta só no próximo ENTER)
     if s.campaign is not None and s.campaign.dungeon:
         update = [pb.FogUpdateMsg(index=d.index, fogByte=d.fogByte) for d in msg.dataList]

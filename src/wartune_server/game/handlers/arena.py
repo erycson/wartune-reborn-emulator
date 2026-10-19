@@ -40,7 +40,7 @@ OPPONENTS = 4
 PET_DAY, PET_WEEK = 1, 2  # RankRewardMsg.type
 CLAIMABLE, CLAIMED = 0, 1  # RankRewardMsg.status
 PET_TOP = 10
-PET_ROBOT_ORDER = 500  # posição mostrada para os robôs (captura: 500-502)
+PET_ROBOT_ORDER = 500  # posição mostrada para os robôs (só turco: peri_turnuvasi #3, 500-502)
 GOD_ARRIVE = 2  # ChallengeMsg.type do 5021 da "chegada dos deuses" (outro sistema)
 COLOSSEUM_NOVICE = 30000  # o cliente só abre o coliseu com noviceProcess acima disso (gotoColosseumFrame)
 
@@ -149,7 +149,8 @@ async def _colosseum_info(s: GameSession) -> None:
     msg = pb.ChallengeInfoMsg(lastWinCount=arena.win_streak, challengeCount=arena.challenge_count, curRank=rank)
     offer: dict[int, int] = {}
     if rank:
-        # acima de mim, espaçados como na captura (1693 via 1637, 1590, 1576, 1523); o 1º vê os de baixo
+        # acima de mim, espaçados como no oficial (só turco: meydan_okuma #46, 1693 via 1637, 1590, 1576, 1523);
+        # o 1º vê os de baixo
         step = max(1, rank // 30)
         low, high = (max(1, rank - OPPONENTS * step), rank - 1) if rank > 1 else (2, 1 + OPPONENTS)
         rows = [r for r in await s.ctx.characters.arena_ranks(server, low, high) if r.character_id != me]
@@ -265,7 +266,8 @@ async def _colosseum_over(
         new_mine = next((r.rank for r in ranks if r.character_id == me), mine)
         new_theirs = next((r.rank for r in ranks if r.character_id == target), theirs)
         arena.win_streak = arena.win_streak + 1 if won else 0
-        arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)  # a espera conta do fim (captura: 600)
+        # a espera conta do fim (só turco: meydan_okuma #29, 600)
+        arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)
         gp = A.battle_gp(snap.character.grades, won)
         rules.add_gp(snap, s.ctx.templates, gp)
         logs = [
@@ -319,7 +321,7 @@ async def quick_cool(s: GameSession, msg: pb.PayTypeMsg) -> None:
 
 @router.on(8329)
 async def take_reward(s: GameSession, _: object) -> None:
-    """Recompensa da posição no coliseu (uma por período): ouro e Ruh, popup do 4243."""
+    """Recompensa da posição no coliseu (uma por período): ouro e Daru, popup do 4243."""
     snap, arena, now = s.snapshot, _arena(s), s.ctx.clock.now()
     assert snap is not None
     rank = await s.ctx.characters.arena_rank(s.player_id)
@@ -604,7 +606,8 @@ async def pet_rank_reward(s: GameSession, msg: pb.RankRewardMsg) -> None:
 
 @router.on(8294)
 async def match_state(s: GameSession, _: object) -> None:
-    """Estado do botão de PvP (``TopToolsBar.sendMatch``: no login com nível 22 e ao chegar nele). O login comum
-    manda 4201 falso abaixo do nível 22 (captura de login); o cliente só pede daí em diante."""
+    """Estado do botão de PvP (``TopToolsBar.sendMatch``: no login com nível 22 e ao chegar nele). O login turco
+    (login.json #82, nível 56) manda 4201 falso; o inglês (tutorial_en #24-#136, nível 1) não manda nenhum; o
+    cliente só pede daí em diante."""
     assert s.snapshot is not None
     s.send(S_MATCH, b.complete(pb.MatchStateMsg(matchState=s.snapshot.character.grades >= PVP_GRADE)))

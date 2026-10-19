@@ -164,7 +164,7 @@ def _send_plot(s: GameSession, entry: dict[str, Any]) -> None:
         if info.roleName == "{nick}":
             info.roleName = (me.nickname if me else None) or ""
             if me:
-                info.roleId = me.job  # retrato de quem fala: o oficial manda o job (6 na captura turca, 3 na inglesa)
+                info.roleId = me.job  # retrato de quem fala: o oficial manda o job (3: tutorial_en #2317)
     _send(s, S_PLOT, msg, extend2=entry["extend2"])
 
 
@@ -368,7 +368,7 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
         res="",
         qteTime=0,
         castTime=4500,
-        pawnTempId=int(player.get("pawnTempId", 0)),  # replay #718: a tropa que luta junto (cidade externa)
+        pawnTempId=int(player.get("pawnTempId", 0)),  # tutorial_en #727: a tropa que luta junto (cidade externa)
         headId=0,
         isShow=False,
         serverName=snap.server.name,
@@ -442,7 +442,7 @@ def _start_battle(s: GameSession, camp: int) -> None:
 
 @router.on(8251)
 async def special_boss(s: GameSession, _: object) -> None:
-    """Fim do tutorial na cidade externa: retomar o castelo dos Boğa Başlı (sem nó de campanha)."""
+    """Fim do tutorial na cidade externa: retomar o castelo dos Tauren (sem nó de campanha)."""
     if s.battle is not None:
         return
     spec = tutorial()["battles"][SPECIAL_BOSS]
@@ -480,7 +480,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     before = snap.character.grades
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
-    snap.character.strategy += strategy  # "Ruh" do chefe: (visto) captura #1711, strategyBonus 72
+    snap.character.strategy += strategy  # Daru do chefe: (visto) inglesa #1509, strategyBonus 88
     loot = _Loot()
     dungeon = s.campaign is not None and s.campaign.dungeon
     if dungeon:
@@ -575,7 +575,8 @@ async def attack_mode(s: GameSession, msg: pb.AttackModeMsg) -> None:
 @router.on(5035)
 async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
     if msg.state == BACK_TO_MAP and s.campaign is not None and s.campaign.map_id in PET_ISLANDS:
-        _send(s, S_ROOM_ENTER, _room_enter(s))  # o oficial repete o 21 quando a cena termina (peri_adasi_tp #7)
+        # o oficial repete o 21 quando a cena termina (só turco: peri_adasi_tp #7)
+        _send(s, S_ROOM_ENTER, _room_enter(s))
     if msg.state == BACK_TO_MAP and s.battle_gp:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0
@@ -586,7 +587,7 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=gp, gold=0, strategy=strategy))
         if c.ending is not None:
             await _dungeon_end(s)
-    if msg.state == OUTER_CITY and s.outer_fight_over:  # replay #750 e #803: depois da luta da mina
+    if msg.state == OUTER_CITY and s.outer_fight_over:  # tutorial_en #758 e #812: depois da luta da mina
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=0))
         s.outer_fight_over = False
 
@@ -865,14 +866,14 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
     for target, action in actions:
         t = c.node(target)
         assert t is not None
-        if action == 0:  # DISAPPEARD: o gatilho some (replay #1595)
+        if action == 0:  # DISAPPEARD: o gatilho some (tutorial_en #1412)
             movie = pb.PlayerMovieMsg(
                 movieTargetType=0, targetId=t["nodeId"], movieType="DISAPPEARD", delay=DISAPPEAR_DELAY
             )
             _send(s, S_MOVIE, movie, extend2=DISAPPEAR_DELAY)
             t["state"] = HIDDEN
             continue
-        if action == 1:  # FLICKER e 128 com o nó novo: o chefe aparece (replay #1597, #1605)
+        if action == 1:  # FLICKER e 128 com o nó novo: o chefe aparece (tutorial_en #1414, #1422)
             movie = pb.PlayerMovieMsg(movieTargetType=0, targetId=t["nodeId"], movieType="FLICKER", delay=FLICKER_DELAY)
             _send(s, S_MOVIE, movie, extend2=FLICKER_DELAY)
         _node_update(s, target, NORMAL, fresh=True)

@@ -33,17 +33,17 @@ LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Daily Login", "Speak in world c
 # LeedTemp "Complete a solo dungeon", "... multi-player dungeon", "Plunder another player", "Perform a guild blessing",
 # "Challenge another player", "Complete a daily quest" (o 4 e o 10: tutorial_en #521 e #1649)
 CAMPAIGN_LEED, MULTI_CAMPAIGN_LEED, PLUNDER_LEED, BLESS_LEED, CHALLENGE_LEED, DAILY_QUEST_LEED = 4, 5, 10, 12, 19, 20
-# "Contribute to your Guild", "Consume Balens/Bound Balens", "Capture an Astral", "Spin the Blessing Wheel" (visto na
-# turca: birlik_katkisi #11, yeralti_labirenti #8, kader_sistemi #5, city_city_upgrade #139); "Fight a World BOSS",
+# "Contribute to your Guild", "Consume Balens/Bound Balens", "Capture an Astral", "Spin the Blessing Wheel" (visto, só
+# turco: birlik_katkisi #11, yeralti_labirenti #8, kader_sistemi #5, city_city_upgrade #139); "Fight a World BOSS",
 # "Complete Bounty Quest", "Harvest from your own farm" (dedução: o nome do LeedTemp, sem captura)
 GUILD_OFFER_LEED, BALEN_LEED, ASTRAL_LEED, WHEEL_LEED = 8, 15, 17, 33
 WORLD_BOSS_LEED, BOUNTY_LEED, FARM_LEED = 18, 24, 25
 VIP_DEVOTION = 2  # VipPrerogativeTempInfos.type "Devotion Bonus" (0, 0, 10, 10 ... 40 do VIP 1 ao 9)
-EMEK, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Devotion"; QuestUpdatedRspMsg
+DEVOTION_QUEST, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Devotion"; QuestUpdatedRspMsg
 # (visto) tutorial_en #16 (login), #522, #753, #1652: canal 3, quando o total (totalNum do 4152) sobe
 DEVOTION_UP = "Your devotion level has increased to {}."
 RELOGIN_DAYS = 7  # ReloginDrops.Times 1..7
-# ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (login.json #93)
+# ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (tutorial_en #3193)
 SERVEN: dict[int, tuple[int, ...]] = {1: (1, 2, 3, 4), 2: (5, 6, 7, 8), 3: (9, 10, 11, 12), 4: (13, 14, 15, 16)}
 SERVEN |= {5: (17, 18, 19, 20), 6: (21, 23, 27), 7: (26, 28, 29)}
 
@@ -89,15 +89,15 @@ def login_push(s: GameSession) -> None:
     _send_leeds(s)
     _send_actives(s)
     send_serven(s)
-    minigames.login_push(s)  # o 4640 vem logo depois do 4638, como no login do oficial (#93-94)
+    minigames.login_push(s)  # o 4640 vem logo depois do 4638, como no login do oficial (só turco: login.json #93-94)
 
 
 def send_rate(s: GameSession) -> None:
     """4247: evento de EXP do servidor em curso (``exp_rate_events``), no login logo depois do 4686 (tutorial_en
     #44-#46). O cliente mostra "EXP received from dungeon increased by {rate}%" (PlayerBufferInfo, bufferType 0).
 
-    O multiplicador não é aplicado aqui: as duas capturas (inglês #45, turco login.json #47) foram feitas com o
-    evento ativo, e o EXP das lutas e do fim da masmorra já vem delas (630 = BaseGp 600 x 1,05, sem dobrar)."""
+    O multiplicador não é aplicado aqui: a captura (tutorial_en #45) foi feita com o evento ativo, e o EXP das lutas
+    e do fim da masmorra já vem dela (630 = BaseGp 600 x 1,05, sem dobrar)."""
     rates = ev.running_rates(s.ctx.world, s.ctx.clock.now())
     if rates:
         msg = pb.RateUpdateReqMsg()
@@ -228,7 +228,7 @@ def _active_data(s: GameSession, actives: Sequence[ev.Active]) -> pb.SumActiveDa
     now = s.ctx.clock.now()
     msg = pb.SumActiveDataMsg()
     for a in actives:
-        # value = finishNum do cliente; nos tipos 13/14 o oficial manda 0 (login.json #69); nos contados vai o
+        # value = finishNum do cliente; nos tipos 13/14 o oficial manda 0 (tutorial_en #68); nos contados vai o
         # progresso, que o texto da tela mostra (FunnyHelper.processText, *dedução* sem captura)
         value = _progress(s, a, now) if a.active_type in ev.COUNTED else 0
         data = msg.datas.add(activeId=a.active_id, isShow=True, type=a.active_type, value=value or 0, activeCharge=0)
@@ -272,11 +272,12 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     new, text = rewards.grant(snap, s.ctx.templates, p.items, style="active")
     await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new)
 
-    alert(s, GIFT_OK)  # ordem do oficial (captura online_odul... #38-46)
+    # ordem do oficial (tutorial_en #2753-#2772): 3, 109, 115, 4476 de todas, 111, 4476 só desta e o 83
+    granted(s, p.items, new, text, chat=False)
+    s.send(S_SUM_DATA, _active_data(s, running))
+    alert(s, GIFT_OK)
     s.send(S_SUM_DATA, _active_data(s, [a]))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
-    s.send(S_SUM_DATA, _active_data(s, running))
-    granted(s, p.items, new, text, chat=False)
 
 
 # ---------------------------------------------------------------- assinatura (8266)
@@ -386,10 +387,11 @@ def _send_leeds(s: GameSession) -> None:
 
 
 def devotion_quests(s: GameSession) -> list[Quest]:
-    """Missões de devoção (tipo 63) com o total de hoje. (visto) captura savasa_baskin_ve_elmas_ile_hizlandirma
-    #11/#18: "Emek oranı" = totalNum do 4152; tempinfos: 863 = tipo 63, Para1 0, Para2 20: vale o maior total."""
+    """Missões de devoção (tipo 63) com o total de hoje. (visto) tutorial_en #16/#50 e #521-#522: a devoção é o
+    totalNum do 4152; tempinfos: 863 "Increasing Devotion (VIP Daily)" = tipo 63, Para1 0, Para2 20: vale o maior
+    total."""
     assert s.snapshot is not None
-    return rules.quest_event(s.snapshot, s.ctx.templates, EMEK, 0, _leeds(s, s.ctx.clock.now())[1])
+    return rules.quest_event(s.snapshot, s.ctx.templates, DEVOTION_QUEST, 0, _leeds(s, s.ctx.clock.now())[1])
 
 
 def say_devotion(s: GameSession) -> None:

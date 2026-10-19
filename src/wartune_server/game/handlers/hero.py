@@ -48,7 +48,7 @@ def leader(s: GameSession) -> tuple[PlayerSnapshot, Hero]:
 @router.on(5185)
 async def skill_upgrade(s: GameSession, msg: pb.HeroAddPointReqMsg) -> None:
     """Aprende/sobe uma skill (ou talento, MasterType 10) para ``skillTempId``: 1 ponto por grau.
-    Relay #1175 (30111): 150 e 60 {templateId, index, type 0}."""
+    tutorial_en #1141-#1143 (30111): 150 e 60 {templateId, index, type 0}."""
     snap, hero = leader(s)
     templates = s.ctx.templates
     tpl = skill(templates, msg.skillTempId)
@@ -311,7 +311,8 @@ async def _rune_upgrade(
     new_tpl = templates.get("RuneTempInfos", rune_id)
     assert new_tpl is not None
     # 78: o grau que o símbolo chegou (o maior); 77: pedras da bolsa gastas, uma por pedra (dedução: QuestTemps
-    # 916 chama de "Sembol Taşını birleştirme" dar a pedra ao símbolo; o cliente só faz checkCount)
+    # 186 "Consume Small Runestone" e 916 "by consuming Runestones" é dar a pedra ao símbolo; o cliente só faz
+    # checkCount)
     quests = rules.quest_event(snap, templates, rules.RUNE_GRADE, int(new_tpl["RuneType"]), int(new_tpl["RuneGrade"]))
     if msg.count > 0:
         quests += rules.quest_event(snap, templates, rules.RUNE_COMBINE, RUNE_EXP_ITEM, msg.count)
