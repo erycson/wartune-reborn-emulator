@@ -19,7 +19,9 @@ from ..templates.repository import GameTemplates
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
 GRID = 50  # a grade pedida pelo cliente é "x_y" de 50 × 50 tiles (OuterCitySocketOutManager)
 HOME_OFFSET = 2  # army_msg: o exército fica 2 tiles antes do castelo
-ATTACK_PRICE = 100  # ConfigInfos AddAttck_Point: diamantes por ataque extra (AttackAlertFrame)
+# sem a linha AddAttck_Point (395 nos templates EN; language EN AttackAlertFrame.content "cost 395 Balens");
+# 100 é só o saldo mínimo que o AttackAlertFrame confere antes de mandar o 9506
+ATTACK_PRICE = 100
 ENERGY_SAME_MAP = 100  # MapPhysicsCastle: energia para mudar de posição no mesmo mapa
 ENERGY_OTHER_MAP = 200  # WorldMapControler: energia para mudar de mapa (captura: 500 -> 300)
 BASE_MAP, INSTANCE_MAP = 100, 100_000  # mapas do castelo começam em 100000xxx (characters.GridCastlePlacement)

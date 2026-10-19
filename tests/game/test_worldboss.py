@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from tests.game.harness import logged_in
-from wartune_server.domain.models import WorldBossFight
+from wartune_server.domain.models import Quest, WorldBossFight
 from wartune_server.domain.world import WorldBoss
 from wartune_server.game import boss_fight, worldboss
 from wartune_server.game.router import router
@@ -181,6 +181,10 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         assert session is not None and session.snapshot is not None
         ch = session.snapshot.character
         ch.grades, ch.point, ch.gift_token = 20, 20, 0
+        # 759 "Participate in a World BOSS Battle" (tipo 40) e 183 "Instant Battle" (tipo 66, o 8264 pago)
+        join, instant = Quest(g.user_id, 759, datetime.now(UTC)), Quest(g.user_id, 183, datetime.now(UTC))
+        session.snapshot.quests.extend([join, instant])
+        await g.server.services.characters.save(join, instant)
         await g.idle()
         g.client.send(8258, pb.WorldBossMsg(param1=5001))
         await g.idle()
@@ -192,6 +196,7 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         assert report.battleResult == 2 and report.goldBonus == report.strategyBonus > 0  # o dano paga
         [dead] = [pb.PlayerStateListMsg.FromString(p.body) for p in got if p.code == 4175]
         assert (dead.playerState[0].state, dead.playerState[0].leftTime) == (1, 30_000)
+        assert 112 in [p.code for p in got] and (join.progress, instant.progress) == (1, 0)  # a luta conta o tipo 40
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))  # morto: sem luta
         assert [p.code for p in await g.idle()] == [4175]
@@ -200,8 +205,9 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         got = await g.idle()
         [alive] = [pb.PlayerStateListMsg.FromString(p.body) for p in got if p.code == 4175]
         assert alive.playerState[0].state == 0 and ch.point == 5
+        assert 112 in [p.code for p in got] and instant.progress == 1  # o reviver pago conta o tipo 66
         g.client.send(8264, pb.PayTypeMsg(payType=1))  # vivo: aviso, nada cobrado
-        assert [p.code for p in await g.idle()] == [ALERT] and ch.point == 5
+        assert [p.code for p in await g.idle()] == [ALERT] and ch.point == 5 and instant.progress == 1
 
 
 async def test_campanha_que_nao_e_chefe_nem_pedreira_diz_indisponivel(tmp_path: Path) -> None:

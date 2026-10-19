@@ -79,7 +79,8 @@ async def test_grid_walk_and_return_home(tmp_path: Path) -> None:
 
 async def test_attack_extra_costs_diamonds_and_is_capped_at_five(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        snap = await _set(g, point=150, gift_token=0)
+        price = A.config(g.server.services.templates, "AddAttck_Point", oc.ATTACK_PRICE)  # 395 nos templates EN
+        snap = await _set(g, point=price + 50, gift_token=0)
         assert snap.arena is not None and snap.arena.attack_left == 5
         # o dia já é o de hoje (senão a virada zera o contador antes da compra)
         snap.arena.day, snap.arena.attack_left = A.today(g.server.services.clock.now()), 3
@@ -93,7 +94,7 @@ async def test_attack_extra_costs_diamonds_and_is_capped_at_five(tmp_path: Path)
         g.client.send(9506, pb.OutercityReqMsg(mapId=0, attackCount=1, type=1))  # sem diamante suficiente
         assert await g.idle() == []
 
-        snap.character.gift_token = 100  # tipo 2: o vinculado paga primeiro
+        snap.character.gift_token = price  # tipo 2: o vinculado paga primeiro
         g.client.send(9506, pb.OutercityReqMsg(type=2))
         got = await g.until(3)
         assert pb.PlayerMsg.FromString(got[-1].body).attackLeftCount == 5
@@ -499,6 +500,9 @@ async def test_dois_ataques_seguidos_ao_robo_geram_uma_luta(tmp_path: Path, monk
         second = [p.code for p in await g.until(140)]
         assert second[-1] == 140 and 157 not in second
         assert snap.arena.attack_left == 4  # um só gasto
+        # o 1º 5160 já terminou (um pacote por vez): o gasto está no banco antes do fim da luta
+        stored = await g.server.services.characters.snapshot(g.user_id)
+        assert stored.arena is not None and stored.arena.attack_left == 4
 
         await g.fight(prepare)
         await g.idle()

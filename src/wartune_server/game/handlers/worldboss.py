@@ -18,13 +18,14 @@ from ...domain.world import WorldBoss
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates
-from .. import boss_fight, space, worldboss
+from .. import boss_fight, rules, space, worldboss
 from .. import mail as mailbox
 from .. import outer_city as oc
 from ..arena import config as arena_config
 from ..arena import npc_hero
 from ..battle import Battle, SharedHp
 from ..builders import login as b
+from ..builders.player import quest_update
 from ..campaign import NORMAL, CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
@@ -52,6 +53,8 @@ MAIL_TEXT = "World Boss rewards: {gold:,} Gold and {daru:,} Daru."  # (dedução
 CLOSE_EVERY = timedelta(seconds=60)
 log = structlog.get_logger(__name__)
 UNAVAILABLE = "This action is not available now."  # reviver e buff: o cliente só pede dentro do mapa do chefe
+S_QUESTS = 112
+QUEST_JOIN, QUEST_INSTANT = 40, 66  # QuestCondictionInfos: lutar no chefe, luta imediata paga (8264)
 
 
 @router.on(8535)
@@ -241,7 +244,9 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
     reward = pool.battle_reward(link.dealt)
     ch.gold += reward
     ch.strategy += reward  # daru = "strategy" (como o strategyBonus da masmorra)
-    rows: list[object] = [ch]
+    # missão tipo 40 "Participate in a World BOSS Battle" (759 x10, 761 x1): uma por luta (dedução: luta, não entrada)
+    quests = rules.quest_event(snap, s.ctx.templates, QUEST_JOIN, 0, 1)
+    rows: list[object] = [ch, *quests]
     if (wound := pool.wounds.get(s.player_id)) is not None:
         rows.append(wound)
     if pool.fight.killer_id == s.player_id:
@@ -249,6 +254,8 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
     async with pool.lock:
         await s.ctx.characters.save(*rows)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=reward, gpBonus=0,
                                 battleScene=CAMPAIGN_SCENE)  # fmt: skip
     report.failCount, report.goldBonus, report.petGpBonus = 0, reward, 0
@@ -408,8 +415,12 @@ async def revive_or_fight(s: GameSession, msg: pb.PayTypeMsg) -> None:
         alert(s, NO_DIAMONDS)
         return
     revive(s, pool)  # antes do await: um segundo 8264 já vê vivo
-    await ctx.characters.save(snap.character, entry)
+    # missão tipo 66 (183 "Spend Balens to begin the battle instantly ... 3 times"): é este reviver pago
+    quests = rules.quest_event(snap, ctx.templates, QUEST_INSTANT, 0, 1)
+    await ctx.characters.save(snap.character, entry, *quests)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8470)

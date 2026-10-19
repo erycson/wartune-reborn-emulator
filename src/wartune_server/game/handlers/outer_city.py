@@ -424,12 +424,13 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     await _boss_info(s, m.map_id)
 
 
-def _attack_robot(s: GameSession, robot: RobotCastle) -> list[EventState | Quest]:
+def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:
     """Ataque a um castelo-robô (cliente: MapPhysicsCastle.attack e CityInfoFrame). Recusa com 140 parado,
     sem luta, se já há luta, se não há ataque no dia (``attackCount`` do cliente) ou se a diferença de nível
     para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque e luta com o guarda de grau 8.
-    (dedução) o ataque sai do contador do dia (o mesmo do 9506). A gravação vem no fim da luta, menos a devoção
-    (leed 10, logo no ataque: tutorial_en #1648-#1649), que volta para quem chama gravar depois da luta criada."""
+    (dedução) o ataque sai do contador do dia (o mesmo do 9506, "x/5" do AttackAlertFrame). O contador e a
+    devoção (leed 10, logo no ataque: tutorial_en #1648-#1649) voltam para quem chama gravar logo depois da luta
+    criada: cair no meio da luta não devolve o ataque."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None and snap.arena is not None
     c, arena, now = snap.character, snap.arena, s.ctx.clock.now()
@@ -450,7 +451,7 @@ def _attack_robot(s: GameSession, robot: RobotCastle) -> list[EventState | Quest
     s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished)
     s.log.info("batalha com castelo-robô", castelo=robot.id, battle=s.battle.id)
     s.battle.start()
-    return rows
+    return [arena, *rows]
 
 
 async def _castle_over(s: GameSession, battle: Battle, won: bool) -> None:
@@ -502,7 +503,8 @@ async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     if arena.attack_left >= A.ATTACK_FREE:
         s.log.info("9506 recusado", motivo="cheio")
         return
-    entry = pay(c, oc.ATTACK_PRICE, bind=msg.type == 2, reason="attack_count", ref="outer_city", now=now)
+    price = A.config(s.ctx.templates, "AddAttck_Point", oc.ATTACK_PRICE)
+    entry = pay(c, price, bind=msg.type == 2, reason="attack_count", ref="outer_city", now=now)
     if entry is None:
         s.log.info("9506 recusado", motivo="sem diamantes")
         return
