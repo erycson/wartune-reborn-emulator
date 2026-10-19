@@ -148,7 +148,7 @@ def add(
         item = new_item(snap, templates, template_id, min(top, count))
         item.pos = pos
         if valid:
-            item.valid_date, item.begin_date = valid, now
+            item.valid_date, item.begin_date = valid, now.replace(microsecond=0)  # o cliente lê só os segundos
         count -= item.count
         snap.items.append(item)
         changed.append(item)

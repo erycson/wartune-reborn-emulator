@@ -51,7 +51,7 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 `Item.valid_date` (minutos) e `begin_date` (migração 0037) vão no 115 como `validDate` e `beginDate`
 (`"YYYY-MM-DD hh:mm:ss"`, o mesmo `fmt_time` do `sysCurtime`, porque o cliente compara os dois) *(cliente)*
 `ItemHelper`, `GoodsInfo.leftTime`. Vence quando `agora - beginDate >= validDate` minutos (a conta do cliente).
-Hoje só a loja dá validade: `ShopTempInfos.ValidDate` em minutos (as 10 medalhas da loja de honra, ShopType 3:
+Só a loja dá validade (varredura do `tempinfos.xml`: nenhuma outra tabela tem `ValidDate`; a captura inglesa não tem `validDate` > 0): `ShopTempInfos.ValidDate` em minutos (as 10 medalhas da loja de honra, ShopType 3:
 10080/21600/43200 = 7/15/30 dias; `NumBuyFrame` põe o número direto em `validDate`) *(cliente)*. Item com validade
 não empilha (5005, 8220, `bag.add`). Vencido some: no 8346 do cliente, no login (antes do 115) e no relógio de 60 s
 (20008), que pega também a medalha vestida (bolsa 3), que o cliente nunca confere *(dedução)*. Sem aviso: o cliente

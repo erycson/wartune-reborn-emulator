@@ -518,8 +518,8 @@ async def bag_remove(s: GameSession, msg: pb.ItemRemoveMsg) -> None:
     assert snap is not None
     now = s.ctx.clock.now()
     # o pedido não traz objectId: na mochila é 0, nas bolsas do herói é o herói que tiver algo ali
-    item = next((i for i in snap.items if (i.bag_type, i.pos) == (msg.bagType, msg.pos)), None)
-    if item is None or item.bag_type not in MOVABLE or not item.expired(now):
+    item = next((i for i in snap.items if (i.bag_type, i.pos) == (msg.bagType, msg.pos) and i.expired(now)), None)
+    if item is None or item.bag_type not in MOVABLE:
         s.log.info("8346 recusado: item ausente ou ainda válido", pedido=str(msg))
         return
     snap.items.remove(item)
