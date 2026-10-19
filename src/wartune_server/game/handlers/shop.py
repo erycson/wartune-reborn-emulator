@@ -318,7 +318,7 @@ def send_blood(s: GameSession) -> None:
     """113 só com a reserva de HP (como o oficial depois de usar a poção)."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    hp = rules.leader_stats(snap, s.ctx.templates).live
+    hp = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live
     send(
         s,
         S_HERO,

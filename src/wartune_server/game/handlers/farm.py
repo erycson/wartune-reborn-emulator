@@ -222,6 +222,9 @@ async def _pick(
     snap.lands.remove(land)
     quests = rules.quest_event(snap, templates, QUEST_HARVEST, OWN_FARM, 1)
     await s.ctx.characters.save(*changed, *quests, delete=(land,))
+    from . import events  # handlers.events importa login
+
+    await events.leed_done(s, events.FARM_LEED)  # (dedução) "Harvest from your own farm"; ordem sem captura
     _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))

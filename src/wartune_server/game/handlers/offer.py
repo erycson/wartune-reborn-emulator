@@ -215,6 +215,9 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
     s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_reward_info(tid, quality, complete=True)]))
     _send_board(s, snap, now)
     granted(s, drops, new, text)
+    from . import events  # handlers.events importa este módulo
+
+    await events.leed_done(s, events.BOUNTY_LEED)  # (dedução) "Complete Bounty Quest" (PassCount 5) na entrega
 
 
 @router.on(8298)

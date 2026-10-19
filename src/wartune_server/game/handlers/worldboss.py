@@ -126,9 +126,9 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
     room.room.campaignId = boss.campaign_id
     s.send(S_ROOM_CREATED, room)
     s.send(S_MILESTONES, boss_fight.milestones(ctx.world, pool, s.player_id))
-    me = space.room_player(snap, ctx.templates, s.campaign.pos, boss.campaign_id)
+    me = space.room_player(snap, ctx.templates, s.campaign.pos, boss.campaign_id, ctx.clock.now())
     others = on_map(s, boss.campaign_id)
-    players = [space.room_player(o.snapshot, ctx.templates, o.campaign.pos, boss.campaign_id)  # type: ignore[arg-type,union-attr]
+    players = [space.room_player(o.snapshot, ctx.templates, o.campaign.pos, boss.campaign_id, ctx.clock.now())  # type: ignore[arg-type,union-attr]
                for o in others]  # fmt: skip
     s.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me, *players]))
     for other in others:
@@ -230,6 +230,10 @@ async def boss_attack(s: GameSession) -> None:
     s.battle = Battle(spec, player_hero(s, spec), ctx.templates, ctx.clock, s.send, finished, shared=link)
     s.log.info("batalha com o chefe do mundo", chefe=c.map_id, vida=pool.hp, battle=s.battle.id)
     s.battle.start()
+    from . import events  # handlers.events importa login, que importa a campanha
+
+    # (dedução) LeedTemp 18 "Fight a World BOSS" já no ataque, como o 10 no castelo-robô (tutorial_en #1649)
+    await events.leed_done(s, events.WORLD_BOSS_LEED)
 
 
 async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight.Pool, link: SharedHp) -> None:

@@ -16,7 +16,7 @@ from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import battle as battle_mod
-from wartune_server.game import drops
+from wartune_server.game import buffs, drops
 from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.game.handlers import campaign as handlers
 from wartune_server.protocol import Packet
@@ -211,6 +211,19 @@ def test_chefe_so_aparece_com_o_grupo_caido() -> None:
     for wolf in WOLVES_1021:
         camp.nodes[wolf]["state"] = DONE
     assert not camp.locked(102109)
+
+
+async def test_pergaminho_de_exp_dobra_a_exp_do_fim_da_etapa(tmp_path: Path) -> None:
+    """Lvl. 2 Bonus EXP Scroll (2030, grau 100): "Increases EXP received from instances by 100%"; o 137 leva 630 x 2 e o
+    grau no propJoin (dedução)."""
+    async with logged_in(tmp_path, novice=25500) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.snapshot is not None
+        buffs.apply(s.snapshot, buffs.EXP_BOOST, 2013002, 100, 60, s.ctx.clock.now())
+        end = await play_1011(g)
+        report = pb.CampaignReportMsg.FromString(next(p.body for p in end if p.code == 137))
+        assert (report.totalGp, report.propJoin) == (1260, 100)
+        assert "Received 1,260 EXP " in [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83]
 
 
 async def test_5122_so_vira_carta_depois_do_fim(tmp_path: Path) -> None:

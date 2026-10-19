@@ -108,7 +108,7 @@ async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     assert snap is not None and snap.leader is not None
     pawn = pawn_of(snap, msg.tempateId // 100)
     total = pawn.castle_count + pawn.army_count if pawn else 0
-    leadership = rules.leader_stats(snap, templates).total["ConatArmy"]
+    leadership = rules.leader_stats(snap, templates, s.ctx.clock.now()).total["ConatArmy"]
     if pawn is None or pawn.template_id != msg.tempateId or msg.sites != 0 or not 0 <= msg.ownPawns <= total:
         s.log.info("5156 recusado", pedido=str(msg))
         return

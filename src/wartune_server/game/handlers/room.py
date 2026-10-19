@@ -55,6 +55,7 @@ def _members_msg(s: GameSession, room: Room) -> pb.RoomPlayerListMsg:
             s.ctx.templates,
             other.space_pos or (0, 0),
             room.campaign,
+            s.ctx.clock.now(),
             cloth=rules.cloth_avatar(snap, s.ctx.templates),
         )
         entry.roomId, entry.count, entry.currentRoomIndex, entry.playerState = (

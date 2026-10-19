@@ -51,6 +51,8 @@ async def test_offer_board_refresh_accept_and_pass(tmp_path: Path) -> None:
         done = pb.RewardUpdatedRspMsg.FromString(next(p for p in got if p.code == 4198).body).reward[0]
         assert done.isComplete and _board(got).isIsValid[1] == 3 and _board(got).rewardTimes == 1
         assert c.gold > gold
+        leed = pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body)  # leed 24 "Complete Bounty Quest"
+        assert [(x.templateId, x.currentCount, x.isComplete) for x in leed.leed] == [(24, 1, False)]  # PassCount 5
 
 
 async def test_ring_task_finish_with_item_or_diamonds(tmp_path: Path) -> None:

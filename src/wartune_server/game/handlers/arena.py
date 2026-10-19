@@ -154,7 +154,7 @@ async def _colosseum_info(s: GameSession) -> None:
         for row in sorted(random.sample(rows, min(OPPONENTS, len(rows))), key=lambda r: -r.rank):
             other = await _snapshot(s, row.character_id)
             if other is not None:
-                msg.simplePlayer.append(A.snapshot_player(other, s.ctx.templates, row.rank))
+                msg.simplePlayer.append(A.snapshot_player(other, s.ctx.templates, row.rank, s.ctx.clock.now()))
                 _avatars(msg, other, s)
                 offer[row.character_id] = 0
     grade = snap.character.grades
@@ -217,7 +217,7 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     hero = player_hero(s, A.colosseum_spec([], []))
     if other is not None:
         soldiers: list[dict[str, Any]] = []
-        heroes = [A.copy_hero(other, s.ctx.templates)]
+        heroes = [A.copy_hero(other, s.ctx.templates, s.ctx.clock.now())]
         name, grade, job = other.character.nickname or "", other.character.grades, rules.job_type(other.character.job)
     else:
         robot = A.Robot(target, s.arena_offer[target])

@@ -156,7 +156,16 @@ class GameSession:
             self.log.debug("opcode sem handler", code=packet.code, nome=self.ctx.registry.name(packet.code))
             return
         message = self.ctx.registry.decode(packet.code, Direction.CLIENT_TO_SERVER, packet.body)
+        c = self.snapshot.character if self.snapshot is not None else None
+        point, gift = (c.point, c.gift_token) if c is not None else (0, 0)
         await handler(self, message)
+        # LeedTemp 15 "Consume Balens/Bound Balens": qualquer gasto de diamante, de qualquer pedido. (visto)
+        # yeralti_labirenti #7-#8: 3 com o vinculado a menos e então o 4152. Aqui, depois do handler inteiro.
+        snap = self.snapshot
+        if c is not None and snap is not None and snap.character is c and (c.point < point or c.gift_token < gift):
+            from .handlers import events  # handlers importa este módulo
+
+            await events.leed_done(self, events.BALEN_LEED)
 
     async def _save_logout(self) -> None:
         """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""
@@ -185,7 +194,10 @@ class GameSession:
             try:
                 space.leave(self)
                 if self.snapshot.leader is not None:
-                    guild.on_logout(self, rules.leader_stats(self.snapshot, self.ctx.templates).fighting_capacity)
+                    guild.on_logout(
+                        self,
+                        rules.leader_stats(self.snapshot, self.ctx.templates, self.ctx.clock.now()).fighting_capacity,
+                    )
                 await self._save_logout()
                 await events.leave(self)  # grava o tempo online (presente online)
             finally:  # mesmo se a gravação falhar: senão o próximo login fica esperando o kick

@@ -43,6 +43,7 @@ async def test_buy_with_gift_token_writes_the_ledger(tmp_path: Path) -> None:
         g.client.send(5154, buy(HORN, 2))
         got = await g.until(90)
         assert codes(got) == [3, 115, 111, 83, 90]
+        assert codes(await g.until(83)) == [4152, 83]  # leed 15 (gasto de vinculado), depois da resposta
         assert pb.ShopMsg.FromString(got[-1].body).buyInfo.result == 1
         item = pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item
         assert (item.templateId, item.count) == (208002, 2)

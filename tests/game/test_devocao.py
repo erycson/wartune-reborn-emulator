@@ -7,6 +7,8 @@ from pathlib import Path
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import Quest
+from wartune_server.game import events as ev
+from wartune_server.game.builders import login as b
 from wartune_server.game.handlers import events as hev
 from wartune_server.game.session import GameSession
 from wartune_server.protocol import Packet
@@ -120,3 +122,45 @@ async def test_missao_863_completa_entrega_e_volta_no_dia_seguinte(tmp_path: Pat
         touched = hev.touch_login(snap, clock.now(), s.ctx.events)
         assert touched and [q.template_id for q in hev.devotion_quests(s)] == [DEVOTION]
         assert next(q.progress for q in snap.quests if q.template_id == DEVOTION) == 5
+
+
+async def test_vip_3_soma_o_devotion_bonus(tmp_path: Path) -> None:
+    """VipPrerogativeTempInfos tipo 2 "Devotion Bonus": 0 no VIP 1 e 2, 10 no 3 (o cliente só mostra a linha "VIP
+    login" do VIP 3 para cima). VIP vencido não soma."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        snap = s.snapshot
+        assert snap is not None
+        now = s.ctx.clock.now()
+        rows = s.ctx.templates.find("UpGradeTempInfos", Types=4)
+        st = ev.state(snap, "vip", now)
+        st.value = int(next(r for r in rows if r["Grades"] == "3")["Data"])
+        st.text = b.fmt_time(now + timedelta(days=1))
+        assert hev._leeds(s, now)[1] == 5 + 10  # login + VIP 3
+        st.text = b.fmt_time(now - timedelta(days=1))
+        assert hev._leeds(s, now)[1] == 5
+
+
+async def test_gasto_de_diamante_conta_o_leed_15(tmp_path: Path) -> None:
+    """(visto) yeralti_labirenti #7-#8: o diamante cai e vem o 4152 do leed 15, depois da resposta do pedido."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = _session(g).snapshot
+        assert snap is not None
+        snap.character.point = 100
+        g.client.send(8270, pb.PayTypeMsg(payType=0))  # compra espaço de estrelas (100 diamantes)
+        got = await g.until(4152)
+        assert snap.character.point == 0
+        assert [(x.templateId, x.currentCount, x.isComplete) for x in _leed(got).leed] == [(15, 1, True)]
+        assert _leed(got).totalNum == 5 + 10
+
+
+async def test_bencao_do_seminario_conta_o_leed_33(tmp_path: Path) -> None:
+    """(visto) city_city_upgrade #139-#140: 4152 do leed 33 "Spin the Blessing Wheel" logo antes do 4391."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = _session(g).snapshot
+        assert snap is not None
+        snap.character.crystals = 10_000
+        g.client.send(8489)
+        got = await g.until(4391)
+        assert [p.code for p in got][-3:] == [4152, 83, 4391]
+        assert [x.templateId for x in _leed(got).leed] == [33]

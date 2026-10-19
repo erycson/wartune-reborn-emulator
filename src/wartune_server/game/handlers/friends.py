@@ -377,7 +377,7 @@ async def cross_user_info(s: GameSession, msg: pb.DetailReqMsg) -> None:
     if snap is None or snap.leader is None or snap.castle is None:
         s.log.info("25097 sem jogador", outro=msg.otherId)
         return
-    stats = rules.leader_stats(snap, s.ctx.templates)
+    stats = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now())
     hero = b.hero_info(snap.leader, snap.character.id or 0, stats)
     s.send(S_HERO_INFO, b.complete(hero))
 

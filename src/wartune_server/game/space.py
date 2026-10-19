@@ -7,6 +7,8 @@ SPACE). Detalhes e capturas em docs/mundo-compartilhado.md.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from ..domain.models import Consortia, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
@@ -24,6 +26,7 @@ def room_player(
     templates: GameTemplates,
     pos: tuple[int, int],
     campaign_id: int,
+    now: datetime,
     *,
     cloth: str = "",
     guild: Consortia | None = None,
@@ -41,7 +44,7 @@ def room_player(
             arm=rules.arm_avatar(snap, templates),
             cloth=cloth,
             armyId=c.id,
-            fightingCapacity=rules.leader_stats(snap, templates).fighting_capacity,
+            fightingCapacity=rules.leader_stats(snap, templates, now).fighting_capacity,
             curPosX=pos[0],
             curPosY=pos[1],
             campaignId=campaign_id,
@@ -57,7 +60,9 @@ def member(s: GameSession) -> pb.RoomPlayerMsg:
     snap, templates = s.snapshot, s.ctx.templates
     mine = s.ctx.guilds.of(s.player_id)
     cloth = rules.cloth_avatar(snap, templates)
-    return room_player(snap, templates, s.space_pos, SPACE, cloth=cloth, guild=mine[0] if mine else None)
+    return room_player(
+        snap, templates, s.space_pos, SPACE, s.ctx.clock.now(), cloth=cloth, guild=mine[0] if mine else None
+    )
 
 
 def _positions(sessions: list[GameSession]) -> pb.SpacePlayerMoveMsg:

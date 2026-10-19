@@ -176,7 +176,9 @@ async def member_list(s: GameSession, _: object) -> None:
             continue  # o cliente descarta quem vem sem apelido
         other = s.ctx.online.get(m.character_id)
         if other is not None and other.snapshot is not None and other.snapshot.leader is not None:
-            c.fighting_capacity = rules.leader_stats(other.snapshot, s.ctx.templates).fighting_capacity
+            c.fighting_capacity = rules.leader_stats(
+                other.snapshot, s.ctx.templates, s.ctx.clock.now()
+            ).fighting_capacity
         rows.append(gd.member_msg(s.ctx.guilds, c, m, other is not None, guild))
     key = gd.new_uuid()
     for i in range(0, max(len(rows), 1), MEMBER_CHUNK):

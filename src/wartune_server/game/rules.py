@@ -148,15 +148,15 @@ STAR_ATTRS = {"Power", "Agility", "Intellect", "Captain", "Physique", "Attack", 
 STAR_ATTRS |= {"MagicDefence", "ForceHit", "Parry", "Live", "Conat"}
 
 
-def leader_stats(snap: PlayerSnapshot, templates: GameTemplates) -> HeroStats:
-    """Atributos do líder: herói + equipamentos + montaria + estrelas equipadas.
+def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> HeroStats:
+    """Atributos do líder: herói + equipamentos + montaria + estrelas equipadas + poções ativas (``buffs``).
 
     Talento, runas, destino e alma do dragão não somam atributo fixo: nos templates eles são
     skills/buffs (SkillTempInfos/TalentEffectTempInfos) que agem na batalha.
     """
     leader = snap.leader
     assert leader is not None
-    bonuses = equipment(snap, templates) + star_bonuses(snap, templates)
+    bonuses = equipment(snap, templates) + star_bonuses(snap, templates) + buffs.stat_bonuses(snap, templates, now)
     if mount := mount_stats(snap, templates):
         bonuses.append({k: str(v) for k, v in mount.items()})
     return HeroStats.of(leader, templates.hero(leader.template_id), bonuses)

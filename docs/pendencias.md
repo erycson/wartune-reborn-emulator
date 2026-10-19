@@ -34,6 +34,9 @@ Itens fora da loja:
 - Itens novos ganham só o `DefaultSkill` como atributo sorteado (o oficial sorteia `RandomSkillCount`). *(visto)* o Kronos’un Yetkisi da loja do labirinto (`yeralti_labirent_marketi_alisveris`) chegou com cinco `randomSkill`; falta a regra do sorteio (**precisa de captura** de mais compras de equipamento com `RandomSkillCount`).
 - Sem teto diário para Beden e EXP vindos de itens. **dedução**.
 - Títulos (8597): lista vazia. **depende de**: conquistas.
+- ~~Poções de atributo sem efeito~~: somam no `total*` do herói (150 no uso e no 8283); ~~pergaminho de EXP fora do
+  relatório do fim da masmorra~~: aplicado no 137. **dedução**: Defense = Agility, o 150 e o `propJoin`; **precisa de
+  captura** ([itens.md](itens.md#pergaminhos-de-efeito-sontype-201)).
 
 ## Minigames e eventos ([eventos.md](eventos.md))
 
@@ -57,6 +60,10 @@ Outros eventos:
 - 8519/8521 (roleta VIP) são reais ([eventos.md](eventos.md#vip-e-contrato-do-rei)); 8518 responde o 4412 vazio (contadores do painel do dia: **depende de** cada sistema contar); 8756 só registra; loja de teste (8582) recusa: o mapa de teste não existe.
 - Quadro de recompensas 8291 sem passe, 8298, 8729: **depende de** batalha, missões e mensagens reportarem progresso.
 - Tipos de SumActive além de 13/14 ficam em status 3.
+- Devoção (leed): ~~8, 15, 17, 18, 24, 25, 33 sem gancho~~ e ~~devoção do VIP~~ feitos (18, 24, 25 por **dedução**
+  do título; VIP pelo tipo 2 "Devotion Bonus"). **Depende de**: 13 arena em grupo, 22 "Altar of Ennoblement" (sistema
+  desconhecido), 23 entrada no labirinto (Catacombs), 27 campo de batalha, 28 Spire. **Precisa de captura**: VIP 3+
+  no login e os leeds 18/24/25 ([eventos.md](eventos.md#captura-que-falta-devoção)).
 
 ## Chefe do mundo ([boss-eventos.md](boss-eventos.md))
 

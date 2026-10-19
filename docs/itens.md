@@ -85,11 +85,28 @@ minutos por unidade (× `count`), Property3 = grau (o `{Grades}` da descrição)
 `validityDate` arredonda os minutos para cima: o relógio do cliente acaba depois do servidor.
 Efeito aplicado: **2030 EXP Boost** (2013001-4, 50/100/200/1000%) multiplica o `gpBonus` de cada batalha
 de campanha/masmorra (`campaign._battle_over`; o 4103, o 83 e o 4382 levam o valor com bônus; o
-`gpBonus` capturado é a base). A EXP do relatório do fim da masmorra (`_dungeon_end`) fica sem bônus
-(*dedução*: "EXP received from dungeon"; sem captura). **2008** (Gold Expansion Scroll, "Warehouse Capacity
-+25%") sobe o teto do armazém (`castle.gold_max`) e **2005** (Population Expansion Scroll) a população máxima
-(`rules.population`, também no recrutamento). Os outros 201 (poções de atributo 2135-2141, pergaminhos
-2041-2048, Camouflage 2000, Blessing 7001) ligam o ícone e o tempo, mas o efeito ainda não existe no servidor.
+`gpBonus` capturado é a base) e também a EXP do relatório do fim da etapa (`_dungeon_end`, 137 `totalGp`, o 83
+"Received N EXP " e o `add_gp`): *(cliente)* a descrição do 2013002 diz "Increases EXP received from instances by
+100%, ... only takes effect in campaigns and MP dungeons". *(dedução)* o grau vai no `propJoin` do 137 (o campo "prop"
+do `CampaignResultView`); a captura do 137 só tem `propJoin` 0, sem pergaminho. **2008** (Gold Expansion Scroll,
+"Warehouse Capacity +25%") sobe o teto do armazém (`castle.gold_max`) e **2005** (Population Expansion Scroll) a
+população máxima (`rules.population`, também no recrutamento).
+
+**Poções de atributo** (2013501-2014006, 2015101-3 e os itens de coleção 2125001-10): o `EffectTempInfo.PropertyType1`
+diz o atributo, o grau (Property3) são os pontos: 135 Power, 137 Agility (*dedução*: "Defense"/"Armor"; o 2141 "All
+Stats" diz "Strength, Intellect, Armor, Endurance"), 138 Intellect, 139 Captain (Charisma), 140 Physique (Endurance),
+202 os quatro (Power, Intellect, Agility, Physique). Entram em `rules.leader_stats` como linha de bônus
+(`buffs.stat_bonuses`): somam no `total*` e nos derivados (PhyAttack, Live...), não no `base*` (o cliente marca o
+atributo com efeito quando total > base, `BasePropertyInfo.hasEffect`), e valem na batalha e no poder de combate.
+*(cliente)* `PlayerEffectHelper` ignora o 110 desses tipos; por isso o 5006 manda também o **150** com o herói novo,
+depois do 4188 (115, 110, 4188, 150, 3), e o 8283 manda o 150 sem a poção. *(dedução)* a ordem e o 150 no 8283; não há
+captura de poção de atributo (a do pergaminho de EXP tem um 150 entre o 115 e o 110).
+
+Os outros 201 (pergaminhos 2041-2048, Camouflage 2000, Blessing 7001) ligam o ícone e o tempo, mas o efeito ainda não
+existe no servidor.
+
+Captura que falta: usar uma Power Potion (2013501) e gravar o 5006 inteiro (onde vem o 150 e se o 110 sai) e o 8283
+dela; terminar uma etapa de masmorra solo com o 2013002 ativo e gravar o 137 (`totalGp` e `propJoin`).
 
 ## Loja — `shop.py`
 

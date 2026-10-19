@@ -321,6 +321,10 @@ async def seminary_bless(s: GameSession, _: object) -> None:
     c.seminary_count, c.seminary_day = count + 1, gameday.today(now)
     quests = rules.quest_event(s.snapshot, s.ctx.templates, rules.SEMINARY_CONDITION, 0, 1)  # missão 57 (8489)
     await s.ctx.characters.save(c, *quests)
+    from . import events  # handlers.events importa login, que importa este módulo
+
+    # LeedTemp 33 "Spin the Blessing Wheel" é esta bênção: (visto) city_city_upgrade #139-#140, 4152 antes do 4391
+    await events.leed_done(s, events.WHEEL_LEED)
     s.send(S_BLESSING, b.complete(pb.BlessingMsg(increase=c.seminary_effect, usedCount=c.seminary_count)))
     castle_yield(s)  # 109: o contador de cristais do cliente
     if quests:

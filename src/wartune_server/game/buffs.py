@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 from ..domain.models import EventState, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
+from ..templates.repository import GameTemplates, Row
 from . import events
 
 KEY = "buff:"
@@ -18,6 +19,17 @@ KEY = "buff:"
 # "Warehouse Capacity +{Grades}%") e "Population Boost" (Population Expansion Scroll 2010801)
 EXP_BOOST, GOLD_MAX, POPULATION = 2030, 2008, 2005
 ITEM = 2  # BufferDataMsg.type de buff de item: PlayerBufferInfo usa o ícone/nome do item e o EffectTempInfo
+# Poções de atributo (EffectTempInfo.PropertyType1 -> atributo do herói, + grau pontos). Descrições dos
+# EffectTempInfos: 135 "Strength", 138 "Intellect", 139 "Charisma", 140 "Stamina"/"Endurance"; (dedução) 137
+# "Defense"/"Armor" = Agility (o 2141 soma "Strength, Intellect, Armor, Endurance"; o herói só tem esses 4 + Captain)
+STATS = {
+    135: ("Power",),
+    137: ("Agility",),
+    138: ("Intellect",),
+    139: ("Captain",),
+    140: ("Physique",),
+    202: ("Power", "Intellect", "Agility", "Physique"),
+}
 
 
 def _live(st: EventState, now: datetime) -> bool:
@@ -40,6 +52,20 @@ def active(snap: PlayerSnapshot, now: datetime) -> list[EventState]:
 
 def effect_of(st: EventState) -> int:
     return int(st.key[len(KEY) :])
+
+
+def stat_type(templates: GameTemplates, effect: int) -> int:
+    return int((templates.get("EffectTempInfos", effect) or {}).get("PropertyType1") or 0)
+
+
+def stat_bonuses(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[Row]:
+    """Poções ativas como linhas de bônus do herói (``HeroStats.of``): somam no ``total*``, não no ``base*`` (o
+    cliente marca o atributo com efeito quando ``total`` > ``base``, ``BasePropertyInfo.hasEffect``)."""
+    rows: list[Row] = []
+    for st in active(snap, now):
+        if attrs := STATS.get(stat_type(templates, effect_of(st))):
+            rows.append({a: str(st.value) for a in attrs})
+    return rows
 
 
 def data(st: EventState, now: datetime) -> pb.BufferDataMsg:

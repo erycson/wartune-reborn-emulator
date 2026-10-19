@@ -140,7 +140,10 @@ async def test_contribution_matches_the_capture(tmp_path: Path) -> None:
         c = _char(a)
         gold = c.gold
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=1000))
-        await a.idle()
+        got = await a.idle()
+        leed = _one(got, 4152, pb.LeedUpdatedRspMsg)  # leed 8 "Contribute to your Guild" (birlik_katkisi #11)
+        assert [(x.templateId, x.isComplete) for x in leed.leed] == [(8, True)]
+        assert [p.code for p in got if p.code in (111, 4152, 42)] == [111, 4152, 42]
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=55999))
         got = await a.idle()
         assert [p.code for p in got if p.code in (109, 3, 111, 42, 164)] == [109, 3, 111, 42, 164]

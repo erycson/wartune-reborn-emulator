@@ -56,7 +56,7 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     leader, castle = snap.leader, snap.castle
     assert leader is not None and castle is not None and snap.character.id is not None
     templates = s.ctx.templates
-    stats = rules.leader_stats(snap, templates)
+    stats = rules.leader_stats(snap, templates, s.ctx.clock.now())
     rules.refresh_skill_point(leader, templates)  # derivado do nível e das skills (cache na coluna)
     hero = b.hero_info(leader, snap.character.id, stats, rules.talent_points(leader, templates))
     t = templates
@@ -75,7 +75,7 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
 def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     from . import events  # events importa este módulo
 
-    fighting = rules.leader_stats(snap, s.ctx.templates).fighting_capacity
+    fighting = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).fighting_capacity
     if snap.systems is not None:  # startFree certo mesmo para quem estava offline às 5h
         rules.refresh_star_day(snap.systems, s.ctx.clock.now())
     mine = s.ctx.guilds.of(snap.character.id or 0)

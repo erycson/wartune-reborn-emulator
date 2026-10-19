@@ -91,6 +91,9 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     _player(s)
     # texto deduzido (sem fonte no cliente/captura)
     _alert(s, "Contribution successful!")
+    from .. import events  # handlers.events importa login, que importa a guilda
+
+    await events.leed_done(s, events.GUILD_OFFER_LEED)  # (visto) birlik_katkisi #10-#11: 111 e então o 4152
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))

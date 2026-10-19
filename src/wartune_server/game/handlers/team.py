@@ -39,7 +39,7 @@ def _info(s: GameSession, team: Team) -> pb.TeamInfoMsg:
                 heroId=leader.id,
                 templateId=leader.template_id,
                 armyId=pid,
-                fightingCapacity=rules.leader_stats(snap, s.ctx.templates).fighting_capacity,
+                fightingCapacity=rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).fighting_capacity,
                 onlineState=True,
                 hasLeftForNow=pid in team.away,
             )

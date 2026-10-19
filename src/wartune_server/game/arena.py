@@ -228,7 +228,7 @@ def robot_player(robot: Robot, templates: GameTemplates) -> pb.SimplePlayerInfoM
     )
 
 
-def snapshot_player(snap: PlayerSnapshot, templates: GameTemplates, rank: int) -> pb.SimplePlayerInfoMsg:
+def snapshot_player(snap: PlayerSnapshot, templates: GameTemplates, rank: int, now: datetime) -> pb.SimplePlayerInfoMsg:
     c = snap.character
     return pb.SimplePlayerInfoMsg(
         userId=c.id or 0,
@@ -238,7 +238,7 @@ def snapshot_player(snap: PlayerSnapshot, templates: GameTemplates, rank: int) -
         consortiaID=0,
         consortiaName="",
         grades=c.grades,
-        fightingCapacity=rules.leader_stats(snap, templates).fighting_capacity,
+        fightingCapacity=rules.leader_stats(snap, templates, now).fighting_capacity,
         challengeRank=rank,
         job=rules.job_type(c.job),
     )
@@ -318,11 +318,11 @@ def robot_spec(
     return [], [hero]
 
 
-def copy_hero(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, Any]:
+def copy_hero(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> dict[str, Any]:
     """Cópia de combate de outro jogador (ou do próprio): o herói líder como NPC do lado 2."""
     leader = snap.leader
     assert leader is not None
-    stats = rules.leader_stats(snap, templates)
+    stats = rules.leader_stats(snap, templates, now)
     magic = rules.job_type(snap.character.job) == 3
     tpl = templates.get("GameHeroTemp", leader.template_id) or {}
     return npc_hero(

@@ -67,15 +67,44 @@ captura virou -500).
   (saída do mapa do tutorial, tutorial_en #521, e fim de etapa de campanha com `Capacity` 1), 5 (fim de etapa com
   `Capacity` > 1, dedução), 9 (ocupar mina, #748), 10 "Plunder another player" (5160 no castelo-robô, já no ataque,
   #1649), 12 (bênção da guilda, 5145), 16 (chat no mundo), 19 (desafio do coliseu, 8253), 20 (entrega de missão
-  `TemplateType` 1 "Daily"). Os outros (`LeedTemp` 8, 13, 15, 17, 18, 22-28, 33) ainda não têm gancho:
-  o sistema chama `events.leed_done(s, template_id)` (ou `leed_gain`, sem await, e grava depois).
+  `TemplateType` 1 "Daily"). Um sistema novo chama `events.leed_done(s, template_id)` (ou `leed_gain`, sem await, e
+  grava depois). Ganchos do resto da `LeedTemp` (não existe o 26):
+
+  | Leed | Título | Gancho | Fonte |
+  |---|---|---|---|
+  | 8 | Contribute to your Guild | doação 5144 (`guild/upgrades.contribute`), depois do 111 | *(visto)* turca birlik_katkisi #10-#11 |
+  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend` e o `gd.pay_points` da guilda) | *(visto)* turca yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152) |
+  | 17 | Capture an Astral | sorteio de estrela 8269, antes do 4180 | *(visto)* turca kader_sistemi #4-#7 |
+  | 18 | Fight a World BOSS | `worldboss.boss_attack`, já no ataque (como o 10) | *(dedução)* pelo título |
+  | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(dedução)* pelo título (PassCount 5) |
+  | 25 | Harvest from your own farm | colheita 15044 op 4 (só a própria fazenda existe) | *(dedução)* pelo título |
+  | 33 | Spin the Blessing Wheel | **bênção do seminário** 8489, antes do 4391 | *(visto)* turca city_city_upgrade #139-#140; a "Blessing Wheel Percentage" das notícias (internet) é essa % |
+  | 13 | Participate in a group arena fight | **depende de** arena em grupo (não existe) | — |
+  | 22 | Enter the Altar of Ennoblement | **depende de** um sistema que não se sabe qual é (o tooltip `tipData22` está no language, que não temos); talvez o altar da guilda 7601, recusado | — |
+  | 23 | Enter Forgotten Catacombs | **depende de** entrar no labirinto (Crypt, 8001/8101; hoje só o 4205 de informação) | (internet) https://wartune.fandom.com/wiki/Glossary |
+  | 27 | Enter Battleground | **depende de** campo de batalha (`warfield.py`, fechado) | — |
+  | 28 | Enter the Spire | **depende de** Spire do Hall of Heroes (mapa de torre não existe) | (internet) https://wartune.fandom.com/wiki/Hall_of_Heroes |
+
+  A ordem: o oficial manda o 83 do total mais para o fim da resposta; aqui ele vai junto do 4152.
 - Ganho (visto tutorial_en #521-#522, #748-#753, #1649-#1652): 4152 **só com o leed que mudou** (a lista completa só
   no login, #50, do maior `TemplateId` para o menor), 83 canal 3 "Your devotion level has increased to N." quando o
   total sobe (no login, logo depois do PlayerMsg, #16) e o 112 das missões tipo 63 (863). O oficial manda o 83 depois
   dos 140 seguintes; aqui vai logo depois do 4152. (dedução) passos do meio de `PassCount` > 1 não mandam 83.
-- VIP: o cliente mostra uma linha "VIP login" (`templateId` -1, `VipPrerogativeTemp` tipo 9) para VIP 3+, mas nesta
-  versão o tipo 9 é "Add Daru Alchemy Attempts": não somado. Sem prêmio por nível de devoção além dos baús (8235).
+- VIP: o `totalNum` soma o `para1` do `VipPrerogativeTempInfos` **tipo 2 "Devotion Bonus"** do nível VIP ativo
+  (0, 0, 10, 10, 20, 20, 30, 30, 40 do VIP 1 ao 9). *(cliente)* `DayGuideCatecory.finishList` põe a linha "VIP login"
+  (`templateId` -1, já completa) com VIP 3+ ativo, o mesmo nível em que o tipo 2 sai do 0; `VIPModel.VIP_ACTIVE` = 2.
+  A dica da linha (`ProjectItem`, `vipActivePrivilege`) lê o tipo 9, que nesta tempinfos é a alquimia de Daru: o
+  número da dica sai errado, o total não. Sem captura com VIP 3+ (a inglesa só tem VIP 1). Sem prêmio por nível de
+  devoção além dos baús (8235).
 - Guia de 7 dias: só tarefas `SimpleTasks` tipo 4 (nível) e 22 (poder de combate) são verificadas.
+
+### Captura que falta (devoção)
+
+- Personagem com **VIP 3+** ativo: gravar o login (4152 completo) para conferir que o `totalNum` já vem com o
+  "Devotion Bonus" (+10 no VIP 3) e se o 4152 muda na hora em que o VIP é comprado ou vence.
+- Atacar o chefe do mundo, entregar uma tarefa do painel de recompensas (Bounty) e colher na própria fazenda,
+  cada um no 1º do dia: gravar onde sai o 4152 dos leeds 18, 24 e 25 (no ataque ou no fim? em toda entrega?).
+- Abrir o painel de devoção com o mouse sobre "Enter the Altar of Ennoblement" (leed 22) para saber o sistema.
 
 ## VIP e contrato do rei
 

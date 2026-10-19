@@ -59,6 +59,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))
         got = await g.until(102)
         assert [p.code for p in got] == [3, 111, 102]
+        assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
         assert pb.OrderQuickRspMsg.FromString(got[2].body).orderInfo[0].remainTime == 0
 
         saved = await g.server.services.characters.snapshot(g.user_id)
@@ -119,6 +120,7 @@ async def test_gold_impose_and_buying_a_second_build_order(tmp_path: Path) -> No
         got = await g.until(104)
         assert [p.code for p in got] == [3, 104]
         assert pb.OrderInfoMsg.FromString(got[1].body).orderType == 1
+        assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
         g.client.send(5175, pb.PayTypeMsg(payType=1))  # limite de 2 filas de prédio
         assert await g.idle() == []
         g.client.send(8279, pb.PayTypeMsg())
@@ -182,10 +184,11 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         got = await g.until(4387)
         assert [p.code for p in got] == [3, 4387]
         assert pb.PlayerMsg.FromString(got[0].body).point == 0
+        assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=1))
         got = await g.until(109)
-        assert [p.code for p in got] == [4387, 109]
-        assert pb.CastleYieldMsg.FromString(got[1].body).goldTotalCount == 2400
+        assert [p.code for p in got] == [4152, 83, 4387, 109]  # leed 25 "Harvest from your own farm"
+        assert pb.CastleYieldMsg.FromString(got[3].body).goldTotalCount == 2400
 
         clock.advance(59 * 60)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=0))

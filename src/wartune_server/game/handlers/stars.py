@@ -177,6 +177,9 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     await s.ctx.characters.save(c, sy, *new, *quests)
     castle_yield(s)
     _player(s)
+    from . import events  # handlers.events importa login, que importa player
+
+    await events.leed_done(s, events.ASTRAL_LEED)  # (visto) kader_sistemi #4-#7: 3, 4152, 3, 4180
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
     if quests:
         from .army import send_quests

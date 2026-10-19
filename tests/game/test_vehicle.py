@@ -27,7 +27,7 @@ async def test_vehicle_garage_activate_and_choose(tmp_path: Path) -> None:
         assert await g.idle() == []
         ch.point = 1500
         c.send(8619, pb.SimplePropertyMsg(param1=PAID, param2=0))
-        assert [p.code for p in await g.idle()] == [4516, 4515, 3]
+        assert [p.code for p in await g.idle()] == [4516, 4515, 3, 4152, 83]  # + leed 15 (gasto de diamante)
         assert ch.point == 500
 
         c.send(8611, pb.CampaignReqMsg(paraInt1=PAID))

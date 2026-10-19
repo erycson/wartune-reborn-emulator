@@ -33,6 +33,12 @@ LOGIN_LEED, WORLD_CHAT_LEED = 1, 16  # LeedTemp "Daily Login", "Speak in world c
 # LeedTemp "Complete a solo dungeon", "... multi-player dungeon", "Plunder another player", "Perform a guild blessing",
 # "Challenge another player", "Complete a daily quest" (o 4 e o 10: tutorial_en #521 e #1649)
 CAMPAIGN_LEED, MULTI_CAMPAIGN_LEED, PLUNDER_LEED, BLESS_LEED, CHALLENGE_LEED, DAILY_QUEST_LEED = 4, 5, 10, 12, 19, 20
+# "Contribute to your Guild", "Consume Balens/Bound Balens", "Capture an Astral", "Spin the Blessing Wheel" (visto na
+# turca: birlik_katkisi #11, yeralti_labirenti #8, kader_sistemi #5, city_city_upgrade #139); "Fight a World BOSS",
+# "Complete Bounty Quest", "Harvest from your own farm" (dedução: o nome do LeedTemp, sem captura)
+GUILD_OFFER_LEED, BALEN_LEED, ASTRAL_LEED, WHEEL_LEED = 8, 15, 17, 33
+WORLD_BOSS_LEED, BOUNTY_LEED, FARM_LEED = 18, 24, 25
+VIP_DEVOTION = 2  # VipPrerogativeTempInfos.type "Devotion Bonus" (0, 0, 10, 10 ... 40 do VIP 1 ao 9)
 EMEK, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Devotion"; QuestUpdatedRspMsg
 # (visto) tutorial_en #16 (login), #522, #753, #1652: canal 3, quando o total (totalNum do 4152) sobe
 DEVOTION_UP = "Your devotion level has increased to {}."
@@ -339,7 +345,10 @@ def _leeds(s: GameSession, now: datetime) -> tuple[list[pb.LeedData], int]:
                 templateId=tid, userId=s.player_id, currentCount=count, beginDate=b.fmt_time(now), isComplete=done
             )
         )
-    return out, total
+    # (cliente) DayGuideCatecory.finishList: VIP 3+ ativo ganha a linha "VIP login" (templateId -1) já completa; o
+    # valor é o "Devotion Bonus" (tipo 2), que só passa de 0 no VIP 3. O ProjectItem lê o tipo 9 para a dica, mas
+    # nesta tempinfos o 9 é a alquimia de Daru: a dica mostra outro número (sem efeito no total).
+    return out, total + vip.vip_right(s, snap, VIP_DEVOTION)
 
 
 def _send_leeds(s: GameSession) -> None:

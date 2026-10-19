@@ -111,6 +111,24 @@ async def test_same_grade_adds_time_weaker_is_refused_and_stop_clears(tmp_path: 
         assert codes(got)[-2:] == [110, 4188] and _buffer(got).validityDate == 0
 
 
+async def test_power_potion_raises_total_power_until_it_ends(tmp_path: Path) -> None:
+    """Lvl. 2 Power Potion (2013502, efeito 2135 "Strength +{Grades}", grau 40): 150 com totalPower +40 (o basePower
+    não muda) e o PhyAttack derivado junto; o 8283 devolve os totais sem a poção."""
+    async with logged_in(tmp_path, novice=11000, clock=FakeClock(START)) as g:
+        me(g).character.grades = 20  # NeedGrades 10
+        await _give(g, 2013502)
+        got = await _use(g)
+        assert codes(got) == [115, 110, 4188, 150, 3]
+        on = pb.ArmyArmyMsg.FromString(got[3].body).simpleHeroInfo
+        assert on.totalPower == on.basePower + 40
+
+        g.client.send(8283, pb.EffectRemoveReqMsg(templateId=2135))
+        got = await g.until(150)
+        off = pb.ArmyArmyMsg.FromString(got[-1].body).simpleHeroInfo
+        assert off.totalPower == off.basePower
+        assert on.totalPhyAttack - off.totalPhyAttack == 4 * 40  # PhyAttack = 4 x Power
+
+
 async def test_gold_scroll_raises_the_warehouse_cap(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=11000, clock=FakeClock(START)) as g:
         await _give(g, GOLD_SCROLL)

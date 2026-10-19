@@ -63,6 +63,9 @@ async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
         got = await g.until(4416)
         info = pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body)
         assert (info.isVip, info.isExpirt, info.isTakeGift, info.vipGp, info.vipGrade) == (True, False, True, 310, 3)
+        leed = pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body)  # leed 15 (gasto de diamante)
+        await g.until(83)
+        assert leed.totalNum == 5 + 10 + 10  # login + leed 15 + "Devotion Bonus" do VIP 3
         assert c.point == 102
 
         g.client.send(8505)  # presente semanal: VipDrop site 3

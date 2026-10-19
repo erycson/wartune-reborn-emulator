@@ -90,6 +90,7 @@ async def test_attack_extra_costs_diamonds_and_is_capped_at_five(tmp_path: Path)
         got = await g.until(3)
         assert pb.PlayerMsg.FromString(got[-1].body).attackLeftCount == 4
         assert snap.character.point == 50
+        assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
 
         g.client.send(9506, pb.OutercityReqMsg(mapId=0, attackCount=1, type=1))  # sem diamante suficiente
         assert [p.code for p in await g.idle()] == [111]  # aviso: o cliente só confere 100

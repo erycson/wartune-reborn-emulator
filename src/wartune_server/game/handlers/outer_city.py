@@ -281,7 +281,7 @@ async def return_home(s: GameSession, _: pb.PayTypeMsg) -> None:
 
 def _capacity(s: GameSession) -> int:
     assert s.snapshot is not None
-    return rules.leader_stats(s.snapshot, s.ctx.templates).fighting_capacity
+    return rules.leader_stats(s.snapshot, s.ctx.templates, s.ctx.clock.now()).fighting_capacity
 
 
 def _mine_sync(s: GameSession, mine: Mine, state: int) -> None:

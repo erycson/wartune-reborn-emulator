@@ -112,7 +112,7 @@ def enter_pet_island(s: GameSession, map_id: int) -> None:
     room.room.campaignId = map_id
     s.send(S_ROOM_CREATED, room)
     assert s.snapshot is not None
-    me = space.room_player(s.snapshot, s.ctx.templates, s.campaign.pos, map_id)
+    me = space.room_player(s.snapshot, s.ctx.templates, s.campaign.pos, map_id, s.ctx.clock.now())
     s.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me]))
     s.send(S_NODES, s.campaign.node_list())
 

@@ -368,7 +368,7 @@ async def _use_divine_light(s: GameSession, item: Item, row: Row, n: int) -> boo
 
 
 def _effect_type(s: GameSession, effect: int) -> int:
-    return int((s.ctx.templates.get("EffectTempInfos", effect) or {}).get("PropertyType1") or 0)
+    return buffs.stat_type(s.ctx.templates, effect)
 
 
 def send_buffers(s: GameSession, states: list[EventState]) -> None:
@@ -397,6 +397,9 @@ async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
     send_buffers(s, [st])
     if effect in (buffs.GOLD_MAX, buffs.POPULATION):
         castle_yield(s)  # (dedução) teto do armazém/população novos na barra
+    if _effect_type(s, effect) in buffs.STATS:
+        # poção de atributo: o 110 desses tipos o cliente ignora (PlayerEffectHelper); o 150 leva os total* novos
+        _army(s)
     _player(s)
     return True
 
@@ -416,6 +419,8 @@ async def effect_stop(s: GameSession, msg: pb.EffectRemoveReqMsg) -> None:
     send_buffers(s, [st])
     if msg.templateId in (buffs.GOLD_MAX, buffs.POPULATION):
         castle_yield(s)
+    if _effect_type(s, msg.templateId) in buffs.STATS:
+        _army(s)  # (dedução) os total* sem a poção
 
 
 # --- vender ---
@@ -671,7 +676,9 @@ async def equip_look(s: GameSession, msg: pb.DetailReqMsg) -> None:
     for item in snap.items:
         if item.bag_type in rules.HERO_BAGS and item.object_id == leader.id:
             out.item.append(_copy(item_info(item, cid), pb.SimpleItemInfoMsg()))
-    hero = _copy(b.hero_info(leader, cid, rules.leader_stats(snap, s.ctx.templates)), pb.SimpleHeroMsg())
+    hero = _copy(
+        b.hero_info(leader, cid, rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now())), pb.SimpleHeroMsg()
+    )
     hero.tempateId, hero.nickName = leader.template_id, snap.character.nickname or ""
     out.army.CopyFrom(pb.SimpleArmyMsg(playerId=cid, nickName=snap.character.nickname or "", simpleHero=hero))
     out.army.storeGrade, out.army.appellid = snap.character.store_grade, snap.character.appell_id

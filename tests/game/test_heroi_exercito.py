@@ -188,7 +188,8 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
 
         g.client.send(8269, pb.StarRandReqMsg(site=0))  # grátis do dia
         got = await g.until(4180)
-        assert codes(got) == [109, 3, 4180] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
+        # 4152/83: leed 17 "Capture an Astral" (kader_sistemi #5), só no 1º sorteio do dia
+        assert codes(got) == [109, 3, 4152, 83, 4180] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
         for _ in range(2):
             g.client.send(8269, pb.StarRandReqMsg(site=0))
             await g.until(4180)
@@ -217,6 +218,7 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
 
         g.client.send(8270, pb.PayTypeMsg(payType=1))
         assert pb.PlayerMsg.FromString((await g.until(3))[-1].body).starCount == 1
+        assert codes(await g.until(83)) == [4152, 83]  # leed 15 (gasto de diamante)
         g.client.send(8341, pb.StarShopMsg(goodId=1605))  # 7000 de StarPoint: não tem
         assert await g.idle() == []
         g.client.send(8341, pb.StarShopMsg(goodId=4))
@@ -344,8 +346,8 @@ async def test_pets_points_fight_and_slots(tmp_path: Path) -> None:
         assert (army.petTempId, army.petName) == (104103, "Pan")
 
         g.client.send(8621, pb.PlayerPetOpMsg(opType=12, payType=1))
-        got = await g.until(3)
-        assert pb.PlayerPetMsg.FromString(got[0].body).petCount == 4 and codes(got) == [4540, 3]
+        got = await g.until(83)  # + 4152/83 do leed 15 (gasto de diamante)
+        assert pb.PlayerPetMsg.FromString(got[0].body).petCount == 4 and codes(got) == [4540, 3, 4152, 83]
         g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=3, payType=1))  # 100: só restam 50
         assert await g.idle() == []
 

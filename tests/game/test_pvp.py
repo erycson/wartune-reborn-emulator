@@ -111,8 +111,8 @@ async def test_colosseum_copy_of_a_player_can_beat_you_and_wins_swap_places(
     real_copy = A.copy_hero
     strength: dict[str, int] = {}
 
-    def copy(snap: PlayerSnapshot, templates: Any) -> Any:
-        hero = real_copy(snap, templates)
+    def copy(snap: PlayerSnapshot, templates: Any, now: Any) -> Any:
+        hero = real_copy(snap, templates, now)
         hero.update(strength)
         return hero
 

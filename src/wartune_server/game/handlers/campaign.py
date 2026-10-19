@@ -121,7 +121,9 @@ def map_sync(s: GameSession, state: int) -> pb.MapUpdatedMsg:
 def _room_enter(s: GameSession) -> pb.RoomEnterMsg:
     snap, c = s.snapshot, _map(s)
     assert snap is not None
-    return pb.RoomEnterMsg(result=1, player=[space.room_player(snap, s.ctx.templates, c.pos, c.map_id)])
+    return pb.RoomEnterMsg(
+        result=1, player=[space.room_player(snap, s.ctx.templates, c.pos, c.map_id, s.ctx.clock.now())]
+    )
 
 
 def _escort(s: GameSession) -> None:
@@ -337,7 +339,7 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     leader = snap.leader
-    stats = rules.leader_stats(snap, s.ctx.templates)
+    stats = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now())
     tpl_row = s.ctx.templates.get("GameHeroTemp", leader.template_id) or {}
     player = spec["player"]
     assert isinstance(player, dict)
@@ -927,6 +929,10 @@ async def _dungeon_end(s: GameSession) -> None:
     c.ending, c.finished = None, True
     row = _campaign_row(s, run.campaign_id)
     report = cm.report(run, row, now)
+    # EXP Boost: "Increases EXP received from instances by N%, ... only takes effect in campaigns and MP dungeons"
+    # (cliente, ItemTempInfo 2013001-4). (dedução) o grau vai no propJoin (o "prop" do CampaignResultView)
+    report.propJoin = buffs.grade(snap, buffs.EXP_BOOST, now)
+    report.totalGp = buffs.boost(report.totalGp, snap, buffs.EXP_BOOST, now)
     rules.add_gp(snap, s.ctx.templates, report.totalGp)
     rank = events.state(snap, RANK_KEY.format(run.campaign_id), now)
     rank.value, rank.updated_at = max(rank.value, report.totalAppraisal), now
