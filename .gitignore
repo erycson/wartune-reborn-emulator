@@ -21,3 +21,6 @@ data/*
 !data/*.json
 captures/
 .claude/
+
+# Material de consulta (relatórios de revisão, legado turco)
+consulta/
