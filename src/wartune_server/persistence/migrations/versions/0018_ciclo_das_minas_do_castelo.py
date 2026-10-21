@@ -12,8 +12,8 @@ from alembic import op
 
 from wartune_server.persistence.schema import UTCDateTime
 
-revision = '0018'
-down_revision = '0017'
+revision = "0018"
+down_revision = "0017"
 branch_labels = None
 depends_on = None
 
