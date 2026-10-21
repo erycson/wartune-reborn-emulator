@@ -62,6 +62,27 @@ def strengthened(row: Row, grade: int) -> Row:
     return out
 
 
+# PetInfoMsg.bag*: o PetData soma cada um no ataque/defesa/vida mostrados (equipPhysicalAttack...)
+PET_EQUIP_STATS = {"Attack": "bagAttack", "Defence": "bagDefence", "MagicAttack": "bagMagicattack"}
+PET_EQUIP_STATS |= {"MagicDefence": "bagMagicdefence", "Live": "bagLiving"}
+
+
+def pet_equipment(items: Sequence[Item], templates: GameTemplates) -> dict[str, int]:
+    """``bag*`` do mascote pelas peças vestidas (bolsa 26): atributo do template + encantamento
+    (``GoodsHelp.getPetEquipStrengAddition``: ``int(base × 1,08^g − base)``) + Almas engastadas + atributos sorteados.
+    ponytail: o total é dedução (o cliente só lê o pronto) e a batalha do mascote (``arena.pet_unit``) não soma."""
+    out = dict.fromkeys(PET_EQUIP_STATS.values(), 0)
+    for item in items:
+        row = templates.get("ItemTempInfos", item.template_id) or {}
+        rows: list[Row] = [templates.get("ItemTempInfos", gem) or {} for gem in item.joins if gem > 0]
+        rows += [templates.get("SkillPropertyTempInfos", k) or {} for k in item.random_skills if k]
+        for stat, field_name in PET_EQUIP_STATS.items():
+            base = int(row.get(stat) or 0)
+            mould = int(base * 1.08**item.mould_grade - base) if base > 0 and item.mould_grade > 0 else 0
+            out[field_name] += base + mould + sum(int(r.get(stat) or 0) for r in rows)
+    return out
+
+
 def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
     """Linhas de template que somam nos atributos do líder: itens equipados (com o reforço), os
     atributos sorteados (``SkillPropertyTempInfos``) e as pedras engastadas."""
@@ -128,7 +149,23 @@ def mount_stats(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, int
         return {}
     cap = mount_level_max(tpl)
     gps = [int(x) for x in sy.mount_gp.split(",")]
-    return {a: int(tpl.get(a, 0)) + 5 * mount_grade(templates, gp, cap) for a, gp in zip(MOUNT_ATTRS, gps, strict=True)}
+    star, adds = mount_stars(sy).get(sy.mount_template, (0, 0))[0], star_additions(tpl)
+    bonus = adds[star - 1] if 0 < star <= len(adds) else 0  # MountsPromotionView: o mesmo valor nos 4 atributos
+    return {
+        a: int(tpl.get(a, 0)) + 5 * mount_grade(templates, gp, cap) + bonus
+        for a, gp in zip(MOUNT_ATTRS, gps, strict=True)
+    }
+
+
+def mount_stars(sy: PlayerSystems) -> dict[int, tuple[int, int]]:
+    """Estrela e bênção de cada montaria (op 6)."""
+    return {int(m): (int(a), int(b)) for m, a, b in (x.split(":") for x in sy.mount_stars.split(",") if x)}
+
+
+def star_additions(tpl: Row) -> list[int]:
+    """``MountTempInfo.StarAddition``: o bônus de cada estrela (cumulativo, absoluto); o tamanho é a estrela máxima
+    (``MountTemplate.maxStarGrade``)."""
+    return [int(x) for x in (tpl.get("StarAddition") or "").split(",") if x.strip().isdigit()]
 
 
 def mount_level_max(tpl: Row) -> int:
@@ -304,7 +341,7 @@ GOODS_CONDITIONS = {27, 28, 32, 49}
 # (visto) captura EN: só estes tipos mandam o 112 do progresso antes da entrega (5014): 23 (#211), 2 (#631), 10 (#2180)
 PROGRESS_BEFORE_FINISH = {NOVICE_CONDITION, BUILDING_CONDITION, 10}
 QUEST_GOODS_SON = "210"  # SonType do item só de missão (2100001): a entrega tira todas as unidades (goods_to_take)
-# (cliente) newbie.xml (overlay/ui/zh_cn), saveId: o maior salto do guia é 28500 -> 32000 (3500)
+# (cliente) newbie.xml (espelho inglês res134 ui/zh_cn), saveId: o maior salto do guia é 28500 -> 32000 (3500)
 # ponytail: teto de salto em vez da lista exata de saveId; a lista seria o próximo passo
 NOVICE_STEP_MAX = 3500
 NOVICE_FIRST_MAX = 11000  # (cliente) primeiro saveId do newbie.xml; de noviceProcess 0 o avanço não passa daqui
@@ -342,9 +379,9 @@ def cloth_avatar(snap: PlayerSnapshot, templates: GameTemplates) -> str:
     return next((r.get("Avata", "") for r in equipment(snap, templates) if r.get("SonType") == CLOTH), "")
 
 
-def grade_steps(templates: GameTemplates) -> list[tuple[int, int]]:
-    """``(nível, EXP total para chegar nele)`` em ordem."""
-    rows = sorted((int(r["Grades"]), int(r["Data"])) for r in templates.find("UpGradeTempInfos", Types=PLAYER_GRADE))
+def grade_steps(templates: GameTemplates, types: str = PLAYER_GRADE) -> list[tuple[int, int]]:
+    """``(nível, EXP total para chegar nele)`` em ordem, da tabela ``UpGradeTempInfos`` de ``types``."""
+    rows = sorted((int(r["Grades"]), int(r["Data"])) for r in templates.find("UpGradeTempInfos", Types=types))
     steps, total = [], 0
     for grade, data in rows:
         total += data
@@ -506,6 +543,15 @@ def update_novice_quests(snap: PlayerSnapshot, templates: GameTemplates) -> list
                 if q not in changed:
                     changed.append(q)
     return changed
+
+
+def novice_pushes(templates: GameTemplates, q: Quest) -> bool:
+    """O 112 do progresso tipo 23 sai sem pedido só com ``Para3`` 1. *(dedução)*: o cliente não lê o ``Para3``; no
+    tutorial_en as missões 10-45 (``Para3`` 1) mandam o 112 no 5017 e a 50 (``Para3`` 0) não (#584)."""
+    return any(
+        int(c["CondictionType"]) == NOVICE_CONDITION and c.get("Para3") == "1"
+        for c in conditions(templates, q.template_id)
+    )
 
 
 def update_building_quests(snap: PlayerSnapshot, templates: GameTemplates) -> list[Quest]:
@@ -680,15 +726,6 @@ def quest_rewards(
         if int(g.get("ToJob", "0")) in (0, jt)
     ]
     return row, goods
-
-
-def pay_point(c: Character, cost: int, bind: bool) -> bool:
-    """Cobra diamantes; com ``bind`` gasta primeiro os vinculados (gift_token). False = sem saldo."""
-    if cost < 0 or c.point + (c.gift_token if bind else 0) < cost:
-        return False
-    from_bind = min(c.gift_token, cost) if bind else 0
-    c.gift_token, c.point = c.gift_token - from_bind, c.point - (cost - from_bind)
-    return True
 
 
 def pay_soul(c: Character, cost: int) -> bool:

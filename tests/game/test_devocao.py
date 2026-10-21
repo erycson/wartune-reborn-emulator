@@ -119,7 +119,7 @@ async def test_missao_863_completa_entrega_e_volta_no_dia_seguinte(tmp_path: Pat
 
         # primeiro login do dia novo, como o 20001 faz (a sessão HTTP do harness não sobrevive a um dia de relógio):
         # o leed 1 (+5) entra na missão
-        touched = hev.touch_login(snap, clock.now(), s.ctx.events)
+        touched = hev.touch_login(snap, clock.now())
         assert touched and [q.template_id for q in hev.devotion_quests(s)] == [DEVOTION]
         assert next(q.progress for q in snap.quests if q.template_id == DEVOTION) == 5
 
@@ -146,8 +146,8 @@ async def test_gasto_de_diamante_conta_o_leed_15(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _session(g).snapshot
         assert snap is not None
-        snap.character.point = 100
-        g.client.send(8270, pb.PayTypeMsg(payType=0))  # compra espaço de estrelas (100 diamantes)
+        snap.character.point = 395
+        g.client.send(8270, pb.PayTypeMsg(payType=0))  # compra uma linha de estrelas (395 diamantes)
         got = await g.until(4152)
         assert snap.character.point == 0
         assert [(x.templateId, x.currentCount, x.isComplete) for x in _leed(got).leed] == [(15, 1, True)]

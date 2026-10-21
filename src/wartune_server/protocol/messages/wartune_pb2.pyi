@@ -3134,6 +3134,16 @@ class EngageMsg(_message.Message):
     engageInfos: _containers.RepeatedCompositeFieldContainer[MarriageProMsg]
     def __init__(self, engageInfos: _Optional[_Iterable[_Union[MarriageProMsg, _Mapping]]] = ...) -> None: ...
 
+class EnterTowerInfoMsg(_message.Message):
+    __slots__ = ("chooseIndex", "campaignId", "isDouble")
+    CHOOSEINDEX_FIELD_NUMBER: _ClassVar[int]
+    CAMPAIGNID_FIELD_NUMBER: _ClassVar[int]
+    ISDOUBLE_FIELD_NUMBER: _ClassVar[int]
+    chooseIndex: int
+    campaignId: int
+    isDouble: int
+    def __init__(self, chooseIndex: _Optional[int] = ..., campaignId: _Optional[int] = ..., isDouble: _Optional[int] = ...) -> None: ...
+
 class EquipLookDataMsg(_message.Message):
     __slots__ = ("otherId", "item")
     OTHERID_FIELD_NUMBER: _ClassVar[int]
@@ -7647,6 +7657,14 @@ class PosMsg(_message.Message):
     y: int
     def __init__(self, x: _Optional[int] = ..., y: _Optional[int] = ...) -> None: ...
 
+class Position(_message.Message):
+    __slots__ = ("x", "y")
+    X_FIELD_NUMBER: _ClassVar[int]
+    Y_FIELD_NUMBER: _ClassVar[int]
+    x: int
+    y: int
+    def __init__(self, x: _Optional[int] = ..., y: _Optional[int] = ...) -> None: ...
+
 class PowCardBufListMsg(_message.Message):
     __slots__ = ("bufInfos",)
     BUFINFOS_FIELD_NUMBER: _ClassVar[int]
@@ -8318,6 +8336,16 @@ class RoomCreatedMsg(_message.Message):
     isCross: bool
     def __init__(self, createdType: _Optional[int] = ..., room: _Optional[_Union[RoomMsg, _Mapping]] = ..., isCross: _Optional[bool] = ...) -> None: ...
 
+class RoomEditMsg(_message.Message):
+    __slots__ = ("roomId", "roomPwd", "roomName")
+    ROOMID_FIELD_NUMBER: _ClassVar[int]
+    ROOMPWD_FIELD_NUMBER: _ClassVar[int]
+    ROOMNAME_FIELD_NUMBER: _ClassVar[int]
+    roomId: int
+    roomPwd: str
+    roomName: str
+    def __init__(self, roomId: _Optional[int] = ..., roomPwd: _Optional[str] = ..., roomName: _Optional[str] = ...) -> None: ...
+
 class RoomEnterMsg(_message.Message):
     __slots__ = ("result", "player")
     RESULT_FIELD_NUMBER: _ClassVar[int]
@@ -8751,14 +8779,16 @@ class ShopItemBuyRspMsg(_message.Message):
     def __init__(self, result: _Optional[int] = ..., buyCount: _Optional[int] = ..., score: _Optional[int] = ...) -> None: ...
 
 class ShopMainRspMsg(_message.Message):
-    __slots__ = ("urlInfo", "goodInfo", "discountInfo")
+    __slots__ = ("urlInfo", "goodInfo", "discountInfo", "flag")
     URLINFO_FIELD_NUMBER: _ClassVar[int]
     GOODINFO_FIELD_NUMBER: _ClassVar[int]
     DISCOUNTINFO_FIELD_NUMBER: _ClassVar[int]
+    FLAG_FIELD_NUMBER: _ClassVar[int]
     urlInfo: _containers.RepeatedCompositeFieldContainer[MainUrlInfo]
     goodInfo: _containers.RepeatedCompositeFieldContainer[MainGoodInfo]
     discountInfo: _containers.RepeatedCompositeFieldContainer[MainDiscountInfo]
-    def __init__(self, urlInfo: _Optional[_Iterable[_Union[MainUrlInfo, _Mapping]]] = ..., goodInfo: _Optional[_Iterable[_Union[MainGoodInfo, _Mapping]]] = ..., discountInfo: _Optional[_Iterable[_Union[MainDiscountInfo, _Mapping]]] = ...) -> None: ...
+    flag: int
+    def __init__(self, urlInfo: _Optional[_Iterable[_Union[MainUrlInfo, _Mapping]]] = ..., goodInfo: _Optional[_Iterable[_Union[MainGoodInfo, _Mapping]]] = ..., discountInfo: _Optional[_Iterable[_Union[MainDiscountInfo, _Mapping]]] = ..., flag: _Optional[int] = ...) -> None: ...
 
 class ShopMsg(_message.Message):
     __slots__ = ("buyInfo", "hasDataInfo", "refreshDate", "payType")
@@ -10498,6 +10528,104 @@ class VehicleBuffStateMsg(_message.Message):
     serverName: str
     def __init__(self, id: _Optional[int] = ..., buffId: _Optional[int] = ..., state: _Optional[int] = ..., playerId: _Optional[int] = ..., effectValue: _Optional[int] = ..., serverName: _Optional[str] = ...) -> None: ...
 
+class VehicleCampaignDetailMsg(_message.Message):
+    __slots__ = ("campaignId", "campaignName", "redTeamScroe", "blueTeamScroe", "myScroe", "remainsTiem", "winner", "scroeList")
+    CAMPAIGNID_FIELD_NUMBER: _ClassVar[int]
+    CAMPAIGNNAME_FIELD_NUMBER: _ClassVar[int]
+    REDTEAMSCROE_FIELD_NUMBER: _ClassVar[int]
+    BLUETEAMSCROE_FIELD_NUMBER: _ClassVar[int]
+    MYSCROE_FIELD_NUMBER: _ClassVar[int]
+    REMAINSTIEM_FIELD_NUMBER: _ClassVar[int]
+    WINNER_FIELD_NUMBER: _ClassVar[int]
+    SCROELIST_FIELD_NUMBER: _ClassVar[int]
+    campaignId: int
+    campaignName: str
+    redTeamScroe: int
+    blueTeamScroe: int
+    myScroe: int
+    remainsTiem: int
+    winner: int
+    scroeList: _containers.RepeatedCompositeFieldContainer[VehicleScroeListMsg]
+    def __init__(self, campaignId: _Optional[int] = ..., campaignName: _Optional[str] = ..., redTeamScroe: _Optional[int] = ..., blueTeamScroe: _Optional[int] = ..., myScroe: _Optional[int] = ..., remainsTiem: _Optional[int] = ..., winner: _Optional[int] = ..., scroeList: _Optional[_Iterable[_Union[VehicleScroeListMsg, _Mapping]]] = ...) -> None: ...
+
+class VehicleExitMsg(_message.Message):
+    __slots__ = ("playerId",)
+    PLAYERID_FIELD_NUMBER: _ClassVar[int]
+    playerId: int
+    def __init__(self, playerId: _Optional[int] = ...) -> None: ...
+
+class VehicleMoveMsg(_message.Message):
+    __slots__ = ("playerId", "timestamp", "path")
+    PLAYERID_FIELD_NUMBER: _ClassVar[int]
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    playerId: int
+    timestamp: int
+    path: _containers.RepeatedCompositeFieldContainer[Position]
+    def __init__(self, playerId: _Optional[int] = ..., timestamp: _Optional[int] = ..., path: _Optional[_Iterable[_Union[Position, _Mapping]]] = ...) -> None: ...
+
+class VehicleNpcNodeListMsg(_message.Message):
+    __slots__ = ("vehicleNpcNode",)
+    VEHICLENPCNODE_FIELD_NUMBER: _ClassVar[int]
+    vehicleNpcNode: _containers.RepeatedCompositeFieldContainer[VehicleNpcNodeMsg]
+    def __init__(self, vehicleNpcNode: _Optional[_Iterable[_Union[VehicleNpcNodeMsg, _Mapping]]] = ...) -> None: ...
+
+class VehicleNpcNodeMsg(_message.Message):
+    __slots__ = ("nodeId", "type", "curX", "curY", "state", "hp", "name", "sonType", "heroTempId", "resource", "nameColor", "restX", "restY", "team")
+    NODEID_FIELD_NUMBER: _ClassVar[int]
+    TYPE_FIELD_NUMBER: _ClassVar[int]
+    CURX_FIELD_NUMBER: _ClassVar[int]
+    CURY_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    HP_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    SONTYPE_FIELD_NUMBER: _ClassVar[int]
+    HEROTEMPID_FIELD_NUMBER: _ClassVar[int]
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    NAMECOLOR_FIELD_NUMBER: _ClassVar[int]
+    RESTX_FIELD_NUMBER: _ClassVar[int]
+    RESTY_FIELD_NUMBER: _ClassVar[int]
+    TEAM_FIELD_NUMBER: _ClassVar[int]
+    nodeId: int
+    type: int
+    curX: int
+    curY: int
+    state: int
+    hp: int
+    name: str
+    sonType: int
+    heroTempId: int
+    resource: int
+    nameColor: int
+    restX: int
+    restY: int
+    team: int
+    def __init__(self, nodeId: _Optional[int] = ..., type: _Optional[int] = ..., curX: _Optional[int] = ..., curY: _Optional[int] = ..., state: _Optional[int] = ..., hp: _Optional[int] = ..., name: _Optional[str] = ..., sonType: _Optional[int] = ..., heroTempId: _Optional[int] = ..., resource: _Optional[int] = ..., nameColor: _Optional[int] = ..., restX: _Optional[int] = ..., restY: _Optional[int] = ..., team: _Optional[int] = ...) -> None: ...
+
+class VehiclePickPropMsg(_message.Message):
+    __slots__ = ("propNodeId",)
+    PROPNODEID_FIELD_NUMBER: _ClassVar[int]
+    propNodeId: int
+    def __init__(self, propNodeId: _Optional[int] = ...) -> None: ...
+
+class VehicleScroeListMsg(_message.Message):
+    __slots__ = ("playerId", "playerScroe", "playerExp", "awardPropId", "awardSum", "ladderPropId", "ladderSum")
+    PLAYERID_FIELD_NUMBER: _ClassVar[int]
+    PLAYERSCROE_FIELD_NUMBER: _ClassVar[int]
+    PLAYEREXP_FIELD_NUMBER: _ClassVar[int]
+    AWARDPROPID_FIELD_NUMBER: _ClassVar[int]
+    AWARDSUM_FIELD_NUMBER: _ClassVar[int]
+    LADDERPROPID_FIELD_NUMBER: _ClassVar[int]
+    LADDERSUM_FIELD_NUMBER: _ClassVar[int]
+    playerId: int
+    playerScroe: int
+    playerExp: int
+    awardPropId: int
+    awardSum: int
+    ladderPropId: int
+    ladderSum: int
+    def __init__(self, playerId: _Optional[int] = ..., playerScroe: _Optional[int] = ..., playerExp: _Optional[int] = ..., awardPropId: _Optional[int] = ..., awardSum: _Optional[int] = ..., ladderPropId: _Optional[int] = ..., ladderSum: _Optional[int] = ...) -> None: ...
+
 class VehicleSkillListMsg(_message.Message):
     __slots__ = ("skillId", "state", "curSum")
     SKILLID_FIELD_NUMBER: _ClassVar[int]
@@ -10507,6 +10635,14 @@ class VehicleSkillListMsg(_message.Message):
     state: int
     curSum: int
     def __init__(self, skillId: _Optional[int] = ..., state: _Optional[int] = ..., curSum: _Optional[int] = ...) -> None: ...
+
+class VehicleSwitchMonitorMsg(_message.Message):
+    __slots__ = ("nodeId", "playerId")
+    NODEID_FIELD_NUMBER: _ClassVar[int]
+    PLAYERID_FIELD_NUMBER: _ClassVar[int]
+    nodeId: int
+    playerId: int
+    def __init__(self, nodeId: _Optional[int] = ..., playerId: _Optional[int] = ...) -> None: ...
 
 class VersionMsg(_message.Message):
     __slots__ = ("openVersion", "versionId", "openStory", "module")

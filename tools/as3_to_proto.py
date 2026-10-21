@@ -15,7 +15,9 @@ cada ``case`` tem uma das formas::
 
 Uso::
 
-    uv run python tools/as3_to_proto.py D:/wartune/decompiled/m2/scripts D:/wartune/decompiled/m3/scripts
+    uv run python tools/as3_to_proto.py <pastas scripts/ do cliente inglês: decomp/2, decomp/m3..m18, decomp/Loading>
+
+(o comando completo está em docs/ferramentas.md)
 """
 
 from __future__ import annotations

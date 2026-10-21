@@ -757,9 +757,11 @@
    "U_C_ITEM_STRENGTHEN"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "StoreRspMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "87": {
   "names": [
@@ -939,9 +941,11 @@
    "U_C_TREE_PICK"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TreeUpdateRsp"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "108": {
   "names": [
@@ -1345,9 +1349,11 @@
    "U_C_HARVEST_MSG"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TreeUpdateRsp"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "147": {
   "names": [
@@ -2273,9 +2279,11 @@
    "U_C_INVITE_PLAYER_LIST"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "RoomPlayerListMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4162": {
   "names": [
@@ -2564,18 +2572,22 @@
    "U_C_PICK_HARVEST_MSG"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "TreeUpdateRsp"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4190": {
   "names": [
    "U_C_CANWATER_USERS"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "LoadFarmRsp"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4191": {
   "names": [
@@ -2593,7 +2605,7 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4193": {
   "names": [
@@ -3093,9 +3105,11 @@
    "U_C_REFRESHFORRANDOM"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SmithFreshRspMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4259": {
   "names": [
@@ -3113,7 +3127,7 @@
   "c2s": [],
   "s2c": [],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4261": {
   "names": [
@@ -3367,9 +3381,11 @@
    "U_C_ITEM_REFRESHPROPERTY"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "RefreshPropertyRepMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4369": {
   "names": [
@@ -4216,7 +4232,9 @@
    "U_C_VEHICLE_NPC_NODE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleNpcNodeListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4466,7 +4484,9 @@
    "U_C_VEHICLE_JOIN"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "PlayerVehicleListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4475,7 +4495,9 @@
    "U_C_VEHICLE_END"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleCampaignDetailMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4517,7 +4539,9 @@
    "U_C_VEHICLE_DETAILE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleCampaignDetailMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4526,7 +4550,9 @@
    "U_C_VEHICLE_MOVE"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleMoveMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4546,7 +4572,9 @@
    "U_C_VEHICLE_SYNC_SKILL"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleSkillListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4555,7 +4583,9 @@
    "U_C_VEHICLE_SYNC_BUFF"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleBuffListMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4564,7 +4594,9 @@
    "U_C_VEHICLE_EXIT"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleExitMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4573,7 +4605,9 @@
    "U_C_VEHICLE_BOSS_ATTACK_TIP"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "VehicleAttackRspMsg"
+  ],
   "client_sends": false,
   "client_listens": true
  },
@@ -4582,9 +4616,11 @@
    "U_C_VEHICLE_ROOM_START_COUNT"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "SimplePropertyMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4526": {
   "names": [
@@ -4918,9 +4954,11 @@
    "U_C_MOULD_ITEM"
   ],
   "c2s": [],
-  "s2c": [],
+  "s2c": [
+   "StoreRspMsg"
+  ],
   "client_sends": false,
-  "client_listens": false
+  "client_listens": true
  },
  "4559": {
   "names": [
@@ -6534,9 +6572,11 @@
   "names": [
    "U_C_CAMPAIGN_ROOM_INVITE"
   ],
-  "c2s": [],
+  "c2s": [
+   "RoomReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5029": {
@@ -6598,9 +6638,11 @@
   "names": [
    "U_C_CAMPAIGN_ROOM_EDIT"
   ],
-  "c2s": [],
+  "c2s": [
+   "RoomReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5035": {
@@ -6618,18 +6660,22 @@
   "names": [
    "U_C_PLAYER_READY_STATE"
   ],
-  "c2s": [],
+  "c2s": [
+   "RoomReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5037": {
   "names": [
    "U_C_ROOM_STATE"
   ],
-  "c2s": [],
+  "c2s": [
+   "RoomReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "5038": {
@@ -8042,9 +8088,11 @@
   "names": [
    "C_ENTER_TOWER"
   ],
-  "c2s": [],
+  "c2s": [
+   "EnterTowerInfoMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8297": {
@@ -8073,9 +8121,11 @@
   "names": [
    "C_TOWER_RESET"
   ],
-  "c2s": [],
+  "c2s": [
+   "TowerInfoReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8300": {
@@ -8094,6 +8144,7 @@
    "C_PLAYER_NODE_STATE"
   ],
   "c2s": [
+   "?Message",
    "PlayerNodeStateMsg"
   ],
   "s2c": [],
@@ -8331,9 +8382,11 @@
   "names": [
    "C_ROOM_PWDCHANGE"
   ],
-  "c2s": [],
+  "c2s": [
+   "RoomEditMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8345": {
@@ -9284,9 +9337,11 @@
   "names": [
    "C_CHECK_WARFIELD_COUNT"
   ],
-  "c2s": [],
+  "c2s": [
+   "CampaignReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8604": {
@@ -9335,7 +9390,7 @@
   ],
   "c2s": [],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8611": {
@@ -9353,27 +9408,33 @@
   "names": [
    "C_VEHICLE_MOVE"
   ],
-  "c2s": [],
+  "c2s": [
+   "VehicleMoveMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8616": {
   "names": [
    "C_VEHICLE_ATTACK"
   ],
-  "c2s": [],
+  "c2s": [
+   "VehicleAttackReqMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8617": {
   "names": [
    "C_VEHICLE_PICK_PROP"
   ],
-  "c2s": [],
+  "c2s": [
+   "VehiclePickPropMsg"
+  ],
   "s2c": [],
-  "client_sends": false,
+  "client_sends": true,
   "client_listens": false
  },
  "8618": {

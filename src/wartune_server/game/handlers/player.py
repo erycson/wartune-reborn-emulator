@@ -77,7 +77,10 @@ def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text
     if any(t in (-100, -600) for t, _ in drops):  # o 109 leva ouro e cristais
         castle_yield(s)
     if new:
+        from . import events  # events importa este módulo
+
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+        events.items_gained(s)
     if chat:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
@@ -109,16 +112,21 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     roll_monsters(s)
     for a in s.ctx.announcer.tick(s.ctx.world.announcements, now):
         _announce(s, a)
+    from .vehicle import push_state  # vehicle importa este módulo
+
     await close_windows(s)
     push_states(s)
+    push_state(s)
     if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now)):
         await s.ctx.characters.save(*changed)
         s.send(S_RESET, data_reset(s.snapshot, now))
         _player(s)
     if s.snapshot is not None:
         from .items import expire_items  # items importa este módulo
+        from .systems import expire_mount  # systems importa este módulo
 
         await expire_items(s)
+        await expire_mount(s)
 
 
 @router.on(5167)

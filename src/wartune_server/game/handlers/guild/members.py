@@ -8,6 +8,7 @@ from ....domain.models import (
     ConsortiaInvite,
 )
 from ....protocol.messages import wartune_pb2 as pb
+from ....services import ledger
 from ... import guild as gd
 from ... import rules
 from ...builders import login as b
@@ -96,12 +97,13 @@ async def apply(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     if len(mine_apps) >= MAX_APPLICATIONS or any(i.consortia_id == guild.id for i in mine_apps):
         _refuse(s, 5135, "candidaturas demais ou repetida")
         return
-    if not _clear_cooldown(s, msg.isPay):
+    paid = _clear_cooldown(s, msg.isPay)
+    if paid is None:
         _refuse(s, 5135, "espera de 24 h")
         return
     app = ConsortiaInvite(guild.id or 0, s.player_id, _now(s))
     g.invites.append(app)
-    await s.ctx.characters.save(c, app)
+    await s.ctx.characters.save(c, app, *paid)
     if msg.isPay:
         _player(s)
     s.send(S_JOINED, b.complete(pb.ConsortiaMsg(applyId=app.id)))
@@ -142,22 +144,27 @@ async def apply_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     g = s.ctx.guilds
     mine = _can(s, gd.R_RECRUIT if msg.result else gd.R_REJECT)
     app = g.invite(msg.applyId)
+    if mine is not None and app is None:
+        # a candidatura sumiu (o candidato entrou noutra guilda ou criou a dele): o ApplyPlayerList já tirou a linha
+        # e espera um 40 por pedido antes de pedir a lista de novo (*dedução*: o 40 de uma recusa)
+        s.send(S_PASS)
+        return
     if mine is None or app is None or app.from_type or app.consortia_id != mine[0].id:
         _refuse(s, 5134, "sem direito ou candidatura de outra guilda", candidatura=msg.applyId)
         return
     guild = mine[0]
-    if not msg.result:
+    if not msg.result or g.of(app.user_id) is not None:
         g.invites.remove(app)
         await s.ctx.characters.save(delete=(app,))
         s.send(S_PASS)
         return
-    if g.of(app.user_id) is not None or len(g.members_of(guild.id or 0)) >= gd.max_members(guild):
-        _refuse(s, 5134, "candidato já tem guilda ou guilda cheia")
+    if len(g.members_of(guild.id or 0)) >= gd.max_members(guild):
+        _refuse(s, 5134, "guilda cheia")
         return
     member, gone = _join(s, guild, app.user_id)
     who = _profile(s, app.user_id)
     # texto deduzido (sem fonte no cliente/captura)
-    event = _event(s, guild, f"{who.nickname if who else app.user_id} joined the guild.")
+    event = _event(s, guild, gd.EV_MEMBER, (who.nickname if who else None) or str(app.user_id), "joined the guild.")
     # offline: a missão 22 dele avança no 5014 (rules.social_state_quests)
     other = s.ctx.online.get(app.user_id)
     snap = other.snapshot if other is not None else None
@@ -182,14 +189,20 @@ async def open_app(s: GameSession, msg: pb.ConsortiaMsg) -> None:
 
 @router.on(5142)
 async def invite(s: GameSession, msg: pb.ConsortiaMsg) -> None:
-    """Convida alguém sem guilda; se estiver online recebe o 41 e o cliente mostra o convite."""
+    """Convida alguém sem guilda e de nível 12+; se estiver online recebe o 41 e o cliente mostra o convite.
+
+    Direito 9, o mesmo do recrutamento: todo botão de convite do cliente inglês usa ``getRightsByIndex(9)``
+    (ConsortiaRecruitFrame também filtra ``grades >= 12`` e sem guilda)."""
     g = s.ctx.guilds
-    mine = _can(s, gd.R_INVITE)
+    mine = _can(s, gd.R_RECRUIT)
     target = _profile(s, msg.otherId) or next(iter(await s.ctx.characters.characters([msg.otherId])), None)
-    if mine is None or target is None or not target.active or g.of(msg.otherId) is not None:
-        _refuse(s, 5142, "sem direito ou alvo já em guilda", alvo=msg.otherId)
+    bad = target is None or not target.active or target.grades < MIN_GRADE or g.of(msg.otherId) is not None
+    if mine is None or target is None or bad:
+        _refuse(s, 5142, "sem direito, alvo abaixo do 12 ou já em guilda", alvo=msg.otherId)
         return
-    if target.refuse_invite:  # 8286: quem recusa convites não recebe o 41
+    # 8286 (C_ROOM_REFUSE, SettingFrame "refuseInvite") vale para convites de pesca/estrada/caça-níquel;
+    # na guilda é dedução: quem recusa não recebe o 41
+    if target.refuse_invite:
         _refuse(s, 5142, "alvo recusa convites", alvo=msg.otherId)
         return
     if any(i.consortia_id == mine[0].id and i.from_type for i in g.invites_of(msg.otherId)):
@@ -234,13 +247,13 @@ async def invite_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     # o cliente mostra "entrou em X" procurando o convite na lista: o 37 vai antes de apagar
     s.send(S_INVITE_RESULT, b.complete(pb.ConsortiaMsg(result=msg.result, applyId=inv.id)))
     full = len(g.members_of(guild.id or 0)) >= gd.max_members(guild)
-    if not msg.result or _mine(s) is not None or full or not _clear_cooldown(s, False):
+    if not msg.result or _mine(s) is not None or full or _clear_cooldown(s, False) is None:
         g.invites.remove(inv)
         await s.ctx.characters.save(delete=(inv,))
         return
     member, gone = _join(s, guild, s.player_id)
     # texto deduzido (sem fonte no cliente/captura)
-    event = _event(s, guild, f"{_char(s).nickname} joined the guild.")
+    event = _event(s, guild, gd.EV_MEMBER, _char(s).nickname or "", "joined the guild.")
     snap = s.snapshot
     assert snap is not None
     quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22
@@ -256,7 +269,7 @@ async def invite_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
 @router.on(5146)
 async def quit_(s: GameSession, msg: pb.ConsortiaQuitReqMsg) -> None:
     """Sair. O chefe só sai sozinho (a guilda acaba). ``clear_CDType`` 1 paga para não esperar
-    24 h: cartão 208013 ou 50 diamantes."""
+    24 h: cartão 208013 ou ``Consortia_ClearCD_Point`` diamantes (395; ``ConsortiaFrame.checkTxt``)."""
     g = s.ctx.guilds
     mine = _mine(s)
     if mine is None:
@@ -270,7 +283,11 @@ async def quit_(s: GameSession, msg: pb.ConsortiaQuitReqMsg) -> None:
     assert snap is not None
     gone: list[object] = []
     card = next((i for i in snap.items if i.template_id == CD_CARD and i.bag_type == BagType.BAG), None)
-    paid = msg.clear_CDType == 1 and (card is not None or gd.pay_points(c, 50, False))
+    entry = None
+    if msg.clear_CDType == 1 and card is None:
+        cost = gd.config(s.ctx.templates, "Consortia_ClearCD_Point", 50)
+        entry = ledger.pay(c, cost, bind=False, reason="guild_clear_cd", ref="quit", now=now)
+    paid = msg.clear_CDType == 1 and (card is not None or entry is not None)
     if paid and card is not None:
         card.count -= 1
         if card.count <= 0:
@@ -284,9 +301,11 @@ async def quit_(s: GameSession, msg: pb.ConsortiaQuitReqMsg) -> None:
         del g.members[s.player_id]
         gone.append(member)
         # texto deduzido (sem fonte no cliente/captura)
-        changed = [c, _event(s, guild, f"{c.nickname} left the guild.")]
+        changed = [c, _event(s, guild, gd.EV_MEMBER, c.nickname or "", "left the guild.")]
     if card is not None and card.count > 0:
         changed.append(card)
+    if entry is not None:
+        changed.append(entry)
     await s.ctx.characters.save(*changed, delete=tuple(gone))
     if card is not None and paid:
         s.send(S_ITEMS, item_moved(card.bag_type, 0, card.pos, card if card.count > 0 else None, s.player_id))
@@ -307,7 +326,8 @@ async def kick(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     guild.kick_at = _now(s)
     who = _profile(s, msg.otherId)
     # texto deduzido (sem fonte no cliente/captura)
-    event = _event(s, guild, f"{who.nickname if who else msg.otherId} was expelled from the guild.")
+    name = (who.nickname if who else None) or str(msg.otherId)
+    event = _event(s, guild, gd.EV_KICK, _char(s).nickname or "", "expelled", name, "from the guild.")
     await s.ctx.characters.save(guild, event, delete=(target,))
     _left(s, msg.otherId, guild)
 
@@ -327,7 +347,8 @@ async def transfer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     target.duty_id, me.duty_id, guild.chairman_id = gd.CHAIRMAN, gd.MEMBER, msg.otherId
     who = _profile(s, msg.otherId)
     # texto deduzido (sem fonte no cliente/captura)
-    event = _event(s, guild, f"Guild Master title transferred to {who.nickname if who else msg.otherId}.")
+    name = (who.nickname if who else None) or str(msg.otherId)
+    event = _event(s, guild, gd.EV_TRANSFER, "Guild Master title transferred to", name, "")
     await s.ctx.characters.save(guild, target, me, event)
     _push_info(s, guild)
 

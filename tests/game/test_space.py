@@ -18,6 +18,7 @@ async def test_players_see_each_other_in_the_sky_city(tmp_path: Path) -> None:
         got_b = await b.idle()
         [present] = [pb.RoomEnterMsg.FromString(x) for x in _of(got_b, 4597)]
         assert [(p.playerId, p.nickName, p.campaignId) for p in present.player] == [(a.user_id, "Maga", 10000)]
+        assert (present.player[0].curPosX, present.player[0].curPosY) == (76, 76)  # personagem novo: tutorial_en #7
         assert [p.code for p in got_b if p.code in (4597, 4594)] == [4597, 4594]  # 4594 só depois do 4597
         got_a = await a.idle()
         assert [pb.RoomEnterMsg.FromString(x).player[0].playerId for x in _of(got_a, 4597)] == [b.user_id]
@@ -93,7 +94,7 @@ async def test_sky_city_remembers_position_and_shows_new_equipment(tmp_path: Pat
         walk.players.add().path.extend([pb.PosMsg(x=90, y=60)])
         a.client.send(8690, walk)
         await b.idle()
-        a2 = await a.connect()  # relogin: volta onde parou, não em (72,74)
+        a2 = await a.connect()  # relogin: volta onde parou, não em (76,76)
         session = a2.server.online.get(a.user_id)
         assert session is not None and session.space_pos == (90, 60)
 

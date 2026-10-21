@@ -8,7 +8,9 @@ item), ``Property3`` = quanto, ``Property4`` != 0 = pode ter inseto/mato.
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from datetime import datetime, timedelta
+from typing import Any
 
 from ..domain import gameday
 from ..domain.models import Castle, FarmLand, PlayerSnapshot
@@ -17,8 +19,9 @@ from ..templates.repository import GameTemplates, Row
 from .builders import login as b
 
 SEED = "216"
-OPEN_LANDS = 3  # FarmModel.DEFAULT_OPEN_LAND; ponytail: sem upgrade de terra (opType 9 não tem sender)
-FARM_GRADE = 17  # UpGradeTempInfos.Types da fazenda
+DEFAULT_LANDS, MAX_LANDS = 3, 9  # FarmModel.DEFAULT_OPEN_LAND / MAX_OPEN_LAND
+LANDUP_GRADE, MAX_LAND_GRADE = 30, 10  # FarmBuildLayer.__onLandUpClick: fazenda 30, terra até o nível 10
+FARM_GRADE, TREE_GRADE = 17, 7  # UpGradeTempInfos.Types da fazenda e da carga da árvore (WaterExpItem)
 TREE_COOLDOWN = 600  # TreeInfo.remainWaerTime: lastWaterTime + 10 min
 REWARD_PERCENT = 80  # (só turco: ciftlik) rewardCount de moeda = 80% do Property3 (2400/3000, 20000/25000, 8000/10000)
 WORM_AT, GRASS_AT = (0.4, 0.6), (0.3, 0.5)  # FarmLandInfo.isWormNow / isGrassNow
@@ -30,6 +33,50 @@ OWN_TREE_DAILY, FRIEND_TREE_DAILY = 3, 200
 # wartune.fandom.com/wiki/Farm; a página não abriu): o amigo leva uma pequena parte (10%) do valor, até 3 vezes.
 # Configurável em game_settings farm_steal_percent
 STEAL_PERCENT = 10
+# game_settings tree_fruit (0041, internet: wiki Farm): [base, por nível acima do 1] de Daru e Kyanite
+TREE_FRUIT = {"daru": [3800, 3800], "kyanite": [1000, 100]}
+
+
+def open_lands(farm_grade: int) -> int:
+    """FarmLandLayer.addLandInfoToItem: a terra p (3..8) abre com a fazenda no nível (p - 2) * 5; 9..11 nunca."""
+    return min(MAX_LANDS, DEFAULT_LANDS + farm_grade // 5)
+
+
+def land_up_cost(land_grade: int) -> int:
+    """FarmSocketSendManager.sendLandUp: n(n+1)(n+2)/2 + 15 do nível n para n+1 (18, 27, 45... como a wiki)."""
+    return land_grade * (land_grade + 1) * (land_grade + 2) // 2 + 15
+
+
+def tree_need(templates: GameTemplates, farm_grade: int) -> int | None:
+    """Regas para a carga cheia: ``UpGradeTempInfos`` tipo 7 no grau da fazenda (WaterExpItem, 10..30)."""
+    row = next(templates.find("UpGradeTempInfos", Types=TREE_GRADE, Grades=farm_grade), None)
+    return int(row["Data"]) if row else None
+
+
+def tree_charge(castle: Castle, templates: GameTemplates) -> None:
+    """Carga cheia vira fruto (WaterViewContainer: cheia, a rega para; ``fruitCount`` > 0 libera a colheita)."""
+    need = tree_need(templates, castle.farm_grade)
+    if need is not None and castle.tree_water >= need:
+        castle.tree_fruit = 1
+
+
+def tree_reward(config: Mapping[str, Any], farm_grade: int) -> tuple[int, int]:
+    """Daru e Kyanite da colheita da árvore no grau da fazenda (a árvore sobe junto com a fazenda, wiki)."""
+    up = farm_grade - 1
+    (daru, daru_step), (kyanite, kyanite_step) = config["daru"], config["kyanite"]
+    return int(daru) + int(daru_step) * up, int(kyanite) + int(kyanite_step) * up
+
+
+def next_pick(picked_at: datetime) -> datetime:
+    """``TreeInfo.remainPickTime``: depois de colher, só na próxima meia-noite (não às 5h) do fuso do jogo."""
+    day = gameday.local(picked_at).date() + timedelta(days=1)
+    return datetime.combine(day, datetime.min.time(), gameday.GAME_TZ)
+
+
+def tree_pick_left(castle: Castle, now: datetime) -> int:
+    if castle.tree_picked_at is None:
+        return 0
+    return max(0, int((next_pick(castle.tree_picked_at) - now).total_seconds()))
 
 
 def seed(templates: GameTemplates, template_id: int) -> Row | None:
@@ -37,8 +84,9 @@ def seed(templates: GameTemplates, template_id: int) -> Row | None:
     return row if row is not None and row.get("SonType") == SEED else None
 
 
-def plant(snap: PlayerSnapshot, row: Row, pos: int, now: datetime) -> FarmLand:
-    minutes = int(row["Property1"])
+def plant(snap: PlayerSnapshot, row: Row, pos: int, now: datetime, faster: int = 0, more: int = 0) -> FarmLand:
+    """``faster``/``more``: % a menos de tempo e a mais de produção da terra melhorada (LandUpTip)."""
+    minutes = int(row["Property1"]) * (100 - faster) / 100  # (dedução) arredondamento sem fonte
     pests = int(row.get("Property4") or 0) != 0
     land = FarmLand(
         snap.character.id or 0,
@@ -47,7 +95,7 @@ def plant(snap: PlayerSnapshot, row: Row, pos: int, now: datetime) -> FarmLand:
         now,
         # (só turco: ciftlik.json) amadurece 1 minuto antes do Property1 (60 -> 59 min, 720 -> 719 min)
         now + timedelta(minutes=max(minutes - 1, 0)),
-        int(row["Property3"]) * (REWARD_PERCENT if int(row["Property2"]) < 0 else 100) // 100,
+        int(row["Property3"]) * (REWARD_PERCENT if int(row["Property2"]) < 0 else 100) * (100 + more) // 10000,
         random.choice((1, 2)) if pests else 0,
         random.choice((1, 2)) if pests else 0,
     )
@@ -168,14 +216,14 @@ def tree_msg(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.TreeInfoMs
         nickName=c.nickname or "",
         waterCount=castle.tree_water,
         fruitCount=castle.tree_fruit,
-        nextPickTime=b.fmt_time(castle.tree_picked_at) if castle.tree_picked_at else b.NEVER,
+        nextPickTime=b.fmt_time(next_pick(castle.tree_picked_at)) if castle.tree_picked_at else b.NEVER,
         property1=0,
         property2=0,
     )
     if castle.tree_watered_at is not None:
         msg.lastWaterTime = b.fmt_time(castle.tree_watered_at)
     if own:  # leftTime/leftPickTime só valem para a árvore do próprio jogador
-        msg.leftTime, msg.leftPickTime = tree_left(castle, now), 0
+        msg.leftTime, msg.leftPickTime = tree_left(castle, now), tree_pick_left(castle, now)
     return msg
 
 
@@ -189,11 +237,11 @@ def farm_info(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.FarmInfoR
         userId=c.id or 0,
         nickName=c.nickname or "",
         grades=castle.farm_grade,
-        landGrades=1,
+        landGrades=castle.land_grade,
         gp=castle.farm_gp,
         totalGp=castle.farm_gp,
         todayFromFriendGp=castle.farm_friend_gp if today else 0,
-        farmLandInfo=[land_msg(c.id or 0, pos, by_pos.get(pos)) for pos in range(OPEN_LANDS)],
+        farmLandInfo=[land_msg(c.id or 0, pos, by_pos.get(pos)) for pos in range(open_lands(castle.farm_grade))],
         treeInfo=tree_msg(snap, now, own=own),
         todayStolenCount=castle.farm_steals if today else 0,
     )

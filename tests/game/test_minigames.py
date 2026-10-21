@@ -11,9 +11,9 @@ from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-# fundo normal da 0038 (hora do jogo; o harness roda em UTC+3): compra até 18 23:59:59, resgate de 19 a 23
+# fundo normal da 0038 (hora do jogo; o harness roda em UTC): compra até 18 23:59:59, resgate de 19 a 23
 BUYING = datetime(2026, 10, 17, 9, 0, tzinfo=UTC)
-HARVEST = datetime(2026, 10, 18, 21, 0, 1, tzinfo=UTC)  # 19 00:00:01 no jogo
+HARVEST = datetime(2026, 10, 19, 0, 0, 1, tzinfo=UTC)  # 19 00:00:01 no jogo
 AFTER_FUND = datetime(2026, 11, 1, tzinfo=UTC)  # só depois do login: o ticket vence pelo relógio real
 BEFORE_FUND = datetime(2026, 10, 1, tzinfo=UTC)
 
@@ -104,9 +104,8 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
         assert pb.SimplePropertyMsg.FromString(_body(got, 190)).param7 is False
         assert pb.SimplePropertyMsg.FromString(_body(got, 4590)).param1 == 2059
 
-        g.client.send(9610)
-        got = await g.idle()
-        assert [p.code for p in got if p.code in (363, 364)] == [364, 363]  # 364 antes do 363
+        g.client.send(9610, pb.LuckExchangeOpMsg(exchangeId="x", exchangeCount=1))  # sem edição: só log
+        assert await g.idle() == []
 
         g.client.send(8703)
         assert pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612)).activeType == 0

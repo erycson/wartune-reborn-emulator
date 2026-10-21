@@ -17,6 +17,7 @@ from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import buffs, castle, daily, farm, guild, rules, social, space, timebox
+from .. import events as ev
 from ..bag import expire as expire_items
 from ..builders import login as b
 from ..builders import player as pb_player
@@ -48,6 +49,7 @@ S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
 S_PET_ISLAND_BOSS = 4686
+S_WEDDING_ROOMS = 4662
 S_ITEM_BUFFER = 4188  # pergaminhos de efeito ativos (game/buffs.py)
 S_CASTLE_PAWNS = 100
 
@@ -65,7 +67,10 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     hero.fashionCloth = rules.avatar(snap, t, rules.FASHION_CLOTH)
     arm = rules.arm_avatar(snap, templates)
     pawn = army_pawn_msg(snap, templates, snap.character.id)
-    mount = rules.systems(snap).mount_template
+    mount: int | None = rules.systems(snap).mount_template or None
+    rest = ev.peek(snap, "mount:rest")  # systems.MOUNT_REST_KEY; 0 explícito: o cliente só lê com hasMountTempId
+    if mount and rest is not None and rest.value:
+        mount = 0
     msg = b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount)
     if pet := next((p for p in snap.pets if p.is_fight), None):  # o pet em batalha (só turco: login.json #5)
         msg.petTempId, msg.petQuqlity, msg.petName = pet.template_id, pet.quality, pet.name
@@ -142,7 +147,7 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     from . import events
 
     # primeiro login do dia (login acumulado, atividades de login) antes do PlayerMsg que mostra isso
-    if touched := events.touch_login(snap, s.ctx.clock.now(), s.ctx.events):
+    if touched := events.touch_login(snap, s.ctx.clock.now()):
         await s.ctx.characters.save(*touched, *events.devotion_quests(s))  # o 112 vem no 8224 (user)
 
     s.send(S_LOGIN_OK)
@@ -166,8 +171,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         from . import arena, lords, warfield  # arena importa este módulo
 
         arena.login(s, msg)  # 4176 do coliseu (um passo da carga) e do torneio
-        lords.login(s)  # 4776, 4535: Senhores fechados
-        warfield.login(s)  # 4248: campos de batalha fechados (o padrão do cliente é aberto)
+        lords.login(s)  # 4776: Senhores fechados
+        warfield.login(s)  # 4248: estado de cada campo pela agenda, nunca aberto
     if msg.build:
         _send(
             s,
@@ -189,6 +194,13 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
+        # tropas do castelo: o oficial manda o 100 aqui, depois do 150, mesmo vazio para personagem sem tropas nem
+        # quartel (tutorial_en #37-#39)
+        s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
+        from .systems import S_FATE, fate_list  # systems -> player -> login
+
+        # destino: vazio no nível 1 (tutorial_en #42, depois do 150/100); com os tipos abertos só turco (login.json #34)
+        s.send(S_FATE, fate_list(snap, s.ctx.templates))
         if snap.pets:  # só turco: login.json #30; sem pet o oficial não manda (tutorial_en #24-#136: nenhum 4540)
             from .pets import S_PETS, pets_msg
 
@@ -197,10 +209,11 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
 
         login_stars(s)
-    if msg.powcardInfo:  # só turco: login.json #76 (nível 56); o inglês (nível 1, #24-#136) não manda 4905
-        from .systems import S_POWCARD, powcard_msg
+    if msg.powcardInfo:  # só turco: login.json #76 (nível 56); o inglês (nível 1, sem cartas, #24-#136) não manda 4905
+        from .systems import S_POWCARD, cards, powcard_msg
 
-        s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots")))
+        if cards(rules.systems(snap)):
+            s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots")))
     if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
         _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
     if msg.challReward or msg.petChallengeReward or msg.crossScoreReward:
@@ -230,6 +243,7 @@ async def _login_state(s: GameSession) -> None:
         vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
     # ilha dos pets: sem invasão do chefe em andamento (tutorial_en #44, todos os campos zerados)
     zero = dict.fromkeys(("leftTime", "mapId", "bossId", "peaceMiddle", "peaceHigh", "peaceBoss", "ragePoint"), 0)
+    s.send(S_WEDDING_ROOMS, pb.EngageMsg())  # salas de casamento: vazio, como o oficial (tutorial_en #43)
     s.send(S_PET_ISLAND_BOSS, pb.PetIslandDefendStateMsg(**zero))
     from . import events
 
@@ -237,11 +251,12 @@ async def _login_state(s: GameSession) -> None:
     if on := buffs.active(snap, s.ctx.clock.now()):  # (dedução) sem captura de login com pergaminho ativo
         _send(s, S_ITEM_BUFFER, buffs.buffer_list(on, s.ctx.clock.now()))
     events.login_push(s)
-    # tropas do castelo: o oficial manda o 100 mesmo vazio, para personagem sem tropas nem quartel (tutorial_en #39)
-    s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
+    from . import marriage  # marriage importa este módulo
+
+    await marriage.expire(s)  # noivado de mais de 20 dias cai antes do 4657
     if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)
         _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
     space.enter(s)  # o oficial cria a cidade do céu logo depois do 6

@@ -7,6 +7,8 @@ Regras e formatos em docs/social.md.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from google.protobuf.message import Message
 
 from ..domain.models import Character, Marriage, Relation, RelationType, SnsProfile
@@ -15,7 +17,8 @@ from .builders import login as b
 from .session import GameContext, GameSession
 
 ONLINE, OFFLINE = 7, 0  # SimplePlayerInfoMsg.state / chatState: 7 = online no IM, 0 = offline
-DEFAULT_GROUP, NO_GROUP = 2, -1  # FriendManager.initGroupList cria o 2; pendente e lista negra vêm -1
+# FriendManager.initGroupList cria o 2; FridendsListView: -1 = estranhos (pendentes), 3 = cabeçalho da lista negra
+DEFAULT_GROUP, NO_GROUP, BLACK_GROUP = 2, -1, 3
 S_FRIEND_LOGIN, S_FRIEND_LOGOUT = 160, 161
 S_MARRIAGE = 4657
 
@@ -80,6 +83,11 @@ def state_of(ctx: GameContext, player_id: int) -> int:
     return session.chat_state if session is not None else OFFLINE
 
 
+def last_seen(c: Character) -> datetime | None:
+    """Última vez no jogo: a saída gravada (``offline_at``) ou, se caiu sem gravar a saída, o último login."""
+    return max((t for t in (c.offline_at, c.last_login_at) if t is not None), default=None)
+
+
 def simple_player(ctx: GameContext, c: Character) -> pb.SimplePlayerInfoMsg:
     return b.complete(
         pb.SimplePlayerInfoMsg(
@@ -95,7 +103,7 @@ def simple_player(ctx: GameContext, c: Character) -> pb.SimplePlayerInfoMsg:
             job=c.job,
             fightingCapacity=c.fighting_capacity,
             state=state_of(ctx, c.id or 0),
-            logOutTime=b.fmt_time(c.last_login_at) if c.last_login_at else b.NEVER,
+            logOutTime=b.fmt_time(seen) if (seen := last_seen(c)) else b.NEVER,
             right=1,
         )
     )
@@ -163,14 +171,15 @@ def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | Non
 
 
 async def friend_list(s: GameSession) -> pb.FriendRelationList:
-    """4156 do login numa página só (``maxPage=1``): o cliente espera ``maxPage`` pacotes.
+    """4156 do login numa página só (``maxPage=1``; 0 sem ninguém, captura inglesa #61): o cliente espera
+    ``maxPage`` pacotes.
 
     ponytail: página única; paginar se a lista passar do tamanho de um pacote (200 amigos cabem).
     """
     snap = s.snapshot
     assert snap is not None
     found = await characters(s.ctx, [r.other_id for r in snap.relations])
-    msg = pb.FriendRelationList(maxPage=1, curPage=0)
+    msg = pb.FriendRelationList(maxPage=1 if snap.relations or snap.groups else 0, curPage=0)
     for r in snap.relations:
         if (c := found.get(r.other_id)) is not None:
             entry = msg.relationList.add(relation=r.relation, friendRp=r.friend_gp, friendGrade=friend_grade(s.ctx, r),
@@ -184,7 +193,8 @@ async def friend_list(s: GameSession) -> pb.FriendRelationList:
 async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
     """4657 ``MarriageMsg`` (MarryManager.__marryInfoHandler): cônjuge e situação."""
     mate = (await characters(ctx, [m.mate_id])).get(m.mate_id)
-    days = (ctx.clock.now() - mate.last_login_at).days if mate and mate.last_login_at else 0
+    seen = last_seen(mate) if mate else None
+    days = (ctx.clock.now() - seen).days if seen else 0
     online = ctx.online.get(m.mate_id) is not None
     return b.complete(
         pb.MarriageMsg(
@@ -192,10 +202,11 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
             nickName=mate.nickname or "" if mate else "",
             state=m.state,
             templateId=m.spec_id,
-            speTemplateId=m.spec_id,
+            # speTemplateId != 0 = cerimônia reservada e alianças por trocar (MarryUIMediator); aqui casar já troca
+            speTemplateId=0,
             engageTime=b.fmt_time(m.since),
-            # o cliente soma 259200 s a marTime: são segundos (época), não data formatada
-            marTime=str(int(m.married_at.timestamp())) if m.married_at else "0",
+            # MarryInfo.marriageTime lê "YYYY-MM-DD hh:mm:ss" (desconto e botão de cerimônia nas 72 h); noivo: vazio
+            marTime=b.fmt_time(m.married_at) if m.married_at else "",
             logoutDays=0 if online else days,  # divórcio grátis (op 15) com 5+ dias offline
         )
     )

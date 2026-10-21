@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
+from wartune_server.domain import gameday
 from wartune_server.domain.models import BagType, CashLedger, Item, PlayerSnapshot
 from wartune_server.game import events as ev
 from wartune_server.game import gemmaze as gm
@@ -75,7 +76,7 @@ def _set_board(g: Game, game: gm.Game) -> None:
     """Põe o tabuleiro no estado da sessão (a linha de ``EventState`` do labirinto), já renovado hoje."""
     session = g.server.online.get(g.user_id)
     assert session is not None
-    game.day = game.day or session.ctx.clock.now().date().isoformat()
+    game.day = game.day or gameday.today(session.ctx.clock.now())  # o dia vira às 5h, não à meia-noite
     ev.state(_snap(g), handler.KEY, NOW).text = game.dump()
 
 
@@ -226,19 +227,20 @@ async def test_refused_moves_only_unlock_the_client(tmp_path: Path) -> None:
 
 async def test_buy_times_costs_diamonds_and_stops_at_the_cap(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        _, cost, _ = handler._buy_info(g.server.services.templates)  # diamantes por compra do template
+        _, cost, _ = handler._buy_info(g.server.services.templates)
+        assert cost == 150  # buyTimesTips: "spend 150 Balens to purchase 10"
         c = _snap(g).character
-        c.point = 100
+        c.point = 200
         _set_board(g, gm.Game(board=list(CAPTURED_BOARD), times=20))
         g.client.send(9516, pb.GemMazeBuyTimesMsg(buyTypes=1))
         got = await g.idle()
         assert pb.GemMazeBuyTimesRspMsg.FromString(_body(got, 4927)).moveTimesLeft == 30
-        assert c.point == 100 - cost and await _ledger(g) == [(-cost, 0, "gemmaze_buy")]
+        assert c.point == 200 - cost and await _ledger(g) == [(-cost, 0, "gemmaze_buy")]
 
         _set_board(g, gm.Game(board=list(CAPTURED_BOARD), times=90))  # 90 + 10 passa do teto de 99
         g.client.send(9516, pb.GemMazeBuyTimesMsg(buyTypes=1))
         assert [p.code for p in await g.idle() if p.code == 4927] == []
-        assert c.point == 100 - cost
+        assert c.point == 200 - cost
 
 
 async def test_receive_all_moves_the_maze_bag_into_the_main_bag(tmp_path: Path) -> None:
@@ -291,9 +293,9 @@ def test_refresh_renews_moves_score_and_boxes_on_a_new_day_and_keeps_the_level()
     gm.refresh(game, datetime(2026, 1, 8, 12, tzinfo=UTC))  # dia seguinte, mesma semana
     assert (game.times, game.help, game.score, game.box, game.week) == (20, 5, 0, 0, 900)
     assert (game.level, game.exp, game.board) == (5, 61, CAPTURED_BOARD)
-    game.times = 45  # movimentos comprados não somem
+    game.times = 45  # helpContent: "Free and purchased attempts reset daily"
     gm.refresh(game, datetime(2026, 1, 12, 12, tzinfo=UTC))  # segunda: semana nova
-    assert (game.times, game.week) == (45, 0)
+    assert (game.times, game.week) == (20, 0)
 
 
 def test_reward_counts_follow_the_capture() -> None:

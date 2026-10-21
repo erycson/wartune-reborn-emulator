@@ -35,6 +35,9 @@ HERO_SLOTS = {
     117: (12,),
     118: (13,),
 }
+# GoodsSonType.getSonTypePos dos SonType 113-116: posições do equipamento do mascote (bagType 26)
+PET_SLOTS = {113: (0, 1), 114: (2,), 115: (3, 4), 116: (5,)}
+EQUIP_MASTER, PET_MASTER = "1", "5"  # ItemTempInfo.MasterType do equipamento do herói e do mascote
 RUNE, HONOR_MASTER = 214, 3  # SonType das runas (bagType 2); MasterType das medalhas (bagType 3)
 RUNE_LEVELS = (20, 30, 40)  # GoodsManager.getEmputyBattleRunesPos: 1 espaço a cada nível desses
 GOLD, STRATEGY, POINT, GIFT = -100, -300, -400, -500  # TemplateId < 0 nas recompensas
@@ -85,40 +88,55 @@ def max_count(templates: GameTemplates, template_id: int) -> int:
     return max(1, int(row.get("MaxCount", 1))) if row else 1
 
 
-def new_item(snap: PlayerSnapshot, templates: GameTemplates, template_id: int, count: int = 1) -> Item:
+def new_item(
+    snap: PlayerSnapshot, templates: GameTemplates, template_id: int, count: int = 1, binds: bool = True
+) -> Item:
     """Item novo como o oficial cria: equipamento nasce com ``Property1`` furos abertos (``join`` 0)."""
     row = templates.get("ItemTempInfos", template_id) or {}
-    item = Item(snap.character.id or 0, template_id, count=count)
+    item = Item(snap.character.id or 0, template_id, count=count, is_binds=binds)
     # ponytail: o oficial sorteia randomSkill_1..N (RandomSkillCount); a tabela do sorteio não está nos
     # templates, então vai o DefaultSkill (vazio = nenhum)
     item.random_skill = int((row.get("DefaultSkill") or "0").split(",")[0] or 0)
-    if row.get("MasterType") == "1":
+    if row.get("MasterType") in (EQUIP_MASTER, PET_MASTER):
         holes = min(4, int(row.get("Property1") or 0))
         item.joins = [0] * holes + [-1] * (4 - holes)
     return item
 
 
 def fits(
-    snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[int, int]], now: datetime, valid: int = 0
+    snap: PlayerSnapshot,
+    templates: GameTemplates,
+    goods: Iterable[tuple[int, ...]],
+    now: datetime,
+    valid: int = 0,
+    binds: bool = True,
 ) -> bool:
     """Cabe tudo na mochila (empilhando onde der)? ``goods`` = (templateId, quantidade), moedas ignoradas.
-    ``valid`` > 0: item com validade, não entra nas pilhas que já existem (cada um tem o seu relógio)."""
+    ``valid`` > 0: item com validade, não entra nas pilhas que já existem (cada um tem o seu relógio).
+    ``binds``: só empilha nas pilhas de mesmo vínculo (como o ``add``); (templateId, quantidade, vínculo) escolhe
+    o vínculo de cada um."""
     free = len(free_positions(snap, now))
-    room: dict[int, int] = {}
-    for tid, count in goods:
+    room: dict[tuple[int, bool], int] = {}
+    for tid, count, *own in goods:
         if tid < 0:
             continue
-        top = max_count(templates, tid)
-        if tid not in room:
-            room[tid] = (
-                0 if valid else sum(top - i.count for i in in_bag(snap) if i.template_id == tid and i.count < top)
+        top, key = max_count(templates, tid), (tid, bool(own[0]) if own else binds)
+        if key not in room:
+            room[key] = (
+                0
+                if valid
+                else sum(
+                    top - i.count
+                    for i in in_bag(snap)
+                    if i.template_id == tid and i.is_binds == key[1] and i.count < top
+                )
             )
-        use = min(room[tid], count)
-        room[tid] -= use
+        use = min(room[key], count)
+        room[key] -= use
         count -= use
         while count > 0:
             free -= 1
-            room[tid] += max(0, top - count)
+            room[key] += max(0, top - count)
             count -= top
         if free < 0:
             return False
@@ -126,18 +144,26 @@ def fits(
 
 
 def add(
-    snap: PlayerSnapshot, templates: GameTemplates, template_id: int, count: int, now: datetime, valid: int = 0
+    snap: PlayerSnapshot,
+    templates: GameTemplates,
+    template_id: int,
+    count: int,
+    now: datetime,
+    valid: int = 0,
+    binds: bool = True,
 ) -> list[Item]:
     """Põe ``count`` na mochila: completa as pilhas que já existem e abre espaços novos.
 
     ``valid``: minutos de validade (``ShopTempInfos.ValidDate``) contados de ``now``; com validade não empilha.
+    ``binds``: vínculo do que entra; só completa pilhas de mesmo vínculo (o cliente pede confirmação para juntar
+    livre com vinculado, ``GoodsCheck.isAddToChecker``: aqui não junta sozinho).
     Devolve os itens alterados/criados. Chame ``fits`` antes: sem espaço o resto é descartado.
     """
     top, changed = max_count(templates, template_id), []
     for item in [] if valid else sorted(in_bag(snap), key=lambda i: i.pos):
         if count <= 0:
             break
-        if item.template_id == template_id and item.count < top:
+        if item.template_id == template_id and item.is_binds == binds and item.count < top:
             use = min(top - item.count, count)
             item.count += use
             count -= use
@@ -145,7 +171,7 @@ def add(
     for pos in free_positions(snap, now):
         if count <= 0:
             break
-        item = new_item(snap, templates, template_id, min(top, count))
+        item = new_item(snap, templates, template_id, min(top, count), binds)
         item.pos = pos
         if valid:
             item.valid_date, item.begin_date = valid, now.replace(microsecond=0)  # o cliente lê só os segundos
@@ -206,10 +232,14 @@ def side_add(snap: PlayerSnapshot, templates: GameTemplates, tid: int, count: in
     return out
 
 
-def take(snap: PlayerSnapshot, template_id: int, count: int) -> tuple[list[Item], list[Item]]:
-    """Consome ``count`` das pilhas da mochila (as menores primeiro). Devolve (alterados, apagados)."""
+def take(
+    snap: PlayerSnapshot, template_id: int, count: int, binds: bool | None = None
+) -> tuple[list[Item], list[Item]]:
+    """Consome ``count`` das pilhas da mochila (as menores primeiro); ``binds`` só das de esse vínculo.
+    Devolve (alterados, apagados)."""
     changed, gone = [], []
-    for item in sorted((i for i in in_bag(snap) if i.template_id == template_id), key=lambda i: (i.count, i.pos)):
+    held = (i for i in in_bag(snap) if i.template_id == template_id and binds in (None, i.is_binds))
+    for item in sorted(held, key=lambda i: (i.count, i.pos)):
         if count <= 0:
             break
         use = min(item.count, count)
@@ -266,4 +296,6 @@ def hero_slot_ok(snap: PlayerSnapshot, row: Row, bag: int, pos: int) -> bool:
         return son == RUNE and 0 <= pos < open_slots
     if bag == BagType.HONOR:
         return master == HONOR_MASTER and pos == 0
+    if bag == BagType.PET_EQUIP:
+        return str(master) == PET_MASTER and pos in PET_SLOTS.get(son, ())
     return False

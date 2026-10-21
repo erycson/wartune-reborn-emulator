@@ -1,7 +1,7 @@
 # Chat e social
 
 Visão geral e legenda *(visto)* / *(cliente)* / *(dedução)* em [multiplayer.md](multiplayer.md).
-Cliente: `D:/wartune/decompiled/m2/scripts/chat/`, `managers/IMManager.as`,
+Cliente (inglês): `D:/xampp/htdocs/wartune/decomp/2/scripts/chat/`, `managers/IMManager.as`,
 `managers/FriendSocketOutManager.as`, `yishi/manager/FriendManager.as`.
 
 ## Canais
@@ -36,6 +36,7 @@ O jogador escolhe entre 1, 10, 6, 5 e 8 (`chat/view/InputChannelList.as`).
 | 5011 | ChatChannelMsg sem `channel` | canal 1 (corneta grande) |
 | 8623 | CrossBigBugleMsg `{content}` | canal 13 |
 | 8705 | vazio; resposta 4500 `paraInt1` = cornetas pequenas grátis | ao abrir o chat |
+| 8353 | CaptainSpeakMsg `{inviteContent[] (o texto em linhas), type 0 sala / 1 casamento}` | "Fast Invite" da sala |
 | 15023 | ChatFriendMsg `{fromId, fromNick, toId, encodeMsg}` | privado |
 | 15038 | InfoReqMsg `{otherId, from}`; resposta 4256 RelationPlayerMsg (mesmo `from`) | dados de alguém que mandou privado e não é amigo |
 | 25024 / 25096 | ChatChannelMsg | batalha/campanha entre servidores; aqui = 15005 local |
@@ -66,7 +67,7 @@ tempid=..>` link de item, `#00`–`#39` emoticons.
 De `chat/utils/ChatHelper.as` e `chat/view/ChatInputViewII.as` *(cliente)*:
 
 - nível mínimo **6**;
-- no máximo **76** caracteres;
+- no máximo **100** caracteres (cliente inglês `ChatInputViewII`: `maxChars` 100);
 - intervalo: canal 8 = 10 s (2 s em sala/batalha), canal 10 = 2 s. O cliente só aplica de verdade
   para GM, então quem garante é o servidor;
 - jogador comum tem o HTML escapado; o servidor tira `<…>` do texto para ninguém forjar link de
@@ -106,6 +107,11 @@ relations 1 e 3 (só turco: `login`, conta com amigos; na inglesa #61 a lista va
   (migração 0036, padrão 0): nem o cliente (`VipPrerogativeTempInfos` não tem esse tipo, `ConfigInfos` só tem o 10)
   nem a captura (o único 4500 é o #2780, antes do cartão VIP do #3262) dizem se o VIP ganha mais.
   **Captura que falta**: com uma conta VIP (nível conhecido), abrir o chat World e capturar o 8705 → 4500.
+- 8353: convite rápido de quem está numa sala PvE com lugar livre (`RoomRightView._inviteClick`; qualquer membro,
+  com ou sem campanha). Mesma cota grátis e corneta do 8198 e o mesmo intervalo do canal 10. Sai no canal 10 com
+  `type` 4 e a mensagem `<room id campaignId roomType position name/>` (`position` 0 = trancada): o
+  `ChatFormat.createRoomCellData` desenha o `name` (o texto inteiro, linhas juntas) como link, e o clique manda o 9504.
+  Tipo 1 (casamento) é recusado: não há sala de casamento. Formato montado do cliente, sem captura do oficial.
 - 5011: corneta grande (canal 1), gasta o item 208002.
 - 8623: corneta entre servidores, gasta 208025 e manda 4541 CrossBigBugleMsg para este servidor
   (sem entre-servidores).

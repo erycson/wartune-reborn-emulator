@@ -24,13 +24,7 @@ def _known(sample: dict[str, str]) -> bool:
     return REGISTRY.message_type(int(sample["code"]), Direction(sample["dir"])) is not None
 
 
-# o .proto (gerado do cliente) ainda não tem estes campos que o oficial inglês manda
-PROTO_GAPS = {("s2c", 4238): "ShopMainRspMsg: campo 4 (varint, 6 na inglesa) fora do .proto"}
-CASES = [
-    pytest.param(s, marks=pytest.mark.xfail(reason=PROTO_GAPS[key], strict=True)) if key in PROTO_GAPS else s
-    for s in SAMPLES
-    if _known(s) and (key := (s["dir"], s["code"]))
-]
+CASES = [s for s in SAMPLES if _known(s)]
 
 
 def test_most_captured_opcodes_have_a_message() -> None:

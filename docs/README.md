@@ -31,4 +31,5 @@
 | [boss-eventos.md](boss-eventos.md) | Chefe do mundo: agenda, mapa, luta com vida compartilhada, morte, reviver e prêmios do fim |
 | [guilda.md](guilda.md) | Guilda: opcodes, regras do cliente, estado em memória, o que falta (altar, guerra) |
 | [roadmap.md](roadmap.md) | O que está pronto e os próximos marcos |
+| [checklist-ingles.md](checklist-ingles.md) | Checklist do trabalho em andamento: tudo pelo cliente inglês, item por item |
 | [pendencias.md](pendencias.md) | O que ainda não é igual ao oficial, por sistema, e todas as simplificações `ponytail:` |

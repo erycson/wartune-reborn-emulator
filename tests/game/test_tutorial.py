@@ -151,7 +151,7 @@ async def test_second_map_to_castle(tmp_path: Path) -> None:
         c.send(5017, pb.NoviceReqMsgMsg(noviceProcess=18600))
         await g.until(1)
         c.send(5125, pb.CampaignReqMsg(paraInt1=1000206, paraBool1=True))
-        assert codes(await g.until(134)) == [4165, 150, 140, 4152, 83, 134]  # inglesa #517-#523: devoção do leed 4
+        assert codes(await g.until(134)) == [4165, 150, 150, 140, 4152, 83, 134]  # inglesa #517-#523: devoção do leed 4
 
         c.send(9525, pb.MapBossQuestMsg(mapId=1))
         assert codes(await g.until(4938)) == [4938]

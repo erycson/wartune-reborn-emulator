@@ -1,5 +1,5 @@
-"""Chat entre jogadores: mundo (8198), cena (15005/25024/25096), cornetas (5011, 8623), privado
-(15023) e quem mandou (15038).
+"""Chat entre jogadores: mundo (8198), cena (15005/25024/25096), cornetas (5011, 8623), convite rápido da sala
+(8353), privado (15023) e quem mandou (15038).
 
 Remetente e nome saem sempre do snapshot do servidor; o texto perde as tags HTML para ninguém
 forjar link de jogador ou item. Quem pôs o remetente na lista negra não recebe. Regras do
@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta
+from xml.sax.saxutils import quoteattr
 
 from ...domain import gameday
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from .. import events as ev
-from .. import guild, items, social
+from .. import guild, items, rooms, social
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
@@ -23,13 +24,15 @@ from ..session import GameSession
 S_CHAT, S_PRIVATE, S_PRIVATE_REPLY, S_USER_INFO = 83, 4231, 4236, 4256
 S_ITEMS, S_FREE_BUGLES, S_CROSS_BUGLE = 115, 4500, 4541
 BIG_BUGLE, GUILD, CURRENT, WORLD, CROSS = 1, 5, 8, 10, 13
-MIN_GRADE, MAX_LEN = 6, 76  # ChatHelper / ChatInputViewII
+MIN_GRADE, MAX_LEN = 6, 100  # ChatHelper / ChatInputViewII (cliente inglês: maxChars 100, checkLength)
 BUGLE = timedelta(seconds=2)
 # ponytail: o cliente não limita a guilda (ChatHelper); 1 s contra spam
 COOLDOWN = {GUILD: timedelta(seconds=1), CURRENT: timedelta(seconds=10), WORLD: BUGLE, BIG_BUGLE: BUGLE, CROSS: BUGLE}
-PRIVATE_COOLDOWN = timedelta(seconds=1)  # ponytail: o cliente não limita o privado; 1 s contra spam
+PRIVATE_COOLDOWN = timedelta(seconds=1)  # IMFrame: 1 s entre mensagens (friends.im.IMFrame.command03)
 OFFLINE = -1  # 4236.result: "o jogador não está online"
 SMALL_BUGLE, BIG_BUGLE_ITEM, CROSS_BUGLE_ITEM = 208003, 208002, 208025  # ShopGoodsInfo.*_BUGLE_TEMP_ID
+ROOM_LINK = 4  # ChatChannelMsg.type: ChatFormat.createRoomCellData lê cada <tag> da mensagem como link de sala
+INVITE_ROOM = 0  # CaptainSpeakMsg.type: 0 sala, 1 casamento (QuickInviteFrame.getSendType)
 S_ALERT = 111
 _TAG = re.compile(r"<[^>]*>")
 
@@ -236,3 +239,25 @@ async def user_info(s: GameSession, msg: pb.InfoReqMsg) -> None:
     out.player.CopyFrom(social.simple_player(s.ctx, c))
     out.snsInfo.CopyFrom(social.sns_info(c, sns))  # o cliente lê snsInfo sem checar nulo
     s.send(S_USER_INFO, b.complete(out))
+
+
+@router.on(8353)
+async def quick_invite(s: GameSession, msg: pb.CaptainSpeakMsg) -> None:
+    """ "Fast Invite" (``QuickInviteFrame``): o texto vai quebrado em linhas (``inviteContent``) e custa 1 Bullhorn
+    (Small), com a cota grátis antes ("First 10 Attempts are Free", a mesma do 8198). Sai no canal mundo como link de
+    sala (``ChatChannelMsg.type`` 4): o texto inteiro é o ``name`` da tag, e o clique manda o 9504 com o ``id``.
+    ``position`` 0 é sala trancada (``RoomInfo.isLock``). ponytail: formato montado do cliente (sem captura do
+    oficial); o tipo 1 (casamento) fica de fora porque a sala de casamento não existe (``marriage.py``)."""
+    room = s.ctx.rooms.of(s.player_id)  # qualquer membro, com lugar livre (RoomRightView._inviteClick)
+    if msg.type != INVITE_ROOM or room is None or rooms.OPEN not in room.seats:
+        s.log.info("8353 sem sala", tipo=msg.type, sala=room.id if room else None)
+        return
+    text = _text(s, "".join(msg.inviteContent), WORLD, COOLDOWN[WORLD])
+    if text is None or not await _pay_bugle(s, SMALL_BUGLE, free=True):
+        s.log.info("8353 recusado", tamanho=sum(map(len, msg.inviteContent)))
+        return
+    attrs = {"id": room.id, "campaignId": room.campaign, "roomType": rooms.PVE, "position": int(not room.password)}
+    link = "<room " + " ".join(f"{k}={quoteattr(str(v))}" for k, v in attrs.items()) + f" name={quoteattr(text)}/>"
+    out = _channel_msg(s, WORLD, link)
+    out.type = ROOM_LINK
+    _broadcast(s, S_CHAT, out)

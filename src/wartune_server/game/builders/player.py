@@ -43,7 +43,7 @@ def item_info(item: Item, player_id: int) -> pb.ItemInfoMsg:
         exist=True,
         objectId=item.object_id,
         bagType=item.bag_type,
-        bind=True,
+        bind=item.is_binds,
         used=False,
         # (cliente) ItemHelper: beginDate "YYYY-MM-DD hh:mm:ss", comparado com o sysCurtime (mesmo fmt_time)
         validDate=item.valid_date,
@@ -61,10 +61,10 @@ def item_info(item: Item, player_id: int) -> pb.ItemInfoMsg:
         randomSkill_5=item.random_skill_5,
         isNew=item.is_new,
         userId=player_id,
-        property1="",
+        property1=item.property1,
         isLocked=item.is_locked,
         mouldGrade=item.mould_grade,
-        blessValue=0,
+        blessValue=item.bless_value,
     )
 
 

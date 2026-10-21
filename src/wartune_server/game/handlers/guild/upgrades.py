@@ -12,6 +12,7 @@ from ....domain.models import (
     Quest,
 )
 from ....protocol.messages import wartune_pb2 as pb
+from ....services import ledger
 from ... import bag, rules
 from ... import guild as gd
 from ...builders import login as b
@@ -23,6 +24,7 @@ from ..login import army
 from .common import (
     GOLD_PER_OFFER,
     GUILD_SHOP,
+    POINTS_PER_OFFER,
     QUICK_SECONDS,
     R_FAIL,
     R_GUILD,
@@ -61,22 +63,23 @@ def _today(m: ConsortiaMember, now: datetime) -> int:
 
 @router.on(5144)
 async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
-    """Doação: 1000 ouro (arredondado para baixo) ou 1 diamante = 1 de contribuição, para a
-    riqueza da guilda e para o jogador. Ordem do oficial: 109, 3, 111, 42, 164 (só turco:
-    birlik_katkisi_ve_birlik_market_alisverisi #7-#18)."""
+    """Doação: 1000 ouro ou 5 Balens = 1 de contribuição (arredondados para baixo; só se gasta o que
+    vira contribuição), para a riqueza da guilda e para o jogador. Os Balens vinculados vão primeiro
+    (cliente inglês ``useBindPoint``: "Use Bound Balens first"). Ordem do oficial: 109, 3, 111, 42, 164
+    (só turco: birlik_katkisi_ve_birlik_market_alisverisi #7-#18)."""
     mine = _mine(s)
     c = _char(s)
     gold = max(msg.offerGold, 0) // GOLD_PER_OFFER * GOLD_PER_OFFER
-    points = max(msg.offerPoint, 0)
+    points = max(msg.offerPoint, 0) // POINTS_PER_OFFER * POINTS_PER_OFFER
     if mine is None or gold + points == 0 or c.gold < gold or c.point + c.gift_token < points:
         _refuse(s, 5144, "sem guilda ou sem recursos", ouro=msg.offerGold, diamantes=msg.offerPoint)
         return
     guild, member = mine
     now = _now(s)
-    # ponytail: não se sabe se o oficial aceita diamante vinculado aqui; gasta primeiro o vinculado
-    gd.pay_points(c, points, True)
+    entry = ledger.pay(c, points, bind=True, reason="guild_contribute", ref=f"guild:{guild.id}", now=now)
+    assert entry is not None  # saldo conferido acima
     c.gold -= gold
-    offer = gold // GOLD_PER_OFFER + points
+    offer = gold // GOLD_PER_OFFER + points // POINTS_PER_OFFER
     c.consortia_offer += offer
     c.consortia_total_offer += offer
     guild.offer += offer
@@ -86,7 +89,7 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     assert snap is not None
     # missão 29: o total acumulado (cliente checkConsortiaOffer), não o valor desta doação
     quests = rules.quest_event(snap, s.ctx.templates, rules.OFFER_CONDITION, 0, c.consortia_total_offer)
-    await s.ctx.characters.save(c, guild, member, *quests)
+    await s.ctx.characters.save(c, guild, member, *quests, *([entry] if points else []))
     if gold:
         castle_yield(s)
     _player(s)
@@ -157,7 +160,7 @@ async def upgrade(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     guild.offer -= need
     if kind <= 5 and int(row.get("CodeTime") or 0) > 0:
         guild.code_type, guild.code_begin_at, guild.code_need = kind, now, int(row["CodeTime"])
-    event = _event(s, guild, f"{row.get('LevelName', kind)} Lv.{level}")
+    event = _event(s, guild, gd.EV_UPGRADE, f"{row.get('LevelName', kind)} Lv.{level}")
     # missão de nível da guilda (51) vale para todos os membros online, não só para quem melhorou
     changed: list[tuple[GameSession, PlayerSnapshot, list[Quest]]] = []
     # pesquisa (6-12) não é Para1 da 51: (cliente) checkConsortuaGrade só conhece 1-5
@@ -180,13 +183,16 @@ async def quick(s: GameSession, msg: pb.PayTypeMsg) -> None:
     if mine is None:
         _refuse(s, 8545, "sem direito")
         return
-    guild, c = mine[0], _char(s)
-    left = _cooldown_left(guild, _now(s))
-    if left <= 0 or not gd.pay_points(c, math.ceil(left / QUICK_SECONDS), msg.payType == 0):
+    guild, c, now = mine[0], _char(s), _now(s)
+    left = _cooldown_left(guild, now)
+    cost = math.ceil(left / QUICK_SECONDS)
+    bind = msg.payType == 0
+    entry = ledger.pay(c, cost, bind=bind, reason="guild_upgrade_quick", ref=f"guild:{guild.id}", now=now)
+    if left <= 0 or entry is None:
         _refuse(s, 8545, "sem espera ou sem diamantes", falta=left)
         return
     guild.code_begin_at, guild.code_need = None, 0
-    await s.ctx.characters.save(c, guild)
+    await s.ctx.characters.save(c, guild, entry)
     _player(s)
     _push_info(s, guild)
 

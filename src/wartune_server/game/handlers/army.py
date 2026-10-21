@@ -12,6 +12,7 @@ import random
 
 from ...domain.models import Pawn, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from ...templates.repository import GameTemplates, Row
 from .. import rules
 from ..builders import login as b
@@ -103,7 +104,8 @@ async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
 @router.on(5156)
 async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     """Põe ``ownPawns`` soldados do tipo no exército (o resto volta ao castelo). Limite: liderança
-    do herói (totalConatArmy). tutorial_en #665-#669: 150, 93, 100."""
+    do herói (totalConatArmy). tutorial_en #665-#669: 150, 93, 100; o 100 leva só a tropa pedida, mesmo quando a que
+    estava no exército volta ao castelo (#2301-#2304)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None and snap.leader is not None
     pawn = pawn_of(snap, msg.tempateId // 100)
@@ -125,7 +127,7 @@ async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     tpl = pawn_template(templates, pawn.template_id)
     assert tpl is not None
     s.send(S_ARMY_EDIT, pb.ArmyEditRspMsg(armyPawn=[pawn_msg(pawn, tpl, snap.character.id or 0, pawn.army_count)]))
-    s.send(S_CASTLE_PAWNS, castle_pawns(snap, templates, [pawn, *changed]))
+    s.send(S_CASTLE_PAWNS, castle_pawns(snap, templates, [pawn]))
 
 
 @router.on(5157)
@@ -195,27 +197,31 @@ async def pawn_change(s: GameSession, msg: pb.PawnChangeMsg) -> None:
     a, t = current_pawn(s, msg.curPawnTempId), current_pawn(s, msg.tarPawnTempId)
     ok = a is not None and t is not None and a[0] is not t[0] and a[0].specials != ""
     ok = ok and all(int(x[1]["Level"]) >= CHANGE_LEVEL for x in (a, t) if x)
-    c = snap.character
-    paid = ok and (
-        rules.pay_soul(c, CHANGE_SOUL) if msg.payType == 2 else rules.pay_point(c, CHANGE_POINT, msg.payType == 3)
-    )
-    if not paid:
+    c, spent = snap.character, None
+    if ok and msg.payType != 2:
+        spent = ledger.pay(c, CHANGE_POINT, bind=msg.payType == 3, reason="pawn_change", ref="", now=s.ctx.clock.now())
+    if not (ok and (rules.pay_soul(c, CHANGE_SOUL) if msg.payType == 2 else spent)):
         s.log.info("8580 recusado", pedido=str(msg))
         return
     assert a is not None and t is not None
     a[0].specials, t[0].specials = t[0].specials, a[0].specials
     keep(snap, a[0])
     keep(snap, t[0])
-    await s.ctx.characters.save(snap.character, a[0], t[0])
+    await s.ctx.characters.save(snap.character, a[0], t[0], *([spent] if spent else []))
     _player(s)
     send_pawn(s, a[0])
     send_pawn(s, t[0])
     _army(s)
 
 
-def special_pick(templates: GameTemplates, master_type: str, grade: int) -> Row | None:
-    """Sorteio ponderado (TakeRandom) entre as especialidades do tipo de tropa até ``grade``."""
-    pool = [r for r in templates.find("SpecialTempInfos", PawnMasterType=master_type) if int(r["Grades"]) <= grade]
+MAX_SPECIAL_GRADE = 10  # PawnSpecialAbilityFrame.helpContent: "The highest level specialty is level 10"
+FIGHT_ROWS = (1, 3)  # AllocateView: _frontRowIndex 1, _backRowIndex 3 ("fightPos must be 1 or 3")
+
+
+def special_pick(templates: GameTemplates, master_type: str, grade: int, exact: bool = False) -> Row | None:
+    """Sorteio ponderado (TakeRandom) entre as especialidades do tipo de tropa até ``grade`` (só dele com ``exact``)."""
+    rows = templates.find("SpecialTempInfos", PawnMasterType=master_type)
+    pool = [r for r in rows if (int(r["Grades"]) == grade if exact else int(r["Grades"]) <= grade)]
     if not pool:
         return None
     return random.choices(pool, weights=[int(r["TakeRandom"]) or 1 for r in pool])[0]
@@ -224,7 +230,8 @@ def special_pick(templates: GameTemplates, master_type: str, grade: int) -> Row 
 @router.on(8455)
 async def comprehend(s: GameSession, msg: pb.ComprehendMsg) -> None:
     """Sorteia uma especialidade (1.000.000 de Daru) em ``comprehednTempIds``; cada tentativa enche a
-    bênção, e com ela cheia o sorteio sobe um grau. Resposta: 3 e 116."""
+    bênção, e com ela cheia o sorteio dá um grau acima, 100% (PawnSpecialAbilityFrame.helpContent inglês).
+    Resposta: 3 e 116."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     found = current_pawn(s, msg.templateId)
@@ -235,9 +242,9 @@ async def comprehend(s: GameSession, msg: pb.ComprehendMsg) -> None:
     saved = templates.get("SpecialTempInfos", int(pawn.specials)) if pawn.specials else None
     grade = int(saved["Grades"]) if saved else 1
     bless = next(templates.find("UpGradeTempInfos", Types=SPECIAL_BLESS, Grades=grade), None)
-    # ponytail: bênção cheia = sorteio garantido um grau acima; a regra exata do oficial não tem captura
-    full = bless is not None and pawn.bless + 1 >= int(bless["Data"])
-    pick = special_pick(templates, tpl["MasterType"], grade + 1 if full else grade)
+    # ponytail: o sorteio comum vai até o grau atual (o texto só diz "chance" de subir); mudar com captura
+    full = bless is not None and pawn.bless + 1 >= int(bless["Data"]) and grade < MAX_SPECIAL_GRADE
+    pick = special_pick(templates, tpl["MasterType"], grade + 1 if full else grade, exact=full)
     if pick is None:
         s.log.info("8455 recusado: sem especialidade", pedido=str(msg))
         return
@@ -254,14 +261,21 @@ async def comprehend(s: GameSession, msg: pb.ComprehendMsg) -> None:
 
 @router.on(8456)
 async def save_special(s: GameSession, msg: pb.ComprehendMsg) -> None:
-    """Troca a especialidade pela sorteada no 8455. Resposta: 116 e 150 (atributos da tropa)."""
-    snap = s.snapshot
+    """Troca a especialidade pela sorteada no 8455; subindo de grau a bênção zera ("Blessing levels are reset
+    after each specialty level upgrade"). Resposta: 116 e 150 (atributos da tropa)."""
+    snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     found = current_pawn(s, msg.templateId)
     if found is None or not found[0].comprehend:
         s.log.info("8456 recusado", pedido=str(msg))
         return
     pawn = found[0]
+
+    def grade(special: str) -> int:
+        return int((templates.get("SpecialTempInfos", int(special)) or {}).get("Grades", 0)) if special else 0
+
+    if grade(pawn.comprehend) > grade(pawn.specials):
+        pawn.bless = 0
     pawn.specials, pawn.comprehend = pawn.comprehend, ""
     await s.ctx.characters.save(pawn)
     send_pawn(s, pawn)
@@ -270,11 +284,11 @@ async def save_special(s: GameSession, msg: pb.ComprehendMsg) -> None:
 
 @router.on(8276)
 async def army_pos_edit(s: GameSession, msg: pb.ArmyFightPosEditMsg) -> None:
-    """Formação (AllocateView): posição do herói e da tropa no exército. Resposta: 150."""
+    """Formação (AllocateView): herói e tropa na fileira da frente (1) ou de trás (3). Resposta: 150."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     pawn = rules.army_pawn(snap)
-    valid = range(1, 10)  # ponytail: grade 3x3 da formação; conferir limites quando houver captura
+    valid = FIGHT_ROWS
     if msg.userId != s.player_id or msg.heroPos not in valid or msg.heroPos == msg.pawnPos:
         s.log.info("8276 recusado", pedido=str(msg))
         return
@@ -326,12 +340,15 @@ async def teleport(s: GameSession, msg: pb.ArmyPositionMsg) -> None:
     if not (0 <= msg.posX < 1000 and 0 <= msg.posY < 1000):
         s.send(S_TELEPORT_FAIL)
         return
+    spent = None
     if castle.energy >= TELEPORT_ENERGY:
         castle.energy -= TELEPORT_ENERGY
-    elif not rules.pay_point(c, TELEPORT_POINT, bind=msg.payType == 2):
+    elif (
+        spent := ledger.pay(c, TELEPORT_POINT, bind=msg.payType == 2, reason="teleport", ref="", now=s.ctx.clock.now())
+    ) is None:
         s.send(S_TELEPORT_FAIL)
         return
-    await s.ctx.characters.save(c, castle)
+    await s.ctx.characters.save(c, castle, *([spent] if spent else []))
     s.send(S_TELEPORT, pb.ArmyPositionMsg(posX=msg.posX, posY=msg.posY, mapId=castle.map_id, leftEnergy=castle.energy))
     _player(s)
 

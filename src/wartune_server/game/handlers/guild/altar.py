@@ -62,7 +62,9 @@ async def altar_site(s: GameSession, _: object) -> None:
 @router.on(5145)
 async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     """Bênção: gasta ``Property1`` de contribuição, até ``Property2`` vezes por dia (nível do altar).
-    ``blessSite`` é a posição na lista do 4144 (-1 = nada). O prêmio fica na linha do membro até o 8216.
+    ``blessSite`` é a posição na lista do 4144 (-1 = nada). O prêmio fica na linha do membro até o 8216. Com um prêmio
+    por pegar, o cliente pergunta antes (``ConsortiaAltarHelper.canBless``: "abandon the item(s) and continue?") e só
+    manda o 5145 se o jogador abandonar: o prêmio novo toma o lugar do antigo.
 
     ponytail: a tabela de prêmios do oficial não está nos templates; o prêmio é sempre um item
     do mercado da guilda liberado pelo nível do altar, na casa "Shop Item" (Site 1). A bênção
@@ -79,7 +81,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         for r in s.ctx.templates.find("ShopTempInfos", ShopType=GUILD_SHOP)
         if mine is not None and int(r.get("NeedConsortiaLevels") or 0) <= mine[0].altar_level
     ]
-    ok = mine is not None and row is not None and msg.param1 <= 1 and not mine[1].bless_item
+    ok = mine is not None and row is not None and msg.param1 <= 1
     if (
         not ok
         or row is None
@@ -87,7 +89,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         or used >= int(row["Property2"])
         or c.consortia_offer < int(row["Property1"])
     ):
-        _refuse(s, 5145, "sem altar, limite do dia, contribuição, rápida ou prêmio por pegar", usadas=used)
+        _refuse(s, 5145, "sem altar, limite do dia, contribuição ou rápida", usadas=used)
         s.send(S_BLESS, b.complete(pb.ConsortiaMsg(blessSite=-1, blessLeftTime=used)))
         return
     if not pool or 1 not in sites:

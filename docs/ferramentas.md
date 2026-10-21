@@ -2,17 +2,32 @@
 
 ## Cliente decompilado
 
-* O FFDec está em `D:\xampp\htdocs\wartune-cdn\_tools\ffdec-26.2.1\ffdec.jar` e roda com o JRE portátil de `D:\wartune\tools\jdk-21.0.12.1+1-jre`.
-* Os módulos do relay (`2.png`, `3.png`… são SWFs) foram decompilados em `D:\wartune\decompiled\m{2,3,4,5,8,10,11,15,16}\scripts`. O **m2** é o código principal: 2600 classes, 648 delas de protobuf.
-* O **m6** (janelas da guilda) não existe no relay: foi decompilado do CDN, `D:\xampp\htdocs\wartune-cdn\_analysis\decoded_swf\6.swf` (FFDec `-export script`). É de outro build, então confira os protobufs contra o m2; ele entra no `as3_to_proto.py` e no `scan_opcodes.py` só pelas classes que o m2 não tem (`ConditionSpeakMsg`, `ConsortiaVotingReqMsg`).
-* O módulo Loading (login, criação de personagem) está em `D:\wartune\server-relay\decoded client\Loading\scripts`.
-* Use as versões do relay, não as do CDN: os `.png` com código no CDN são diferentes, e os do relay foram validados contra a captura.
+A referência é o cliente **inglês** (Wartune Reborn S134), o mesmo que o portal serve (`wartune-reborn/cdn` e
+`wartune-reborn/game` são links para o espelho em `D:\xampp\htdocs\wartune\mirror`).
+
+* O FFDec está em `D:\xampp\htdocs\wartune\ferramentas\ffdec` e roda com o JRE portátil de `D:\xampp\htdocs\wartune\ferramentas\jdk-21.0.12.1+1-jre`.
+* Os módulos de código (`2.png`, `3.png`… `18.png` do CDN são SWFs embaralhados) são desembaralhados com
+  `python -I D:\xampp\htdocs\wartune\desembaralhar.py <N.png> <saida.swf>` e decompilados em
+  `D:\xampp\htdocs\wartune\decomp\2\scripts` (código principal: 648 classes de protobuf) e `decomp\m3`..`m18\scripts`.
+  O módulo Loading (login, criação de personagem) está em `decomp\Loading\scripts`.
+* Legado: o cliente turco do relay em `D:\wartune\decompiled\m{2,3,4,5,8,10,11,15,16}\scripts`. Não é referência; das
+  classes em comum, 690 mudaram no inglês, e o inglês tem 556 classes que o turco não tinha (módulos 6, 7, 9,
+  12–14, 17 e 18).
 
 ## `tools/as3_to_proto.py`
 
 Gera `proto/wartune.proto` e `proto/message_index.json` a partir das classes protobuf AS3. Ele lê os
 `readFromSlice`, entende os três formatos do `switch` (deslocamento −1, 0 e −2) e falha se uma classe
-tiver `case`s mas o `switch` não for reconhecido. Depois de gerar o `.proto`:
+tiver `case`s mas o `switch` não for reconhecido. Os dois geradores recebem as mesmas pastas do cliente inglês:
+
+```powershell
+$E = 'D:/xampp/htdocs/wartune/decomp'
+$R = @("$E/2/scripts") + (3..18 | ForEach-Object { "$E/m$_/scripts" }) + @("$E/Loading/scripts")
+uv run python tools/as3_to_proto.py @R
+uv run python tools/scan_opcodes.py @R
+```
+
+Depois de gerar o `.proto`:
 
 ```
 uv run python -m grpc_tools.protoc -Iproto --python_out=src/wartune_server/protocol/messages \
@@ -43,32 +58,22 @@ uv run python tools/decode_pcap.py "D:/wartune/server-relay/all pcaps/"*.pcapng 
 uv run python tools/dump_capture.py captures/kader_sistemi.json
 ```
 
-## `tools/export_captures.py`
+## `tools/extract_vehicle_map.py`
 
-**Legado da CDN turca**: monta(va) a CDN turca (`data/overlay` → `wartune-reborn/cdn-turco`). A CDN ativa é a inglesa (res134, `tools/fetch_missing.py`); o arquivo fica até o dono decidir remover as pastas fora do repo.
+Lê o `maps/<id>/<id>.titles` do espelho da CDN (objeto AMF3 dinâmico com zlib, chave `"x_y"`, o `mapTielsData` do
+cliente) e grava `data/vehicle_map_<id>.json`: os tiles andáveis (valor > 0 e diferente de 2,
+`VehicleModel.getWalkable`) e as marcas (valor 3), onde a batalha de veículos põe os tanques e as caixas. Sem o
+arquivo, a partida anda sem conferir os tiles (aviso no log).
 
-Exporta as sessões HTTP capturadas no Fiddler (só status 200, sem chunked e sem Content-Encoding)
-para `data/overlay/` (586 arquivos). Esse diretório inclui o `client/config.xml` oficial usado como
-modelo e o `xml/tempinfos.xml` (zlib). Fica fora do git, então rode o script depois de clonar:
-`uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw`.
+```
+uv run python tools/extract_vehicle_map.py <espelho>/res134-bmclas-sq.7road.net/maps/3001/3001.titles
+```
 
-## `tools/build_cdn_overrides.py`
+## Legado da CDN turca
 
-**Legado da CDN turca**: monta(va) a CDN turca (`data/overlay` → `wartune-reborn/cdn-turco`). A CDN ativa é a inglesa (res134, `tools/fetch_missing.py`); o arquivo fica até o dono decidir remover as pastas fora do repo.
-
-Monta `D:\xampp\htdocs\wartune-reborn\cdn`: copia de `data/overlay` e do `public` do relay os
-arquivos que faltam no CDN completo ou que têm conteúdo diferente (os `.png` de código, por exemplo),
-e ignora o que não é asset (páginas, scripts, respostas de endpoints).
-
-Depois ela ajusta os módulos de código (`N.png`, que começam com `road7` + md5):
-
-* **Enchimento**: os `.png` do relay trazem ~20 MB de zeros depois do tag End do SWF. O Flash
-  ignora isso; é a única diferença entre o `2.png` (que o Ruffle carrega) e o `8.png` (`NewbieModule is not defined` no fim do
-  login). A ferramenta recomprime o SWF sem o enchimento e atualiza `ui/zh_cn/size.xml`, porque o
-  `ModuleLoader` recusa o módulo quando o tamanho difere em 3000 bytes ou mais.
-* **MD5**: o `ModuleLoader` compara os bytes 5..37 do arquivo com `resouececheck.sq` e descarta
-  o módulo **sem erro** se não baterem. Os módulos que só existem no CDN completo (6, 7, 9, 12–14,
-  17, 18) são de outro build, então a lista recebe o md5 embutido em cada arquivo.
+`export_captures.py` e `build_cdn_overrides.py` (com `cdn_stubs`, o teste e o `data/overlay`) foram para
+`consulta/legado-turco/` (fora do git), com a explicação de como montavam a CDN turca. A CDN ativa é o espelho
+inglês (res134) completado pelo `tools/fetch_missing.py`.
 
 ## `tools/fetch_missing.py`
 

@@ -62,7 +62,13 @@ async def test_groups_and_lookups(tmp_path: Path) -> None:
         b = await a.join("bruxa")
         a.client.send(15025, pb.FriendGroupMsg(groupName="guerra"))
         group = _bodies(await a.until(4227), 4227, pb.FriendGroupMsg)[-1]
-        assert group.groupId >= 3 and group.groupName == "guerra"
+        assert (group.groupId, group.groupName) == (4, "guerra")  # o 3 é a lista negra (FridendsListView)
+        for name in ("a|b", "paz", "trégua", "fim"):  # | proibido; 3 grupos no máximo
+            a.client.send(15025, pb.FriendGroupMsg(groupName=name))
+        got = await a.until(4227)
+        made = _bodies([*got, *await a.idle()], 4227, pb.FriendGroupMsg)
+        assert [(g.groupId, g.groupName) for g in made][-1] == (6, "trégua")
+        assert len(_session(a).snapshot.groups) == 3  # type: ignore[union-attr]
 
         a.client.send(8223, pb.CheckNickMsg(nickName="Bruxa"))
         assert _bodies(await a.until(4148), 4148, pb.CheckNickMsg)[-1].playerId == b.user_id

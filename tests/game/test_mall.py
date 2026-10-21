@@ -30,15 +30,19 @@ def last[T: Message](got: list[Packet], cls: type[T]) -> T:
 
 
 def _sell(item: Item, **fields: int) -> pb.SellItemReqMsg:
+    """8448 como a AuctionSellSubmitPane manda: o preço fixo é obrigatório (padrão alto, fora dos lances)."""
     base = {"sellType": h.GOODS, "itemId": item.id or 0, "itemPos": item.pos, "count": 1, "point": 10}
-    return pb.SellItemReqMsg(**(base | {"fixPoint": 0, "hour": 8} | fields))
+    return pb.SellItemReqMsg(**(base | {"fixPoint": 1000, "hour": 8} | fields))
 
 
 async def _put(g: Game, template: int, count: int, pos: int = 5) -> Item:
-    """Item na mochila do jogador, no snapshot e no banco."""
-    item = Item(g.user_id, template, pos=pos, count=count)
+    """Item livre (só o não vinculado vai ao leilão) na mochila do jogador, no snapshot e no banco, e ouro para a
+    taxa do anúncio."""
+    item = Item(g.user_id, template, pos=pos, count=count, is_binds=False)
     me(g).items.append(item)
-    await g.server.services.characters.save(item)
+    c = me(g).character
+    c.gold = max(c.gold, 10**5)
+    await g.server.services.characters.save(item, c)
     return item
 
 
@@ -94,7 +98,7 @@ async def test_handlers_survive_empty_and_minimal_bodies(tmp_path: Path) -> None
         horn = await _put(g, HORN, 3)
         await _diamonds(g, 100)
         minimal: dict[int, Message] = {
-            8448: _sell(horn, count=2),  # 2 x 10 de inicial, mas o lance é 10: recusado (PRICE)
+            8448: _sell(horn, count=2),  # 2 x 10 de inicial, mas o lance é 10: recusado (START_PRICE)
             8449: pb.MallItemViewReqMsg(page=1, count=9),
             8450: pb.MallItemViewReqMsg(page=1, count=9, **{"from": h.GOODS}),
             8451: pb.AuctionItemReqMsg(id=1, point=1),
@@ -119,19 +123,23 @@ async def test_sell_splits_the_stack_and_a_full_sale_leaves_the_bag_in_one_save(
         whole = await _put(g, HORN, 1, pos=6)
 
         g.client.send(8448, _sell(stack, count=4, point=40, hour=8))
-        rsp = last(await g.until(4352), pb.SellItemRspMsg)
+        got = await g.until(109)  # a taxa sai do ouro e a barra de recursos vem depois do 4352
+        rsp = pb.SellItemRspMsg.FromString(next(p for p in got if p.code == 4352).body)
         assert rsp.result == h.OK and rsp.item.templateId == HORN and rsp.item.point == 40
         assert stack.count == 6
+        assert me(g).character.gold == 10**5 - 250 * 8  # AuctionSellSubmitPane: 250 × horas
         assert await _owned(g, HORN) == [(BagType.BAG, 5, 6), (BagType.BAG, 6, 1), (BagType.AUCTION, 0, 4)]
 
-        g.client.send(8448, _sell(whole, itemPos=6))
+        g.client.send(8448, _sell(whole, itemPos=6, hour=48))
         assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK
+        assert me(g).character.gold == 10**5 - 250 * (8 + 48)
+        fresh = await g.server.services.characters.snapshot(g.user_id)
+        assert fresh.character.gold == 10**5 - 250 * (8 + 48)  # gravado na transação do anúncio
         assert not any(i is whole for i in me(g).items)  # saiu da mochila na mesma transação do anúncio
         assert await _owned(g, HORN) == [(BagType.BAG, 5, 6), (BagType.AUCTION, 0, 1), (BagType.AUCTION, 0, 4)]
         assert len(await _listings(g)) == 2
 
         # o login seguinte não põe o que está à venda no snapshot
-        fresh = await g.server.services.characters.snapshot(g.user_id)
         assert [i.count for i in fresh.items if i.template_id == HORN] == [6]
 
 
@@ -140,18 +148,28 @@ async def test_sell_refuses_with_the_client_result_codes(tmp_path: Path) -> None
         horn = await _put(g, HORN, 10)
         crystal = await _put(g, CRYSTAL, 1, pos=6)
         cases: list[tuple[pb.SellItemReqMsg, int]] = [
-            (_sell(horn, sellType=2), h.NOT_AUCTION),
+            (_sell(horn, sellType=3), h.NOT_AUCTION),
+            (_sell(horn, sellType=h.PET), h.NO_ITEM),  # Sylph: itemPos é o id do pet
             (_sell(crystal, itemPos=6), h.NOT_AUCTION),
             (_sell(horn, count=11, point=110), h.COUNT),
-            (_sell(horn, count=2, point=19), h.PRICE),
+            (_sell(horn, count=2, point=19), h.START_PRICE),  # Auction.ResultAlert19
             (_sell(horn, count=2, point=20, fixPoint=20), h.FIX_PRICE),
+            (_sell(horn, count=2, point=20, fixPoint=0), h.FIX_PRICE),  # SubmitAlert3: o fixo é obrigatório
             (_sell(horn, count=2, point=20, hour=0), h.HOUR),
+            (_sell(horn, count=2, point=20, hour=12), h.HOUR),  # só 8, 24 ou 48 (Auction.SubmitHour1..3)
             (_sell(horn, itemId=(horn.id or 0) + 999), h.NO_ITEM),
         ]
         for msg, expected in cases:
             g.client.send(8448, msg)
             assert last(await g.until(4352), pb.SellItemRspMsg).result == expected
-        assert horn.count == 10 and crystal.count == 1
+        horn.is_binds = True
+        g.client.send(8448, _sell(horn, count=2, point=20))
+        assert last(await g.until(4352), pb.SellItemRspMsg).result == h.BLOCKED  # ResultAlert7: "Item is bound!"
+        horn.is_binds = False
+        me(g).character.gold = 250 * 24 - 1
+        g.client.send(8448, _sell(horn, count=2, point=20, hour=24))
+        assert last(await g.until(4352), pb.SellItemRspMsg).result == h.NO_GOLD  # ResultAlert10
+        assert horn.count == 10 and crystal.count == 1 and me(g).character.gold == 250 * 24 - 1
         assert await _listings(g) == []
 
 
@@ -199,7 +217,10 @@ async def test_bids_refund_the_outbid_player_by_mail_and_show_in_my_bids(tmp_pat
         c.client.send(8451, pb.AuctionItemReqMsg(id=listing.id, point=20))  # precisa passar do lance atual
         assert last(await c.until(4355), pb.AuctionItemRspMsg).result == h.PRICE
         a.client.send(8451, pb.AuctionItemReqMsg(id=listing.id, point=30))  # vendedor não dá lance no próprio
-        assert last(await a.until(4355), pb.AuctionItemRspMsg).result == h.OWN_BID
+        assert last(await a.until(4355), pb.AuctionItemRspMsg).result == h.OWN_FIX
+        b.client.send(8451, pb.AuctionItemReqMsg(id=listing.id, point=30))  # ResultAlert17: já é o maior lance
+        assert last(await b.until(4355), pb.AuctionItemRspMsg).result == h.OWN_BID
+        assert me(b).character.point == 80
 
         c.client.send(8451, pb.AuctionItemReqMsg(id=listing.id, point=30))
         assert last(await c.until(4355), pb.AuctionItemRspMsg).result == h.OK
@@ -403,9 +424,22 @@ def test_sale_tax_takes_twenty_percent_rounded_down() -> None:
     assert [market.income(p) for p in (50, 15, 4, 1)] == [40, 12, 3, 0]
 
 
+TURKISH_LIMIT = {"bands": [[60, 500], [70, 1000]], "top": 1500}  # o da ajuda turca, como exemplo de configuração
+
+
 def test_daily_limit_by_level() -> None:
-    """(cliente) AuctionHelp.helpContent itens 9-11."""
-    assert [h.daily_limit(g) for g in (1, 40, 59, 60, 69, 70, 80, 90)] == [500, 500, 500, 1000, 1000, 1500, 1500, 1500]
+    """Sem ``game_settings.mall_daily_limit`` não há limite (a ajuda inglesa não tem); configurado, vale por faixa."""
+    assert h.daily_limit(90, None) is None
+    assert [h.daily_limit(g, TURKISH_LIMIT) for g in (1, 40, 59, 60, 69, 70, 80, 90)] == [
+        500,
+        500,
+        500,
+        1000,
+        1000,
+        1500,
+        1500,
+        1500,
+    ]
 
 
 async def test_bid_and_fixed_buy_stop_at_the_daily_limit(tmp_path: Path) -> None:
@@ -419,7 +453,10 @@ async def test_bid_and_fixed_buy_stop_at_the_daily_limit(tmp_path: Path) -> None
         cheap, pricey = sorted(await _listings(a), key=lambda x: x.fix_point)
         b = await a.join("bruxa")
         await _diamonds(b, 2000)
-        limit = h.daily_limit(me(b).character.grades)
+        world = b.server.services.world
+        object.__setattr__(world, "settings", {**world.settings, h.DAILY_LIMIT_KEY: TURKISH_LIMIT})  # só do teste
+        limit = h.daily_limit(me(b).character.grades, TURKISH_LIMIT)
+        assert limit is not None
 
         b.client.send(8453, pb.AuctionItemReqMsg(id=pricey.id, point=900))  # passa do limite do dia
         assert last(await b.until(4357), pb.FixAuctionItemRspMsg).result == h.DAILY_LIMIT
@@ -436,11 +473,40 @@ async def test_bid_and_fixed_buy_stop_at_the_daily_limit(tmp_path: Path) -> None
         assert fresh.character.mall_spent == limit - 10  # gravado junto com o débito
 
 
-async def test_sell_refuses_a_zero_start_price(tmp_path: Path) -> None:
+async def test_sell_refuses_a_start_price_below_two(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         cheap = await _put(g, CHEAP, 1)
-        # (cliente) Auction.SubmitAlert2 inglês: "Starting price may not be zero; ... greater than zero"
-        g.client.send(8448, _sell(cheap, point=0))
-        assert last(await g.until(4352), pb.SellItemRspMsg).result == h.PRICE
-        g.client.send(8448, _sell(cheap, point=1))
+        # AuctionSellSubmitPane.onSellBtnClick recusa inicial < 2 (Auction.SubmitAlert2)
+        for point in (0, 1):
+            g.client.send(8448, _sell(cheap, point=point))
+            assert last(await g.until(4352), pb.SellItemRspMsg).result == h.START_PRICE
+        g.client.send(8448, _sell(cheap, point=2))
         assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK
+
+
+async def test_search_pages_by_seven_in_the_clicked_order(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        stack = await _put(g, HORN, 8)
+        for i, point in enumerate([13, 10, 17, 11, 16, 12, 15, 14]):
+            g.client.send(8448, _sell(stack, point=point, fixPoint=100 - i))
+            assert last(await g.until(4352), pb.SellItemRspMsg).result == h.OK
+        b = await g.join("bruxa")
+
+        # AuctionBuyResultPane: 7 linhas; orderBy 3 = preço atual, orderType 2 = decrescente
+        b.client.send(8457, pb.SearchItemReqMsg(itemName="bullhorn", page=1, orderBy=3, orderType=2))
+        first = last(await b.until(4359), pb.AuctionItemsMsg)
+        assert [x.point for x in first.sellItem] == [17, 16, 15, 14, 13, 12, 11]
+        assert (first.pageIdx, first.pageCount) == (1, 2)
+        b.client.send(8457, pb.SearchItemReqMsg(itemName="bullhorn", page=2, orderBy=3, orderType=2))
+        assert [x.point for x in last(await b.until(4359), pb.AuctionItemsMsg).sellItem] == [10]
+
+        b.client.send(8457, pb.SearchItemReqMsg(itemName="bullhorn", page=1, orderBy=4, orderType=1))
+        assert [x.fixPoint for x in last(await b.until(4359), pb.AuctionItemsMsg).sellItem] == [
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+        ]

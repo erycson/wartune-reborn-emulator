@@ -9,13 +9,15 @@ PlayerManager.__dragonSoul*). Nas turcas só há pacotes S>C: os campos dos pedi
 from __future__ import annotations
 
 import random
+from datetime import UTC, datetime
 
 from ...domain import gameday
 from ...domain.models import BagType, Item, PlayerSnapshot, PlayerSystems
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from ...templates.repository import GameTemplates, Row
+from .. import bag, rules
 from .. import events as ev
-from .. import rules
 from ..builders.login import NEVER, fmt_time
 from ..builders.player import quest_update
 from ..router import router
@@ -23,17 +25,38 @@ from ..session import GameSession
 from .hero import send_items
 from .player import _army, _player
 
-S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER = 4427, 4426, 4459
+S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER, S_MOUNT_STAR = 4427, 4426, 4459, 4679
 S_FATE, S_FATE_TURN, S_DRAGON, S_TRANSFER, S_TRANSFER_GRADE = 4544, 4545, 4555, 4556, 4557
 S_POWCARD = 4905
 S_QUESTS = 112  # QuestUpdatedRspMsg
 QUEST_MOUNT_TRAIN = 71  # QuestCondictionInfos: treinar a montaria (Para2 1; uma ação de treino)
 
 # --- montaria -------------------------------------------------------------------------------
-MOUNT_TRAIN, MOUNT_CHANGE, MOUNT_INFO = 1, 2, 5  # MountsOpType
+MOUNT_TRAIN, MOUNT_CHANGE, MOUNT_RIDE, MOUNT_INFO = 1, 2, 3, 5  # MountsOpType (3 = ARMYMOUNT_AVATARCHANGE)
+MOUNT_ACTIVATE, MOUNT_FLY = 4, 13  # MOUNTAVATAR_ACTIVE (WildSoulFrame) e OP_BUY_FLY (MountsFrame)
+MOUNT_STAR = 6  # MOUNT_START (MountsPromotionView): refinar a estrela
+STAR_GRADE = 70  # WildSoulItem/MountsFrame: o botão de estrela abre no nível 70 do herói
+HOOF = 208035  # Mount Hoof (MountsManager.GOLDEN_HORSE_SHOE): 1 por refino
+ADVANCED = 10  # MountsPromotionView.advCost: o "10x" (param1 1) gasta 10 Hoofs em 10 refinos
+NO_STAR = ("3", "4")  # MountsManager.canShowStar: a de VIP (3) e o rei (4) não têm estrela
+STAR_TABLE = "37"  # UpGradeTempInfo: TemplateId = GradeType da montaria, Grades = estrela, Data = bênção até ela
+# ponytail: o cliente não diz a bênção de cada refino nem a chance; 10 de bênção e 5% de "Therion's Blessing" (o
+# getPromotSuccessRate mostra 5 com a barra incompleta e 100 com ela cheia). Trocar com captura do oficial
+STAR_BLESS, STAR_CHANCE = 10, 5
+# WildSoulFrame: só MountType 1, 2 e 4 se ativam no clique (0 vem do Beast Soul Lvl, 3 é a de VIP); 4 = rei das
+# montarias, que pede o mount_king_active_item
+UNLOCKABLE, KING = ("1", "2", "4"), "4"
+FLYSTONE = 208131  # MountsManager.STONE_TEMPID: "consume 1 Flystone to enable the mount to fly"
+# UpGradeTempInfo.Types do Beast Soul Lvl (MountInfo.growExp = mountTotalGp; Data = o mínimo do nível) e a montaria
+# que o nível dá (ActiveObject: 1006 no 2, 2001 no 3)
+MOUNT_SOUL = "19"
+DAY = 86400
+MOUNT_REST_KEY = "mount:rest"  # 1 = desmontado (MountsFrame Rest: op 3 com param1 0)
 FOOD = "290"  # SonType do item 208017 (comida de montaria)
 FOOD_GP = 10  # 9 comidas = +90 de EXP em força (só turco: online_odul_..._binek_upgrade)
-PAY_POINT, PAY_FOOD = 0, 1  # DomesticatePayType
+# MountsFrame inglês: payType 0 = pode usar vinculados (advDomesticateUseBind); "Mount Training Whips are consumed
+# first" (mounts.tips02), o resto em Mount_Point diamantes
+PAY_BIND = 0
 # MountEditMsg.propertyType (PropertyInfo.getPropertyValue) -> índice em mount_gp
 MOUNT_PROPERTY = {0: 0, 2: 1, 5: 2, 1: 3}  # força, inteligência, físico (Stamina), agilidade (Armor)
 
@@ -60,21 +83,106 @@ def mount_info(snap: PlayerSnapshot, templates: GameTemplates) -> pb.MountInfoMs
     return msg
 
 
-def avatars(sy: PlayerSystems) -> list[int]:
-    return [int(x) for x in sy.mount_avatars.split(",") if x]
+def _ids(text: str) -> list[int]:
+    return [int(x) for x in text.split(",") if x]
 
 
-def avatar_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.MountAvatarMsg:
+def expiry(sy: PlayerSystems) -> dict[int, int]:
+    """Fim (segundos Unix) de cada montaria temporária."""
+    return {int(a): int(b) for a, b in (x.split(":") for x in sy.mount_expiry.split(",") if x)}
+
+
+def avatars(sy: PlayerSystems, now: datetime | None = None) -> list[int]:
+    """Montarias possuídas; com ``now``, sem as temporárias vencidas (o cliente as mostra trancadas de novo)."""
+    ends = expiry(sy) if now else {}
+    return [m for m in _ids(sy.mount_avatars) if m not in ends or now is None or ends[m] > now.timestamp()]
+
+
+def soul_grade(templates: GameTemplates, sy: PlayerSystems) -> int:
+    """Beast Soul Lvl (``MountInfo.grade``): o maior nível com ``Data`` <= EXP total da montaria."""
+    total = sum(mount_gps(sy))
+    rows = templates.find("UpGradeTempInfos", Types=MOUNT_SOUL)
+    return max((int(r["Grades"]) for r in rows if total >= int(r["Data"])), default=1)
+
+
+def grant_mount(sy: PlayerSystems, mount: int, days: int, now: datetime) -> bool:
+    """Põe a montaria nas possuídas. ``days`` > 0: temporária, somando ao que ainda resta; 0: permanente.
+    False se ela já é permanente (nada a ganhar)."""
+    ends, owned = expiry(sy), _ids(sy.mount_avatars)
+    if mount in owned and mount not in ends:
+        return False
+    if mount not in owned:
+        sy.mount_avatars = ",".join(map(str, [*owned, mount]))
+    if days > 0:
+        ends[mount] = max(ends.get(mount, 0), int(now.timestamp())) + days * DAY
+    else:
+        ends.pop(mount, None)
+    sy.mount_expiry = ",".join(f"{m}:{end}" for m, end in ends.items())
+    return True
+
+
+def soul_mounts(templates: GameTemplates, sy: PlayerSystems, now: datetime) -> bool:
+    """Dá as montarias do Beast Soul Lvl alcançado (``ActiveObject`` da tabela 19). True se ganhou alguma."""
+    grade = soul_grade(templates, sy)
+    rows = templates.find("UpGradeTempInfos", Types=MOUNT_SOUL)
+    got = [int(r["ActiveObject"]) for r in rows if int(r["Grades"]) <= grade and int(r.get("ActiveObject") or 0)]
+    return any([grant_mount(sy, m, 0, now) for m in got if m not in _ids(sy.mount_avatars)])
+
+
+def avatar_msg(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> pb.MountAvatarMsg:
     """4427: montarias possuídas; ``soulScore`` = soma dos SoulScore (tutorial_en #20 sem montaria: vazio e 0;
-    com montaria, só turco: login.json #11)."""
+    com montaria, só turco: login.json #11). Temporária: ``expairDate`` e os dias que faltam (``validity``,
+    arredondado para cima como o ``WildSoulInfo``); permanente: 2000-01-01 e -1. ``isBuyFly``: voo da Flystone."""
+    sy = rules.systems(snap)
     msg = pb.MountAvatarMsg(totalPage=1)
-    since = fmt_time(snap.character.created_at)  # ponytail: a data de ativação não é guardada
-    for mount in avatars(rules.systems(snap)):
-        tpl = templates.get("MountTempInfos", mount) or {}
-        msg.avatarInfo.add(mountTempId=mount, isExist=True, expairDate=NEVER, activeDate=since, validity=-1)
-        msg.avatarInfo[-1].starLevel, msg.avatarInfo[-1].blessing, msg.avatarInfo[-1].isBuyFly = 0, 0, False
-        msg.soulScore += int(tpl.get("SoulScore", 0))
+    for mount in avatars(sy, now):
+        msg.avatarInfo.append(avatar_info(snap, mount, now))
+        msg.soulScore += int((templates.get("MountTempInfos", mount) or {}).get("SoulScore", 0))
     return msg
+
+
+def avatar_info(snap: PlayerSnapshot, mount: int, now: datetime) -> pb.AvatarInfoMsg:
+    """Uma montaria possuída do 4427 (e do 4679 da estrela), com estrela e bênção."""
+    sy = rules.systems(snap)
+    since = fmt_time(snap.character.created_at)  # ponytail: a data de ativação não é guardada
+    end = expiry(sy).get(mount)
+    until = fmt_time(datetime.fromtimestamp(end, UTC)) if end else NEVER
+    days = -(-(end - int(now.timestamp())) // DAY) if end else -1
+    star, bless = rules.mount_stars(sy).get(mount, (0, 0))
+    return pb.AvatarInfoMsg(
+        mountTempId=mount,
+        isExist=True,
+        expairDate=until,
+        activeDate=since,
+        validity=days,
+        starLevel=star,
+        blessing=bless,
+        isBuyFly=mount in _ids(sy.mount_fly),
+    )
+
+
+def drop_expired_mount(sy: PlayerSystems, now: datetime) -> bool:
+    """A montaria em uso venceu (carta temporária): sai de uso, como sem montaria. True se mudou."""
+    if sy.mount_template not in _ids(sy.mount_avatars) or sy.mount_template in avatars(sy, now):
+        return False
+    sy.mount_template = 0
+    return True
+
+
+async def expire_mount(s: GameSession) -> None:
+    """Login (8530) e relógio de 60 s: tira de uso a montaria vencida; 150 sem ela e 4427 com ela trancada."""
+    sy = s.snapshot.systems if s.snapshot else None
+    if sy is None or not drop_expired_mount(sy, s.ctx.clock.now()):
+        return
+    await s.ctx.characters.save(sy)
+    _player(s)
+    _army(s)
+    send_avatars(s)
+
+
+def send_avatars(s: GameSession) -> None:
+    assert s.snapshot is not None
+    s.send(S_MOUNT_AVATARS, avatar_msg(s.snapshot, s.ctx.templates, s.ctx.clock.now()))
 
 
 def send_mount(s: GameSession) -> None:
@@ -86,17 +194,137 @@ def send_mount(s: GameSession) -> None:
 @router.on(8530)
 async def mount_avatar_list(s: GameSession, _: object) -> None:
     """Login: 4427 (tutorial_en #19-#20) e, com montaria, 4426 (só turco: login.json #12)."""
-    assert s.snapshot is not None
-    s.send(S_MOUNT_AVATARS, avatar_msg(s.snapshot, s.ctx.templates))
+    await expire_mount(s)
+    send_avatars(s)
     send_mount(s)
+
+
+async def _activate(s: GameSession, msg: pb.MountEditMsg) -> None:
+    """op 4 (``WildSoulFrame.__resultHandler``): ativa a montaria ``param1`` trancada. Com a carta dela
+    (``NeedItemId``; o rei das montarias usa o ``mount_king_active_item``) na mochila, gasta a carta e vale os dias
+    dela (``Property2``, -1 = permanente: "mounts.command10"); sem a carta, ``Property1`` Balens, permanente
+    ("mounts.command11"; payType 0 aceita vinculados, USEBINDPOINT_ALERT). Pede o ``NeedMountGrade`` de Beast Soul."""
+    snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
+    assert snap is not None
+    sy, c = rules.systems(snap), snap.character
+    tpl = templates.get("MountTempInfos", msg.param1)
+    king = tpl is not None and tpl.get("MountType") == KING
+    need, n = (int(tpl.get("NeedItemId") or 0) if tpl else 0), 1
+    if king:
+        need, n = (int(x) for x in rules.config(templates, "mount_king_active_item", "2131500,1").split(","))
+    price = int(tpl.get("Property1") or 0) if tpl else 0
+    card = need > 0 and bag.count_of(snap, need) >= n
+    if (
+        tpl is None
+        or tpl.get("MountType") not in UNLOCKABLE
+        or msg.param1 in avatars(sy, now)
+        or int(tpl.get("NeedMountGrade") or 0) > soul_grade(templates, sy)
+        or not (card or price > 0)
+    ):
+        s.log.info("8529 ativar recusado", pedido=str(msg))
+        return
+    changed: list[Item] = []
+    gone: list[Item] = []
+    spent = None
+    days = 0
+    if card:
+        changed, gone = bag.take(snap, need, n)
+        days = int((templates.get("ItemTempInfos", need) or {}).get("Property2") or 0)
+    else:
+        spent = ledger.pay(c, price, bind=msg.payType == PAY_BIND, reason="mount_active", ref=str(msg.param1), now=now)
+        if spent is None:
+            s.log.info("8529 ativar recusado: sem Balens", pedido=str(msg), custo=price)
+            return
+    grant_mount(sy, msg.param1, days, now)
+    await s.ctx.characters.save(sy, *changed, *([c, spent] if spent else []), delete=tuple(gone))
+
+    send_items(s, changed, gone)
+    if spent:
+        _player(s)
+    send_avatars(s)
+
+
+async def _buy_fly(s: GameSession, msg: pb.MountEditMsg) -> None:
+    """op 13 (``MountsFrame.__alertBackHandler``): uma Flystone dá voo à montaria ``param1`` (só as que não voam:
+    ``IsFly`` 0 e sem voo comprado, o botão ``notFlyMountBtn``); sem a pedra, "Insufficient Flystone"."""
+    snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
+    assert snap is not None
+    sy = rules.systems(snap)
+    tpl = templates.get("MountTempInfos", msg.param1)
+    fly = _ids(sy.mount_fly)
+    if (
+        tpl is None
+        or msg.param1 not in avatars(sy, now)
+        or tpl.get("IsFly") == "1"
+        or msg.param1 in fly
+        or bag.count_of(snap, FLYSTONE) < 1
+    ):
+        s.log.info("8529 voo recusado", pedido=str(msg))
+        return
+    changed, gone = bag.take(snap, FLYSTONE, 1)
+    sy.mount_fly = ",".join(map(str, [*fly, msg.param1]))
+    await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+
+    send_items(s, changed, gone)
+    send_avatars(s)
+
+
+async def _star(s: GameSession, msg: pb.MountEditMsg) -> None:
+    """op 6 (``MountsPromotionView``): refina a estrela da montaria ``propertyType`` (não o ``param1``). Um refino
+    gasta 1 Mount Hoof; ``param1`` 1 faz 10 com 10 Hoofs. Herói nível 70, montaria possuída e permanente
+    (``validity`` -1), nem a de VIP nem o rei (``canShowStar``), abaixo da estrela máxima. A bênção enche a barra
+    (``Data`` da tabela 37 para a estrela seguinte) e cheia sobe a estrela; volta a 0 na estrela nova (*dedução*: a
+    barra é por estrela). O primeiro refino de quem nunca refinou (``WildSoulCollection.firstBless``) não gasta
+    Hoof: o cliente o manda sem conferir a mochila. Resposta 4679 com a montaria; a em uso também manda 4426 e 150."""
+    snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
+    assert snap is not None
+    sy, c, mount = rules.systems(snap), snap.character, msg.propertyType
+    tpl = templates.get("MountTempInfos", mount)
+    adds = rules.star_additions(tpl) if tpl else []
+    all_stars = rules.mount_stars(sy)
+    star, bless = all_stars.get(mount, (0, 0))
+    first = msg.param1 == 0 and not any(a + b for a, b in all_stars.values())
+    tries = ADVANCED if msg.param1 == 1 else 1
+    if (
+        tpl is None
+        or c.grades < STAR_GRADE
+        or tpl.get("MountType") in NO_STAR
+        or mount not in avatars(sy, now)
+        or mount in expiry(sy)
+        or star >= len(adds)
+        or (not first and bag.count_of(snap, HOOF) < tries)
+    ):
+        s.log.info("8529 estrela recusada", pedido=str(msg))
+        return
+    need = {
+        int(r["Grades"]): int(r["Data"])
+        for r in templates.find("UpGradeTempInfos", Types=STAR_TABLE)
+        if r.get("TemplateId") == tpl.get("GradeType")
+    }
+    used, before = 0, star
+    while used < tries and star < len(adds):
+        used += 1
+        bless += STAR_BLESS
+        if bless >= need.get(star + 1, 0) or random.randrange(100) < STAR_CHANCE:
+            star, bless = star + 1, 0
+    all_stars[mount] = (star, bless)
+    sy.mount_stars = ",".join(f"{m}:{a}:{b}" for m, (a, b) in all_stars.items())
+    changed, gone = bag.take(snap, HOOF, used) if not first else ([], [])
+    await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+
+    send_items(s, changed, gone)
+    s.send(S_MOUNT_STAR, avatar_info(snap, mount, now))
+    if star != before and mount == sy.mount_template:
+        send_mount(s)
+        _army(s)
 
 
 @router.on(8529)
 async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
-    """op 1 treina ``propertyType`` com ``param1`` unidades (comida 208017 ou Mount_Point diamantes
-    cada; 10 de EXP por unidade, até o grau levelMax); op 2 monta ``param1`` (precisa possuir);
-    op 5 manda a montaria do jogador ``param1`` (4459). Resposta do treino: 109, 115, 3, 150, 4426 (só turco:
-    online_odul_..._binek_upgrade #83-#90)."""
+    """op 1 treina ``propertyType`` com ``param1`` unidades (chicotes 208017 primeiro, o resto Mount_Point
+    diamantes cada; 10 de EXP por unidade, até o grau levelMax); op 2 escolhe ``param1`` (precisa possuir);
+    op 3 monta (``param1`` 1) ou descansa (0, MountsFrame Mount/Rest); op 5 manda a montaria do jogador ``param1``
+    (4459). Resposta do treino: 109, 115, 3, 150, 4426 (só turco: online_odul_..._binek_upgrade #83-#90)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy = rules.systems(snap)
@@ -106,8 +334,17 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
         if info is not None:
             s.send(S_MOUNT_OTHER, info)
         return
+    if msg.op == MOUNT_ACTIVATE:
+        await _activate(s, msg)
+        return
+    if msg.op == MOUNT_FLY:
+        await _buy_fly(s, msg)
+        return
+    if msg.op == MOUNT_STAR:
+        await _star(s, msg)
+        return
     if msg.op == MOUNT_CHANGE:
-        if msg.param1 not in avatars(sy):
+        if msg.param1 not in avatars(sy, s.ctx.clock.now()):
             s.log.info("8529 recusado: montaria não possuída", pedido=str(msg))
             return
         sy.mount_template = msg.param1
@@ -115,10 +352,20 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
         send_mount(s)
         _army(s)
         return
+    if msg.op == MOUNT_RIDE:
+        if not sy.mount_template:
+            s.log.info("8529 recusado: sem montaria", pedido=str(msg))
+            return
+        rest = ev.state(snap, MOUNT_REST_KEY, s.ctx.clock.now())
+        rest.value, rest.updated_at = int(msg.param1 == 0), s.ctx.clock.now()
+        await s.ctx.characters.save(rest)
+        _army(s)
+        return
     if msg.op != MOUNT_TRAIN:
-        # ponytail: estrela/bênção, rei das montarias, loja, refino e voo dependem da UI que não foi
-        # descompilada (só o MountsManager); ficam registrados no log
-        s.log.info("8529 op sem implementação", pedido=str(msg))
+        # rei das montarias (7): o cliente inglês não tem MountType 4, tabela 109 nem o item 2131500, e a lista do
+        # rei não tem ouvinte; loja (8-11): nenhum chamador; refino da alma (12): botão fora da tela, item 208070 e
+        # tabelas 144-146 ausentes. Nada a responder: ficam no log
+        s.log.info("8529 op sem tela no cliente inglês", pedido=str(msg))
         return
     tpl = templates.get("MountTempInfos", sy.mount_template) if sy.mount_template else None
     idx, n = MOUNT_PROPERTY.get(msg.propertyType), msg.param1
@@ -130,30 +377,43 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
     cap = int(cap_row["Data"]) if cap_row else 0
     n = min(n, -(-(cap - gps[idx]) // FOOD_GP))  # não cobra o que passaria do teto
     food = rules.bag_items(snap, templates, FOOD)
-    point_cost = n * int(rules.config(templates, "Mount_Point", "10"))
-    if n <= 0 or (msg.payType == PAY_FOOD and sum(i.count for i in food) < n):
-        s.log.info("8529 recusado: sem comida ou no teto", pedido=str(msg))
+    whips = min(n, sum(i.count for i in food))
+    point_cost = (n - whips) * int(rules.config(templates, "Mount_Point", "35"))
+    if n <= 0:
+        s.log.info("8529 recusado: no teto", pedido=str(msg))
         return
-    if msg.payType == PAY_POINT and not rules.pay_point(snap.character, point_cost, bind=True):
-        s.log.info("8529 recusado: sem diamantes", pedido=str(msg))
+    bind = msg.payType == PAY_BIND
+    spent = (
+        ledger.pay(snap.character, point_cost, bind=bind, reason="mount_train", ref="", now=s.ctx.clock.now())
+        if point_cost
+        else None
+    )
+    if point_cost and spent is None:
+        s.log.info("8529 recusado: sem chicote nem diamantes", pedido=str(msg))
         return
-    changed, deleted = rules.take_items(snap, food, n) if msg.payType == PAY_FOOD else ([], [])
+    changed, deleted = rules.take_items(snap, food, whips) if whips else ([], [])
     gps[idx] = min(cap, gps[idx] + n * FOOD_GP)
     sy.mount_gp = ",".join(map(str, gps))
+    new_mount = soul_mounts(templates, sy, s.ctx.clock.now())
     quests = rules.quest_event(snap, templates, QUEST_MOUNT_TRAIN, 0, 1)  # uma ação de treino, qualquer atributo
-    await s.ctx.characters.save(sy, snap.character, *changed, *quests, delete=tuple(deleted))
+    await s.ctx.characters.save(
+        sy, snap.character, *changed, *quests, *([spent] if spent else []), delete=tuple(deleted)
+    )
     send_items(s, changed, deleted)
     _player(s)
     _army(s)
     send_mount(s)
+    if new_mount:
+        send_avatars(s)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8843)
 async def mount_activity(s: GameSession, _: object) -> None:
-    # ponytail: atividade de montaria nova (evento); sem captura da resposta
-    s.log.info("8843 sem implementação (evento de montaria)")
+    """8843 (``MountActSocketOutManager.sendGetMountActInfo``): corpo vazio, sem chamador e sem código de resposta
+    no cliente inglês; nada a mandar."""
+    s.log.info("8843 sem resposta no cliente inglês (evento de montaria)")
 
 
 # --- destino (roda) -------------------------------------------------------------------------
@@ -265,14 +525,19 @@ async def fate_turn(s: GameSession, msg: pb.FateEditMsg) -> None:
         return
     free = int(rules.config(templates, "Fate_FreeCount", "1"))
     cost = sum(turn_cost(k - free) for k in range(sy.fate_turns + 1, sy.fate_turns + turns + 1) if k > free)
-    if not rules.pay_point(snap.character, cost, bind=msg.payType == 0):
+    spent = (
+        ledger.pay(snap.character, cost, bind=msg.payType == 0, reason="fate_turn", ref="", now=s.ctx.clock.now())
+        if cost
+        else None
+    )
+    if cost and spent is None:
         s.send(S_FATE_TURN, pb.FateEditMsg(isSuccess=False, currCount=sy.fate_turns, turnNum=turns))
         return
     rewards = random.choices(list(WHEEL), weights=list(WHEEL.values()), k=turns)
     sy.fate_turns += turns
     item = give_item(snap, FATE_STONE_ID, sum(rewards))
     counted = ev.count(snap, s.ctx.events, ev.FATE_TURN, s.ctx.clock.now(), turns)  # "Wheel of Fate" (tipo 108)
-    await s.ctx.characters.save(sy, snap.character, item, *counted)
+    await s.ctx.characters.save(sy, snap.character, item, *counted, *([spent] if spent else []))
     s.send(S_FATE_TURN, pb.FateEditMsg(isSuccess=True, currCount=sy.fate_turns, count=rewards, turnNum=turns))
     send_items(s, [item], [])
     if cost:

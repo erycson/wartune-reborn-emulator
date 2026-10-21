@@ -90,7 +90,7 @@ não ficam no banco.
 `character_id`, `template_id`, `bag_type` (0 bancada, 1 mochila, 2 runas, 3 medalha, 4 herói),
 `object_id` (id do herói nos bags 2–4), `pos`, `count`, `random_skill` e `random_skill_2..5`
 (atributos sorteados), `is_new`, `strengthen_grade`, `join_1..4` (furos: −1 fechado, 0 vazio, >0
-pedra), `is_locked` e `mould_grade`. Ver [itens.md](itens.md).
+pedra), `is_locked`, `mould_grade` e `is_binds` (vinculado, `0043`; padrão 1). Ver [itens.md](itens.md).
 
 ### shop_buys, mystery_shops, fashion_books
 `shop_buys`: compras do dia por `good_id` (`ShopTempInfo.Id`), únicas por personagem; `day` muda e a

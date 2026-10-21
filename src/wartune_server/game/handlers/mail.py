@@ -5,23 +5,30 @@ from __future__ import annotations
 
 import re
 
-from ...domain.models import BagType, CashLedger, Item, Mail, MailAnnex, MailType, PlayerSnapshot
+from ...domain.models import BagType, CashLedger, Item, Mail, MailAnnex, MailType, Pet, PlayerSnapshot
+from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from ...services.ledger import record_cash
-from .. import bag, items, social
+from .. import bag, items, rules, social
+from .. import guild as gd
 from .. import mail as mailbox
 from ..builders import login as b
 from ..builders.player import item_moved
 from ..castle import castle_yield
+from ..mall import SYLPH
 from ..router import router
 from ..session import GameSession
 from .login import player_info
+from .pets import BASE_SLOTS, S_PETS, pets_msg, take_back
 
 S_PICKUP, S_MAIL_UPDATE, S_DELETED, S_MAIL_CHECK, S_ITEMS, S_PLAYER = 114, 4131, 4132, 337, 115, 3
 SEND_COST = 100  # EmailControler.sendEmail: precisa de 100 de ouro
 TITLE_MAX, CONTENTS_MAX = 15, 300  # WriteEmailFrame: assunto maxChars 15; texto limitado a 7 linhas
 MIN_GRADE = 6  # ReadEmailView: responder exige nível 6
-PLAYER_MAIL = 1  # MailSendReqMsg.sendType: 1 jogador, 2 guilda
+PLAYER_MAIL, GUILD_MAIL = 1, 2  # MailSendReqMsg.sendType (ConsortiaControler.sendEmail manda 2)
+# ConsortiaEmailGroupSendView: "Spend 175 Balens to send Guild Mail?"; o botão é do chefe (getRightsByIndex(1))
+GUILD_MAIL_COST = 175
 MAX_PICKUP = 50
 _TAG = re.compile(r"<[^>]*>")
 
@@ -33,14 +40,15 @@ def _clean(raw: str, limit: int) -> str | None:
 
 @router.on(8205)
 async def send_mail(s: GameSession, msg: pb.MailSendReqMsg) -> None:
-    """Correio de jogador para jogador: só texto (o proto não tem anexo), custa 100 de ouro.
-
-    ponytail: correio de guilda (sendType 2) recusado até existir guilda.
-    """
+    """Correio de jogador para jogador: só texto (o proto não tem anexo), custa 100 de ouro. ``sendType`` 2 é o
+    correio de guilda (``_guild_mail``)."""
     snap = s.snapshot
     assert snap is not None
     c = snap.character
     title, contents = _clean(msg.title, TITLE_MAX), _clean(msg.contents, CONTENTS_MAX)
+    if msg.sendType == GUILD_MAIL:
+        await _guild_mail(s, msg, title, contents)
+        return
     targets = list(msg.receiverUserId)
     found = await social.characters(s.ctx, targets[:1]) if len(targets) == 1 else {}
     receiver = next((r.id for r in found.values() if r.server_id == c.server_id and r.id != c.id), None)
@@ -69,6 +77,37 @@ async def send_mail(s: GameSession, msg: pb.MailSendReqMsg) -> None:
     castle_yield(s)
 
 
+async def _guild_mail(s: GameSession, msg: pb.MailSendReqMsg, title: str | None, contents: str | None) -> None:
+    """O chefe escreve para vários membros de uma vez (o cliente manda os ids dos nomes que acha na lista da
+    guilda); 175 Balens, ``payType`` 0 gasta os vinculados primeiro (caixa USEBINDPOINT_ALERT)."""
+    snap = s.snapshot
+    assert snap is not None
+    c, now, mine = snap.character, s.ctx.clock.now(), s.ctx.guilds.of(s.player_id)
+    members = {m.character_id for m in s.ctx.guilds.members_of(mine[0].id or 0)} if mine else set()
+    targets = list(dict.fromkeys(msg.receiverUserId))
+    chairman = mine is not None and gd.has_right(mine[1].duty_id, gd.R_CHAIRMAN)
+    ok = chairman and bool(targets) and set(targets) <= members and title is not None and contents is not None
+    ref = f"guild:{mine[0].id if mine else 0}"
+    bind = msg.payType == 0
+    entry = ledger.pay(c, GUILD_MAIL_COST, bind=bind, reason="guild_mail", ref=ref, now=now) if ok else None
+    if entry is None or title is None or contents is None:
+        s.log.info("8205 recusado (guilda)", para=targets, chefe=chairman, diamantes=c.point)
+        return
+    mails = [
+        Mail(t, now, title, contents, sender_id=s.player_id, sender_nick=c.nickname or "", sender_grades=c.grades)
+        for t in targets
+    ]
+
+    async def insert(uow: UnitOfWork) -> None:
+        for entity in (c, entry, *mails):
+            await uow.save(entity)
+
+    await s.ctx.characters.write(insert)
+    for mail in mails:
+        mailbox.notify(s.ctx.online, mail)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+
+
 @router.on(8206)
 async def delete_mail(s: GameSession, msg: pb.MailDelReqMsg) -> None:
     """4132 com os ids apagados; lista vazia o cliente mostra como erro."""
@@ -92,7 +131,9 @@ def _carried(snap: PlayerSnapshot, fetched: dict[int, Item], item_id: int) -> It
 async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
     """Pega os anexos (``position`` 0 = todos, senão 1..5) de cada correio, tudo numa transação.
 
-    Mochila sem espaço para todos os itens de um correio: aquele correio fica com result false.
+    Mochila sem espaço para todos os itens de um correio: aquele correio fica com result false. O Sylph do leilão
+    (item -900) vai para a lista de pets, não para a mochila; lista cheia também dá false ("You cannot accept the
+    Sylph if your roster is full", auctionFrame.helpPet). O -900 some ao pegar.
     """
     snap = s.snapshot
     assert snap is not None
@@ -103,6 +144,13 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
     # itens de verdade (leilão, lance de volta...) que não estão no snapshot: lidos do banco por id
     item_ids = [a.item_id for a in annexes if a.item_id]
     fetched = {i.id or 0: i for i in await s.ctx.characters.read(lambda uow: uow.items.by_ids(item_ids))}
+    pet_ids = [i.object_id for i in fetched.values() if i.template_id == SYLPH]
+
+    async def load(uow: UnitOfWork) -> list[Pet]:
+        return [p for p in [await uow.pets.get(x) for x in pet_ids] if p is not None]
+
+    held = {p.id: p for p in await s.ctx.characters.read(load)} if pet_ids else {}
+    roster = BASE_SLOTS + rules.systems(snap).pet_slots
     now = s.ctx.clock.now()
     c = snap.character
     before = c.gold, c.point, c.gift_token, c.strategy
@@ -110,13 +158,18 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
     taken: list[MailAnnex] = []
     new_items: list[Item] = []
     ledgers: list[CashLedger] = []
+    new_pets: list[Pet] = []
+    unwrapped: list[Item] = []
     for mail in mails:
         pos = positions.get(mail.id or 0, 0)
         wanted = [a for a in annexes if a.mail_id == mail.id and not a.taken and pos in (0, a.slot)]
         goods = [(a.template_id, a.count) for a in wanted if not a.item_id]
         carried = [_carried(snap, fetched, a.item_id) for a in wanted if a.item_id]
+        sylphs = [i for i in carried if i is not None and i.template_id == SYLPH]
+        carried = [i for i in carried if i is None or i.template_id != SYLPH]
         ok = bool(wanted) and items.fits(snap, goods, now) and all(items.known(s.ctx.templates, t) for t, _ in goods)
         ok = ok and None not in carried and len(bag.free_positions(snap, now)) >= len(carried) + len(goods)
+        ok = ok and len(snap.pets) + len(sylphs) <= roster
         if ok:
             p0, g0 = c.point, c.gift_token
             new_items += items.grant(snap, goods)  # snapshot muda antes do save: nada de await no meio
@@ -129,13 +182,24 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
                     snap.items.append(item)
                 item.bag_type, item.object_id, item.pos = BagType.BAG, 0, bag.free_positions(snap, now)[0]
                 new_items.append(item)
+            for item in sylphs:
+                unwrapped.append(item)
+                if item in snap.items:
+                    snap.items.remove(item)
+                if (pet := held.get(item.object_id)) is not None:
+                    take_back(snap, pet)
+                    new_pets.append(pet)
+                else:  # o vendedor apagou o personagem e o pet foi junto (cascata): só some o -900
+                    s.log.warning("5022: Sylph do leilão sem o pet", item=item.id, pet=item.object_id)
             for a in wanted:
                 a.taken = True
             taken += wanted
             mail.read_at = mail.read_at or now
         result.pickupResult.add(mailId=mail.id, attachIndex=pos, result=ok)
     if taken:
-        await s.ctx.characters.save(c, *new_items, *taken, *ledgers, *(m for m in mails if m.read_at == now))
+        await s.ctx.characters.save(
+            c, *new_items, *new_pets, *taken, *ledgers, *(m for m in mails if m.read_at == now), delete=tuple(unwrapped)
+        )
     s.send(S_PICKUP, result)
     if not taken:
         return
@@ -148,6 +212,8 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
         for item in new_items:
             moved.moved.extend(item_moved(item.bag_type, 0, item.pos, item, s.player_id).moved)
         s.send(S_ITEMS, moved)
+    if new_pets:
+        s.send(S_PETS, pets_msg(snap, s.ctx.templates, new_pets))
     if c.gold != before[0]:
         castle_yield(s)
     if (c.point, c.gift_token, c.strategy) != before[1:]:

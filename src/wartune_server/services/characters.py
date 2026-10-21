@@ -38,16 +38,44 @@ from ..domain.repositories import UnitOfWork, UnitOfWorkFactory
 from ..templates.repository import GameTemplates
 from .clock import Clock, SystemClock
 
-NICK_MIN, NICK_MAX = 2, 14
+NICK_MIN, NICK_MAX = 2, 14  # nomes de guilda
+# nome de personagem: (cliente) MainFigureView.loadCheckNickname e RenameView, 4 a 12 de StringUtils.checkStringLength
+NAME_MIN, NAME_MAX = 4, 12
+NAME_TAKEN = "Character name already in use."  # (cliente) noviceII.node.AddUserNameFrame.describt07
 _FORBIDDEN = re.compile(r"[<>&\"'|\\/%\s]")
+
+
+def _bad(nick: str) -> bool:
+    return bool(_FORBIDDEN.search(nick)) or any(unicodedata.category(c).startswith("C") for c in nick)
 
 
 def normalize_nickname(raw: str) -> str:
     nick = unicodedata.normalize("NFC", raw).strip()
     if not NICK_MIN <= len(nick) <= NICK_MAX:
         raise ValidationError(f"o nome deve ter de {NICK_MIN} a {NICK_MAX} caracteres")
-    if _FORBIDDEN.search(nick) or any(unicodedata.category(c).startswith("C") for c in nick):
+    if _bad(nick):
         raise ValidationError("o nome contém caracteres não permitidos")
+    return nick
+
+
+def name_length(nick: str) -> int:
+    """Tamanho como o cliente mede: bytes do ``writeMultiByte`` na página do sistema, ideograma vale 2 (a mesma faixa
+    19968-40869 do ``StringUtils.substr``)."""
+    return sum(2 if 19968 <= ord(c) <= 40869 else 1 for c in nick)
+
+
+def character_name(raw: str) -> str:
+    """Nome de personagem (registro, ``/nicknamecheck``, 8345). O ``@message`` do HTTP vai direto para a tela
+    (``MainFigureView``: ``alertTxt = @message``), então os textos são os do ``AddUserNameFrame`` inglês."""
+    nick = unicodedata.normalize("NFC", raw).strip()
+    if not nick:
+        raise ValidationError("Character name cannot be empty!")  # describt02
+    if name_length(nick) < NAME_MIN:
+        raise ValidationError("Character name is too short!")  # describt03
+    if name_length(nick) > NAME_MAX:
+        raise ValidationError("Character name is too long!")  # describt04
+    if _bad(nick):
+        raise ValidationError("Character name contains invalid characters!")  # describt05
     return nick
 
 
@@ -115,7 +143,7 @@ class CharacterService:
         self._clock = clock or SystemClock()
 
     async def register(self, req: RegistrationRequest) -> Character:
-        nickname = normalize_nickname(req.nickname)
+        nickname = character_name(req.nickname)
         try:
             job = Job(req.icon)
         except ValueError:
@@ -129,7 +157,7 @@ class CharacterService:
             if character.active:
                 raise ConflictError("personagem já criado")
             if await uow.characters.nickname_taken(character.server_id, nickname):
-                raise ConflictError("este nome já está em uso")
+                raise ConflictError(NAME_TAKEN)
 
             character.nickname = nickname
             character.job = job.value
@@ -196,7 +224,7 @@ class CharacterService:
             events = await uow.events.by_character(character_id)
             pawns = await uow.pawns.by_character(character_id)
             stars = await uow.stars.by_character(character_id)
-            pets = await uow.pets.by_character(character_id)
+            pets = [p for p in await uow.pets.by_character(character_id) if not p.held]  # à venda: fora da lista
             systems = next(iter(await uow.systems.by_character(character_id)), None)
             treasure = await uow.by_character(TreasureMap, character_id)
             wild_lands = await uow.by_character(WildLand, character_id)

@@ -188,9 +188,3 @@ async def node_state(s: GameSession, msg: pb.PlayerNodeStateMsg) -> None:
         return
     state = pb.PlayerNodeStateMsg(mapId=c.map_id, nodeId=msg.nodeId, isStand=msg.isStand, armyId=s.player_id)
     s.send(S_NODE_STAND, state)  # ponytail: sala de um jogador só; broadcast quando houver sala compartilhada
-
-
-@router.on(8353)
-async def captain_speak(s: GameSession, msg: pb.CaptainSpeakMsg) -> None:
-    # convite rápido do capitão de sala PvE; salas compartilhadas não existem ainda (docs/diversos.md)
-    s.log.info("8353 convite rápido sem sala", linhas=len(msg.inviteContent))

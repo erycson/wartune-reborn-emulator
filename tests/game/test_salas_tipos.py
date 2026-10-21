@@ -1,4 +1,4 @@
-"""Salas por tipo (só PvE aqui), link de sala no chat (9504 -> 4913) e pré-carga do mapa (5038 -> 20)."""
+"""Salas por tipo (PvE e veículo; PvP não existe aqui), link de sala no chat (9504 -> 4913) e pré-carga do mapa (5038 -> 20)."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ async def test_sala_de_outro_tipo_nao_existe_aqui(tmp_path: Path):
         b.client.send(5026, pb.RoomReqMsg(roomType=1))  # lista PvP: vazia, mesmo com sala PvE aberta
         assert list(_body(await b.idle(), ROOM_LIST, pb.RoomListRspMsg).room) == []
         b.client.send(8465, pb.RoomReqMsg(roomType=1, roomId=room.roomId))
-        assert list(_body(await b.idle(), ROOM_LIST, pb.RoomListRspMsg).room) == []
+        assert await b.idle() == []
         b.client.send(5024, pb.RoomReqMsg(roomId=room.roomId, roomType=1))  # entrar com tipo errado: recusado
         assert ROOM_CREATED not in [p.code for p in await b.idle()]
         b.client.send(5026, pb.RoomReqMsg(roomType=0))  # lista PvE: a sala está lá
@@ -72,4 +72,5 @@ async def test_info_da_torre_ecoa_o_indice_e_nao_inventa_andar(tmp_path: Path):
     async with logged_in(tmp_path, novice=19000) as a:
         a.client.send(8297, pb.TowerInfoReqMsg(index=1))  # index é o pedido; towerIndex é o andar atual
         info = _body(await a.idle(), TOWER_INFO, pb.TowerInfoMsg)
-        assert (info.index, info.towerIndex) == (1, 0)  # sem progresso: andar 0 (não começou)
+        assert (info.index, info.towerIndex, info.campaignId) == (1, 0, 8101)  # aba Tormented Necropolis; andar 0
+        assert info.maxIndex == 0  # recorde: com 60 a missão 6 (tipo 38, Para2 2) fecharia sem jogar (checkMazeRecord)

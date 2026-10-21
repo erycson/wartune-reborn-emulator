@@ -186,8 +186,8 @@ characters = Table(
     _int("repute"),
     _int("geste"),
     _int("charm"),
-    _int("space_x", 72),  # último tile na cidade do céu (o oficial nasce em 72,74)
-    _int("space_y", 74),
+    _int("space_x", 76),  # último tile na cidade do céu (o oficial inglês nasce em 76,76: tutorial_en #7)
+    _int("space_y", 76),
     _int("qte_guide"),  # 8302: guia da skill QTE visto (PlayerMsg.qteGuide)
     Column("vice_password", String(64), nullable=False, default="", server_default=""),  # sha256; "" = sem senha
     Column("vice_reset_at", UTCDateTime),  # 8806 op 4: pedido de reset da senha secundária
@@ -294,6 +294,7 @@ castles = Table(
     Column("imposed_at", UTCDateTime),
     _int("farm_grade", 1),
     _int("farm_gp"),
+    _int("land_grade", 1),
     _int("tree_water"),
     _int("tree_fruit"),
     Column("tree_watered_at", UTCDateTime),
@@ -384,7 +385,10 @@ items = Table(
     _int("join_4", -1),
     Column("is_locked", Boolean, nullable=False, default=False, server_default="0"),
     _int("mould_grade"),
+    _int("bless_value"),  # bênção do encantamento do equipamento de mascote (8644)
+    _str("property1", 1024),  # o pet do Sylph à venda (item -900)
     _int("valid_date"),  # minutos (ItemInfoMsg.validDate); 0 = sem validade
+    Column("is_binds", Boolean, nullable=False, default=True, server_default="1"),
     Column("begin_date", UTCDateTime),
 )
 
@@ -1029,6 +1033,10 @@ pets = Table(
     _str("change_skills"),
     _str("fast_key"),
     _int("pos"),
+    _bool("is_bind", True),
+    _str("cha_skills", 32, "-1,-1,-1"),
+    _bool("held"),
+    _int("quality_gp"),
 )
 
 player_systems = Table(
@@ -1039,6 +1047,9 @@ player_systems = Table(
     _int("mount_template"),
     _str("mount_gp", 64, "0,0,0,0"),
     _str("mount_avatars", 1024),
+    _str("mount_expiry", 1024),
+    _str("mount_fly", 1024),
+    _str("mount_stars", 1024),
     _int("dragon_type"),
     _int("dragon_grade"),
     _int("dragon_gp"),
@@ -1052,6 +1063,7 @@ player_systems = Table(
     _str("star_day", 16),
     _str("powcards", 1024),
     _int("pet_slots"),
+    Column("pet_free_skill_at", UTCDateTime),
 )
 
 _mapped = False

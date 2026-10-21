@@ -5,8 +5,11 @@ from __future__ import annotations
 
 from ...domain.models import BagType, Hero, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from ...templates.repository import GameTemplates, Row
+from .. import events as ev
 from .. import rules
+from ..arena import RUNE_POINT_KEY, rune_point_times
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
 from ..castle import castle_yield
@@ -19,9 +22,11 @@ S_QUESTS = 112  # QuestUpdatedRspMsg
 TALENT = "10"  # SkillTempInfo.MasterType do talento
 TALENT_GRADE = "21"  # UpGradeTempInfo.Types: TemplateId = ouro, Data = EXP para o próximo grau
 FREE_RESET_GRADE = 25  # SkillView: abaixo deste nível o reset de skill é grátis
-TALENT_RESET_POINT = 100  # TalentView: "armyII.viewII.talent.content01" com 100
+TALENT_RESET_POINT = 895  # TalentView inglês: "armyII.viewII.talent.content01" com 895
+SECOND_SKILL_GRADE = 38  # SkillView: _doubleSkillBtn.visible = grades >= 38
 RUNE_BOOK, RUNE_EXP_ITEM = "302", 3020010  # SonType do livro de runa; item de EXP (Property2 = 50)
-RUNE_DIAMOND = 2  # RuneUpgradeView: 2 x (diamondIndex + 1) diamantes por clique
+# RuneUpgradeView inglês: 50 + 10 x diamondIndex (usos do dia); DiamondTipTxt "Basic training earns 20 EXP"
+RUNE_DIAMOND_BASE, RUNE_DIAMOND_STEP, RUNE_DIAMOND_EXP = 50, 10, 20
 RUNE_MAX_GRADE = 10
 
 
@@ -84,7 +89,7 @@ async def skill_upgrade(s: GameSession, msg: pb.HeroAddPointReqMsg) -> None:
 @router.on(5184)
 async def skill_reset(s: GameSession, msg: pb.PayTypeMsg) -> None:
     """Reseta skills (type 0: grátis abaixo do nível 25, senão ResetSkill_NeedPay) ou talento (type
-    1: 100 diamantes). payType 0 aceita diamante vinculado. Resposta: 61, 150 e 3."""
+    1: 895 diamantes). payType 0 aceita diamante vinculado. Resposta: 61, 150 e 3."""
     snap, hero = leader(s)
     templates, c = s.ctx.templates, snap.character
     talent = msg.type == 1
@@ -95,7 +100,12 @@ async def skill_reset(s: GameSession, msg: pb.PayTypeMsg) -> None:
         if hero.grades < FREE_RESET_GRADE
         else int(rules.config(templates, "ResetSkill_NeedPay", "100"))
     )
-    if not rules.pay_point(c, cost, bind=msg.payType == 0):
+    spent = (
+        ledger.pay(c, cost, bind=msg.payType == 0, reason="skill_reset", ref=str(msg.type), now=s.ctx.clock.now())
+        if cost
+        else None
+    )
+    if cost and spent is None:
         s.log.info("5184 recusado: sem diamante", pedido=str(msg))
         return
     if talent:
@@ -105,7 +115,7 @@ async def skill_reset(s: GameSession, msg: pb.PayTypeMsg) -> None:
     else:
         hero.skill_script, hero.fast_key = templates.hero(hero.template_id).skill_script, ""
     rules.refresh_skill_point(hero, templates)
-    await s.ctx.characters.save(c, hero)
+    await s.ctx.characters.save(c, hero, *([spent] if spent else []))
     s.send(S_SKILL_RESET, pb.UpdatedSkillMsg(resetResult=True, type=msg.type))
     _army(s)
     if cost:
@@ -140,16 +150,22 @@ async def talent_grade_up(s: GameSession, _: object) -> None:
 
 @router.on(8479)
 async def active_second_skill(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    """Abre o segundo conjunto de skills: Second_SkillPoint (600) diamantes; payType 0 aceita
-    vinculado. O conjunto nasce com as skills iniciais. Resposta: 150 e 3."""
+    """Abre o segundo conjunto de skills no nível 38: Second_SkillPoint (995 nos templates) diamantes; payType 0
+    aceita vinculado. O conjunto nasce com as skills iniciais. Resposta: 150 e 3."""
     snap, hero = leader(s)
     templates = s.ctx.templates
-    cost = int(rules.config(templates, "Second_SkillPoint", "600"))
-    if hero.active_second or not rules.pay_point(snap.character, cost, bind=msg.payType == 0):
+    cost = int(rules.config(templates, "Second_SkillPoint", "995"))
+    if hero.active_second or hero.grades < SECOND_SKILL_GRADE:
+        s.log.info("8479 recusado: já aberto ou abaixo do 38", pedido=str(msg))
+        return
+    spent = ledger.pay(
+        snap.character, cost, bind=msg.payType == 0, reason="second_skill", ref="", now=s.ctx.clock.now()
+    )
+    if spent is None:
         s.log.info("8479 recusado", pedido=str(msg))
         return
     hero.active_second, hero.skill_script2 = True, templates.hero(hero.template_id).skill_script
-    await s.ctx.characters.save(snap.character, hero)
+    await s.ctx.characters.save(snap.character, hero, spent)
     _army(s)
     _player(s)
 
@@ -199,7 +215,9 @@ def set_runes(hero: Hero, learned: dict[int, list[int]]) -> None:
 
 
 def rune_reply(s: GameSession, hero: Hero, op: int, ok: bool) -> None:
-    msg = pb.HeroRuneOpMsg(opType=op, opResult=ok, count=0)
+    """``count`` = usos do diamante hoje (ArmyManager: vira o ``diamondIndex`` quando > 0)."""
+    assert s.snapshot is not None
+    msg = pb.HeroRuneOpMsg(opType=op, opResult=ok, count=rune_point_times(s.snapshot, s.ctx.clock.now()))
     msg.runeInfo.CopyFrom(b.rune_msg(hero, s.player_id))
     s.send(S_RUNE, msg)
 
@@ -207,7 +225,8 @@ def rune_reply(s: GameSession, hero: Hero, op: int, ok: bool) -> None:
 @router.on(8605)
 async def rune_op(s: GameSession, msg: pb.HeroRuneOpMsg) -> None:
     """opType 1 aprende (gasta o livro SonType 302 com Property1 = RuneType em learnRunePos), 2 sobe
-    (count x item 3020010 de 50 EXP; count 0 = 2 diamantes), 3 equipa (runeKey "id,id,").
+    (count x item 3020010 de 50 EXP; count 0 = diamante, 50 + 10 por uso no dia e 20 EXP), 3 equipa
+    (runeKey "id,id,").
     Resposta 4495 {opType, opResult, runeInfo}; 115 quando gasta item."""
     snap, hero = leader(s)
     templates = s.ctx.templates
@@ -285,14 +304,26 @@ async def _rune_upgrade(
         rune_reply(s, hero, 2, False)
         return
     gp, swallow = learned[msg.runeId]
+    extra: list[object] = []
     if msg.count > 0:
         if sum(i.count for i in stock) < msg.count:
             rune_reply(s, hero, 2, False)
             return
         gain, (changed, deleted) = per_item * msg.count, rules.take_items(snap, stock, msg.count)
-    elif rules.pay_point(c, RUNE_DIAMOND, bind=False):
-        # ponytail: o preço sobe com diamondIndex (usos no dia); sem contador diário fica no primeiro
-        gain, changed, deleted = per_item, [], []
+    elif (
+        spent := ledger.pay(
+            c,
+            RUNE_DIAMOND_BASE + RUNE_DIAMOND_STEP * rune_point_times(snap, s.ctx.clock.now()),
+            bind=False,
+            reason="rune_exp",
+            ref=str(msg.runeId),
+            now=s.ctx.clock.now(),
+        )
+    ) is not None:
+        # ponytail: sem o bônus 2x/5x/10x/20x da DiamondTipTxt (o cliente não diz a chance); mudar com captura
+        used = ev.daily(snap, RUNE_POINT_KEY, s.ctx.clock.now())
+        used.value, used.updated_at = used.value + 1, s.ctx.clock.now()
+        gain, changed, deleted, extra = RUNE_DIAMOND_EXP, [], [], [used, spent]
     else:
         rune_reply(s, hero, 2, False)
         return
@@ -316,7 +347,7 @@ async def _rune_upgrade(
     quests = rules.quest_event(snap, templates, rules.RUNE_GRADE, int(new_tpl["RuneType"]), int(new_tpl["RuneGrade"]))
     if msg.count > 0:
         quests += rules.quest_event(snap, templates, rules.RUNE_COMBINE, RUNE_EXP_ITEM, msg.count)
-    await s.ctx.characters.save(c, hero, *changed, *quests, delete=tuple(deleted))
+    await s.ctx.characters.save(c, hero, *changed, *quests, *extra, delete=tuple(deleted))
     send_items(s, changed, deleted)
     rune_reply(s, hero, 2, True)
     if quests:

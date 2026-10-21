@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import Quest
 from wartune_server.domain.world import ExpRate
@@ -35,7 +37,7 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         s = _session(g)
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=1))
         got = await g.until(4476)
-        assert _packs(got, LOGIN) == [(1, 0), (3, 0), (3, 0), (3, 0), (3, 0), (3, 0), (3, 0)]  # 1º dia de login
+        assert _packs(got, LOGIN) == [(1, 0), (3, 0)]  # tutorial_en #68: o normal já pode; o VIP só com VIP
         online = _packs(got, ONLINE)
         assert online[0][0] == 3 and 595 <= online[0][1] <= 600
 
@@ -46,11 +48,11 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         assert [p.code for p in got] == [3, 109, 115, 4476, 111, 4476, 83]  # tutorial_en #2753-#2772
         assert _alerts(got) == ["Gift pack retrieval successful."]  # tutorial_en #2770
         assert _packs(got, LOGIN)[0] == (2, 0)
-        assert s.snapshot.character.gold == gold + 200000  # type: ignore[union-attr]
+        assert s.snapshot.character.gold == gold + 10000  # type: ignore[union-attr]
 
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=pkg, count=1))  # de novo
         pkg2 = "B0000013-0000-0000-0000-000000000002"
-        g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=pkg2, count=1))  # dia 2
+        g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=pkg2, count=1))  # VIP: não é
         first = "B0000014-0000-0000-0000-000000000001"
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=ONLINE, packageId=first, count=1))  # 10 min
         assert await g.idle() == []
@@ -62,7 +64,7 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         assert _packs(got, ONLINE)[:2] == [(2, 0), (3, 1800)]  # o próximo conta do zero
 
         saved = await g.server.services.characters.snapshot(g.user_id)
-        assert ev.peek(saved, f"sum:{LOGIN}:{pkg}") is not None and saved.character.gold == gold + 210000
+        assert ev.peek(saved, f"sum:{LOGIN}:{pkg}") is not None and saved.character.gold == gold + 20000
 
 
 async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
@@ -83,7 +85,12 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         player = pb.PlayerMsg.FromString(got[-1].body)
         assert (player.reloginProcess, player.giftToken, player.reloginCount) == (1, 0, 1)
         g.client.send(8496, pb.TakeLoginReward(index=1))
-        assert [p.code for p in await g.idle()] == [109, 115, 83]  # só o fim do anterior (ouro e item); nada novo
+        assert [p.code for p in await g.idle()] == [
+            109,
+            115,
+            4476,
+            83,
+        ]  # só o fim do anterior (ouro, item e o 4476 do ganho); nada novo
 
         # atividade diária: o login (leed 1) vale 5; o baú 1 precisa de 10
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))
@@ -148,3 +155,44 @@ async def test_seven_day_guide_starts_at_quest_130(tmp_path: Path) -> None:
         hev.send_serven(s)
         [p] = await g.idle()
         assert p.code == 4638 and pb.ServenDayLeadMsg.FromString(p.body).beginTime == hev.b.fmt_time(done)
+
+
+async def test_login_pages_actives_by_size_and_then_sends_their_progress(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        running = s.ctx.events.running(s.ctx.clock.now())
+        hev._send_actives(s)  # o que o login manda (tutorial_en #60-#68)
+        got = await g.idle()
+        assert [p.code for p in got] == [4475, 4476]  # as atividades de teste cabem numa página
+        assert len(pb.SumActivesMsg.FromString(got[0].body).actives) == len(running) >= 2
+
+        monkeypatch.setattr(hev, "PAGE_BYTES", 1)  # página menor que uma atividade: uma por página
+        hev._send_actives(s)
+        got = await g.idle()
+        pages = [pb.SumActivesMsg.FromString(p.body) for p in got if p.code == 4475]
+        assert [p.code for p in got] == [4475] * len(running) + [4476]
+        assert [(p.curPage, p.maxPage, len(p.actives)) for p in pages] == [
+            (n, len(running), 1) for n in range(1, len(running) + 1)
+        ]
+
+
+async def test_login_bonus_is_daily_and_the_vip_pack_needs_vip(tmp_path: Path) -> None:
+    clock = FakeClock(datetime(2026, 10, 20, 12, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        snap = _session(g).snapshot
+        assert snap is not None
+        normal, vip_pkg = "B0000013-0000-0000-0000-000000000001", "B0000013-0000-0000-0000-000000000002"
+        g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=normal, count=1))
+        await g.until(83)
+        vip = ev.state(snap, "vip", clock.now())  # VIP por 3 dias (o fim fica em vip.text)
+        vip.text = hev.b.fmt_time(clock.now() + timedelta(days=3))
+        g.client.send(8586, pb.SumActiveGetPackageMsg(type=1))
+        assert _packs(await g.until(4476), LOGIN) == [(2, 0), (1, 0)]  # tutorial_en #3268: o VIP abre
+        g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=vip_pkg, count=1))
+        assert _packs(await g.until(83), LOGIN) == [(2, 0), (2, 0)]
+
+        clock.advance(24 * 3600)  # "Claim them once everyday."
+        g.client.send(8586, pb.SumActiveGetPackageMsg(type=1))
+        assert _packs(await g.until(4476), LOGIN) == [(1, 0), (1, 0)]

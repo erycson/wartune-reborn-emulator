@@ -82,10 +82,11 @@ def _info_msg(game: gm.Game) -> pb.GemMazeInfoMsg:
 
 
 def _buy_info(templates: GameTemplates) -> tuple[int, int, int]:
-    """``Gem_Maze_BuyInfo`` = movimentos por compra, diamantes por compra, teto de movimentos (99 = 89 + 10,
-    o mesmo limite do cliente, que não deixa comprar com 90 ou mais)."""
-    per, cost, cap = (int(x) for x in ev.config(templates, "Gem_Maze_BuyInfo", "10,5,99").split(","))
-    return per, cost, cap
+    """``Gem_Maze_BuyInfo`` = movimentos por compra, Balens por movimento (``buyTimesTips``: "spend 150 Balens to
+    purchase 10"), teto de movimentos (99 = 89 + 10, o mesmo limite do cliente, que não deixa comprar com 90 ou
+    mais). Devolve (movimentos, custo da compra, teto)."""
+    per, cost, cap = (int(x) for x in ev.config(templates, "Gem_Maze_BuyInfo", "10,15,99").split(","))
+    return per, per * cost, cap
 
 
 def _maze_fits(snap: PlayerSnapshot, templates: GameTemplates, goods: Iterable[tuple[int, int]]) -> bool:
@@ -216,8 +217,9 @@ async def reward_box(s: GameSession, msg: pb.GetRewardBoxMsg) -> None:
 
 @router.on(9516)
 async def buy_times(s: GameSession, msg: pb.GemMazeBuyTimesMsg) -> None:
-    """Compra movimentos (``Gem_Maze_BuyInfo``): ``buyTypes`` 2 gasta diamante vinculado, 1 diamante.
-    O 4927 faz o cliente somar os movimentos, por isso só sai quando a compra vale."""
+    """Compra movimentos (``Gem_Maze_BuyInfo``): ``buyTypes`` 2 aceita Balens vinculados (``bugGemMazeTimesUseBind``),
+    1 só os livres. Sem limite além do teto; os comprados somem na virada do dia. O 4927 faz o cliente somar os
+    movimentos, por isso só sai quando a compra vale."""
     snap = _snap(s)
     now = s.ctx.clock.now()
     per, cost, cap = _buy_info(s.ctx.templates)
@@ -225,10 +227,9 @@ async def buy_times(s: GameSession, msg: pb.GemMazeBuyTimesMsg) -> None:
     if game.times + per > cap:
         s.log.info("9516 recusado: teto de movimentos", atual=game.times)
         return
-    # ponytail: o template não diz a moeda nem o limite diário: diamante (ou vinculado com buyTypes 2) é dedução
     spent = ledger.spend(snap.character, cost, "gemmaze_buy", now, bound=msg.buyTypes == 2, ref=str(per))
     if spent is None:
-        s.log.info("9516 sem diamante")
+        s.log.info("9516 sem Balens", custo=cost)
         return
     game.times += per
     st = _save(snap, game, now)

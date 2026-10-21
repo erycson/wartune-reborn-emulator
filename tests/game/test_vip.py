@@ -28,28 +28,36 @@ async def test_alchemy_and_soul_spend_diamonds(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _snap(g)
         c = snap.character
-        g.client.send(8321, pb.PlayerLuckyMsg())  # sem diamante: só devolve o estado
+        g.client.send(8320)  # nível 1: o oficial não responde (tutorial_en #17)
+        g.client.send(8466)
+        assert await g.idle() == []
+        c.grades = 14  # MainToolBar pede de novo no 14
+        g.client.send(8320)
         lucky = pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body)
-        assert (lucky.luckyCount, lucky.remainCount, lucky.point) == (0, 20, 2) and lucky.gold > 0
-        assert await _ledger(g) == []
+        assert (lucky.luckyCount, lucky.remainCount, lucky.point) == (0, 20, 0) and lucky.gold > 0
 
-        c.point, c.gift_token, gold = 5, 100, c.gold
+        c.point, c.gift_token, gold = 0, 100, c.gold
+        g.client.send(8321, pb.PlayerLuckyMsg())  # AlchemyFrame: o 1º do dia é grátis
+        after = pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body)
+        assert (after.luckyCount, after.point) == (1, 50) and c.gold == gold + lucky.gold
+        g.client.send(8321, pb.PlayerLuckyMsg())  # 50 Balens que não tem (vinculado não paga): só devolve o estado
+        assert pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body).luckyCount == 1
+        c.point = 60
         g.client.send(8321, pb.PlayerLuckyMsg())
-        got = await g.until(4224)
-        after = pb.PlayerLuckyMsg.FromString(got[-1].body)
-        assert (after.luckyCount, after.point) == (1, 4)
-        assert (c.point, c.gift_token, c.gold) == (3, 100, gold + lucky.gold)  # vinculado não paga alquimia
-        assert await _ledger(g) == [(-2, 0, "alchemy")]
+        after = pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body)
+        assert (after.luckyCount, after.point) == (2, 60) and (c.point, c.gift_token) == (10, 100)
+        assert await _ledger(g) == [(-50, 0, "alchemy")]
 
         g.client.send(8467, pb.PlayerRefiningSoulMsg())  # nível < RefiningSoul_Grades (24)
         assert pb.PlayerRefiningSoulMsg.FromString((await g.until(4372))[-1].body).count == 0
         c.grades, strategy = 30, c.strategy
-        g.client.send(8467, pb.PlayerRefiningSoulMsg())
+        g.client.send(8467, pb.PlayerRefiningSoulMsg())  # SoulMakeFrame: também grátis no 1º
         soul = pb.PlayerRefiningSoulMsg.FromString((await g.until(4372))[-1].body)
-        assert soul.count == 1 and c.point == 1 and c.strategy == strategy + soul.soul
+        assert (soul.count, soul.point) == (1, 50) and c.point == 10 and c.strategy == strategy + soul.soul
+        assert soul.soul == 500 * 2  # Barracks e Cottage nível 1 x 500 (SoulMakeFrame.refreshView)
 
         saved = await g.server.services.characters.snapshot(g.user_id)
-        assert saved.character.point == 1
+        assert saved.character.point == 10
 
 
 async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
@@ -70,7 +78,14 @@ async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
 
         g.client.send(8505)  # presente semanal: VipDrop site 3
         got = await g.idle()
-        assert [p.code for p in got if p.code not in (3, 109)] == [115, 111, 4410, 4539, 83]  # tutorial_en #3266-#3282
+        assert [p.code for p in got if p.code not in (3, 109)] == [
+            115,
+            4476,
+            111,
+            4410,
+            4539,
+            83,
+        ]  # tutorial_en #3266-#3282
         text = pb.ChatChannelMsg.FromString(next(p for p in got if p.code == 111).body).encodeMsg
         assert text.startswith("Received: ") and pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == text
         info = pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body)

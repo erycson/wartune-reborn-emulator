@@ -48,6 +48,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 83 | 0x0053 | U_CH_CHANNEL_CHA |  | ChatChannelMsg |
 | 84 | 0x0054 | U_CH_FRIENDADD_CONFIRM |  | FriendRelationMsg |
 | 85 | 0x0055 | U_CH_RECOMMENDLIST |  | RecommendListMsg |
+| 86 | 0x0056 | U_C_ITEM_STRENGTHEN |  | StoreRspMsg |
 | 89 | 0x0059 | U_C_ITEM_COMPOSE |  | StoreRspMsg |
 | 90 | 0x005A | U_C_SHOP_BUY |  | ShopMsg |
 | 92 | 0x005C | U_C_ARMY_RECRUITED |  | ArmyPawnUpdatedMsg |
@@ -58,6 +59,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 103 | 0x0067 | U_C_BUILDING_UPENERGY |  | TransInfoMsg |
 | 104 | 0x0068 | U_C_BUILDING_ORDERADD |  | OrderInfoMsg |
 | 105 | 0x0069 | U_C_BUILDING_TRANSCASTLE |  | CastleReqMsg |
+| 106 | 0x006A | U_C_TREE_PICK |  | TreeUpdateRsp |
 | 108 | 0x006C | U_C_UNOCCPWILDLAND |  | GiveupWildLandMsg |
 | 109 | 0x006D | U_C_CASTLE_UPDATE |  | CastleYieldMsg |
 | 110 | 0x006E | U_C_PLAYER_EFFECT |  | PropertyUpdatedMsg |
@@ -92,6 +94,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 142 | 0x008E | U_C_CAMERA_MOVE |  | PlayerMoveCameraMsg |
 | 143 | 0x008F | U_C_PLAY_MOVIE |  | PlayerMovieMsg |
 | 145 | 0x0091 | U_C_WATERLOG_SEND |  | FarmLogRsp |
+| 146 | 0x0092 | U_C_HARVEST_MSG |  | TreeUpdateRsp |
 | 147 | 0x0093 | U_C_TREEINFO_UPDATE |  | TreeUpdateRsp |
 | 148 | 0x0094 | U_C_NEW_MAIL |  | MailMsg |
 | 149 | 0x0095 | U_C_HERO_BROAD_EQUIPMENT |  | HeroEquUpdatedMsg |
@@ -171,6 +174,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4158 | 0x103E | U_C_SEND_WATER_RESULT |  | FarmLogRsp |
 | 4159 | 0x103F | U_C_TRASNBUILDING_RESULT |  | CastleReqMsg |
 | 4160 | 0x1040 | U_C_SEND_SYSPROPERTY |  | SystemPropertyMsg |
+| 4161 | 0x1041 | U_C_INVITE_PLAYER_LIST |  | RoomPlayerListMsg |
 | 4162 | 0x1042 | U_C_PLAYER_MOVE |  | PlayerMoveMsg |
 | 4163 | 0x1043 | U_C_NPC_CHAT |  | NPCChatMsg |
 | 4164 | 0x1044 | U_C_ARMY_CHANGESHARP |  | ArmyChangeSharpMsg |
@@ -196,6 +200,9 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4186 | 0x105A | U_C_CAMPAIGN_ARMYPOS_SEND |  | ArmyFightPosEditListMsg |
 | 4187 | 0x105B | U_C_BUILDING_ORDER_SEND |  | BuildOrderList |
 | 4188 | 0x105C | U_C_ITEM_BUFFER |  | ItemBufferRspMsg |
+| 4189 | 0x105D | U_C_PICK_HARVEST_MSG |  | TreeUpdateRsp |
+| 4190 | 0x105E | U_C_CANWATER_USERS |  | LoadFarmRsp |
+| 4192 | 0x1060 | U_C_SINGLEROOM_FAIL |  | (não lê corpo) |
 | 4193 | 0x1061 | U_C_REFUSEFRIEND_REFRESH |  | RefuseFriendRspMsg |
 | 4194 | 0x1062 | U_C_REFUSEINVITE_REFRESH |  | RefuseFriendRspMsg |
 | 4195 | 0x1063 | U_C_OFFLINE_REWARD |  | OfflineRewardMsg |
@@ -240,6 +247,8 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4254 | 0x109E | U_C_WARREPORT |  | WarReportListMsg |
 | 4255 | 0x109F | U_C_ORDERREQUEST |  | WarReportListMsg |
 | 4256 | 0x10A0 | U_CH_SIMPLEUSER_INFO |  | RelationPlayerMsg |
+| 4258 | 0x10A2 | U_C_REFRESHFORRANDOM |  | SmithFreshRspMsg |
+| 4260 | 0x10A4 | U_C_RESOLVE |  | (não lê corpo) |
 | 4261 | 0x10A5 | U_C_STARSHOP_BUY |  | StarShopMsg |
 | 4262 | 0x10A6 | U_C_BROADBUFFER |  | ArmyBufferListMsg |
 | 4263 | 0x10A7 | U_C_ARMYPOS_FAIL |  | (não lê corpo) |
@@ -263,6 +272,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4359 | 0x1107 | U_C_MALL_SEARCH |  | AuctionItemsMsg |
 | 4360 | 0x1108 | U_C_REWARD_COUNT |  | RewardCountUpdateRspMsg |
 | 4361 | 0x1109 | U_B_BATTLE_NOTICE |  | BattleNoticeMsg |
+| 4368 | 0x1110 | U_C_ITEM_REFRESHPROPERTY |  | RefreshPropertyRepMsg |
 | 4369 | 0x1111 | C_WORLDBOSSWOUND_REWARD |  | WorldBossWoundRewardListMsg |
 | 4370 | 0x1112 | U_C_ROOM_FIND_RESULT |  | RoomMsg |
 | 4371 | 0x1113 | U_C_TIME_JUDGE |  | TimeJudgeMsg |
@@ -335,7 +345,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4468 | 0x1174 | U_HERO_TRIAL_IFNO |  | PlayerTrialMsg |
 | 4470 | 0x1176 | U_C_MYSTERYEVENT_LIST |  | MysteryEventListMsg |
 | 4471 | 0x1177 | U_C_DAYGESTE_SEND |  | SimplePropertyMsg |
-| 4474 | 0x117A | U_C_VEHICLE_NPC_NODE |  | (não lê corpo) |
+| 4474 | 0x117A | U_C_VEHICLE_NPC_NODE |  | VehicleNpcNodeListMsg |
 | 4475 | 0x117B | U_C_SUM_ACTIVE_TEMP |  | SumActivesMsg |
 | 4476 | 0x117C | U_C_SUMACTIVE_DATA |  | SumActiveDataMsg |
 | 4479 | 0x117F | U_C_STAR_COMPOSE |  | StarRandRspMsg |
@@ -356,18 +366,19 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4500 | 0x1194 | U_C_SMALL_BUGLE_FREE_COUNT |  | CampaignReqMsg |
 | 4501 | 0x1195 | U_C_VEHICLE_TECH_RSP |  | SimplePropertyMsg |
 | 4512 | 0x11A0 | U_C_VEHICLE_STATE |  | MatchStateMsg |
-| 4513 | 0x11A1 | U_C_VEHICLE_JOIN |  | (não lê corpo) |
-| 4514 | 0x11A2 | U_C_VEHICLE_END |  | (não lê corpo) |
+| 4513 | 0x11A1 | U_C_VEHICLE_JOIN |  | PlayerVehicleListMsg |
+| 4514 | 0x11A2 | U_C_VEHICLE_END |  | VehicleCampaignDetailMsg |
 | 4515 | 0x11A3 | U_C_VEHICLE_PROFILE_CHANGE |  | PlayerVehicleProfileMsg |
 | 4516 | 0x11A4 | U_C_VEHICLE_LIST_RSP |  | PlayerVehicleListMsg |
 | 4517 | 0x11A5 | U_C_VEHICLE_CAMPAIGN_LIST_RSP |  | PlayerVehicleListMsg |
-| 4518 | 0x11A6 | U_C_VEHICLE_DETAILE |  | (não lê corpo) |
-| 4519 | 0x11A7 | U_C_VEHICLE_MOVE |  | (não lê corpo) |
+| 4518 | 0x11A6 | U_C_VEHICLE_DETAILE |  | VehicleCampaignDetailMsg |
+| 4519 | 0x11A7 | U_C_VEHICLE_MOVE |  | VehicleMoveMsg |
 | 4520 | 0x11A8 | U_C_VEHICLE_ATTACK_RSP |  | VehicleAttackRspMsg |
-| 4521 | 0x11A9 | U_C_VEHICLE_SYNC_SKILL |  | (não lê corpo) |
-| 4522 | 0x11AA | U_C_VEHICLE_SYNC_BUFF |  | (não lê corpo) |
-| 4523 | 0x11AB | U_C_VEHICLE_EXIT |  | (não lê corpo) |
-| 4524 | 0x11AC | U_C_VEHICLE_BOSS_ATTACK_TIP |  | (não lê corpo) |
+| 4521 | 0x11A9 | U_C_VEHICLE_SYNC_SKILL |  | VehicleSkillListMsg |
+| 4522 | 0x11AA | U_C_VEHICLE_SYNC_BUFF |  | VehicleBuffListMsg |
+| 4523 | 0x11AB | U_C_VEHICLE_EXIT |  | VehicleExitMsg |
+| 4524 | 0x11AC | U_C_VEHICLE_BOSS_ATTACK_TIP |  | VehicleAttackRspMsg |
+| 4525 | 0x11AD | U_C_VEHICLE_ROOM_START_COUNT |  | SimplePropertyMsg |
 | 4526 | 0x11AE | U_C_BOTTLE_RESULT |  | BottleScoreMsg |
 | 4527 | 0x11AF | U_C_RUNE_RESET |  | (não lê corpo) |
 | 4529 | 0x11B1 | U_C_LORDS_LOAD_MAINBORAD |  | LordsOrderListMsg |
@@ -399,6 +410,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4555 | 0x11CB | U_C_DRAGON_REQ |  | FateListMsg |
 | 4556 | 0x11CC | U_C_TRANSFER |  | SimplePropertyMsg |
 | 4557 | 0x11CD | U_C_TRANS_GRADE |  | FateInfoMsg |
+| 4558 | 0x11CE | U_C_MOULD_ITEM |  | StoreRspMsg |
 | 4559 | 0x11CF | U_C_GROUPON_INFO |  | GrouponShopMsg |
 | 4560 | 0x11D0 | U_C_GROUPON_RESULT |  | GrouponShopMsg |
 | 4590 | 0x11EE | U_C_TOP_TOOL_BTN |  | SimplePropertyMsg |
@@ -543,12 +555,16 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 5025 | 0x13A1 | U_C_CAMPAIGN_ROOM_EXIT | RoomExitMsg |  |
 | 5026 | 0x13A2 | U_C_CAMPAIGN_ROOM_LIST | RoomReqMsg |  |
 | 5027 | 0x13A3 | U_C_CAMPAIGN_INVITE_PLAYER_LIST | (sem corpo) |  |
+| 5028 | 0x13A4 | U_C_CAMPAIGN_ROOM_INVITE | RoomReqMsg |  |
 | 5029 | 0x13A5 | U_C_CAMPAGIN_ROOM_PLACESTATE | RoomReqMsg |  |
 | 5030 | 0x13A6 | U_C_CAMPAIGN_ROOM_MASTER_CHANGE | CampaignReqMsg |  |
 | 5031 | 0x13A7 | U_C_CAMPAIGN_ROOM_KILLPLAYER | RoomReqMsg |  |
 | 5032 | 0x13A8 | U_C_CAMPAIGN_CALLBACK | CallBackReqMsg |  |
 | 5033 | 0x13A9 | U_C_CAMPAIGN_CONFIRM | CampaignReqMsg |  |
+| 5034 | 0x13AA | U_C_CAMPAIGN_ROOM_EDIT | RoomReqMsg |  |
 | 5035 | 0x13AB | U_PLAYER_CLIENT_STATE | LoginStateMsg |  |
+| 5036 | 0x13AC | U_C_PLAYER_READY_STATE | RoomReqMsg |  |
+| 5037 | 0x13AD | U_C_ROOM_STATE | RoomReqMsg |  |
 | 5038 | 0x13AE | U_C_CAMPAIGN_SYSTEM_ARMY | CampaignReqMsg |  |
 | 5039 | 0x13AF | U_C_CAMPAIGN_ENTER | CampaignReqMsg |  |
 | 5041 | 0x13B1 | C_MICRO_CLIENT_INFO | SimplePropertyMsg |  |
@@ -670,10 +686,12 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8293 | 0x2065 | C_QUICK_HANGUP_TIME | PayTypeMsg |  |
 | 8294 | 0x2066 | C_MATCH_REQUEST | (sem corpo) |  |
 | 8295 | 0x2067 | C_HANGUP_ROOM_STATE | (sem corpo) |  |
+| 8296 | 0x2068 | C_ENTER_TOWER | EnterTowerInfoMsg |  |
 | 8297 | 0x2069 | C_TOWER_INFO | TowerInfoReqMsg |  |
 | 8298 | 0x206A | C_REWARD_ARREST | RewardArrestMsg |  |
+| 8299 | 0x206B | C_TOWER_RESET | TowerInfoReqMsg |  |
 | 8300 | 0x206C | C_TOWER_LIVE | PayTypeMsg |  |
-| 8301 | 0x206D | C_PLAYER_NODE_STATE | ?Message |  |
+| 8301 | 0x206D | C_PLAYER_NODE_STATE | ?Message, PlayerNodeStateMsg |  |
 | 8302 | 0x206E | C_GUIDE_FINISHED | (sem corpo) |  |
 | 8320 | 0x2080 | C_LUCKY_FRFRESH | PlayerLuckyMsg |  |
 | 8321 | 0x2081 | C_LUCKY_SWAP | PlayerLuckyMsg |  |
@@ -695,6 +713,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8340 | 0x2094 | C_ITEM_RESOLVE | (sem corpo) |  |
 | 8341 | 0x2095 | C_STARSHOP_BUY | StarShopMsg |  |
 | 8343 | 0x2097 | C_CONSORTIA_LINK | ConsortiaLinkReqMsg |  |
+| 8344 | 0x2098 | C_ROOM_PWDCHANGE | RoomEditMsg |  |
 | 8345 | 0x2099 | C_PLAYER_RENAME_REQ | PlayerRenameReqMsg |  |
 | 8346 | 0x209A | C_BAG_REMOVE | ItemRemoveMsg |  |
 | 8352 | 0x20A0 | C_USER_PIN_CHECK | UserPin |  |
@@ -771,11 +790,16 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 8595 | 0x2193 | C_FASHION_SWITCH | FashionMsg, StoreReqMsg |  |
 | 8597 | 0x2195 | C_APPELL_EXCHANGE | AppellExchangeMsg |  |
 | 8598 | 0x2196 | C_CC | ?Message, SimplePropertyMsg |  |
+| 8599 | 0x2197 | C_CHECK_WARFIELD_COUNT | CampaignReqMsg |  |
 | 8604 | 0x219C | C_BOTTLE_OP | BottleOpMsg |  |
 | 8605 | 0x219D | U_C_HERO_RUNE_OP | HeroRuneOpMsg |  |
 | 8608 | 0x21A0 | C_VEHICLE_QUICK_PLAY | (sem corpo) |  |
 | 8609 | 0x21A1 | C_VEHICLE_QUICK_PLAY_CANCEL | (sem corpo) |  |
+| 8610 | 0x21A2 | C_VEHICLE_LEAVE_CAMPAIGN | (sem corpo) |  |
 | 8611 | 0x21A3 | C_VEHICLE_CHOOSE_VEHICLE | CampaignReqMsg |  |
+| 8615 | 0x21A7 | C_VEHICLE_MOVE | VehicleMoveMsg |  |
+| 8616 | 0x21A8 | C_VEHICLE_ATTACK | VehicleAttackReqMsg |  |
+| 8617 | 0x21A9 | C_VEHICLE_PICK_PROP | VehiclePickPropMsg |  |
 | 8619 | 0x21AB | C_ACTIVE_VEHICLE | SimplePropertyMsg |  |
 | 8620 | 0x21AC | C_PLAYER_AAS_SWITCH_CHANGE | PlayerAASRefreshMsg |  |
 | 8621 | 0x21AD | C_PLAYER_PET_OP | PlayerPetOpMsg |  |

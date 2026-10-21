@@ -92,6 +92,7 @@ class CampaignMap:
     quarry: bool = False  # pedreira 6001: coleta (5032) e a luta do 8699, sem fim nem carta
     over: tuple[int, int] | None = None  # (gp, strategy) do 4382 que espera a volta ao mapa (5035 state 4)
     ending: list[Any] | None = None  # etapa vencida: missões (Quest) que fecham no fim, que sai com o 4382
+    fallen: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # baús da luta por signId (5129)
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:

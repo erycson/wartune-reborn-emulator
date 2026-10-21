@@ -8,9 +8,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import Arena, ArenaRank, PlayerSnapshot
+from wartune_server.domain.models import Arena, ArenaRank, BagType, CashLedger, Item, PlayerSnapshot
 from wartune_server.domain.models import Pet as OwnedPet
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
@@ -95,6 +96,19 @@ async def test_colosseum_against_a_robot_enters_the_ranking(tmp_path: Path, monk
         g.client.send(8265, pb.PayTypeMsg(payType=1, type=0))
         cool = body(await g.until(4176), 4176, pb.ChallengeCoolTimeMsg)
         assert cool.leftTime == 0 and snap.character.point == 10
+
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        arena_handlers._arena(session).cool_until = session.ctx.clock.now() + timedelta(minutes=10)
+        st = ev.state(snap, "vip", session.ctx.clock.now())
+        st.value, st.text = 0, "2999-01-01 00:00:00"  # VIP nível 1: vipCoolPrivilege
+        g.client.send(8265, pb.PayTypeMsg(payType=0, type=0))  # ColosseumFrame com VIP: sem quadro de custo
+        got = await g.until(4176)
+        assert body(got, 4176, pb.ChallengeCoolTimeMsg).leftTime == 0 and snap.character.point == 10
+        assert 3 not in codes(got)  # nada pago
+        async with g.server.services.database.sessions() as db:
+            ledger = (await db.execute(select(CashLedger))).scalars().all()
+        assert [(e.delta_point, e.balance_point, e.reason) for e in ledger] == [(-50, 10, "arena_cool")]  # só o pago
 
         # recompensa da posição 1, uma vez por período
         g.client.send(8329)
@@ -365,7 +379,7 @@ async def test_closed_events_and_battle_extras(tmp_path: Path) -> None:
         await g.until(4531)
         g.client.send(8337)
         await g.until(4255)
-        for code in (8332, 8334, 8338, 8633, 8717, 8720, 8635, 10015, 8282, 8283, 10003):
+        for code in (8332, 8334, 8338, 8599, 8633, 8717, 8720, 8635, 10015, 8282, 8283, 10003):
             g.client.send(code)
         assert await g.idle() == []
         g.client.send(8590)
@@ -394,7 +408,7 @@ async def test_login_sends_challenge_state(tmp_path: Path) -> None:
         got = await g.until(4244)
         cools = [pb.ChallengeCoolTimeMsg.FromString(p.body) for p in got if p.code == 4176]
         assert [(c.type, c.challengeCount) for c in cools] == [(0, 0), (1, 10)] and 90 < cools[0].leftTime <= 100
-        assert {4776, 4535, 4248} <= set(codes(got))
+        assert {4776, 4248} <= set(codes(got)) and 4535 not in codes(got)  # tutorial_en #104-#106: sem 4535
         assert body(got, 4244, pb.ChallengeRankRewardMsg).isTake is False  # fora do ranking
 
 
@@ -405,7 +419,7 @@ def test_rank_rewards_and_costs() -> None:
     assert A.Robot(A.ROBOT_BASE + 7, 13).name == A.Robot(A.ROBOT_BASE + 7, 40).name
     assert A.Robot(A.ROBOT_BASE + 7, 40).hero_template == 11030
     assert arena_handlers._forward(0, 5) == 1 and arena_handlers._forward(5, 3) == 1
-    assert arena_handlers._forward(3, 5) == 2 and arena_handlers._forward(4, 4) == 0
+    assert arena_handlers._forward(3, 5) == -1 and arena_handlers._forward(4, 4) == 0  # < 0: "ranking dropped"
 
 
 async def test_colosseum_is_closed_during_the_tutorial(tmp_path: Path) -> None:
@@ -414,3 +428,34 @@ async def test_colosseum_is_closed_during_the_tutorial(tmp_path: Path) -> None:
         assert await g.idle() == []
         g.client.send(8253, pb.PlayerChallengeMsg(tarUserId=A.ROBOT_BASE))
         assert codes(await g.idle()) == [4176]
+
+
+async def test_estado_dos_campos_de_batalha_pela_agenda_como_a_captura(tmp_path: Path) -> None:
+    from wartune_server.game.handlers import warfield
+
+    async with logged_in(tmp_path, novice=19000) as g:
+        templates = g.server.services.templates
+        at = datetime(2026, 10, 18, 18, 24, tzinfo=UTC)  # tutorial_en #104
+        got = [(i.campaignId, i.state) for i in warfield.states(templates, at).worldBossInfo]
+        assert got == [(c, 2) for c in range(4001, 4008)] + [(4008, 3)] + [(c, 1) for c in range(4009, 4012)]
+        at = datetime(2026, 10, 18, 19, 0, tzinfo=UTC)  # #3110: o oficial abre (0); aqui fica 3, sem o mapa
+        assert dict((i.campaignId, i.state) for i in warfield.states(templates, at).worldBossInfo)[4009] == 3
+
+
+async def test_colosseum_avatar_carries_the_leaders_fashion(tmp_path: Path) -> None:
+    """ColosseumControler lê do ``avater`` a arma, a armadura e a moda (asa, arma, roupa, chapéu) do líder."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.snapshot is not None and s.snapshot.leader is not None
+        snap, leader = s.snapshot, s.snapshot.leader
+        for tid in (1090000, 1100101, 1110101, 1120101):
+            snap.items.append(Item(g.user_id, tid, bag_type=BagType.HERO, object_id=leader.id or 0))
+        msg = pb.ChallengeInfoMsg()
+        arena_handlers._avatars(msg, snap, s)
+        [a] = msg.avater
+        fashion = (a.fashionWingTempId, a.fashionHeadTempId, a.fashionArmTempId, a.fashionClothTempId)
+        assert a.userId == g.user_id and fashion == (1090000, 1100101, 1110101, 1120101)
+        leader.hide_fashion = True
+        msg = pb.ChallengeInfoMsg()
+        arena_handlers._avatars(msg, snap, s)
+        assert msg.avater[0].fashionWingTempId == 0

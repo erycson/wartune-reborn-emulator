@@ -19,13 +19,12 @@ PAST = "2000-01-01 00:00:00"  # datas no passado: o botão da barra superior fic
 
 
 def login(s: GameSession) -> None:
-    """4776 e 4535 do login: o oficial manda a agenda; aqui ela já passou."""
+    """4776 do login: o oficial manda a agenda (tutorial_en #106, sem 4535); aqui ela já passou."""
     timer = pb.TimerInfoListMsg()
     timer.timerInfo.add(
         type=LORDS_TIMER, index=0, name="", readyOpen=PAST, readyStop=PAST, finalOpen=PAST, finalStop=PAST, param1="0"
     )
     s.send(S_TIMER, timer)
-    s.send(S_OPEN, pb.SimplePropertyMsg(param1=CLOSED))
 
 
 def _orders(**fields: object) -> pb.LordsOrderListMsg:

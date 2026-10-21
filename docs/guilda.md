@@ -31,14 +31,14 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 
 - **Cargos** 1 chefe, 2 vice, 3 ancião, 4 e 5 membros. Os direitos são bitmaps copiados do 4137
   oficial *(visto)* `login.json #116` (só turco: `login`), bit `i-1` LSB primeiro (`BitArray.getBit`, m2). Índices usados:
-  1 chefe, 2 pesquisa, 3 melhoria/abrir altar, 4 avisos, 5 expulsar, 6 convidar, 9 aceitar e
-  `openApp`, 18 renomear, 19 cargos, 30 descrição, 33 recusar *(cliente)* m6 `ConsortiaStaffPage`,
+  1 chefe (e correio de guilda), 2 pesquisa, 3 melhoria/abrir altar, 4 avisos, 5 expulsar, 9 aceitar,
+  convidar e `openApp` (todo botão de convite do cliente inglês usa o 9), 18 renomear, 19 cargos, 30 descrição, 33 recusar *(cliente)* m6 `ConsortiaStaffPage`,
   `ConsortiaPlayerMenu`. Só o chefe tem o 3; o vice tem o 2.
 - Criar e se candidatar: nível 12; criar custa 200000 de ouro; nome único sem diferença de caixa
   *(cliente)* m6 `CreatConsortiaFrame`.
 - Sair por conta própria (`isAuto`) dá 24 h de espera (`lastOutConsortia`); `isPay` paga
-  `Consortia_ClearCD_Point` (50) diamantes. Ao sair, `clear_CDType` 1 paga com o item 208013 ou 50
-  diamantes para não ter espera *(cliente)* m6 `ConsortiaStaffPage.exitCallback`.
+  `Consortia_ClearCD_Point` (395 no template) diamantes. Ao sair, `clear_CDType` 1 paga com o item 208013 ou os mesmos
+  `Consortia_ClearCD_Point` diamantes para não ter espera *(cliente)* m6 `ConsortiaStaffPage.exitCallback`.
 - O chefe só sai sozinho; aí a guilda acaba.
 - Máximo 10 candidaturas. Vagas: `levels*20+10` *(cliente)* m6 `ConsortiaItem`.
 - Listas 4134, 4139 e 4140 em páginas de 8; busca além do fim volta à 1 com `isReset`.
@@ -51,28 +51,28 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 
 | Opcode | O que faz | Responde | Fonte |
 |---|---|---|---|
-| 5130 | criar | 117, 3 e 109 para quem criou; 164 para os membros | *(cliente)* m6 `CreatConsortiaFrame`, m2 `ConsortiaControler` |
+| 5130 | criar (nome de 4 a 10, com caractere fora de 0x00–0xff valendo 2, também no 5148) | 117, 3 e 109 para quem criou; 164 para os membros | *(cliente)* m6 `CreatConsortiaFrame`, m2 `ConsortiaControler` |
 | 8213 | buscar guildas | 4139 `ConsortiaSearchRspMsg` | *(cliente)* m6 `ConsortiaSocektSendManager` |
 | 8212 | informações | 4138 | *(visto)* `login.json` (só turco: `login`) |
 | 8343 | link de guilda do chat | 4267 `ConsortiaLinkRspMsg` | *(cliente)* m2 |
 | 8211 | cargos | 4137 com os bitmaps | *(visto)* `login.json #116` (só turco: `login`) |
-| 8207 | membros | 4133 em pedaços | *(visto)* `login.json` (só turco: `login`) |
-| 8210 | eventos | 4136 | *(cliente)* m2 |
+| 8207 | membros (`isVip`/`vipType` de quem está online, *ponytail* para offline) | 4133 em pedaços | *(visto)* `login.json` (só turco: `login`) |
+| 8210 | eventos | 4136 | `remark` em partes separadas por `|`, montadas pelo tipo do `ConsortiaEventItem` (m6): 3 entrou/saiu/fundou, 1 expulsou, 7 chefia, 9 altar, 11 melhoria; o texto de cada parte é *dedução*; os antigos sem `|` viram tipo 0 (migração 0046) |
 | 8209 | candidaturas e convites do jogador | 4135 | *(cliente)* m2 |
 | 5135 | candidatar-se | 35 `{applyId}`; 4266 para quem pode aceitar | *(cliente)* m2 `__joinConsortiaHandler` |
 | 5141 | apagar candidatura | 36 | *(cliente)* m2 |
 | 8214 | candidatos da guilda | 4140, `parameter1` = id da candidatura | *(cliente)* m6 |
 | 5134 | aceitar/recusar candidatura (direito 9/33) | 40; 117+3 para o candidato; 164 | *(cliente)* m2 |
 | 5149 | abrir/fechar candidaturas | 164 | *(cliente)* m6 |
-| 5142 | convidar (direito 6) | 41 para o alvo online sem guilda; alvo com "recusar convites" (8286) ligado: nada, sem aviso ao convidante (só log) | *(cliente)* m2; o bloqueio pelo 8286 é *(dedução)*: o botão não tem texto no cliente |
+| 5142 | convidar (direito 9) | 41 para o alvo online sem guilda e de nível 12+; alvo com "recusar convites" (8286) ligado: nada, sem aviso ao convidante (só log) | *(cliente inglês)* m6 `ConsortiaRecruitFrame` (`grades >= 12`, sem guilda, `getRightsByIndex(9)`); o bloqueio pelo 8286 é *(dedução)*: no cliente o `refuseInvite` (SettingFrame, C_ROOM_REFUSE) é dos convites de pesca, estrada e caça-níquel |
 | 8197 | convite automático no nível 15 | 41 | *(cliente)* m2; ponytail: o oficial tinha guildas-robô, aqui é a guilda aberta com mais membros |
 | 5143 | responder convite | 37 `{result, applyId}` antes de apagar; 117+3; 164 | *(cliente)* m2 |
 | 5146 | sair | 117 com id 0, 3; 115 se gastou o cartão | *(cliente)* m6 `ConsortiaStaffPage` |
 | 5132 | expulsar (direito 5, cargo menor) | 117 id 0 para o expulso; 164 | *(cliente)* m6 |
 | 5131 | passar a chefia | 164 (o antigo vira 5) | *(cliente)* m2 `refreshChairman` |
 | 5137 | mudar cargo (direito 19) | 50 `{otherId, positionId}` para os membros | *(cliente)* m2 |
-| 5139, 5140, 8544 | aviso, descrição, aviso do grupo | 164 | *(cliente)* m6 |
-| 5148 | renomear (direito 18, 1000 diamantes) | 49, 3, 164; 3 para os membros | *(cliente)* m6 `ConsortiaRenameFrame` |
+| 5139, 5140, 8544 | aviso, descrição, aviso do grupo (o 8544 pelo direito 3: `ConsortiaGroupChatFrame` mostra o "Update" com `getRightsByIndex(3)`) | 164 | *(cliente)* m6 |
+| 5148 | renomear (direito 18, 1000 diamantes, `cash_ledger` `guild_rename`) | 49, 3, 164; 3 para os membros | *(cliente)* m6 `ConsortiaRenameFrame` |
 | 5144 | contribuir | 109, 3, 111, 42, 164 | *(visto)* `birlik_katkisi...json` #15–17, #38–39 (só turco: `birlik_katkisi`) |
 | 8208 | ranking de contribuição | 4134 | *(visto)* `birlik_katkisi...json` #5 (só turco: `birlik_katkisi`) |
 | 5133 | melhorar prédio (1–5) / pesquisar habilidade (6–12) | 164 | *(cliente)* m6 `ConsortiaUpgradeFrame`; templates `ConsortiaLevelInfos` |
@@ -86,7 +86,8 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8579 | membros para distribuir | 4465 | *(cliente)* m6 |
 | 8578 | distribuir (chefe) | 115 para quem está online e tem espaço; 148 quando vai pelo correio (*dedução*); 4466 | *(cliente)* m6 |
 | 8241 | eleição: candidatos | 4389 | *(cliente)* m2 `__setVotingUsers` |
-| 8481 | votar | 4390 `{result}` | *(cliente)* m2 |
+| 8481 | votar (contribuição total 100+) | 4390 `{result}` | *(cliente)* m2; o 100 é do `chairmanElection.help` inglês |
+| 8205 `sendType` 2 | correio de guilda (chefe, para membros) | 148 para cada um, 3 | *(cliente inglês)* m6 `ConsortiaEmailGroupSendView`: 175 Balens, `payType` 0 gasta os vinculados primeiro; `cash_ledger` `guild_mail` |
 | 8335 | anúncio de recrutamento | nada (o cliente só deixa com `speakTimes > 0`, sempre 0) | *(cliente)* m6 |
 | 8257 | buscar jogador por apelido | 4170, sem `info` = não achou; fica no sistema social (`handlers/friends.py`), que o correio também usa | *(cliente)* m6 (chefia, recrutar), m2 (correio) |
 | 15005 canal 5 | chat da guilda | 83 para os membros online | [chat.md](chat.md) |
@@ -121,9 +122,12 @@ primeiro.
 
 ## Contribuição, melhorias e habilidades
 
-- 1000 ouro = 1, 1 diamante = 1; o ouro é arredondado para baixo *(visto)*: −1000 → +1, −55000 → +55.
+- 1000 ouro = 1, 5 Balens = 1 *(cliente inglês)* `ConsortiaContributeFrame` (`/ 1000`, `/ 5`, "Contribution
+  minimum:5 Balens"); os dois arredondados para baixo e só se gasta o que vira contribuição *(visto)*:
+  −1000 → +1, −55000 → +55.
   Vai para a riqueza (`offer`/`totalOffer`) da guilda e a contribuição do jogador; `todayOffer`
-  zera por dia. ponytail: os diamantes gastam primeiro os vinculados.
+  zera por dia. Os Balens vinculados vão primeiro (`useBindPoint`: "Use Bound Balens first"). Todo gasto
+  de Balens da guilda (contribuição, espera, renomear, acelerar, correio) entra no `cash_ledger`.
 - `ConsortiaLevelInfos`: tipo 1 guilda, 2 mercado, 3 altar (`Property1` custo da bênção,
   `Property2` bênçãos por dia), 4 escola, 5 depósito, 6–12 habilidades (6 ataque, 7 defesa sem
   habilidade de jogador, 8 agilidade, 9 inteligência, 10 comando, 11 ouro, 12 físico). Custo
@@ -198,12 +202,21 @@ item do mercado liberado pelo nível do altar, na casa 1.
 `ConsortiaAltarHelper.canBless` confere um custo e o limite diário de uma bênção, e nenhum custo
 nem forma de resposta do x10 aparece no cliente. Captura: a seção do altar acima.
 
-**Eleição (8241/8481)**: nada abre a votação, só editando o banco (`voting_state`). A regra do chefe
-sumido não está no cliente nem nas capturas.
+**Eleição (8241/8481)**: nada abre a votação, só editando o banco (`voting_state`). A regra está no
+`chairmanElection.help` inglês: chefe offline 10 dias abre; candidatos são os vice-chefes online nos
+últimos 3 dias (senão os outros cargos); um só vira chefe direto; vota quem tem 100+ de contribuição
+(feito), por 3 dias; o chefe voltando encerra. Falta abrir e fechar a eleição pelo relógio. O cliente lê
+`isVotingman` como "é candidato", o "já votou" da própria linha (`votingTime > 0`) e só mostra o "Impeach" com
+`votingStatic` 3 ou 4; o voto vale nos dois (qual é "votando" e qual é "encerrada" é *dedução*).
+
+**Armazém da guilda (bolsa 6)**: pessoal, `storeLevel*5` espaços (56 no nível 10), pelo 5005 e o 8220; ver
+[itens.md](itens.md). **Baú de prêmios**: no máximo 10 por membro (`ConsortiaPrizeAllotItem`); o `isReceived`
+vai falso (*ponytail*: quando ele zera não está no cliente) e nada enche o baú (prêmio da guerra de guildas).
+**Posição (`orderInfo.gradeOrder`)**: nível e depois riqueza total entre as guildas do servidor (*dedução*).
 
 **Sem dado**: 8335 recrutamento (o cliente só deixa com `speakTimes` > 0, e aqui é sempre 0); guildas-robô
-(o oficial tinha, aqui é a guilda aberta com mais membros); renomear grátis depois de juntar servidores
-(`same`, precisa da guerra entre servidores).
+(o oficial tinha, aqui é a guilda aberta com mais membros). Renomear grátis (`same`) vale para o chefe de
+uma guilda com "!" no nome (servidores juntados, `ConsortiaFrame.resetConsortiaName`); hoje nenhum nome tem "!".
 
 **Pendente, sem fonte**: sair da guilda antes de pegar o prêmio da bênção perde o prêmio (fica na
 linha do membro). O oficial não mostrou esse caso.

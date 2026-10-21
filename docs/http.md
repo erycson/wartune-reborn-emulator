@@ -21,6 +21,7 @@ Regras que o cliente impõe:
 
 * **login**: a resposta precisa ter `@message`, e `@userId` diferente de 0 e `@value` diferente de `"false"`. Um `@message` com `|` faz o cliente entrar em fila de espera.
 * **visualizeregister** é carregado pelo `LoaderManagerII` tipo 7 (bytes crus lidos como XML). O cliente aceita `type` 0 ou 3. Com `value="false"`, mostra o `message` na tela de criação.
+* **Nome do personagem** (`visualizeregister`, `nicknamecheck` e o 8345): 4 a 12 pela conta do cliente (`StringUtils.checkStringLength`: bytes na página do sistema, ideograma vale 2), sem `<>&"'|\/%`, espaço ou controle. Os `message` são os do `AddUserNameFrame` inglês: "Character name cannot be empty!", "Character name is too short!", "Character name is too long!", "Character name contains invalid characters!", "Character name already in use.". O nome de guilda segue outra regra (2 a 14 caracteres).
 * `key` em `visualizeregister` e `updateplayernovice` é o `md5(tempPassword)` do login. O servidor confere se ele pertence ao `userid`.
 
 ### Ícone, classe e sexo
@@ -49,13 +50,9 @@ Fica em `D:\xampp\htdocs\wartune-reborn\portal` (`http://127.0.0.1:8090/wartune-
 
 ## CDN
 
-`D:\xampp\htdocs\wartune-reborn\cdn` contém só os arquivos que diferem do CDN completo ou que
-faltam nele (gerada por `tools/build_cdn_overrides.py`). O `.htaccess` resolve, na ordem:
+`D:\xampp\htdocs\wartune-reborn\cdn` é o espelho do CDN inglês (res134), baixado por `download.php`; o que o
+cliente pede e o espelho não tem (404 no Apache) vem do `tools/fetch_missing.py` (`docs/ferramentas.md`). A montagem
+antiga da CDN turca (`build_cdn_overrides.py`, `cdn_stubs`, `.htaccess` em camadas) está em `consulta/legado-turco/`.
 
-1. a própria pasta (respostas oficiais capturadas e os `.png` de código do relay);
-2. o CDN completo em `/wartune-cdn/`;
-3. `cdn/client/`, porque o cliente pede arquivos relativos ao `Loading.swf`, que no oficial ficava em `/client/` (ex.: `resouececheck.sq`, a lista de MD5 sem a qual os SWFs cifrados não abrem).
-
-Arquivos que o cliente pede e o CDN não tem (`xml/version.xml`, `xml/resource.xml`) saem de
-`tools/cdn_stubs`. No 404, o Flash entrega um corpo vazio e segue; o Ruffle entrega o HTML do Apache,
-e o `StartupResourcesLoader` quebra com `XML parser failure`.
+No 404, o Flash entrega um corpo vazio e segue; o Ruffle entrega o HTML do Apache, e um XML que falta (ex.: o
+`xml/version.xml` do `StartupResourcesLoader`) quebra com `XML parser failure`.

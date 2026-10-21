@@ -8,7 +8,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import Item, Pet, PlayerSnapshot
+from wartune_server.domain.models import Item, Pawn, Pet, PlayerSnapshot
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -32,7 +32,12 @@ async def test_recruit_put_in_army_and_dismiss(tmp_path: Path) -> None:
 
         g.client.send(5155, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=900))
         got = await g.until(111)
-        assert codes(got) == [109, 109, 100, 111]  # o 112 só vem com a missão 52 aberta (inglesa #653-#659: 112 da 52 em #656)
+        assert codes(got) == [
+            109,
+            109,
+            100,
+            111,
+        ]  # o 112 só vem com a missão 52 aberta (inglesa #653-#659: 112 da 52 em #656)
         assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 1001  # 2 de ouro por Lancer
         assert (pb.CastleYieldMsg.FromString(got[1].body).curPopulation, 900) == (900, 900)
         pawn = pb.ArmyPawnUpdatedMsg.FromString(got[2].body).armyPawn[0]
@@ -68,6 +73,15 @@ async def test_recruit_put_in_army_and_dismiss(tmp_path: Path) -> None:
         relogin = await g.connect()  # o 150 do login já traz a tropa
         relogin.client.send(8224, pb.PlayerDataMsg(army=True))
         assert pb.ArmyArmyMsg.FromString((await relogin.until(150))[-1].body).armyPawn[0].ownPawns == 100
+        await relogin.idle()  # o 100 e o 4544 do bloco army
+
+        archer = Pawn(g.user_id, 10201, castle_count=30)
+        snap_of(relogin).pawns.append(archer)
+        await g.server.services.characters.save(archer)
+        relogin.client.send(5156, pb.ArmyPawnInfoMsg(sites=0, tempateId=10201, ownPawns=30))
+        got = await relogin.until(100)
+        # tutorial_en #2301-#2304: o 100 leva só a tropa pedida, mesmo com o lanceiro voltando ao castelo
+        assert [p.tempateId for p in pb.ArmyPawnUpdatedMsg.FromString(got[-1].body).armyPawn] == [10201]
 
 
 async def test_pawn_upgrade_costs_soul_and_needs_barracks(tmp_path: Path) -> None:
@@ -109,9 +123,13 @@ async def test_skills_second_set_and_reset(tmp_path: Path) -> None:
         g.client.send(5185, pb.HeroAddPointReqMsg(skillTempId=10111))  # de guerreiro
         assert await g.idle() == []
 
+        g.client.send(8479, pb.PayTypeMsg(payType=1))  # SkillView: o botão só aparece no nível 38
+        assert await g.idle() == []
+        snap.leader.grades = 38  # type: ignore[union-attr]
         g.client.send(8479, pb.PayTypeMsg(payType=1))
         got = await g.until(3)
         assert codes(got) == [150, 3] and pb.PlayerMsg.FromString(got[1].body).point == 0
+        snap.leader.grades = 8  # type: ignore[union-attr]  # os pontos abaixo são do nível 8
         g.client.send(8480, pb.HeroSkillChangeMsg(index=1))
         hero = pb.ArmyArmyMsg.FromString((await g.until(150))[-1].body).simpleHeroInfo
         assert (hero.skillIndex, hero.isActiveSecond, hero.skillScript, hero.skillPoint) == (1, True, "30711,30811,", 2)
@@ -146,6 +164,14 @@ async def test_talent_grade_and_learn(tmp_path: Path) -> None:
         assert (hero.talentGrade, hero.talentPoint, hero.talentSkill) == (1, 0, "100101")
         assert pb.UpdatedSkillMsg.FromString(got[1].body).type == 1
 
+        snap.character.point, snap.character.gift_token = 894, 0
+        g.client.send(5184, pb.PayTypeMsg(payType=1, type=1))  # TalentView inglês: 895 Balens
+        assert await g.idle() == []
+        snap.character.point = 895
+        g.client.send(5184, pb.PayTypeMsg(payType=1, type=1))
+        assert codes(await g.until(3)) == [61, 150, 3] and snap.character.point == 0
+        assert snap.leader.talent_script == ""  # type: ignore[union-attr]
+
 
 async def test_rune_learn_upgrade_and_equip(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
@@ -173,6 +199,14 @@ async def test_rune_learn_upgrade_and_equip(tmp_path: Path) -> None:
         g.client.send(8605, pb.HeroRuneOpMsg(opType=3, runeKey="301,-1,"))  # não aprendida
         assert pb.HeroRuneOpMsg.FromString((await g.until(4495))[-1].body).opResult is False
 
+        # diamante (RuneUpgradeView inglês): 50 + 10 por uso no dia, 20 EXP; count = usos (diamondIndex)
+        snap.character.point, snap.character.gift_token = 110, 0
+        for gp, used in ((70, 1), (90, 2)):
+            g.client.send(8605, pb.HeroRuneOpMsg(opType=2, runeId=202))
+            op = pb.HeroRuneOpMsg.FromString(next(p for p in await g.until(150) if p.code == 4495).body)
+            assert ([(r.runeId, r.runeGp) for r in op.runeInfo.runeinfo], op.count) == ([(202, gp)], used)
+        assert snap.character.point == 0
+
 
 async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from wartune_server.game.handlers import stars
@@ -199,11 +233,17 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         g.client.send(8269, pb.StarRandReqMsg(site=1))  # cristal apagado
         assert await g.idle() == []
 
-        g.client.send(8268, pb.StarPickReqMsg(dropsite=-1))
-        got = await g.until(3)
-        assert codes(got) == [109, 4179, 4178, 4179, 3]  # a fonte de energia vira StarPoint
-        assert pb.PlayerMsg.FromString(got[-1].body).starpoint == 1000
-        assert [(s.bag_type, s.pos) for s in snap.stars] == [(1, 0), (1, 1)]
+        assert snap.systems.star_point == 3  # 1 ponto por sorteio no cristal 0 (MakeStarView)
+
+        g.client.send(8268, pb.StarPickReqMsg(dropsite=1, way=1))  # Pick (StarIconView): way 1 recolhe
+        assert codes(await g.until(3)) == [4178, 4179, 3]
+        g.client.send(8268, pb.StarPickReqMsg(dropsite=2, way=2))  # Sell: way 2 vende o Energine (SellGold)
+        assert codes(await g.until(3)) == [109, 4179, 3]
+        g.client.send(8268, pb.StarPickReqMsg(dropsite=-1, way=1))  # venda rápida só do lixo: o verde não é
+        assert await g.idle() == []
+        g.client.send(8268, pb.StarPickReqMsg(dropsite=-2))  # Collect all
+        assert codes(await g.until(3)) == [4178, 4179, 3]
+        assert sorted((s.bag_type, s.pos) for s in snap.stars) == [(1, 0), (1, 1)]
 
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0))
         assert codes(await g.until(150)) == [4178, 150]
@@ -217,9 +257,11 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         g.client.send(8330, pb.StarLockReqMsg(starType=2, pos=0))
         assert pb.StarMoveRspMsg.FromString((await g.until(4178))[-1].body).move[0].star_Info.isLock
 
-        g.client.send(8270, pb.PayTypeMsg(payType=1))
-        assert pb.PlayerMsg.FromString((await g.until(3))[-1].body).starCount == 1
+        snap.character.point = 395
+        g.client.send(8270, pb.PayTypeMsg(payType=1))  # uma linha de 4 por 395 (StarManager.sendBagCellBuy)
+        assert pb.PlayerMsg.FromString((await g.until(3))[-1].body).starCount == 4
         assert codes(await g.until(83)) == [4152, 83]  # leed 15 (gasto de diamante)
+        snap.systems.star_point = 1000
         g.client.send(8341, pb.StarShopMsg(goodId=1605))  # 7000 de StarPoint: não tem
         assert await g.idle() == []
         g.client.send(8341, pb.StarShopMsg(goodId=4))
@@ -260,6 +302,17 @@ async def test_mount_list_train_and_change(tmp_path: Path) -> None:
         assert await g.idle() == []
         g.client.send(8529, pb.MountEditMsg(op=2, param1=1000))
         assert pb.MountInfoMsg.FromString((await g.until(4426))[-1].body).mountTempId == 1000
+
+        snap.character.point, snap.character.gift_token = 30, 5  # sem chicote: 35 Balens, vinculados aceitos
+        g.client.send(8529, pb.MountEditMsg(op=1, propertyType=0, payType=0, param1=1))
+        await g.until(4426)
+        assert (snap.character.point, snap.character.gift_token) == (0, 0)
+
+        g.client.send(8529, pb.MountEditMsg(op=3, param1=0))  # Rest (MountsFrame)
+        army = pb.ArmyArmyMsg.FromString((await g.until(150))[-1].body)
+        assert army.HasField("mountTempId") and army.mountTempId == 0
+        g.client.send(8529, pb.MountEditMsg(op=3, param1=1))  # Mount
+        assert pb.ArmyArmyMsg.FromString((await g.until(150))[-1].body).mountTempId == 1000
 
 
 async def test_fate_train_and_turn(tmp_path: Path) -> None:
@@ -326,17 +379,19 @@ async def test_dragon_feed_and_powcard(tmp_path: Path) -> None:
 async def test_pets_points_fight_and_slots(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         snap = snap_of(g)
-        a = Pet(g.user_id, 104103, "Pan", grade=3, power_apti=1686, pos=0)
+        a = Pet(g.user_id, 104103, "Pan", grade=3, power_apti=1686, physi_apti=1699, growth_rate=961, pos=0)
         b = Pet(g.user_id, 101103, "Amazon", pos=1, is_fight=True)
         snap.pets.extend([a, b])
-        snap.character.point = 150
+        snap.character.point, snap.character.grades = 150, 3  # PetShowView: o pet ativo não passa do herói
         await g.server.services.characters.save(snap.character, a, b)
 
         g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=2, attributes=[11, 0, 0, 0]))  # só 10 livres
         assert await g.idle() == []
         g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=2, attributes=[6, 4, 0, 0]))
         info = pb.PlayerPetMsg.FromString((await g.until(4540))[-1].body).petInfo[0]
-        assert (info.power, info.intel, info.remainPoints) == (10 + 6 + 3 * 1686 // 100, 14, 0)
+        # PetData inglês: template 10 + floor(2 x 961 / 80) = 24 de crescimento, mais os pontos
+        assert (info.power, info.intel, info.remainPoints) == (10 + 24 + 6, 10 + 24 + 4, 0)
+        assert info.maxHp == 1200 + 6 * (10 + 24) * 1699 // 1000  # PetData.hp
 
         g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=9))  # só um na batalha
         got = await g.until(150)
@@ -346,16 +401,18 @@ async def test_pets_points_fight_and_slots(tmp_path: Path) -> None:
         army = pb.ArmyArmyMsg.FromString(got[1].body)
         assert (army.petTempId, army.petName) == (104103, "Pan")
 
-        g.client.send(8621, pb.PlayerPetOpMsg(opType=12, payType=1))
+        g.client.send(8621, pb.PlayerPetOpMsg(opType=12, payType=1, value=7))  # 6 + 7 passa do teto 12
+        assert await g.idle() == []
+        g.client.send(8621, pb.PlayerPetOpMsg(opType=12, payType=1, value=1))  # base 6 (PetListView), 100
         got = await g.until(83)  # + 4152/83 do leed 15 (gasto de diamante)
-        assert pb.PlayerPetMsg.FromString(got[0].body).petCount == 4 and codes(got) == [4540, 3, 4152, 83]
+        assert pb.PlayerPetMsg.FromString(got[0].body).petCount == 7 and codes(got) == [4540, 3, 4152, 83]
         g.client.send(8621, pb.PlayerPetOpMsg(petId=a.id, opType=3, payType=1))  # 100: só restam 50
         assert await g.idle() == []
 
         relogin = await g.connect()
         relogin.client.send(8224, pb.PlayerDataMsg(army=True))
         pets = pb.PlayerPetMsg.FromString((await relogin.until(4540))[-1].body)
-        assert [(p.petName, p.power) for p in pets.petInfo] == [("Pan", 66), ("Amazon", 10)]
+        assert [(p.petName, p.power) for p in pets.petInfo] == [("Pan", 40), ("Amazon", 10)]
 
 
 def test_bonus_da_colecao_reproduz_o_login_76() -> None:
@@ -379,3 +436,29 @@ def test_bonus_da_colecao_reproduz_o_login_76() -> None:
     assert suites(seen) == {1000: [], 1001: [], 1002: [(1004, 40001, 0, 0)], 1003: [], 1004: []}
     # 4 cartas no grau 3 acendem o degrau 1 (Property4)
     assert suites({10015: 3, 10016: 3, 10017: 3, 10018: 3})[1002] == [(1004, 40001, 0, 0), (1004, 40002, 0, 0)]
+
+
+async def test_formation_rows_and_comprehend_blessing(tmp_path: Path) -> None:
+    """AllocateView inglês: fileira 1 ou 3. PawnSpecialAbilityFrame.helpContent: bênção cheia = grau acima, 100%;
+    subir de grau zera a bênção."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        g.client.send(8276, pb.ArmyFightPosEditMsg(userId=g.user_id, heroPos=2, pawnPos=3))
+        assert await g.idle() == []
+        g.client.send(8276, pb.ArmyFightPosEditMsg(userId=g.user_id, heroPos=3, pawnPos=1))
+        await g.until(150)
+        assert snap.leader is not None and snap.leader.fight_pos == 3
+
+        templates = g.server.services.templates
+        grade = lambda tid: int(templates.get("SpecialTempInfos", int(tid))["Grades"])  # noqa: E731
+        full = int(next(iter(templates.find("UpGradeTempInfos", Types="16", Grades=1)))["Data"])
+        pawn = Pawn(g.user_id, 10101)  # tropa nível 1 (current_pawn cria igual em memória)
+        snap.pawns.append(pawn)
+        pawn.bless, snap.character.strategy = full - 1, 2_000_000
+        g.client.send(8455, pb.ComprehendMsg(templateId=pawn.template_id))
+        await g.until(116)
+        assert (grade(pawn.comprehend), pawn.bless) == (2, 0)
+        pawn.bless = 5
+        g.client.send(8456, pb.ComprehendMsg(templateId=pawn.template_id))
+        await g.until(150)
+        assert (grade(pawn.specials), pawn.bless, pawn.comprehend) == (2, 0, "")

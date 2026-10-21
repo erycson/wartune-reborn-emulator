@@ -117,6 +117,23 @@ class SqlCharacterRepository(_Repo):
             return []
         return list(await self._s.scalars(select(Character).where(Character.id.in_(ids))))  # type: ignore[union-attr]
 
+    @staticmethod
+    def _ranked(server_id: int) -> list[Any]:
+        # rankings: só personagens já criados (a conta sem personagem tem uma linha sem nome e inativa)
+        return [Character.server_id == server_id, Character.active, Character.nickname.is_not(None)]  # type: ignore[union-attr]
+
+    async def gp_order(self, server_id: int, total_gp: int) -> int:
+        """Posição por EXP no servidor: 1 + quantos têm mais (empate fica na mesma posição)."""
+        where = [*self._ranked(server_id), Character.total_gp > total_gp]
+        return int(await self._s.scalar(select(func.count()).select_from(Character).where(*where)) or 0) + 1
+
+    async def strongest(self, server_id: int, limit: int) -> list[Character]:
+        """Os ``limit`` de maior poder (``fighting_capacity`` gravado na saída) do servidor."""
+        order: list[Any] = [Character.fighting_capacity.desc(), Character.id]  # type: ignore[attr-defined]
+        return list(
+            await self._s.scalars(select(Character).where(*self._ranked(server_id)).order_by(*order).limit(limit))
+        )
+
     async def nickname_taken(self, server_id: int, nickname: str) -> bool:
         stmt = select(
             exists().where(
@@ -432,6 +449,9 @@ class SqlOwnedRepository[T]:
     async def by_character(self, character_id: int) -> list[T]:
         e: Any = self._entity
         return list(await self._s.scalars(select(e).where(e.character_id == character_id).order_by(e.id)))
+
+    async def get(self, entity_id: int) -> T | None:
+        return await self._s.get(self._entity, entity_id)
 
 
 class SqlAlchemyUnitOfWork:

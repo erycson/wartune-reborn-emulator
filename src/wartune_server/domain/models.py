@@ -110,8 +110,8 @@ class Character:
     repute: int = 0
     geste: int = 0
     charm: int = 0
-    space_x: int = 72  # tile na cidade do céu ao sair
-    space_y: int = 74
+    space_x: int = 76  # tile na cidade do céu ao sair; o personagem novo nasce em 76,76 (tutorial_en #7, #2123)
+    space_y: int = 76
     qte_guide: int = 0
     vice_password: str = ""  # sha256 da senha secundária; "" = sem senha
     vice_reset_at: datetime | None = None
@@ -121,7 +121,7 @@ class Character:
     vehicles: str = "1"  # templateIds de VehicleObjectTempInfos possuídos, separados por vírgula
     last_login_at: datetime | None = None
     refuse_friend: bool = False  # PlayerMsg.refuseFriend: recusa pedidos de amizade (8285)
-    refuse_invite: bool = False  # PlayerMsg.refuseInvite: recusa convites de guilda (8286)
+    refuse_invite: bool = False  # PlayerMsg.refuseInvite: recusa convites de guilda e de sala (8286)
     refuse_team_invite: bool = False  # PlayerMsg.refuseTeamInvite: recusa convites de time (8746)
     seminary_effect: int = 0  # PlayerMsg.blessingBuff: bênção do seminário, 0..200 (8489)
     seminary_count: int = 0  # bênçãos feitas em ``seminary_day`` (PlayerMsg.blessingCount, tarefa do dia)
@@ -236,6 +236,7 @@ class Castle:
     imposed_at: datetime | None = None
     farm_grade: int = 1
     farm_gp: int = 0  # EXP dentro do nível (UpGradeTempInfos tipo 17)
+    land_grade: int = 1  # nível das terras (15044 op 9, até 10)
     tree_water: int = 0  # regas da árvore
     tree_fruit: int = 0
     tree_watered_at: datetime | None = None
@@ -316,10 +317,12 @@ class BagType(IntEnum):
     RUNE = 2  # runas de batalha do herói (SonType 214)
     HONOR = 3  # medalha de honra do herói (MasterType 3)
     HERO = 4  # equipado; ``object_id`` = id do herói
+    GUILD = 6  # armazém da guilda (``ConsortiaCaseBag``): itens do próprio jogador, espaços pelo ``storeLevel``
     MAIL = 10  # item anexado a um correio, esperando o 5022 (``BagType.mail`` do cliente)
     AUCTION = 11  # item à venda no mercado (``BagType.auction`` do cliente)
     BOTTLE = 22  # armazém da árvore dourada (8604) até tirar/vender; ``GoodsManager.isBottleBagGoods`` do cliente
     MAZE = 24  # prêmios do labirinto de gemas até o "receber tudo" (9517); ``BagType.Maze`` do cliente
+    PET_EQUIP = 26  # equipamento vestido no mascote; ``object_id`` = id do mascote (``BagType.PetEquipment``)
 
 
 # bolsas que não ficam no snapshot: o item só volta a ele quando é retirado (5022, cancelamento)
@@ -347,7 +350,13 @@ class Item:
     join_3: int = -1
     join_4: int = -1
     is_locked: bool = False
-    mould_grade: int = 0
+    mould_grade: int = 0  # encantamento do equipamento de mascote (8644)
+    bless_value: int = 0  # bênção do encantamento: soma na taxa, até 100 (PetEquipStrengView)
+    # ItemInfoMsg.property1: no Sylph à venda (item -900) é o pet em ``PetData.createWidthString``
+    property1: str = ""
+    # vinculado (ItemInfoMsg.bind, tooltip "Bound"/"Unbound"): só o não vinculado vai ao leilão (Auction.ResultAlert7).
+    # Nasce vinculado (a captura inglesa só tem bind true); a loja de Balens dá livre (handlers/shop.py)
+    is_binds: bool = True
     # validade (ItemInfoMsg.validDate em minutos, beginDate): 0 = para sempre (cliente GoodsInfo.leftTime)
     valid_date: int = 0
     begin_date: datetime | None = None
@@ -728,7 +737,7 @@ class ChallengeLog:
     is_attack: bool
     won: bool
     rank: int = 0  # coliseu: posição depois da luta; fadas: pontos ganhos/perdidos
-    forward: int = 0  # coliseu: 0 posição igual, 1 subiu, 2 desceu (ChallengeLogMsg.forward)
+    forward: int = 0  # coliseu: 0 posição igual, 1 subiu, -1 desceu (ChallengeLogMsg.forward)
     target_grades: int = 0
     target_job: int = 0
     id: int | None = None
@@ -902,6 +911,12 @@ class Pet:
     change_skills: str = ""
     fast_key: str = ""
     pos: int = 0  # ordem na lista (14 = mover para o topo)
+    # PetInfoMsg.isBind: só o livre vai ao leilão. ponytail: nasce vinculado; o selo livre dar mascote livre não
+    # está escrito no cliente
+    is_bind: bool = True
+    cha_skills: str = "-1,-1,-1"  # PetInfoMsg.chaSkillIndexs: skills do torneio (8726)
+    held: bool = False  # no leilão ou no correio (item -900): fora da lista até alguém pegar (5022) ou cancelar
+    quality_gp: int = 0  # PetInfoMsg.curQualityGp: a barra de bênção do avanço (8621 op 4) dentro da estrela
 
 
 @dataclass(eq=False)
@@ -913,6 +928,9 @@ class PlayerSystems:
     mount_template: int = 0  # montaria em uso (0 = nenhuma)
     mount_gp: str = "0,0,0,0"  # EXP de força, inteligência, físico, agilidade
     mount_avatars: str = ""  # montarias possuídas: "1000,1103"
+    mount_expiry: str = ""  # as temporárias (carta com Property2 dias): "1107:<fim em segundos Unix>"
+    mount_fly: str = ""  # voo comprado com Flystone (op 13, AvatarInfoMsg.isBuyFly): "1001,1002"
+    mount_stars: str = ""  # estrela e bênção de cada montaria (op 6, AvatarInfoMsg.starLevel/blessing): "1000:2:30"
     dragon_type: int = 0  # 101 alma do dragão, 102 depois da transferência
     dragon_grade: int = 0
     dragon_gp: int = 0
@@ -926,6 +944,8 @@ class PlayerSystems:
     star_day: str = ""
     powcards: str = ""  # cartas: "tempId:grade:gp,..."
     pet_slots: int = 0  # limites de pet comprados
+    # PlayerMsg.lastFreeSkillLearnTime: o último aprendizado aleatório grátis de skill de pet (8621 op 5)
+    pet_free_skill_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

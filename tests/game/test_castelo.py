@@ -55,7 +55,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=0))  # grátis só com VIP (vip.free_cool)
         assert await g.idle() == []
 
-        await _set(g, point=5)
+        await _set(g, point=9)  # 10 s de fila: 5 (ceil(10 / 600) * 5, QueueItem)
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))
         got = await g.until(102)
         assert [p.code for p in got] == [3, 4152, 83, 111, 102]  # leed 15 "Consume Balens" (só turco: replay #1289)
@@ -66,7 +66,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         assert next(b for b in saved.buildings if b.id == council).template_id == 90102
         async with g.server.services.database.sessions() as db:
             ledger = (await db.execute(select(CashLedger))).scalars().all()
-        assert [(e.delta_point, e.balance_point, e.reason) for e in ledger] == [(-1, 4, "order_quick")]
+        assert [(e.delta_point, e.balance_point, e.reason) for e in ledger] == [(-5, 4, "order_quick")]
 
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 10101)))  # fila livre de novo
         assert 4130 in [p.code for p in await g.until(83)]
@@ -123,7 +123,7 @@ async def test_tech_upgrade_spends_crystals_on_the_tech_order(tmp_path: Path) ->
 
 async def test_gold_impose_and_buying_a_second_build_order(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=READY) as g:
-        await _set(g, grades=14, gold=0, point=100)
+        await _set(g, grades=14, gold=0, point=400)  # fila extra: 395
         g.client.send(8327, pb.PayTypeMsg())
         got = await g.until(83)
         assert [p.code for p in got] == [109, 111, 151, 4242, 83]
@@ -193,6 +193,8 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id + 1, opType=4, pos=0))  # fazenda de outro
         lands = [pb.FarmInfoRspMsg.FromString(p.body).farmLandInfo[0] for p in await g.idle()]
         assert [x.result for x in lands] == [1, 1, 1] and lands[2].userId == g.user_id + 1  # o 4387 vai com o dono
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=16, pos=-1))  # guarda: sem terra -1
+        assert await g.idle() == []
 
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=1, bagPos=0, templateId=SEED))
         await g.until(4387)
@@ -200,13 +202,17 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         got = await g.until(4387)
         assert [p.code for p in got] == [3, 4387]
         assert pb.PlayerMsg.FromString(got[0].body).point == 0
+        assert pb.FarmInfoRspMsg.FromString(got[1].body).farmLandInfo[0].matureTime == "2026-01-01 00:29:30"  # 50%
         assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=7, pos=0, payType=1))  # sem diamante
+        assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1
+        clock.advance(30 * 60)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=1))
         got = await g.until(109)
         assert [p.code for p in got] == [4152, 83, 4387, 109]  # leed 25 "Harvest from your own farm"
-        assert pb.CastleYieldMsg.FromString(got[3].body).goldTotalCount == 2400
+        assert pb.CastleYieldMsg.FromString(got[3].body).goldTotalCount == 2400 + 260 * 30 // 60
 
-        clock.advance(59 * 60)
+        clock.advance(29 * 60)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=0))
         gold = pb.CastleYieldMsg.FromString((await g.until(109))[-1].body).goldTotalCount
         assert gold == 2400 + 2400 + 260 * 59 // 60  # as duas colheitas e a produção do castelo
@@ -248,6 +254,52 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
         clock.advance(600)
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))  # 3 por dia (help do cliente)
         assert await g.idle() == []
+
+
+async def test_land_upgrade_open_lands_and_the_tree_fruit(tmp_path: Path) -> None:
+    """Cliente inglês: terras pelo nível da fazenda (FarmLandLayer), op 9 (sendLandUp, LandUpTip) e a colheita da
+    árvore cheia (WaterViewContainer, TreeInfo.remainPickTime)."""
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        snap = await _set(g, gold=0, grades=40, point=0, gift_token=18)
+        assert snap.castle is not None
+        snap.castle.farm_grade, snap.castle.tree_water = 30, 29  # carga cheia no 30: 30 regas (UpGrade tipo 7)
+        seeds = Item(g.user_id, SEED, pos=0, count=1)
+        snap.items.append(seeds)
+        await g.server.services.characters.save(snap.castle, seeds)
+
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=0))
+        info = pb.FarmInfoRspMsg.FromString((await g.until(4386))[-1].body)
+        assert (len(info.farmLandInfo), info.landGrades) == (9, 1)  # 3 + 30 // 5
+
+        g.client.send(15044, pb.FarmOperReqMsg(opType=9, payType=0))  # 18 vinculados (1 * 2 * 3 / 2 + 15)
+        got = await g.until(4386)
+        assert 3 in [p.code for p in got] and pb.FarmInfoRspMsg.FromString(got[-1].body).landGrades == 2
+        g.client.send(15044, pb.FarmOperReqMsg(opType=9, payType=0))  # 27 sem saldo: nada (sem 4387)
+        assert 4387 not in [p.code for p in await g.idle()]
+
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=8, bagPos=0, templateId=SEED))
+        land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
+        assert (land.pos, land.rewardCount, land.matureTime) == (8, 2472, "2026-01-01 00:57:48")  # +3%, -2%
+
+        g.client.send(5178, pb.BuildingReqMsg(index=0))  # ainda sem fruto
+        g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
+        tree = pb.TreeUpdateRsp.FromString((await g.until(147))[-1].body).tree[0]
+        assert (tree.waterCount, tree.fruitCount) == (30, 1)
+        g.client.send(5178, pb.BuildingReqMsg(index=0))
+        got = await g.until(147)
+        assert [p.code for p in got][:2] == [106, 4189]
+        assert list(pb.TreeUpdateRsp.FromString(got[0].body).pickMsg) == ["Daru + 114,000", "Kyanite + 3,900"]
+        tree = pb.TreeUpdateRsp.FromString(got[-1].body).tree[0]
+        assert (tree.waterCount, tree.fruitCount, tree.leftPickTime) == (0, 0, 86400)
+        assert tree.nextPickTime == "2026-01-02 00:00:00"
+        g.client.send(5178, pb.BuildingReqMsg(index=0))
+        assert await g.idle() == []
+
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved.castle is not None and saved.castle.land_grade == 2
+        assert (saved.character.gift_token, saved.character.strategy) == (0, snap.character.strategy)
+        assert saved.character.strategy >= 114000 and saved.character.crystals >= 3900
 
 
 async def _friends(g: Game, other: Game, gp: int = 0) -> None:
@@ -296,7 +348,7 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
 
         g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=6, pos=1))  # reviver
         land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
-        assert (land.result, land.matureTime) == (0, "2025-12-31 23:59:00")  # 1 min antes de agora (UTC+3)
+        assert (land.result, land.matureTime) == (0, "2025-12-31 23:59:00")  # 1 min antes de agora
         g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=2, pos=2))  # tirar o inseto
         assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 0
 

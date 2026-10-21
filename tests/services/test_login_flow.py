@@ -147,12 +147,20 @@ async def test_registration_rules(env, keys) -> None:  # type: ignore[no-untyped
         ids.append((await login.http_login(client_payload(keys, name, ticket.token))).user_id)
 
     await chars.register(RegistrationRequest(ids[0], "Nome", 1, 1, 1))
-    with pytest.raises(ConflictError, match="em uso"):
+    with pytest.raises(ConflictError, match="Character name already in use."):
         await chars.register(RegistrationRequest(ids[1], "Nome", 1, 1, 1))
     with pytest.raises(ConflictError, match="já criado"):
         await chars.register(RegistrationRequest(ids[0], "Outro", 1, 1, 1))
-    for bad in ("x", "a" * 15, "<b>oi", "com espaço"):
-        with pytest.raises(ValidationError):
+    for bad, text in [
+        ("x", "too short"),
+        ("abc", "too short"),
+        ("a" * 13, "too long"),
+        ("龙龙龙龙龙龙龙", "too long"),
+        ("<b>oi", "invalid characters"),
+        ("com espaço", "invalid characters"),
+        ("  ", "cannot be empty"),
+    ]:
+        with pytest.raises(ValidationError, match=text):  # AddUserNameFrame: 4-12 bytes, ideograma vale 2
             await chars.register(RegistrationRequest(ids[1], bad, 1, 1, 1))
     with pytest.raises(ValidationError, match="classe"):
         await chars.register(RegistrationRequest(ids[1], "Valido", 1, 1, 9))

@@ -143,9 +143,9 @@ async def test_missao_47_arita_conta_cada_sorteio(tmp_path: Path) -> None:
     """Missão 769 "Equipment Refine" (Para1 0): o 8336 que gasta a pedra de refino avança 1."""
     async with logged_in(tmp_path, novice=19000) as g:
         sword = Item(g.user_id, SWORD, bag_type=0, pos=0, random_skill=70302)
-        await put(g, sword, Item(g.user_id, STONE_REFINE, pos=0))
+        await put(g, sword, Item(g.user_id, STONE_REFINE, pos=0, count=18))  # RESOLVE_STONES pelo Profile
         me(g).quests.append(Quest(g.user_id, 769, datetime.now(UTC)))
 
-        g.client.send(8336, pb.SmithFreshReqMsg(lock=[True, False, False], payType=0))
+        g.client.send(8336, pb.SmithFreshReqMsg(lock=[False, False, False], payType=0))
         got = await g.until(112)
         assert codes(got)[-2:] == [4258, 112] and _progress(got) == (769, 1)

@@ -28,6 +28,7 @@ from .monsters import Wilds
 from .rooms import Rooms
 from .router import PacketRouter
 from .teams import Teams
+from .vehicles import Arena
 
 if TYPE_CHECKING:
     from .battle import Battle
@@ -60,6 +61,7 @@ class GameContext:
     announcer: Announcer = field(default_factory=Announcer)  # anúncios agendados (game/announcements.py)
     # árvore dourada: andares e sorte por edição (handlers/gold_tree.py)
     gold_tree: dict[str, Any] = field(default_factory=dict)
+    vehicles: Arena = field(default_factory=Arena)  # fila e partidas de veículos (game/vehicles.py)
 
 
 class OnlinePlayers:
@@ -133,6 +135,7 @@ class GameSession:
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
         self.pet_offer: dict[int, int] = {}
+        self.vehicle_open: bool | None = None  # último 4512 mandado (o 20008 manda de novo se mudou)
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
@@ -183,12 +186,13 @@ class GameSession:
             self.outer_walk.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
-            from .handlers import events, room, team, worldboss  # idem
+            from .handlers import events, room, team, vehicle, worldboss  # idem
 
             try:  # sala e time antes do unbind: quem fica ainda recebe a saída
                 room.leave_room(self)
                 team.leave_team(self)
                 worldboss.leave_boss(self)
+                await vehicle.leave_vehicle(self)
             except Exception:
                 self.log.exception("falha ao sair da sala ou do time")
             try:

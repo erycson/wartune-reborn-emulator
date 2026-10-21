@@ -35,7 +35,7 @@ RIGHTS = {
 }
 RIGHTS_LEN = 55
 # índices de getRightsByIndex que o cliente usa (m6 ConsortiaStaffPage, ConsortiaPlayerMenu...)
-R_CHAIRMAN, R_RESEARCH, R_UPGRADE, R_PLACARD, R_KICK, R_INVITE = 1, 2, 3, 4, 5, 6
+R_CHAIRMAN, R_RESEARCH, R_UPGRADE, R_PLACARD, R_KICK = 1, 2, 3, 4, 5
 R_RECRUIT, R_RENAME, R_DUTY, R_DESCRIPTION, R_REJECT = 9, 18, 19, 30, 33
 LEVEL_TYPES = {
     1: "levels",
@@ -93,16 +93,6 @@ def altar_state(guild: Consortia, now: datetime) -> int:
     return ALTAR_OPEN if (now - at).total_seconds() < ALTAR_SECONDS else ALTAR_ENDED
 
 
-def pay_points(c: Character, amount: int, bind_first: bool) -> bool:
-    """Diamantes: ``bind_first`` (payType 0) gasta primeiro os vinculados (giftToken)."""
-    bind = min(c.gift_token, amount) if bind_first else 0
-    if c.point < amount - bind:
-        return False
-    c.gift_token -= bind
-    c.point -= amount - bind
-    return True
-
-
 @dataclass
 class Guilds:
     """Estado de todas as guildas do servidor (um processo = um servidor)."""
@@ -156,11 +146,17 @@ class Guilds:
     def applications(self, guild_id: int) -> list[ConsortiaInvite]:
         return [i for i in self.invites if i.consortia_id == guild_id and not i.from_type]
 
-    def add_event(self, guild_id: int, now: datetime, remark: str, kind: int = 1) -> ConsortiaEvent:
-        e = ConsortiaEvent(guild_id, now, remark[:255], type=kind)
+    def add_event(self, guild_id: int, now: datetime, kind: int, *parts: str) -> ConsortiaEvent:
+        e = ConsortiaEvent(guild_id, now, remark(*parts), type=kind)
         self.events[guild_id].append(e)
         del self.events[guild_id][:-50]  # ponytail: só os 50 últimos na memória; o banco guarda todos
         return e
+
+    def grade_order(self, guild: Consortia) -> int:
+        """Posição da guilda no servidor (``orderInfo.gradeOrder``, aba principal e ranking do m11). *Dedução*: nível,
+        depois a riqueza total; o critério do oficial não está no cliente nem nos templates."""
+        key = (guild.levels, guild.total_offer)
+        return 1 + sum(1 for x in self.guilds.values() if (x.levels, x.total_offer) > key)
 
     def drop_guild(self, guild_id: int) -> list[object]:
         """Tira a guilda e tudo dela da memória; devolve as entidades para apagar."""
@@ -229,7 +225,7 @@ def info_msg(g: Guilds, guild: Consortia, now: datetime) -> pb.ConsortiaInfoMsg:
         altarState=altar_state(guild, now),
         maxMave=guild.max_wave,
     )
-    msg.orderInfo.consortiaId = guild.id or 0
+    msg.orderInfo.consortiaId, msg.orderInfo.gradeOrder = guild.id or 0, g.grade_order(guild)
     return b.complete(msg)
 
 
@@ -258,6 +254,19 @@ def member_msg(
         job=c.job,
     )
     return b.complete(msg)
+
+
+# ConsortiaEventItem.decode: o remark é partido por "|" e montado pelo tipo (o texto de cada parte é dedução)
+EV_KICK = 1  # "Member Changes", 4 partes: nome, texto, nome, texto
+EV_MEMBER = 3  # "Member Changes", 2 partes: nome, texto
+EV_TRANSFER = 7  # "Transfer Ownership", 3 partes: texto, nome, texto
+EV_EVENT = 9  # "Guild Event", 3 partes: texto, nome, texto
+EV_UPGRADE = 11  # "Upgrade Guild", 1 parte
+
+
+def remark(*parts: str) -> str:
+    """Um "|" num apelido quebraria as partes do ``ConsortiaEventItem``."""
+    return "|".join(p.replace("|", "") for p in parts)[:255]
 
 
 def new_uuid() -> str:

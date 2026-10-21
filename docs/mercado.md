@@ -2,121 +2,127 @@
 
 Handlers em `game/handlers/mall.py`; encerramento dos anúncios vencidos (na hora do pedido e agendado) e cartas
 do sistema em `game/mall.py`; correio com item em `game/mail.py` e `game/handlers/mail.py` (5022, 8206).
-Legenda: *(visto)* = captura oficial; *(cliente)* = constante, campo ou texto no cliente decompilado;
-*(dedução)* = coerente com o resto, sem prova direta.
+Legenda: *(cliente)* = constante, campo ou texto do cliente inglês; *(dedução)* = coerente com o resto, sem prova direta.
 
-**Limite da fonte.** Nem a captura inglesa, nem as 32 capturas turcas, nem o `server-relay/replay_packets.json` têm
-pacote do mercado (8448–8457 ou 4352–4359). `amfi_marketi_alisveris.json` (turca) é a loja de NPC (5154), não o leilão. Os
-nomes dos opcodes e os campos vêm de `ProtocolType.as`, `AcceptProtocolType.as`, `m2/scripts/mvc/module/auction/` e
-do `.proto`. Os textos da tela (`Auction.ResultAlert*`, `Auction.SubmitHour*`, `Auction.LeftTime*`) estão em
-`ui/zh_cn/language.txt` do CDN local (zlib, em turco; lido sem alterar nada). Todos os textos entre aspas abaixo são
-desse arquivo (só turco: `data/overlay/ui/zh_cn/language.txt`; o `language.txt` inglês não está no repositório e os
-templates ingleses não têm esses textos). A ajuda da tela
-(`auction.view.AuctionHelp.helpContent`, 11 itens) dá as regras de imposto, entrega e limite diário: citada abaixo como
-*(cliente, ajuda item N)*. O que a ajuda não dá (valor da taxa em ouro, nível de abertura) pede captura: ver
-[Dependências](#dependências).
+**Fontes.** Nenhuma captura (inglesa ou turca) tem pacote do mercado (8448–8457 ou 4352–4359). As regras vêm do
+cliente inglês decompilado: telas em `D:\xampp\htdocs\wartune\decomp\m7\scripts\auction` (`AuctionFrame`,
+`buy/AuctionSearchControl`, `buy/AuctionBuyResultPane`, `sell/AuctionSellSubmitPane`, `sell/AuctionSellResultPane`,
+`record/AuctionRecordResultPane`, `common/AuctionChecker`), envio em `2/scripts/mediator/AuctionMessageSender.as`.
+Os textos entre aspas são do `language.txt` inglês (`Auction.*`, `auction.view.AuctionHelp.helpContent`, 8 itens,
+citada como *(ajuda item N)*).
+
+## Telas do cliente inglês
+
+| aba | pedido | o que a tela faz |
+|---|---|---|
+| Buy | 8457 (`AuctionSearchControl`) | busca com nome, nível, qualidade, classe, tipo, `usable`, página, `orderBy`/`orderType`; 7 linhas (`AuctionBuyResultPane`). Lance pelo `AuctionInputFrame`: valor igual ao atual só sai se ainda não há lance; ≥ fixo vira compra (8453) depois de confirmar; o próprio anúncio é barrado (`AuctionChecker`, "You cannot bid in your own auction!") |
+| Sell Items | 8449 (1, 9, 1) e 8448 | meus anúncios (9 por página, ordenados na própria tela) e o painel de venda (`AuctionSellSubmitPane`) |
+| Sell Sylphs | 8449 e 8448 com `sellType` 2 | abre no nível 50 ("Unlocks at Lvl. 50"); ajuda `AuctionFrame.helpPet`: só mascote não vinculado, entregue pelo correio, recusado com o plantel cheio (ver [Sylph no leilão](#sylph-no-leilão)) |
+| Record | 8452 (página, 9, 1, `orderBy`, `orderType`) | meus lances, ordenáveis pelos títulos |
+
+O 8450 (`sendPlayerAuctionListReq`) não tem chamador no cliente inglês; o servidor responde para quem mandar.
 
 ## Opcodes
 
-Estado: 8448, 8451, 8453 e 8454 completos, com as regras que faltam listadas em [Dependências](#dependências).
-8449 e 8452 listam as minhas linhas. 8450 e 8457 são **parciais**: `orderBy` e `orderType` são ignorados e o
-cliente decompilado não mostra o sentido da ordenação.
+| C>S | o que faz | S>C |
+|---|---|---|
+| 8448 SellItemReqMsg | anuncia uma pilha da mochila (`itemId`, `itemPos`, `count`, `point`, `fixPoint`, `hour`, `sellType`) e cobra a taxa em ouro | 115 (a mochila muda), 4352 SellItemRspMsg `{result, item}`, 109 (ouro) |
+| 8449 MallItemViewReqMsg | meus anúncios abertos, do mais novo para o mais antigo (`page`, `count`) | 4353 AuctionItemsMsg `{pageIdx, pageCount, sellItem[]}` |
+| 8450 MallItemViewReqMsg | anúncios abertos do servidor, na aba `from` (1 só itens, 2 só Sylphs, outro os dois; *dedução*) | 4354 AuctionItemsMsg |
+| 8451 AuctionItemReqMsg | lance em `id` por `point` | 4355 AuctionItemRspMsg `{result, itemBuy}` |
+| 8452 MallItemViewReqMsg | meus lances em anúncios abertos (`itemBuy` com o meu `bidupPoint`), na ordem pedida | 4356 AuctionItemsMsg `{pageIdx, pageCount, itemBuy[]}` |
+| 8453 AuctionItemReqMsg | compra pelo preço fixo: `point` tem que ser o `fixPoint` | 4357 FixAuctionItemRspMsg `{result, mallItemId}`; o item vai pelo correio (148), sem 115 |
+| 8454 AuctionItemReqMsg | cancela o meu anúncio (`id`) sem lance | 115 (o item volta à mochila) e 4358 CanceltemRspMsg `{result, id}` |
+| 8457 SearchItemReqMsg | busca nos anúncios abertos, na ordem pedida | 4359 AuctionItemsMsg (7 por página) |
 
-| C>S | o que faz | S>C | fonte |
-|---|---|---|---|
-| 8448 SellItemReqMsg | anuncia uma pilha da mochila (`itemId`, `itemPos`, `count`, `point`, `fixPoint`, `hour`) | 115 (a mochila muda) e 4352 SellItemRspMsg `{result, item}` | *(cliente)* campos, duração, quantidade e textos; preço mínimo *(dedução)* |
-| 8449 MallItemViewReqMsg | meus anúncios abertos, do mais novo para o mais antigo (`page`, `count`) | 4353 AuctionItemsMsg `{pageIdx, pageCount, sellItem[]}` | *(cliente)* nome `C_MALL_LIST_SELL`; página 9 |
-| 8450 MallItemViewReqMsg | anúncios abertos de todos os jogadores do servidor, na aba `from` (1 item, 2 mascote) | 4354 AuctionItemsMsg `{sellItem[]}` | *(cliente)* nome `C_MALL_PLAYER_ITEMS`; sentido *(dedução)* |
-| 8451 AuctionItemReqMsg | dá lance em `id` por `point` | 4355 AuctionItemRspMsg `{result, itemBuy}` | *(cliente)* campos; regras *(dedução)* |
-| 8452 MallItemViewReqMsg | meus lances em anúncios abertos (`itemBuy` com o meu `bidupPoint`) | 4356 AuctionItemsMsg `{pageIdx, pageCount, itemBuy[]}` | *(cliente)* nome `C_MALL_LIST_AUCTION`; página 9 |
-| 8453 AuctionItemReqMsg | compra pelo preço fixo: `point` tem que ser o `fixPoint` | 4357 FixAuctionItemRspMsg `{result, mallItemId}`; o item vai pelo correio (148), sem 115 | *(cliente)*; entrega *(cliente, ajuda item 3)* |
-| 8454 AuctionItemReqMsg | cancela o meu anúncio (`id`) sem lance | 115 (o item volta à mochila) e 4358 CanceltemRspMsg `{result, id}` | *(cliente)* |
-| 8457 SearchItemReqMsg | busca nos anúncios abertos: nome, nível, qualidade, classe, tipo, subtipo, `usable` | 4359 AuctionItemsMsg `{sellItem[]}` (página fixa de 9) | *(cliente)* campos; página *(dedução)* |
+**Ordem** (8452 e 8457): `orderBy` 1 nível (`NeedGrades`), 2 tempo restante (`ends_at`), 3 preço atual, 4 preço fixo;
+`orderType` 2 decrescente, 1 crescente (`AuctionSearchControl`/`AuctionRecordResultPane.__onTitleClick`: o primeiro
+clique pede 2). Sem `orderBy`, o mais novo primeiro.
 
 Todo handler responde mesmo com corpo vazio ou mínimo (`tests/game/test_mall.py`). Pedido vazio cai na
 recusa do próprio handler: 8448 com `sellType` 0 dá `NOT_AUCTION`; 8451, 8453 e 8454 com `id` 0 dão `GONE`.
 
 ### Códigos de resultado
 
-Os valores são os do cliente: `SellResultType` (`yishi/datas/consant/SellResultType.as`) dá o nome e o módulo
-do código; o texto de cada um é `Auction.ResultAlert<valor absoluto>` no `language.txt`.
+`SellResultType` (`yishi/datas/consant/SellResultType.as`) dá o código; o texto é `Auction.ResultAlert<valor absoluto>`.
 
 | código | nome no servidor | quando | texto do cliente |
 |---|---|---|---|
-| 0 | `OK` | deu certo | "Başarılı!" |
-| −2 | `GONE` | anúncio inexistente, ou cancelar de quem não é o dono | "Eşya mevcut değil!" |
-| −3 | `COUNT` | quantidade fora de 1..`count` da pilha | "Uygunsuz miktar!" |
-| −4 | `PRICE` | lance abaixo do mínimo, lance ≥ preço fixo, ou compra com `point` diferente do `fixPoint` | "…var olan fiyatten yüksek olmak zorunda" |
-| −5 | `FIX_PRICE` | `fixPoint` não é maior que o `point` inicial | "Sabit Fiyat yanlış" |
-| −6 | `HOUR` | duração fora de 1..72 h (dedução; a tela oferece 8, 24 e 48 h, `Auction.SubmitHour1..3`) | "Saat yanlış" |
-| −7 | `BLOCKED` | item travado (8809) | "Eşya bağlı halde" (vinculado; ver Dependências) |
-| −8 | `NO_ITEM` | a posição não tem o item de `itemId` | "Eşya mevcut değil" |
-| −11 | `NO_POINT` | diamante insuficiente | "Elmas yetersiz!" |
-| −12 | `NOT_AUCTION` | `sellType` diferente de 1 (item), ou template com `StartingPrice` 0 (não vai a leilão) | "Bu eşyanın teklifi verilemez" |
-| −14 | `FIX_FAIL` | anúncio sem preço fixo | "Alım başarısız!" |
-| −15 | `CANCEL_FAIL` | cancelar com lance feito, ou mochila sem espaço para devolver | "Eşya silinmedi!" |
-| −16 | `OWN_FIX` | comprar o próprio anúncio | "Kendi eşyanızı alamazsınız." |
-| −17 | `OWN_BID` | dar lance no próprio anúncio | "…en yüksek fiyat verensiniz" (ver Dependências) |
-| −18 | `SELL_MAX_COUNT` | mais de 9 unidades num anúncio | "Satılan eşyanın en fazla 9 adet olmalıdır" |
-| −52 | `DAILY_LIMIT` | lance ou compra que passa do limite diário do nível | "İhale günlük satın alma sınırına ulaştı!" |
+| 0 | `OK` | deu certo | "Success!" |
+| −2 | `GONE` | anúncio inexistente, ou cancelar de quem não é o dono | "Item does not exist!" |
+| −3 | `COUNT` | quantidade fora de 1..`count` da pilha | "Invalid quantity!" |
+| −4 | `PRICE` | lance abaixo do mínimo, lance ≥ preço fixo, ou compra com `point` diferente do `fixPoint` | "Bid must be higher than the current price, please re-enter!" |
+| −5 | `FIX_PRICE` | `fixPoint` 0 ou não maior que o inicial (`SubmitAlert3`/`SubmitAlert4`) | "Invalid Buy-It-Now Price" |
+| −6 | `HOUR` | `hour` fora de 8, 24, 48 | "Invalid Time" |
+| −7 | `BLOCKED` | item vinculado, ou travado (8809) | "Item is bound!" |
+| −8 | `NO_ITEM` | a posição não tem o item de `itemId` | "Item does not exist!" |
+| −10 | `NO_GOLD` | ouro menor que a taxa | "Inadequate gold reserves." |
+| −11 | `NO_POINT` | Balens insuficientes | "You don't have enough Balens!" |
+| −12 | `NOT_AUCTION` | `sellType` diferente de 1 e 2, template com `StartingPrice` 0, ou Sylph abaixo do nível 50 | "You cannot auction this item!" |
+| −14 | `FIX_FAIL` | anúncio sem preço fixo (anúncio antigo; o 8448 não aceita mais) | "Unable to purchase item!" |
+| −15 | `CANCEL_FAIL` | cancelar com lance feito, ou mochila sem espaço para devolver | "Unable to delete item." |
+| −16 | `OWN_FIX` | comprar ou dar lance no próprio anúncio (o cliente já barra) | "You can't buy an item from yourself!" |
+| −17 | `OWN_BID` | o líder cobrir o próprio lance | "Bid failed:you are already the high bidder." |
+| −18 | `SELL_MAX_COUNT` | mais de 9 unidades num anúncio | "Number of items sold cannot exceed 9!" |
+| −19 | `START_PRICE` | inicial abaixo de 2 ou de `StartingPrice × count` | "Starting Price cannot be less than the default price." |
+| −52 | `DAILY_LIMIT` | lance ou compra que passa do limite diário; só com `game_settings.mall_daily_limit` | sem texto no cliente inglês (alerta genérico) |
 
-Não usados ainda: −9 (item já à venda), −10 (ouro insuficiente: a taxa existe, o valor não), −13 (falha de lance
-genérica). Mudou nesta revisão: template sem `StartingPrice` dava −7; o texto do cliente de −7 é outro, e
-−12 é o que o cliente usa para "não dá para dar lance".
+Não usados: −1 (falha genérica), −9 ("Item is being sold!"), −13 ("Item Auction Failed!").
 
 ## Anunciar (8448)
 
-- Só item da mochila (bolsa 1) com `sellType` 1. Mascote (`sellType` 2) não tem leilão.
-- Template com `StartingPrice` > 0 em `ItemTempInfos` (`tempinfos.xml`). O preço inicial mínimo é
-  `StartingPrice × count` *(dedução)* e nunca menos de 1 *(cliente, `Auction.SubmitAlert2` inglês: "greater than
-  zero"; o turco dizia 2)*: o template define o piso, e o jogador escolhe acima.
-- A ajuda diz que anunciar cobra ouro de imposto *(cliente, ajuda item 4)*. O valor não está no cliente: o servidor
-  não cobra (ver Dependências).
-- Duração: a tela oferece 8, 24 ou 48 h (`Auction.SubmitHour1..3`); o servidor aceita 1 a 72 *(dedução)*, porque o
-  valor que o cliente manda (horas ou índice da opção) não está no decompilado. O fim é `started_at + hour`:
-  `AuctionListItemData.timeLeft` calcula `hour × 3600000 − (agora − startTime)` sobre o `hour` que o servidor devolve,
-  então o servidor grava `ends_at = started_at + hour` *(cliente)*.
-- Quantidade: 1 a 9 por anúncio *(cliente)*: `Auction.ResultAlert18` diz "Satılan eşyanın en fazla 9 adet olmalıdır"
-  (o item vendido tem no máximo 9 unidades) e a tela pede "İhale sayısını girin" (`Auction.EnterSellNum`).
-- `fixPoint` 0 = sem compra imediata; senão tem que ser maior que `point`.
-- Pilha parcial: a quantidade anunciada vira uma linha nova na bolsa 11 (AUCTION, posição 0) e a
-  mochila fica com o resto na mesma linha. Não volta a empilhar na pilha original ao cancelar.
-- Anúncio inteiro: a linha do item muda para a bolsa 11 e sai da mochila na mesma gravação que cria
-  o `mall_listings`. Um item nunca está nos dois lugares.
+Regras do `AuctionSellSubmitPane` *(cliente)*, conferidas também no servidor:
+
+- Item da mochila (bolsa 1) com `sellType` 1 e template com `StartingPrice` > 0 em `ItemTempInfos`; ou Sylph com
+  `sellType` 2 (ver abaixo).
+- Inicial: no mínimo 2 (`onSellBtnClick`; `SubmitAlert2` "Starting price may not be zero…") e `StartingPrice × count`
+  (−19, "…less than the default price"; o produto pela quantidade é *(dedução)*).
+- Preço fixo obrigatório e maior que o inicial (`SubmitAlert3` "Did you forget to enter the buy-it-now price?",
+  `SubmitAlert4` "Buy-it-now price must be higher than the starting price!").
+- Duração 8, 24 ou 48 h (`getSelectTime`, `Auction.SubmitHour1..3`); o 8448 leva as horas. `ends_at = started_at + hour`
+  (`AuctionListItemData.timeLeft` = `hour × 3600000 − (agora − startTime)`).
+- Taxa de 250 × horas de ouro (`updateCarryingCost`; *ajuda item 4*: "A small auction fee of gold is required and will
+  be automatically deducted when selling items"). Sai na transação do anúncio; o 109 atualiza a barra. *ponytail*:
+  cancelar não devolve a taxa (o cliente não diz).
+- Quantidade: 1 a 9 por anúncio (`Auction.ResultAlert18`).
+- Pilha parcial: a quantidade anunciada vira uma linha nova na bolsa 11 (AUCTION, posição 0) e a mochila fica com o
+  resto na mesma linha. Não volta a empilhar na pilha original ao cancelar.
+- Anúncio inteiro: a linha do item muda para a bolsa 11 e sai da mochila na mesma gravação que cria o
+  `mall_listings`. Um item nunca está nos dois lugares.
 
 ## Lances, compra e encerramento
 
-- **Lance (8451)**: o primeiro lance é ≥ o inicial *(dedução)*; os seguintes são > o último. Lance ≥ `fixPoint`
-  é recusado: a compra é pelo 8453. O diamante sai agora (`ledger.pay`, `reason` `mall`); quem já
-  lidera paga só a diferença *(dedução)*. O lance superado vai pelo correio ("Bid Refund", anexo −400 com o
-  valor). O `mall_bids` guarda um registro por jogador e por anúncio.
+- **Lance (8451)**: o primeiro lance é ≥ o inicial (`AuctionBuyResultPane.inputPriceCallback` manda o valor atual
+  quando `auctioned` é falso); os seguintes são > o último. Lance ≥ `fixPoint` é recusado: o cliente troca pelo 8453.
+  O líder não cobre o próprio lance (−17). Os Balens saem agora (`ledger.pay`, `reason` `mall`, só Balens). O lance
+  superado volta pelo correio ("Bid Refund", anexo −400 com o valor). O `mall_bids` guarda um registro por jogador e
+  por anúncio.
 - **Compra (8453)**: paga `fixPoint` (ou a diferença, se já é o líder). O item vai ao comprador pelo correio
-  ("Purchased Item") *(cliente, ajuda item 3: "a compra chega pela mensagem do sistema"; o 4357 do cliente só tira
-  a linha da lista)*, então mochila cheia não recusa a compra. O diamante do vendedor vai pelo correio
-  ("Sale Income"); o lance superado vai de volta pelo correio; os lances e o anúncio são apagados.
-- **Imposto da venda**: o vendedor recebe 80% do preço (`game/mall.py` `income`) *(cliente, ajuda item 7: "o sistema
-  tira 20% de imposto do vendedor")*, na compra pelo fixo e no vencido com lance. *ponytail*: arredondado para baixo,
-  o texto não diz.
-- **Limite diário de compra**: diamante pago no mercado por dia (`characters.mall_spent` / `mall_day`, migração
-  `0018`), por nível: até 59 = 500, 60–69 = 1000, 70 ou mais = 1500 *(cliente, ajuda itens 9–11: Lv40-60 500, Lv60-70
-  1000, Lv70-80 1500)*. Passou: −52, recusado antes de cobrar; o contador grava na mesma gravação do débito.
-  *ponytail*: as faixas do texto se sobrepõem em 60 e 70 (aqui contam na de cima), abaixo de 40 vale 500 e acima de 80
-  vale 1500; conta o diamante pago em lance e compra, e lance devolvido não volta para a cota.
-- **Cancelar (8454)**: só o dono e só sem lance. O item volta à mochila na primeira posição livre.
+  ("Purchased Item") *(ajuda item 3: "Purchased items will be sent via the in-game mail system")*, então mochila cheia
+  não recusa a compra. Os Balens do vendedor vão pelo correio ("Sale Income"); o lance superado volta pelo correio;
+  os lances e o anúncio são apagados.
+- **Imposto da venda**: o vendedor recebe 80% (`game/mall.py` `income`) *(ajuda item 7: "a procedure fee (20% of the
+  closing price) will be charged from the seller")*, na compra pelo fixo e no vencido com lance. *ponytail*:
+  arredondado para baixo.
+- **Cancelar (8454)**: só o dono e só sem lance *(ajuda item 5: "Auctions for items that have winning bids cannot be
+  cancelled")*. O item volta à mochila na primeira posição livre.
+- **Limite diário de compra**: a ajuda inglesa não tem; padrão sem limite. `game_settings.mall_daily_limit` (JSON
+  `{"bands": [[nível abaixo de, limite], ...], "top": limite}`) liga, ex. o do turco
+  `{"bands": [[60, 500], [70, 1000]], "top": 1500}`. Conta os Balens pagos (`characters.mall_spent` / `mall_day`,
+  migração `0018`); passou: −52, recusado antes de cobrar; o lance devolvido não volta para a cota.
 - **Encerramento**: dois caminhos, na mesma transação e sob `MALL_LOCK`:
   - **agendado**: `game/mall.py` `run`, iniciado em `app.py` (`serve`) e cancelado ao desligar. Roda já na subida e
     depois a cada 60 s (`SWEEP_SECONDS`). Uma rodada que falha é registrada (`log.exception`) e a próxima tenta de
-    novo. Assim o anúncio vencido encerra mesmo sem nenhum jogador pedir o mercado.
-  - **no pedido**: antes de cada pedido do mercado de qualquer jogador, `_transact` roda `settle` como antes, então
-    um pedido nunca vê um anúncio vencido aberto.
+    novo.
+  - **no pedido**: antes de cada pedido do mercado, `_transact` roda `settle`, então um pedido nunca vê um anúncio
+    vencido aberto.
 
   `settle` encerra os anúncios com `ends_at <= agora`:
-  - com lance: o item vai ao vencedor pelo correio ("Won Item") e o diamante, menos 20%, ao vendedor
-    ("Sale Income");
-  - sem lance: o item volta ao vendedor pelo correio ("Returned Item").
+  - com lance: o item vai ao vencedor pelo correio ("Won Item") e os Balens, menos 20%, ao vendedor ("Sale Income");
+  - sem lance: o item volta ao vendedor pelo correio ("Returned Item") *(ajuda item 6)*.
 
-  Os lances do anúncio são apagados. Isto vale também para vendedor fora do jogo: a carta fica no banco
-  até ele entrar e pegar no 5022. O 148 sai depois do commit, só para quem está online.
+  Os lances do anúncio são apagados. Vale também para vendedor fora do jogo: a carta fica no banco até ele entrar e
+  pegar no 5022. O 148 sai depois do commit, só para quem está online.
 
 ### Como o correio entrega item
 
@@ -154,59 +160,40 @@ Migrações `0015_mercado_entre_jogadores_e_itens_no_` e `0018_limite_diario_de_
 
 Bolsas novas: 10 (MAIL, correio) e 11 (AUCTION, leilão), ambas com posição 0 (ver [itens.md](itens.md)).
 
+## Sylph no leilão
+
+O cliente trata o Sylph como o item −900 (`PetData.convertToGoods`: MasterType 4, SonType 309, `StartingPrice` 10,
+quantidade 1) e lê o pet do `itemInfo.property1` (`GoodsInfo.property1` → `PetData.createWidthString`). O servidor
+faz igual (migração 0049):
+
+| Passo | Regra | Resposta |
+|---|---|---|
+| 8448 `sellType` 2 | `itemPos` = id do pet (`AuctionSellSubmitPane`). Nível 50 (`AuctionFrame`), pet livre, fora de batalha, fora da equipe do Sylph Arena e sem equipamento (`PetSellView` só lista esses; recusa −7), quantidade 1, inicial ≥ 10. Cria a linha −900 (bolsa 11, `object_id` = pet, `property1` = o pet como o `createWidthString` lê) e marca `pets.held`: o pet sai da lista do dono, também ao logar de novo | 4540 com `isDel`, 4352, 109 |
+| listas e busca | `itemFrom` 2; a busca e a ordem usam nome, nível e cor (`(Quality − 1) / 5 + 1`) do pet (`game/mall.py` `goods_row`); a categoria Sylph é a 4/309 do −900 | 4353, 4354, 4356, 4359 |
+| lance, compra, fim | como o item: o −900 vai pelo correio, com o `object_id` | 148 |
+| 5022 do −900 | vai para a lista de pets (dono, `held` falso, fim da fila) e o −900 some; lista cheia (6 + vagas compradas) dá `result` false e o anexo fica ("You cannot accept the Sylph if your roster is full") | 114, 4131, 4540 |
+| 8454 | o pet volta à lista; lista cheia dá −15 | 4540, 4358 |
+
+O correio mostra o ícone do −900 ("Blank Hero Seal Card"), sem os dados do pet: o cliente só busca o `itemlist` para
+`AnnexN > 0` e o servidor manda os anexos negativos (o mesmo limite dos itens do leilão: sem encantamento nem pedras no correio). O texto da carta leva o
+nome do pet.
+
 ## Dependências
 
-Tudo abaixo é *(dedução)*, texto do cliente sem valor, ou falta de dado. O servidor responde algo coerente e não
-inventa formato:
+O que falta, com o que o servidor faz hoje:
 
-- **Duração**: a tela oferece 8, 24 ou 48 h, mas o servidor aceita 1 a 72 *(dedução)*. **Precisa de captura**:
-  anunciar com cada uma das três opções da tela e ler o `hour` do 8448 (horas ou índice da opção).
-- **Quantidade**: 1 a 9 por anúncio *(cliente, `Auction.ResultAlert18`)*. Não há captura que mostre o que o oficial
-  faz com 10 unidades.
-- **Página**: a lista pede 9 por página *(cliente: `sendMyAuctionListReq(1,9,1)`)*. O teto de 50 é *(dedução)*.
-  O 8457 não manda tamanho e usa 9.
-- **Preço inicial**: o piso é `StartingPrice × count` *(dedução)*, nunca abaixo de 1 *(cliente, `SubmitAlert2` inglês)*.
-  O aviso de preço baixo (`SubmitAlert5`) não tem o número. **Precisa de captura**: anunciar exatamente em
-  `StartingPrice × count` e um abaixo, e ler o código.
-- **Preço fixo**: `fixPoint` 0 = sem compra imediata. O cliente tem "Sabit Fiyat, İlk Fiyattan yüksek olmak zorundadır"
-  (`SubmitAlert4`), que é o −5 e confere. "Sabit Fiyat girin" (`SubmitAlert3`) não diz se o campo é obrigatório.
-- **Taxa de anúncio em ouro**: existe *(cliente, ajuda item 4: "ao vender é preciso pagar ouro de imposto")*, com o
-  −10 "Altın yetersiz!". O valor não está no cliente decompilado (a tela de venda é do módulo `auction`, fora do
-  decompilado) nem nos templates; o servidor não cobra. **Precisa de captura**: anunciar o mesmo item com preços e
-  durações diferentes e medir o ouro que sai (e um anúncio com ouro 0 para ver o −10).
-- **Nível de abertura**: a ajuda diz "İhale fonksiyonu {0} seviyede açılır" (`AuctionShopTip`), mas o `{0}` é
-  preenchido na tela fora do decompilado. O servidor não confere o nível. **Precisa de captura** (ou do SWF do módulo
-  `auction` decompilado): um personagem abaixo do nível tentar abrir o leilão.
-- **Limite de anúncios por jogador**: não há. O cliente não tem código de "muitos anúncios".
-- **Limite diário de compra**: valores da ajuda (itens 9–11), aplicados. **Precisa de captura** só para as bordas:
-  se lance superado conta, o que vale abaixo de 40 e acima de 80, e a hora em que o dia vira (aqui, a data do relógio
-  do servidor).
-- **Vínculo**: −7 é "Eşya bağlı halde" (item vinculado) no cliente. O item do servidor não tem estado de vínculo
-  (`builders/player.py` manda `bind=True` para todo item), então não há como recusar vinculado com o dado que existe.
-  O −7 do servidor é item travado (8809), que é outra coisa ("kilit" é o travamento). Lance e compra pagam só Balens
-  (`bind=False`) *(dedução)*. **Precisa de captura**: anunciar um item vinculado e um não vinculado (o cliente diz
-  "Bu eşya bağlı değildir" para item que ainda não está vinculado) e ler o código.
-- **Lance no primeiro preço**: o primeiro lance é ≥ o inicial *(dedução)*. O texto do −4 é "Girilecek fiyat, var olan
-  fiyatten yüksek olmak zorunda" (o preço tem que ser maior que o atual): pode ser > também no primeiro lance.
-  **Precisa de captura**: dar lance igual ao inicial.
-- **Líder subindo o próprio lance**: o servidor deixa e cobra só a diferença *(dedução)*. O texto de −17 é "Teklif
-  başarısız, en yüksek fiyat verensiniz" (o lance falha: você já dá o maior preço), e o servidor usa −17 para o dono
-  dar lance no próprio anúncio (o cliente já bloqueia isso antes, `AuctionCheckResult1`). **Precisa de captura**: o
-  líder dar lance maior.
-- **Encerramento agendado**: a cada 60 s, sem dormir até o menor `ends_at` (*ponytail*: até 60 s de atraso no fim).
-  O pedido do mercado ainda encerra na hora. **Precisa de captura** para o formato das cartas do oficial: deixar um
-  anúncio vencer com lance e sem lance, comprar pelo fixo, e gravar o título, o anexo e o momento da carta. Os títulos
-  ("Won Item", "Sale Income", "Returned Item", "Bid Refund", "Purchased Item") são do servidor, não do
-  oficial. A ajuda (item 8) diz que o anúncio novo aparece "pouco depois" na vitrine; aqui aparece na hora.
-- **`orderBy` / `orderType`**: ignorados em todas as listas (8449, 8450, 8452, 8457). A ordem é a do
-  anúncio mais novo primeiro. Parcial em 8450 e 8457: o sentido da ordenação não aparece no cliente.
-- **`from`**: lido como tipo do item (1 item, 2 mascote). Mascote não tem leilão: a lista vem vazia.
-- **Mapeamento das listas (não confirmado)**: os nomes das constantes (`C_MALL_LIST_SELL`,
-  `C_MALL_PLAYER_ITEMS`, `C_MALL_LIST_AUCTION`) sugerem "meus anúncios", "itens de jogadores" e
-  "meus lances". Por isso 8449 e 8452 leem as minhas listas e 8450 lê o mercado. Sem captura nem tela
-  decompilada, o sentido de 8450 pode ser outro.
-- **`itemId`**: assumido como `Item.id` (a linha do banco). Sem captura para confirmar.
-- **Mochila cheia**: cancelar recusa (`CANCEL_FAIL`); a compra não depende da mochila (vai pelo correio). O oficial
-  não é conhecido para o cancelar.
-- **Ordem dos pacotes**: 115 vai antes de 4352/4358 (dedução: o cliente atualiza a mochila
-  antes da resposta).
+- **Sylph livre**: todo pet nasce vinculado e batalha, devorar e equipar vinculam (ver
+  [heroi-exercito.md](heroi-exercito.md)). Sem um jeito de ganhar pet livre, a venda só serve a pets já livres no banco.
+- **Vínculo**: item vinculado (`Item.is_binds`) dá −7 "Item is bound!", e o travado (8809) também. Livre é só o
+  comprado em Balens e o que já veio do leilão (ver [itens.md](itens.md#vínculo-itemis_binds-migração-0043)).
+- **Preço mínimo pela quantidade**: `StartingPrice × count` *(dedução)*; o `AuctionSellSubmitPane` só confere o 2.
+- **Taxa ao cancelar**: não volta *(ponytail: o cliente não diz)*.
+- **Nível de abertura do leilão**: o servidor não confere; a aba de itens não tem trava de nível no `AuctionFrame`.
+- **Limite de anúncios por jogador**: não há; o cliente não tem código de "muitos anúncios".
+- **Cartas do mercado**: títulos e corpo ("Won Item", "Sale Income", "Returned Item", "Bid Refund", "Purchased Item")
+  são do servidor; sem captura do oficial. A ajuda (item 8) diz que o anúncio novo aparece "several minutes" depois;
+  aqui aparece na hora.
+- **Encerramento agendado**: a cada 60 s, sem dormir até o menor `ends_at` (*ponytail*: até 60 s de atraso).
+- **`itemId`**: assumido como `Item.id` (a linha do banco).
+- **Mochila cheia ao cancelar**: recusa (`CANCEL_FAIL`); a compra não depende da mochila (vai pelo correio).
+- **Ordem dos pacotes**: 115 vai antes de 4352/4358, e o 109 depois *(dedução)*.

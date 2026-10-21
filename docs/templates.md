@@ -2,7 +2,7 @@
 
 O `tempinfos.xml` é o template do jogo: itens, lojas, missões, campanhas, mapas, heróis, tropas e skills (70 categorias). É o mesmo arquivo que o cliente baixa de `TEMPLATE_PATH`. Por isso servidor e cliente precisam usar o mesmo arquivo.
 
-Desde 2026-10-18 vale a versão inglesa do cliente novo, guardada em `data/templates/tempinfos.xml`. É uma cópia sem edição de `mirror/s134-bmclas-sq.7road.net/xml/tempinfos.xml`. O turco (`data/overlay`) ficou como legado.
+Desde 2026-10-18 vale a versão inglesa do cliente novo, guardada em `data/templates/tempinfos.xml`. É uma cópia sem edição de `mirror/s134-bmclas-sq.7road.net/xml/tempinfos.xml`. O turco ficou como legado em `consulta/legado-turco/data/overlay` (fora do git).
 
 ## Onde fica
 

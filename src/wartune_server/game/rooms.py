@@ -1,4 +1,4 @@
-"""Salas de campanha em grupo (PvE, ``roomType`` 0): quem está em qual sala, dono e lugares.
+"""Salas em grupo (campanha PvE, ``roomType`` 0, e veículo, 2): quem está em qual sala, dono e lugares.
 
 Estado só de sala, em memória do processo (como ``Guilds``): cada jogador continua com o próprio
 ``s.campaign``. Por isso o registro fica no ``GameContext``, e a sessão que sai tira o jogador
@@ -10,11 +10,13 @@ from __future__ import annotations
 import itertools
 from dataclasses import dataclass, field
 
-PVE = 0  # RoomMsg.roomType das salas de campanha (PVP e veículo usam outros)
+PVE, VEHICLE = 0, 2  # RoomMsg.roomType das salas de campanha e de veículo (PvP, 1, não tem sala aqui)
 MAX_SEATS = 4  # o oficial tem 4 lugares (visto: ek sahne, capacity 4)
 # texto deduzido (sem fonte no cliente/captura)
 NAME_NEW = "No battle selected"  # nome de sala sem campanha escolhida (visto: 12/32)
 OPEN, CLOSED = 0, -1  # valor de um lugar livre aberto ou fechado (PlaceStateRspMsg); userId = ocupado
+# RoomState do cliente: 0 sem uso, 1 em uso (esperando), 2 competindo, 3 jogando. O PVERoomItem só entra com 1.
+IN_USE = 1
 
 
 @dataclass
@@ -25,6 +27,9 @@ class Room:
     password: str = ""
     campaign: int = 0  # Campaigns.CampaignId escolhida; 0 = ainda não escolhida
     seats: list[int] = field(default_factory=list)  # MAX_SEATS entradas: userId, OPEN ou CLOSED
+    ready: set[int] = field(default_factory=set)  # membros (não o dono) que apertaram "pronto" (5036)
+    state: int = IN_USE  # RoomMsg/RoomStateRspMsg.roomState (5037)
+    type: int = PVE  # RoomMsg.roomType
 
     def __post_init__(self) -> None:
         if not self.seats:  # o dono entra no lugar 0; lugares além da capacidade ficam fechados
@@ -36,7 +41,7 @@ class Room:
 
 
 class Rooms:
-    """Registro das salas PvE. Um jogador está em no máximo uma sala."""
+    """Registro das salas. Um jogador está em no máximo uma sala."""
 
     def __init__(self) -> None:
         self._rooms: dict[int, Room] = {}
@@ -53,9 +58,9 @@ class Rooms:
     def visible(self) -> list[Room]:
         return list(self._rooms.values())
 
-    def create(self, master: int, capacity: int, password: str) -> Room:
+    def create(self, master: int, capacity: int, password: str, room_type: int = PVE) -> Room:
         capacity = min(max(capacity, 1), MAX_SEATS)  # capacity vem do cliente
-        room = Room(next(self._ids), master, capacity, password)
+        room = Room(next(self._ids), master, capacity, password, type=room_type)
         self._rooms[room.id] = room
         self._of[master] = room.id
         return room
@@ -79,14 +84,22 @@ class Rooms:
             del self._rooms[room.id]
             return room, True
         room.seats[room.seats.index(player_id)] = OPEN
+        room.ready.discard(player_id)
         del self._of[player_id]
         return room, False
+
+    def close(self, room: Room) -> None:
+        """A sala acabou sem aviso de saída (a de veículo entrando na partida: o 125 descarta a sala no cliente)."""
+        for pid in room.members:
+            self._of.pop(pid, None)
+        self._rooms.pop(room.id, None)
 
     def hand_over(self, room: Room, player_id: int) -> bool:
         """Dono passa o comando para outro membro da sala."""
         if player_id not in room.members or player_id == room.master:
             return False
         room.master = player_id
+        room.ready.discard(player_id)  # o dono não tem "pronto"
         return True
 
     def toggle_seat(self, room: Room, index: int, open_: bool) -> bool:

@@ -35,15 +35,16 @@ O 5006 da mochila usa o mesmo código. Depois de gravar, `handlers/player.grante
 ## Atividades (SumActive) e login
 
 Definições do operador em **`data/events.json`** (`config.events_file`): `dataStamp` (subir quando
-mudar) e `actives[]` com GUIDs, datas, pacotes, itens e condições. Vêm preenchidos o login de 7
-dias (tipo 13, itens da captura turca login.json; o "10/15 Login Bonus I" da inglesa #60 tem outros) e o
-presente online (tipo 14: 10 min, depois 30 min x3; o -600 da captura virou -500; só turco: login.json).
+mudar) e `actives[]` com GUIDs, datas, pacotes, itens e condições. Vêm preenchidos o Login Bonus
+(tipo 13, os dois pacotes do "10/15 Login Bonus I" da inglesa #60) e o presente online (tipo 14: 10 min, depois
+30 min x3; o -600 da captura virou -500; só turco: login.json).
 
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
-| login | 4475 em páginas de 10 + 4476 no 8586 tipo 1 | (visto) login.json #63-69 (turco) |
+| login | 4475 em páginas de até 12.000 bytes e logo o 4476 de todas, sem pedido; outro 4476 no 8586 tipo 1 | (visto) tutorial_en #60-#68, #76 |
+| ganho de item | 4476 de todas logo depois do 115 que dá item (missão, carta, drop, caixa, presente VIP); mover, vestir e gastar não mandam | (visto) tutorial_en: 26 dos 61 115 (#352, #490, #1112, #2927, #3268) |
 | 8586 type 1 | 4476 com `status` 1/2/3 e `countDown` (tipo 14) | (visto) |
-| 8586 type 2 | valida status=1 e mochila; ordem 111, 4476 parcial, 83, 4476 completo, 3, 109, 115 | (visto) online_odul… #38-46 (turco) |
+| 8586 type 2 | valida status=1 e mochila; ordem 3, 109, 115, 4476 de todas, 111, 4476 só desta, 83 | (visto) tutorial_en #2753-#2772 |
 | 8266 | assina o dia: bit `1 << (dias_do_mês - dia)` em `signSite`; `SignDrop` ao chegar num `Times`; 4177 | (cliente) DayGuideCatecory |
 | 8496 | dia `index` do login acumulado (`ReloginDrops.Times`), exige `index <= dias logados`; 3 com `reloginProcess` | (cliente) |
 | 8749 | guia de 7 dias: dia alcançado (contado da conclusão da missão 130), tarefas do dia feitas, `ServenLeadRewards`; 4638 | (visto) login.json #93 (só turco: a inglesa não tem 8749) |
@@ -59,8 +60,10 @@ presente online (tipo 14: 10 min, depois 30 min x3; o -600 da captura virou -500
 - `activeType` vistos (inglesa #60-#67): 1 gasto diário, 10 troca, **13 login**, 15 primeira recarga, 18 montaria,
   27 anfiteatro, 28 campo de batalha, e 11, 12, 22, 46-48, 58, 59, 100, 101, 107, 109, 111, 118; **14 presente
   online** (`conditionValue` = segundos) e 35 fadas só no turco (login.json).
-- Tipo 13 conta dias de login (primeiro login do dia); tipo 14 soma segundos online desde o
-  último resgate (zera a cada presente, gravado na desconexão e no resgate).
+- Tipo 13 (Login Bonus): um resgate por dia de cada pacote ("Claim them once everyday."); condição 14 valor 1 =
+  todos ("During the event, non-VIP players can check-in", `FunnyBagData` title14), 2 = só VIP (title15). Na
+  inglesa o normal vem 1 já no login (#68) e o VIP fica 3 até a conta virar VIP (#3268); o VIP pega os dois. Tipo
+  14 soma segundos online desde o último resgate (zera a cada presente, gravado na desconexão e no resgate).
 - Contadores por ação (`game/events.py` `count`, estado `sum:<activeId>`; o 4476 leva o contador em `value`):
   21 Gold Alchemy (8321), 22 Daru Alchemy (8467), 26 desafio do coliseu (8253, no início), 108 giro do destino
   (8627, por giro), 109 fusão do destino (8626, por carta) e 110 Sylph Arena (fim da luta de fadas). 12 =
@@ -70,8 +73,9 @@ presente online (tipo 14: 10 min, depois 30 min x3; o -600 da captura virou -500
 - Outros `activeType` ficam "ainda não" (3), cada um **depende de** um sistema: 1 gasto e 15 recarga de Balens
   (cash), 10 troca, 18 cultivo de montaria, 2 montaria, 5 refino, 7 honra, 9 recarga, 11 moda, 19 selo de alma,
   20 astrologia, 23 recompensa, 24 mistério, 25 runa, 27 anfiteatro, 28 campo de batalha, 100-102 runas e cartas,
-  105 torre do rei, 106/107 roda, 111 campo minado, 112 pesca, 113 trilhas, 118 labirinto. **precisa de captura**:
-  se o oficial empurra 4476 quando um contador sobe (aqui só vai no pedido 8586 tipo 1).
+  105 torre do rei, 106/107 roda, 111 campo minado, 112 pesca, 113 trilhas, 118 labirinto. O 4476 sai no pedido
+  (8586 tipo 1), no login e depois de cada 115 de ganho (acima); **precisa de captura**: se o oficial também empurra
+  quando um contador sobe sem item.
 - 8586 tipo 2 da inglesa #2753 (pacote do "10/15 Login Bonus I") é o mesmo resgate; a recusa vinha só dos GUIDs do
   catálogo do operador, diferentes dos oficiais (o oráculo do tutorial troca pelos nossos).
 - Leed = **devoção** (dayGuide "Daily devotion"; `totalNum` do 4152 = soma dos `Num` dos `LeedTemp` completos no
@@ -85,7 +89,7 @@ presente online (tipo 14: 10 min, depois 30 min x3; o -600 da captura virou -500
   | Leed | Título | Gancho | Fonte |
   |---|---|---|---|
   | 8 | Contribute to your Guild | doação 5144 (`guild/upgrades.contribute`), depois do 111 | *(visto)* só turco: birlik_katkisi #10-#11 |
-  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend` e o `gd.pay_points` da guilda) | *(visto)* só turco: a aceleração paga 5172 chama antes do 111/102 (replay #1289-#1294: o 83 "Your devotion level has increased to 25." é este); yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152); sem contraexemplo: a aceleração paga da savasa_baskin (gift 5 → 0, sem 4152 do 15) já está com total 37, depois do labirinto (22); a inglesa não gasta diamante |
+  | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend`, a guilda inclusive) | *(visto)* só turco: a aceleração paga 5172 chama antes do 111/102 (replay #1289-#1294: o 83 "Your devotion level has increased to 25." é este); yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152); sem contraexemplo: a aceleração paga da savasa_baskin (gift 5 → 0, sem 4152 do 15) já está com total 37, depois do labirinto (22); a inglesa não gasta diamante |
   | 17 | Capture an Astral | sorteio de estrela 8269, antes do 4180 | *(visto)* só turco: kader_sistemi #4-#7 |
   | 18 | Fight a World BOSS | `worldboss.boss_attack`, já no ataque (como o 10) | *(dedução)* pelo título |
   | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(dedução)* pelo título (PassCount 5) |
@@ -123,13 +127,13 @@ presente online (tipo 14: 10 min, depois 30 min x3; o -600 da captura virou -500
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
 | login | 4410 `VipInfoMsg`, 4434 só com os contratos já comprados (conta sem contrato = vazio) | (visto) tutorial_en #96 (4410), #10-#11 (4434 vazio); 4434 com contrato só turco: login.json #107 |
-| 8513 | `days` 31/93/186 por `One/Three/Six_MonthPoint` (298/868/1588), só diamante; renova somando; 3, 4410, 4416 | (cliente) OpenSelfView |
+| 8513 | `days` 31/93/186 por `One/Three/Six_MonthPoint` (298/868/1588), só Balens livres; renova somando; 3, 4410, 4416. O inglês não manda (os botões abrem a página de pagamento; a tela do amigo não é criada): fica para o GM e os testes | (cliente) OpenSelfView, VIPFrame |
 | 8505 | presente semanal `VipDrop.site` = nível VIP; 115, 111, 4410, 4539, 83 ("Received: ..."); de novo na segunda da semana seguinte (semana começa no domingo, *dedução*: um ponto só); repetido sem resposta | (visto) tutorial_en #3266-#3282 |
 | 5006 (2031201) | cartão VIP de teste: `Property3` horas somadas ao fim; 115, 111 "Your VIP service has been extended N hours; new expiration date is AAAA-MM-DD.", 4410 `vipType` 2, 3 | (visto) tutorial_en #3259-#3263 |
 | 8521 | abre/atualiza a roleta: zera o tabuleiro, 4414 com os 18 prêmios (`vip_wheel_prizes`), `leftCount` 8, `needVipItem` 1; sem VIP 4414 vazio | (visto) #3325 |
 | 8519 | gira gastando VIP Token (208015): o giro k custa k (`game_settings.vip_wheel_costs`); `opType` 1 gira enquanto houver fichas; prêmio sorteado entre os que faltam pelo `vip_wheel_prizes.weight` (0035, padrão 1 = uniforme; peso 0 nunca sai; só pesos 0 sobrando = giro recusado; `vip.wheel_pick`); 115, 109, 3, 4415 (`openIndex` = abertos agora, `takeItem` = todos); recusa = 4415 sem `isStart` | (visto) #3331-#3335 |
 | 8756 | só registro (atendimento QQ) | (cliente) |
-| 8540 | compra `ids` (`NeedPoint` cada; os seis por `All_KingContract`=338), só diamante, renova somando 31 dias; `__use` com o contrato 6 ativa o 7 (30 min) uma vez por dia; 3 + 4434 | (cliente) KingContractFrame |
+| 8540 | compra `ids` (`NeedPoint` cada; os seis por `All_KingContract`=1295), só diamante, renova somando 31 dias; `__use` com o contrato 6 ativa o 7 (30 min) uma vez por dia; 3 + 4434 | (cliente) KingContractFrame |
 
 - Nível VIP: `UpGradeTempInfos` `Types=4` (Data = vipGp acumulado).
 - ponytail: o vipGp do período (`Vip_DailyAddGp` x dias) entra todo na compra.
@@ -169,8 +173,8 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 |---|---|---|
 | login | 4224 e 4372 | (visto) login.json #9, #10 (turco; a inglesa não responde o 8320/8466 de #17-#18) |
 | 8320 / 8466 | estado (4224 / 4372) | (cliente) |
-| 8321 | custo `min((usos+1)*2, 40)` diamantes (só `point`); ouro = Town Hall(901).Property1 x 10 + Gold Refinery(101).Property1 x 5; 20 usos + privilégio VIP 8 | (cliente) AlchemyFrame |
-| 8467 | mesmo custo; alma = nível Barracks(402) x `RefiningSoul_ArmyHouseMut` + nível Cottage(1201) x `RefiningSoul_PeopleMut`; nível mínimo `RefiningSoul_Grades`; `RefiningSoul_Count` + privilégio VIP 9 | (cliente) + (visto) login.json #10 (só turco) |
+| 8321 | custo 0 no 1º uso do dia, depois `min(40 + 10 x usos, 200)` Balens não vinculados (só `point`); ouro = Town Hall(901).Property1 x 10 + Gold Refinery(101).Property1 x 5; 20 usos + privilégio VIP 8 | (cliente) AlchemyFrame |
+| 8467 | mesmo custo; alma = nível Barracks(402) x `RefiningSoul_ArmyHouseMut` + nível Cottage(1201) x `RefiningSoul_PeopleMut` (500 cada, como o SoulMakeFrame); nível mínimo `RefiningSoul_Grades`; `RefiningSoul_Count` + privilégio VIP 9 | (cliente) + (visto) login.json #10 (só turco) |
 | 8582 | recusa sem cobrar e devolve a loja 4468 (`TrialSkill`) | (cliente) TrailShopItem |
 
 - **Dependência (8582):** o mapa do teste (andar, buffs na batalha) não existe no servidor.
@@ -180,7 +184,7 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
 | login | 4360 `rewardCount 0`, 4198 da tarefa aceita, 4616 + 4614 do anel | (visto) tutorial_en #46 (4360), #53 (4616), #54 (4198 vazio); 4198 com tarefa e 4614 só turco: login.json #56-58 |
-| 8290 | `isButton` falso: sorteia se não há lista ou passou 30 min; verdadeiro: 2 grátis por dia, depois 2 diamantes (`payType` 0 aceita vinculado); 4197 | (cliente) OfferRewardModel/OfferTimeView |
+| 8290 | `isButton` falso: sorteia se não há lista ou passou 30 min; verdadeiro: 2 grátis por dia, depois 10 Balens (`REFRESH_REWARD_NEEDPAY`; `payType` 0 aceita vinculado); 4197 | (cliente) OfferRewardModel/OfferTimeView |
 | 8288 | aceita a vaga `rewardId` (uma por vez, 20 por dia, nível 14+); 4198 + 4197 | (cliente) OfferTaskItem |
 | 8289 | desiste: 4198 com `isComplete` (é como o cliente tira da lista) e a vaga volta a 1 | (dedução) |
 | 8291 | `isPass` com o contrato 2 ativo termina: EXP/ouro = `RewardPlayGP`/`RewardGold` x qualidade x nível (5 = x6); 4198, 4197, 3, 150, 109, 83 | (cliente) OfferTaskItem |
@@ -288,10 +292,10 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 9520 | 300 (fecha o quadro; só o GoldRoadManager escuta) | (cliente) GoldRoadManager |
 | 9523 | 4936 `leadExtractTimes` 0 | (cliente) FunnyControler |
 | 9550 | 4980 lista vazia | (cliente) InfoTipsManager |
-| 9610 | 364 e depois 363 vazios (tabela da captura #96 expirou em 2026-05-17) | (visto) login #96 (turco) |
+| 9610 `LuckExchangeOpMsg` | é a troca (`exchangeId` x `exchangeCount`), não um pedido: sem edição vigente, recusa só no log. As listas (363, 364) vão vazias no login, sem pedido | (cliente) LuckyExchangeManager + (visto) tutorial_en #88, #102 |
 | 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) tutorial_en #112 (414); 415 só turco: login #127 |
 | 8604 | árvore dourada, real (acima); sem a linha no banco: 295 `open` falso e 4526 `openView` falso | (visto) tutorial_en #71-#72 + (cliente) BottleManager, BottleFrame |
-| 9645 | 190 e 4590 fechados (o código não diz qual dos dois; os dois fechados é o estado certo) | (visto) tutorial_en #109 (190 fechado); 4590 fechado: login #126 (turco) |
+| 9645 | 190 e 4590 fechados (o código não diz qual dos dois; os dois fechados é o estado certo). O login já manda os dois, sem pedido | (visto) tutorial_en #109 (190), #110 (4590 `param1` 2059) |
 
 **Labirinto de gemas (9508–9517, real)**: `handlers/gemmaze.py`; a regra da troca e da cascata está em
 `game/gemmaze.py`.
@@ -313,13 +317,13 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   prêmio é o item `boxesId[i]` (2131035–2131039, Lost Treasure of Antiquity I–V; a dica da caixa é esse item,
   `GemMazeIntergalBoxView`) e vai para a bolsa 24 *(ponytail: a bolsa não foi capturada)*. Sem pontos, caixa
   já pega, bit inválido ou bolsa cheia: 4928 com a marca atual e sem prêmio.
-- Renovação por dia (UTC): movimentos voltam a 20 (os comprados acima disso ficam), ajudas a 5, pontos e
-  caixas zeram; o semanal zera na semana nova (ISO). Tabuleiro, nível e EXP ficam. *(dedução)*: na captura
-  turca um personagem de nível 5 abre com 20 movimentos, 5 ajudas e 0 pontos; `score` e `weekScore` são campos
-  separados. O período não foi capturado.
-- Compra (9516): `Gem_Maze_BuyInfo` = `10,5,99`: 10 movimentos por compra; 99 é o teto (89 + 10, o mesmo
-  limite de 90 do cliente). Custo de 5 em diamante, ou vinculado com `buyTypes` 2 *(dedução)*. O 4927 só
-  sai quando a compra vale, porque o cliente soma 10 ao receber.
+- Renovação na virada do dia do jogo (5h): movimentos voltam a 20 (os comprados também somem), ajudas a 5, pontos
+  e caixas zeram; o semanal zera na semana nova (ISO). Tabuleiro, nível e EXP ficam. *(cliente)* `helpContent`:
+  "Free and purchased attempts reset daily", "Points and attempts reset daily at 5 A.M.".
+- Compra (9516): `Gem_Maze_BuyInfo` = `10,15,99`: 10 movimentos por compra a 15 Balens cada, 150 por compra
+  (`buyTimesTips`: "spend 150 Balens to purchase 10"); 99 é o teto (89 + 10, o mesmo limite de 90 do cliente).
+  `buyTypes` 2 aceita vinculado (`bugGemMazeTimesUseBind`), 1 só livre. O 4927 só sai quando a compra vale,
+  porque o cliente soma 10 ao receber.
 - Login: 4922 com o tabuleiro gravado, só se a conta já tem um (*dedução*). A inglesa (personagem novo) não tem 4922 nenhum; o replay (só turco: pacotes 10 e 12, depois do 4900) tem, com o tabuleiro já aberto. Não grava.
 - Estado: uma linha `EventState` de chave `gemmaze` com `text` em JSON (tabuleiro, movimentos, ajudas,
   nível, EXP, máximo de EXP, pontos, semanal, caixas pegas, dia da renovação). Abrir sem linha sorteia e
@@ -338,10 +342,9 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   os pesos.
 - Caixas (9513/4928): juntar 500 pontos, pegar a 1ª caixa e gravar o 9513, o 4928 e o 115 (para ver em
   que bolsa a caixa cai e se o `rewardInfo` é a caixa ou o conteúdo).
-- Renovação: abrir o labirinto antes e depois da meia-noite (e numa segunda-feira) e gravar os 4922, para
-  ver o que volta (movimentos, ajudas, pontos, caixas, semanal) e a hora.
+- Renovação: abrir o labirinto antes e depois das 5h de uma segunda-feira e gravar os 4922, para ver se o semanal
+  zera.
 - Ajuda de amigo (9510, 4925, 9515, 4924): convidar um amigo e gravar os dois lados.
-- Compra (9516/4927): comprar movimentos com diamante e com vinculado; gravar o 4927 e o saldo.
 - Ranking semanal (`scoreOrder`, `weekScore`): gravar o 4922 de outra semana e de um jogador de topo.
 - Bolsa do labirinto cheia (48 itens): gravar o que o oficial manda ao trocar e ao receber tudo.
 
@@ -380,8 +383,8 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 - **Recuperação (9503):** lista vazia porque nenhum sistema conta as atividades perdidas (campanha,
   arena, boss, imposto; `RecoverInfos` tem 10 linhas). **depende de** cada sistema gravar a participação do dia;
   quando houver, a fórmula acima já confere. O tutorial_en #51 manda o 4912 vazio (personagem novo).
-- **Troca da sorte (9610):** a captura turca (login #96) tinha a tabela, mas expirou; a sorte atual
-  (`currentLuckValue`) não é conhecida.
+- **Troca da sorte (9610):** a inglesa (#88/#102) tem duas edições, uma vencida (2026-10-14) e uma futura
+  (2026-10-23), sem as trocas; a sorte atual (`currentLuckValue`) e o que cada troca dá não são conhecidos.
 
 **Alterações em arquivos compartilhados:** `handlers/events.py` (`minigames.login_push` no login)
 `domain/models.py` (`BagType.MAZE`, `BagType.BOTTLE`), `handlers/minigames.py` (chama `gemmaze.login_push` e
