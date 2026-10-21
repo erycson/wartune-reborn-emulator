@@ -3,14 +3,18 @@
 
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import Game, logged_in
 from tests.game.test_shop import buy, codes, me
 from wartune_server.domain.models import Item
+from wartune_server.game.handlers import shop
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 MAZE_COIN = 208009  # Crypt Tokens (SonType 296), MazeCoin na loja
 GOLD_BOX_GOOD, RING_GOOD = 105, 110  # ShopTempInfos 105: Gold Chest (1 moeda, andar 5); 110: Kronos (25, andar 15)
-FLOOR_80_GOOD = 571  # ShopType 4 com MazeLayers 80: acima do maxIndex da torre (60), o cliente não mostra
+FLOOR_80_GOOD = 571  # ShopType 4 com MazeLayers 80: acima do recorde da captura (60), o cliente não mostra
+RECORD = 60  # maxIndex do personagem da captura turca (login.json #55)
 SECOND_MAZE_GOOD = 630  # ShopType 4 com MazeLayers2 5: o segundo labirinto não tem info aqui (towerInfo2 = 0)
 
 
@@ -22,7 +26,8 @@ def template_name(g: Game, template: int) -> str:
     return next(g.server.services.templates.find("ItemTempInfos", TemplateId=template))["TemplateName"]
 
 
-async def test_maze_shop_sells_for_maze_coin_like_the_capture(tmp_path: Path) -> None:
+async def test_maze_shop_sells_for_maze_coin_like_the_capture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(shop, "MAZE_MAX_INDEX", RECORD)
     async with logged_in(tmp_path, novice=19000) as g:
         coins = Item(g.user_id, MAZE_COIN, pos=36, count=118)  # a captura: 118 -> 117 (Gold Chest) -> 92 (Kronos)
         me(g).items.append(coins)
@@ -51,11 +56,18 @@ async def test_maze_shop_sells_for_maze_coin_like_the_capture(tmp_path: Path) ->
         assert {2030101, 1991017} <= {i.template_id for i in saved.items}
 
 
-async def test_maze_shop_refuses_without_coins_and_above_the_floor(tmp_path: Path) -> None:
+async def test_maze_shop_refuses_without_coins_and_above_the_floor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         coins = Item(g.user_id, MAZE_COIN, pos=36, count=92)
         me(g).items.append(coins)
         await g.server.services.characters.save(coins)
+
+        g.client.send(5154, buy(GOLD_BOX_GOOD, 1, pay_type=1))  # sem recorde (maxIndex 0) nem o andar 5 aparece
+        got = await g.until(90)
+        assert codes(got) == [90] and result(got) == 11 and coins.count == 92
+        monkeypatch.setattr(shop, "MAZE_MAX_INDEX", RECORD)
 
         g.client.send(5154, buy(RING_GOOD, 4, pay_type=1))  # 100 moedas, tem 92: nada muda
         got = await g.until(90)

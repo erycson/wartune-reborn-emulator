@@ -7,7 +7,8 @@ a cheia menos a soma dos danos, então um restart só perde a luta em curso.
 
 Fontes (docs/boss-eventos.md):
 - (cliente) help ``worldboss.view.BaseHelpFrame.helpText``: ouro e Daru por golpe, "HP e tropas não se esgotam",
-  prêmio do último golpe (Lucky Prize), top 10 do dano, prêmio por 0,3%/0,5%/0,8% do dano total.
+  e "Defeating the World Boss earns": Lucky Prize (último golpe), Ares Prize (top 10 do dano por classe) e Warrior
+  Prize (0,3%/0,5%/0,8% do dano total).
 - (cliente) ``WoundInfoView.buffTip``/``buffGradeTip``: a moral sobe a cada 500 mil do maior dano e dá
   ``bufferGrade * 500``; ``WorldBossModel.commit`` guarda até 30 e monta o top 10 geral e o da classe.
 - (internet) a config de cada chefe e dos prêmios, no banco (``world_bosses``, ``world_boss_rewards``).
@@ -110,10 +111,14 @@ def next_hp(boss: WorldBoss, fight: WorldBossFight) -> int:
 
 
 def end_rewards(world: World, pool: Pool) -> dict[int, tuple[int, int]]:
-    """Ouro e daru do fim por personagem: top 10 da classe, o maior degrau da fração do dano e o último golpe
-    (somam: guia da Koram "Players can acquire Beating Reward as well as other rewards")."""
-    total = sum(w.wound for w in pool.wounds.values())
+    """Ouro e daru do fim por personagem: Ares (top 10 da classe), Warrior (o maior degrau da fração do dano) e
+    Lucky (o último golpe); somam (guia da Koram "Players can acquire Beating Reward as well as other rewards").
+    Só com o chefe morto ("Defeating the World Boss earns", help do cliente): a janela que fecha no ``StopTime``
+    fica só com o ouro e o Daru de cada golpe."""
     out: dict[int, tuple[int, int]] = {}
+    if not pool.fight.killer_id:
+        return out
+    total = sum(w.wound for w in pool.wounds.values())
 
     def add(character_id: int, gold: int, daru: int) -> None:
         g, d = out.get(character_id, (0, 0))
@@ -130,8 +135,7 @@ def end_rewards(world: World, pool: Pool) -> dict[int, tuple[int, int]]:
         best = [r for r in shares if total and w.wound / total >= r.share]
         if best:
             add(w.character_id, best[-1].gold, best[-1].daru)
-    if pool.fight.killer_id:
-        add(pool.fight.killer_id, pool.boss.last_hit_gold, pool.boss.last_hit_daru)
+    add(pool.fight.killer_id, pool.boss.last_hit_gold, pool.boss.last_hit_daru)
     return out
 
 

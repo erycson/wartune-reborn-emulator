@@ -19,6 +19,7 @@ from ..domain import gameday
 from ..domain.models import Arena, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
+from . import events as ev
 from . import rules
 from .battle import STATS
 
@@ -98,6 +99,14 @@ def cool_time(arena: Arena, kind: int, now: datetime, templates: GameTemplates) 
     )
 
 
+RUNE_POINT_KEY = "rune:point"  # runa melhorada com diamante hoje (RuneUpgradeView ``diamondIndex``)
+
+
+def rune_point_times(snap: PlayerSnapshot, now: datetime) -> int:
+    st = ev.peek(snap, RUNE_POINT_KEY)
+    return st.value if st is not None and gameday.same_day(st.updated_at, now) else 0
+
+
 def data_reset(snap: PlayerSnapshot, now: datetime) -> pb.DataResetMsg:
     """4202: o cliente sobrescreve vigor, ataques e afins com estes valores, então vão os atuais."""
     c = snap.character
@@ -115,7 +124,7 @@ def data_reset(snap: PlayerSnapshot, now: datetime) -> pb.DataResetMsg:
         buyCount=0,
         king_Buff=False,
         serverName=snap.server.name,
-        upRuneByPointTimes=0,
+        upRuneByPointTimes=rune_point_times(snap, now),  # BaseManager: vira o diamondIndex
     )
 
 
@@ -127,17 +136,6 @@ def buy_cost(bought: int) -> int:
 def cool_cost(seconds: int) -> int:
     """Diamantes para zerar a espera (o que a confirmação do cliente mostra: ``ceil(s/60)*5``)."""
     return math.ceil(seconds / 60) * 5
-
-
-def pay_diamonds(snap: PlayerSnapshot, cost: int, bind_ok: bool) -> bool:
-    """Desconta ``cost``: diamante vinculado primeiro quando permitido (``payType``)."""
-    c = snap.character
-    bound = min(c.gift_token, cost) if bind_ok else 0
-    if c.point < cost - bound:
-        return False
-    c.gift_token -= bound
-    c.point -= cost - bound
-    return True
 
 
 # -- recompensa do coliseu ------------------------------------------------------------------------

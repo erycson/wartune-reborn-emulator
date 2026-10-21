@@ -13,6 +13,7 @@ from typing import Any
 from ...domain.errors import NotFoundError
 from ...domain.models import ArenaRank, BagType, ChallengeLog, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from .. import arena as A
 from .. import bag, rules
 from .. import events as ev
@@ -25,7 +26,7 @@ from ..session import GameSession
 from .campaign import map_sync, player_hero
 from .login import army, player_info
 from .player import push_level
-from .vip import is_vip, vip_grade
+from .vip import free_cool, is_vip, vip_grade
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 150, 140
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
@@ -100,16 +101,25 @@ async def _snapshot(s: GameSession, user_id: int) -> PlayerSnapshot | None:
     return snap if ok else None
 
 
+AVATAR_FIELDS = {rules.WEAPON: "armTempId", rules.CLOTH: "clothTempId", rules.WING: "fashionWingTempId"}
+AVATAR_FIELDS |= {rules.FASHION_ARM: "fashionArmTempId", rules.FASHION_CLOTH: "fashionClothTempId"}
+AVATAR_FIELDS[rules.HAT] = "fashionHeadTempId"
+
+
 def _avatars(msg: pb.ChallengeInfoMsg, snap: PlayerSnapshot, s: GameSession) -> None:
-    """``avater``: arma e armadura equipadas, pelo template (o cliente busca a arte)."""
+    """``avater`` (``ColosseumControler``): os templates equipados no líder, arma, armadura e a moda (asa, arma,
+    roupa, chapéu), e o cliente busca a arte. Com a moda escondida vão só arma e armadura (*dedução*)."""
+    leader = snap.leader
+    if leader is None:
+        return
+    entry = msg.avater.add(userId=snap.character.id or 0)
     for item in snap.items:
-        if item.bag_type != BagType.HERO:
+        if item.bag_type != BagType.HERO or item.object_id != leader.id:
             continue
         son = (s.ctx.templates.get("ItemTempInfos", item.template_id) or {}).get("SonType")
-        if son == rules.WEAPON:
-            msg.avater.add(userId=snap.character.id or 0, armTempId=item.template_id)
-        elif son == rules.CLOTH:
-            msg.avater.add(userId=snap.character.id or 0, clothTempId=item.template_id)
+        name = AVATAR_FIELDS.get(son or "")
+        if name and not (leader.hide_fashion and son not in (rules.WEAPON, rules.CLOTH)):
+            setattr(entry, name, item.template_id)
 
 
 def _log_msg(log: ChallengeLog, owner: int) -> pb.ChallengeLogMsg:
@@ -209,8 +219,10 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     if not reason and s.battle is not None:
         reason = "em batalha"
     cost = A.buy_cost(arena.challenge_count - A.FREE_COUNT) if bought else 0
-    if not reason and bought and not A.pay_diamonds(snap, cost, bind_ok=msg.payType == 0):
-        reason = "sem diamantes"
+    spent = None
+    if not reason and bought:
+        spent = ledger.pay(snap.character, cost, bind=msg.payType == 0, reason="arena_count", ref="", now=now)
+        reason = "" if spent is not None else "sem diamantes"
     if reason:
         s.log.info("8253 recusado", motivo=reason, alvo=target)
         _cool(s, A.COLOSSEUM)
@@ -234,7 +246,7 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
     # gasta antes da luta: cair não devolve; a atividade "Solo Arena" (tipo 26) conta a participação, como o leed 19
     counted = ev.count(snap, s.ctx.events, ev.CHALLENGE, s.ctx.clock.now())
-    await s.ctx.characters.save(snap.character, arena, *counted)
+    await s.ctx.characters.save(snap.character, arena, *counted, *([spent] if spent else []))
     s.log.info("coliseu", alvo=target, battle=s.battle.id)
     s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
     s.battle.start()
@@ -299,21 +311,32 @@ async def _colosseum_over(
 
 
 def _forward(before: int, after: int) -> int:
-    return 0 if before == after else 1 if before == 0 or after < before else 2
+    # ColosseumEventItem.initRestult: > 0 "ranking rose to", < 0 "ranking dropped to", 0 sem mudança
+    return 0 if before == after else 1 if before == 0 or after < before else -1
 
 
 @router.on(8265)
 async def quick_cool(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    """Zera a espera do coliseu (type 0) ou do torneio (1) por diamantes; payType 2 aceita vinculado."""
+    """Zera a espera do coliseu (type 0) ou do torneio (1) por diamantes; payType 2 aceita vinculado. Com VIP
+    (``vipCoolPrivilege``) é de graça: o cliente nem abre o quadro do custo (``ColosseumFrame``,
+    ``PetChallengeCDView``), como no 5172 index 0."""
     snap, arena, now = s.snapshot, _arena(s), s.ctx.clock.now()
     assert snap is not None
     kind = A.PETS if msg.type == A.PETS else A.COLOSSEUM
     attr = "pet_cool_until" if kind == A.PETS else "cool_until"
     seconds = A.left(getattr(arena, attr), now)
-    if seconds and A.pay_diamonds(snap, A.cool_cost(seconds), bind_ok=msg.payType == 2):
+    free = bool(seconds) and free_cool(s, snap)
+    cost, bind = A.cool_cost(seconds), msg.payType == 2
+    spent = (
+        None
+        if free or not seconds
+        else ledger.pay(snap.character, cost, bind=bind, reason="arena_cool", ref="", now=now)
+    )
+    if seconds and (free or spent is not None):
         setattr(arena, attr, None)
-        await s.ctx.characters.save(snap.character, arena)
-        s.send(S_PLAYER, b.complete(player_info(s, snap)))
+        await s.ctx.characters.save(*([snap.character, spent] if spent else []), arena)
+        if not free:
+            s.send(S_PLAYER, b.complete(player_info(s, snap)))
     else:
         s.log.info("8265 recusado", espera=seconds, pedido=str(msg))
     _cool(s, kind)
@@ -551,12 +574,26 @@ async def pet_formation(s: GameSession, msg: pb.PlayerPetMsg) -> None:
 
 @router.on(8726)
 async def pet_skills(s: GameSession, msg: pb.PetInfoMsg) -> None:
-    """Skills do pet no torneio (``chaSkillIndexs``): o pet tem de ser do jogador; sem pets, recusa."""
+    """Skills do pet no torneio (``chaSkillIndexs``): 3 índices na lista ``changeSkills`` do pet, -1 = vazio, sem
+    repetir (``PetChallengeTeamItemView`` troca de lugar a que já estava). Fica gravado no pet (``cha_skills``)."""
     snap = s.snapshot
     assert snap is not None
-    if msg.petId not in {p.id for p in A.pets_of(snap)}:
-        s.log.info("8726 recusado (pet não é do jogador)", pet=msg.petId)
+    pet = next((p for p in snap.pets if p.id == msg.petId), None)
+    raw = msg.chaSkillIndexs.split(",")
+    picks = [int(x) for x in raw if x.strip().lstrip("-").isdigit()]
+    skills = len([x for x in pet.change_skills.split(",") if x.strip()]) if pet else 0
+    chosen = [i for i in picks if i >= 0]
+    if (
+        pet is None
+        or len(picks) != 3
+        or len(raw) != 3
+        or any(not -1 <= i < skills for i in picks)
+        or len(set(chosen)) < len(chosen)
+    ):
+        s.log.info("8726 recusado", pet=msg.petId, skills=msg.chaSkillIndexs)
         return
+    pet.cha_skills = ",".join(map(str, picks))
+    await s.ctx.characters.save(pet)
     s.send(
         S_PET_INFO,
         pb.PlayerPetMsg(

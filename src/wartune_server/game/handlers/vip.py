@@ -14,6 +14,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import bag, rewards
 from .. import events as ev
+from .. import guild as gd
 from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
@@ -28,10 +29,12 @@ ALCHEMY_RIGHT, SOUL_RIGHT = 8, 9  # VipPrerogativeTempInfos.type: usos extras po
 VIP_COOL = 16  # VIPModel.VIP_COOL: type do "Speed up cool down timer for free"
 VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2) e o 50 fixo de vipFriendPrivilege
 ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (só turco: login.json #9; o tutorial_en não manda o 4224)
-MAX_COST = 40  # AlchemyFrame/SoulMakeFrame: (usos+1)*2, no máximo 40
+ALCHEMY_GRADE = 14  # MainToolBar: o cliente pede o 8320 de novo ao chegar no nível 14
+MAX_COST = 200  # AlchemyFrame/SoulMakeFrame: o 1º uso do dia é grátis, depois 40 + 10 x usos, no máximo 200
 KING_BUFF, KING_BUFF_FROM = 7, 6  # contrato 6 dá o buff 7 (30 min) uma vez por dia (KingContractFrame)
 KING_ALL = (1, 2, 3, 4, 5, 6)  # "comprar todos" = All_KingContract
 S_VIP_FIRST, S_WHEEL_RESULT = 4539, 4415
+S_GUILD_VIP = 4455  # VipToConsortiaMsg (U_C_CONSORTIA_VIP)
 GIFT_NEXT, VIP_TYPE, WHEEL = "vipgift:next", "vip:type", "vipwheel"  # event_states
 TRIAL_TYPE = 2  # vipType depois do cartão de teste 2031201 (tutorial_en #3262)
 VIP_TOKEN, WHEEL_SPINS = 208015, 8  # VIP Token (SonType 292) e giros por roleta (VipBoxFrame: 8 desliga o botão)
@@ -63,6 +66,11 @@ def _vip_expiry(snap: PlayerSnapshot) -> datetime | None:
 def is_vip(snap: PlayerSnapshot, now: datetime) -> bool:
     end = _vip_expiry(snap)
     return end is not None and end > now
+
+
+def vip_type(snap: PlayerSnapshot) -> int:
+    kind = ev.peek(snap, VIP_TYPE)
+    return kind.value if kind else 0
 
 
 def vip_grade(s: GameSession, snap: PlayerSnapshot) -> int:
@@ -122,14 +130,13 @@ def _vip_msg(s: GameSession, snap: PlayerSnapshot) -> pb.VipInfoMsg:
     st = ev.peek(snap, "vip")
     vip = is_vip(snap, now)
     gift_at = _gift_at(snap)
-    kind = ev.peek(snap, VIP_TYPE)
     return pb.VipInfoMsg(
         isVip=vip,
         vipGp=st.value if st else 0,
         vipGrade=vip_grade(s, snap),
         expirtDate=b.fmt_time(_vip_expiry(snap) or snap.character.created_at),
         isTakeGift=vip and (gift_at is None or now >= gift_at),  # VipGiftItem: true = botão de resgatar
-        vipType=kind.value if kind else 0,  # 2 = cartão de teste (#3262); ponytail: o 1 não tem regra conhecida
+        vipType=vip_type(snap),  # 2 = cartão de teste (#3262); ponytail: o 1 não tem regra conhecida
         isExpirt=not vip,
         takeGiftDate=b.fmt_time(gift_at or snap.character.created_at),
     )
@@ -140,15 +147,31 @@ def send_vip(s: GameSession) -> None:
     s.send(S_VIP, b.complete(_vip_msg(s, s.snapshot)))
 
 
+def vip_changed(s: GameSession) -> None:
+    """4410 para o jogador e o 4455 para a guilda online: o ``ConsortiaGroupChatControler`` troca o ícone VIP do
+    membro no chat em grupo. ponytail: o VIP que vence sozinho não avisa a guilda (não há relógio de vencimento)."""
+    send_vip(s)
+    snap, mine = s.snapshot, s.ctx.guilds.of(s.player_id)
+    if snap is None or mine is None:
+        return
+    vip = is_vip(snap, s.ctx.clock.now())
+    msg = pb.VipToConsortiaMsg(userid=s.player_id, isVip=vip, vipType=vip_type(snap), consortiaId=mine[0].id)
+    for other in gd.online_members(s.ctx, mine[0].id or 0):
+        other.send(S_GUILD_VIP, msg)
+
+
 @router.on(8513)
 async def vip_open(s: GameSession, msg: pb.VipOpenInfoMsg) -> None:
-    """Abre/renova o VIP por ``days`` (31/93/186) pelo preço One/Three/Six_MonthPoint (só diamante)."""
+    """Abre/renova o VIP por ``days`` (31/93/186) pelo preço One/Three/Six_MonthPoint (só Balens livres).
+    *(cliente)* o inglês não manda o 8513: os botões do ``OpenSelfView`` vão para a página de pagamento
+    (``__joinVipHandler``; o ``__openVipHandler`` não está ligado) e o ``VIPFrame`` não cria o ``OpenFriendView``.
+    Fica para o GM e os testes."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
     key = VIP_DAYS.get(msg.days)
     if key is None or msg.isFriend:
-        # ponytail: presentear um amigo exige gravar o snapshot de outro personagem (talvez offline)
+        # ponytail: presentear um amigo exige gravar o snapshot de outro personagem (o inglês nem tem a tela)
         s.log.info("8513 recusado", dias=msg.days, amigo=msg.isFriend)
         return
     spent = ledger.spend(snap.character, _cfg(s, key), "vip", now, bound=False, ref=str(msg.days))
@@ -162,7 +185,7 @@ async def vip_open(s: GameSession, msg: pb.VipOpenInfoMsg) -> None:
     st.text, st.updated_at = b.fmt_time(start + timedelta(days=msg.days)), now
     await s.ctx.characters.save(snap.character, st, spent)
     granted(s, [], [], "", chat=False)
-    send_vip(s)
+    vip_changed(s)
     s.send(S_VIP_TIPS)
 
 
@@ -182,7 +205,10 @@ async def vip_gift(s: GameSession, _: object) -> None:
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     if new:
+        from . import events  # events importa este módulo
+
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+        events.items_gained(s)  # (visto) tutorial_en #3268
     if any(t < 0 for t, _ in drops):  # ponytail: a captura só tem itens; moeda vai como nas outras recompensas
         granted(s, [(t, n) for t, n in drops if t < 0], [], text, chat=False)
     alert(s, text)
@@ -211,7 +237,7 @@ async def use_trial_card(s: GameSession, item: Item, row: Mapping[str, str], n: 
         await s.ctx.characters.save(st, kind, item)
     s.send(S_ITEMS, bag.moved([] if gone else [item], s.player_id, empty=[item] if gone else []))
     alert(s, f"Your VIP service has been extended {hours} hours; new expiration date is {end:%Y-%m-%d}.")
-    send_vip(s)
+    vip_changed(s)
     granted(s, [], [], "", chat=False)
     return True
 
@@ -393,7 +419,7 @@ async def king_contract(s: GameSession, msg: pb.KingContractBuyMsg) -> None:
 
 
 def _cost(used: int) -> int:
-    return min((used + 1) * 2, MAX_COST)
+    return min(40 + 10 * used, MAX_COST) if used else 0
 
 
 def _alchemy_gold(s: GameSession, snap: PlayerSnapshot) -> int:
@@ -409,27 +435,30 @@ def _lucky_msg(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerLuckyMsg:
 
 @router.on(8320)
 async def alchemy_info(s: GameSession, _: object) -> None:
+    """4224 a partir do nível 14: o cliente pede no início e de novo ao chegar no 14 (``MainToolBar``); o oficial não
+    responde ao pedido do nível 1 (tutorial_en #17)."""
     assert s.snapshot is not None
-    s.send(S_LUCKY, _lucky_msg(s, s.snapshot))
+    if s.snapshot.character.grades >= ALCHEMY_GRADE:
+        s.send(S_LUCKY, _lucky_msg(s, s.snapshot))
 
 
 @router.on(8321)
 async def alchemy(s: GameSession, _: object) -> None:
-    """Troca diamante por ouro: custo (usos+1)*2 até 40 (o cliente só olha ``point``)."""
+    """Troca Balens (não vinculados) por ouro: o custo é ``_cost`` (o cliente só olha ``point``)."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
     info = _lucky_msg(s, snap)
-    spent = ledger.spend(snap.character, info.point, "alchemy", now, bound=False) if info.remainCount else None
-    if spent is None:
-        s.log.info("8321 recusado", restam=info.remainCount)
+    spent = ledger.spend(snap.character, info.point, "alchemy", now, bound=False) if info.point else None
+    if not info.remainCount or (info.point and spent is None):
+        s.log.info("8321 recusado", restam=info.remainCount, custo=info.point)
         s.send(S_LUCKY, info)
         return
     st = ev.daily(snap, "alchemy", now)
     st.value, st.updated_at = st.value + 1, now
     snap.character.gold += info.gold
     counted = ev.count(snap, s.ctx.events, ev.ALCHEMY, now)  # atividade "Gold Alchemy" (tipo 21)
-    await s.ctx.characters.save(snap.character, st, spent, *counted)
+    await s.ctx.characters.save(snap.character, st, *([spent] if spent else []), *counted)
     granted(s, [(-100, info.gold)], [], "", chat=False)  # 3 + 109
     s.send(S_LUCKY, _lucky_msg(s, snap))  # gold = quanto cada uso rende (texto do cliente)
 
@@ -450,28 +479,31 @@ def _soul_msg(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerRefiningSoulMsg:
 
 @router.on(8466)
 async def soul_info(s: GameSession, _: object) -> None:
+    """4372 a partir do ``RefiningSoul_Grades`` (24; o cliente pede de novo no 24, ``MainToolBar``); abaixo o oficial
+    não responde (tutorial_en #18)."""
     assert s.snapshot is not None
-    s.send(S_SOUL, _soul_msg(s, s.snapshot))
+    if s.snapshot.character.grades >= _cfg(s, "RefiningSoul_Grades"):
+        s.send(S_SOUL, _soul_msg(s, s.snapshot))
 
 
 @router.on(8467)
 async def soul(s: GameSession, _: object) -> None:
-    """Troca diamante por alma (``strategy``), a partir do nível RefiningSoul_Grades."""
+    """Troca Balens (não vinculados) por alma (``strategy``), a partir do nível RefiningSoul_Grades; custo ``_cost``."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
     info = _soul_msg(s, snap)
     ok = info.remainCount and snap.character.grades >= _cfg(s, "RefiningSoul_Grades")
-    spent = ledger.spend(snap.character, info.point, "refining_soul", now, bound=False) if ok else None
-    if spent is None:
-        s.log.info("8467 recusado", restam=info.remainCount)
+    spent = ledger.spend(snap.character, info.point, "refining_soul", now, bound=False) if ok and info.point else None
+    if not ok or (info.point and spent is None):
+        s.log.info("8467 recusado", restam=info.remainCount, custo=info.point)
         s.send(S_SOUL, info)
         return
     st = ev.daily(snap, "soul", now)
     st.value, st.updated_at = st.value + 1, now
     snap.character.strategy += info.soul
     counted = ev.count(snap, s.ctx.events, ev.REFINE_SOUL, now)  # atividade "Daru Alchemy" (tipo 22)
-    await s.ctx.characters.save(snap.character, st, spent, *counted)
+    await s.ctx.characters.save(snap.character, st, *([spent] if spent else []), *counted)
     granted(s, [], [], "", chat=False)
     s.send(S_SOUL, _soul_msg(s, snap))
 
@@ -495,10 +527,8 @@ async def trial_buy(s: GameSession, msg: pb.TrialInfoMsg) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """Estados que o oficial manda no login: 4434 (tutorial_en #58) e 4410 (#96). O 4224 e o 4372 são só turco
-    (login.json #9, #10): o tutorial_en não manda nenhum dos dois, nem em resposta ao 8320/8466 (#17-#18)."""
+    """Estados que o oficial manda no login: 4434 (tutorial_en #58) e 4410 (#96). O 4224 e o 4372 não: o tutorial_en
+    (nível 1) não manda nenhum dos dois, nem em resposta ao 8320/8466 (#17-#18)."""
     assert s.snapshot is not None
-    s.send(S_LUCKY, _lucky_msg(s, s.snapshot))
-    s.send(S_SOUL, _soul_msg(s, s.snapshot))
     send_king(s)
     send_vip(s)

@@ -33,23 +33,30 @@ fechado vale `-1`, lugar aberto `0`, ocupado tem o `userId` (`PlaceStateRspMsg`)
 Respostas: 12 `RoomMsg` ao criar ou entrar; 17 `PlaceStateRspMsg`; 32 `EditRoomRspMsg`; 120
 `RoomPlayerListMsg` para quem está na sala; 13 `RoomListRspMsg` para listas; 15 `RoomExitRspMsg` a cada
 saída (o cliente volta à lista quando recebe o próprio id); 28 `KillPlayerRspMsg` na expulsão; 121
-`ChangeMasterRspMsg` na troca de dono.
+`ChangeMasterRspMsg` na troca de dono; 24 `PlayerReadyRspMsg` no "pronto"; 25 `RoomStateRspMsg` no estado da
+sala; 16 `RoomInviteMsg` para o convidado.
+
+`playerState` do 120 (e `readyState` do 24): 2 o dono (só turco, #20), 1 pronto, 0 sem "pronto" (o
+`RoomRightView` mostra o botão Ready para 0 e Cancel para os outros; o `PVPRoomPlayerFigure` desenha 0 e 1).
+Antes todos iam com 2, e quem entrava via o Cancel sem ter apertado nada. Sair da sala ou virar dono limpa o
+"pronto".
 
 Dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o próprio id.
 
 Tipo de sala (`RoomReqMsg.roomType`): o cliente usa 0 para campanha (PvE), 1 para PvP e 2 para veículo
-(`RoomListSocketOutManager.sendCreateRoom`). Aqui só existem as de campanha: 5023 e 5024 de outro tipo são
-recusados, e 5026/8465 de outro tipo voltam vazios. Antes, uma sala PvP virava sala PvE.
+(`RoomListSocketOutManager.sendCreateRoom`). Aqui existem as de campanha e as de veículo (campanha 3001, começa no
+5039 e cancela no 5037: [diversos.md](diversos.md)); 5023 PvP é recusado, 5024 só entra na sala do tipo pedido, e
+5026/8465 listam só o tipo pedido. Antes, uma sala PvP virava sala PvE.
 
 ## Opcodes
 
 | Opcode | Nome | Estado | Fonte | Observação |
 |---|---|---|---|---|
-| 5023 | ROOM_CREATE | completo | visto | Capacidade do cliente, limitada a 1..4. Senha opcional. Tipo diferente de 0 é recusado. |
-| 5024 | ROOM_ENTER | completo | visto (sequência) | Recusa sala cheia, senha errada, tipo diferente de 0 ou quem já está numa sala. |
-| 5026 | ROOM_LIST | completo | visto (13 vazio) | Lista as salas de campanha (tipo 0). Outros tipos vêm vazios. |
-| 5027 | U_C_CAMPAIGN_INVITE_PLAYER_LIST | só registra | cliente (`FreedomTeamInviteFrame`, aba 2) | Inalcançável: o botão de atualizar só manda o 5027 na aba 2, e a lista tem só as abas 0 e 1. Sem resposta. |
-| 8465 | ROOM_FIND | completo na forma | dedução | Filtra por `roomId` e tipo 0. Sem captura do pedido. |
+| 5023 | ROOM_CREATE | completo | visto | Capacidade do cliente, limitada a 1..4. Senha opcional. Tipo 0 (campanha) e 2 (veículo, campanha 3001); PvP é recusado. |
+| 5024 | ROOM_ENTER | completo | visto (sequência) | Recusa sala cheia, senha errada, tipo diferente do da sala ou quem já está numa sala. |
+| 5026 | ROOM_LIST | completo | visto (13 vazio); *(cliente)* `RoomListSocketOutManager.requestRoomList` | Lista as salas do tipo pedido, filtradas pela campanha do `nameKey` ("0" = todas). Outros tipos vêm vazios. Cada sala vai com `roomState` 1 ("em uso", `RoomState.STATE_USEING`): o `PVERoomItem` só deixa entrar com 1 e, com 0, mostra "This room is not being used". |
+| 5027 | U_C_CAMPAIGN_INVITE_PLAYER_LIST | feito | *(cliente)* `RoomInviteFrame` (aba Hall, aberto pelo convite da sala PvE/PvP/veículo); `FreedomTeamInviteFrame` (times, aba 2 inexistente) | Responde 4161 `RoomPlayerListMsg` com quem está online e fora de uma sala, menos quem pediu (*dedução*, sem captura): `playerState` 1 (o cliente só lista com estado diferente de 0, `SimplePlayerInfo.isOnline`), nível, nome, sexo, guilda e poder. Antes era dado como inalcançável porque só o quadro dos times tinha sido lido. |
+| 8465 | ROOM_FIND | feito | *(cliente)* `PVERoomItem`, `PVERoomSearchFrame`, `PVERoomListControler.__searchRoomHandler` | Clicar na sala ou procurar pelo número: 4370 `RoomMsg` da sala, e o cliente manda o 5024 ou abre a senha. `roomId` 0 (entrada rápida do PvP) = a primeira com lugar (*dedução*). Sala inexistente fica sem resposta (precisa captura). |
 | 5029 | PLACESTATE | completo | dedução (quem pode) | Só o dono abre ou fecha lugar livre, fora do dono. Recusa devolve 17. |
 | 5030 | MASTER_CHANGE | completo | cliente (121) | `paraInt1` é o novo dono; só o dono atual pode passar. |
 | 5031 | KILLPLAYER | completo | cliente (28) | Só o dono expulsa; o expulso recebe o 28 e sai. |
@@ -62,10 +69,17 @@ recusados, e 5026/8465 de outro tipo voltam vazios. Antes, uma sala PvP virava s
 | 5122 | CAMPAIGN_TAKE_CARD | feito (masmorra) | inglesa (#1110 -> #1111-#1123, #1532, #2715, #3169); cliente (`ChestFrame`) | Corpo visto: `paraInt1` 58073072 (o id do exército), `paraInt2` 2 (o `index` da carta), `paraBool1` false (`isPay`; true no `autoChest`, quando o tempo do quadro acaba) (só turco: replay #1166; a inglesa traz 6837/0/true no #1110 e 6837/1/false no #1532). (cliente) só sai do clique numa carta do 135, então vem depois do fim (inglesa: 135 no #1107, 5122 no #1110). Com o mapa vencido e nenhuma carta virada, sorteia em `drops.card` (`Campaigns.Item`), grava o item num save e responde 115, 26 com o `index`, 83 e 134 (mochila cheia: só o 134). Antes do fim, `index` fora de 0..`cardCount`-1 ou segunda carta: sem efeito. Falta: chance de cada item e cartas pagas ([drops-masmorras.md](drops-masmorras.md)). |
 | 5126 | CAMPAIGN_FOG_UPDATE | feito (masmorra) | inglesa (#881 -> #883) | Na masmorra devolve 19 com os mesmos `index` e `fogByte` enviados. A névoa não é guardada: o 130 volta com a névoa da captura no próximo ENTER. No tutorial, sem efeito. |
 | 5180 | CAMPAIGN_FINISH | parcial | só turco: replay (#1169, #1653); a inglesa (#1124 → 134 no #1126, #1546, #2730, #3183) responde 134, ver "Carta (5122)"; cliente (`ChestFrame`) | `paraInt1` 1 = o quadro das cartas fechou (`dispose`, 8 s depois do 26), 2 = jogar de novo (`campaignAgain`). Sem efeito: a resposta não dá para separar no relay. (O revisor tirou a leitura "5180 solta a última luta": o 157 do #1186 é da chegada #1148, o relay não guarda a ordem entre C>S e S>C: o S>C chega uns 30 pacotes atrasado (o 10007 da luta 4c4d40c7 no #1153 vem antes do 157 dela no #1186; o 5033 do #1120 antes do 29 do #1154).) Depois do replay #1169 o cliente manda 5035 state 0 e 8747 (volta ao castelo) e o 5039 (replay #1212) leva ao 1021. |
-| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | feito (masmorras) | inglesa (#843, #1151, #2310, #2788) | `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}`. Entra na etapa da vez da campanha pedida (`campaign_stage:<id>`): 125, 140, 21, 127, 130, 143, [138], 3, 83 "Entered [Worg Lair] and deducted 20 stamina.". 20 de estamina por etapa; sem estamina não entra e não responde (a recusa do oficial precisa de captura). Ver a seção das masmorras. |
+| 5034 | CAMPAIGN_ROOM_EDIT | feito | *(cliente)* `InstanceSelectFrame` → `RoomSocketOuterManager.updateRoomInfo`; `RoomManager.__updateRoomInfoHandler` | `RoomReqMsg {roomId, dungeonId, campaignId}`: só o dono, campanha do `Campaigns`. Todos da sala recebem o 32 `EditRoomRspMsg` com `startCampaignId`. Recusa sem resposta (dedução, sem captura). |
+| 8344 | C_ROOM_PWDCHANGE | feito | *(cliente)* `RoomRightView` (cadeado) → `RoomPasswordFrame` (`maxChars` 6, `restrict` "0-9") | `RoomEditMsg {roomId, roomPwd}`: só o dono; até 6 dígitos, vazio tira a senha. Todos recebem o 32 com o `passWord`. Recusa sem resposta (dedução). |
+| 5036 | U_C_PLAYER_READY_STATE | feito | *(cliente)* `RoomRightView.sendPlayerReady`/`_cancelClick`; `RoomManager.__updateReaderStateHandler` | `RoomReqMsg {state 1 pronto / 0 cancelar, isGet}`: quem não é o dono. Todos recebem o 24 com o estado de cada membro. O `isGet` (pegar o prêmio da campanha) só vale quando a campanha da sala começar (dependência). |
+| 5037 | U_C_ROOM_STATE | feito na forma | *(cliente)* `PVPRoomRightView`, `VehicleRoomFrame` (mandam 1 ao começar); `RoomManager.__updateRoomStateHandler` | `RoomReqMsg {state}`: só o dono; todos recebem o 25 `RoomStateRspMsg {roomState}` e o estado vai no `RoomMsg` da lista (`RoomState`: 0 sem uso, 1 em uso, 2 competindo, 3 jogando). Na sala de veículo o 1 é o Cancel do dono procurando: a sala sai da fila (PvP não existe aqui). |
+| 5028 | U_C_CAMPAIGN_ROOM_INVITE | feito | *(cliente)* `InviteItem`/`InviteItemButton` → `sendRoomInvite(userId)`; `BaseManager.__roomInviteHandler`, `InviteFrame` | `RoomReqMsg {userId}`. O convidado recebe o 16 `RoomInviteMsg {roomId, playerId, nickName, name, signStr, roomType (o da sala), tempId, position 0}`: `signStr` é a senha, que o aceite devolve no 5024 com `isInvite`; `name` a campanha escolhida (vazio: o cliente põe o texto padrão); `tempId` a campanha (aviso de estamina). Não recebe quem está offline, já numa sala ou recusa convites (8286). Recusa sem resposta (dedução). |
+| 5039 | CAMPAIGN_ENTER (começar a campanha da sala) | feito (masmorras) | inglesa (#843, #1151, #2310, #2788) | `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}`. Entra na etapa da vez da campanha pedida (`campaign_stage:<id>`): 125, 140, 21, 127, 130, 143, [138], 3, 83 "Entered [Worg Lair] and deducted 20 stamina.". 20 de estamina por etapa; sem estamina não entra e não responde (a recusa do oficial precisa de captura). Ver a seção das masmorras. Na sala de veículo (`VehicleRoomFrame`, `paraInt` 0/0) é o começar da fila ([diversos.md](diversos.md)). |
 | 4240 | U_C_ENTER_COPY_NUM_REFRESH (S>C) | parcial | visto (só turco: buyuk_sefer #3), cliente (`PlayerManager.__uPlayerEnterCopyNumHandler`) | Sem C>S. Vem depois do The Empire Crusade com `campaignCount` e `campaignMaxcount` (ver Persistência). Nenhum gasto de entrada visto. |
-| 8286 | C_ROOM_REFUSE | completo | cliente (`sendRefuseInvite`, 4194) | Alterna "recusar convites". Responde 4194. O bloqueio do 5142 da guilda é *(dedução)*, ver [guilda.md](guilda.md). Não há convite de sala no servidor. |
-| 8297 | TOWER_INFO | parcial | captura (4205) | 4205 com `maxIndex=60`, `campaignId=8001`, 0 entradas feitas e 1 livre de 1 (visto, só turco: `labirent_sandik` #17 e `yeralti` #1). `index` ecoa o pedido; `towerIndex` (andar atual) fica 0 sem progresso. `totalGp`, `itemTempIds` e `order` dependem de progresso. |
+| 8286 | C_ROOM_REFUSE | completo | cliente (`sendRefuseInvite`, 4194) | Alterna "recusar convites". Responde 4194. O bloqueio do 5142 da guilda é *(dedução)*, ver [guilda.md](guilda.md). Também barra o convite de sala (5028). |
+| 8297 | TOWER_INFO | parcial | captura (4205) | 4205 com `campaignId=8001`, 0 entradas feitas e 1 livre de 1 (visto, só turco: `labirent_sandik` #17 e `yeralti` #1). `index` ecoa o pedido; `towerIndex` (andar atual) e `maxIndex` (recorde; o 60 do turco era daquele personagem e fechava a missão 6, tipo 38) ficam 0 sem progresso. `totalGp`, `itemTempIds` e `order` dependem de progresso. |
+| 8299 | C_TOWER_RESET | feito na forma | *(cliente)* `MazeFrame` (botão Reset, com `towerIndex` > 0, depois da confirmação); `PlayerManager.__towerInfoHandler` | `TowerInfoReqMsg {index}`. Responde o mesmo 4205 do 8297 (andar 0, `index` do pedido): a tela só se refaz com ele. Sem progresso salvo, o andar já é 0. |
+| 8296 | C_ENTER_TOWER | só registra | *(cliente)* `MazeFrame` → `RoomSocketOuterManager.enterTowerInfo` | `EnterTowerInfoMsg {campaignId, chooseIndex 1 começar / 0 continuar, isDouble 2 lucro dobrado}`; o dobrado gasta a chave (sonType 297, compra rápida 208008) e o cliente segura um novo envio por 5 s. Não entra, não conta a entrada e não gasta a chave: os andares (`MapInfo` 8001-8030 do 8001, `MapFileId` 8001…) não têm nós nem monstros nos templates, o `.maps` só tem o desenho, e não há captura do pedido nem da resposta. |
 | 8300 | TOWER_LIVE | parcial | sem captura | Sem efeito. Custo da torre não modelado. |
 | 8526 | OPRATE_REPLACEMENTS | parcial | cliente (4424/4423) | Sem efeito. Depende do chefe mundial ([boss-eventos.md](boss-eventos.md)). |
 | 8528 | CAMPAIGN_SWEEP | parcial | cliente (4425), captura (4425) | Sem efeito: falta o pedido (`CampaignSweepReq`, sem captura C>S) e o progresso. Respostas vistas: status 1 abre a janela (`sweepType` 1 campanha, 2 labirinto); status 11 é o fim com `result`; status 5 não tem efeito no `MopupManager`. Custo em `ConfigInfos`: campanha `Campaign_Sweep_Gold` 5000 e `Campaign_Sweep_Time` 300 s; labirinto `Tower_Sweep_Gold` 1000 e `Tower_Sweep_Time` 30 s por andar. |
@@ -245,14 +259,13 @@ e o custo é alto para conteúdo que não muda.
 
 ## Dependências que faltam
 
-- **Começar a campanha da sala**: o 5039 entra na campanha pedida (seção das masmorras). Falta a escolha da campanha antes do 5039: o `InstanceSelectFrame` não está decompilado, então ainda não foi capturada. Até lá a sala fica "Savaş seçilmedi" (texto do cliente turco; falta o inglês).
+- **Começar a campanha da sala**: o dono escolhe a campanha no 5034 (`InstanceSelectFrame`) e o 5039 entra na campanha pedida (seção das masmorras). Sem escolha, o cliente inglês mostra "Room owner has not selected a map yet." (`RoomRightView.command02`); o `roomName` do 32 o cliente não lê.
 - **Progresso de campanha e mapa 2011**: o estado dos nós da masmorra não é salvo (só a etapa da vez, a melhor nota, a carta e as missões). O mapa 2011 não tem nós, e a varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
 - **Lista de soldados por mapa (5038)**: as campanhas no banco levam a sua (`maps[mapa].army`, inglesa
   #924, #1524, #2513); fora delas só o 2011 (só turco: peri_uyanis). Os demais mapas precisam de captura do 5038 de cada um.
 - **Varredura (8528)**: falta a captura do pedido C>S. As respostas 4425 estão nas capturas, mas nenhuma
   tem o pedido. Além disso, o progresso de campanha (vitória) não é salvo.
-- **Torre**: sem progresso salvo. Os limites vistos (1 de 1, `maxIndex` 60) estão no 8297; a torre real
-  ainda não tem o seu `maxIndex`.
+- **Torre**: sem progresso salvo. As entradas vistas (1 de 1) estão no 8297; andar e recorde (`maxIndex`) ficam 0.
 - **Gemas da guarda de batalha**: `WorldBossHelper.checkMaze` pede inventário de gemas do labirinto. O
   login oficial manda o 4631 com `watchInfo`; falta captura de jogador sem gema e com gema, e saber o que
   `jion1` (3120101) é.

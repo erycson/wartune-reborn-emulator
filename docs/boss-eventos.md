@@ -81,8 +81,10 @@ the battle instantly ... 3 times") conta 1 em cada 8264 pago com sucesso. As dua
 (`exitBack`).
 
 **Fim da janela (chefe morto ou `StopTime`).** É pago uma vez só, sob o lock do pool.
-- Os prêmios do fim vão pelo **correio do jogo** e somam (guia da Koram): top 10 da classe
-  (`job % 3`), o maior degrau da fração do dano e o último golpe.
+- Os prêmios do fim vão pelo **correio do jogo** e somam (guia da Koram), só com o chefe morto
+  ("Defeating the World Boss earns", help do cliente): Ares Prize (top 10 da classe, `job % 3`), Warrior Prize
+  (o maior degrau da fração do dano) e Lucky Prize (o último golpe). No `StopTime` com o chefe vivo, só o ouro e
+  o Daru de cada golpe.
 - Na mesma transação gravam-se `settled`, `next_hp` e o dano de todos.
 - Quem está no mapa recebe o **4203** (posição, ouro, daru e dano total) e o 22. Quem está em luta recebe
   os dois no fim dela.
@@ -96,9 +98,8 @@ cai conforme a última janela.
 ## Regras pela Internet (pesquisa de 2026-10-18)
 
 Tudo aqui é *(internet)*; o help do cliente (`worldboss.view.BaseHelpFrame.helpText`) confirma ouro e Daru por
-golpe, "HP e tropas não se esgotam", o prêmio do último golpe ("Şanslı Ödülü" no help turco; nome inglês não
-achado), o top 10 de dano e o prêmio por
-0,3%/0,5%/0,8% do dano total. Wiki: https://wartune.fandom.com/wiki/World_BOSS (lida pela `api.php`, revisões
+golpe, "HP e tropas não se esgotam", e, só para o chefe derrotado, o Lucky Prize (último golpe), o Ares Prize (top 10 de dano
+por classe) e o Warrior Prize (0,3%/0,5%/0,8% do dano total). Wiki: https://wartune.fandom.com/wiki/World_BOSS (lida pela `api.php`, revisões
 `?oldid=`); guia da Koram: http://wartune.koramgame.com/2013/gameguide_0302/8.html; DolyGames:
 https://wartune.dolygames.com (posts citados abaixo).
 
@@ -133,8 +134,8 @@ https://wartune.dolygames.com (posts citados abaixo).
   servidores antigos: 1% → 360k. Removido no Patch 5.5.
 - **Prêmios somam?** Conflito: "you only receive one prize, whichever is best" (`?oldid=13462`) contra "Players
   can acquire Beating Reward as well as other rewards" (Koram). Prêmios vão por correio (Koram).
-- **Fim**: a masmorra fecha quando o tempo acaba ou o chefe morre, e todos voltam para a cidade. Sem fonte para
-  o último golpe quando o chefe não morre. Participantes: "like 300-500 people" (Doly world-boss-last-hits).
+- **Fim**: a masmorra fecha quando o tempo acaba ou o chefe morre, e todos voltam para a cidade. Sem chefe morto,
+  não há prêmio do fim (help do cliente). Participantes: "like 300-500 people" (Doly world-boss-last-hits).
 
 ## Captura que falta
 

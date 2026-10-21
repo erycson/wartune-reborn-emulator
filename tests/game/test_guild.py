@@ -1,8 +1,12 @@
+from datetime import timedelta
 from pathlib import Path
 
+from sqlalchemy import select
+
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import Character, Consortia, Item
+from wartune_server.domain.models import CashLedger, Character, Consortia, Item
 from wartune_server.game import bag
+from wartune_server.game import events as ev
 from wartune_server.game import guild as gd
 from wartune_server.game.handlers import guild as handlers
 from wartune_server.game.session import GameSession
@@ -107,8 +111,10 @@ async def test_invite_answer_quit_cooldown_and_kick(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         c = await a.join("clara")
-        _rich(c)
         await c.idle()
+        a.client.send(5142, pb.ConsortiaMsg(otherId=c.user_id))  # abaixo do 12 (ConsortiaRecruitFrame)
+        assert not [p for p in await c.idle() if p.code == 41]
+        _rich(c)
         a.client.send(5142, pb.ConsortiaMsg(otherId=c.user_id))
         invite_id = _one(await c.idle(), 41, pb.ConsortiaMsg).applyId
         c.client.send(5143, pb.ConsortiaMsg(applyId=invite_id, result=True))
@@ -157,6 +163,17 @@ async def test_contribution_matches_the_capture(tmp_path: Path) -> None:
 
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=10**9))  # mais ouro que tem
         assert not [p for p in await a.idle() if p.code == 42]
+
+        # 5 Balens = 1 (cliente inglês), vinculados primeiro; o resto que não vira contribuição fica
+        c.point, c.gift_token = 100, 3
+        a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerPoint=4))
+        assert not [p for p in await a.idle() if p.code == 42]
+        a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerPoint=12))
+        assert _one(await a.idle(), 164, pb.ConsortiaInfoMsg).offer == 58
+        assert (c.point, c.gift_token, c.consortia_offer) == (93, 0, 58)
+        async with a.server.services.database.sessions() as db:
+            ledger = (await db.execute(select(CashLedger))).scalars().all()
+        assert [(e.delta_point, e.delta_gift_token, e.reason) for e in ledger] == [(-7, -3, "guild_contribute")]
 
 
 async def test_upgrade_cooldown_quick_and_learning(tmp_path: Path) -> None:
@@ -422,3 +439,212 @@ async def test_creating_hides_own_applications_before_the_write(tmp_path: Path) 
         finally:
             chars.write = real  # type: ignore[method-assign]
         assert seen == [None]
+
+
+async def test_guild_mail_from_the_chairman_costs_175_balens(tmp_path: Path) -> None:
+    """ConsortiaEmailGroupSendView (inglês): só o chefe, para membros da guilda, "Spend 175 Balens"."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        c = _char(a)
+        c.point, c.gift_token = 200, 0
+        mail = pb.MailSendReqMsg(sendType=2, receiverUserId=[b.user_id, 999], title="aviso", contents="guerra")
+        a.client.send(8205, mail)  # 999 não é da guilda
+        assert not [p for p in await b.idle() if p.code == 148] and c.point == 200
+        del mail.receiverUserId[1]
+        a.client.send(8205, mail)
+        await b.until(148)
+        assert c.point == 25
+        async with a.server.services.database.sessions() as db:
+            ledger = (await db.execute(select(CashLedger))).scalars().all()
+        assert [(e.delta_point, e.reason) for e in ledger] == [(-175, "guild_mail")]
+
+        _char(b).point = 1000
+        b.client.send(8205, pb.MailSendReqMsg(sendType=2, receiverUserId=[a.user_id], title="oi", contents="chefe"))
+        assert not [p for p in await a.idle() if p.code == 148] and _char(b).point == 1000  # membro comum
+
+
+async def test_altar_bless_with_a_prize_waiting_abandons_it(tmp_path: Path) -> None:
+    """ConsortiaAltarHelper.canBless: com prêmio por pegar o cliente pergunta e só manda o 5145 se o jogador
+    abandonar; o prêmio novo toma o lugar."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        s, c = _session(a), _char(a)
+        _guild(a).altar_level = 1
+        c.consortia_offer = 100
+        s.ctx.guilds.members[a.user_id].bless_item = 1  # prêmio antigo, não pego
+        a.client.send(5145, pb.SimplePropertyMsg(param1=1))
+        assert _one(await a.idle(), 45, pb.ConsortiaMsg).blessSite != -1
+        assert s.ctx.guilds.members[a.user_id].bless_item not in (0, 1)
+
+
+async def test_quit_paying_the_cooldown_costs_consortia_clear_cd_point(tmp_path: Path) -> None:
+    """ConsortiaFrame.checkTxt: sem o cartão 208013, ``Consortia_ClearCD_Point`` (395) Balens e sem espera."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        c = _char(b)
+        c.point, c.gift_token = 500, 0
+        b.client.send(5146, pb.ConsortiaQuitReqMsg(clear_CDType=1))
+        assert _one(await b.idle(), 117, pb.ConsortiaMsg).consortiaId == 0
+        assert c.point == 105 and not c.is_auto
+        async with a.server.services.database.sessions() as db:
+            ledger = (await db.execute(select(CashLedger))).scalars().all()
+        assert [(e.delta_point, e.reason) for e in ledger if e.reason == "guild_clear_cd"] == [(-395, "guild_clear_cd")]
+        b.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(a).id))  # sem as 24 h
+        assert [p for p in await b.idle() if p.code == 35]
+
+
+async def test_events_follow_consortia_event_item_parts(tmp_path: Path) -> None:
+    """ConsortiaEventItem.decode parte o remark por "|" e monta pelo tipo; frase sem as partes vira "undefined"."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        a.client.send(5132, pb.ConsortiaMsg(otherId=b.user_id))
+        await a.idle()
+        a.client.send(8210)
+        got = _one(await a.idle(), 4136, pb.ConsortiaEventListRspMsg).eventInfo
+        assert [(e.type, e.remark) for e in got] == [
+            (3, "Maga|founded the guild."),
+            (3, "Bruxa|joined the guild."),
+            (1, "Maga|expelled|Bruxa|from the guild."),
+        ]
+
+
+async def test_election_lists_candidates_and_my_vote_like_election_list_view(tmp_path: Path) -> None:
+    """ElectionListView: ``isVotingman`` = candidato; o "já votou" sai da própria linha (``votingTime > 0``)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        guild = _guild(a)
+        guild.voting_state, guild.voting_id = 3, 7
+        _char(b).consortia_offer = 100
+        b.client.send(8241)
+        got = _one(await b.idle(), 4389, pb.ConsortiaVotingUsersMsg).info
+        assert [(u.userId, u.isVotingman, u.votingTime) for u in got] == [(a.user_id, True, 0), (b.user_id, False, 0)]
+        b.client.send(8481, pb.ConsortiaVotingReqMsg(votingUser=a.user_id))
+        assert _one(await b.idle(), 4390, pb.ConsortiaVotingRspMsg).result
+        b.client.send(8241)
+        got = _one(await b.idle(), 4389, pb.ConsortiaVotingUsersMsg).info
+        assert [(u.userId, u.votingTime, u.votingData) for u in got] == [(a.user_id, 0, 1), (b.user_id, 1, 0)]
+
+
+async def test_member_list_shows_the_vip_of_online_members(tmp_path: Path) -> None:
+    """ConsortiaMemberItem: nome VIP e Ã­cone pelo ``isVip``/``vipType``."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        snap, now = _session(b).snapshot, _session(b).ctx.clock.now()
+        assert snap is not None
+        ev.state(snap, "vip", now).text = (now + timedelta(days=1)).strftime(ev.TIME_FMT)
+        ev.state(snap, "vip:type", now).value = 2
+        a.client.send(8207)
+        got = [p for p in await a.idle() if p.code == 4133]
+        rows = [r for p in got for r in pb.SimplePlayerListRspMsg.FromString(p.body).playerInfo]
+        assert sorted((r.userId, r.isVip, r.vipType) for r in rows) == [(a.user_id, False, 0), (b.user_id, True, 2)]
+
+
+async def test_guild_name_is_4_to_10_client_bytes_and_merged_names_rename_free(tmp_path: Path) -> None:
+    """CreatConsortiaFrame/ConsortiaRenameFrame: 4 a 10 com [^\x00-\xff] valendo 2; "!" no nome renomeia grátis."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a, "Lobo")
+        assert _guild(a).name == "Lobo"
+        b = await a.join("bruxa")
+        _rich(b)
+        for bad in ("Lob", "Lobosdonorte", "Ñandú本本本"):
+            b.client.send(5130, pb.ConsortiaMsg(consortiaName=bad))
+            await b.idle()
+            assert _session(b).ctx.guilds.of(b.user_id) is None, bad
+        c = _char(a)
+        c.point, c.gift_token = 1000, 0
+        _guild(a).name = "Lobo!s1"
+        a.client.send(5148, pb.ConsortiaRenameReqMsg(newName="Corvos", same=True, payType=1))
+        assert _one(await a.idle(), 49, pb.ConsortiaRenameRspMsg).result
+        assert (_guild(a).name, c.point) == ("Corvos", 1000)
+        a.client.send(5148, pb.ConsortiaRenameReqMsg(newName="Gralhas", same=True, payType=1))  # sem "!": paga
+        assert _one(await a.idle(), 49, pb.ConsortiaRenameRspMsg).result
+        assert (_guild(a).name, c.point) == ("Gralhas", 0)
+
+
+async def test_accepting_someone_already_in_another_guild_drops_the_old_application(tmp_path: Path) -> None:
+    """ApplyPlayerList tira a linha e espera um 40; a candidatura velha não volta na lista."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        c = await a.join("clara")
+        await _create(c, "Corvos")
+        b = await a.join("bruxa")
+        _rich(b)
+        b.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(c).id))
+        old = _one(await b.idle(), 35, pb.ConsortiaMsg).applyId
+        b.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(a).id))
+        new = _one(await b.idle(), 35, pb.ConsortiaMsg).applyId
+        a.client.send(5134, pb.ConsortiaMsg(applyId=new, result=True))
+        await b.until(117)
+        c.client.send(5134, pb.ConsortiaMsg(applyId=old, result=True))
+        assert [p for p in await c.idle() if p.code == 40]
+        assert _guild(b).id == _guild(a).id
+
+
+async def test_box_gives_at_most_10_to_each_member(tmp_path: Path) -> None:
+    """ConsortiaPrizeAllotItem.changeReceviedCount: no máximo 10 por membro."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        s = _session(a)
+        await s.ctx.characters.save(handlers.add_to_box(s, _guild(a).id or 0, 2060044, 20))
+        box = pb.ConsortiaTreasureBoxMsg(templateId=2060044, playerInfo=[{"userId": a.user_id, "count": 11}])
+        a.client.send(8578, box)
+        assert not [p for p in await a.idle() if p.code == 4466]
+        box.playerInfo[0].count = 10
+        a.client.send(8578, box)
+        assert [i.count for i in _one(await a.idle(), 4466, pb.ConsortiaStorageInfoMsg).storageInfo] == [10]
+
+
+async def test_guild_warehouse_is_bag_6_with_store_level_times_5_cells(tmp_path: Path) -> None:
+    """ConsortiaCaseBag: bolsa 6, ``storeLevel*5`` espaços (ConsortiaModel.currentCasecellNum); "Sort" é o 8220."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        snap = _session(a).snapshot
+        assert snap is not None
+        item = Item(a.user_id, 2040106, pos=0)
+        snap.items.append(item)
+        await _session(a).ctx.characters.save(item)
+        a.client.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=0, endBagType=6, endPos=0))  # nível 0: fechado
+        assert await a.idle() == [] and item.bag_type == 1
+        _guild(a).store_level = 1
+        a.client.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=0, endBagType=6, endPos=5))  # só 0 a 4
+        assert await a.idle() == [] and item.bag_type == 1
+        a.client.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=0, endBagType=6, endPos=4))
+        await a.idle()
+        assert (item.bag_type, item.pos) == (6, 4)
+        a.client.send(8220, pb.ArrangeReq(bagType=6, arrangeInfo=[pb.ArrangeInfo(oldplace=4, newplace=0)]))
+        await a.idle()
+        assert (item.bag_type, item.pos) == (6, 0)
+
+
+async def test_grade_order_ranks_guilds_by_level_then_wealth(tmp_path: Path) -> None:
+    """``orderInfo.gradeOrder`` (ConsortiaActivityPage): sai 0 sem isso; o critério é dedução."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        c = await a.join("clara")
+        await _create(c, "Corvos")
+        _guild(c).total_offer = 10
+        a.client.send(8212)
+        assert _one(await a.idle(), 4138, pb.ConsortiaInfoMsg).orderInfo.gradeOrder == 2
+        _guild(a).levels = 2
+        a.client.send(8212)
+        assert _one(await a.idle(), 4138, pb.ConsortiaInfoMsg).orderInfo.gradeOrder == 1
+
+
+async def test_vip_trial_card_tells_the_guild_chat_4455(tmp_path: Path) -> None:
+    """ConsortiaGroupChatControler: o 4455 troca o ícone VIP do membro no chat em grupo."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        snap = _session(b).snapshot
+        assert snap is not None
+        card = Item(b.user_id, 2031201, pos=0)  # VIP Trial Card
+        snap.items.append(card)
+        await _session(b).ctx.characters.save(card)
+        b.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))
+        vip = _one(await a.idle(), 4455, pb.VipToConsortiaMsg)
+        assert (vip.userid, vip.isVip, vip.vipType, vip.consortiaId) == (b.user_id, True, 2, _guild(a).id)

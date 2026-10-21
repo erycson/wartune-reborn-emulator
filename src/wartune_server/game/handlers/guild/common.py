@@ -12,6 +12,7 @@ from ....domain.models import (
     ConsortiaMember,
 )
 from ....protocol.messages import wartune_pb2 as pb
+from ....services import ledger
 from ... import guild as gd
 from ...builders import login as b
 from ...session import GameSession
@@ -32,12 +33,13 @@ MAX_APPLICATIONS = 10
 QUIT_COOLDOWN = timedelta(hours=24)
 CD_CARD = 208013  # cartão que limpa a espera ao sair (ConsortiaStaffPage.exitCallback)
 RENAME_POINTS = 1000  # ConsortiaRenameFrame.command01
-GOLD_PER_OFFER = 1000  # contribuição: 1000 ouro = 1, 1 diamante = 1 (ConsortiaContributeFrame)
+# contribuição: 1000 ouro = 1, 5 Balens = 1 (ConsortiaContributeFrame inglês: ``/ 1000``, ``/ 5``, command05/06)
+GOLD_PER_OFFER, POINTS_PER_OFFER = 1000, 5
 QUICK_SECONDS = 600  # acelerar a melhoria: 1 diamante a cada 10 min (ConsortiaUpgradeFrame)
 GUILD_SHOP = "2"  # ShopTempInfos.ShopType do mercado da guilda
 # BuyInfo.result (ShopManager.shopingResult, como em handlers/shop.py)
 R_OK, R_NO_PLAYER, R_NO_ITEM, R_NO_MONEY, R_LIMIT, R_GUILD, R_LEVEL, R_FAIL = 1, 2, 3, 4, 6, 9, 10, 11
-TEXT_MAX = 255
+TEXT_MAX = 200  # maxChars da placa, descrição e aviso (cliente inglês)
 MEMBER_CHUNK = 100  # 4133 em pedaços (o cliente junta pelo uuid até somar totalRows)
 _TAG = re.compile(r"<[^>]*>")
 
@@ -127,20 +129,24 @@ def _left(s: GameSession, player_id: int, guild: Consortia | None) -> None:
         _push_info(s, guild)
 
 
-def _event(s: GameSession, guild: Consortia, remark: str) -> object:
-    return s.ctx.guilds.add_event(guild.id or 0, _now(s), remark)
+def _event(s: GameSession, guild: Consortia, kind: int, *parts: str) -> object:
+    return s.ctx.guilds.add_event(guild.id or 0, _now(s), kind, *parts)
 
 
 def _in_cooldown(c: Character, now: datetime) -> bool:
     return c.is_auto and c.last_out_consortia is not None and now - c.last_out_consortia < QUIT_COOLDOWN
 
 
-def _clear_cooldown(s: GameSession, is_pay: bool) -> bool:
-    """Espera de 24 h depois de sair: com ``isPay`` paga ``Consortia_ClearCD_Point`` e entra já."""
-    c = _char(s)
-    if not _in_cooldown(c, _now(s)):
-        return True
-    if not is_pay or not gd.pay_points(c, gd.config(s.ctx.templates, "Consortia_ClearCD_Point", 50), False):
-        return False
+def _clear_cooldown(s: GameSession, is_pay: bool) -> list[object] | None:
+    """Espera de 24 h depois de sair: com ``isPay`` paga ``Consortia_ClearCD_Point`` e entra já.
+
+    None = ainda esperando; senão o que gravar junto (a linha do ledger, se pagou)."""
+    c, now = _char(s), _now(s)
+    if not _in_cooldown(c, now):
+        return []
+    cost = gd.config(s.ctx.templates, "Consortia_ClearCD_Point", 50)
+    entry = ledger.pay(c, cost, bind=False, reason="guild_clear_cd", ref="join", now=now) if is_pay else None
+    if entry is None:
+        return None
     c.is_auto = False
-    return True
+    return [entry]

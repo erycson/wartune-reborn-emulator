@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from ...domain.errors import NotFoundError, ValidationError
 from ...domain.models import Character, FriendGroup, Quest, Relation, RelationType, SnsProfile
 from ...protocol.messages import wartune_pb2 as pb
-from ...services.characters import normalize_nickname
+from ...services.characters import character_name
 from .. import items, rules, social
 from ..builders import login as b
 from ..builders.player import quest_update
@@ -29,8 +29,10 @@ S_CHAT_STATE, S_RECENT_STATE, S_SEARCH, S_SNS_UPDATED = 4232, 4272, 4273, 4239
 S_INFO, S_SEARCH_NICK, S_CHECK_NICK, S_REFUSE, S_RENAME, S_HERO_INFO = 4128, 4170, 4148, 4193, 4271, 4464
 MIN_GRADE = 6  # FriendManager.sendAddFriendRequest
 MAX_FRIENDS, MAX_BLACKLIST = 200, 50  # FriendManager.maxFriendCount (200 + vip.friend_bonus) e FullBlackList
-MAX_GROUPS, GROUP_NAME_MAX = 10, 12  # ponytail: limites do cliente não achados (módulo de UI ausente)
-FIRST_GROUP = 3  # 1 recentes, 2 amigos, -1 pendente, -2: ids do cliente
+# FridendsListView: groupDic com até 4 (o 2 e mais 3 do jogador, command01 "Max Group number has been reached."),
+# nome até 12 (checkStringLength) e sem , | % (InputAgain)
+MAX_GROUPS, GROUP_NAME_MAX, GROUP_NAME_BAD = 3, 12, frozenset(",|%")
+FIRST_GROUP = 4  # 1 recentes, 2 amigos, 3 lista negra, -1 estranhos, -2 cônjuge: ids do cliente
 SEARCH_PAGE = 10  # __findFriendHandler: ceil(totalRows / 10)
 RECOMMEND_MAX = 10
 RENAME_CARD = "289"  # SonType da carta de renomear (208018)
@@ -61,13 +63,14 @@ SEARCH_FIELDS = {  # FriendSearchConditionReqMsg -> SnsProfile (0 = qualquer)
     "city": "city",
 }
 _TAG = re.compile(r"<[^>]*>")
-# textos curtos no idioma do servidor oficial (os do cliente estão no pacote de idioma)
-NOT_FOUND, REFUSES, ALREADY, FULL = (
-    "Player not found!",  # language.txt inglês ConsortiaTransferFrame.command06
-    "Player is not accepting friend requests",  # texto deduzido (sem fonte no cliente/captura)
-    "Already on the list",  # texto deduzido (sem fonte no cliente/captura)
-    "List is full",  # texto deduzido (sem fonte no cliente/captura)
-)
+# textos do language.txt inglês (o cliente já barra antes de mandar: FriendManager.sendAddFriendRequest)
+NOT_FOUND = "Player not found!"  # ConsortiaTransferFrame.command06
+REFUSES = "Player is not accepting friend requests"  # texto deduzido (sem fonte no cliente/captura)
+ALREADY = "Already in your Friend List."  # FriendManager.command05
+FULL = {
+    RelationType.FRIEND: "Friend number limit has been reached.",  # FriendManager.command02
+    RelationType.BLACKLIST: "Your Blacklist number has reached 50, delete some of them before adding more.",  # content
+}
 # texto deduzido (sem fonte no cliente/captura)
 WAITING, ADDED = "Added, waiting for a reply.", "You have added a new friend"  # só turco: arkadas_istegi_gonderme #2-3
 
@@ -94,7 +97,7 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
         _fail(s, ALREADY)
         return
     if count >= (MAX_BLACKLIST if relation == RelationType.BLACKLIST else MAX_FRIENDS + vip.friend_bonus(s, snap)):
-        _fail(s, FULL)
+        _fail(s, FULL[RelationType(relation)])
         return
     theirs = await social.row_of(s.ctx, target.id, me.id or 0)
     if relation == RelationType.FRIEND and target.refuse_friend and theirs is None:
@@ -105,7 +108,7 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
         snap.relations.append(mine)
     changed = [mine]
     if relation == RelationType.BLACKLIST:
-        mine.relation, mine.group_id = relation, social.NO_GROUP
+        mine.relation, mine.group_id = relation, social.BLACK_GROUP
         if theirs is not None and theirs.relation == RelationType.FRIEND:  # a amizade acaba do meu lado
             theirs.relation = RelationType.PENDING
             changed.append(theirs)
@@ -212,7 +215,7 @@ def _group(s: GameSession, group_id: int) -> FriendGroup | None:
 
 def _group_name(raw: str) -> str | None:
     name = _TAG.sub("", raw).strip()
-    return name if 0 < len(name) <= GROUP_NAME_MAX else None
+    return name if 0 < len(name) <= GROUP_NAME_MAX and not GROUP_NAME_BAD & set(name) else None
 
 
 @router.on(15025)
@@ -319,7 +322,7 @@ async def sns_reset(s: GameSession, _: object) -> None:
 
 @router.on(15042)
 async def friend_search(s: GameSession, msg: pb.FriendSearchConditionReqMsg) -> None:
-    """Busca por perfil SNS, 10 por página. ponytail: ``pageIndex`` tratado como 1-based (UI ausente)."""
+    """Busca por perfil SNS, 10 por página; ``pageIndex`` começa em 1 (FindResultFrame: ``curPage = 1``)."""
     filters = {attr: getattr(msg, name) for name, attr in SEARCH_FIELDS.items()}
     offset = (max(msg.pageIndex, 1) - 1) * SEARCH_PAGE
     total, found = await s.ctx.characters.read(lambda uow: uow.sns.search(filters, offset, SEARCH_PAGE))
@@ -392,7 +395,7 @@ async def rename(s: GameSession, msg: pb.PlayerRenameReqMsg) -> None:
     row = s.ctx.templates.get("ItemTempInfos", card.template_id) if card is not None else None
     paid = row is not None and row.get("SonType") == RENAME_CARD
     try:
-        nick = normalize_nickname(msg.nickName)
+        nick = character_name(msg.nickName)
     except ValidationError:
         nick = ""
     ok = bool(nick) and (paid or (msg.type == RENAME_FREE and "!" in (c.nickname or "")))

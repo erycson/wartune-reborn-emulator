@@ -25,8 +25,8 @@ from .player import CURRENCIES, push_level
 
 S_PLAYER, S_CHAT, S_ITEMS, S_QUESTS = 3, 83, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
-S_HARVEST, S_WATER_LOG, S_FRIEND_UPDATE = 146, 4158, 165
-REQ, PLANT, WORM, WEED, PICK, STEAL, REVIVE, ACCELERATE, CLEAR = 0, 1, 2, 3, 4, 5, 6, 7, 8  # FarmOperateType
+S_HARVEST, S_WATER_LOG, S_FRIEND_UPDATE, S_TREE_PICK, S_PICK_HARVEST = 146, 4158, 165, 106, 4189
+REQ, PLANT, WORM, WEED, PICK, STEAL, REVIVE, ACCELERATE, CLEAR, LAND_UP = range(10)  # FarmOperateType
 OK, FAIL = 0, 1
 EXP = -700  # ItemTempInfos -700: as sementes de EXP rendem EXP do jogador
 QUEST_PLANT, QUEST_HARVEST, QUEST_BUG = 59, 60, 61  # QuestCondictionInfos: plantar, colher, pegar praga
@@ -34,6 +34,7 @@ BUG_PARA1 = 1  # Para1 da praga: vale a fazenda própria ou de amigo (QuestTemps
 OWN_FARM, FRIEND_FARM = 0, 1  # Para1 do tipo 60: 263/860 a própria, 266/861 a de amigo
 OWN_TREE, FRIEND_TREE = 1, 0  # Para1 do tipo 20: 260 a própria, 22/261/271 a de amigo
 MAX_IDS = 100  # listas de amigos que o cliente manda (8219/8231)
+TREE_PICK_GP = 1  # FarmModel._expTreePick (expByOper 11, somado pelo cliente no 4189)
 REVIVE_BACK = timedelta(minutes=1)  # (visto, só turco: ciftlik #88-#89) reviver às 20:22:41 dá matureTime 20:21:42
 
 
@@ -81,10 +82,18 @@ async def farm_operate(s: GameSession, msg: pb.FarmOperReqMsg) -> None:
             s.send(S_FARM_INFO, b.complete(farm.farm_info(target, now, own=target is snap)))
         return
     own = msg.friendId in (0, s.player_id)
+    if msg.opType > LAND_UP:  # 12-16 terras de mascote e guarda: o 4387 de falha cairia num canteiro (pos -1 no guarda)
+        s.log.info("15044 recusado: cultivo de mascote sem regra (precisa captura)", op=msg.opType)
+        return
+    if msg.opType == LAND_UP:  # sem pos e sem 4387 (um 4387 de falha apagaria a terra 0 no cliente)
+        if not own or not await _land_up(s, snap, msg):
+            s.log.info("15044 recusado", op=LAND_UP, nivel=snap.castle.land_grade, fazenda=snap.castle.farm_grade)
+        return
     owner_id = s.player_id if own else msg.friendId
     found = None if own else await _friend(s, msg.friendId)
     target = snap if own else (found[0] if found else None)
-    if target is None or not 0 <= msg.pos < farm.OPEN_LANDS:
+    lands = farm.open_lands(target.castle.farm_grade) if target is not None and target.castle is not None else 0
+    if target is None or not 0 <= msg.pos < lands:
         s.log.info("15044 recusado", motivo="não é amigo ou terra fechada", op=msg.opType, friend=msg.friendId)
         _land_reply(s, owner_id, msg.pos, None, msg.opType, FAIL)
         return
@@ -118,7 +127,10 @@ async def _plant(
     item.count -= 1
     if item.count <= 0:
         snap.items.remove(item)
-    new = farm.plant(snap, row, msg.pos, now)
+    assert snap.castle is not None
+    up = snap.castle.land_grade - 1  # LandUpTip: -2% de tempo e +3% de produção por nível da terra acima do 1
+    faster, more = up * _config(s, "FarmCrop_Mature_Percent", 2), up * _config(s, "FarmCrop_Gains_Percent", 3)
+    new = farm.plant(snap, row, msg.pos, now, faster, more)
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_PLANT, 0, 1)
     if item.count > 0:
         await s.ctx.characters.save(item, new, *quests)
@@ -289,19 +301,38 @@ async def _revive(
 async def _accelerate(
     s: GameSession, snap: PlayerSnapshot, _: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
 ) -> bool:
+    """Uma vez por plantio (hasAccelerateTip): "50% maturity speed-up will consume {0} Balens"
+    (farm.view.FarmOperMenu.accelerateTip, ``Farm_Accelerate_Point`` = 35): metade do que falta."""
     c, now = snap.character, s.ctx.clock.now()
     if land is None or land.accelerated or farm.is_mature(land, now):
         return False
-    cost = _config(s, "Farm_Accelerate_Point", 10)
+    cost = _config(s, "Farm_Accelerate_Point", 35)
     entry = pay(c, cost, bind=msg.payType == 0, reason="farm_accelerate", ref=f"land:{land.pos}", now=now)
     if entry is None:
         return False
-    # ponytail: o texto do oficial (farm.view.FarmOperMenu.accelerateTip) não está decompilado;
-    # aqui a aceleração amadurece na hora
-    land.mature_at, land.accelerated = now, True
+    land.mature_at, land.accelerated = now + (land.mature_at - now) / 2, True
     await s.ctx.characters.save(c, land, entry)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     _land_reply(s, s.player_id, msg.pos, land, ACCELERATE, OK)
+    return True
+
+
+async def _land_up(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg) -> bool:
+    """Melhora as terras (FarmBuildLayer.__onLandUpClick, FarmSocketSendManager.sendLandUp): fazenda no nível 30+,
+    terra até o 10, custo ``farm.land_up_cost``; ``payType`` 0 = vinculados primeiro. O 4387 não lê ``landGrades``:
+    a volta é o 4386 (readFarmInfoMsg -> LAND_GRADE_CHANGE)."""
+    castle, c, now = snap.castle, snap.character, s.ctx.clock.now()
+    assert castle is not None
+    if castle.farm_grade < farm.LANDUP_GRADE or castle.land_grade >= farm.MAX_LAND_GRADE:
+        return False
+    cost, ref = farm.land_up_cost(castle.land_grade), f"land_grade:{castle.land_grade + 1}"
+    entry = pay(c, cost, bind=msg.payType == 0, reason="farm_land_up", ref=ref, now=now)
+    if entry is None:
+        return False
+    castle.land_grade += 1
+    await s.ctx.characters.save(c, castle, entry)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    s.send(S_FARM_INFO, b.complete(farm.farm_info(snap, now, own=True)))
     return True
 
 
@@ -340,7 +371,7 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     castle.tree_water, castle.tree_watered_at = castle.tree_water + 1, now
     castle.tree_water_today += 1
     farm.add_farm_gp(castle, c.grades, templates, 1)
-    # ponytail: sem fruto (quando a árvore frutifica não está nas capturas nem no cliente decompilado)
+    farm.tree_charge(castle, templates)
     quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, OWN_TREE, 1)
     await s.ctx.characters.save(c, castle, *quests)
     cs.castle_yield(s)
@@ -367,12 +398,17 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     c, castle, templates, now = snap.character, snap.castle, s.ctx.templates, s.ctx.clock.now()
     farm.roll_day(castle, now)
     today = gameday.today(now)
-    if found is None or found[1].tree_day == today or castle.tree_friend_today >= farm.FRIEND_TREE_DAILY:
-        s.log.info("15017 recusado", motivo="não é amigo, já regou hoje ou 200 no dia", user=user_id)
+    owner = found[0].castle if found is not None else None
+    if (
+        found is None
+        or owner is None
+        or found[1].tree_day == today
+        or castle.tree_friend_today >= farm.FRIEND_TREE_DAILY
+        or owner.tree_fruit > 0  # "Energy is already maxed out." (WaterViewContainer command03)
+    ):
+        s.log.info("15017 recusado", motivo="não é amigo, já regou hoje, 200 no dia ou cheia", user=user_id)
         return
     target, mine = found
-    owner = target.castle
-    assert owner is not None
     theirs = await social.row_of(s.ctx, user_id, s.player_id)
     # (dedução) ouro pelo nível de jogador do dono (o 66 do THoR também é o grau da fazenda dele)
     gold = target.character.grades * 20
@@ -382,6 +418,7 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
                             _config(s, "Farm_TodayFromFriend_GP", 200))  # fmt: skip
     castle.tree_friend_today += 1
     owner.tree_water += 1
+    farm.tree_charge(owner, templates)
     mine.tree_day, mine.friend_gp = today, mine.friend_gp + 1
     rows: list[object] = [c, castle, owner, mine]
     if theirs is not None:  # (dedução) a amizade sobe dos dois lados
@@ -410,8 +447,27 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
 
 @router.on(5178)
 async def tree_pick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
-    # sem fruto nunca há o que colher (ver 15017); recusado até a regra de frutificação existir
-    s.log.info("5178 recusado", motivo="árvore sem fruto", index=msg.index)
+    """Colhe a árvore cheia (TreeInfo.canPick: a própria, ``fruitCount`` > 0, fora da espera até a meia-noite).
+    Rende Daru e Kyanite (``game_settings`` tree_fruit; internet, wiki Farm) e ``TREE_PICK_GP``; a carga volta a 0
+    (wiki Farm). WaterViewContainer: 106 ``pickMsg`` (a animação mostra até 3 linhas), 4189 ``harvestMsg``.
+    (dedução) ordem e textos sem captura."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    c, castle, templates, now = snap.character, snap.castle, s.ctx.templates, s.ctx.clock.now()
+    if castle.tree_fruit <= 0 or farm.tree_pick_left(castle, now) > 0:
+        s.log.info("5178 recusado", motivo="sem fruto ou em espera", index=msg.index)
+        return
+    daru, kyanite = farm.tree_reward(s.ctx.world.settings.get("tree_fruit", farm.TREE_FRUIT), castle.farm_grade)
+    c.strategy, c.crystals = c.strategy + daru, c.crystals + kyanite
+    castle.tree_water = castle.tree_fruit = 0
+    castle.tree_picked_at = now
+    farm.add_farm_gp(castle, c.grades, templates, TREE_PICK_GP)
+    await s.ctx.characters.save(c, castle)
+    s.send(S_TREE_PICK, pb.TreeUpdateRsp(pickMsg=[f"Daru + {daru:,}", f"Kyanite + {kyanite:,}"]))
+    s.send(S_PICK_HARVEST, pb.TreeUpdateRsp(harvestMsg=[f"Farm EXP + {TREE_PICK_GP}"]))
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    cs.castle_yield(s)
+    s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
 
 
 @router.on(8219)
@@ -442,6 +498,7 @@ async def friend_farm_state(s: GameSession, msg: pb.FriendUserIdsMsg) -> None:
             states.append(pb.FriendFarmStateMsg(userId=user_id))
             continue
         target, r = found
-        can_water = room and r.tree_day != gameday.today(now)
+        full = target.castle is not None and target.castle.tree_fruit > 0
+        can_water = room and r.tree_day != gameday.today(now) and not full
         states.append(farm.friend_state(s.player_id, target, s.ctx.templates, now, can_water=can_water))
     s.send(S_CAN_WATER, b.complete(pb.LoadFarmRsp(friendFarmState=states)))

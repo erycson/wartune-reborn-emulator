@@ -14,7 +14,7 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_HTTP_PORT` | `8080` | |
 | `WARTUNE_SOCKET_PORT` | `5000` | |
 | `WARTUNE_WEBSOCKET_PORT` | `5001` | ponte para o Ruffle |
-| `WARTUNE_GAME_TIMEZONE` | `UTC` | fuso do jogo (vai para `game_servers.timezone` e aparece na lista de servidores do portal): horários do chefe do mundo, relógio dos chefes do mapa, `createDate` das minas e a virada do dia do jogo às 5h (`domain/gameday.py`), que zera todos os contadores diários. Nome IANA (com horário de verão, base do pacote `tzdata`) ou fixo (`+03:00`). O oficial inglês segue o Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html; as capturas antigas são do turco (UTC+3), por isso os testes usam `+03:00` (só turco: [fontes-turcas.md](fontes-turcas.md)) |
+| `WARTUNE_GAME_TIMEZONE` | `UTC` | fuso do jogo (vai para `game_servers.timezone` e aparece na lista de servidores do portal): horários do chefe do mundo, relógio dos chefes do mapa, `createDate` das minas e a virada do dia do jogo às 5h (`domain/gameday.py`), que zera todos os contadores diários. Nome IANA (com horário de verão, base do pacote `tzdata`) ou fixo (`+03:00`). Padrão UTC; troque no `.env` (modelo em `.env.example`). O oficial inglês segue o Pacífico (internet) https://wartunereborn.wan.com/article/read?aid=8721.html. Os testes rodam em UTC |
 | `WARTUNE_POLICY_PORT` | `843` | vazio desliga |
 | `WARTUNE_TEMPLATES_FILE` | `data/templates/tempinfos.xml` | cópia local dos templates (inglês, zlib) |
 | `WARTUNE_TEMPLATES_URL` | vazio | ex.: `https://cdn.exemplo.com/xml/tempinfos.xml`, usada pelo `templates update` |
@@ -23,6 +23,8 @@ Implementação: `src/wartune_server/config.py`.
 | `WARTUNE_GM_SECRET` | vazio | segredo do painel GM do portal (`gm_secret` no `config.php`). Liga o `POST /gm/kick` (cabeçalho `X-GM-Secret`, campo `character_id`), que derruba o jogador e só responde depois que a sessão terminou, para o portal editar o banco sem o servidor desfazer. Também liga o `POST /gm/ban` ([administracao.md](administracao.md)). Vazio: as rotas não existem |
 | `WARTUNE_SOCKET_SESSION_TTL_SECONDS` | `1800` | sessão do login HTTP sem uso por esse tempo expira (renovada a cada uso: registro, novice, 20001) |
 | `WARTUNE_IDLE_TIMEOUT_SECONDS` | `300` | desconecta um socket ocioso |
+| `WARTUNE_RANKING_XML_DIR` | vazio | pasta `xml/` do site do jogo (o `TEMPLATE_PATH` do `config.xml`, ex.: `D:/xampp/htdocs/wartune-reborn/game/xml`). Com ela, o servidor grava o `challengeorder.xml` (ranking "Hero Rankings" do coliseu) e o `fight.xml` (ranking de poder), `game/rankings.py`, ao subir e a cada `WARTUNE_RANKING_SECONDS`. Vazio: o site serve o arquivo do espelho (jogadores do oficial). Com vários servidores no mesmo site, só um deve gravar |
+| `WARTUNE_RANKING_SECONDS` | `3600` | intervalo da gravação do ranking |
 | `WARTUNE_LOG_DIR` | `logs` | |
 | `WARTUNE_LOG_LEVEL` | `INFO` | |
 | `WARTUNE_LOG_PACKETS` | `true` | grava `logs/packets.log` |
@@ -88,6 +90,7 @@ código usa o mesmo padrão.
 | `game_settings` `star_weights` | estrelas (8269): `{"<Profile>": [peso no cristal 0, 1, 2, 3, 4]}`; Profile fora do JSON não sai |
 | `game_settings` `star_open_next` | chance (0 a 1) de um sorteio de estrela acender o cristal seguinte (0.3) |
 | `game_settings` `gem_maze_reward_weights` | labirinto de gemas, um peso por prêmio na ordem 2060008 x1, 208027 x1, 208014 x2 (`[1, 1, 1]`) |
+| `game_settings` `mall_daily_limit` | limite diário de compra no leilão, em diamante, por nível: `{"bands": [[nível abaixo de, limite], ...], "top": limite}`. Sem a linha (padrão, como a ajuda inglesa): sem limite. Recusa com -52 |
 | `game_settings` `vip_bugle_bonus` | cornetas pequenas grátis a mais por dia, por nível VIP (índice 0..9; padrão `[0, ...]`, sem fonte, ver chat.md) |
 | `game_settings` `gold_tree` → `drops[i][4]` | árvore dourada (8604), por item da lista (0038). Padrão 1 (uniforme) |
 
@@ -97,11 +100,12 @@ UPDATE game_settings SET value = '[1, 1, 3]' WHERE key = 'gem_maze_reward_weight
 UPDATE game_settings SET value = '0.5' WHERE key = 'star_open_next';
 ```
 
-### Fazenda, amizade e cartas (0037)
+### Fazenda, amizade, cartas e árvore (0037, 0041)
 
 | `game_settings` | o quê |
 |---|---|
 | `farm_steal_percent` | % do `rewardCount` que um amigo leva por roubo (10, internet) |
+| `tree_fruit` | colheita da árvore (5178): `{"daru": [base, por nível], "kyanite": [base, por nível]}` pelo grau da fazenda acima do 1 (3800/3800 e 1000/100, internet) |
 | `friend_grade_step` | pontos de amizade por grau: grau = 1 + pontos // passo (10, dedução) |
 | `powcard_suite_slots` | degraus do bônus da coleção de cartas: `[[cartas, grau mínimo], ...]` (`[[4, 1], [4, 3], [4, 8]]`) |
 

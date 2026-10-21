@@ -26,9 +26,11 @@ async def test_offer_board_refresh_accept_and_pass(tmp_path: Path) -> None:
         for _ in range(2):  # 2 renovações grátis por dia
             g.client.send(8290, pb.RewardFreshReqMsg(isButton=True, payType=1))
         assert _board(await g.idle()).freeTimes == 2
-        g.client.send(8290, pb.RewardFreshReqMsg(isButton=True, payType=0))  # 2 diamantes que não tem
+        g.client.send(
+            8290, pb.RewardFreshReqMsg(isButton=True, payType=0)
+        )  # 10 Balens que não tem (REFRESH_REWARD_NEEDPAY)
         assert await g.idle() == []
-        c.gift_token = 2
+        c.point, c.gift_token = 0, 10
         g.client.send(8290, pb.RewardFreshReqMsg(isButton=True, payType=0))  # payType 0 aceita vinculado
         board = _board(await g.until(4197))
         assert c.gift_token == 0

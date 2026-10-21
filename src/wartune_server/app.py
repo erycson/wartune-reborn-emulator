@@ -15,6 +15,7 @@ from .domain.models import GameServer
 from .domain.world import World
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
 from .game import mall as market
+from .game import rankings
 from .game.events import EventCatalog
 from .game.guild import Guilds
 from .game.router import router
@@ -136,6 +137,7 @@ class GameServerApp:
         runners: list[web.AppRunner] = []
         servers: list[asyncio.Server] = []
         sweeper: asyncio.Task[None] | None = None
+        ranking: asyncio.Task[None] | None = None
         try:
             for app, port in ((self.http_app, s.http_port), (websocket_app(self.acceptor), s.websocket_port)):
                 runner = web.AppRunner(app, access_log=None)
@@ -153,11 +155,24 @@ class GameServerApp:
                 ),
                 name="mercado-encerramento",
             )
+            if s.ranking_xml_dir is not None:
+                ranking = asyncio.create_task(
+                    rankings.run(
+                        s.ranking_xml_dir,
+                        self.services.characters,
+                        self.services.guilds,
+                        s.server_id,
+                        self.services.clock,
+                        s.ranking_seconds,
+                    ),
+                    name="ranking-coliseu",
+                )
             await stop.wait()
         finally:
-            if sweeper is not None:
-                sweeper.cancel()
-                await asyncio.gather(sweeper, return_exceptions=True)
+            for task in (sweeper, ranking):
+                if task is not None:
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
             log.info("encerrando", online=len(self.online))
             for server in servers:
                 server.close()

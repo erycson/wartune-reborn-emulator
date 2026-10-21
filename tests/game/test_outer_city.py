@@ -217,7 +217,9 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         assert prepare.battleType == 1 and [(x.tempId, x.side, x.hp) for x in prepare.soldiers] == [
             (10101, 1, 242), (10101, 1, 242), (guard, 2, 175)
         ]  # fmt: skip
-        assert list(prepare.soldiers[0].skillId) == [10, 11] * 5 and prepare.heros[0].pawnTempId == 10101  # inglesa #727
+        assert (
+            list(prepare.soldiers[0].skillId) == [10, 11] * 5 and prepare.heros[0].pawnTempId == 10101
+        )  # inglesa #727
 
         got = await g.fight(prepare)
         got += await g.idle()
@@ -248,12 +250,14 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
 async def test_refresh_de_12_horas_sorteia_nivel_e_guarda(tmp_path: Path) -> None:
     """RefreshTime 43200 s: o ciclo é do jogador e começa no login. O nível sai entre 8 e 10 e o guarda
     acompanha (níveis 9 e 10 com 6505: inglesa #718; nível 8 com 6504: só turco, replay); o createDate vem no fuso do jogo."""
-    clock = FakeClock(datetime(2026, 5, 21, 9, 19, 54, tzinfo=UTC))
+    clock = FakeClock(datetime(2026, 5, 21, 12, 19, 54, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
         castle = snap.castle
         assert castle is not None and castle.mines_at == clock.now()  # o login abriu o ciclo
-        assert mines.game_date(castle.mines_at) == "2026-05-21 12:19:54"  # só turco: replay #706, 09:19:54 UTC em UTC+3
+        assert (
+            mines.game_date(castle.mines_at) == "2026-05-21 12:19:54"
+        )  # só turco: replay #706 (12:19:54 em UTC+3; aqui o fuso é UTC)
         world, templates = g.server.services.world, g.server.services.templates
         start = castle.mines_at
         draws = []
@@ -397,9 +401,15 @@ async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
 async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Missão 100 (m8 alvo 80_3, tile (44,22)): o 5160 no robô abre a luta com o guarda de grau 8; a vitória
-    conta o tipo 8 (Para1 1), manda o 112 e gasta um ataque do dia (o PlayerMsg mostra o contador)."""
+    """Missão 100 (m8 alvo 80_3, tile (44,22)): o 5160 no robô abre a luta inglesa (#1656-#1657: 140 do robô em
+    luta, battleType 4, mapa 993, herói 11008 com o nome do robô e 2 pilhas 10102); o fim conta o tipo 8, manda o
+    112 e o 4382 e gasta um ataque do dia (o PlayerMsg mostra o contador)."""
+
+    async def lose(_: battle_mod.Battle) -> bool:
+        return False  # a captura é uma derrota (#1762); a simulação daqui venceria
+
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    monkeypatch.setattr(battle_mod.Battle, "_fight", lose)
     clock = FakeClock()
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
@@ -415,26 +425,40 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
         got = await g.until(157)
         # devoção do leed 10 "Plunder another player" no ataque, antes da luta (tutorial_en #1648-#1652; lá o 83 vem
         # depois dos 140)
-        assert [p.code for p in got] == [4152, 83, 140, 140, 157]
+        assert [p.code for p in got] == [4152, 83, 140, 140, 140, 157]
         leed = pb.LeedUpdatedRspMsg.FromString(got[0].body)
         assert ([x.templateId for x in leed.leed], leed.totalNum) == ([10], 10)
+        robot = pb.MapUpdatedMsg.FromString(got[4].body)
+        assert (robot.updatedType, robot.baseCastle.id, robot.baseCastle.state) == (2, 765958, 4)
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
-        assert prepare.battleType == 1 and [(x.tempId, x.side) for x in prepare.soldiers] == [
-            (10101, 1),
-            (10101, 1),
-            (6504, 2),
+        assert (prepare.battleType, prepare.mapTempId) == (4, 993)
+        assert [(x.tempId, x.side, x.pos, x.hp) for x in prepare.soldiers if x.side == 2] == [
+            (10102, 2, 1, 282),
+            (10102, 2, 7, 282),
         ]
+        [enemy] = [h for h in prepare.heros if h.side == 2]
+        assert (enemy.tempId, enemy.type, enemy.pos, enemy.grade, enemy.hp) == (11008, 2, 6, 8, 240)
+        assert list(enemy.skillId) == [10711, 10811]
+        assert enemy.nickName == robot.baseCastle.occupyPlayerName
         assert snap.arena.attack_left == 4  # gasta ao começar a luta
 
+        strategy = snap.character.strategy
         got = await g.fight(prepare)
         got += await g.idle()
         report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
-        assert (report.battleResult, report.battleScene) == (1, 4)
+        assert report.battleScene == 6
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
-        assert after == [150, 4103, 150, 100, 140, 140, 112, 3]
+        assert after == [150, 4103, 150, 100, 140, 140, 140, 112, 3, 4382]
+        back = pb.MapUpdatedMsg.FromString([p.body for p in got if p.code == 140][-1])
+        assert (back.baseCastle.id, back.baseCastle.state) == (765958, 1)
+        # a missão 100 conta vencendo ou perdendo (#1765: derrota com condition_1 1)
         quest = pb.QuestUpdatedRspMsg.FromString(next(p.body for p in got if p.code == 112)).quest[0]
         assert (quest.templateId, quest.condition_1) == (100, 1)
         assert pb.PlayerMsg.FromString(next(p.body for p in got if p.code == 3)).attackLeftCount == 4
+        movie = pb.FightOverMoiveMsg.FromString(next(p.body for p in got if p.code == 4382))
+        # derrota, como na captura: o Daru é o exército inteiro (#1762: 172 = as 172 tropas)
+        assert report.battleResult == 2 and movie.strategy == report.strategyBonus == 150
+        assert snap.character.strategy == strategy + movie.strategy
 
 
 async def test_castelo_robo_recusa_sem_ataque_ou_com_diferenca_de_nivel(tmp_path: Path) -> None:
@@ -584,8 +608,8 @@ async def test_ocupacao_sem_nivel_gravado_e_completada_no_login(tmp_path: Path) 
 
 async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
     """9525 -> 4938 com os 5 chefes (bossType 3) do sorteio do mapa 2, iguais em todo pedido do ciclo, e o
-    relógio que as duas capturas mostram: 2026-05-21 19:00 UTC menos 4828 s (transfer) e 5775 s (cevre) (só turco)."""
-    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, 290000, tzinfo=UTC))
+    relógio que as duas capturas mostram: 2026-05-21 22:00 (local; testes em UTC) menos 4828 s (transfer) e 5775 s (cevre) (só turco)."""
+    clock = FakeClock(datetime(2026, 5, 21, 20, 39, 31, 290000, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
         msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
@@ -600,23 +624,25 @@ async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
         g.client.send(9525, pb.MapBossQuestMsg(mapId=2))
         assert pb.MapBossMsg.FromString((await g.until(4938))[-1].body).bosslist == msg.bosslist
 
-        g.client.send(9525, pb.MapBossQuestMsg(mapId=100))  # instância do castelo: sem chefes (inglesa #526: 4938 sem bosslist)
+        g.client.send(
+            9525, pb.MapBossQuestMsg(mapId=100)
+        )  # instância do castelo: sem chefes (inglesa #526: 4938 sem bosslist)
         msg = pb.MapBossMsg.FromString((await g.until(4938))[-1].body)
         assert (len(msg.bosslist), msg.leftBossTime) == (0, 4828)
 
         left = functools.partial(monsters.refresh_left, templates)
-        assert left(datetime(2026, 5, 21, 17, 23, 44, 227000, tzinfo=UTC)) == 5775  # só turco: cevre #3
-        assert left(datetime(2026, 5, 21, 19, 0, tzinfo=UTC)) == 7200  # 22:00 em UTC+3: o próximo é 00:00
-        assert left(datetime(2026, 5, 21, 18, 59, 59, 900000, tzinfo=UTC)) == 1  # nunca 0
-        assert left(datetime(2026, 5, 22, 0, 0, tzinfo=UTC)) == 5 * 3600  # 03:00: sem refresh até as 08:00
-        start = monsters.cycle_start(templates, datetime(2026, 5, 22, 0, 0, tzinfo=UTC))
-        assert start == datetime(2026, 5, 21, 21, 0, tzinfo=UTC)  # o ciclo das 00:00 locais
+        assert left(datetime(2026, 5, 21, 20, 23, 44, 227000, tzinfo=UTC)) == 5775  # só turco: cevre #3
+        assert left(datetime(2026, 5, 21, 22, tzinfo=UTC)) == 7200  # 22:00: o próximo é 00:00
+        assert left(datetime(2026, 5, 21, 21, 59, 59, 900000, tzinfo=UTC)) == 1  # nunca 0
+        assert left(datetime(2026, 5, 22, 3, tzinfo=UTC)) == 5 * 3600  # 03:00: sem refresh até as 08:00
+        start = monsters.cycle_start(templates, datetime(2026, 5, 22, 3, tzinfo=UTC))
+        assert start == datetime(2026, 5, 22, tzinfo=UTC)  # o ciclo das 00:00 locais
 
 
 async def test_monstros_dos_wilds_no_4129_como_na_captura(tmp_path: Path) -> None:
     """8201 numa grade do mapa 2 com monstro: type 21 como o 210127 da transfer #14 (só turco) (sem armyPawn, refreshTime
     0, size = Property2, createDate = começo do ciclo). O ciclo novo sorteia outros pontos."""
-    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))  # 20:39 em UTC+3: ciclo das 20:00
+    clock = FakeClock(datetime(2026, 5, 21, 20, 39, 31, tzinfo=UTC))  # 20:39: ciclo das 20:00
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         templates, world = g.server.services.templates, g.server.services.world
         found = monsters.on_map(world, templates, 2, clock.now())

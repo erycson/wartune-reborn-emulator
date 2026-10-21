@@ -36,17 +36,14 @@ NOT_IMPLEMENTED = {
     4122,  # patrulha dos monstros no mapa 10002
 }
 # diferenças conhecidas (docs/pendencias.md, "Oráculo do tutorial"); #N = tools/dump_capture.py da inglesa.
-# As duas últimas são do servidor, dentro do tutorial; as outras, ritmo ou outros jogadores:
-# - a missão 50 avança no 5017 20000 (#584, 112 a mais). O 112 do progresso antes da entrega só sai nos tipos
-#   23, 2 e 10 (a 52 não tem);
+# A última é do servidor, dentro do tutorial; as outras, ritmo ou outros jogadores:
 # - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793) e 4248 (#133, estado da guerra 4008): do
 #   servidor, não respostas;
 # - 140 ×2 da chegada do exército (#776-#777): o timer é de 2,4 s reais e o próximo pacote chega antes;
-# - 150 ×2 idênticos na saída do mapa do tutorial (#518-#519, 5125 1000206): aqui sai um;
 # - 2 (U_C_PLAYER_GRADE, corpo 32023332, sem mensagem conhecida) depois do Lvl. 5 Starter Pack (#690): não existe aqui.
 # O 8586 do #678 (login de 7 dias, dia 1) vai com o GUID do nosso pacote do mesmo tipo e ordem (_official_packages).
-KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 150: 1, 2: 1})
-KNOWN_EXTRA = Counter({112: 1})
+KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 2: 1})
+KNOWN_EXTRA: Counter[int] = Counter()
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
 

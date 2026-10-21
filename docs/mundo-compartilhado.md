@@ -167,7 +167,7 @@ Fatia 1 (cidade do céu), feita em `game/space.py` e `game/handlers/space.py`:
 Fatia 2 (nós, posição, visual, ilha dos pets), em `game/space.py` e `game/handlers/space.py`:
 
 **Posição**
-- Fica nas colunas `characters.space_x` e `space_y` (padrão 72,74).
+- Fica nas colunas `characters.space_x` e `space_y` (padrão 76,76: o personagem novo do oficial inglês nasce aí, tutorial_en #7; migração 0044).
 - O 8690 muda só a memória. A sessão grava o personagem quando termina, se o jogador já passou do tutorial.
 - No login, o jogador entra onde parou.
 

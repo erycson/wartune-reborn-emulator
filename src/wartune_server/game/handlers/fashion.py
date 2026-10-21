@@ -1,16 +1,17 @@
-"""Moda: esconder (5008), livro de moda (8625/8595/8631/8781) e composição/troca na bancada
-(8594/8595). A compra de moda (8592) fica na loja. Ver ``docs/itens.md``.
+"""Moda: esconder (5008), livro de moda (8625/8631/8781), provador (8595) e composição na bancada (8594). A compra
+de moda (8592) fica na loja. Ver ``docs/itens.md``.
 """
 
 from __future__ import annotations
 
-from ...domain.models import FashionBook, PlayerSnapshot
+from ...domain.models import BagType, FashionBook, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
-from .. import rules
+from .. import bag, rules, space
 from ..builders.player import fashion_book
 from ..router import router
 from ..session import GameSession
+from .player import S_ITEMS, _army, _player
 from .shop import send
 
 S_APPEARANCE, S_FASHION_COMPOSE, S_FASHION_BOOK = 149, 4487, 4542
@@ -24,13 +25,21 @@ def is_fashion(templates: GameTemplates, template_id: int) -> bool:
 
 
 def register(snap: PlayerSnapshot, templates: GameTemplates, template_id: int) -> FashionBook | None:
-    """Põe a moda no livro na primeira vez que é vestida (o livro do oficial lista as que o jogador já
-    teve, com ``isSwitch`` ligado). Devolve a entrada nova, ou None se já estava ou não é moda."""
+    """Ativa a moda no livro (``FashionSwitchItem``: ``isSwitch`` false mostra o ícone de "novo" até o 8631).
+    Devolve a entrada nova, ou None se já estava ou não é moda."""
     if not is_fashion(templates, template_id) or any(f.template_id == template_id for f in snap.fashions):
         return None
-    book = FashionBook(snap.character.id or 0, template_id)
+    book = FashionBook(snap.character.id or 0, template_id, is_switch=False)
     snap.fashions.append(book)
     return book
+
+
+def activate(snap: PlayerSnapshot, templates: GameTemplates) -> list[FashionBook]:
+    """Ativa as modas vinculadas que o jogador tem: "New bound clothing will automatically be activated when it is
+    obtained" (``fashion.view.switch.helpFrameContent``). A livre (comprada em Balens) ativa ao vincular."""
+    # ponytail: ativa quando o livro é pedido (8625, que o provador e a bancada pedem ao abrir) e não no ganho; mover
+    # para o bag.add se algum lugar mostrar o livro sem pedir
+    return [b for i in list(snap.items) if i.is_binds and (b := register(snap, templates, i.template_id))]
 
 
 def appearance(s: GameSession, snap: PlayerSnapshot) -> pb.HeroEquUpdatedMsg:
@@ -63,22 +72,63 @@ async def hide_fashion(s: GameSession, msg: pb.HeroHideFashionReqMsg) -> None:
 async def fashion_info(s: GameSession, _: object) -> None:
     snap = s.snapshot
     assert snap is not None
+    books = activate(snap, s.ctx.templates)
+    if books:
+        await s.ctx.characters.save(*books)
     send(s, S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
 
 
 @router.on(8595)
 async def fashion_switch(s: GameSession, msg: pb.FashionMsg) -> None:
-    # dois pedidos no mesmo opcode: FashionMsg.templateId = saveBook, que o cliente só usa para as
-    # roupas do casamento (MarryUIMediator) e depende do casamento; StoreReqMsg vazio (chega com
-    # templateId 0) = troca de aparência na bancada, cuja regra não está no cliente decompilado
-    s.log.info("8595 recusado: depende do casamento / regra da troca desconhecida", modelo=msg.templateId)
+    """Provador (``FashionSwitchView.__saveHandler``, um 8595 por parte): a moda vestida no líder com o SonType do
+    ``templateId`` passa a ser esse modelo. Só modelo ativado (no livro, ``saveBtn.tipData02``), com moda vestida
+    nesse espaço (``tipData01``) e diferente da vestida (``tipData03``); sem custo (``helpFrameContent`` item 5).
+    *(dedução)*: a peça troca de modelo (o ``ItemInfoMsg`` não tem campo de aparência); resposta = a do 5005."""
+    snap = s.snapshot
+    assert snap is not None and snap.leader is not None
+    templates = s.ctx.templates
+
+    def son(template_id: int) -> str | None:
+        return (templates.get("ItemTempInfos", template_id) or {}).get("SonType")
+
+    worn = next(
+        (
+            i
+            for i in snap.items
+            if i.bag_type == BagType.HERO
+            and i.object_id == snap.leader.id
+            and is_fashion(templates, i.template_id)
+            and son(i.template_id) == son(msg.templateId)
+        ),
+        None,
+    )
+    known = any(f.template_id == msg.templateId for f in snap.fashions)
+    # ponytail: o MarryUIMediator também manda 8595 com as roupas do casamento (MarryQualityTempInfo), que não estão no
+    # livro: recusado até existir o casamento
+    if not is_fashion(templates, msg.templateId) or not known or worn is None or worn.template_id == msg.templateId:
+        s.log.info("8595 recusado", modelo=msg.templateId, vestida=worn.template_id if worn else None)
+        return
+    worn.template_id = msg.templateId
+    await s.ctx.characters.save(worn)
+
+    _player(s)
+    _army(s)
+    s.send(S_ITEMS, bag.moved([worn], s.player_id))
+    space.refresh_look(s)
 
 
 @router.on(8631)
 async def fashion_special(s: GameSession, msg: pb.FashionMsg) -> None:
-    # só apaga o ícone de "novo" da moda no livro (FashionManager.disenableNewIcon): estado só do
-    # cliente, nada a gravar nem responder
-    s.log.debug("8631 ícone de moda nova visto", modelo=msg.templateId)
+    """Apaga o ícone de "novo" da moda no livro (``FashionManager.disenableNewIcon``): grava ``isSwitch`` e reenvia o
+    livro (o cliente só atualiza o ``bookList`` pelo 4542)."""
+    snap = s.snapshot
+    assert snap is not None
+    book = next((f for f in snap.fashions if f.template_id == msg.templateId and not f.is_switch), None)
+    if book is None:
+        return
+    book.is_switch = True
+    await s.ctx.characters.save(book)
+    send(s, S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
 
 
 @router.on(8781)

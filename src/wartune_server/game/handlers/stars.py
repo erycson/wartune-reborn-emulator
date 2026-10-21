@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 
 from ...domain.models import PlayerSnapshot, Star, StarBag
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import ledger
 from ...templates.repository import GameTemplates, Row
 from .. import rules
 from ..castle import castle_yield
@@ -20,10 +21,15 @@ from ..session import GameSession
 from .player import _army, _player
 
 S_MOVE, S_PICK, S_RAND, S_COMPOSE = 4178, 4179, 4180, 4479
-SITE_COST = (4000, 5000, 6000, 8000, 10000)  # ouro por cristal (só turco: 4000 no cristal 0, kader_sistemi)
+SITE_COST = (4000, 5000, 6000, 8000, 10000)  # ouro por cristal (MakeStarView inglês ``_makeStarCosts``)
+# MakeStarView: "Astro Expense:{0}\n Star Point:{1}" com {1} = 1..5 do cristal 0..4
 QUICK_MIN_GOLD = 20000  # StarRandView: sorteio rápido (site -1)
 TEMP_MAX, BAG_BASE, MAX_GRADE = 16, 8, 10
-JUNK, ENERGY = "1", "6"  # starTempInfo.Profile: lixo (vende sozinho) e fonte de energia
+# StarManager.sendBagCellBuy: (comprados/4 + 1) x 395, "unlock 1 star inventory row" (4 espaços);
+# PlayerStarListView.PLAYER_STAR_BAG_COUNT 16 = 8 de base + 8 comprados
+BAG_ROW, BAG_ROW_COST, BAG_BOUGHT_MAX = 4, 395, 8
+PICK, SELL, PICK_ALL, QUICK_SELL = 1, 2, -2, -1  # StarIconView way 1/2; StarModel -2; DisplayStarView -1
+JUNK, ENERGY = "1", "6"  # starTempInfo.Profile: lixo (vende sozinho) e Energine (só comida de EXP)
 EXP_TYPES = {"2": "9", "3": "10", "4": "11", "5": "12", "6": "13", "7": "22"}  # Profile -> UpGrade Types
 LOCK_QUEST = 53  # QuestCondictionInfos: travar estrela
 # 36 "Astro": QuestTemps 3 (nível 25, como a 623 de travar) manda clicar [Astro] e "Upgrade 1 [Astro]" = sortear.
@@ -162,6 +168,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
             sy.star_free -= 1
         else:
             c.gold -= SITE_COST[site]
+        sy.star_point += site + 1  # ponytail: o grátis do dia também dá ponto, o cliente não diz; mudar com captura
         tpl = roll(templates, c.grades, site, table)
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)
         snap.stars.append(star)
@@ -192,22 +199,27 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
 
 @router.on(8268)
 async def star_pick(s: GameSession, msg: pb.StarPickReqMsg) -> None:
-    """Recolhe da temporária (``dropsite`` -1 = todas): lixo é vendido (SellGold, bagType -1 no 4179),
-    fonte de energia vira StarPoint, o resto vai para a mochila; ``way`` 1 vende qualquer uma.
-    Resposta (só turco: kader_sistemi #56-#60): 109 e 4179 dos vendidos, 4178 e 4179 dos recolhidos."""
+    """Tira da temporária (cliente inglês): ``dropsite`` = posição com ``way`` 1 recolhe e 2 vende (StarIconView);
+    -2 recolhe todas ("Collect all", StarModel.quickPickupClick); -1 vende as de ``Profile <= way``, grau 1 e
+    sem gp (venda rápida, DisplayStarView/StarModel.checkAction). O lixo (Profile 1) sempre é vendido (SellGold,
+    bagType -1 no 4179). Resposta (só turco: kader_sistemi #56-#60): 109 e 4179 dos vendidos, 4178 e 4179 dos
+    recolhidos."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
     temp = bag(snap, StarBag.TEMP)
-    chosen = temp if msg.dropsite == -1 else [st for st in temp if st.pos == msg.dropsite]
+    if msg.dropsite == PICK_ALL:
+        chosen, sell = temp, False
+    elif msg.dropsite == QUICK_SELL:
+        cheap = [st for st in temp if int(star_tpl(templates, st).get("Profile") or 0) <= msg.way]
+        chosen, sell = [st for st in cheap if st.grade == 1 and st.gp == 0], True
+    else:
+        chosen, sell = [st for st in temp if st.pos == msg.dropsite and msg.way in (PICK, SELL)], msg.way == SELL
     sold, picked, deleted, changed = [], [], [], []
     for star in chosen:
         tpl = star_tpl(templates, star)
-        if tpl.get("Profile") == JUNK or msg.way == 1:
+        if tpl.get("Profile") == JUNK or sell:
             c.gold += int(tpl.get("SellGold", 0))
-        elif tpl.get("Profile") == ENERGY:
-            # ponytail: a fonte de energia vira StarPoint (moeda da loja); confirmar com captura
-            sy.star_point += int(tpl.get("StarPoint", 0))
         elif (pos := free_pos(snap, StarBag.BAG, bag_size(snap))) is not None:
             star.bag_type, star.pos, drop = StarBag.BAG, pos, star.pos
             picked.append((drop, star))
@@ -306,7 +318,7 @@ async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
     eaten = []
     for star in bag(snap, msg.bagType):
         profile = star_tpl(templates, star).get("Profile")
-        if star is target or star.locked or profile == ENERGY:
+        if star is target or star.locked or star.grade >= MAX_GRADE:  # o Energine também é devorado (HoroscopeFrame)
             continue
         if profile == JUNK:
             c.gold += int(star_tpl(templates, star).get("SellGold", 0))
@@ -347,18 +359,22 @@ async def star_lock(s: GameSession, msg: pb.StarLockReqMsg) -> None:
 
 @router.on(8270)
 async def star_bag_buy(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    """Compra um espaço na mochila de estrelas: (comprados/4 + 1) x 100 diamantes (StarManager);
-    payType 0 aceita vinculado. Resposta: 3 (starCount)."""
+    """Compra uma linha (4 espaços) da mochila de estrelas: (comprados/4 + 1) x 395 diamantes, até 16 espaços
+    (StarManager.sendBagCellBuy, PlayerStarListView); payType 0 aceita vinculado. Resposta: 3 (starCount)."""
     snap = s.snapshot
     assert snap is not None
     sy = rules.systems(snap)
-    cost = (sy.star_bag // 4 + 1) * 100
-    # ponytail: 1 espaço por compra; o preço sobe a cada 4 (fórmula do cliente)
-    if not rules.pay_point(snap.character, cost, bind=msg.payType == 0):
+    cost = (sy.star_bag // BAG_ROW + 1) * BAG_ROW_COST
+    spent = None
+    if sy.star_bag < BAG_BOUGHT_MAX:
+        spent = ledger.pay(
+            snap.character, cost, bind=msg.payType == 0, reason="star_bag", ref="", now=s.ctx.clock.now()
+        )
+    if spent is None:
         s.log.info("8270 recusado", pedido=str(msg))
         return
-    sy.star_bag += 1
-    await s.ctx.characters.save(snap.character, sy)
+    sy.star_bag = min(sy.star_bag + BAG_ROW, BAG_BOUGHT_MAX)
+    await s.ctx.characters.save(snap.character, sy, spent)
     _player(s)
 
 

@@ -1942,6 +1942,13 @@ message EngageMsg {
   repeated MarriageProMsg engageInfos = 1;
 }
 
+// com.road.yishi.proto.campaign.EnterTowerInfoMsg
+message EnterTowerInfoMsg {
+  optional int32 chooseIndex = 1;
+  optional int32 campaignId = 2;
+  optional int32 isDouble = 3;
+}
+
 // com.road.yishi.proto.item.EquipLookDataMsg
 message EquipLookDataMsg {
   optional int32 otherId = 1;
@@ -4766,6 +4773,12 @@ message PosMsg {
   optional int32 y = 2;
 }
 
+// com.road.yishi.proto.vehicle.Position
+message Position {
+  optional int32 x = 1;
+  optional int32 y = 2;
+}
+
 // com.road.yishi.proto.powcard.PowCardBufListMsg
 message PowCardBufListMsg {
   repeated PowCardBufMsg bufInfos = 1;
@@ -5228,6 +5241,13 @@ message RoomCreatedMsg {
   optional bool isCross = 3;
 }
 
+// com.road.yishi.proto.room.RoomEditMsg
+message RoomEditMsg {
+  optional int32 roomId = 1;
+  optional string roomPwd = 2;
+  optional string roomName = 3;
+}
+
 // com.road.yishi.proto.room.RoomEnterMsg
 message RoomEnterMsg {
   optional int32 result = 1;
@@ -5503,6 +5523,7 @@ message ShopMainRspMsg {
   repeated MainUrlInfo urlInfo = 1;
   repeated MainGoodInfo goodInfo = 2;
   repeated MainDiscountInfo discountInfo = 3;
+  optional int32 flag = 4;
 }
 
 // com.road.yishi.proto.shop.ShopMsg
@@ -6572,11 +6593,80 @@ message VehicleBuffStateMsg {
   optional string serverName = 6;
 }
 
+// com.road.yishi.proto.vehicle.VehicleCampaignDetailMsg
+message VehicleCampaignDetailMsg {
+  optional int32 campaignId = 1;
+  optional string campaignName = 2;
+  optional int32 redTeamScroe = 3;
+  optional int32 blueTeamScroe = 4;
+  optional int32 myScroe = 5;
+  optional int32 remainsTiem = 6;
+  optional int32 winner = 7;
+  repeated VehicleScroeListMsg scroeList = 8;
+}
+
+// com.road.yishi.proto.vehicle.VehicleExitMsg
+message VehicleExitMsg {
+  optional int32 playerId = 1;
+}
+
+// com.road.yishi.proto.vehicle.VehicleMoveMsg
+message VehicleMoveMsg {
+  optional int32 playerId = 1;
+  optional int32 timestamp = 2;
+  repeated Position path = 3;
+}
+
+// com.road.yishi.proto.vehicle.VehicleNpcNodeListMsg
+message VehicleNpcNodeListMsg {
+  repeated VehicleNpcNodeMsg vehicleNpcNode = 1;
+}
+
+// com.road.yishi.proto.vehicle.VehicleNpcNodeMsg
+message VehicleNpcNodeMsg {
+  optional int32 nodeId = 1;
+  optional int32 type = 2;
+  optional int32 curX = 3;
+  optional int32 curY = 4;
+  optional int32 state = 5;
+  optional int32 hp = 6;
+  optional string name = 7;
+  optional int32 sonType = 8;
+  optional int32 heroTempId = 9;
+  optional int32 resource = 10;
+  optional int32 nameColor = 11;
+  optional int32 restX = 12;
+  optional int32 restY = 13;
+  optional int32 team = 14;
+}
+
+// com.road.yishi.proto.vehicle.VehiclePickPropMsg
+message VehiclePickPropMsg {
+  optional int32 propNodeId = 1;
+}
+
+// com.road.yishi.proto.vehicle.VehicleScroeListMsg
+message VehicleScroeListMsg {
+  optional int32 playerId = 1;
+  optional int32 playerScroe = 2;
+  optional int32 playerExp = 3;
+  optional int32 awardPropId = 4;
+  optional int32 awardSum = 5;
+  optional int32 ladderPropId = 6;
+  optional int32 ladderSum = 7;
+}
+
 // com.road.yishi.proto.room.VehicleSkillListMsg
 message VehicleSkillListMsg {
   optional int32 skillId = 1;
   optional int32 state = 2;
   optional int32 curSum = 3;
+}
+
+// com.road.yishi.proto.vehicle.VehicleSwitchMonitorMsg
+message VehicleSwitchMonitorMsg {
+  optional int32 nodeId = 1;
+  optional int32 playerId = 2;
 }
 
 // com.road.yishi.proto.player.VersionMsg

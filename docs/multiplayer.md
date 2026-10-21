@@ -15,7 +15,7 @@ seu documento:
 - **Nenhuma captura turca tem pacotes C>S** (a inglesa, `tutorial_en.json`, tem). As turcas só guardam o que o
   servidor mandou.
   Todo formato de pedido do cliente nestes documentos vem do código decompilado
-  (`D:/wartune/decompiled`) e está marcado como *(cliente)*.
+  (inglês: `D:/xampp/htdocs/wartune/decomp`) e está marcado como *(cliente)*.
 - **Nenhuma captura tem chat entre jogadores, time ou sala com 2 jogadores, ataque a castelo ou
   boss mundial.** Esses fluxos são *(dedução)*: montados do código do cliente e do formato das
   mensagens.

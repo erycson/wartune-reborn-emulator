@@ -1,7 +1,7 @@
 """Mensagens do login montadas a partir do banco (``PlayerSnapshot``) + templates.
 
-Valores fixos vêm do que o servidor oficial manda para um personagem novo
-(só turco: captura em ``tests/fixtures/pcap_samples.json``; trocar pelo login da captura inglesa).
+Valores fixos vêm do que o servidor oficial manda para um personagem novo, conferidos no login da captura inglesa
+(``captures/tutorial_en.json``, conta nova; ``tests/game/test_tutorial_oracle.py``).
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from ...templates.repository import GameTemplates, HeroTemplate, Row
 from .. import timebox
 
 NEVER = "2000-01-01 00:00:00"
-MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2 nas capturas)
+MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2: tutorial_en)
 QUEST_SITE_LEN = 200
 
 
@@ -163,6 +163,7 @@ def player_msg(
     guild: Consortia | None = None,
 ) -> pb.PlayerMsg:
     c: Character = snap.character
+    sy = snap.systems
     msg = pb.PlayerMsg(
         playerId=c.id,
         nickName=c.nickname or "",
@@ -198,7 +199,7 @@ def player_msg(
         warFieldCount=2,
         trialMaxCount=1,
         campaignMaxcount=copies[1],
-        lastFreeSkillLearnTime=NEVER,
+        lastFreeSkillLearnTime=fmt_time(free_skill) if (free_skill := sy.pet_free_skill_at if sy else None) else NEVER,
         rentalBagTime=fmt_time(c.rental_bag_until) if c.rental_bag_until else NEVER,
         status=1 if c.rental_bag_until is not None and c.rental_bag_until > now else -1,
         bagCount=c.bag_count,
@@ -242,7 +243,7 @@ def army_msg(
     fighting_capacity: int,
     arm: str = "",
     pawn: pb.ArmyPawnInfoMsg | None = None,
-    mount: int = 0,
+    mount: int | None = None,
 ) -> pb.ArmyArmyMsg:
     c = snap.character
     msg = pb.ArmyArmyMsg(
@@ -260,7 +261,7 @@ def army_msg(
     if pawn is not None:  # sem tropa o oficial não manda armyPawn (o tutorial compara)
         msg.armyPawn.append(pawn)
     msg.simpleHeroInfo.CopyFrom(hero)
-    if mount:
+    if mount is not None:  # 0 = desmontado (o cliente só troca com hasMountTempId)
         msg.mountTempId = mount
     return msg
 

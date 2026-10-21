@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     socket_session_ttl_seconds: int = 1800  # sem uso por esse tempo, o login HTTP precisa ser refeito
     idle_timeout_seconds: int = 300
 
+    # pasta xml/ do site do jogo (TEMPLATE_PATH, ex.: D:/xampp/htdocs/wartune-reborn/game/xml): o servidor grava ali o
+    # challengeorder.xml do ranking do coliseu a cada ranking_seconds. Vazio: não grava (fica o arquivo do espelho)
+    ranking_xml_dir: Path | None = None
+    ranking_seconds: int = 3600
+
     log_dir: Path = Path("logs")
     log_level: str = "INFO"
     log_packets: bool = True  # logs/packets.log com cada pacote decodificado

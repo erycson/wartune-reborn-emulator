@@ -150,13 +150,14 @@ async def test_missao_51_conclui_pelo_estado_no_5014(tmp_path: Path) -> None:
 
 async def test_por_item_no_leilao_avanca_a_missao_56(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        item = Item(g.user_id, HORN, pos=5, count=1)
+        item = Item(g.user_id, HORN, pos=5, count=1, is_binds=False)  # só item livre vai ao leilão
         _snap(g).items.append(item)
-        await g.server.services.characters.save(item)
+        _snap(g).character.gold = 250 * 8  # a taxa do anúncio (AuctionSellSubmitPane)
+        await g.server.services.characters.save(item, _snap(g).character)
         _open(g, 825)
         g.client.send(
             8448,
-            pb.SellItemReqMsg(sellType=1, itemId=item.id or 0, itemPos=5, count=1, point=10, fixPoint=0, hour=8),
+            pb.SellItemReqMsg(sellType=1, itemId=item.id or 0, itemPos=5, count=1, point=10, fixPoint=100, hour=8),
         )
         got = await g.idle()
         assert pb.SellItemRspMsg.FromString(next(p.body for p in got if p.code == 4352)).result == 0

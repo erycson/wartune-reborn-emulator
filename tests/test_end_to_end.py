@@ -21,9 +21,7 @@ from wartune_server.protocol import Packet, PacketDecoder, StreamCipher
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 TEMPLATES = Path("data/templates/tempinfos.xml")
-pytestmark = pytest.mark.skipif(
-    not TEMPLATES.exists(), reason="precisa de data/templates/tempinfos.xml"
-)
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates/tempinfos.xml")
 
 INIT_CODES = {4153, 4154, 4155, 4156, 4157, 4160, 4173, 4176, 4233, 4245}  # LoginInitDataAccept
 
@@ -133,8 +131,8 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
 
         flags = {f: True for f in ("castle", "army", "build", "tree", "aas", "friend", "sys", "snsReq")}
         client.send(8224, pb.PlayerDataMsg(**flags))
-        got = await client.until(150)
-        assert {p.code for p in got} >= INIT_CODES
+        got = await client.until(4544)  # o bloco army: 150, 100 e o 4544 vazio (tutorial_en #37-#42)
+        assert {p.code for p in got} >= INIT_CODES | {100, 4544}  # 4544 vazio no nível 1 (tutorial_en #42)
         built = pb.BuildingInfoListMsg.FromString(next(p for p in got if p.code == 4154).body)
         assert {(b.templateId, b.sonType) for b in built.building} >= {(90101, 901), (40201, 402)}
 
@@ -144,8 +142,8 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         # 4612 (fundo normal) e 4497/295 (árvore dourada) com as linhas da 0038, como o tutorial_en #71-#86;
         # 4616 antes do 4198 (tutorial_en #53-#54)
         assert [p.code for p in got if p.code != 4247] == [
-            112, 4542, 4184, 4512, 4515, 4516, 4501, 4686,
-            4224, 4372, 4434, 4410, 4360, 4616, 4198, 4152, 4475, 4612, 4497, 295, 100, 4598, 150, 6,
+            112, 4542, 4184, 4512, 4515, 4516, 4501, 4662, 4686,
+            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4612, 4497, 295, 363, 364, 190, 4590, 414, 4598, 150, 6,
         ]  # fmt: skip
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
         assert len(server.online) == 1

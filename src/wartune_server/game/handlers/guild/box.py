@@ -25,6 +25,8 @@ from .common import S_BOX, S_BOX_ALLOT, S_ITEMS, _mine, _now, _profile, _refuse
 
 # ---- baú de prêmios --------------------------------------------------------------------------
 
+PER_MEMBER = 10  # ConsortiaPrizeAllotItem.changeReceviedCount: no máximo 10 por membro
+
 
 def _box_msg(s: GameSession, guild_id: int) -> pb.ConsortiaStorageInfoMsg:
     out = pb.ConsortiaStorageInfoMsg()
@@ -64,7 +66,7 @@ async def box_info(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
                 fightCapacity=c.fighting_capacity,
                 userId=m.character_id,
                 count=0,
-                isReceived=False,
+                isReceived=False,  # ponytail: o oficial marca quem já recebeu; quando isso zera não está no cliente
             )
     s.send(S_BOX_ALLOT, b.complete(out))
 
@@ -114,7 +116,8 @@ async def box_send(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
     members_ok = all(
         uid in snaps and (m := g.members.get(uid)) is not None and m.consortia_id == guild.id for uid, _ in wanted
     )
-    if stored is None or not wanted or not members_ok or total > stored.count:
+    too_many = any(n > PER_MEMBER for _, n in wanted)
+    if stored is None or not wanted or not members_ok or too_many or total > stored.count:
         _refuse(s, 8578, "item, membro ou quantidade inválida", item=msg.templateId)
         return
     now = _now(s)

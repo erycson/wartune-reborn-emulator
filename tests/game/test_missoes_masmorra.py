@@ -101,7 +101,9 @@ async def test_27_conta_a_bolsa_e_a_entrega_leva_todas_as_unidades(tmp_path: Pat
         assert not rules.quest_done(snap, templates, q90, now)  # 7 de 8
         snap.items.append(Item(g.user_id, WORG_TOOTH, count=3, pos=1))
         assert rules.quest_done(snap, templates, q90, now)  # bolsa, não contador: sem quest_event
-        assert rules.goods_to_take(snap, templates, 90) == [(WORG_TOOTH, 10)]  # item de missão sai inteiro (inglesa #1570)
+        assert rules.goods_to_take(snap, templates, 90) == [
+            (WORG_TOOTH, 10)
+        ]  # item de missão sai inteiro (inglesa #1570)
 
 
 async def test_27_nao_conta_item_que_nao_esta_na_bolsa(tmp_path: Path) -> None:

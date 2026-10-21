@@ -15,8 +15,9 @@ import wartune_server
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
 from tests.test_end_to_end import TEMPLATES
+from wartune_server.domain.models import BagType, Item
+from wartune_server.game import bag, buffs, drops
 from wartune_server.game import battle as battle_mod
-from wartune_server.game import buffs, drops
 from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.game.handlers import campaign as handlers
 from wartune_server.protocol import Packet
@@ -31,7 +32,7 @@ WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que lib
 # não passou pela saída do tutorial, onde a inglesa ganhou o leed 4 do dia (#521)
 END = [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140, 4152, 83]
 END_COM_70 = [4382, 3, 137, 4151, 83, 135, 112, 4165, 150, 150, 140, 4152, 83]  # com a 70: o 112 entre o 135 e o 4165
-CARD = [115, 26, 83]  # resposta do 5122 (inglesa #1111-#1123, sem 4476/4484); o 134 vem no 5180
+CARD = [115, 4476, 26, 83]  # resposta do 5122 (inglesa #1111-#1123, sem os 4484); o 134 vem no 5180
 WORG_TOOTH, LUCK_STONE = 2100001, 2040101  # drops dos lobos do 1021
 
 
@@ -250,12 +251,12 @@ async def test_mapa_1011_fecha_e_a_carta_do_5122_fica_gravada(tmp_path: Path) ->
 
         got = await take(g, 2)
         assert codes(got) == CARD
-        take_msg = pb.CampaignTakeCardsMsg.FromString(got[1].body)
+        take_msg = pb.CampaignTakeCardsMsg.FromString(got[2].body)
         card = pb.ItemMovedListMsg.FromString(got[0].body).moved[0].item
         assert (take_msg.index, take_msg.templateId) == (2, card.templateId)
         assert card.templateId in drops.pool(g.server.services.templates, 1001)
         name = g.server.services.templates.get("ItemTempInfos", card.templateId)["TemplateName"]
-        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == f"Received: {name} x1"
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == f"Received: {name} x1"
         snap = await g.server.services.characters.snapshot(g.user_id)
         assert [i.template_id for i in snap.items].count(card.templateId) == 1  # lida do banco, não da sessão
 
@@ -377,8 +378,16 @@ async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path:
             assert len(await tooth_piles(g)) == 1  # uma pilha só, como o oficial
             moved = [m for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
             stacks |= {m.changePos for m in moved if m.HasField("item") and m.item.templateId == WORG_TOOTH}
-            if camp == 102102:  # Luck Stone (chance 0,5; aqui sem sorte, sai sempre)
-                assert {m.item.templateId for m in moved if m.HasField("item")} >= {WORG_TOOTH, LUCK_STONE}
+            if camp == 102102:  # Luck Stone (chance 0,5; aqui sem sorte, sai sempre): cai num baú (inglesa #2910)
+                report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
+                assert [(i.templateId, i.count) for i in report.baseItem] == [(LUCK_STONE, 1)] and report.signId
+                assert LUCK_STONE not in {m.item.templateId for m in moved if m.HasField("item")}
+                g.client.send(5129, pb.CampaignReqMsg(paraString1=report.signId))
+                chest = await g.idle()
+                assert codes(chest) == [115, 4476, 111, 83]  # inglesa #2924-#2939
+                assert pb.ChatChannelMsg.FromString(chest[3].body).encodeMsg == "Received: Lvl. 1 Luck Stone x1"
+                g.client.send(5129, pb.CampaignReqMsg(paraString1=report.signId))
+                assert await g.idle() == []  # já pego
         assert totals == [2, 4, 7, 10]
         [(pos, count)] = await tooth_piles(g)
         assert count == 10 and stacks == {pos}  # os 115 reusam a posição da pilha
@@ -425,3 +434,26 @@ async def test_guia_depois_da_70_aprende_a_skill_e_avanca_o_novice(tmp_path: Pat
         got = await g.idle()
         assert codes(got)[-1] == 1 and got[-1].body == b""  # U_C_PLAYER_NOVICE vazio, depois do 3
         assert (await g.server.services.characters.snapshot(g.user_id)).character.novice_process == 25500
+
+
+async def test_bau_da_luta_pega_um_item_ou_volta_com_a_mochila_cheia(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=25500) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.snapshot is not None
+        s.campaign = CampaignMap(map_id=1011, nodes={}, pos=(0, 0))
+        s.campaign.fallen["1"] = [(LUCK_STONE, 1), (1080011, 1)]
+        g.client.send(5129, pb.CampaignReqMsg(paraString1="1", paraInt1=1080011))  # BattleFallGoodsView: um item
+        got = await g.idle()
+        assert codes(got) == [115, 4476, 111, 83]
+        assert pb.ItemMovedListMsg.FromString(got[0].body).moved[0].item.templateId == 1080011
+        assert s.campaign.fallen == {"1": [(LUCK_STONE, 1)]}
+
+        snap = s.snapshot
+        cid = snap.character.id or 0
+        snap.items.extend(Item(cid, 1080011, pos=p) for p in range(bag.BAG_BASE) if not bag.at(snap, BagType.BAG, 0, p))
+        g.client.send(5129, pb.CampaignReqMsg(paraString1="1"))
+        got = await g.idle()
+        assert codes(got) == [4268]  # __resetFallHandler: o baú volta com o que tem
+        fail = pb.BattleReportMsg.FromString(got[0].body)
+        assert (fail.signId, [(i.templateId, i.count) for i in fail.baseItem]) == ("1", [(LUCK_STONE, 1)])
+        assert s.campaign.fallen == {"1": [(LUCK_STONE, 1)]}

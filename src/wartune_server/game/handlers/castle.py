@@ -26,7 +26,7 @@ from .vip import free_cool
 S_PLAYER, S_CHAT, S_ALERT, S_QUESTS = 3, 83, 111, 112
 S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 104, 102, 4187
 S_IMPOSE, S_TRANSFER, S_UNOCCUPY, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 108, 4452, 100
-BUY_ORDER_PRICE = 100  # "mainBar.QueueBar.content" (QueueBar.buyQueueItem)
+BUY_ORDER_PRICE = 395  # (cliente inglês) QueueBar.buyQueueItem: "mainBar.QueueBar.content" com 395
 IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
 # (visto) tempinfos: 111-113 ("Accelerate Building Construction Cooldown 1/3/7 times") e 763 ("Collect Levy")
@@ -179,7 +179,7 @@ async def load_orders(s: GameSession, _: object) -> None:
 
 @router.on(5172)
 async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
-    """Acelera com diamante: 1 por 10 minutos. index 1 = só diamante, 2 = vinculado primeiro,
+    """Acelera com diamante: 5 por 10 minutos (``cs.quick_cost``). index 1 = só diamante, 2 = vinculado primeiro,
     0 = privilégio VIP grátis (*(cliente)* ``QueueBar``/``SeminaryFrameBottomView`` mandam index 0 só com VIP:
     ``vip.free_cool``). orderId 0 = todas as filas de prédio."""
     snap = s.snapshot
@@ -223,7 +223,7 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
 
 @router.on(5175)
 async def order_add(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    """Compra a segunda fila de prédios (100 diamantes; payType 0 = pode usar vinculado)."""
+    """Compra a segunda fila de prédios (395 diamantes; payType 0 = pode usar vinculado)."""
     snap = s.snapshot
     assert snap is not None
     c, now = snap.character, s.ctx.clock.now()

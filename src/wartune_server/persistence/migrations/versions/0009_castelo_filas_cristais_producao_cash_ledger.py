@@ -12,8 +12,8 @@ from alembic import op
 
 import wartune_server.persistence.schema
 
-revision = '0009'
-down_revision = '0008'
+revision = "0009"
+down_revision = "0008"
 branch_labels = None
 depends_on = None
 

@@ -90,15 +90,15 @@ def refresh(game: Game, now: datetime) -> None:
     semana nova. Tabuleiro, nível e EXP ficam.
 
     *(dedução)*: na captura um personagem de nível 5 (61 EXP) abre com 20/20 movimentos, 5 ajudas e 0
-    pontos, então algo renova; ``score`` e ``weekScore`` são campos separados, então ``score`` é do dia.
-    ponytail: o período (dia, UTC) não foi capturado; os movimentos comprados não somem (fica o maior).
+    pontos, então algo renova; ``score`` e ``weekScore`` são campos separados, então ``score`` é do dia. *(cliente)*
+    ``helpContent``: "Free and purchased attempts reset daily", "Points and attempts reset daily at 5 A.M."
     """
     today = gameday.game_day(now)
     if game.day == today.isoformat():
         return
     if not game.day or date.fromisoformat(game.day).isocalendar()[:2] != today.isocalendar()[:2]:
         game.week = 0
-    game.times, game.help = max(game.times, TIMES_START), HELP_START
+    game.times, game.help = TIMES_START, HELP_START
     game.score, game.box, game.day = 0, 0, today.isoformat()
 
 

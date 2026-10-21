@@ -29,7 +29,7 @@ from ..domain.models import Mail, MailAnnex
 from ..domain.repositories import UnitOfWork
 from ..game import mail as mailbox
 from ..game.session import OnlinePlayers
-from ..services.characters import CharacterService, RegistrationRequest, normalize_nickname
+from ..services.characters import NAME_TAKEN, CharacterService, RegistrationRequest, character_name
 from ..services.login import LoginService
 
 log = structlog.get_logger(__name__)
@@ -229,13 +229,13 @@ class GameHttpApi:
         """``@value`` true = nome livre; senão ``@message`` vai para a tela de troca de nome."""
         params = await _params(request)
         try:
-            nick = normalize_nickname(params.get("nickname", ""))
+            nick = character_name(params.get("nickname", ""))
         except ValidationError as exc:
             return xml_result(False, str(exc))
         taken = await self._d.characters.read(
             lambda uow: uow.characters.nickname_taken(self._d.settings.server_id, nick)
         )
-        return xml_result(not taken, "este nome já está em uso" if taken else "")
+        return xml_result(not taken, NAME_TAKEN if taken else "")
 
     async def empty_list(self, _: web.Request) -> web.Response:
         # o cliente faz ByteArray.uncompress() no corpo: o XML vai em zlib

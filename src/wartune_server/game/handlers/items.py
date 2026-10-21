@@ -16,7 +16,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...services.ledger import item_entry
 from ...templates.repository import Row
-from .. import bag, buffs, daily, monsters, rules, space
+from .. import bag, buffs, daily, monsters, rewards, rules, space
 from ..builders import login as b
 from ..builders.player import fashion_book, item_info, item_moved
 from ..castle import castle_yield
@@ -30,12 +30,18 @@ S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
 S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (The Empire Crusade)
 S_EFFECT, S_ITEM_BUFFER = 110, 4188  # PropertyUpdatedMsg e ItemBufferRspMsg dos pergaminhos de efeito
 BOX, USE, GEM_BOX, BLOOD, EFFECT = "298", "203", "206", "209", "201"  # ItemTempInfo.SonType usáveis
+MOUNT_CARD = "218"  # carta de montaria
 PROTECTION = 2001  # City Protection Token (208006): o cliente conta pelo 4452 defenceLeftTime e para com o 8562
 STORE_STONE = 208014  # Soul Crystal (SonType 293): Property1 = EXP do cristal (8484)
 STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
 BAG_ROW, BAG_MAX = 7, 175  # 5010 compra de 7 em 7 até 175 espaços (PlayerInfo.PLAYER_BAG_MAX)
-MOVABLE = (BagType.STORE, BagType.BAG, BagType.RUNE, BagType.HONOR, BagType.HERO)
-STACKABLE = (BagType.STORE, BagType.BAG)
+MOVABLE = (BagType.STORE, BagType.BAG, BagType.RUNE, BagType.HONOR, BagType.HERO, BagType.GUILD, BagType.PET_EQUIP)
+STACKABLE = (BagType.STORE, BagType.BAG, BagType.GUILD)
+GUILD_ROW, GUILD_FULL = 5, 56  # ConsortiaModel.currentCasecellNum: storeLevel*5, a grade 7x8 inteira no nível 10
+# PlayerBagCellClickMediator/PlayerBagCellDropMediator/PlayerEquipBagCellDropMediator: item livre que vai para o
+# equipamento (4) ou as runas (2) pede "This operation will change this item to become bound" (Store.IntensifyView.Tip);
+# no mascote (26) o PetBagCellDropMediator pede o prompt03 ("The sylph will become bound after putting equipment on")
+BINDS_ON_EQUIP = (BagType.HERO, BagType.RUNE, BagType.PET_EQUIP)
 # 203 por Property1 (Property2 = quantidade): campo do personagem e nome no texto do oficial
 # nomes do inglês: ItemTempInfo -100/-400/-500/-300/-700 e language.txt (Honor, Multi-player Dungeon); Stamina: a
 # captura EN escreve "deducted 20 stamina" na entrada da masmorra
@@ -77,6 +83,12 @@ def _send_items(s: GameSession, changed: list[Item], gone: list[Item]) -> None:
 # --- 5005 mover ---
 
 
+def _guild_cells(s: GameSession) -> int:
+    mine = s.ctx.guilds.of(s.player_id)
+    level = mine[0].store_level if mine else 0
+    return GUILD_FULL if level >= 10 else level * GUILD_ROW
+
+
 def _place_ok(s: GameSession, item: Item, bag_type: int, obj: int, pos: int) -> bool:
     """O item pode ficar ali? Mochila e bancada: faixa de posição; bolsas do herói: o espaço do
     SonType (``GoodsSonType.getSonTypePos``) e classe/sexo/nível (``GoodsCheck``)."""
@@ -86,6 +98,12 @@ def _place_ok(s: GameSession, item: Item, bag_type: int, obj: int, pos: int) -> 
         return obj == 0 and 0 <= pos < bag.capacity(snap.character, s.ctx.clock.now())
     if bag_type == BagType.STORE:
         return obj == 0 and 0 <= pos < bag.STORE_SIZE
+    if bag_type == BagType.GUILD:
+        return obj == 0 and 0 <= pos < _guild_cells(s)
+    if bag_type == BagType.PET_EQUIP:  # o cliente não confere qualidade nem nível (o prompt01 "Rare or above" é morto)
+        row = _row(s, item)
+        mine = any(p.id == obj for p in snap.pets)
+        return mine and row is not None and bag.hero_slot_ok(snap, row, bag_type, pos)
     hero, row = _hero(snap, obj), _row(s, item)
     if hero is None or row is None or not bag.hero_slot_ok(snap, row, bag_type, pos):
         return False
@@ -95,12 +113,18 @@ def _place_ok(s: GameSession, item: Item, bag_type: int, obj: int, pos: int) -> 
 
 @router.on(5005)
 async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
-    """Move entre mochila (1), bancada (0) e as bolsas do herói (2 runas, 3 medalha, 4 equipamento).
-    Destino ocupado: empilha se for o mesmo item, senão troca (o outro precisa caber na origem)."""
+    """Move entre mochila (1), bancada (0), armazém da guilda (6), as bolsas do herói (2 runas, 3 medalha,
+    4 equipamento) e o equipamento do mascote (26). Na 26 o mascote vem no ``objectId`` (``PetBagCellClickMediator``
+    manda ``endObjId`` 0; ``PetEquipBagCellDropMediator`` manda o id nos dois).
+    Destino ocupado: empilha se for o mesmo item, senão troca (o outro precisa caber na origem). Juntar livre com
+    vinculado vincula a pilha, e equipar vincula o item (o cliente já pediu a confirmação)."""
     snap = s.snapshot
     assert snap is not None
-    begin = (msg.beginBagType, msg.beginObjId, msg.beginPos)
+    pet = msg.objectId
+    begin = (msg.beginBagType, msg.beginObjId or (pet if msg.beginBagType == BagType.PET_EQUIP else 0), msg.beginPos)
     end_bag, end_obj, end_pos = msg.endBagType, msg.endObjId, msg.endPos
+    if end_bag == BagType.PET_EQUIP and not end_obj:
+        end_obj = pet
     item = bag.at(snap, *begin)
     if begin[0] == BagType.STORE and end_bag == BagType.BAG and bag.at(snap, end_bag, 0, end_pos) is not None:
         # a bancada devolve sempre com endPos 0: o servidor escolhe o primeiro espaço livre
@@ -131,6 +155,7 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     if stack and other is not None:
         use = min(item.count, bag.max_count(s.ctx.templates, item.template_id) - other.count)
         other.count += use
+        other.is_binds = other.is_binds or item.is_binds  # GoodsCheck.isAddToChecker: a pilha fica vinculada
         if bag.take_one(snap, item, use):
             gone = (item,)
         first, second = (None if gone else item), other
@@ -138,9 +163,15 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         item.bag_type, item.object_id, item.pos, item.is_new = *end, False
         if other is not None:
             other.bag_type, other.object_id, other.pos = begin
+        for placed in (item, other):
+            if placed is not None and placed.bag_type in BINDS_ON_EQUIP:
+                placed.is_binds = True
         first, second = other, item
     book = fashion.register(snap, s.ctx.templates, item.template_id) if end_bag == BagType.HERO else None
-    kept = (i for i in (item, other, book) if i is not None and i not in gone)
+    wearer = next((p for p in snap.pets if p.id == end_obj), None) if end_bag == BagType.PET_EQUIP else None
+    if wearer is not None:
+        wearer.is_bind = True  # PetBagCellDropMediator.prompt02 "Sylph will become bound after putting on equipment"
+    kept = (i for i in (item, other, book, wearer) if i is not None and i not in gone)
     await s.ctx.characters.save(*kept, delete=gone)
 
     _player(s)
@@ -151,6 +182,12 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         send(s, fashion.S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
     if BagType.HERO in (begin[0], end[0]):
         space.refresh_look(s)  # os outros na cidade do céu veem a arma/armadura nova
+    for bag_type, obj, _ in (begin, end):
+        if bag_type == BagType.PET_EQUIP and (owner := next((p for p in snap.pets if p.id == obj), None)):
+            from .pets import S_PETS, pets_msg  # pets importa player, como este módulo
+
+            s.send(S_PETS, pets_msg(snap, s.ctx.templates, [owner]))  # os bag* do mascote mudaram
+            break
 
 
 # --- 5006 usar ---
@@ -159,8 +196,8 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
 @router.on(5006)
 async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
     """Usa um item da mochila conforme o SonType: pacote (298), recurso (203), caixa de pedras
-    (206), poção de HP (209), pergaminho de efeito (201) ou Divine Light (316). Os outros dependem de
-    sistemas que não existem e são recusados."""
+    (206), poção de HP (209), pergaminho de efeito (201), Divine Light (316) ou carta de montaria (218). Os outros
+    dependem de sistemas que não existem e são recusados."""
     snap = s.snapshot
     assert snap is not None
     item = bag.at(snap, BagType.BAG, 0, msg.pos) if msg.bagType == BagType.BAG else None
@@ -171,6 +208,7 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
     n = max(1, min(msg.count, item.count))
     uses = {BOX: _open_box, USE: _use_resource, GEM_BOX: _open_gem_box, BLOOD: _use_blood, EFFECT: _use_effect}
     uses[monsters.FOG_SON_TYPE] = _use_divine_light
+    uses[MOUNT_CARD] = _use_mount_card
     use = uses.get(row.get("SonType", ""))
     if use is None or not await use(s, item, row, n):
         s.log.info("5006 recusado", pedido=str(msg), item=item.template_id, sontype=row.get("SonType"))
@@ -348,6 +386,29 @@ async def _use_blood(s: GameSession, item: Item, row: Row, n: int) -> bool:
     return True
 
 
+async def _use_mount_card(s: GameSession, item: Item, row: Row, _: int) -> bool:
+    """Carta de montaria (SonType 218, ``MountsManager.sendUseGoods``): ``Property1`` = montaria, ``Property2`` =
+    dias (-1 = permanente), ``Property3`` = Beast Soul Lvl pedido ("Requires Beast Soul Lvl {0}"). Uma por uso; a
+    temporária soma dias, a que já é permanente recusa."""
+    from .systems import grant_mount, send_avatars, soul_grade  # systems importa hero, que vem antes deste módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    sy, mount = rules.systems(snap), int(row.get("Property1") or 0)
+    if s.ctx.templates.get("MountTempInfos", mount) is None or int(row.get("Property3") or 0) > soul_grade(
+        s.ctx.templates, sy
+    ):
+        return False
+    if not grant_mount(sy, mount, int(row.get("Property2") or 0), s.ctx.clock.now()):
+        return False
+    changed, gone = _consume(snap, item, 1)
+    await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+
+    _send_items(s, changed, gone)
+    send_avatars(s)
+    return True
+
+
 async def _use_divine_light(s: GameSession, item: Item, row: Row, n: int) -> bool:
     """Divine Light (SonType 316): tira a névoa do mapa do castelo por ``FOG_SECONDS`` para todos (help: "when
     anyone uses Divine Light the fog around is cleared"), um item por uso. 4939 = ``MapBossMsg`` só com
@@ -477,16 +538,17 @@ async def bag_batch_sell(s: GameSession, msg: pb.ItemSellReqMsg) -> None:
 
 @router.on(8220)
 async def bag_arrange(s: GameSession, msg: pb.ArrangeReq) -> None:
-    """Arrumar a mochila: o cliente calcula a ordem (``arrangeInfo`` velho -> novo) e, com
-    ``isStackItem``, o servidor junta as pilhas incompletas do mesmo item."""
+    """Arrumar a mochila ou o armazém da guilda (``ConsortiaCaseView`` "Sort"): o cliente calcula a ordem
+    (``arrangeInfo`` velho -> novo) e, com ``isStackItem``, o servidor junta as pilhas incompletas do mesmo item."""
     snap = s.snapshot
     assert snap is not None
-    items = bag.in_bag(snap)
+    items = bag.in_bag(snap, msg.bagType)
     by_pos = {i.pos: i for i in items}
     moves = {a.oldplace: a.newplace for a in msg.arrangeInfo}
-    cap = bag.capacity(snap.character, s.ctx.clock.now())
+    cap = bag.capacity(snap.character, s.ctx.clock.now()) if msg.bagType == BagType.BAG else _guild_cells(s)
     final = {pos: moves.get(pos, pos) for pos in by_pos}
-    valid = msg.bagType == BagType.BAG and len(moves) == len(msg.arrangeInfo) and set(moves) <= set(by_pos)
+    valid = msg.bagType in (BagType.BAG, BagType.GUILD)
+    valid = valid and len(moves) == len(msg.arrangeInfo) and set(moves) <= set(by_pos)
     if not valid or len(set(final.values())) != len(final) or any(not 0 <= p < cap for p in final.values()):
         s.log.info("8220 recusado", pedido=str(msg))
         return
@@ -501,7 +563,9 @@ async def bag_arrange(s: GameSession, msg: pb.ArrangeReq) -> None:
             for other in sorted(items, key=lambda i: i.pos):
                 if other is item or other in gone or other.pos < item.pos or other.template_id != item.template_id:
                     continue
-                if other.is_locked != item.is_locked or item.valid_date or other.valid_date:
+                if other.is_locked != item.is_locked or other.is_binds != item.is_binds:
+                    continue
+                if item.valid_date or other.valid_date:
                     continue
                 use = min(top - item.count, other.count)
                 item.count += use
@@ -690,7 +754,35 @@ async def equip_look(s: GameSession, msg: pb.DetailReqMsg) -> None:
 
 @router.on(5129)
 async def drop_take(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    # os baús que caem no mapa de campanha (4267) dependem dos drops da campanha, que ainda não
-    # existem: o 4268 diz ao cliente que o baú não tem nada e ele limpa o nó (``__resetFallHandler``)
-    s.log.info("5129: baú sem drop", sinal=msg.paraString1)
-    send(s, S_DROP_FAIL, pb.BattleReportMsg(signId=msg.paraString1))
+    """Baú que caiu da luta (4103 com ``signId``/``baseItem``, ``CampaignSocketManger``). ``paraInt1`` 0 pega tudo
+    (``BattleFallGoodsView``; inglesa #2924-#2939: 115, 4476, 111, 83); um ``templateId`` pega só ele (o
+    ``HangUpMediator`` manda a posição do nó, que não é item: pega tudo). Mochila cheia: 4268 com o que o baú
+    ainda tem, e o cliente o põe de volta no mapa (``CampaignMapController.__resetFallHandler``)."""
+    snap = s.snapshot
+    assert snap is not None
+    fallen = s.campaign.fallen if s.campaign is not None else {}
+    sign = msg.paraString1
+    if not (goods := fallen.get(sign)):
+        s.log.info("5129: baú desconhecido", sinal=sign)
+        return
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    take = [d for d in goods if d[0] == msg.paraInt1] or goods
+    if not bag.fits(snap, templates, take, now):
+        base = [pb.BaseItemMsg(templateId=t, count=n) for t, n in goods]
+        send(s, S_DROP_FAIL, pb.BattleReportMsg(signId=sign, baseItem=base))
+        return
+    if left := [d for d in goods if d not in take]:
+        fallen[sign] = left
+    else:
+        del fallen[sign]
+    new = [i for t, n in take for i in bag.add(snap, templates, t, n, now)]
+    await s.ctx.characters.save(*new)
+    from . import events  # events importa login, que importa este módulo
+
+    send(s, S_ITEMS, rewards.items_msg(new, s.player_id))
+    events.items_gained(s)
+    texts = [rewards.received(templates, [d]) for d in take]
+    for text in texts:
+        send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    for text in texts:
+        send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

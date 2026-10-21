@@ -203,14 +203,17 @@ async def test_gancho_pvp_e_transporte(tmp_path: Path) -> None:
         a.client.send(8292)  # cancelar gancho: 4200 zerado
         hang = _body(await a.idle(), HANGUP, pb.HangupInfoMsg)
         assert (hang.isStartHangup, hang.leftWeay) == (False, 0)
-        a.client.send(8295)  # estado dos ganchos da sala: vazio, e o pré-carregamento do cliente termina
-        assert list(_body(await a.idle(), HANGUP_ROOM, pb.HangupStateListMsg).hangupState) == []
+        a.client.send(8295)  # salas do gancho (HookFrame): uma por campanha 7001-7009, livres
+        rooms = _body(await a.idle(), HANGUP_ROOM, pb.HangupStateListMsg)
+        assert rooms.maxCount > 0 and [(r.campaignId, r.curCount) for r in rooms.hangupState] == [
+            (7001 + i, 0) for i in range(9)
+        ]
         a.client.send(8294)  # abaixo do nível 22 o botão de PvP fica desligado
         assert _body(await a.idle(), MATCH, pb.MatchStateMsg).matchState is False
         _session(a).snapshot.character.grades = 22  # type: ignore[union-attr]
         a.client.send(8294)
         assert _body(await a.idle(), MATCH, pb.MatchStateMsg).matchState is True
         a.client.send(8535)  # transporte do chefe: sem resposta
-        a.client.send(5027)  # convite da lista: sem resposta
+        a.client.send(5027)  # aba Hall do convite: 4161 (sozinho, vazio)
         a.client.send(5026, pb.RoomReqMsg())
         assert ROOM_LIST in _codes(await a.idle())

@@ -22,7 +22,7 @@ from .vip import has_contract
 S_REWARD, S_FRESH, S_COUNT = 4198, 4197, 4360
 S_RING, S_RING_SUM = 4614, 4616
 SLOTS, OPEN_GRADE, BASE_COUNT = 4, 14, 20  # OfferRewardModel: MAX_OFFER_TASK_NUM, OPEN_REWARD_GRADE, BASE_REWARD_COUNT
-AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 2  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
+AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 10  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
 CAN_ACCEPT, ACCEPTED, COMPLETED = 1, 2, 3  # REWARD_STATE_*
 PASS_CONTRACT = 2  # KingContracts 2 "Bounty Helper": termina a tarefa na hora
 # ponytail: o sorteio de qualidade do oficial não é conhecido; pesos para 1..5 (5 = ouro, rende x6)

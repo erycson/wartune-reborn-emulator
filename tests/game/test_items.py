@@ -122,3 +122,35 @@ async def test_arrange_moves_and_stacks(tmp_path: Path) -> None:
 
         g.client.send(8220, pb.ArrangeReq(bagType=1, arrangeInfo=[pb.ArrangeInfo(oldplace=0, newplace=1)]))  # colide
         assert await g.idle() == []
+
+
+async def test_equipping_and_stacking_bind_the_item(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        hero = snap.leader.id  # type: ignore[union-attr]
+        wand = Item(g.user_id, WAND, pos=0, is_binds=False)
+        free, bound = Item(g.user_id, GOLD_BOX, pos=1, count=2, is_binds=False), Item(g.user_id, GOLD_BOX, pos=2)
+        loose_a, loose_b = Item(g.user_id, GEM_BOX, pos=3, is_binds=False), Item(g.user_id, GEM_BOX, pos=4)
+        snap.items.extend([wand, free, bound, loose_a, loose_b])
+        await g.server.services.characters.save(wand, free, bound, loose_a, loose_b)
+
+        # (cliente) PlayerBagCellClickMediator: equipar item livre pede "...will change this item to become bound"
+        g.client.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=0, endBagType=4, endObjId=hero, endPos=0))
+        got = await g.idle()
+        assert wand.bag_type == 4 and wand.is_binds
+        moved = [m.item for p in got if p.code == 115 for m in pb.ItemMovedListMsg.FromString(p.body).moved]
+        assert [m.bind for m in moved if m.templateId == WAND] == [True]
+
+        # GoodsCheck.isAddToChecker: juntar livre com vinculado vincula a pilha
+        g.client.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=1, endBagType=1, endPos=2))
+        await g.idle()
+        assert free not in snap.items and (bound.count, bound.is_binds) == (3, True)
+
+        # arrumar não junta livre com vinculado
+        info = [pb.ArrangeInfo(oldplace=3, newplace=0), pb.ArrangeInfo(oldplace=4, newplace=1)]
+        g.client.send(8220, pb.ArrangeReq(isStackItem=True, bagType=1, arrangeInfo=info))
+        await g.idle()
+        assert loose_a in snap.items and loose_b in snap.items
+
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert [(i.bag_type, i.is_binds) for i in saved.items if i.template_id == WAND] == [(4, True)]

@@ -35,14 +35,14 @@ disso é recusado ou respondido vazio, do jeito que o cliente espera para não t
 | 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,13 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* tutorial_en #774-#776 (18 tiles em 2,34 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
 | 9525 | 4938 com os chefes do mapa pedido e o tempo até o próximo refresh (ver *Chefes do mapa*) | *(visto)* inglesa #525-#526, #709-#710 (instância, sem chefes); transfer #7-10 (só turco: mapa 2 com chefes) | luta contra chefe, monstros do mapa, névoa (4939) e caixas (4940) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o guarda de grau 8 se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo e a luta do castelo-robô | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
+| 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o robô se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648-#1770 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Na pedreira 6001: a luta da coleta (140, 157; fim com Wood x18). Fora dela, registra | *(visto)* inglesa #1928-#2070 | — |
-| 9506 | Ataque extra: `ConfigInfos` `AddAttck_Point` diamantes (395 nos templates EN, como o texto EN "Additional attack attempts cost 395 Balens"; vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount`. O ataque ao castelo-robô (5160) gasta um e grava na hora | *(cliente)* `AttackAlertFrame` (`setAddAttackCount`; o 100 do cliente é só o saldo mínimo conferido) | — |
+| 9506 | Ataque extra: `ConfigInfos` `AddAttck_Point` diamantes (395 nos templates EN, como o texto EN "Additional attack attempts cost 395 Balens"; vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount`. O ataque ao castelo-robô (5160) gasta um e grava na hora | *(cliente)* `m3/.../AttackAlertFrame.as:130` (`setAddAttackCount`; o cliente só confere 98 de saldo, então abaixo do preço o servidor avisa "You don't have enough Balens!") | — |
 | 5176 | Muda o castelo. Outro mapa: 200 de energia e o ponto central do mapa. Mesmo mapa com ponto: 100 de energia. Energia completada com diamantes. Resposta: 140 e 105 (mapa, posição, energia). Recusa: 105 com o castelo como está | *(visto)* transfer #2-5 (só turco: 500 para 300 de energia); *(cliente)* `WorldMapControler`, `MapPhysicsCastle` | sem outros castelos, o ponto de chegada é o centro |
 | 8292 | Cancela o gancho: 4200 com `leftWeay` 0 e `isStartHangup` falso, a mesma resposta do 8293. Não cobra | *(cliente)* `HookTimeView` envia o 8292 ao cancelar | sistema de gancho da campanha (ausente) |
-| 8293 | Ressincroniza o gancho: 4200 com `leftWeay` 0. Não cobra | *(cliente)* `HookTimeView` só envia com `hookleftWeay` diferente de zero | sistema de gancho da campanha (ausente) |
-| 8295 | Estado dos ganchos da sala: 4204 vazio. É a resposta que termina o pré-carregamento do gancho | *(cliente)* `HookContorler` envia o 8295 sem corpo | ganchos de outros jogadores (ausente) |
+| 8293 | Ressincroniza o gancho: 4200 com `leftWeay` 0. Não cobra. No inglês o gancho custa `min(hookleftWeay, 200 − weary) × 10` Balens (teto de fadiga 200; o turco não tinha ×10 e o teto era 235), com `payType` 0/1 pela escolha de vinculados | *(cliente)* `m3/.../HookTimeView.as:279-291` só envia com `hookleftWeay` diferente de zero | sistema de gancho da campanha (ausente) |
+| 8295 | Salas do gancho (Altar of Ennoblement, `HookFrame`): 4204 com as 9 campanhas `Types` 3 (7001-7009), `curCount` 0 e `maxCount` = `Capacity` (*dedução*); com a lista vazia o `HookItem` quebrava. É a resposta que termina o pré-carregamento do gancho | *(cliente)* `HookContorler` envia o 8295 sem corpo | ganchos de outros jogadores (ausente) |
 | 8525 | Registra (convite de PK, ataque no campo de animais). Sem resposta | *(cliente)* `CampaignSocketOutManager`, `HookMapPKMediator`: o convite não espera resposta | batalha de PK no mapa da campanha (ausente) |
 | 8636 | 4552 com área 1 e `maxIndex` 0 | *(cliente)* `SinglePassSocketOutManager`, `SinglePassManager` | progresso das fases (8753, 8755) |
 | 8637 | Recusa a recompensa: 4552 atual | *(cliente)* a recompensa exige `maxIndex == área * 10` | progresso das fases |
@@ -150,13 +150,21 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   O servidor recusa com 140 parado e sem luta nos três casos (sem ataque no dia, diferença de 10 ou mais, luta em andamento).
   Com o ataque aceito, gasta um do dia (*dedução*: o contador é o do 9506, "x/5" no `AttackAlertFrame`) e grava
   logo depois de abrir a luta (junto com a devoção): cair no meio da luta não devolve o ataque.
-- **Luta** *(dedução)*: a spec da mina (`guard_battle`: battleType 1, mapa 100, cena 4) com o guarda da mina
-  do mesmo grau (`world_mine_guards`: 6504 no grau 8). Não há captura de luta com castelo. Fim na ordem da mina: 150, 4103, 150, 100, 140 ×2.
-- **Vitória** *(dedução)*: `quest_event(8, 1, 1)`, em que Para1 1 = vitória. As missões 100 e 411 (Para1 0)
-  e a 765 (Para1 1) avançam; sai o 112 e a gravação do ataque vai em uma só save.
-- **Ouro saqueado: sem fonte.** A captura não tem castelo atacado, nem o `4103` com ouro de saque. O
-  `U_C_ARMY_ATTACK_CASTLE` (97) não tem listener no cliente decompilado (só a constante). Então o relatório sai
-  com `goldBonus` 0 e nenhum ouro é creditado.
+- **Luta** *(visto)* inglesa #1656-#1657 (`oc.robot_battle`): antes da 157 vai o 140 do robô em luta
+  (`updatedType` 2, `state` 4). battleType 4 no mapa 993 ("Plunder City"); as tropas e o herói do jogador como na
+  mina; do lado 2 o herói `11000 + grau` (11008 "Warrior (M)": type 2, nome do robô, nível 8, vida 240, skills
+  10711/10811 do `SkillScript`) na pos 6 e 2 pilhas de 10102 com 282 de vida nas pos 1 e 7. A vida das pilhas
+  é a da captura (robô de grau 8, o único do catálogo).
+- **Fim** *(visto)* inglesa #1758-#1770: 150, 4103 (`battleScene` 6), 150, 100, 140 ×2 do exército, 140 do robô de
+  volta ao `state` 1, 112, 3 e 4382. A captura é uma derrota: `strategyBonus` 172, as 172 tropas do exército; o
+  PlayerMsg sobe 172 de Daru e o 4382 leva `strategy` 172. Na derrota o servidor dá de Daru o exército inteiro.
+- **Missão**: `quest_event(8, vitória ? 1 : 0, 1)`. Para1 0 = qualquer, então 100 e 411 avançam também na derrota
+  (*visto* #1765: a 100 com `condition_1` 1 depois de perder); a 765 (Para1 1) só na vitória. A gravação do
+  ataque vai em uma só save.
+- **Vitória: Daru e ouro saqueado sem fonte.** A captura só tem a derrota, e o
+  `U_C_ARMY_ATTACK_CASTLE` (97) não tem listener no cliente (só a constante). Então a vitória sai com
+  `strategyBonus` e `goldBonus` 0. O 148 (correio novo, #1766) também fica de fora: o conteúdo da carta não está
+  na captura.
 - **Níveis** *(cliente + grau 8)*: a diferença menor que 10 deixa atacar até o nível 17. A 411 pede nível 17,
   então só passa no 17. A 765 (nível 12) passa de 12 a 17. Se o grau do oficial for outro, isso muda.
 - **Não feito**: PvP contra castelo de jogador (8488 segue sem alvo, porque exército alheio não existe aqui);
@@ -333,15 +341,16 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
    transfer #15, só turco, traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168 não
    existem aqui), terras selvagens fora das 4 minas, castelos NPC "Köy" (só turco), e a resposta do 5160 e do 8488 contra
    castelo ou exército de jogador (*precisa de captura*).
-2. **Gancho da campanha** (8292, 8293, 8295, 8525). O servidor responde o gancho zerado (4200) e a lista
-   de ganchos vazia (4204); o cancelar (8292) não muda nada. O ganho de tempo offline da campanha precisa do
+2. **Gancho da campanha** (8292, 8293, 8295, 8525). O servidor responde o gancho zerado (4200) e as 9 salas
+   do gancho livres (4204); o cancelar (8292) não muda nada; clicar numa sala (8258) dá o aviso, sem o mapa. O ganho de tempo offline da campanha precisa do
    sistema de gancho, e os ganchos de outros jogadores não existem.
 3. **Passe de progresso** (8636, 8637). A área é sempre 1. Falta o progresso das fases (8753, 8755).
 4. **Mapa do tesouro.** Falta a tabela de sorteio da qualidade do mapa (o servidor dá o de bronze). Refresh,
    escavação, uso do mapa e recompensa dependem de pontos no mapa do mundo e de batalha de equipe.
 5. **Guia do tutorial** (8699, ação a46). Feito: é a luta da pedreira 6001.
-6. **Contagem diária do mapa do tesouro.** *(dedução)* A config `join_tremap_count` não diz o período, e o
-   cliente não mostra data. Assumimos o dia, como o coliseu e o ataque extra.
+6. **Contagem diária do mapa do tesouro.** *(cliente)* "Treasure Map and rewards can both be claimed 5 times per
+   day, claim attempts reset daily at 5:00 A.M." (`TreasureMapGetFrame.helpContent`): 5 por dia, vira às 5h, o dia
+   do jogo (`A.today`).
 7. **Mapa de bronze e nível.** *(dedução)* O item que o oficial dá é sorteado por qualidade; a tabela não está
    nos templates, então vai sempre o de bronze. A trava de nível é o `NeedGrades` do item (55), sem trava
    própria no cliente.

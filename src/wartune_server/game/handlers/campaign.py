@@ -324,6 +324,7 @@ async def _open_chest(s: GameSession, node: dict[str, object]) -> None:
 async def _leave_campaign(s: GameSession) -> None:
     assert s.snapshot is not None
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
+    _send(s, S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))  # (visto) tutorial_en #517-#520: 4165, 150, 150, 140
     _send(s, S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     from . import events as hev  # handlers.events importa login, que importa este módulo
@@ -491,7 +492,11 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         )
     s.battle_gp = 0 if dungeon else gp  # a masmorra guarda o 4382 no mapa (``over``), com o Daru do chefe
     await _push_player(s)
-    _send(s, S_BATTLE_REPORT, _report(battle, won, gp, strategy))
+    report = _report(battle, won, gp, strategy)
+    if loot.fallen:
+        report.signId = loot.sign
+        report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in loot.fallen)
+    _send(s, S_BATTLE_REPORT, report)
     if gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
     if snap.character.grades > before:
@@ -514,7 +519,10 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         _node_update(s, camp, NORMAL)
         return
     if loot.items:  # (visto) inglesa #1275-#1280: 115, 111, 128 e só depois o 83
+        from . import events as hev  # handlers.events importa login, que importa este módulo
+
         _send(s, S_ITEMS, rewards.items_msg(loot.items, s.player_id))
+        hev.items_gained(s)
     for text in loot.texts:
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     if loot.quests:
@@ -600,6 +608,7 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
 WEARY = 20  # (visto) "Entered [Worg Lair] and deducted 20 stamina." (inglesa #853, #2320); nenhuma coluna do template
 STAGE_KEY = "campaign_stage:{}"  # EventState: índice da próxima etapa (#2310 e #2788 mandam o mesmo 5039)
 RANK_KEY = "campaign_rank:{}"  # EventState: melhor nota total (4151)
+MATERIAL = 210  # SonType que vai direto para a mochila (Worg Tooth, Wood; inglesa #1275, #2050); o resto cai num baú
 
 
 def _exp_text(gp: int) -> str:
@@ -618,6 +627,13 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     vem do estado (``campaign_stage``): o mesmo pedido levou ao 1011 e depois ao 1021 (#843, #1151), ao 1131 e depois
     ao 1141 (#2310, #2788). (dedução) depois da última etapa volta à primeira.
     """
+    from .vehicle import room_start  # vehicle importa player, que importa este pacote
+
+    if await room_start(s):  # sala de veículo: o VehicleRoomFrame manda 5039 (0, 0) ao começar
+        return
+    if s.ctx.vehicles.queued(s.player_id) or s.ctx.vehicles.match_of(s.player_id):
+        s.log.info("5039 recusado: na fila ou na batalha de veículos")
+        return
     c, snap = s.campaign, s.snapshot
     content = s.ctx.world.campaigns.get(msg.paraInt2)
     if snap is None or content is None or s.battle is not None or (c is not None and not c.finished):
@@ -714,7 +730,10 @@ async def _dungeon_callback(s: GameSession, camp: int) -> None:
     items = bag.add(snap, s.ctx.templates, template_id, got[0][1], now)
     await s.ctx.characters.save(*items)
     text = rewards.received(s.ctx.templates, got)
+    from . import events as hev  # handlers.events importa login, que importa este módulo
+
     _send(s, S_ITEMS, rewards.items_msg(items, s.player_id))
+    hev.items_gained(s)
     _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
@@ -894,6 +913,8 @@ class _Loot:
     win: str = ""
     done: list[int] = field(default_factory=list)
     finished: bool = False
+    sign: str = ""  # baú da luta (``fallen``): signId e itens no 4103, pegos no 5129
+    fallen: list[tuple[int, int]] = field(default_factory=list)
 
 
 def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot:
@@ -901,7 +922,9 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
 
     - Relatório: soma o dano causado/sofrido da luta e as derrotas na etapa (``StageRun``).
     - Drop do nó (``drops[nó]`` = [item, n, chance]): (visto) inglesa #1275 (102103: Worg Tooth x2); a chance 0,5
-      do Luck Stone e do 1080011 é (dedução) de uma amostra só (docs/drops-masmorras.md). Empilha (``bag.add``).
+      do Luck Stone e do 1080011 é (dedução) de uma amostra só (docs/drops-masmorras.md). Material (SonType 210:
+      Worg Tooth, Wood) vai direto para a mochila e empilha (``bag.add``); o resto cai num baú: ``signId`` e
+      ``baseItem`` no 4103 (inglesa #2910: 1080011), pego no 5129 (``items.drop_take``).
     - Caixa do caçador (``wins[nó]``): Daru, e os nós do ``param4`` do nó fecham com ela (#2633-#2642).
     - Missões: 25 (soldado morto do tipo ``tempId``) e 26 (chefe morto, ``heroTempId``). No fim da etapa, 14 (passou
       a campanha) e 31 (cena com a ``Capacity`` da campanha), em ``end_quests``: (visto) inglesa #1103, #2710.
@@ -919,7 +942,13 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
     loot = _Loot()
     if not won:
         return loot
-    got = [(int(t), int(n)) for t, n, chance in c.part("drops", camp) or [] if random.random() < float(chance)]
+    drops = [(int(t), int(n)) for t, n, chance in c.part("drops", camp) or [] if random.random() < float(chance)]
+    got = [d for d in drops if _material(templates, d[0])]
+    if fallen := [d for d in drops if d not in got]:
+        loot.sign, loot.fallen = str(int(now.timestamp() * 1000)), fallen  # (visto) #2910: milissegundos da luta
+        while loot.sign in c.fallen:
+            loot.sign = str(int(loot.sign) + 1)
+        c.fallen[loot.sign] = fallen
     if got and bag.fits(snap, templates, got, now):  # confere antes; depois só muda o snapshot
         for template_id, count in got:
             loot.items += bag.add(snap, templates, template_id, count, now)  # completa a pilha que já existe
@@ -952,6 +981,11 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
                     loot.end_quests.append(q)
     loot.quests = [q for q in loot.quests if q not in loot.end_quests]  # quem fecha no fim sai uma vez só
     return loot
+
+
+def _material(templates: GameTemplates, template_id: int) -> bool:
+    row = templates.get("ItemTempInfos", template_id) or {}
+    return int(row.get("SonType") or 0) == MATERIAL
 
 
 def _ranks(s: GameSession) -> pb.RankListRspMsg:
@@ -1037,7 +1071,10 @@ async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         return  # mochila cheia: sem carta
     item, take, text = grant
     await s.ctx.characters.save(snap.character, item)  # um save: carta na mochila
+    from . import events as hev  # handlers.events importa login, que importa este módulo
+
     _send(s, S_ITEMS, rewards.items_msg([item], s.player_id))
+    hev.items_gained(s)  # (visto) tutorial_en #1112
     _send(s, S_TAKE_CARD, take)
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
@@ -1094,7 +1131,10 @@ async def _quarry_over(s: GameSession, battle: Battle, won: bool) -> None:
         await s.ctx.characters.save(*items)
     text = rewards.received(s.ctx.templates, got) if items else ""
     if items:
+        from . import events as hev  # handlers.events importa login, que importa este módulo
+
         _send(s, S_ITEMS, rewards.items_msg(items, s.player_id))
+        hev.items_gained(s)
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _send(s, S_BATTLE_REPORT, _report(battle, won, 0))
@@ -1137,8 +1177,8 @@ async def novice(s: GameSession, msg: pb.NoviceReqMsgMsg) -> None:
         s.log.info("5017 recusado", novice=msg.noviceProcess, atual=c.novice_process)
     changed = rules.update_novice_quests(snap, s.ctx.templates)
     await s.ctx.characters.save(c, *changed)
-    if changed:
-        _send(s, S_QUESTS, quest_update(changed, rules.quest_bitmap(snap)))
+    if pushed := [q for q in changed if rules.novice_pushes(s.ctx.templates, q)]:
+        _send(s, S_QUESTS, quest_update(pushed, rules.quest_bitmap(snap)))
     await _push_player(s)
     _send(s, S_NOVICE)
     if s.campaign is not None and s.campaign.map_id == FIRST_MAP:

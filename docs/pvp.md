@@ -186,9 +186,9 @@ Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado 
 
 | C>S | O servidor faz / responde | Fonte |
 |---|---|---|
-| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (arma/armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. Com `noviceProcess <= 30000` (tutorial) não responde nada, como o cliente que nem abre a tela. | *(visto)* só turco: meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
+| 8256 `{type:0}` | 4169: `curRank`, `challengeCount` (usadas), `lastWinCount`, 4 oponentes, `avater` (do líder: arma, armadura e a moda: asa, arma, roupa, chapéu; com a moda escondida, só arma e armadura), `challengeLog` (10), `leftDay`, `totalCount 10`, `totalBuyCount 10`. Fora do ranking: 4 robôs. No ranking: jogadores acima, espaçados (`rank // 30`); o 1º vê os de baixo; faltando, robôs. A lista fica na sessão: só ela pode ser desafiada. A janela só abre quando o 4169 chega. Com `noviceProcess <= 30000` (tutorial) não responde nada, como o cliente que nem abre a tela. | *(visto)* só turco: meydan_okuma #3, #46; *(cliente)* `ColosseumControler.as` |
 | 8253 `{tarUserId, payType}` | Recusa (só 4176) se ainda no tutorial (`noviceProcess <= 30000`), fora da lista, em espera, em batalha ou sem tentativas. Da 11ª à 20ª cobra `min((compradas+1)*2, 10)` diamantes (`payType 0` usa o vinculado primeiro, `1` só diamante). Gasta a tentativa e grava **antes** da luta (cair não devolve). 140 `state 2`, 157 `battleType 16, mapTempId 992`, herói inimigo `type 2, userId 0, heroId 1300000000`. No fim: 3, 150, 4103 `{battleScene 7, gpBonus}`, 83 EXP, 140 `state 0`, 4176 `{leftTime 600}` (a espera conta do fim, como na captura). | *(visto)* só turco: meydan_okuma #6, #26-#29; *(cliente)* `ColosseumModel.buyCountNeedPay` |
-| 8265 `PayTypeMsg` | Zera a espera (type 0 coliseu, 1 torneio) por `ceil(s/60)*5` diamantes (`payType 2` aceita vinculado); 3 e 4176. | *(cliente)* `QueueBar.as`, `SocketSendManager.sendCoolColosseun` |
+| 8265 `PayTypeMsg` | Zera a espera (type 0 coliseu, 1 torneio) por `ceil(s/60)*5` diamantes (`payType 2` aceita vinculado); 3 e 4176. Com VIP (`vipCoolPrivilege`) é grátis e sai só o 4176: o cliente nem abre o quadro do custo. | *(cliente)* `QueueBar.as`, `SocketSendManager.sendCoolColosseun`, `ColosseumFrame`, `PetChallengeCDView` |
 | 8329 | Recompensa da posição, uma por período de `period_days`: ouro e Daru de `data/colosseum_rewards.json`. 4243 `{isTake false, param1 posição, param2 ouro, param3 Daru, param4 dias}`. | *(cliente)* `TopToolsBar.as`; tabela *(dedução)* |
 | 5021 | `type 1`: tentativa do torneio por `Jion_pet_challenge` de ouro (até 10/dia, *dedução*), 109 e 4176. Outros tipos (2 = chegada dos deuses) não são daqui: registrado. O coliseu compra pelo 8253. | *(cliente)* `PetChallengeController.buyChallengeCount` |
 | 8635 `QuestInfo` | Lutar contra a própria cópia é ação de missão com condição 92, que não existe no tempinfos: recusado com log. | *(cliente)* `TaskFrameII.as` |
@@ -198,6 +198,13 @@ Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado 
 primeira vitória (contra robô ou jogador) entra no fim; vencer alguém acima troca as posições;
 perder não muda nada. Leitura, troca e gravação sob uma trava global (`arena.RANK_LOCK`). O
 atacado ganha uma linha no histórico (`challenge_logs`) sem que a sessão dele seja tocada.
+
+**Hero Rankings** (`HeroRankFrame`): o cliente baixa o `challengeorder.xml` do site do jogo (`TEMPLATE_PATH`, zlib).
+Com `WARTUNE_RANKING_XML_DIR` o servidor grava ali os 20 primeiros do `arena_ranks` (`game/rankings.py`: `curRank`,
+`order` = posição por EXP, guilda e VIP; robôs ficam fora); sem ela, fica o arquivo do oficial do espelho. Os títulos
+do `ColosseumSelfView` (o mais forte e o mais forte de cada classe) e a aba 2 do ranking (`SortController`) leem o
+`fight.xml`, que o espelho não tem: o servidor grava os 100 de maior `fighting_capacity` (o poder gravado na saída do
+jogo) como `<PlayerFight>` com `nikcName`/`fightCapaity` (sic), `job` = template do líder e `<info createDate>`.
 
 **Login:** 4176 tipo 0 (usadas, espera) e tipo 1 (restantes) no 8224 `sys`; 4244 (`isTake` =
 pode resgatar) com `challReward`; 4613 com `petChallengeReward`; 4481 com `crossScoreReward`.
@@ -250,10 +257,12 @@ e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque =
 | 8717, 8720 | nada (o cliente não espera) | o 8720 só aparece depois de um 4533, nunca mandado |
 | 8979, 8975, 8976, 8981 | 4799 `{isOpen false, isSign false, isOver true}` | Senhores de casal; o botão já é escondido no cliente (`MATELORD`) |
 | 8337 | 4255 vazio | classificação do campo de batalha |
-| 8332, 8334, 8338 | nada | campo de batalha (campanhas 4001-4013, mapa com times): sem 125 o cliente não troca de cena |
+| 8332, 8334, 8338, 8599 | nada | campo de batalha (campanhas 4001-4011, mapa com times): sem 125 o cliente não troca de cena. O 8599 (`CampaignReqMsg {paraInt1: campanha}`) é o `WarFightItem` pedindo entradas com `warFieldCount` <= 0: o login manda 2 e o botão só aparece no estado 0 |
 | 8633 | nada | mina de ametista (campanha 30000): o botão só aparece com 4549/4422, nunca mandados |
 
-No login (8224 `sys`): 4776 com a agenda dos Senhores no passado e 4535 processo 0; **4248 com
-`state 1` para 4001-4013** (o padrão do cliente é 0 = aberto, e o botão apareceria no nível 30).
+No login (8224 `sys`): 4776 com a agenda dos Senhores no passado (sem 4535, como a inglesa #104-#106) e o **4248
+de 4001-4011 pela agenda de hoje**: 1 antes do `OpenTime`, 3 na janela, 2 depois do `StopTime` (inglesa #104 às
+18:24: 4001-4007 = 2, 4008 = 3, 4009-4011 = 1). O oficial manda 0 (aberto) na abertura (#3110); aqui nunca, porque o
+mapa do campo não existe (o 0 é o único estado que o cliente lê: mostra o botão no nível 30).
 Abrir de verdade depende do mapa de campanha compartilhado (campo e mina) e de agenda/servidores
 cruzados (Senhores).

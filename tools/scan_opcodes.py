@@ -12,10 +12,9 @@ Gera ``proto/opcodes.json`` e ``docs/packets.md``.
 
 Uso::
 
-    uv run python tools/scan_opcodes.py D:/wartune/decompiled/m2/scripts D:/wartune/decompiled/m3/scripts \
-        D:/wartune/decompiled/m4/scripts D:/wartune/decompiled/m5/scripts D:/wartune/decompiled/m8/scripts \
-        D:/wartune/decompiled/m10/scripts D:/wartune/decompiled/m11/scripts \
-        D:/wartune/decompiled/m15/scripts D:/wartune/decompiled/m16/scripts
+    uv run python tools/scan_opcodes.py <pastas scripts/ do cliente inglês: decomp/2, decomp/m3..m18, decomp/Loading>
+
+(o comando completo está em docs/ferramentas.md)
 """
 
 from __future__ import annotations
@@ -56,6 +55,8 @@ SPECIAL_C2S = {
     # o m2 não manda o 5039 (vem de outro módulo); (visto) captura inglesa #843 e #2310: 08 01 10 e9 07 =
     # CampaignReqMsg {paraInt1: 1, paraInt2: 1001} (1002 em ea 07)
     5039: "com.road.yishi.proto.campaign.CampaignReqMsg",
+    # CampaignSocketOutManager.sendTranseferState(param1:Message): quem monta é TranseferWaitMediator (m3)
+    8301: "com.road.yishi.proto.campaign.PlayerNodeStateMsg",
 }
 
 

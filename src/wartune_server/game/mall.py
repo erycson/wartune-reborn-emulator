@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 log = structlog.get_logger(__name__)
 
 DIAMOND = -400  # TemplateId da moeda no correio (CURRENCIES, handlers/player.py): Balens não vinculados
+SYLPH = mailbox.SYLPH  # o Sylph à venda (item -900)
 
 # ponytail: lock global do processo (um servidor por processo). Por anúncio se a fila pesar.
 MALL_LOCK = asyncio.Lock()
@@ -42,6 +43,23 @@ def income(price: int) -> int:
     """O que o vendedor recebe de uma venda de ``price`` diamantes, já sem o imposto."""
     # ponytail: arredondamento para baixo; o texto do cliente não diz como o oficial arredonda
     return price * (100 - TAX_PERCENT) // 100
+
+
+def goods_row(templates: GameTemplates, item: Item) -> dict[str, str]:
+    """A linha de ``ItemTempInfos`` do item. No Sylph, nome, nível e qualidade são os do pet (o cliente o nomeia
+    pelo ``TemplateName`` do pet e mostra o nível dele); a qualidade é a cor, ``(Quality - 1) / 5 + 1``."""
+    row = dict(templates.get("ItemTempInfos", item.template_id) or {})
+    if item.template_id == SYLPH and item.property1:
+        head = item.property1.split("|")[0].split(",")
+        pet = templates.get("PetTempInfos", int(head[0])) or {}
+        tier = (int(head[1]) - 1) // 5 + 1
+        row.update(TemplateName=pet.get("TemplateName", ""), NeedGrades=head[4], Profile=str(tier))
+    return row
+
+
+def label(templates: GameTemplates, item: Item) -> str:
+    """O item nas cartas do mercado: "nome xN"."""
+    return f"{goods_row(templates, item).get('TemplateName') or name(templates, item.template_id)} x{item.count}"
 
 
 async def post(
@@ -74,7 +92,7 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
         item = items.get(listing.item_id)
         if item is None:  # o item é apagado junto com o anúncio (cascata): não há o que entregar
             continue
-        label = f"{name(templates, item.template_id)} x{item.count}"
+        what = label(templates, item)
         if listing.bidder_id:
             # o lance vencedor é a compra (o diamante saiu no lance, mall_bids)
             await uow.save(
@@ -96,7 +114,7 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
                     listing.bidder_id,
                     now,
                     "Won Item",
-                    f"{label}: you are the highest bidder.",
+                    f"{what}: you are the highest bidder.",
                     items=[item],
                 )
             )
@@ -106,14 +124,14 @@ async def settle(uow: UnitOfWork, templates: GameTemplates, server_id: int, now:
                     listing.seller_id,
                     now,
                     "Sale Income",  # texto deduzido (sem fonte no cliente/captura)
-                    f"{label} has been sold.",
+                    f"{what} has been sold.",
                     goods=[(DIAMOND, income(listing.point))],
                 )
             )
         else:
             mails.append(
                 # texto deduzido (sem fonte no cliente/captura)
-                await post(uow, listing.seller_id, now, "Returned Item", f"{label}: no buyer was found.", items=[item])
+                await post(uow, listing.seller_id, now, "Returned Item", f"{what}: no buyer was found.", items=[item])
             )
     return mails
 

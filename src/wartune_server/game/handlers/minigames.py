@@ -32,6 +32,7 @@ S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
 S_ORE, S_TOP_TOOL = 190, 4590
+SUPER_SIGNIN = 2059  # 4590 param1 da super assinatura (SuperSigninCardManager)
 
 FUND = "fund:novice"  # value = nível comprado (0 = nenhum), text = data da compra
 FUND_GET = "fund:novice:get:{}"  # uma marca por vez (times) já resgatada
@@ -265,7 +266,9 @@ def login_push(s: GameSession) -> None:
     """Login do oficial: o 4922 do labirinto de gemas só com tabuleiro gravado (só turco: replay #10, #12; o
     tutorial_en, conta nova, não manda), o 4640 do fundo novato só a partir do nível ``openGrades`` (tutorial_en:
     o login no nível 1 não manda; o primeiro 4640, #639, sai no nível 6), o 4612
-    do fundo normal (tutorial_en #86, já no nível 1) e a árvore dourada (4497 e 295, #71-#72)."""
+    do fundo normal (tutorial_en #86, já no nível 1), a árvore dourada (4497 e 295, #71-#72), a troca da sorte (363
+    #88 e 364 #102, sem pedido; vazios: o servidor não tem as edições) e minério, super assinatura e cadeiras fechados
+    (190, 4590, 414: #109, #110, #112)."""
     gemmaze.login_push(s)
     snap = s.snapshot
     assert snap is not None
@@ -275,6 +278,12 @@ def login_push(s: GameSession) -> None:
     if _fund_cfg(s, NORMAL):
         _send_fund(s, snap, NORMAL)
     gold_tree.login_push(s)
+    _send(s, S_LUCKY_TEMP, pb.LuckExchangeTempListMsg())
+    _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
+    _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
+    # o oficial manda também o 514 (cartões da super assinatura, #111); fechada, o cliente não usa
+    _send(s, S_TOP_TOOL, pb.SimplePropertyMsg(param1=SUPER_SIGNIN, param7=False))
+    _send(s, S_CHAIRS_OPEN, pb.SimplePropertyMsg(param7=False))
 
 
 def fund_opened(s: GameSession, before: int) -> None:
@@ -413,12 +422,11 @@ async def icon_numbers(s: GameSession, _: object) -> None:
 
 
 @router.on(9610)
-async def lucky_exchange(s: GameSession, _: object) -> None:
-    """Troca da sorte sem tabela vigente: no tutorial_en (#88, #102) "Little Windmill" terminou em 2026-10-14 e
-    "Nostalgic Times Exchange" só começa em 2026-10-23; o servidor não tem tabela das edições.
-    364 vem antes do 363 (o cliente busca o valor da sorte pelo id)."""
-    _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
-    _send(s, S_LUCKY_TEMP, pb.LuckExchangeTempListMsg())
+async def lucky_exchange(s: GameSession, msg: pb.LuckExchangeOpMsg) -> None:
+    """Troca da sorte (``LuckyExchangeManager.OperateLuckyExchange``: ``exchangeId`` x ``exchangeCount``). Sem edição
+    vigente: no tutorial_en (#88, #102) "Little Windmill" terminou em 2026-10-14 e "Nostalgic Times Exchange" só começa
+    em 2026-10-23, e o servidor não tem tabela das edições (o login manda as listas vazias): recusa, só log."""
+    s.log.info("9610 recusado: sem troca da sorte", troca=msg.exchangeId, vezes=msg.exchangeCount)
 
 
 @router.on(9638)
@@ -433,4 +441,4 @@ async def ore_or_super_signin(s: GameSession, _: object) -> None:
     """Minério (190) e super assinatura (4590) fechados. O código não diz qual dos dois é (o extend1
     do cabeçalho não chega ao handler), e os dois fechados é o estado certo para ambos."""
     _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
-    _send(s, S_TOP_TOOL, pb.SimplePropertyMsg(param1=2059, param7=False))
+    _send(s, S_TOP_TOOL, pb.SimplePropertyMsg(param1=SUPER_SIGNIN, param7=False))

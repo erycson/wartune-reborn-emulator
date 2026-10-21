@@ -11,7 +11,9 @@ from wartune_server.game.handlers.login import player_info
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-CRUSADE = 2032101  # The Empire Crusade, ItemTempInfos: SonType 203, Property1 15, Property2 1 ("valid for the day used")
+CRUSADE = (
+    2032101  # The Empire Crusade, ItemTempInfos: SonType 203, Property1 15, Property2 1 ("valid for the day used")
+)
 
 
 async def test_crusade_adds_one_entry_per_use_and_is_saved(tmp_path: Path) -> None:

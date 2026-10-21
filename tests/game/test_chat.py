@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from tests.game.harness import Game, logged_in
+from wartune_server.domain import gameday
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 
@@ -93,7 +94,7 @@ async def test_small_bugle_free_quota_then_item(tmp_path: Path) -> None:
         session = a.server.online.get(a.user_id)
         assert session is not None and session.snapshot is not None
         c = session.snapshot.character
-        c.bugle_free_day, c.bugle_free_used = session.ctx.clock.now().date().isoformat(), 10
+        c.bugle_free_day, c.bugle_free_used = gameday.today(session.ctx.clock.now()), 10
         a.client.send(8705)
         assert pb.CampaignReqMsg.FromString((await a.until(4500))[-1].body).paraInt1 == 0
         await b.idle()

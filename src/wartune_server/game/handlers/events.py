@@ -24,8 +24,10 @@ from .player import alert, granted
 S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
 S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE = 83, 4152, 4150, 4412, 4247
 SERVEN_QUEST = 130  # a conclusão dela abre o guia de 7 dias (4638)
-PAGE = 10  # atividades por 4475 (o oficial manda ~11 por página)
-LOGIN_DAYS, ONLINE, DEVOTION = 13, 14, 12  # activeType com regra aqui (os contados por ação: ev.COUNTED)
+# (visto) tutorial_en #60-#67: 4475 de 11961/11616/11762/3821 bytes; a página fecha antes de passar disso
+PAGE_BYTES = 12000
+LOGIN_BONUS, ONLINE, DEVOTION = 13, 14, 12  # activeType com regra aqui (os contados por ação: ev.COUNTED)
+EVERYONE, VIP_ONLY = 1, 2  # condição 14 do Login Bonus (FunnyBagData: title14 "non-VIP", title15 "VIP")
 CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
 GIFT_OK = "Gift pack retrieval successful."  # texto do oficial inglês (tutorial_en #2770)
 LEED_BOX = (10, 40, 60, 80, 100)  # DayGuideCatecory.canPick: atividade mínima de cada baú 1..5
@@ -56,20 +58,14 @@ def _value(snap: PlayerSnapshot, key: str) -> int:
     return st.value if st is not None else 0
 
 
-def touch_login(snap: PlayerSnapshot, now: datetime, catalog: ev.EventCatalog) -> list[EventState]:
-    """Primeiro login do dia: soma um dia de login (8496, atividades tipo 13) e marca o leed 1.
-    Devolve as linhas alteradas (quem chama grava)."""
+def touch_login(snap: PlayerSnapshot, now: datetime) -> list[EventState]:
+    """Primeiro login do dia: soma um dia de login (8496) e marca o leed 1. Devolve as linhas alteradas (quem chama
+    grava)."""
     day = ev.state(snap, "login", now)
     if day.value and gameday.same_day(day.updated_at, now):
         return []
     day.value, day.updated_at = day.value + 1, now
-    changed = [day, leed_progress(snap, LOGIN_LEED, now)]
-    for a in catalog.running(now):
-        if a.active_type == LOGIN_DAYS:
-            st = ev.state(snap, f"sum:{a.active_id}", now)
-            st.value, st.updated_at = st.value + 1, now
-            changed.append(st)
-    return changed
+    return [day, leed_progress(snap, LOGIN_LEED, now)]
 
 
 def fill_player(msg: pb.PlayerMsg, snap: PlayerSnapshot, now: datetime) -> None:
@@ -123,32 +119,49 @@ async def leave(s: GameSession) -> None:
 
 
 def _send_actives(s: GameSession) -> None:
+    """4475 em páginas de até ``PAGE_BYTES`` e logo depois o 4476 de todas, sem pedido (tutorial_en #68)."""
     now = s.ctx.clock.now()
     actives = s.ctx.events.running(now)
-    pages = [actives[i : i + PAGE] for i in range(0, len(actives), PAGE)] or [[]]
+    every = pb.SumActivesMsg()
+    for a in actives:
+        info = every.actives.add(
+            activeId=a.active_id,
+            beginDate=b.fmt_time(a.begin),
+            endDate=b.fmt_time(a.end),
+            title=a.title,
+            detail=a.detail,
+            conditionDetail=a.condition_detail,
+            getway=a.getway,
+            activeType=a.active_type,
+            startTime=b.fmt_time(a.begin),
+            stopTime=b.fmt_time(a.end),
+            order=a.order,
+            appendParam="null",
+        )
+        for p in a.packages:
+            pkg = info.packages.add(packageId=p.package_id, order=p.order)
+            for t, count in p.items:
+                pkg.items.add(templateId=t, templateType=1, count=count, isbind=True, length=0, job=0)
+            pkg.conditions.add(conditionId=p.condition[0], conditionValue=p.condition[1])
+    pages: list[list[pb.SumActiveinfoMsg]] = [[]]
+    size = 0
+    for info in every.actives:
+        n = info.ByteSize() + 3  # + a etiqueta e o tamanho do campo
+        if pages[-1] and size + n > PAGE_BYTES:
+            pages.append([])
+            size = 0
+        pages[-1].append(info)
+        size += n
     for n, page in enumerate(pages, 1):
-        msg = pb.SumActivesMsg(dataStamp=s.ctx.events.data_stamp, curPage=n, maxPage=len(pages))
-        for a in page:
-            info = msg.actives.add(
-                activeId=a.active_id,
-                beginDate=b.fmt_time(a.begin),
-                endDate=b.fmt_time(a.end),
-                title=a.title,
-                detail=a.detail,
-                conditionDetail=a.condition_detail,
-                getway=a.getway,
-                activeType=a.active_type,
-                startTime=b.fmt_time(a.begin),
-                stopTime=b.fmt_time(a.end),
-                order=a.order,
-                appendParam="null",
-            )
-            for p in a.packages:
-                pkg = info.packages.add(packageId=p.package_id, order=p.order)
-                for t, count in p.items:
-                    pkg.items.add(templateId=t, templateType=1, count=count, isbind=True, length=0, job=0)
-                pkg.conditions.add(conditionId=p.condition[0], conditionValue=p.condition[1])
+        msg = pb.SumActivesMsg(dataStamp=s.ctx.events.data_stamp, curPage=n, maxPage=len(pages), actives=page)
         s.send(S_SUM_TEMP, b.complete(msg))
+    s.send(S_SUM_DATA, _active_data(s, actives))
+
+
+def items_gained(s: GameSession) -> None:
+    """4476 de todas logo depois do 115 que dá item (tutorial_en: 26 dos 61 115, todos de ganho: missão #490, carta
+    #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam."""
+    s.send(S_SUM_DATA, _active_data(s, s.ctx.events.running(s.ctx.clock.now())))
 
 
 def _online_seconds(s: GameSession, a: ev.Active, now: datetime) -> int:
@@ -171,9 +184,9 @@ def _flush_online(s: GameSession, now: datetime) -> list[EventState]:
 
 
 def _daily(a: ev.Active) -> bool:
-    """Pacote que volta a valer no dia seguinte: presente online, devoção (zera no dia; *dedução*) e os contadores
-    diários de ``ev.COUNTED``."""
-    return a.active_type in (ONLINE, DEVOTION) or ev.COUNTED.get(a.active_type, False)
+    """Pacote que volta a valer no dia seguinte: Login Bonus ("Claim them once everyday."), presente online, devoção
+    (zera no dia; *dedução*) e os contadores diários de ``ev.COUNTED``."""
+    return a.active_type in (LOGIN_BONUS, ONLINE, DEVOTION) or ev.COUNTED.get(a.active_type, False)
 
 
 def _taken(snap: PlayerSnapshot, a: ev.Active, p: ev.Package, now: datetime) -> bool:
@@ -187,8 +200,6 @@ def _progress(s: GameSession, a: ev.Active, now: datetime) -> int | None:
     servidor não conta esse tipo (fica "ainda não")."""
     snap = s.snapshot
     assert snap is not None
-    if a.active_type == LOGIN_DAYS:
-        return _value(snap, f"sum:{a.active_id}")
     if a.active_type == DEVOTION:  # condição 13 ACTIVE_VALUE: a devoção de hoje (totalNum do 4152)
         return _leeds(s, now)[1]
     if a.active_type in ev.COUNTED:
@@ -212,6 +223,12 @@ def _status(s: GameSession, a: ev.Active, now: datetime) -> list[tuple[ev.Packag
             else:
                 ready = p is nxt and elapsed >= p.condition[1]
                 out.append((p, CAN if ready else NOT_YET, max(0, p.condition[1] - elapsed)))
+        return out
+    if a.active_type == LOGIN_BONUS:  # tutorial_en #68: o normal já vem 1; o VIP fica 3 até virar VIP (#3268)
+        vip_now = vip.is_vip(snap, now)
+        for p in a.packages:
+            ok = p.condition[1] == EVERYONE or (p.condition[1] == VIP_ONLY and vip_now)
+            out.append((p, TAKEN if _taken(snap, a, p, now) else CAN if ok else NOT_YET, 0))
         return out
     done = _progress(s, a, now)
     for p in a.packages:
@@ -272,9 +289,11 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     new, text = rewards.grant(snap, s.ctx.templates, p.items, style="active")
     await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new)
 
-    # ordem do oficial (tutorial_en #2753-#2772): 3, 109, 115, 4476 de todas, 111, 4476 só desta e o 83
+    # ordem do oficial (tutorial_en #2753-#2772): 3, 109, 115, 4476 de todas (o granted manda depois do 115), 111,
+    # 4476 só desta e o 83
     granted(s, p.items, new, text, chat=False)
-    s.send(S_SUM_DATA, _active_data(s, running))
+    if not new:
+        s.send(S_SUM_DATA, _active_data(s, running))
     alert(s, GIFT_OK)
     s.send(S_SUM_DATA, _active_data(s, [a]))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

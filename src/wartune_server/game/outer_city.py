@@ -16,16 +16,23 @@ import math
 from ..domain.models import Castle, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
+from .arena import npc_hero
 
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
 GRID = 50  # a grade pedida pelo cliente é "x_y" de 50 × 50 tiles (OuterCitySocketOutManager)
 HOME_OFFSET = 2  # army_msg: o exército fica 2 tiles antes do castelo
 # sem a linha AddAttck_Point (395 nos templates EN; language EN AttackAlertFrame.content "cost 395 Balens");
-# 100 é só o saldo mínimo que o AttackAlertFrame confere antes de mandar o 9506
+# o AttackAlertFrame inglês só confere 98 de saldo antes de mandar o 9506
 ATTACK_PRICE = 100
 ENERGY_SAME_MAP = 100  # MapPhysicsCastle: energia para mudar de posição no mesmo mapa
 ENERGY_OTHER_MAP = 200  # WorldMapControler: energia para mudar de mapa (só turco: transfer, 500 -> 300)
 BASE_MAP, INSTANCE_MAP = 100, 100_000  # mapas do castelo começam em 100000xxx (characters.GridCastlePlacement)
+# luta com o castelo-robô (inglês #1657): battleType 4 no MapInfos 993 "Plunder City"; o 4103 vem com battleScene 6
+ROBOT_BATTLE_TYPE, ROBOT_MAP, ROBOT_SCENE = 4, 993, 6
+ROBOT_HERO_BASE = 11000  # GameHeroTemp 11001-11030 "Warrior (M)" com Grades = id - 11000 (11008 no robô de grau 8)
+ROBOT_HERO_LIVING, ROBOT_PAWN_LIVINGS = 6, ((4, 1), (5, 7))  # (livingId, pos) das 2 pilhas do robô
+# ponytail: 2 pilhas de 10102 com 282 de vida cada, as do robô de grau 8 (o único do catálogo); outro grau sem captura
+ROBOT_PAWN, ROBOT_PAWN_HP = 10102, 282
 
 
 def home(castle: Castle) -> tuple[int, int, int]:
@@ -112,9 +119,7 @@ def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[
 
 def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> dict[str, object]:
     """Spec da luta contra um guarda no mapa 100 (inglês #727, a mina): battleType 1, as tropas do exército
-    (``army_soldiers``), o herói na 4 e o guarda na 5 com a vida de um soldado (Live / 100). Serve também
-    ao castelo-robô (dedução: o guarda da mina do mesmo grau). ponytail: o inglês tem a luta com o robô (#1657:
-    battleType 4, mapTempId 993, herói 11008 com o nome do robô, 2 pilhas 10102 nas pos 1 e 7); trocar por ela."""
+    (``army_soldiers``), o herói na 4 e o guarda na 5 com a vida de um soldado (Live / 100)."""
     soldiers, pawn_tpl = army_soldiers(snap, templates)
     guard_row = templates.get("PawnTempInfos", guard) or {}
     hp = max(1, int(guard_row.get("Live", 100)) // 100)
@@ -129,6 +134,35 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
         "battleScene": 4,
         "soldiers": soldiers,
         "heroes": [],
+        "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
+    }
+
+
+def robot_battle(snap: PlayerSnapshot, templates: GameTemplates, grade: int, name: str) -> dict[str, object]:
+    """Spec da luta com o castelo-robô (inglês #1657): as tropas e o herói do jogador como na mina; do lado 2 o
+    herói ``11000 + grau`` (type 2, nome do robô, skills do SkillScript, vida Live) na 6 e 2 pilhas de 10102."""
+    soldiers, pawn_tpl = army_soldiers(snap, templates)
+    pawn = templates.get("PawnTempInfos", ROBOT_PAWN) or {}
+    skills = [int(s) for s in (pawn.get("DefaultSkill", ""), pawn.get("HighSkill", "")) if s] * 5
+    for living, pos in ROBOT_PAWN_LIVINGS:
+        soldiers.append(
+            {"livingId": living, "tempId": ROBOT_PAWN, "type": 1, "side": 2, "pos": pos,
+             "initHp": ROBOT_PAWN_HP, "hp": ROBOT_PAWN_HP, "qteTime": 0, "castTime": 4000, "skillId": skills}
+        )  # fmt: skip
+    hero_id = ROBOT_HERO_BASE + grade
+    row = templates.get("GameHeroTemp", hero_id) or {}
+    hp = max(1, int(row.get("Live") or 1))
+    hero = npc_hero(
+        livingId=ROBOT_HERO_LIVING, tempId=hero_id, nickName=name, grade=grade, maxHp=hp, initHp=hp, hp=hp,
+        skillId=[int(x) for x in str(row.get("SkillScript", "")).split(",") if x],
+    )  # fmt: skip
+    return {
+        "battleType": ROBOT_BATTLE_TYPE,
+        "mapTempId": ROBOT_MAP,
+        "attackModel": 2,
+        "battleScene": ROBOT_SCENE,
+        "soldiers": soldiers,
+        "heroes": [hero],
         "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
     }
 

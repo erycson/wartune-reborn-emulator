@@ -13,15 +13,15 @@ from wartune_server.templates.repository import GameTemplates
 
 WORLD_BOSS_OPCODES = (8258, 8259, 8264, 8271, 8470)
 ALERT = 111
-BEFORE_OPEN = datetime(2026, 5, 21, 9, 20, tzinfo=UTC)  # 12:20 em UTC+3: 5001 aberto (11:35-12:35), 5003 ainda não
-OPEN_5001 = datetime(2026, 5, 21, 8, 40, tzinfo=UTC)  # 11:40 em UTC+3: 5001 aberto (abre 11:35 no inglês)
+BEFORE_OPEN = datetime(2026, 5, 21, 12, 20, tzinfo=UTC)  # 12:20 (testes em UTC): 5001 aberto (11:35-12:35), 5003 não
+OPEN_5001 = datetime(2026, 5, 21, 11, 40, tzinfo=UTC)  # 11:40: 5001 aberto (abre 11:35 no inglês)
 
 
 def _states(msg: pb.WorldBossStateMsg) -> list[tuple[int, int]]:
     return [(i.campaignId, i.state) for i in msg.worldBossInfo]
 
 
-def test_window_uses_utc_plus_3_and_edges() -> None:
+def test_window_uses_the_game_timezone_and_edges() -> None:
     templates = GameTemplates(
         {
             "Campaigns": [
@@ -33,14 +33,14 @@ def test_window_uses_utc_plus_3_and_edges() -> None:
     )
     # só turco (replay idx 78 -> 102): 5001=2 e 5003=1; a inglesa #103 também
     assert _states(worldboss.states_msg(templates, BEFORE_OPEN)) == [(5001, 2), (5003, 1)]
-    # só turco: login.json #120, 20:06 em UTC+3: o mesmo 5001=2 e 5003=1
-    assert _states(worldboss.states_msg(templates, datetime(2026, 5, 21, 17, 6, tzinfo=UTC))) == [(5001, 2), (5003, 1)]
+    # só turco: login.json #120, 20:06 (era UTC+3): o mesmo 5001=2 e 5003=1
+    assert _states(worldboss.states_msg(templates, datetime(2026, 5, 21, 20, 6, tzinfo=UTC))) == [(5001, 2), (5003, 1)]
     row = worldboss.boss(templates, 5001)
     assert row is not None
-    assert worldboss.state(row, datetime(2026, 5, 21, 8, 0, tzinfo=UTC)) == worldboss.OPEN  # 11:00 em UTC+3
-    assert worldboss.state(row, datetime(2026, 5, 21, 7, 59, tzinfo=UTC)) == worldboss.BEFORE
-    assert worldboss.state(row, datetime(2026, 5, 21, 8, 59, tzinfo=UTC)) == worldboss.OPEN  # 11:59
-    assert worldboss.state(row, datetime(2026, 5, 21, 9, 0, tzinfo=UTC)) == worldboss.CLOSED  # 12:00
+    assert worldboss.state(row, datetime(2026, 5, 21, 11, tzinfo=UTC)) == worldboss.OPEN  # 11:00
+    assert worldboss.state(row, datetime(2026, 5, 21, 10, 59, tzinfo=UTC)) == worldboss.BEFORE
+    assert worldboss.state(row, datetime(2026, 5, 21, 11, 59, tzinfo=UTC)) == worldboss.OPEN  # 11:59
+    assert worldboss.state(row, datetime(2026, 5, 21, 12, tzinfo=UTC)) == worldboss.CLOSED  # 12:00
     assert worldboss.boss(templates, 4602) is None  # Types 16 não é chefe do mundo
 
 
@@ -230,7 +230,7 @@ async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:
 
 
 async def test_relogio_manda_4182_quando_o_chefe_abre(tmp_path: Path) -> None:
-    clock = FakeClock(datetime(2026, 5, 21, 8, 30, tzinfo=UTC))  # 11:30 em UTC+3: 5001 abre às 11:35
+    clock = FakeClock(datetime(2026, 5, 21, 11, 30, tzinfo=UTC))  # 11:30: 5001 abre às 11:35
     async with logged_in(tmp_path, novice=19000, clock=clock) as g:
         c = g.client
         c.send(8271)
@@ -266,6 +266,8 @@ async def test_janela_do_chefe_vida_compartilhada_e_premios(tmp_path: Path) -> N
         # classes diferentes (6 % 3, 7 % 3): os dois são o 1º da classe; 75% e 25% passam do maior degrau
         assert got[1] == (300_000 + 180_000, 300_000 + 180_000)
         assert got[2] == (300_000 + 180_000 + 1_500_000, 300_000 + 180_000)
+        pool.fight.killer_id = 0
+        assert boss_fight.end_rewards(ctx.world, pool) == {}  # "Defeating the World Boss earns": vivo, nada
 
 
 def test_vida_cai_se_o_chefe_nao_morre() -> None:

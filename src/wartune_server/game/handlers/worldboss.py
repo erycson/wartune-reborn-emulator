@@ -42,7 +42,7 @@ BOSS_LIVING, BATTLE_TYPE = 4, 17  # o chefe na luta (como o da masmorra); battle
 TILE = 20
 NO_MAP = "This World Boss has no battle map yet."
 NOT_OPEN = "World Boss is not open now."
-NO_DIAMONDS = "Not enough Diamonds."
+NO_DIAMONDS = "You don't have enough Balens!"  # language EN Auction.ResultAlert11
 REVIVE_COST = 3  # sem a linha no template; ConfigInfos Live_Fight_Pay é 15 nos templates EN
 S_PLAYER_STATE, S_BOSS_REPORT = 4175, 4203
 REPORT_TYPE = 1  # WorldBossReportMsg.type: o popup do fim (WorldBossManager)
@@ -278,8 +278,8 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
 
 
 async def settle(ctx: GameContext, pool: boss_fight.Pool) -> None:
-    """Fim da janela (chefe morto ou ``StopTime``), uma vez só: os prêmios do fim pelo correio (top 10 da classe,
-    degrau da fração do dano, último golpe; ``end_rewards``), a vida da próxima janela (``next_hp``) e o dano de
+    """Fim da janela (chefe morto ou ``StopTime``), uma vez só: os prêmios do fim pelo correio, só com o chefe morto
+    (Ares, Warrior e Lucky; ``end_rewards``), a vida da próxima janela (``next_hp``) e o dano de
     todos, numa transação. Quem está no mapa e fora de luta recebe o 4203 e sai (22); quem está em luta, no fim
     dela (``_boss_over``)."""
     now = ctx.clock.now()

@@ -2,7 +2,7 @@
 
 Tropas, skills, talento, runas, montaria, estrelas (kader), destino, alma do dragão, cartas de poder
 e pets. Fonte de cada resposta: *(visto)* = captura oficial, *(cliente)* = código do cliente
-(`D:/wartune/decompiled/m2/scripts`), *(dedução)* = sem captura nem código, marcado `ponytail:`.
+(inglês: `D:/xampp/htdocs/wartune/decomp/2/scripts`), *(dedução)* = sem captura nem código, marcado `ponytail:`.
 As capturas só têm pacotes S>C; os campos dos pedidos vêm do cliente.
 
 Código: `game/handlers/army.py`, `hero.py`, `stars.py`, `systems.py`, `pets.py`; regras puras em
@@ -45,9 +45,9 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 5157 dispensar | 100, 109 | dedução | |
 | 5158 evoluir | 3, 116, 150, 109 (+112) | visto | Ruh de UpGrade Types 1; quartel ≥ nível seguinte; nível < herói − 3 |
 | 8580 trocar tipo | 3, 116, 116, 150 | cliente | 200 diamantes (payType 3 = vinculado) ou 2M de Ruh |
-| 8455 compreender | 3, 116 (+112) | cliente | 1M de Ruh; sorteio por TakeRandom; bênção Types 16 (dedução) |
-| 8456 salvar especialidade | 116, 150 | cliente | |
-| 8276 formação | 150 (+112, missão 34) | visto | |
+| 8455 compreender | 3, 116 (+112) | cliente | 1M de Ruh; sorteio por TakeRandom até o grau atual (**dedução**); bênção Types 16 cheia = só especialidades do grau acima, até o 10 (`PawnSpecialAbilityFrame.helpContent` inglês) |
+| 8456 salvar especialidade | 116, 150 | cliente | subir de grau zera a bênção ("Blessing levels are reset after each specialty level upgrade") |
+| 8276 formação | 150 (+112, missão 34) | visto + cliente | herói e tropa na fileira 1 (frente) ou 3 (trás): `AllocateView` "fightPos must be 1 or 3" |
 | 8277 / 8278 formação de campanha | 4186 | cliente | só a posição do próprio herói (dedução: salas) |
 | 8326 teleporte | 4237, 3 / 4263 | cliente | 100 de energia ou 100 diamantes; posição não persiste (depende da cidade externa) |
 | 8328 posição do exército | 4241 | cliente | |
@@ -57,25 +57,25 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
 | 5185 aprender skill/talento | 150, 60 | visto (inglesa #1141-#1143) | pontos = nível/2 − graus gastos; talento por TalentTempInfos |
-| 5184 resetar skills | 61, 150 (+3) | cliente | grátis abaixo do 25 |
+| 5184 resetar skills | 61, 150 (+3) | cliente | grátis abaixo do 25; talento (type 1) 895 diamantes (`TalentView` inglês) |
 | 5187 subir talento | 4430, 4431, 3, 109 | cliente | ouro e EXP do jogador (dedução: desconta gp e totalGp) |
-| 8479 abrir 2º conjunto | 150, 3 | cliente | Second_SkillPoint diamantes |
+| 8479 abrir 2º conjunto | 150, 3 | cliente | nível 38 (`SkillView`: `grades >= 38`); Second_SkillPoint diamantes (995) |
 | 8480 trocar conjunto | 150 | cliente | |
 | 5170 redistribuir atributos | 150 | cliente | os pontos são automáticos por nível: sem efeito |
 | 5018 caixa de novato | — | cliente | o cliente nunca chama: só log |
 | 8548 luta de guerra de guildas | — | cliente | depende de GvG: só log |
-| 8605 runas | 115, 4495, 150 (op 3: só 4495) | cliente | op 1 aprende (livro SonType 302), 2 sobe (item 3020010 = 50 EXP, ou 2 diamantes), 3 equipa (2 espaços no 40) |
+| 8605 runas | 115, 4495, 150 (op 3: só 4495) | cliente | op 1 aprende (livro SonType 302), 2 sobe (item 3020010 = 50 EXP, ou diamante: 50 + 10 × usos do dia e 20 EXP, `RuneUpgradeView` inglês; o `count` do 4495 e o `upRuneByPointTimes` do 4202 levam os usos; sem o bônus 2x–20x, **sem dado**), 3 equipa (2 espaços no 40) |
 
 ### Estrelas (kader) — `stars.py`, captura `kader_sistemi.json`
 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
-| 8269 sortear | 109, 3, 4180 | visto | cristais 4000/5000/6000/8000/10000 de ouro; 1 grátis por dia; cristal usado apaga (o 0 nunca); -1 = rápido (≥ 20000 de ouro). **Chances e abertura do próximo cristal: dedução** |
-| 8268 recolher | 109 + 4179 (vendidas, bagType −1), 4178 + 4179 (recolhidas), 3 | visto | lixo (Profile 1) vende por SellGold; fonte de energia (6) vira StarPoint (dedução) |
+| 8269 sortear | 109, 3, 4180 | visto | cristais 4000/5000/6000/8000/10000 de ouro, cada sorteio dá 1–5 StarPoint (`MakeStarView` inglês; o grátis também: **dedução**); 1 grátis por dia; cristal usado apaga (o 0 nunca); -1 = rápido (≥ 20000 de ouro). **Chances e abertura do próximo cristal: dedução** |
+| 8268 recolher/vender | 109 + 4179 (vendidas, bagType −1), 4178 + 4179 (recolhidas), 3 | visto + cliente inglês | `dropsite` = posição com `way` 1 recolhe e 2 vende (`StarIconView`); −2 recolhe todas (`StarModel` "Collect all"); −1 vende as de `Profile <= way`, grau 1 e gp 0 (venda rápida); lixo (Profile 1) sempre vende por SellGold; o Energine (6) vai para a mochila e só serve de comida de EXP |
 | 8267 mover/equipar/devorar | 4178 (+150) | visto | equipadas: min(8, nível/10), sem repetir MasterType; `eat` = destino devora a movida |
-| 8331 compor | 109, 4479 (temporária) / 4178 (mochila) | visto | devora tudo que não está travado; EXP = SellGp + graus + gp; tabela por Profile (Types 9-13, 22), grau máx. 10 |
+| 8331 compor | 109, 4479 (temporária) / 4178 (mochila) | visto | devora tudo que não está travado nem no grau 10, o Energine também (`HoroscopeFrame`); EXP = SellGp + graus + gp; tabela por Profile (Types 9-13, 22), grau máx. 10 |
 | 8330 travar | 4180 / 4178 (+112) | cliente | missão 53 |
-| 8270 comprar espaço | 3 | cliente | (comprados/4 + 1) × 100 diamantes; 1 espaço por compra (dedução) |
+| 8270 comprar espaço | 3 | cliente | uma linha de 4: (comprados/4 + 1) × 395 diamantes, até 16 espaços (`StarManager.sendBagCellBuy`, `PlayerStarListView`) |
 | 8325 virada do dia | 3 | cliente | renova o sorteio grátis |
 | 8341 loja | 4178, 3 | cliente | preço = StarPoint do template |
 | 8224 `star` | 4178, 4180 | visto (só turco: login.json #51-52; a inglesa #49 só traz o 4180) | |
@@ -85,11 +85,17 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
 | 8530 lista | 4427, 4426 | visto (inglesa #19-#20 só traz o 4427; o 4426 é só turco: login.json #11-12) | soulScore = soma de SoulScore |
-| 8529 op 1 treinar | 115, 3, 150, 4426 | visto | `propertyType` 0 força, 2 int., 5 físico, 1 agilidade (PropertyInfo); `param1` unidades de comida 208017 ou Mount_Point diamantes; 10 de EXP cada; teto = grau levelMax |
-| 8529 op 2 montar | 4426, 150 | cliente | precisa possuir |
+| 8529 op 1 treinar | 115, 3, 150, 4426 | visto | `propertyType` 0 força, 2 int., 5 físico, 1 agilidade (PropertyInfo); `param1` unidades: chicotes 208017 primeiro, o resto Mount_Point (35) diamantes cada, `payType` 0 aceita vinculados (`MountsFrame` inglês, `mounts.tips02`); 10 de EXP cada; teto = grau levelMax |
+| 8529 op 2 escolher | 4426, 150 | cliente | precisa possuir |
+| 8529 op 3 montar/descansar | 150 | cliente inglês | `MountsFrame` Mount (`param1` 1) / Rest (0); descansando o 150 vai com `mountTempId` 0 explícito (`hasMountTempId`); guardado em `events` `mount:rest` |
 | 8529 op 5 ver de outro | 4459 | cliente | só jogador online |
-| 8529 demais ops | — | **parcial** | estrela/bênção, rei, loja, refino, voo: UI não descompilada |
-| 8843 evento de montaria | — | **parcial** | sem captura |
+| 8529 op 4 ativar | 115, 3, 4427 | cliente inglês | `WildSoulFrame`: só `MountType` 1, 2 e 4 trancadas e com `NeedMountGrade` ≤ Beast Soul Lvl (tabela 19 de `UpGradeTempInfos`: maior `Grades` com `Data` ≤ `mountTotalGp`, `MountInfo.growExp`). Com a carta (`NeedItemId`; o tipo 4 usa `mount_king_active_item` "2131500,1") gasta a carta e vale os dias dela (`Property2`, −1 = permanente); sem a carta, `Property1` Balens, permanente (`payType` 0 aceita vinculados) |
+| 8529 op 13 voo | 115, 4427 | cliente inglês | `MountsFrame.notFlyMountBtn`: montaria possuída, `IsFly` 0 e sem voo comprado; gasta 1 Flystone (208131); vai no `AvatarInfoMsg.isBuyFly` |
+| 5006 carta de montaria (SonType 218) | 115, 4427 | cliente inglês | `Property1` montaria, `Property2` dias (−1 permanente), `Property3` Beast Soul Lvl. Temporária soma dias; já permanente recusa |
+| treino que sobe o Beast Soul Lvl | + 4427 | template | dá a `ActiveObject` dos níveis alcançados (1006 no 2, 2001 no 3) |
+| 8529 op 6 estrela | 115, 4679 (+4426, 150 na montaria em uso) | cliente inglês | `MountsPromotionView`: a montaria vai no `propertyType`; `param1` 0 = 1 refino com 1 Mount Hoof (208035), 1 = 10 refinos com 10. Herói nível 70, montaria possuída e permanente, `MountType` ≠ 3 e 4 (`canShowStar`), abaixo da estrela máxima (tamanho do `StarAddition`). Bênção até a próxima estrela: `UpGradeTempInfo` tipo 37 com `TemplateId` = `GradeType` (50, 100, 200, 200, 250); cheia sobe e volta a 0. A estrela soma `StarAddition[estrela − 1]` nos 4 atributos (`rules.mount_stats`). O primeiro refino de quem nunca refinou não gasta Hoof (`firstBless`). Bênção por refino (10) e chance de "Therion's Blessing" (5%, o número que o `getPromotSuccessRate` mostra) são **ponytail**; gravado em `player_systems.mount_stars` (migração 0050) |
+| 8529 ops 7–12 | — | **sem tela** | 7 rei: o cliente inglês não tem `MountType` 4, tabela 109 nem o item 2131500, e a lista do rei não tem ouvinte; 8–11 loja: nenhum chamador (o botão abre a loja 1002 comum e fica fora da tela); 12 refino da alma: botão fora da tela, item 208070 e tabelas 144–146 ausentes. O 4426 manda sempre os graus de refino 0: outro valor quebra o `MountsFrame` (falta a tabela 144) |
+| 8843 evento de montaria | — | **sem resposta** | `MountActSocketOutManager.sendGetMountActInfo`: corpo vazio, sem chamador e sem código de resposta no cliente inglês |
 | 8628 destino | 4544 | visto (inglesa #42, vazio no nível 1; os tipos só turco: login.json #34) | abre no 55 com os tipos 2000 e 3000; 2100/2200: não sabemos abrir |
 | 8626 treinar destino | 115, 4544 | cliente | pedras SonType 307; **1 EXP por pedra: dedução**; graus por Types 26 (acumulado) |
 | 8627 roda | 4545, 115 (+3) | cliente | Fate_FreeCount grátis, depois 10, 20, 30… e 300 do 30º; prêmios 1/2/3/4/10 pedras com pesos das fatias (dedução) |
@@ -104,20 +110,33 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 
 | C>S | Resposta | Fonte | Regra |
 |---|---|---|---|
-| 8621 op 2 pontos | 4540 | cliente | soma ≤ pontos livres (**5 por nível: dedução**) |
+| 8621 op 2 pontos | 4540 | cliente | soma ≤ pontos livres (5 por nível: `PetData.remainPoint`) |
 | 8621 op 3 zerar | 4540, 3 | cliente | pet_reset_att diamantes |
-| 8621 op 9 / 10 batalha / descanso | 4540 | cliente | um pet na batalha |
+| 8621 op 9 / 10 batalha / descanso | 4540 | cliente inglês | um pet na batalha; ativar pede o `NeedGrade` do template e nível do pet ≤ herói ("Active Sylph level cannot exceed character level!") e vincula o pet ("Active Sylphs become bound") |
+| 8621 op 1 devorar | 4540 (+115 com a pedra; 3, 4152, 83 com Balens) | cliente inglês | `PetSwallowView`: o principal ganha 50% da EXP total do secundário (`value`), ou 100% com `payType` 1 (swallow_fullgp_points 295 Balens), 2 (vinculados primeiro) ou 3 (uma Heritage Stone 208029). Recusa secundário em batalha, com equipamento ou na equipe do Sylph Arena, principal com EXP cheia ou nada a ganhar. O secundário vai com `isDel`; o principal fica vinculado |
+| 8621 op 6 sacrifício | 4540, 115, 109 | cliente inglês | `PetShowView.getSacrificeTip`: Sylph Sepulcrum (3040001) pela estrela (`(Quality − 1) / 5 + 1`): 1 → 1, 2 → 2~3, 3+ → 16·10ⁿ⁻³~20·10ⁿ⁻³ (sorteio uniforme, **dedução**). Recusa em batalha, na equipe do Sylph Arena, com equipamento e o último pet ("Cannot sacrifice your last Sylph") |
 | 8621 op 11 atalhos | 4540 | dedução | string em `petName` |
-| 8621 op 12 vaga | 4540, 3 | cliente | add_pet_count por compra; base 3 (login: petCount 6, só turco: login.json) |
+| 8621 op 12 vaga | 4540, 3 | cliente inglês | `value` vagas; cada uma min(a + k × b, c) de add_pet_count "100,100,300" (k = já compradas, `PetListView.openPos`); base 6, teto 12 (`PetData.petCarryLimit`) |
 | 8621 op 14 topo | 4540 | cliente | |
-| 8621 op 13 compor (um pet) | 4540, 115, 109 | cliente + template | receita de `PetComponseInfos` com `Pet2Types` 0 casa com (`PetType`, `NeedGrade` = tier, `Quality` = estrela) do template do pet; o template passa a ser o do resultado; gasta `NeedItemTempId*` e `NeedGold`. Nível, EXP, pontos, aptidões, skills e qualidade ficam (**dedução**). Filtro de UI `canComposePet` (NeedGrade 50) não casa com as receitas: a leitura por tier é **dedução**, falta captura. 24 de 28 receitas; 19, 26, 29 e 32 dão tipos 117–119, sem template: recusadas |
+| 8621 op 13 compor (um pet) | 4540, 115, 109 | cliente + template | receita de `PetComponseInfos` com `Pet2Types` 0 casa com (`PetType`, `NeedGrade` = tier, `Quality` = estrela) do template do pet; o template passa a ser o do resultado; gasta `NeedItemTempId*` e `NeedGold`. Nível, EXP, pontos, aptidões, skills e qualidade ficam (**dedução**). Trava do `PetComposeView.checkCanComposeAndTip`: herói nível 60; NeedGrade 1 de cor 4 ou 5, NeedGrade 2 só cor 5; NeedGrade 3 e o legado 50 não (o `canComposePet` do NeedGrade 50 não tem chamador). A leitura família = template é **dedução**, falta captura. 24 de 28 receitas; 19, 26, 29 e 32 dão tipos 117–119, sem template: recusadas |
 | 8621 op 15 fusão de dois pets | — | template | as 6 receitas dão tipos 117–119 e pedem itens (2125126, 2125127, 2125128, 2125130, 2125134) que não estão em `ItemTempInfos`: sem resposta (log) |
-| 8621 ops 1, 4–8 | — | **sem dado** | devorar (1), crescimento (4), skills (5), sacrifício (6), aptidão (7), resistência (8). Tabelas que existem: `UpGradeTempInfos` tipo 25 (EXP por nível), tipos 27/29/107 (EXP de qualidade), `PetTempInfos.PowerApt` (mín,máx). Falta o ganho por item ou ação, que o cliente não informa |
+| 8621 op 4 avanço | 4540 (+115, 3) | cliente inglês | `PetAdvancedView` (o `trainGrowthRate` é o avanço de qualidade): `value` 1–9999 unidades, `payType` 0 aceita vinculados. Cada unidade dá 10 de EXP de qualidade (`curQualityGp`), 50 com a bênção do Sylph ("EXP x5"; chance de 10% é **ponytail**). Barra até a estrela seguinte: `UpGradeTempInfos` tipo 27 (NeedGrade 1), 29 (2) ou 107 (3), `Data` da estrela `quality + 1`; cheia sobe e o resto fica (**dedução**); sem estrela seguinte: "Blessing full". Gasta Mahra (208023; Adv. Mahra 208045 no NeedGrade 3) primeiro, o resto a 35 Balens (`pet_up_quality` / `pet_up_qualityupgrade`); sem saldo, recusa. Estrela e cor: `tempToQuality`/`tempToStar`; na cor nova vira o template da cor (**dedução**); `growthRate` = `calculateCoeLimit` (`pets.coe_limit`). Vinculado gasto vincula o pet |
+| 8621 op 7 encantar | 4540, 115 | cliente inglês | `PetStrengthenView`: `value` Sylph Sepulcrum (3040001; Adv. Sepulcrum 3040002 no NeedGrade 3), sem Balens; cada um melhora uma aptidão sorteada abaixo do teto (`calculateCoeLimit` do máximo de `PowerApt`… na estrela). Quanto sobe (1–10) é **ponytail**. Recusa sem itens ou com as 4 no teto ("Attributes maxed") |
+| 8621 op 5 aprender skill | 4540 (+115, 3) | cliente inglês | `PetLearnSkillView`. `value` 1: `skillId` de um livro (SonType 303, `Property1`); com o livro gasta o livro, sem ele paga a loja de livros (`ShopTempInfos` Area 7, Point + GiftToken). `value` 2: sorteio entre as skills dos livros (uniforme, **ponytail**), grátis a cada `pet_learn_random_skill_interval` (480) minutos menos o VIP 205, senão `pet_learn_random_skill` (100) Balens; `lastFreeSkillLearnTime` no 3 (`player_systems.pet_free_skill_at`). Skill do tipo do pet ou 107, `NeedPlayerGrade` até o herói, não aprendida. 5 ativas e 3 passivas; cheio troca uma do mesmo tipo sorteada no mesmo lugar (os `chaSkillIndexs` valem); o `fastKey` leva o SonType de toda ativa |
+| 8621 ops 8, 15 | — | **sem tela** | 8 (`trainResistance`) e 15 (`mixDoublePet`) não têm chamador no cliente inglês. Esquecer skill e renomear não usam o 8621 (esquecer não existe no build; renomear é HTTP + AMF `renamePet`) |
+| 8726 skills do torneio | 4540 | cliente inglês | `chaSkillIndexs`: 3 índices em `changeSkills` (−1 vazio), sem repetir (`PetChallengeTeamItemView`); gravado em `pets.cha_skills` |
 | 8702 pets de outro | 4608 | cliente | só jogador online |
 | login (8224 `army`) | 4540 | visto (só turco: login.json #30) | só quando há pet |
 
-Atributos derivados do pet (força etc. = template + pontos + nível × aptidão/100) e o HP são
-aproximação: o cliente não calcula e a captura não fecha com fórmula simples.
+Atributos do pet (cliente inglês `PetData`): template + ⌊(nível − 1) × growthRate / 80⌋ + pontos; HP =
+MaxHp + ⌊6 × físico × aptidão de físico / 1000⌋ + `bagLiving` (o HP do equipamento de mascote, bolsa 26, ver
+[itens.md](itens.md)). O `growthRate` mandado é o gravado; o cliente interpola o da qualidade (`calculateCoeLimit`),
+**dedução**.
+
+EXP do pet: `pets.gp` é a total (`totalGp`, `PetData.totalExp`); `curGp` é a de dentro do nível (`curExp`). Tabela
+25 de `UpGradeTempInfos`: o `Data` de cada nível é a EXP do anterior até ele (2 = 3000, 3 = 4000…), como a do
+jogador. O nível não passa do herói ("A Sylph cannot exceed player's level") e, no teto, a EXP para no `Data` do
+próximo (`PetData.isFullExp`).
 
 ## Carga do login
 

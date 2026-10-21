@@ -78,8 +78,8 @@ def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
         elif row["MasterType"] in GOLD_TECH:
             effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
             total += int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
-    # ponytail: sem bônus de guilda/efeitos; o oficial soma +30 que não sabemos de onde vem
-    # (só turco: login.json, 8550 = 8220 dos prédios + 300 da tecnologia + 30)
+    # sem bônus de guilda/efeitos; a captura inglesa bate exato com prefeitura + minas (#579 120, #591 280,
+    # #772 1040, #2744 2280)
     return total + mines.mine_gold(snap, templates)
 
 
@@ -194,8 +194,8 @@ def new_order(snap: PlayerSnapshot, order_type: int, now: datetime, order_id: in
 
 
 def quick_cost(remain: int) -> int:
-    """``QueueBar.coolItem``: 1 diamante a cada 10 minutos (ou fração) que faltam."""
-    return math.ceil(remain / 600)
+    """(cliente inglês) ``QueueItem`` (clique na fila): 5 diamantes a cada 10 minutos (ou fração) que faltam."""
+    return math.ceil(remain / 600) * 5
 
 
 def order_info(order: BuildOrder, now: datetime) -> pb.OrderInfoMsg:

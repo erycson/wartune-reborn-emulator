@@ -22,6 +22,9 @@ S_NEW_MAIL = 148
 UNREAD = "2999-01-01 00:00:00"  # EmailInfo.isRead: ano 2999 = não lido
 SYSTEM_SENDER = 2  # EmailInfo.SendType 2: ícone de GM, sem "responder"
 MAX_ANNEXES = 5
+# PetData.convertToGoods: o Sylph vira o item -900 (MasterType 4, SonType 309, StartingPrice 10) no leilão e no
+# correio, com ``object_id`` = o pet e o pet no ``property1``
+SYLPH = -900
 
 
 async def deliver(
@@ -59,7 +62,8 @@ async def stage(uow: UnitOfWork, mail: Mail, goods: Sequence[tuple[int, int]] = 
     await uow.flush()  # o anexo precisa do id do correio
     slot = 0
     for item in items:
-        item.character_id, item.bag_type, item.object_id, item.pos = mail.receiver_id, BagType.MAIL, 0, 0
+        keep = item.object_id if item.template_id == SYLPH else 0  # o -900 leva o pet no object_id
+        item.character_id, item.bag_type, item.object_id, item.pos = mail.receiver_id, BagType.MAIL, keep, 0
         await uow.save(item)
         slot += 1
         await uow.save(MailAnnex(mail.id or 0, slot, item.template_id, item.count, item_id=item.id or 0))

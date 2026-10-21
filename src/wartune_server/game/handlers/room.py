@@ -1,25 +1,35 @@
-"""Salas de campanha em grupo (PvE): criar, listar, procurar, entrar, lugares, dono, expulsar e sair.
+"""Salas em grupo (campanha PvE e veículo): criar, listar, procurar, entrar, lugares, dono, expulsar e sair.
 
 Estado em ``GameContext.rooms`` (``game/rooms.py``). Sequência vista numa sala da campanha 9001 (Claristun) (só turco:
 exp_kitabi_kullanim_kahraman_sarayi_ve_ek_sahne_giris_ek_sahne_mob #17-#23): 5023 -> 12 RoomMsg,
-17 PlaceStateRspMsg, 32 EditRoomRspMsg, 120 RoomPlayerListMsg.
-Escolher a campanha da sala e começar a campanha (125/21) dependem de um pedido ainda não identificado
-no cliente decompilado; ver docs/salas-campanha.md.
+17 PlaceStateRspMsg, 32 EditRoomRspMsg, 120 RoomPlayerListMsg. O dono escolhe a campanha no 5034; começar a
+campanha da sala (125/21) ver docs/salas-campanha.md. A sala de veículo (``VehicleRoomFrame``) começa no 5039 e
+cancela a procura no 5037 (``handlers/vehicle.py``).
 """
 
 from __future__ import annotations
 
+from google.protobuf.message import Message
+
 from ...protocol.messages import wartune_pb2 as pb
 from .. import rules, space
-from ..rooms import MAX_SEATS, NAME_NEW, PVE, Room
+from .. import vehicles as vh
+from ..rooms import IN_USE, MAX_SEATS, NAME_NEW, PVE, VEHICLE, Room
 from ..router import router
 from ..session import GameSession
 
 S_ROOM, S_ROOM_LIST, S_PLACE, S_EDIT, S_MEMBERS = 12, 13, 17, 32, 120
+S_FOUND = 4370  # RoomMsg: o PVERoomListControler entra sozinho (5024) ou abre a senha (U_C_ROOM_FIND_RESULT)
 S_EXIT, S_KILL, S_MASTER = 15, 28, 121
+S_INVITE, S_READY, S_STATE = 16, 24, 25  # RoomInviteMsg, PlayerReadyRspMsg, RoomStateRspMsg
+S_HALL = 4161  # RoomPlayerListMsg: aba Hall do RoomInviteFrame (U_C_INVITE_PLAYER_LIST)
+ONLINE = 1  # playerState da aba Hall: o cliente só lista com state != 0 (SimplePlayerInfo.isOnline)
 S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
 S_ROOM_STATE = 4913  # SimplePropertyMsg: sala do link no chat (9504), BaseManager.__mulityCampaignRequestHandler
-PLAYER_READY = 2  # playerState do dono (só turco, #20); os demais ainda não foram vistos, usam o mesmo valor
+# playerState/readyState: 0 sem "pronto" (o RoomRightView mostra o botão Ready), 1 pronto (5036 state 1; o
+# PVPRoomPlayerFigure desenha 0 e 1), 2 o dono (só turco, #20)
+NOT_READY, READY, OWNER = 0, 1, 2
+PASSWORD_MAX = 6  # RoomPasswordFrame: maxChars 6, restrict "0-9"
 
 
 def _room_msg(room: Room) -> pb.RoomMsg:
@@ -30,8 +40,9 @@ def _room_msg(room: Room) -> pb.RoomMsg:
         name=NAME_NEW,  # o nome da campanha escolhida só aparece quando a escolha existir (dependência)
         count=len(room.members),
         capacity=room.capacity,
-        roomType=PVE,
+        roomType=room.type,
         isSetPassword=bool(room.password),
+        roomState=room.state,
     )
 
 
@@ -40,8 +51,8 @@ def _list_msg(rooms: list[Room]) -> pb.RoomListRspMsg:
 
 
 def _of_type(msg: pb.RoomReqMsg, rooms: list[Room]) -> list[Room]:
-    """Só as salas do tipo pedido. Aqui só há as de campanha (PvE); PvP e veículo vêm vazios."""
-    return rooms if msg.roomType == PVE else []
+    """Só as salas do tipo pedido (PvP não tem sala aqui: vem vazio)."""
+    return [r for r in rooms if r.type == msg.roomType]
 
 
 def _members_msg(s: GameSession, room: Room) -> pb.RoomPlayerListMsg:
@@ -63,16 +74,14 @@ def _members_msg(s: GameSession, room: Room) -> pb.RoomPlayerListMsg:
             room.id,
             len(room.members),
             index,
-            PLAYER_READY,
+            _ready_state(room, pid),
         )
         out.roomPlayer.extend([entry])
     return out
 
 
-def _sync(s: GameSession, room: Room) -> None:
-    """Estado da sala para quem está nela: lugares, dono/senha e jogadores."""
-    place = pb.PlaceStateRspMsg(placeState=room.seats)
-    edit = pb.EditRoomRspMsg(
+def _edit_msg(room: Room) -> pb.EditRoomRspMsg:
+    return pb.EditRoomRspMsg(
         roomId=room.id,
         startCampaignId=room.campaign,
         masterId=room.master,
@@ -81,6 +90,22 @@ def _sync(s: GameSession, room: Room) -> None:
         passWord=room.password,
         roomName=NAME_NEW,
     )
+
+
+def _ready_state(room: Room, pid: int) -> int:
+    return OWNER if pid == room.master else READY if pid in room.ready else NOT_READY
+
+
+def _to_room(s: GameSession, room: Room, code: int, msg: Message) -> None:
+    for pid in room.members:
+        if (other := s.ctx.online.get(pid)) is not None:
+            other.send(code, msg)
+
+
+def _sync(s: GameSession, room: Room) -> None:
+    """Estado da sala para quem está nela: lugares, dono/senha e jogadores."""
+    place = pb.PlaceStateRspMsg(placeState=room.seats)
+    edit = _edit_msg(room)
     members = _members_msg(s, room)
     for pid in room.members:
         other = s.ctx.online.get(pid)
@@ -114,10 +139,16 @@ def leave_room(s: GameSession) -> None:
 
     O dono sair dissolve a sala: cada um dos que estavam nela recebe o 15 com o próprio id.
     """
+    mine = s.ctx.rooms.of(s.player_id)
+    # sala de veículo procurando: a sala inteira sai da fila (a fila solo do 8608 não é daqui)
+    queued = s.ctx.vehicles.dequeue(s.player_id) if mine is not None and mine.type == VEHICLE else None
     left = s.ctx.rooms.leave(s.player_id)
     if left is None:
         return
     room, dissolved = left
+    if queued is not None and not dissolved:
+        room.state = IN_USE
+        _to_room(s, room, S_STATE, pb.RoomStateRspMsg(roomState=IN_USE))
     if dissolved:  # o registro já tirou todos; ``room.members`` ainda lista quem estava
         for pid in room.members:
             _exit_notice(s, [pid], pid)
@@ -128,25 +159,24 @@ def leave_room(s: GameSession) -> None:
 
 @router.on(5023)
 async def create_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
-    if msg.roomType != PVE:  # PvP (1) e veículo (2) não têm sala aqui: recusa, sem criar sala de outro tipo
+    if msg.roomType not in (PVE, VEHICLE):  # PvP (1) não tem sala aqui: recusa, sem criar sala de outro tipo
         s.log.info("5023 recusado: tipo de sala sem sistema", tipo=msg.roomType)
         return
     if s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5023 recusado: já está numa sala")
         return
     capacity = msg.capacity if msg.HasField("capacity") else MAX_SEATS
-    room = s.ctx.rooms.create(s.player_id, capacity, msg.password)
+    room = s.ctx.rooms.create(s.player_id, capacity, msg.password, msg.roomType)
+    if room.type == VEHICLE:
+        room.campaign = vh.CAMPAIGN  # a sala de veículo só leva à batalha de tanques
     s.send(S_ROOM, _room_msg(room))
     _sync(s, room)
 
 
 @router.on(5024)
 async def enter_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
-    if msg.roomType != PVE:
-        s.log.info("5024 recusado: tipo de sala sem sistema", tipo=msg.roomType)
-        return
     room = s.ctx.rooms.get(msg.roomId)
-    if room is None or s.ctx.rooms.of(s.player_id) is not None:
+    if room is None or room.type != msg.roomType or s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5024 recusado", sala=msg.roomId)
         return
     if room.password and room.password != msg.password:
@@ -161,14 +191,23 @@ async def enter_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
 
 @router.on(5026)
 async def list_rooms(s: GameSession, msg: pb.RoomReqMsg) -> None:
-    s.send(S_ROOM_LIST, _list_msg(_of_type(msg, s.ctx.rooms.visible())))
+    """``nameKey`` é a campanha do filtro da lista (``RoomListSocketOutManager.requestRoomList``; "0" = todas)."""
+    key = int(msg.nameKey) if msg.nameKey.isdigit() else 0
+    rooms = [r for r in _of_type(msg, s.ctx.rooms.visible()) if not key or r.campaign == key]
+    s.send(S_ROOM_LIST, _list_msg(rooms))
 
 
 @router.on(8465)
 async def find_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
-    """Procurar sala: lista só a de ``roomId``; sem id, todas. Sem captura do pedido: só o filtro."""
-    rooms = [r for r in _of_type(msg, s.ctx.rooms.visible()) if not msg.roomId or r.id == msg.roomId]
-    s.send(S_ROOM_LIST, _list_msg(rooms))
+    """Clicar numa sala da lista ou procurar pelo número (``PVERoomItem``, ``PVERoomSearchFrame``): 4370 com a sala,
+    e o cliente manda o 5024 ou abre a senha. ``roomId`` 0 (entrada rápida do ``PVPPlayerListView``): a primeira com
+    lugar livre (*dedução*). Sala que não existe fica sem resposta (o oficial não foi capturado)."""
+    rooms = _of_type(msg, s.ctx.rooms.visible())
+    room = next((r for r in rooms if r.id == msg.roomId or (not msg.roomId and len(r.members) < r.capacity)), None)
+    if room is None:
+        s.log.info("8465 sem sala", sala=msg.roomId)
+        return
+    s.send(S_FOUND, _room_msg(room))
 
 
 @router.on(5029)
@@ -210,6 +249,86 @@ async def kick_member(s: GameSession, msg: pb.RoomReqMsg) -> None:
     _sync(s, room)
 
 
+@router.on(5034)
+async def edit_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    """Campanha da sala: ``InstanceSelectFrame`` -> ``RoomSocketOuterManager.updateRoomInfo`` (``roomId``,
+    ``dungeonId``, ``campaignId``). Só o dono, com campanha do ``Campaigns``. Todos da sala recebem o 32
+    (``RoomManager.__updateRoomInfoHandler`` lê ``startCampaignId``, dono, contagem e senha)."""
+    room = _master_room(s)
+    known = s.ctx.templates.get("Campaigns", msg.campaignId, key="CampaignId") is not None
+    if room is None or room.id != msg.roomId or not known:
+        s.log.info("5034 recusado", sala=msg.roomId, campanha=msg.campaignId)
+        return
+    room.campaign = msg.campaignId
+    _to_room(s, room, S_EDIT, _edit_msg(room))
+
+
+@router.on(8344)
+async def room_password(s: GameSession, msg: pb.RoomEditMsg) -> None:
+    """Senha da sala (cadeado do ``RoomRightView`` -> ``RoomPasswordFrame``: até 6 dígitos; vazio tira). Só o dono;
+    todos recebem o 32 com o ``passWord`` (``RoomManager.__updateRoomInfoHandler``)."""
+    room = _master_room(s)
+    pwd = msg.roomPwd
+    if room is None or room.id != msg.roomId or len(pwd) > PASSWORD_MAX or not (pwd.isdigit() or pwd == ""):
+        s.log.info("8344 recusado", sala=msg.roomId)
+        return
+    room.password = pwd
+    _to_room(s, room, S_EDIT, _edit_msg(room))
+
+
+@router.on(5036)
+async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    """Pronto (``state`` 1) ou cancelar (0) de quem não é o dono (``RoomRightView.sendPlayerReady``/``_cancelClick``).
+    Todos da sala recebem o 24 com o estado de cada um (``RoomManager.__updateReaderStateHandler``). O ``isGet``
+    (receber o prêmio da campanha) só vale quando a campanha da sala começar."""
+    room = s.ctx.rooms.of(s.player_id)
+    if room is None or room.master == s.player_id or msg.state not in (NOT_READY, READY):
+        s.log.info("5036 recusado", estado=msg.state)
+        return
+    if msg.state == READY:
+        room.ready.add(s.player_id)
+    else:
+        room.ready.discard(s.player_id)
+    states = [pb.PlayerreadyrspmsgPlayerReady(playerId=pid, readyState=_ready_state(room, pid)) for pid in room.members]
+    _to_room(s, room, S_READY, pb.PlayerReadyRspMsg(readyState=states))
+
+
+@router.on(5037)
+async def room_state(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    """Estado da sala (PvP e veículo mandam 1 ao começar: ``PVPRoomRightView``, ``VehicleRoomFrame``). Só o dono;
+    todos recebem o 25 (``RoomManager.__updateRoomStateHandler``). Na sala de veículo o 1 é o Cancel do dono
+    procurando (``VehicleRoomFrame.__cancelClickHandler``): a sala sai da fila."""
+    room = _master_room(s)
+    if room is None:
+        s.log.info("5037 recusado", estado=msg.state)
+        return
+    if room.type == VEHICLE and msg.state == IN_USE:
+        s.ctx.vehicles.dequeue(s.player_id)
+    room.state = msg.state
+    _to_room(s, room, S_STATE, pb.RoomStateRspMsg(roomState=room.state))
+
+
+@router.on(5028)
+async def invite(s: GameSession, msg: pb.RoomReqMsg) -> None:
+    """Convite para a sala (``InviteItem``/``InviteItemButton`` -> ``sendRoomInvite(userId)``): o convidado recebe o 16
+    (``BaseManager.__roomInviteHandler``). ``signStr`` é a senha que o aceite manda no 5024 (``InviteFrame``); ``name``
+    a campanha escolhida (vazio: o cliente põe o texto padrão); ``tempId`` a campanha (aviso de estamina). Quem está
+    offline, já numa sala ou recusa convites (8286) não recebe."""
+    room = s.ctx.rooms.of(s.player_id)
+    other = s.ctx.online.get(msg.userId)
+    target = other.snapshot.character if other is not None and other.snapshot is not None else None
+    if room is None or target is None or s.ctx.rooms.of(msg.userId) is not None or target.refuse_invite:
+        s.log.info("5028 recusado", alvo=msg.userId)
+        return
+    assert other is not None and s.snapshot is not None
+    row = s.ctx.templates.get("Campaigns", room.campaign, key="CampaignId") if room.campaign else None
+    other.send(S_INVITE, pb.RoomInviteMsg(
+        roomId=room.id, playerId=s.player_id, nickName=s.snapshot.character.nickname or "",
+        name=(row or {}).get("CampaignName", ""), signStr=room.password, roomType=room.type, tempId=room.campaign,
+        position=0,
+    ))  # fmt: skip
+
+
 @router.on(5120)
 async def exit_room(s: GameSession, _: pb.RoomExitMsg) -> None:
     leave_room(s)
@@ -235,14 +354,28 @@ async def multi_campaign(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 
 @router.on(5027)
 async def invite_hall(s: GameSession, _: object) -> None:
-    # FreedomTeamInviteFrame: o botão de atualizar só lista na aba 2, mas a aba de guilda é 0 e a de amigos 1,
-    # então a aba 2 não existe na tela. Nada no cliente escuta resposta: só registramos.
-    s.log.info("5027 sem efeito (aba inexistente no cliente)")
+    """Aba Hall do convite da sala (``RoomInviteFrame``, aberto pelo botão de convite da sala PvE, PvP ou de veículo):
+    o cliente lê o 4161 e lista quem está online, fora da lista negra (``relation`` 2) e não é ele. "Hall" aqui é
+    quem está online e fora de uma sala (*dedução*, sem captura); o ``FreedomTeamInviteFrame`` (times) também manda,
+    mas na aba 2 que não existe."""
+    hall = pb.RoomPlayerListMsg()
+    for other in s.ctx.online.sessions():
+        snap = other.snapshot
+        if other is s or snap is None or snap.leader is None or s.ctx.rooms.of(other.player_id) is not None:
+            continue
+        mine = s.ctx.guilds.of(other.player_id)
+        entry = space.room_player(
+            snap, s.ctx.templates, other.space_pos or (0, 0), 0, s.ctx.clock.now(), guild=mine[0] if mine else None
+        )
+        entry.sex, entry.playerState = snap.character.sex, ONLINE
+        hall.roomPlayer.extend([entry])
+    s.send(S_HALL, hall)
 
 
 @router.on(8286)
 async def refuse_invite(s: GameSession, _: object) -> None:
-    """Alterna a recusa de convites (``PlayerMsg.refuseInvite``). Quem recusa não recebe convite de guilda."""
+    """Alterna a recusa de convites (``PlayerMsg.refuseInvite``). Quem recusa não recebe convite de guilda nem de
+    sala (5028)."""
     assert s.snapshot is not None
     c = s.snapshot.character
     c.refuse_invite = not c.refuse_invite

@@ -9,6 +9,7 @@ from ....domain.models import (
 )
 from ....domain.repositories import UnitOfWork
 from ....protocol.messages import wartune_pb2 as pb
+from ....services import ledger
 from ....services.characters import normalize_nickname
 from ... import guild as gd
 from ... import rules
@@ -17,6 +18,7 @@ from ...builders.player import quest_update
 from ...castle import castle_yield
 from ...router import router
 from ...session import GameSession
+from ..vip import is_vip, vip_type
 from .common import (
     CREATE_GOLD,
     MEMBER_CHUNK,
@@ -45,20 +47,30 @@ from .common import (
 
 # ---- criar / buscar / informações ------------------------------------------------------------
 
+NAME_MIN, NAME_MAX = 4, 10  # CreatConsortiaFrame/ConsortiaRenameFrame: tamanho com [^\x00-\xff] valendo 2
+
+
+def _guild_name(raw: str) -> str:
+    name = normalize_nickname(raw)
+    if not NAME_MIN <= sum(1 if ord(ch) <= 0xFF else 2 for ch in name) <= NAME_MAX:
+        raise ValueError(name)
+    return name
+
 
 @router.on(5130)
 async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     c = _char(s)
     g = s.ctx.guilds
     try:
-        name = normalize_nickname(msg.consortiaName)
+        name = _guild_name(msg.consortiaName)
     except Exception:
         _refuse(s, 5130, "nome inválido", nome=msg.consortiaName)
         return
     if _mine(s) is not None or c.grades < MIN_GRADE or c.gold < CREATE_GOLD or g.name_taken(name):
         _refuse(s, 5130, "sem requisitos ou nome em uso", nome=name)
         return
-    if not _clear_cooldown(s, msg.isPay):
+    paid = _clear_cooldown(s, msg.isPay)
+    if paid is None:
         _refuse(s, 5130, "espera de 24 h")
         return
     now = _now(s)
@@ -69,7 +81,7 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     guild = Consortia(c.server_id, name, s.player_id, c.nickname or "", s.player_id, now)
     member = ConsortiaMember(0, s.player_id, now, duty_id=gd.CHAIRMAN)
     # texto deduzido (sem fonte no cliente/captura)
-    event = ConsortiaEvent(0, now, f"{c.nickname} founded the guild."[:255])
+    event = ConsortiaEvent(0, now, gd.remark(c.nickname or "", "founded the guild."), type=gd.EV_MEMBER)
     gone = g.invites_of(s.player_id)
     # tira as candidaturas da memória antes do await: outra guilda não aceita (5134) no meio da criação
     g.invites = [i for i in g.invites if i.user_id != s.player_id]
@@ -77,6 +89,8 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     async def change(uow: UnitOfWork) -> None:
         # uma transação: guilda, membro, evento e as candidaturas dele (o membro precisa do id da guilda)
         await uow.save(c)
+        for entry in paid:
+            await uow.save(entry)
         await uow.save(guild)
         await uow.flush()
         member.consortia_id = event.consortia_id = guild.id or 0
@@ -179,7 +193,12 @@ async def member_list(s: GameSession, _: object) -> None:
             c.fighting_capacity = rules.leader_stats(
                 other.snapshot, s.ctx.templates, s.ctx.clock.now()
             ).fighting_capacity
-        rows.append(gd.member_msg(s.ctx.guilds, c, m, other is not None, guild))
+        row = gd.member_msg(s.ctx.guilds, c, m, other is not None, guild)
+        # ConsortiaMemberItem: nome VIP e ícone (vipType 1 ou outro).
+        # ponytail: só de quem está online; o VIP de quem está offline está nos event_states, fora da memória
+        if other is not None and other.snapshot is not None and is_vip(other.snapshot, s.ctx.clock.now()):
+            row.isVip, row.vipType = True, vip_type(other.snapshot)
+        rows.append(row)
     key = gd.new_uuid()
     for i in range(0, max(len(rows), 1), MEMBER_CHUNK):
         part = pb.SimplePlayerListRspMsg(totalRows=len(rows), uuid=key)
@@ -223,29 +242,36 @@ async def description(s: GameSession, msg: pb.ConsortiaMsg) -> None:
 
 @router.on(8544)
 async def group_placard(s: GameSession, msg: pb.ConsortiaMsg) -> None:
-    await _set_text(s, 8544, gd.R_PLACARD, "group_placard", msg.groupPlacard)
+    # ConsortiaGroupChatFrame.setBroadCastState: o "Update" do aviso do grupo aparece com getRightsByIndex(3)
+    await _set_text(s, 8544, gd.R_UPGRADE, "group_placard", msg.groupPlacard)
 
 
 @router.on(5148)
 async def rename(s: GameSession, msg: pb.ConsortiaRenameReqMsg) -> None:
-    """Renomear (direito 18): 1000 diamantes; ``payType`` 0 aceita os vinculados primeiro.
-
-    ponytail: o ``same`` (renomear grátis depois de juntar servidores) é cobrado igual.
-    """
+    """Renomear (direito 18): 1000 diamantes; ``payType`` 0 aceita os vinculados primeiro. Grátis com ``same``
+    para o chefe de uma guilda com "!" no nome (servidores juntados): ``ConsortiaFrame.resetConsortiaName`` abre o
+    ``ConsortiaRenameFrame`` com "There is no cost for modifying the guild name this time"."""
     g = s.ctx.guilds
     mine = _can(s, gd.R_RENAME)
     try:
-        name = normalize_nickname(msg.newName)
+        name = _guild_name(msg.newName)
     except Exception:
         name = ""
     c = _char(s)
-    ok = mine is not None and name and not g.name_taken(name) and gd.pay_points(c, RENAME_POINTS, msg.payType == 0)
-    if not ok or mine is None:
+    ok = mine is not None and name and not g.name_taken(name)
+    free = ok and mine is not None and msg.same and mine[1].duty_id == gd.CHAIRMAN and mine[0].name.find("!") > 0
+    bind = msg.payType == 0
+    entry = (
+        ledger.pay(c, RENAME_POINTS, bind=bind, reason="guild_rename", ref=name, now=_now(s))
+        if ok and not free
+        else None
+    )
+    if (entry is None and not free) or mine is None:
         _refuse(s, 5148, "sem direito, nome inválido/em uso ou sem diamantes", nome=msg.newName)
         s.send(S_RENAME, b.complete(pb.ConsortiaRenameRspMsg(result=False)))
         return
     mine[0].name = name
-    await s.ctx.characters.save(c, mine[0])
+    await s.ctx.characters.save(c, mine[0], *([entry] if entry else []))
     s.send(S_RENAME, b.complete(pb.ConsortiaRenameRspMsg(result=True)))
     _player(s)
     _push_info(s, mine[0])

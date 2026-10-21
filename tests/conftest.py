@@ -14,8 +14,8 @@ from wartune_server.persistence.repositories import SqlAlchemyUnitOfWork
 
 @pytest.fixture(autouse=True)
 def game_timezone() -> None:
-    """Os testes reproduzem as capturas do servidor turco (UTC+3; só turco, ver docs/fontes-turcas.md); o padrão do servidor é o fuso do inglês."""
-    gameday.set_timezone("+03:00")
+    """Fuso dos testes = padrão do servidor (UTC)."""
+    gameday.set_timezone("UTC")
 
 
 @pytest.fixture

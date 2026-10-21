@@ -48,6 +48,7 @@ MAP_ARMY, MAP_WILD = 3, 1  # MapUpdatedMsg.updatedType
 OCCUPY = 7  # QuestCondictionInfos.CondictionType: ocupar terra (Para1 = SonType, missão 60)
 LEED_MINE = 9  # LeedTemp: ocupar mina (tutorial_en #748)
 ATTACK_CASTLE = 8  # QuestCondictionInfos.CondictionType: atacar cidade (100, 411 e 765; Para1 1 = vitória)
+MAP_CASTLE, CASTLE_FIGHTING, CASTLE_IDLE = 2, 4, 1  # MapUpdatedMsg.updatedType / BaseCastleMsg.state (inglês #1656)
 
 
 def _army_now(s: GameSession, state: int = ARMY_IDLE) -> pb.ArmyArmyMsg:
@@ -433,7 +434,8 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
 def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:
     """Ataque a um castelo-robô (cliente: MapPhysicsCastle.attack e CityInfoFrame). Recusa com 140 parado,
     sem luta, se já há luta, se não há ataque no dia (``attackCount`` do cliente) ou se a diferença de nível
-    para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque e luta com o guarda de grau 8.
+    para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque, manda o 140 do robô em luta
+    (state 4) e luta (``oc.robot_battle``, inglês #1656-#1657).
     (dedução) o ataque sai do contador do dia (o mesmo do 9506, "x/5" do AttackAlertFrame). O contador e a
     devoção (leed 10, logo no ataque: tutorial_en #1648-#1649) voltam para quem chama gravar logo depois da luta
     criada: cair no meio da luta não devolve o ataque."""
@@ -449,10 +451,12 @@ def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:
     arena.attack_left -= 1  # sem await até criar a luta: dois 5160 seguidos não gastam o mesmo ataque
     rows = events.leed_gain(s, events.PLUNDER_LEED)
     _army_sync(s, ARMY_FIGHTING)
-    spec = oc.guard_battle(snap, s.ctx.templates, s.ctx.world.mine_guards.get(robot.grade, 0))
+    _robot_sync(s, robot, CASTLE_FIGHTING)
+    name = robots.robot_name(s.ctx.world, c.id or 0, robot)
+    spec = oc.robot_battle(snap, s.ctx.templates, robot.grade, name)
 
     async def finished(battle: Battle, won: bool) -> None:
-        await _castle_over(s, battle, won)
+        await _castle_over(s, battle, robot, won)
 
     s.battle = Battle(
         spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
@@ -462,26 +466,39 @@ def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:
     return [arena, *rows]
 
 
-async def _castle_over(s: GameSession, battle: Battle, won: bool) -> None:
-    """Fim da luta com o castelo-robô, na ordem da luta da mina: 150, 4103, 150, 100 e 140 do exército.
-    Vencendo, conta o tipo 8 (Para1 1 = vitória: 100 e 411 aceitam qualquer Para1, 765 pede a vitória) e
-    manda o 112. Ouro saqueado: sem captura, sai 0 (ponytail). Grava o contador de ataques em uma save."""
+def _robot_sync(s: GameSession, robot: RobotCastle, state: int) -> None:
+    snap = s.snapshot
+    assert snap is not None
+    castle = b.complete(robots.robot_castle_msg(snap, s.ctx.world, robot, state))
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=castle))
+
+
+async def _castle_over(s: GameSession, battle: Battle, robot: RobotCastle, won: bool) -> None:
+    """Fim da luta com o castelo-robô (inglês #1758-#1770): 150, 4103 (battleScene 6), 150, 100, 140 do exército,
+    140 do robô de volta ao state 1, 112 e 4382. Conta o tipo 8 com Para1 1 na vitória e 0 na derrota (#1765: a
+    missão 100 conta perdendo; 765 pede a vitória). Na derrota o Daru é o exército inteiro (#1762: strategyBonus 172
+    = as 172 tropas de #1758, e o PlayerMsg sobe 172); ponytail: Daru e ouro saqueado da vitória sem captura, saem 0.
+    Grava o contador de ataques em uma save."""
     snap = s.snapshot
     assert snap is not None and snap.arena is not None
     templates = s.ctx.templates
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
-    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
+    daru = 0 if won else sum(p.army_count for p in snap.pawns)
+    snap.character.strategy += daru
+    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=daru, gpBonus=0, battleScene=oc.ROBOT_SCENE)
     report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_REPORT, report)
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
     _army_sync(s, ARMY_IDLE)
-    quests = rules.quest_event(snap, templates, ATTACK_CASTLE, 1, 1) if won else []
+    _robot_sync(s, robot, CASTLE_IDLE)
+    quests = rules.quest_event(snap, templates, ATTACK_CASTLE, int(won), 1)
     await s.ctx.characters.save(snap.character, snap.arena, *quests)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     _send_player(s)  # attackLeftCount novo
+    s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
 
 
 @router.on(8488)
@@ -501,7 +518,7 @@ async def collection_battle(s: GameSession, _: object) -> None:
 
 @router.on(9506)
 async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
-    """Ataque extra da cidade externa (AttackAlertFrame): 100 diamantes, ``type 2`` usa o vinculado
+    """Ataque extra da cidade externa (AttackAlertFrame): AddAttck_Point (395) Balens, ``type 2`` usa o vinculado
     primeiro; até 5 no dia (o cliente mostra "x/5"). Responde o PlayerMsg com o contador novo."""
     snap = s.snapshot
     assert snap is not None and snap.arena is not None
@@ -515,7 +532,7 @@ async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     entry = pay(c, price, bind=msg.type == 2, reason="attack_count", ref="outer_city", now=now)
     if entry is None:
         s.log.info("9506 recusado", motivo="sem diamantes")
-        alert(s, "Not enough Diamonds.")  # o cliente só confere 100: entre 100 e o preço, sem isso nada aparece
+        alert(s, "You don't have enough Balens!")  # o cliente só confere 98: abaixo do preço, sem isso nada aparece
         return
     arena.attack_left += 1
     await s.ctx.characters.save(c, arena, entry)

@@ -1,5 +1,5 @@
 """Forja (bancada = bagType 0): reforço (5150), engaste (5151/5152), composição (5153), refino
-(8336/8339/8464), decomposição (8340), conversão de pedras (8538), moldagem (8644).
+(8336/8339/8464), decomposição (8340), conversão de pedras (8538), encantamento do equipamento de mascote (8644).
 Ver ``docs/itens.md``.
 
 A bancada guarda o equipamento na posição 0 e a pedra da sorte na 1; o cliente põe e tira os itens
@@ -12,22 +12,40 @@ import random
 
 from ...domain.models import BagType, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import cash
 from ...templates.repository import GameTemplates, Row
 from .. import bag, rules
 from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
+from .player import _army, _player
 from .shop import alert, send
 
 S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89
 S_REFRESH, S_REPLACE, S_RESOLVE, S_REFRESH_PROPERTY = 4258, 4259, 4260, 4368
+S_MOULD = 4558  # StoreRspMsg.strengResult do 8644 (PetEquipStrengView.__mouldResult)
 S_QUESTS = 112  # QuestUpdatedRspMsg
 STRENGTHEN, GEM_INLAY, GEM_COMPOSE, REFINE = 17, 18, 19, 47  # QuestCondictionInfos.CondictionType
 MOSAIC_PARA1 = 1  # (visto) tempinfos: 281 Para1 1; Detail "Socket any gem" = qualquer pedra
 LUCK, GEM, DRILL = "204", "205", 208004  # SonType da pedra da sorte e das pedras; Socketing Rod
-EQUIP = "1"  # MasterType dos equipamentos
+# equipamento de mascote (PetEquipGodHeadView/GodHeadItemView): Divinity Soul e Soul Socketing Rod
+SOUL, SOUL_DRILL = "329", 3280101
+EQUIP, PET_EQUIP = bag.EQUIP_MASTER, bag.PET_MASTER  # MasterType do equipamento do herói e do mascote
+# PetEquipStrengView: 3 Light of Magic + 3 Glint of Magic por tentativa (PetData.PET_EQUIP_STRENG_COST)
+MOULD_ITEMS, MOULD_COST = (3250101, 3260101), 3
+BLESS_MAX = 100  # "Blessing N/100"; com 100 a taxa mostrada é 100%
 MAX_COMPOSE = 999
+# ComposeTempInfo.Types do avanço: 5 equipamento do herói (StoreModel.updateEquipList, composeType 4), 10 equipamento
+# do mascote (PetEquipUpgradeView, getEquipUpdateComposeTempleteByMainMaterialId)
+HERO_UPGRADE, PET_UPGRADE = "5", "10"
+RESOLVE_GOLD = 1000  # ResolveView.updateMateView: 1.000 de ouro por equipamento
+# pedras de refino pelo Profile: ResolveView.mateMaterial (o que a decomposição dá) e RefreshView.updateMateMaterial
+# (o que o refino gasta), a mesma tabela
+RESOLVE_STONES = {2: 1, 3: 4, 4: 18, 5: 18}
+PET_STONES = RESOLVE_STONES | {6: 24}  # PetEquipRefineryView.getNeedPro (outro Profile: 100)
+LOCK_ITEM, LOCK_PRICE = 208027, 45  # RefreshView.REFRESHLOCK_TEMPID; cada cadeado: 1 Refinement Lock ou 45 Balens
+UNBOUND_ONLY = 2  # SmithFreshReqMsg.bindType: 0 = vinculado primeiro ("Use bound material first"), 2 = só livre
 
 # ponytail: o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar)
 _pending: dict[int, list[int]] = {}
@@ -37,13 +55,22 @@ def _store(snap: PlayerSnapshot, pos: int = 0) -> Item | None:
     return bag.at(snap, BagType.STORE, 0, pos)
 
 
-def _equip(s: GameSession) -> tuple[Item, Row] | None:
-    """Equipamento na posição 0 da bancada."""
+def _equip(s: GameSession, master: str = EQUIP) -> tuple[Item, Row] | None:
+    """Equipamento (do herói, ou do mascote com ``PET_EQUIP``) na posição 0 da bancada."""
     snap = s.snapshot
     assert snap is not None
     item = _store(snap)
     row = s.ctx.templates.get("ItemTempInfos", item.template_id) if item else None
-    return (item, row) if item is not None and row is not None and row.get("MasterType") == EQUIP else None
+    return (item, row) if item is not None and row is not None and row.get("MasterType") == master else None
+
+
+def _any_equip(s: GameSession) -> tuple[Item, Row] | None:
+    """Equipamento do herói ou do mascote na bancada (engaste, furo e refino servem aos dois)."""
+    return _equip(s) or _equip(s, PET_EQUIP)
+
+
+def _pet(row: Row) -> bool:
+    return row.get("MasterType") == PET_EQUIP
 
 
 def strengthen_gold(row: Row, grade: int) -> int:
@@ -60,7 +87,8 @@ def strengthen_rate(grade: int, luck: Row | None) -> int:
 
 @router.on(5150)
 async def strengthen(s: GameSession, _: object) -> None:
-    """Reforço: a pedra da sorte é gasta mesmo na falha e a falha não baixa o nível."""
+    """Reforço: a pedra da sorte é gasta mesmo na falha e a falha não baixa o nível. O item fica vinculado
+    (``store.StoreControler.helpContent01``: "Enchantment will cause any unbound items to become bound")."""
     snap = s.snapshot
     assert snap is not None
     c, templates = snap.character, s.ctx.templates
@@ -81,8 +109,11 @@ async def strengthen(s: GameSession, _: object) -> None:
     c.gold -= cost
     gone = [luck] if luck is not None and bag.take_one(snap, luck, 1) else []
     changed = [luck] if luck is not None and not gone else []
+    bound = not item.is_binds
+    item.is_binds = True
     if ok:
         item.strengthen_grade += 1
+    if ok or bound:
         changed.append(item)
     quests = rules.quest_event(snap, templates, STRENGTHEN, item.strengthen_grade, 1) if ok else []
     await s.ctx.characters.save(c, *changed, *quests, delete=tuple(gone))
@@ -90,7 +121,7 @@ async def strengthen(s: GameSession, _: object) -> None:
     if luck is not None:
         send(s, S_ITEMS, bag.moved([i for i in changed if i is luck], s.player_id, empty=gone))
     castle_yield(s)
-    if ok:
+    if ok or bound:
         send(s, S_ITEMS, bag.moved([item], s.player_id))
     out = pb.StoreRspMsg(strengResult=ok, strengthenGrade=item.strengthen_grade, pos=0, bagType=BagType.STORE)
     send(s, S_STRENGTHEN, out)
@@ -110,14 +141,18 @@ def _gem_types(templates: GameTemplates, item: Item, skip: int) -> set[str]:
 async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     """Engasta a pedra (``bagType``/``bagPos``) no furo ``mountPos`` (1..4) do item da bancada.
     Furo aberto e vazio: grátis. Ocupado: troca, cobrando o ouro para tirar a antiga (Property3),
-    que volta para a mochila. Nunca duas pedras do mesmo atributo no item."""
+    que volta para a mochila. Nunca duas pedras do mesmo atributo no item. O item fica vinculado
+    (``store.StoreControler.helpContent02``: "Socketing will cause unbound items to become bound").
+    No equipamento de mascote a pedra é a Divinity Soul (SonType 329, ``PetBagCellDropMediator``), com a mesma
+    regra de atributo repetido (``JoinGem``) e de troca (prompt07 "Spend {0} gold to replace")."""
     snap = s.snapshot
     assert snap is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
-    found = _equip(s)
+    found = _any_equip(s)
     stone = bag.at(snap, msg.bagType, 0, msg.bagPos) if msg.bagType == BagType.BAG else None
     stone_row = templates.get("ItemTempInfos", stone.template_id) if stone else None
-    ok = found is not None and stone is not None and stone_row is not None and stone_row.get("SonType") == GEM
+    gem = SOUL if found and _pet(found[1]) else GEM
+    ok = found is not None and stone is not None and stone_row is not None and stone_row.get("SonType") == gem
     ok = ok and 1 <= msg.mountPos <= 4
     if not ok or found is None or stone is None or stone_row is None:
         s.log.info("5151 recusado", pedido=str(msg))
@@ -137,10 +172,10 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     changed = [] if gone else [stone]
     back = bag.add(snap, templates, old, 1, now) if old > 0 else []
     joins[msg.mountPos - 1] = stone.template_id
-    item.joins = joins
+    item.joins, item.is_binds = joins, True
     # (visto) tempinfos: 281 "Socket a Gem" = tipo 18 ("[Blacksmith] > [Socket]"); (visto, só turco:
     # atolye_item_basma_ve_mozaik) o oficial avisa que a pedra foi engastada
-    quests = rules.quest_event(snap, templates, GEM_INLAY, MOSAIC_PARA1, 1)
+    quests = rules.quest_event(snap, templates, GEM_INLAY, MOSAIC_PARA1, 1) if gem == GEM else []
     await s.ctx.characters.save(c, item, *changed, *back, *quests, delete=tuple(gone))
 
     castle_yield(s)
@@ -155,11 +190,13 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
 @router.on(5152)
 async def inlay_join(s: GameSession, msg: pb.StoreReqMsg) -> None:
     """``operate`` true: abre o furo ``holePos`` com um Socketing Rod (o 4º só em item Profile 5).
-    false: tira a pedra do furo (custa o Property3 dela em ouro) e devolve para a mochila."""
+    false: tira a pedra do furo (custa o Property3 dela em ouro) e devolve para a mochila.
+    Equipamento de mascote: Soul Socketing Rod, e o furo abre só abaixo do ``Profile`` (``PetEquipGodHeadView``:
+    estado 1 = pode abrir quando ``Profile − 1 > índice``)."""
     snap = s.snapshot
     assert snap is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
-    found = _equip(s)
+    found = _any_equip(s)
     if found is None or not 1 <= msg.holePos <= 4:
         s.log.info("5152 recusado", pedido=str(msg))
         return
@@ -167,11 +204,13 @@ async def inlay_join(s: GameSession, msg: pb.StoreReqMsg) -> None:
     joins = item.joins
     hole = joins[msg.holePos - 1]
     if msg.operate:
-        allowed = hole == -1 and (msg.holePos < 4 or row.get("Profile") == "5")
-        if not allowed or bag.count_of(snap, DRILL) < 1:
+        pet, profile = _pet(row), int(row.get("Profile") or 0)
+        allowed = hole == -1 and (msg.holePos < profile if pet else msg.holePos < 4 or profile == 5)
+        drill = SOUL_DRILL if pet else DRILL
+        if not allowed or bag.count_of(snap, drill) < 1:
             s.log.info("5152 recusado: furo", pedido=str(msg), furo=hole)
             return
-        changed, gone = bag.take(snap, DRILL, 1)
+        changed, gone = bag.take(snap, drill, 1)
         joins[msg.holePos - 1] = 0
         item.joins = joins
         await s.ctx.characters.save(item, *changed, delete=tuple(gone))
@@ -208,6 +247,9 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     assert snap is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
     recipe = templates.get("ComposeTempInfos", msg.composeId, key="Id")
+    if recipe is not None and recipe.get("Types") in (HERO_UPGRADE, PET_UPGRADE):
+        await _upgrade(s, recipe, msg)
+        return
     n = msg.composeNum
     if recipe is None or not 1 <= n <= MAX_COMPOSE or msg.autoBuy:  # ponytail: autoBuy (comprar o que falta) não
         s.log.info("5153 recusado", pedido=str(msg))
@@ -257,34 +299,149 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
+def _upgrade_piece(s: GameSession, recipe: Row) -> Item | None:
+    """A peça do avanço (``Material1``). Mascote: a da bancada, com o encantamento no máximo ("Only fully enchanted
+    equipment can be upgraded"). Herói: a equipada no líder primeiro ("Equipped items ... will be used first",
+    ``StoreModel.getCurrentUpgradeEquipGoodsInfo``), senão a da mochila."""
+    snap = s.snapshot
+    assert snap is not None
+    tid = int(recipe.get("Material1") or 0)
+    if recipe.get("Types") == PET_UPGRADE:
+        found = _equip(s, PET_EQUIP)
+        ok = found is not None and found[0].template_id == tid
+        return found[0] if found and ok and found[0].mould_grade >= int(found[1].get("StrengthenMax") or 0) else None
+    leader = snap.leader
+    worn = (i for i in snap.items if i.bag_type == BagType.HERO and leader and i.object_id == leader.id)
+    return next((i for i in worn if i.template_id == tid), None) or next(
+        (i for i in bag.in_bag(snap) if i.template_id == tid), None
+    )
+
+
+async def _upgrade(s: GameSession, recipe: Row, msg: pb.StoreReqMsg) -> None:
+    """Avanço (5153 com receita Types 5/10): a **mesma** peça troca de template e herda o reforço, os furos (com o
+    furo extra do template novo, ``Property1``) e os atributos sorteados (``helpContent03``; a prévia do
+    ``PetEquipUpgradeView`` monta o item novo com o mesmo ``id``, joins e randomSkills). No mascote o encantamento
+    volta a 0 (``mouldGrade = 0`` na prévia). Materiais 2..4 da mochila e ``NeedGold``; no mascote o que faltar do
+    material sai em Balens pelo ``Point`` da loja ("Spend {0} Balens to instantly upgrade?"). Fica vinculada. O 89
+    vai com ``composeResult`` true: o ``PetEquipUpgradeView`` só fecha com ele, e o ``StoreControler`` não lê."""
+    snap = s.snapshot
+    assert snap is not None
+    c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
+    piece, pet = _upgrade_piece(s, recipe), recipe.get("Types") == PET_UPGRADE
+    new_row = templates.get("ItemTempInfos", int(recipe.get("NewMaterial") or 0))
+    need = [
+        (int(recipe[f"Material{i}"]), int(recipe[f"Count{i}"]))
+        for i in range(2, 5)
+        if int(recipe.get(f"Material{i}") or 0)
+    ]
+    have = {tid: min(n, bag.count_of(snap, tid)) for tid, n in need}
+    missing = sum((n - have[tid]) * _shop_point(s, tid) for tid, n in need) if pet else 0
+    short = any(have[tid] < n and (not pet or not _shop_point(s, tid)) for tid, n in need)
+    gold = int(recipe.get("NeedGold") or 0)
+    level_ok = c.grades >= int(recipe.get("NeedMinLevel") or 0)
+    if piece is None or new_row is None or short or not level_ok or c.gold < gold:
+        s.log.info("5153 avanço recusado", pedido=str(msg), peca=piece is not None)
+        return
+    ledger = cash.pay(c, missing, msg.payType, "upgrade", f"upgrade:{piece.template_id}", now) if missing else None
+    if missing and ledger is None:
+        s.log.info("5153 avanço recusado: Balens", pedido=str(msg), custo=missing)
+        return
+    changed: list[Item] = []
+    gone: list[Item] = []
+    for tid, n in have.items():
+        ch, go = bag.take(snap, tid, n) if n else ([], [])
+        changed += ch
+        gone += go
+    c.gold -= gold
+    holes = min(4, int(new_row.get("Property1") or 0))
+    piece.joins = [0 if j == -1 and n < holes else j for n, j in enumerate(piece.joins)]
+    piece.template_id, piece.is_binds = int(recipe["NewMaterial"]), True
+    if pet:
+        piece.mould_grade, piece.bless_value = 0, 0
+    await s.ctx.characters.save(c, piece, *changed, *([ledger] if ledger else []), delete=tuple(gone))
+
+    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    castle_yield(s)
+    if ledger is not None:
+        _player(s)
+    send(s, S_ITEMS, bag.moved([piece], s.player_id))
+    if piece.bag_type == BagType.HERO:
+        _player(s)
+        _army(s)
+    if not pet:  # o texto do mascote o cliente monta ("Upgrade successful, received {0} x1")
+        text = f"Received: {bag.name(templates, piece.template_id)} x1"
+        send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+        send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=True, composeTemplateId=piece.template_id))
+
+
 # --- refino dos atributos sorteados ---
 
 
 @router.on(8336)
 async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
-    """Sorteia os atributos do item da bancada gastando 1 pedra de refino (``ItemTempInfo.Refresh``);
-    ``lock[i]`` mantém o atributo i. O resultado só vale depois do 8339."""
+    """Sorteia os atributos do item da bancada (``RefreshView``). Gasta as pedras de refino dele
+    (``ItemTempInfo.Refresh``) pelo ``Profile`` (``RESOLVE_STONES``): ``bindType`` 0 as vinculadas primeiro (e o
+    equipamento livre fica vinculado, ``Store.IntensifyView.Tip``), 2 só as livres. ``lock[i]`` mantém o atributo i:
+    cada cadeado gasta um Refinement Lock e o que faltar custa 45 Balens (``payType`` 0 vinculado primeiro); travar
+    todos é recusado ("No Stats to Refine"). Equipamento travado não refina. O resultado só vale depois do 8339."""
     snap = s.snapshot
     assert snap is not None
-    found = _equip(s)
+    c, now = snap.character, s.ctx.clock.now()
+    found = _any_equip(s)
     stone = int(found[1].get("Refresh") or 0) if found else 0
     slots = int(found[1].get("RandomSkillCount") or 0) if found else 0
-    if found is None or stone <= 0 or slots <= 0 or bag.count_of(snap, stone) < 1:
+    if found is None or found[0].is_locked or stone <= 0 or slots <= 0:
         s.log.info("8336 recusado", pedido=str(msg))
         return
-    item = found[0]
+    item, row = found
+    pet, profile = _pet(row), int(row.get("Profile") or 0)
+    need = PET_STONES.get(profile, 100) if pet else RESOLVE_STONES.get(profile, 1)
+    bound = sum(i.count for i in bag.in_bag(snap) if i.template_id == stone and i.is_binds)
+    use_bound = 0 if msg.bindType == UNBOUND_ONLY else min(bound, need)
+    locks = (list(msg.lock) + [False] * 5)[:slots]
+    # o PetEquipRefineryView não usa o Refinement Lock: cada cadeado é pago (mostra 45 Balens)
+    lock_items = 0 if pet else min(sum(locks), bag.count_of(snap, LOCK_ITEM))
+    balens = (sum(locks) - lock_items) * LOCK_PRICE
+    loose = bag.count_of(snap, stone) - bound
+    # mascote: as pedras que faltam saem em Balens ("auto buy" da tela), pelo Point da loja
+    buy = max(0, need - use_bound - loose) if pet else 0
+    balens += buy * _shop_point(s, stone) if buy else 0
+    enough = loose >= need - use_bound - buy and (not buy or _shop_point(s, stone) > 0)
+    rolled = sum(k > 0 for k in item.random_skills)
+    if not enough or (rolled and sum(locks) >= rolled):  # tudo travado: "No Stats to Refine"
+        s.log.info("8336 recusado: pedras/cadeados", pedido=str(msg), pedras=need)
+        return
+    ledger = cash.pay(c, balens, msg.payType, "refine", f"refine:{item.template_id} cadeados", now) if balens else None
+    if balens and ledger is None:
+        s.log.info("8336 recusado: Balens dos cadeados", pedido=str(msg), custo=balens)
+        return
+    changed: list[Item] = []
+    gone: list[Item] = []
+    for tid, n, binds in (
+        (stone, use_bound, True),
+        (stone, need - use_bound - buy, False),
+        (LOCK_ITEM, lock_items, None),
+    ):
+        ch, go = bag.take(snap, tid, n, binds) if n else ([], [])
+        changed += ch
+        gone += go
+    if use_bound and not item.is_binds:
+        item.is_binds = True
+        changed.append(item)
     # ponytail: a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos
-    # com Grades > 0 (sem peso por nível: precisa de captura 8336 -> 4258); cadeados de graça (custo não achado)
-    pool, locks = bag.random_skill_pool(s.ctx.templates), list(msg.lock) + [False] * 5
+    # com Grades > 0 (sem peso por nível: precisa de captura 8336 -> 4258)
+    pool = bag.random_skill_pool(s.ctx.templates)
     skills = [cur if locks[i] else random.choice(pool) for i, cur in enumerate(item.random_skills[:slots])]
-    changed, gone = bag.take(snap, stone, 1)
     _pending[item.id or 0] = skills
     # (visto) tempinfos: 769 "Refine a Piece of Equipment" = tipo 47, Para1 0, Para2 1; conta no 8336, não no 8339
     # (dedução)
     quests = rules.quest_event(snap, s.ctx.templates, REFINE, 0, 1)
-    await s.ctx.characters.save(*changed, *quests, delete=tuple(gone))
+    await s.ctx.characters.save(c, *changed, *quests, *([ledger] if ledger else []), delete=tuple(gone))
 
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    if ledger is not None:
+        _player(s)
     send(s, S_REFRESH, pb.SmithFreshRspMsg(randomSkill=skills))
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
@@ -293,7 +450,7 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
 @router.on(8339)
 async def refresh_replace(s: GameSession, _: object) -> None:
     """Aceita o último sorteio do 8336 no item da bancada."""
-    found = _equip(s)
+    found = _any_equip(s)
     skills = _pending.pop(found[0].id or 0, None) if found else None
     if found is None or skills is None:
         s.log.info("8339 recusado: nada sorteado")
@@ -321,10 +478,39 @@ async def refresh_property(s: GameSession, msg: pb.RefreshPropertyReqMsg) -> Non
 
 @router.on(8340)
 async def resolve(s: GameSession, _: object) -> None:
-    # decompor devolve materiais por uma tabela que não está nos templates nem no cliente:
-    # recusa com result false (o cliente mostra a falha e não mexe nos itens)
-    s.log.info("8340 recusado: sem tabela de decomposição")
-    send(s, S_RESOLVE, pb.SmithResolveRspMsg(result=False))
+    """Decompõe os equipamentos da bancada (posições 0..11, ``ResolveView``): 1.000 de ouro cada; cada um dá a pedra
+    de refino dele (``ItemTempInfo.Refresh``) pelo ``Profile`` (``RESOLVE_STONES``), com o vínculo do equipamento
+    (``helpContent05``: "Recycling unbound equipment will produce unbound Refinement Crystals"). Só equipamento sem
+    pedra (``StoreBagCellDropMediator.isResolePoint``) e sem cadeado. Recusa: não responde (o ``ResolveView`` limpa a
+    bancada com qualquer 4260, até com ``result`` false, e os itens ficariam lá sem aparecer)."""
+    snap = s.snapshot
+    assert snap is not None
+    c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
+    equips = [i for i in bag.in_bag(snap, BagType.STORE) if i.object_id == 0 and 0 <= i.pos < bag.STORE_SIZE]
+    rows = [templates.get("ItemTempInfos", i.template_id) or {} for i in equips]
+    stones: dict[tuple[int, bool], int] = {}
+    for item, row in zip(equips, rows, strict=True):
+        tid, n = int(row.get("Refresh") or 0), RESOLVE_STONES.get(int(row.get("Profile") or 0), 0)
+        if tid > 0 and n:
+            stones[tid, item.is_binds] = stones.get((tid, item.is_binds), 0) + n
+    gold = RESOLVE_GOLD * len(equips)
+    bad = any(
+        r.get("MasterType") != EQUIP or i.is_locked or any(j > 0 for j in i.joins)
+        for i, r in zip(equips, rows, strict=True)
+    )
+    goods = [(tid, n, binds) for (tid, binds), n in stones.items()]
+    if not equips or bad or c.gold < gold or not bag.fits(snap, templates, goods, now):
+        s.log.info("8340 recusado", itens=[i.template_id for i in equips], ouro=c.gold)
+        return
+    for item in equips:
+        snap.items.remove(item)
+    c.gold -= gold
+    got = [i for tid, n, binds in goods for i in bag.add(snap, templates, tid, n, now, binds=binds)]
+    await s.ctx.characters.save(c, *got, delete=tuple(equips))
+
+    send(s, S_ITEMS, bag.moved(got, s.player_id, empty=equips))
+    castle_yield(s)
+    send(s, S_RESOLVE, pb.SmithResolveRspMsg(result=True))
 
 
 # --- conversão de pedras ---
@@ -364,8 +550,55 @@ async def transform(s: GameSession, msg: pb.StoreReqMsg) -> None:
     alert(s, "Conversion successful")
 
 
+def mould_rate(item: Item) -> int:
+    """``PetEquipStrengView.strengRate``: ``max(1, 50 − 10 × nível) + bênção``, no máximo 100."""
+    return min(100, max(1, 50 - 10 * item.mould_grade) + item.bless_value)
+
+
+def _shop_point(s: GameSession, template_id: int) -> int:
+    """Preço em Balens do material (a linha ShopType 99; as outras linhas do mesmo item têm ``Point`` 0)."""
+    rows = s.ctx.templates.find("ShopTempInfos", ItemId=str(template_id))
+    return max((int(r.get("Point") or 0) for r in rows), default=0)
+
+
 @router.on(8644)
 async def mould(s: GameSession, msg: pb.PayTypeMsg) -> None:
-    # moldagem gasta os materiais 2120100-2120103, que não existem nos templates deste servidor
-    # (recurso desligado no oficial também): sem resposta, como item que não pode ser moldado
-    s.log.info("8644 recusado: moldagem sem materiais nos templates", pedido=str(msg))
+    """Encantamento do equipamento de mascote na bancada (``PetEquipStrengView``): gasta 3 Light of Magic e 3 Glint
+    of Magic da mochila, e o que faltar sai em Balens (``payType`` 0 vinculado primeiro, 1 só Balens; o cliente pede a
+    confirmação). Taxa ``mould_rate``; sucesso: nível +1; falha: bênção +5 abaixo do nível 10, +3 depois
+    ("Enchantment failed, Enchantment Blessing +{0}"), até 100. O item fica vinculado (``Store.IntensifyView.Tip``).
+    O preço do que falta é o ``Point`` da loja (80): o cliente soma o ``GiftToken`` dela, que é 0 nos templates.
+    ponytail: a bênção zera no sucesso (o cliente não diz; a barra recomeça do 0 no próximo nível)."""
+    snap = s.snapshot
+    assert snap is not None
+    c, now = snap.character, s.ctx.clock.now()
+    found = _equip(s, PET_EQUIP)
+    if found is None or found[0].mould_grade >= int(found[1].get("StrengthenMax") or 0):
+        s.log.info("8644 recusado", pedido=str(msg))
+        return
+    item = found[0]
+    have = {tid: min(MOULD_COST, bag.count_of(snap, tid)) for tid in MOULD_ITEMS}
+    cost = sum((MOULD_COST - n) * _shop_point(s, tid) for tid, n in have.items())
+    ledger = cash.pay(c, cost, msg.payType, "pet_mould", f"mould:{item.template_id}", now) if cost else None
+    if cost and ledger is None:
+        s.log.info("8644 recusado: Balens", pedido=str(msg), custo=cost)
+        return
+    changed: list[Item] = []
+    gone: list[Item] = []
+    for tid, n in have.items():
+        ch, go = bag.take(snap, tid, n) if n else ([], [])
+        changed += ch
+        gone += go
+    ok = random.randint(1, 100) <= mould_rate(item)
+    if ok:
+        item.mould_grade, item.bless_value = item.mould_grade + 1, 0
+    else:
+        item.bless_value = min(BLESS_MAX, item.bless_value + (5 if item.mould_grade < 10 else 3))
+    item.is_binds = True
+    await s.ctx.characters.save(c, item, *changed, *([ledger] if ledger else []), delete=tuple(gone))
+
+    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    if ledger is not None:
+        _player(s)
+    send(s, S_ITEMS, bag.moved([item], s.player_id))
+    send(s, S_MOULD, pb.StoreRspMsg(strengResult=ok, pos=0, bagType=BagType.STORE))

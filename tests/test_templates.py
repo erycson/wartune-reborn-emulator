@@ -33,7 +33,7 @@ def test_unknown_hero_raises() -> None:
         GameTemplates.parse(XML).hero(99)
 
 
-@pytest.mark.skipif(not REAL_FILE.exists(), reason="tempinfos.xml real ausente (rode tools/export_captures.py)")
+@pytest.mark.skipif(not REAL_FILE.exists(), reason="tempinfos.xml real ausente (rode wartune-server templates update)")
 async def test_real_file_has_the_six_starting_heroes() -> None:
     t = await GameTemplates.load(REAL_FILE)
     assert len(t.categories) > 50

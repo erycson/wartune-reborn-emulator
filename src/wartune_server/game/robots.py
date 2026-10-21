@@ -51,12 +51,13 @@ def robot_name(world: World, char_id: int, robot: RobotCastle) -> str:
     return str(picks[world.robots.index(robot) % len(picks)])
 
 
-def robot_castle_msg(snap: PlayerSnapshot, world: World, robot: RobotCastle) -> pb.BaseCastleMsg:
-    """Castelo-robô como no 4129 do oficial (inglês #532): tipo 1, estado 1, sem liga e sem tempo de defesa."""
+def robot_castle_msg(snap: PlayerSnapshot, world: World, robot: RobotCastle, state: int = 1) -> pb.BaseCastleMsg:
+    """Castelo-robô como no 4129 do oficial (inglês #532): tipo 1, estado 1 (4 durante a luta, #1656), sem liga e
+    sem tempo de defesa."""
     assert snap.castle is not None
     name = robot_name(world, snap.character.id or 0, robot)
     return pb.BaseCastleMsg(
         id=robot.id, mapId=snap.castle.map_id, posX=robot.x, posY=robot.y, type=1,
         occupyPlayerId=ROBOT_USER_BASE + world.robots.index(robot), occupyPlayerName=name, occupyLeagueName="",
-        state=1, defenceLefttime=0, castleName=name, grade=robot.grade, vipCastleView=0, vipType=0,
+        state=state, defenceLefttime=0, castleName=name, grade=robot.grade, vipCastleView=0, vipType=0,
     )  # fmt: skip

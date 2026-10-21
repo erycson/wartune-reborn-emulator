@@ -1,6 +1,6 @@
 {
-  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. Tipos com regra no servidor: 13 (dias de login no período, condição 14 = dias) e 14 (presente online diário, condição 15 = segundos online desde o último resgate). Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
-  "dataStamp": 2,
+  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP) e 14 (presente online diário, condição 15 = segundos online desde o último resgate). Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
+  "dataStamp": 3,
   "actives": [
     {
       "activeId": "A0000013-0000-0000-0000-000000000001",
@@ -14,19 +14,9 @@
       "endDate": "2099-12-31 23:59:59",
       "packages": [
         {"packageId": "B0000013-0000-0000-0000-000000000001", "order": 1, "condition": [14, 1],
-         "items": [[-300, 100000], [-100, 200000], [2030503, 1], [2090103, 1], [21261027, 1]]},
+         "items": [[-500, 10], [-300, 10000], [-100, 10000], [208014, 5], [21261034, 1]]},
         {"packageId": "B0000013-0000-0000-0000-000000000002", "order": 2, "condition": [14, 2],
-         "items": [[-300, 100000], [-100, 300000], [2030503, 2], [2090103, 2], [21261027, 1]]},
-        {"packageId": "B0000013-0000-0000-0000-000000000003", "order": 3, "condition": [14, 3],
-         "items": [[-300, 150000], [-100, 300000], [2030503, 2], [2090103, 2], [21261027, 1]]},
-        {"packageId": "B0000013-0000-0000-0000-000000000004", "order": 4, "condition": [14, 4],
-         "items": [[-300, 150000], [-100, 400000], [2030503, 3], [2090103, 3], [21261027, 1]]},
-        {"packageId": "B0000013-0000-0000-0000-000000000005", "order": 5, "condition": [14, 5],
-         "items": [[-300, 200000], [-100, 400000], [2030503, 3], [2090103, 3], [21261027, 2]]},
-        {"packageId": "B0000013-0000-0000-0000-000000000006", "order": 6, "condition": [14, 6],
-         "items": [[-300, 200000], [-100, 500000], [2030503, 4], [2090103, 4], [21261027, 2]]},
-        {"packageId": "B0000013-0000-0000-0000-000000000007", "order": 7, "condition": [14, 7],
-         "items": [[-300, 300000], [-100, 600000], [2030503, 5], [2090103, 5], [21261027, 3], [-500, 50]]}
+         "items": [[-600, 10000], [-500, 10], [208017, 2]]}
       ]
     },
     {

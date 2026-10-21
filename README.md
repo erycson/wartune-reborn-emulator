@@ -12,7 +12,7 @@ O jogo tem três partes:
 |---|---|---|
 | **servidor do jogo** (este projeto) | Python, portas 8080/5000/5001/843 | socket do jogo e endpoints HTTP do `Loading.swf` |
 | **portal** | PHP em `D:\xampp\htdocs\wartune-reborn\portal` | contas, lista de servidores, ticket, `config.xml` |
-| **CDN** | Apache em `D:\xampp\htdocs\wartune-reborn\cdn` → `wartune-cdn` | SWFs, imagens, `tempinfos.xml` |
+| **CDN** | Apache em `D:\xampp\htdocs\wartune-reborn\cdn`, link para o espelho inglês `D:\xampp\htdocs\wartune\mirror\res134-bmclas-sq.7road.net` | SWFs, imagens, `language.txt` |
 
 ```powershell
 uv sync
@@ -23,14 +23,10 @@ Abra `http://127.0.0.1:8090/wartune-reborn/`, crie a conta e escolha o servidor.
 mostra a URL do `Loading.swf` para o **Flash Player projector** (File → Open) e tem um botão
 para jogar pelo Ruffle.
 
-Arquivos gerados (fora do git), para recriar depois de clonar:
-
-```powershell
-# data/overlay: respostas capturadas do oficial (config.xml modelo, tempinfos.xml...)
-uv run python tools/export_captures.py D:/wartune/server-relay/loginprotokol/raw D:/wartune/server-relay/testraconu/raw
-# pasta de sobreposição do CDN
-uv run python tools/build_cdn_overrides.py D:/xampp/htdocs/wartune-reborn/cdn
-```
+O CDN e o site do jogo são o espelho do oficial inglês (S134), baixado por
+`D:\xampp\htdocs\wartune\download.php`. Para baixar o que o cliente pediu e o espelho não tem
+(404 no Apache): `uv run python tools/fetch_missing.py`. As ferramentas da CDN turca antiga estão em
+`consulta/legado-turco/` (fora do git).
 
 A configuração vem de variáveis `WARTUNE_*` ou do arquivo `.env`; veja [docs/configuracao.md](docs/configuracao.md).
 

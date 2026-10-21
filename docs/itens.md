@@ -23,11 +23,54 @@ Espaços do herói: 101→0, 103→1, 104→2, 106→3, 107→4/5, 108→6/7, 10
 112 roupa de moda→10, 111 arma de moda→11, 117→12, 118→13. Equipar confere `Job` (lista com 0 ou o
 job do herói), `Sexs` (2 ou o sexo) e `NeedGrades` (`GoodsCheck.checkGoodsCanEquip`) *(cliente)*.
 Os bags 10 (correio) e 11 (leilão) são do servidor: o item entra neles pelo correio (anexo de item, 5022
-o tira) e pelo mercado ([mercado.md](mercado.md)), posição 0. Não são movíveis pelo 5005. Os bags 6
-(guilda), 22–26 (mascote) e 32 (depósito) dependem de sistemas que não existem e são recusados no 5005.
+o tira) e pelo mercado ([mercado.md](mercado.md)), posição 0. Não são movíveis pelo 5005. O bag 6 é o
+armazém da guilda (`ConsortiaCaseBag`, *cliente*): itens do próprio jogador, `storeLevel*5` espaços (56 no
+nível 10, `ConsortiaModel.currentCasecellNum`), move e empilha pelo 5005 e organiza pelo 8220 (o cliente manda a
+ordem). O que acontece com eles ao sair da guilda não tem fonte: ficam lá e podem sair para a mochila. Os bags
+22 (árvore dourada), 23 (pesca), 24 (labirinto), 25 (estrada do ouro), 26 (equipamento de mascote,
+`objectId` = pet) e 32 (depósito) são de outros sistemas; o 32 é recusado no 5005.
+
+### Equipamento de mascote (bolsa 26, `MasterType` 5)
+
+Vestir e tirar pelo 5005 (`PetBagCellClickMediator`, `PetEquipBagCellClickMediator`): o cliente manda `endObjId` 0 e
+o mascote em `objectId`. Espaço pelo SonType: 113 → 0/1, 114 → 2, 115 → 3/4, 116 → 5; o mascote tem de ser do
+jogador. Vestir vincula o item e o mascote ("Sylph will become bound after putting on equipment"); a resposta leva
+o 4540 do mascote com os `bag*` novos. Os `bag*` (`rules.pet_equipment`) somam o atributo do template, o
+encantamento (`int(base × 1,08^mouldGrade − base)`), as Divinity Souls dos furos e os atributos sorteados. A batalha
+ainda não usa (**dedução** do total, sem captura).
+
+| C>S | Resposta | Regra |
+|---|---|---|
+| 8644 encantar | 115, 4558 | peça da bancada (posição 0) abaixo do `StrengthenMax`; 3 + 3 materiais (3250101, 3260101), os que faltam em Balens pelo Point da loja (80); taxa min(100, max(1, 50 − 10·nível) + bênção). Sucesso: +1 e bênção 0; falha: bênção +5 abaixo do nível 10, senão +3, teto 100. Vincula |
+| 5153 avanço (receita `Types` 10) | 115, 89 | a peça da bancada com o encantamento no máximo; materiais 2..4 (os que faltam em Balens pelo Point), `NeedGold`; mesma linha com o template novo, furos abertos até o `Property1` novo, encantamento e bênção voltam a 0; `composeResult` true |
+| 5153 avanço do herói (`Types` 5) | 115, 89 (+3, 150) | a peça equipada no líder primeiro, senão a da mochila; mantém reforço, pedras e atributos; "Received: … x1" |
+| 5151 / 5152 | como no herói | engaste com Divinity Soul (SonType 329) sem repetir atributo; furo com a Soul Socketing Rod (3280101) só abaixo do `Profile` |
+| 8336 / 8339 refino | como no herói | pedras por `Profile` (`PET_STONES`, 6 → 24, outro → 100); sem o Refinement Lock: cada cadeado paga 45; as pedras que faltam saem em Balens pelo Point |
 
 Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros furos ficam −1
 (fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates). *(visto, só turco: "yeraltı labirent marketi alışveriş")* o Kronos' Authority (1991017, `RandomSkillCount` 5) comprado na loja do labirinto chegou no 115 com `join_1` 0 e cinco `randomSkill` (70407, 71123, 70509, 70719, 70209); aqui sai só o `DefaultSkill`. Falta a regra do sorteio.
+
+### Vínculo (`Item.is_binds`, migração `0043`)
+
+O `ItemInfoMsg.bind` vem de `items.is_binds` (tooltip `EquipTipsContent.bind1/bind2`: "Bound"/"Unbound"). Os
+templates não têm campo de vínculo: depende de onde o item veio *(cliente)*.
+
+- **Nasce vinculado**: drops, recompensas, composição ("All synthesized items are bound"), conversão de pedras ("All
+  converted items are bound"), lojas de outras moedas (glória, ametista, honra, labirinto, Balens vinculados). A
+  captura inglesa só tem `bind` true. Os itens que já existiam ficaram vinculados.
+- **Sai livre**: compra na loja com preço em Balens (`ShopTempInfos.Point`; o `charge` não aceita vinculado nesse
+  preço), na loja comum (5154) e na misteriosa (8482). *(dedução)*: o cliente não diz isso com todas as letras, mas as
+  ajudas das outras lojas dizem que elas são vinculadas. Item vendido no leilão continua livre (a linha muda de dono).
+- **Vincula**: equipar no herói (bolsa 4) ou pôr nas runas (2) (`PlayerBagCellClickMediator`/`DropMediator`, "This
+  operation will change this item to become bound"); juntar pilha livre com vinculada (`GoodsCheck.isAddToChecker`,
+  mesma confirmação); reforço, mesmo na falha (`helpContent01`); engaste (`helpContent02`).
+- **Empilhar**: a loja e as recompensas (`bag.add`/`bag.fits`) só completam pilhas de mesmo vínculo; o 8220 não
+  junta livre com vinculado; o 5005 junta (o cliente já pediu a confirmação) e a pilha fica vinculada.
+- **Leilão**: item vinculado dá −7 "Item is bound!" ([mercado.md](mercado.md)).
+- **Forja**: a decomposição dá a pedra com o vínculo do equipamento ("Recycling unbound equipment will produce unbound
+  Refinement Crystals"); o refino com pedra vinculada vincula o equipamento livre.
+- **Moda**: a vinculada entra no livro (ativada) ao pedir o livro; a livre, ao vestir (que vincula).
+- **Falta**: mascote vinculado (leilão de mascote).
 
 ## Mochila e uso — `items.py`
 
@@ -44,7 +87,7 @@ Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros
 | 5010 PayTypeMsg | compra `property1` linhas de 7 espaços (até 175); linha i custa (i+1)×10 Balens até a 10ª, depois 100 (`BagBuyFrame`) | 3 (`bagCount`) | *(cliente)* |
 | 8819 RentalBagOpReqMsg | aluga a mochila de 217 por `param2` dias (`rental_bag_day_cost` × 2 páginas), `param1` = payType; renovar soma ao prazo | 3, 4709 `{opType, rentalBagTime, status 1}` | *(cliente)* |
 | 8199 DetailReqMsg | ficha de outro jogador (online ou do banco): equipamento do líder, atributos, `hideFashion`, `storeGrade`, `appellId` | 4125 DetailRspMsg | *(cliente)* `PlayerInfoFrameII` |
-| 5129 CampaignReqMsg | baú caído na campanha: os drops de campanha não existem | 4268 BattleReportMsg `{signId}` vazio (o cliente limpa o nó) | *(cliente)* `CampaignMapController` |
+| 5129 CampaignReqMsg | baú da luta (`paraString1` = `signId` do 4103; `paraInt1` 0 = tudo, ou um `templateId`) | 115, 4476, 111 e 83 por item; mochila cheia: 4268 `{signId, baseItem}` com o que sobrou (o cliente põe o baú de volta); `signId` desconhecido: nada | (visto) inglesa #2910-#2939; *(cliente)* `BattleFallGoodsView`, `CampaignMapController` |
 
 ### Itens com validade
 
@@ -130,24 +173,26 @@ correio, 12).
 | 8693 ShopMsg | quantos daquele item já comprei hoje | 4599 `buyInfo.count` | *(cliente)* |
 | 8632 | ofertas relâmpago: vêm do 4238 (eventos do operador), nenhuma ativa | 4547 `{refreshDate}` vazio | *(cliente)* |
 | 8645 ShopMsg | compra coletiva: só existe com uma oferta type 3 do 4238; recusa sem resposta | — | *(cliente)* |
-| 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (10). Os itens trocam sozinhos 14400 s depois do `freshLastdate` (`MysteryShopModel.remainTime`, que pede a lista de novo ao zerar); as compras do dia zeram na virada das 5h | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
+| 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (45 no inglês). Os itens trocam sozinhos 14400 s depois do `freshLastdate` (`MysteryShopModel.remainTime`, que pede a lista de novo ao zerar); as compras do dia zeram na virada das 5h | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
 | 8482 ShopItemBuyMsg | compra o item `index` da misteriosa (uma vez cada, até `ShopBuy_MaxCount` 20 por dia) | 3/109, 115, 111, 83, 4383 `{result, buyCount}`, 4384 | *(cliente)* |
 | 8597 AppellExchangeMsg | `look`: títulos (vazio); trocar exige ter o título (conquistas não existem); `appellId` 0 tira o título | 4484 AppellsMsg | *(cliente)* |
 
-Misteriosa: 8 itens sorteados pelo peso `Rands` entre os do nível do jogador; troca sozinha uma vez
-por dia (`# ponytail:`, a tela não está no cliente decompilado). Limite diário por item em
-`shop_buys` (zera quando muda o dia).
+Misteriosa (tela inglesa em `m7/scripts/auction/view/mysteryshop`): 6 itens (`MysteryShopModel.MAX_GOODS_NUM`;
+o `MAX_RARE_GOODS_NUM` 8 é a vitrine de raros, outra lista) sorteados pelo peso `Rands` entre os do nível do jogador;
+abre no nível 26 (`MysteryShopView`, "Unlocks at Lvl. 26."; abaixo disso o 8483 não responde e o 8482 dá `LEVEL`).
+No 4384, `isCanBuy` 0 = à venda e 1 = comprado (`BuyGoodsItem`). Limite diário por item em `shop_buys` (zera
+quando muda o dia).
 
 Loja do labirinto (ShopType 4, 119 linhas, todas com preço só em `MazeCoin`): paga com Crypt Tokens (208009). *(visto, só turco)*
 `yeralti_labirent_marketi_alisveris`: o 105 (Gold Chest, 1 moeda, andar 5) tirou 1 (118 → 117) e o 110 (Kronos'
 Authority, 25 moedas, andar 15) tirou 25 (117 → 92). A resposta é a da loja comum: 115 da moeda, 115 do item, 111, 83 e 90
 (o 4476, 4426 e 4484 da mesma captura são de outros sistemas, não da compra). O andar (`MazeLayers`, `MazeLayers2`): o
 cliente esconde o botão quando o andar passa de `towerInfo1.maxIndex` (`GoodsItem.as:380`) ou de `towerInfo2.maxIndex`
-(`:384`). O servidor manda `maxIndex` 60 fixo no 4205 (`MAZE_MAX_INDEX`) e nunca manda o segundo labirinto; por isso
-recusa (`FAIL`, *(dedução)*) os 23 produtos com `MazeLayers` > 60 e os 22 com `MazeLayers2` > 0. Isso **não é o progresso
-do labirinto**: todos os 4205 das capturas têm `maxIndex` 60 (com `towerIndex` 1, 2, 3 e 5), e a compra do andar 15 foi
-feita entre um 4205 com `towerIndex` 3 e outro com 5. Falta: o `maxIndex` que o oficial manda depois de avançar no
-labirinto (captura de 4205 com o labirinto mais fundo).
+(`:384`). O `maxIndex` é o recorde (maior andar: "My Record" do `MazeFrame`, e a missão tipo 38 compara `maxIndex >=
+Para2`, `TaskTemplate.checkMazeRecord`). Sem progresso salvo, o servidor manda 0 no 4205 (`MAZE_MAX_INDEX`) e nunca
+manda o segundo labirinto; por isso recusa (`FAIL`, *(dedução)*) os produtos com `MazeLayers` > 0 e os com
+`MazeLayers2` > 0. Os 4205 turcos têm `maxIndex` 60: o recorde daquele personagem (com `towerIndex` 1, 2, 3 e 5), que
+comprou o andar 15. Falta: o progresso do labirinto (andar e recorde).
 
 ## Forja — `forge.py`
 
@@ -160,17 +205,17 @@ O cliente põe o equipamento na bancada (5005 para o bag 0, pos 0) e manda a ope
 | 5152 StoreReqMsg `{holePos, operate}` | true: abre o furo com 1 Socketing Rod (208004); o 4º só em item Profile 5. false: tira a pedra (Property3 em ouro) e devolve | abrir: 115, 115; tirar: 109, 115, 115, 111 "Unsocketing successful!", 83 "Unsocketing successful! Received: {pedra} x1!" | *(visto, só turco)*; abrir *(cliente)* |
 | 5153 StoreReqMsg `{composeId, composeNum}` | receita `ComposeTempInfos` (Material1–4 × Count × n, NeedGold × n, NeedMinLevel) | 115, 109, 115, 111 "Received: {nome} x{n}", 89 `{composeResult false, composeTemplateId −1}`, 83 | *(visto, só turco: "değerli taş birleştirme")* |
 | 8538 StoreReqMsg `{srcItemid, desItemid, count}` | troca pedras do mesmo nível (`TransformInfos`, CostGold × count) | 115, 109, 115, 111/83 "Conversion successful" | *(visto, só turco)* |
-| 8336 SmithFreshReqMsg `{lock[]}` | sorteia os atributos do item da bancada gastando 1 pedra de refino (`Refresh`), `RandomSkillCount` atributos; travados mantêm. Pool: `SkillTempInfos` 70000–77199 com `Grades` > 0 e `SkillPropertyTempInfos` (1584 de 2157) | 115, 4258 `{randomSkill[]}` | *(cliente)*; pool *(visto, só turco)*: os 42 atributos das capturas têm `Grades` 1–10, nenhum 0 (0 = placeholder: +0 com 500000, "Troop Count"); peso *(dedução)* uniforme |
+| 8336 SmithFreshReqMsg `{lock[], bindType, payType}` | sorteia os atributos do item da bancada (`RefreshView`, m14) gastando as pedras de refino dele (`Refresh`) por `Profile` (2 → 1, 3 → 4, 4 e 5 → 18): `bindType` 0 as vinculadas primeiro (equipamento livre fica vinculado), 2 só as livres. `RandomSkillCount` atributos; travados mantêm; cada cadeado gasta um Refinement Lock (208027) ou 45 Balens (`payType`), e travar todos os atributos é recusado ("No Stats to Refine"). Equipamento travado (8809) não refina. Pool: `SkillTempInfos` 70000–77199 com `Grades` > 0 e `SkillPropertyTempInfos` (1584 de 2157) | 115, 3 (com Balens), 4258 `{randomSkill[]}` | *(cliente)*; pool *(visto, só turco)*: os 42 atributos das capturas têm `Grades` 1–10, nenhum 0 (0 = placeholder: +0 com 500000, "Troop Count"); peso *(dedução)* uniforme |
 | 8339 (vazio) | aplica o último sorteio | 4259 `{result}`, 115 | *(cliente)* |
 | 8464 RefreshPropertyReqMsg `{itemId}` | atributos sorteados do item (o pendente, se houver) | 4368 `{randomSkill[], lockPos[], result}` | *(dedução)* |
-| 8340 (vazio) | decomposição: sem chamador no cliente decompilado (`sendResolve`) e sem tabela de produtos nos templates; falta captura | 4260 `{result false}` | *(cliente)* |
-| 8644 PayTypeMsg | moldagem: os materiais 2120100–2120103 não existem nos templates; recusa sem resposta | — | *(cliente)* |
+| 8340 (vazio) | decomposição (`ResolveView`, m14): os equipamentos da bancada 0..11, sem pedra e sem cadeado, viram a pedra de refino deles (`Refresh`) por `Profile` (2 → 1, 3 → 4, 4 e 5 → 18), com o vínculo do equipamento; 1.000 de ouro cada. Recusa (vazio, pedra, ouro, mochila): 4260 false | 115 (bancada vazia e pedras), 109, 4260 `{result true}` | *(cliente)*; ordem e recusa *(dedução)* |
+| 8644 PayTypeMsg | reforço de equipamento de mascote (`PetEquipStrengView`, Light of Magic 3250101 e Glint of Magic 3260101, resposta 4558); o equipamento de mascote não existe: recusa sem resposta | — | *(cliente)* |
 
 Login: 4184 ItemSmithyMsg com todos os Ids de `ComposeTempInfos` *(visto)*.
 Atributos: o equipamento reforçado soma `int(base×g×0.1) + g×5` em cada atributo > 0
 (`GoodsHelp.getStrengthenAddition`), mais os 5 `randomSkill` (`SkillPropertyTempInfos`) e as pedras.
 
-Simplificações (`# ponytail:`): o refino sorteia uniforme entre os atributos com `Grades` > 0 e os cadeados são de graça (tabela e custo não estão no cliente); o sorteio pendente fica na memória até o 8339; `autoBuy` na composição é recusado.
+Simplificações (`# ponytail:`): o refino sorteia uniforme entre os atributos com `Grades` > 0 (a tabela não está no cliente); a compra das pedras que faltam (`REFRESH_BUY`, desligado no `SwitchInfo`) não existe: falta pedra, recusa; o sorteio pendente fica na memória até o 8339; `autoBuy` na composição é recusado.
 Falta para o peso: captura 8336 → 4258 com itens de `NeedGrades` baixo e alto. Nas capturas o valor sobe com o item (NG 1–8: +2 a +21; NG 40–48: +16 a +171), mas são 42 amostras: correlação, não tabela.
 
 ## Moda — `fashion.py`
@@ -178,14 +223,13 @@ Falta para o peso: captura 8336 → 4258 com itens de `NeedGrades` baixo e alto.
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
 | 5008 HeroHideFashionReqMsg | `hide` 1 esconde, 2 mostra, 0 só pede a aparência | 149 HeroEquUpdatedMsg para todos | *(cliente)* `ArmySocketOutManager` |
-| 8625 (vazio) | livro de moda | 4542 FashionMsg `{info[{tempId, isSwitch, appraisalSkill}], fashionIds[]}`; `fashionIds` = todas as 1388 modas (MasterType 1, SonType 109–112) | *(visto)* |
-| 8595 FashionMsg / StoreReqMsg | `templateId` = `saveBook`, só usado pelas roupas do casamento; vazio = troca na bancada, regra fora do cliente decompilado: recusa | — | *(cliente)* `FashionManager`, `MarryUIMediator` |
-| 8631 FashionMsg | apaga o ícone de "novo" (estado só do cliente) | — | *(cliente)* |
-| 8781 FashionMsg | avaliação: sorteia `appraisalSkill` por tabela desconhecida; recusa | 4542 como está | *(cliente)* |
-| 8594 StoreReqMsg `{operate, payType}` | compor moda na bancada (curinga 208020): regra desconhecida | 4487 StoreRspMsg `{composeResult false}` (o `FashionBag` ignora) | *(cliente)* |
+| 8625 (vazio) | livro de moda; antes ativa as modas vinculadas que o jogador tem | 4542 FashionMsg `{info[{tempId, isSwitch, appraisalSkill}], fashionIds[]}`; `fashionIds` = todas as 1388 modas (MasterType 1, SonType 109–112) | *(visto)* |
+| 8595 FashionMsg `{templateId}` | provador (`FashionSwitchView`, um por parte): a moda vestida no líder com o mesmo SonType passa a ser esse modelo. Recusa (sem resposta) modelo fora do livro (`tipData02`), sem moda vestida no espaço (`tipData01`) ou igual à vestida (`tipData03`). Sem custo. As roupas do casamento (`MarryUIMediator`) não estão no livro: recusadas | 3, 150, 115 da peça | *(cliente)*; a peça trocar de modelo *(dedução)* |
+| 8631 FashionMsg | apaga o ícone de "novo": grava `isSwitch` | 4542 | *(cliente)* `FashionSwitchItem` |
+| 8781 FashionMsg | avaliação: sorteia `appraisalSkill` por tabela desconhecida; recusa. O cliente inglês dá só a trava e o custo: nível 27, `appraisalSkill` abaixo do Grades 5; a primeira custa `Property1` de ouro, a renovação `Property2` Fashion Cores (208020); taxa mostrada [0, 20, 30, 40, 50, 60][`TransformId`] | 4542 como está | *(cliente)* |
+| 8594 StoreReqMsg `{operate, payType}` | compor moda na bancada: o resultado (que peça e nível ficam, o `randomSkill1` novo, a chance real e o que a falha tira) não está no cliente nem nos templates; recusa. O que o `FashionComposeView` inglês dá: as duas peças na bolsa 0 (posições 0 e 1, pelo 5005), mesmo SonType (109–112) ou uma delas o Fashion Core 208020 (duas Cores não); nível = `Grades` do `randomSkill1` (ou da 1ª `DefaultSkill`), 0 não compõe, 9 é o teto; ouro (nível1 + nível2) × 10000; 1 Core (5 nas asas); Good Luck Charm 208021 (`operate`): 2^(nível − 2) (× 5 nas asas), só com níveis iguais entre 2 e 8, o que falta a 395 Balens (`payType` 0 aceita vinculados); o resultado vem vinculado; texto da chance pela diferença de nível: 0 Fair (100% com o Charm ou nível 1), 1 Medium, 2 Poor, 3+ Abysmal | 4487 StoreRspMsg `{composeResult false}` (o `FashionBag` ignora); no sucesso o cliente lê `pos`, `objectId` e `bagType` da peça e pede o 8625 | *(cliente)* |
 
-Login: 4542 depois dos itens *(visto)*. A moda entra no livro na primeira vez que é vestida
-*(dedução)*. Compra de moda: 8592, na loja.
+Login: 4542 depois dos itens *(visto)*. Livro (`FashionBook`): a moda entra ativada com `isSwitch` false (ícone de "novo") ao ser vestida ou, se vinculada, no próximo 8625 ("New bound clothing will automatically be activated when it is obtained"). Compra de moda: 8592, na loja.
 
 ## Moeda premium e `cash_ledger`
 
@@ -194,6 +238,8 @@ com `payType` 0 quando o preço aceita) e devolve o `CashLedger`; `change(...)` 
 Quem chama passa o registro para a mesma `CharacterService.save` da operação. `reason` em uso: `shop`
 (loja e misteriosa), `bag` (5010), `rental_bag` (8819), `item` (Balens vindos de item). Ouro não grava.
 
+Os outros gastos de Balens passam por `services/ledger.pay` (vinculado primeiro quando o `payType` aceita) e gravam na mesma `save`: `pawn_change` (8580), `teleport` (8326), `skill_reset` (5184), `second_skill` (8479), `rune_exp` (runa com diamante), `pet_slots` e `pet_reset` (8621), `star_bag` (8270), `mount_train` (8529), `fate_turn` (8627), `arena_count` (8253) e `arena_cool` (8265, grátis com VIP), além de `order_quick` (5172) e os de eventos, VIP, correio e minigames.
+
 ## Dependências de outros sistemas
 
 - Correio: presente para outro jogador (result 2) e compra com mochila cheia (o oficial manda pelo correio).
@@ -201,6 +247,6 @@ Quem chama passa o registro para a mesma `CharacterService.save` da operação. 
 - VIP: `NeedMinVip`, limites `VIP1Count`..`VIP6Count`, itens 203/12.
 - Eventos do operador (4238): descontos, ofertas relâmpago (8632), compra coletiva (8645).
 - Conquistas: títulos (8597).
-- Casamento: `saveBook` (8595).
-- Campanha: drop dos baús (5129). Campanha em grupo: o gasto da entrada (4240), ver [salas-campanha.md](salas-campanha.md).
+- Casamento: `saveBook` (8595) com as roupas do `MarryQualityTempInfo`.
+- Campanha em grupo: o gasto da entrada (4240), ver [salas-campanha.md](salas-campanha.md).
 - Mascote: bags 22–26 e cadeado opType 2.

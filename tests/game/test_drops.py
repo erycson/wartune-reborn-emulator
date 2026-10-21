@@ -15,7 +15,9 @@ async def test_carta_da_masmorra_como_no_replay(tmp_path: Path) -> None:
         worg_lair = [1080003, 1080013, 1080002, 1080012, 2040101]  # Campaigns.Item da Worg Lair (1001)
         assert drops.pool(templates, 1001) == worg_lair
         assert drops.pool(templates, 8200) == [2131002]  # torre: o -700 (EXP) fica de fora
-        assert drops.card(snap, templates, 1, 2, now=now) is None  # tutorial: lista vazia, sem 26 (inglesa: o 1º 26 é o #1122, na 1001)
+        assert (
+            drops.card(snap, templates, 1, 2, now=now) is None
+        )  # tutorial: lista vazia, sem 26 (inglesa: o 1º 26 é o #1122, na 1001)
         assert {71004, 70202, 71107, 70705} <= set(bag.random_skill_pool(templates))  # #1241 e #1744
 
         before = len(snap.items)

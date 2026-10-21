@@ -102,5 +102,7 @@ async def test_pesos_vem_do_banco(tmp_path: Path) -> None:
         ]
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None
-        got = drops.card(session.snapshot, templates, 1002, 0, random.Random(1), table=[(2040102, 0.0)], now=session.ctx.clock.now())
+        got = drops.card(
+            session.snapshot, templates, 1002, 0, random.Random(1), table=[(2040102, 0.0)], now=session.ctx.clock.now()
+        )
         assert got is not None and got[0].template_id == 2040102  # tudo 0 no banco: uniforme, sem erro

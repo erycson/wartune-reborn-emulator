@@ -195,7 +195,7 @@ async def test_pedreira_entra_colhe_luta_e_sai(tmp_path: Path) -> None:
         for _ in range(2):  # (visto) #1847 e #1861: a mesma pilha duas vezes
             g.client.send(5032, pb.CallBackReqMsg(mapId=6001, nodeId=600108, cmd=2))
             got = await g.idle()
-            assert codes(got) == [115, 111, 83] and text(got[2]) == "Received: Wood x2"
+            assert codes(got) == [115, 4476, 111, 83] and text(got[3]) == "Received: Wood x2"  # #1848-#1860
         snap = await characters.snapshot(g.user_id)
         assert rules.goods_count(snap, WOOD) == 4  # a missão 102 (tipo 32) lê a bolsa
 
@@ -203,7 +203,7 @@ async def test_pedreira_entra_colhe_luta_e_sai(tmp_path: Path) -> None:
         got = await g.until(157)
         assert codes(got) == [140, 157]  # inglesa #1929-#1930
         got = await g.fight(pb.BattlePrepareMsg.FromString(got[-1].body)) + await g.idle()
-        assert codes(got)[-8:] == [115, 111, 140, 4103, 150, 100, 83, 4382]  # inglesa #2050-#2070
+        assert codes(got)[-9:] == [115, 4476, 111, 140, 4103, 150, 100, 83, 4382]  # inglesa #2050-#2070
         assert text(got[-2]) == "Received: Wood x18"
         assert rules.goods_count(await characters.snapshot(g.user_id), WOOD) == 22
 

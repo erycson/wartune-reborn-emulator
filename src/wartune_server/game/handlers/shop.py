@@ -39,13 +39,16 @@ PRICE_COLUMNS = ("Point", "GiftToken", "Gold", "Honor", "ConsortiaOffer", "MazeC
 MYSTERY, BLOOD, MAIN_OFFER = "5", "100", "99"  # ShopType: misteriosa, poção de HP, itens das ofertas da home
 MAZE = "4"  # ShopType: loja do labirinto, preço em Crypt Tokens (208009, MazeCoin)
 MYSTERY_FRESH = timedelta(seconds=14400)  # cliente: MysteryShopModel.remainTime = 14400 - (agora - freshLastdate)
-MYSTERY_GOODS = 8  # ponytail: a tela da loja misteriosa não está no cliente decompilado; 8 é palpite
+MYSTERY_GOODS = 6  # MysteryShopModel.MAX_GOODS_NUM; o MysteryShopFrame cria 6 BuyGoodsItem
+MYSTERY_GRADE = 26  # MysteryShopView: "Unlocks at Lvl. 26."
 MAX_COUNT = 999
 
 
 def price(row: Row) -> tuple[str, int] | None:
     """(coluna, preço unitário) como ``ShopGoodsInfo.setPrice``; None = moeda que não existe aqui."""
-    if row.get("ShopType") in ("8", "15", "13", "20"):  # pontuações de outros sistemas (Score)
+    # pontuações de outros sistemas (Score); 7 = troca por pontos da misteriosa (MysteryShopFrame página 2): a linha
+    # pode ter GiftToken, mas o Score também é cobrado, e quanto se ganha de ponto por compra não tem fonte
+    if row.get("ShopType") in ("7", "8", "15", "13", "20"):
         return None
     return next(((k, int(row[k])) for k in PRICE_COLUMNS if int(row.get(k) or 0) > 0), None)
 
@@ -58,6 +61,13 @@ class Charge:
     gold: bool = False
     changed: list[Item] = field(default_factory=list)
     gone: list[Item] = field(default_factory=list)
+
+
+def binds(column: str) -> bool:
+    """O item comprado nasce vinculado? Só o pago em Balens (coluna ``Point``, que o ``charge`` cobra sem vinculado)
+    sai livre: as lojas das outras moedas são vinculadas (``warlords.WarlordsShopFrame.helpContent`` "All items
+    obtained from the Glory Shop are bound", ``View.subshop.MineralShopFrame.describe`` da ametista)."""
+    return column != "Point"
 
 
 def charge(snap: PlayerSnapshot, column: str, total: int, pay_type: int, ref: str, now: datetime) -> Charge | None:
@@ -97,7 +107,7 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
         return VIP
     maze = row.get("ShopType") == MAZE
     if maze and (int(row.get("MazeLayers") or 0) > MAZE_MAX_INDEX or int(row.get("MazeLayers2") or 0) > 0):
-        # ponytail: o cliente esconde o botão se o andar passa do maxIndex (GoodsItem.as:380; o 4205 manda 60 fixo)
+        # ponytail: o cliente esconde o botão se o andar passa do maxIndex (GoodsItem.as:380; o 4205 manda 0)
         # ou se é do segundo labirinto (towerInfo2 nunca chega). Progresso real do labirinto não existe. Código: dedução
         return FAIL
     if int(row.get("NeedConsortiaLevels") or 0) > 0:  # depende da guilda
@@ -110,7 +120,8 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
     limit = int(row.get("VIP0Count") or -1)
     if limit != -1 and today_count(snap, int(row["Id"]), s.ctx.clock.now()) + count > limit:
         return LIMIT
-    if not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], s.ctx.clock.now(), valid_minutes(row)):
+    now, column = s.ctx.clock.now(), price(row)[0]  # type: ignore[index]
+    if not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], now, valid_minutes(row), binds(column)):
         return FAIL  # o oficial manda pelo correio (12); aqui não há correio
     return OK
 
@@ -195,7 +206,7 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     if paid is None:
         return NO_MONEY
     tid = int(row["ItemId"])
-    got = bag.add(snap, templates, tid, info.count, now, valid_minutes(row))
+    got = bag.add(snap, templates, tid, info.count, now, valid_minutes(row), binds(column))
     rec = count_buy(snap, info.goodId, info.count, now)
     extra = [paid.ledger] if paid.ledger else []
     bought = purchase(snap, "shop", info.goodId, tid, info.count, column, unit * info.count, now)
@@ -375,7 +386,7 @@ def _mystery_list(s: GameSession, shop: MysteryShop) -> pb.ShopFreshRspMsg:
     out = pb.ShopFreshRspMsg(freshLastdate=b.fmt_time(shop.fresh_at), buyCount=shop.buy_count)
     out.maxBuyCount = _config(s, "ShopBuy_MaxCount", 20, "神秘")
     out.itemId.extend(goods)
-    out.isCanBuy.extend(0 if i in bought else 1 for i in range(len(goods)))
+    out.isCanBuy.extend(1 if i in bought else 0 for i in range(len(goods)))  # BuyGoodsItem: 0 = à venda, 1 = comprado
     return out
 
 
@@ -384,6 +395,9 @@ async def mystery_fresh(s: GameSession, msg: pb.ShopFreshReqMsg) -> None:
     """Lista da loja misteriosa (4384); ``isButton`` = atualizar pagando ``ShopFresh_NeedDiamond``."""
     snap = s.snapshot
     assert snap is not None
+    if snap.character.grades < MYSTERY_GRADE:
+        s.log.info("8483 recusado: nível", nivel=snap.character.grades)
+        return
     now = s.ctx.clock.now()
     shop = _mystery(s)
     extra: list[object] = []
@@ -413,11 +427,13 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
     row = templates.get("ShopTempInfos", msg.itemId, key="Id")
     valid = 0 <= msg.index < len(goods) and goods[msg.index] == msg.itemId and msg.index not in bought
     result, paid = OK, None
-    if not valid or row is None or (p := price(row)) is None:
+    if snap.character.grades < MYSTERY_GRADE:
+        result = LEVEL
+    elif not valid or row is None or (p := price(row)) is None:
         result = GONE
     elif shop.buy_count >= _config(s, "ShopBuy_MaxCount", 20, "神秘"):
         result = LIMIT
-    elif not bag.fits(snap, templates, [(int(row["ItemId"]), 1)], now):
+    elif not bag.fits(snap, templates, [(int(row["ItemId"]), 1)], now, binds=binds(p[0])):
         result = FAIL
     elif (paid := charge(snap, p[0], p[1], msg.payType, f"mystery:{msg.itemId}", now)) is None:
         result = NO_MONEY
@@ -426,13 +442,13 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
         send(s, S_MYSTERY_BUY, pb.ShopItemBuyRspMsg(result=result, buyCount=shop.buy_count, score=0))
         return
     assert row is not None
+    cost = price(row)
+    assert cost is not None  # cobrado acima: tem preço
     tid = int(row["ItemId"])
-    got = bag.add(snap, templates, tid, 1, now)
+    got = bag.add(snap, templates, tid, 1, now, binds=binds(cost[0]))
     shop.bought = ",".join(map(str, [*bought, msg.index]))
     shop.buy_count += 1
     extra = [paid.ledger] if paid.ledger else []
-    cost = price(row)
-    assert cost is not None  # cobrado acima: tem preço
     record = purchase(snap, "mystery", msg.itemId, tid, 1, cost[0], cost[1], now)
     await s.ctx.characters.save(snap.character, shop, *paid.changed, *got, *extra, record, delete=tuple(paid.gone))
 
