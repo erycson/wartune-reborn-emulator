@@ -321,8 +321,8 @@ async def _open_chest(s: GameSession, node: dict[str, object]) -> None:
     assert row is not None
     # reaberto depois de relogar antes do 16700: o baú volta, a arma não
     if not any(i.template_id == template_id for i in snap.items):
-        skill = int(row.get("DefaultSkill", 0))
-        item = Item(s.player_id, template_id, pos=rules.free_bag_pos(snap), random_skill=skill)
+        item = Item(s.player_id, template_id, pos=rules.free_bag_pos(snap))
+        item.random_skills = bag.roll_random_skills(s.ctx.templates, template_id)
         snap.items.append(item)
         await s.ctx.characters.save(item)
         _send(s, S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))

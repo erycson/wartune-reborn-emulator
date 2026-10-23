@@ -51,10 +51,8 @@ def card(
     new, _ = rewards.grant(snap, templates, drop)
     text = rewards.received(templates, drop)  # (visto) inglesa #1123 "Received: Banshee Plume x1"
     item = new[0]
-    slots = int((templates.get("ItemTempInfos", item.template_id) or {}).get("RandomSkillCount") or 0)
-    if slots:  # inglês #1122/#1544: 1 atributo no 1080012 (RandomSkillCount 1); 3 no 1080013 só turco (replay #1241)
-        skills = bag.random_skill_pool(templates)
-        item.random_skills = [rng.choice(skills) for _ in range(slots)]
+    # inglês #1122/#1544: 1 atributo no 1080012 (RandomSkillCount 1); 3 no 1080013 só turco (replay #1241)
+    item.random_skills = bag.roll_random_skills(templates, item.template_id, rng)
     s1, s2, s3, s4, s5 = item.random_skills
     msg = pb.CampaignTakeCardsMsg(
         playerId=snap.character.id or 0,

@@ -441,12 +441,15 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
 
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=44, posY=22))
         got = await g.until(157)
-        # devoção do leed 10 "Plunder another player" no ataque, antes da luta (tutorial_en #1648-#1652; lá o 83 vem
-        # depois dos 140)
-        assert [p.code for p in got] == [4152, 83, 140, 140, 140, 157]
+        # devoção do leed 10 "Plunder another player" no ataque, antes da luta (tutorial_en #1648-#1657; lá o 83 vem
+        # depois dos 140): exército ×2, o próprio castelo, 4452, 3 com o ataque gasto, o robô em luta
+        assert [p.code for p in got] == [4152, 83, 140, 140, 140, 4452, 3, 140, 157]
+        own = pb.MapUpdatedMsg.FromString(got[4].body)
+        assert (own.updatedType, own.baseCastle.occupyPlayerId) == (2, g.user_id)
+        assert pb.PlayerMsg.FromString(got[6].body).attackLeftCount == 4
         leed = pb.LeedUpdatedRspMsg.FromString(got[0].body)
         assert ([x.templateId for x in leed.leed], leed.totalNum) == ([10], 10)
-        robot = pb.MapUpdatedMsg.FromString(got[4].body)
+        robot = pb.MapUpdatedMsg.FromString(got[7].body)
         assert (robot.updatedType, robot.baseCastle.id, robot.baseCastle.state) == (2, 765958, 4)
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
         assert (prepare.battleType, prepare.mapTempId) == (4, 993)
@@ -466,7 +469,7 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
         report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
         assert report.battleScene == 6
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
-        assert after == [150, 109, 3, 4103, 150, 100, 140, 140, 140, 112, 3, 4382]  # #1758-#1770 sem o 150 cheio
+        assert after == [150, 109, 3, 4103, 150, 100, 112, 148, 140, 140, 140, 4382]  # #1758-#1770 sem o 150 cheio
         back = pb.MapUpdatedMsg.FromString([p.body for p in got if p.code == 140][-1])
         assert (back.baseCastle.id, back.baseCastle.state) == (765958, 1)
         # a missão 100 conta vencendo ou perdendo (#1765: derrota com condition_1 1)

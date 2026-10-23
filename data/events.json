@@ -1,6 +1,6 @@
 {
   "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. O painel mostra toda atividade que ainda não acabou (endDate), também as que vão começar. Depois das duas do operador (Login Bonus e presente online, sem fim) vêm as 41 do oficial inglês (tutorial_en #60-#67, datas de 2026-10-01 a 2026-11-04) e mais 2 que o 4475 de oficial_encantar #63/#68 trouxe (Recharge Bonus I-1023, tipo 15, e 10/22 Online Bonus, tipo 14), cada uma depois da vizinha que o oficial manda antes dela. Pacote: condition = [conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4] (os zeros do fim podem faltar); items = [TemplateId, quantidade] ou [TemplateId, quantidade, templateType], e templateType 4 é o custo da troca (só aparece; não é dado); limit = trocas por jogador no tipo 10 (0 ou ausente = sem limite). Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP), 14 (presente online diário, condição 15 = segundos online desde o último resgate), 10 (troca, condição 11 = ter conditionValue do item conditionBak), 1 (Balens gastos no período, condição 9) e os contados de docs/eventos.md (12, 21, 22, 26, 108, 109, 110); os outros ficam 'ainda não'. Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
-  "dataStamp": 5,
+  "dataStamp": 6,
   "actives": [
     {
       "activeId": "A0000013-0000-0000-0000-000000000001",
@@ -28,10 +28,10 @@
       "beginDate": "2026-01-01 00:00:00",
       "endDate": "2099-12-31 23:59:59",
       "packages": [
-        {"packageId": "B0000014-0000-0000-0000-000000000001", "order": 1, "condition": [15, 600], "items": [[-100, 10000], [3040001, 5]]},
-        {"packageId": "B0000014-0000-0000-0000-000000000002", "order": 2, "condition": [15, 1800], "items": [[-300, 10000], [2126023, 1]]},
-        {"packageId": "B0000014-0000-0000-0000-000000000003", "order": 3, "condition": [15, 1800], "items": [[-500, 20], [21260987, 1]]},
-        {"packageId": "B0000014-0000-0000-0000-000000000004", "order": 4, "condition": [15, 1800], "items": [[-500, 20], [21260987, 1]]}
+        {"packageId": "B0000014-0000-0000-0000-000000000001", "order": 1, "condition": [15, 1800, 40], "items": [[-300, 10000], [-100, 10000], [2120043, 1]]},
+        {"packageId": "B0000014-0000-0000-0000-000000000002", "order": 2, "condition": [15, 1800, 40], "items": [[-300, 10000], [2120043, 1], [3040001, 1]]},
+        {"packageId": "B0000014-0000-0000-0000-000000000003", "order": 3, "condition": [15, 1800, 40], "items": [[-600, 10000], [208023, 1], [2120043, 2]]},
+        {"packageId": "B0000014-0000-0000-0000-000000000004", "order": 4, "condition": [15, 1800, 40], "items": [[-500, 20], [-100, 20000], [21261038, 1]]}
       ]
     },
     {

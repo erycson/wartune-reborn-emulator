@@ -31,7 +31,8 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 Itens fora da loja:
 - Refino da forja (8336): sorteio uniforme entre os 1584 atributos com `Grades` > 0 (visto: os 42 das capturas têm Grades 1–10). Falta o peso por nível: **precisa de captura** 8336 → 4258 com itens de NeedGrades baixo e alto. Pedras por `Profile` e cadeado (208027 ou 45 Balens) já vêm da `RefreshView` inglesa.
 - Avaliação de moda (8781) e composição de moda (8594): o cliente inglês tem as travas e os custos (ver [itens.md](itens.md)), não o resultado. **sem dado**.
-- Itens novos ganham só o `DefaultSkill` como atributo sorteado (o oficial sorteia `RandomSkillCount`). *(visto)* o Kronos’un Yetkisi da loja do labirinto (`yeralti_labirent_marketi_alisveris`) chegou com cinco `randomSkill`; falta a regra do sorteio (**precisa de captura** de mais compras de equipamento com `RandomSkillCount`).
+- `randomSkill` dos itens novos: **feito** pela faixa do nível ([itens.md](itens.md)). **TODO(inventado)**: o tipo 701
+  sem amostra e o peso dentro da faixa (uniforme); o refino (8336) sorteia igual, sem captura.
 - Sem teto diário para Beden e EXP vindos de itens. **dedução**.
 - Títulos (8597): lista vazia. **depende de**: conquistas.
 - ~~Poções de atributo sem efeito~~: somam no `total*` do herói (150 no uso e no 8283); ~~pergaminho de EXP fora do
@@ -99,8 +100,10 @@ Outros eventos:
 
 - Mapa compartilhado: **parcial**. O mapa do castelo é uma instância de cada conta (minas e castelo só do
   jogador). Nos mapas 1 a 5 o 4129 leva os castelos de outros jogadores nas grades. Não existem: exércitos
-  alheios andando (169, 4167, 4168; precisa de presença entre sessões) e os castelos NPC "Köy" (precisa da
-  tabela de castelos por mapa). Minas dos mapas 1 a 5: **feito** ([cidade-externa.md](cidade-externa.md#minas-do-mundo-mapas-1-a-5-gameminespy));
+  alheios andando (169, 4167, 4168; precisa de presença entre sessões). Castelos NPC dos mapas 1 a 5: **feito**
+  ([cidade-externa.md](cidade-externa.md#castelos-npc-do-mundo-mapas-1-a-5-gamenpc_castlespy)); **TODO(inventado)**:
+  os das grades não vistas, a vida das pilhas fora do grau 12, o ouro da vitória e o título do relatório. Minas dos
+  mapas 1 a 5: **feito** ([cidade-externa.md](cidade-externa.md#minas-do-mundo-mapas-1-a-5-gameminespy));
   **TODO(inventado)**: minas das grades não vistas, guardas 21-60, a luta pela mina de outro jogador e as cartas.
   O 5160 luta só contra mina livre; castelo e exército alheio só param o exército. 8488 (PvP no mapa) e 5004
   só registram. **precisa de captura**: resposta do 5160 e do 8488 contra castelo ou exército alheio.
@@ -224,7 +227,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/arena.py:362](../src/wartune_server/game/arena.py#L362) | perda não vista, não tira pontos |
 | [game/arena.py:366](../src/wartune_server/game/arena.py#L366) | fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura (só turco) |
 | [game/arena.py:407](../src/wartune_server/game/arena.py#L407) | ~ o dano da captura turca do torneio (golpe básico ≈ vida/40): sem defesa, (A - 0) × 0,5 = vida/40 |
-| [game/bag.py:97](../src/wartune_server/game/bag.py#L97) | o oficial sorteia randomSkill_1..N (RandomSkillCount); a tabela do sorteio não está nos |
 | [game/battle.py:60](../src/wartune_server/game/battle.py#L60) | a regra por skill não foi decifrada |
 | [game/battle.py:448](../src/wartune_server/game/battle.py#L448) | a iniciativa do oficial não foi decifrada (#727 e #782 têm as mesmas unidades e ordens |
 | [game/builders/login.py:250](../src/wartune_server/game/builders/login.py#L250) | 1 exército por personagem; tabela própria quando houver tropas extras |
@@ -259,7 +261,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/forge.py:50](../src/wartune_server/game/handlers/forge.py#L50) | o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar) |
 | [game/handlers/forge.py:254](../src/wartune_server/game/handlers/forge.py#L254) | autoBuy (comprar o que falta) não |
 | [game/handlers/forge.py:266](../src/wartune_server/game/handlers/forge.py#L266) | o espaço é conferido antes de consumir (pode recusar quando os materiais liberariam lugar) |
-| [game/handlers/forge.py:432](../src/wartune_server/game/handlers/forge.py#L432) | a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos |
 | [game/handlers/forge.py:571](../src/wartune_server/game/handlers/forge.py#L571) | a bênção zera no sucesso (o cliente não diz; a barra recomeça do 0 no próximo nível). |
 | [game/handlers/gemmaze.py:73](../src/wartune_server/game/handlers/gemmaze.py#L73) | o oficial manda 0 para personagem novo; o contador não foi capturado |
 | [game/handlers/gemmaze.py:79](../src/wartune_server/game/handlers/gemmaze.py#L79) | ranking semanal não existe aqui (o oficial manda 1771 para um jogador de topo) |
@@ -290,7 +291,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/offer.py:346](../src/wartune_server/game/handlers/offer.py#L346) | sem compra de vagas extras |
 | [game/handlers/outer_city.py:44](../src/wartune_server/game/handlers/outer_city.py#L44) | velocidade fixa, sem |
 | [game/handlers/outer_city.py:188](../src/wartune_server/game/handlers/outer_city.py#L188) | os exércitos alheios não aparecem (o 169 é só o próprio): a posição de outro jogador só existe |
-| [game/handlers/outer_city.py:480](../src/wartune_server/game/handlers/outer_city.py#L480) | Daru e ouro saqueado da vitória sem captura, saem 0. |
 | [game/handlers/pets.py:57](../src/wartune_server/game/handlers/pets.py#L57) | a chance da bênção não está no cliente; 10% até haver captura |
 | [game/handlers/pets.py:59](../src/wartune_server/game/handlers/pets.py#L59) | quanto um Sepulcrum dá na aptidão não está no cliente ("Randomly improves one aptitude that is not maxed") |
 | [game/handlers/pets.py:240](../src/wartune_server/game/handlers/pets.py#L240) | família (tipo, NeedGrade, cor) = template: é a leitura que fecha os 24 pares de receita com um |
@@ -344,7 +344,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/monsters.py:21](../src/wartune_server/game/monsters.py#L21) | prêmio 0 (nenhuma fonte; ver docs/cidade-externa.md) e luta sozinho (o state 4 deixa |
 | [game/outer_city.py:34](../src/wartune_server/game/outer_city.py#L34) | 2 pilhas de 10102 com 282 de vida cada, as do robô de grau 8 (o único do catálogo); outro grau sem captura |
 | [game/outer_city.py:81](../src/wartune_server/game/outer_city.py#L81) | o oficial escolhe um ponto livre; usamos o centro (só turco: transfer, mapa 2 em 2191,1952, perto do |
-| [game/rewards.py:74](../src/wartune_server/game/rewards.py#L74) | o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela |
 | [game/rules.py:38](../src/wartune_server/game/rules.py#L38) | guerreiro e caçador são o espelho |
 | [game/rules.py:73](../src/wartune_server/game/rules.py#L73) | o total é dedução (o cliente só lê o pronto) e a batalha do mascote (``arena.pet_unit``) não soma. |
 | [game/rules.py:345](../src/wartune_server/game/rules.py#L345) | teto de salto em vez da lista exata de saveId; a lista seria o próximo passo |

@@ -436,10 +436,16 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
     if use_bound and not item.is_binds:
         item.is_binds = True
         changed.append(item)
-    # ponytail: a tabela de sorteio do oficial não está nos templates: sorteio uniforme entre os atributos
-    # com Grades > 0 (sem peso por nível: precisa de captura 8336 -> 4258)
-    pool = bag.random_skill_pool(s.ctx.templates)
-    skills = [cur if locks[i] else random.choice(pool) for i, cur in enumerate(item.random_skills[:slots])]
+    # TODO(inventado): o refino sorteia como o item novo (``bag.roll_random_skill``: faixa do nível do item, tipos
+    # distintos dos travados e dos já sorteados); falta captura 8336 -> 4258 para conferir. Mascote: uniforme entre
+    # todos os atributos com Grades > 0
+    need, rng, pool = int(row.get("NeedGrades") or 0), random.Random(), bag.random_skill_pool(s.ctx.templates)
+    skills = [cur if locks[i] else 0 for i, cur in enumerate(item.random_skills[:slots])]
+    for i, cur in enumerate(skills):
+        if cur:
+            continue
+        taken = [k // 100 for k in skills if k]
+        skills[i] = rng.choice(pool) if pet else bag.roll_random_skill(s.ctx.templates, need, rng, taken)
     _pending[item.id or 0] = skills
     # (visto) tempinfos: 769 "Refine a Piece of Equipment" = tipo 47, Para1 0, Para2 1; conta no 8336, não no 8339
     # (dedução)

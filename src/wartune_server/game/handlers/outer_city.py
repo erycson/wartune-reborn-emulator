@@ -14,17 +14,29 @@ import asyncio
 import math
 import random
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy.exc import IntegrityError
 
 from ...domain.errors import NotFoundError
-from ...domain.models import Castle, Item, Mail, MailType, PlayerSnapshot, TreasureCacheOpen, WildLand, WildMonsterKill
+from ...domain.models import (
+    Castle,
+    Item,
+    Mail,
+    MailType,
+    Pawn,
+    PlayerSnapshot,
+    TreasureCacheOpen,
+    WildLand,
+    WildMonsterKill,
+)
 from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
-from .. import bosses, mines, monsters, rewards, robots, rules
+from .. import bosses, mines, monsters, npc_castles, rewards, robots, rules
 from .. import caches as tc
 from .. import castle as cs
 from .. import outer_city as oc
@@ -45,7 +57,7 @@ from .wild_boxes import drop_box, send_boxes
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
-S_ITEMS, S_UNOCCUPY = 115, 108
+S_ITEMS, S_UNOCCUPY, S_CASTLE_TIME = 115, 108, 4452
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
 # tutorial_en #773-#777: 18 tiles em 2,34 s (do 140 andando ao 140 parado). ponytail: velocidade fixa, sem
 # montaria nem efeitos
@@ -290,6 +302,9 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     # (visto) tutorial_en #532: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
         reply.baseCastle.add().CopyFrom(b.complete(robots.robot_castle_msg(snap, s.ctx.world, robot)))
+    # (visto) oficial_20261023-153200-1 #197: os castelos NPC do mundo junto dos castelos
+    for npc in npc_castles.castles_in(s.ctx.world, s.ctx.templates, msg.mapId, grids):
+        reply.baseCastle.add().CopyFrom(b.complete(npc_castles.castle_msg(npc)))
     for castle, name in await _rivals(s, grids, msg.mapId):
         reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
     s.send(S_PHYSICS, reply)
@@ -457,7 +472,8 @@ def _army_sync(s: GameSession, state: int) -> None:
 @router.on(5160)
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (tutorial_en #723-#727): 140 do
-    exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô: luta (ver ``_attack_robot``).
+    exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô e castelo NPC do mundo: luta (ver
+    ``_attack_castle``).
     Monstro dos Wilds: luta (ver ``_attack_monster``). Treasure Cache: luta (ver ``_attack_cache``). Mina já
     ocupada ou castelo de outro jogador: o exército só para (140 parado)."""
     snap = s.snapshot
@@ -465,8 +481,10 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     await refresh(s)
     _stop_walk(s)
     robot = robots.robot_at(snap, s.ctx.world, msg.mapId, msg.posX, msg.posY)
-    if robot is not None:
-        if rows := _attack_robot(s, robot):
+    npc = npc_castles.castle_at(s.ctx.world, s.ctx.templates, msg.mapId, msg.posX, msg.posY)
+    if robot is not None or npc is not None:
+        target = _robot_target(s, robot) if robot is not None else _npc_target(s, npc)  # type: ignore[arg-type]
+        if rows := _attack_castle(s, target):
             await s.ctx.characters.save(*rows)
         return
     boxes = tc.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now())
@@ -854,68 +872,133 @@ async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) ->
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
 
 
-def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:
-    """Ataque a um castelo-robô (cliente: MapPhysicsCastle.attack e CityInfoFrame). Recusa com 140 parado,
+@dataclass(frozen=True, slots=True)
+class _Target:
+    """Castelo NPC atacável: o robô da instância (``robots.py``) ou o castelo NPC do mundo (``npc_castles.py``)."""
+
+    id: int
+    grade: int
+    name: str
+    where: tuple[int, int, int]  # mapa, x, y
+    msg: Callable[[int], pb.BaseCastleMsg]  # o 140 com o state
+    spec: Callable[[], dict[str, Any]]
+
+
+def _robot_target(s: GameSession, robot: RobotCastle) -> _Target:
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    name = robots.robot_name(s.ctx.world, snap.character.id or 0, robot)
+    return _Target(
+        robot.id, robot.grade, name, (snap.castle.map_id, robot.x, robot.y),
+        lambda state: robots.robot_castle_msg(snap, s.ctx.world, robot, state),
+        lambda: oc.robot_battle(snap, s.ctx.templates, robot.grade, name),
+    )  # fmt: skip
+
+
+def _npc_target(s: GameSession, c: npc_castles.NpcCastle) -> _Target:
+    snap = s.snapshot
+    assert snap is not None
+    return _Target(
+        c.id, c.grade, c.name, (c.map_id, c.x, c.y), lambda state: npc_castles.castle_msg(c, state),
+        lambda: npc_castles.battle(snap, s.ctx.world, s.ctx.templates, c),
+    )  # fmt: skip
+
+
+def _attack_castle(s: GameSession, target: _Target) -> list[object]:
+    """Ataque a um castelo NPC (cliente: MapPhysicsCastle.attack e CityInfoFrame). Recusa com 140 parado,
     sem luta, se já há luta, se não há ataque no dia (``attackCount`` do cliente) ou se a diferença de nível
-    para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque, manda o 140 do robô em luta
-    (state 4) e luta (``oc.robot_battle``, inglês #1656-#1657).
+    para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque e manda, na ordem do oficial
+    (tutorial_en #1648-#1657, oficial_20261023-171155-1 #740-#749): o leed 10, 140 do exército lutando, 140 do
+    próprio castelo, 4452 (``defenceLefttime`` 0: atacar acaba a proteção, que aqui não existe), 3 com o
+    ``attackLeftCount`` novo, 140 do castelo em luta (state 4) e a luta.
     (dedução) o ataque sai do contador do dia (o mesmo do 9506, "x/5" do AttackAlertFrame). O contador e a
-    devoção (leed 10, logo no ataque: tutorial_en #1648-#1649) voltam para quem chama gravar logo depois da luta
-    criada: cair no meio da luta não devolve o ataque."""
+    devoção voltam para quem chama gravar logo depois da luta criada: cair no meio da luta não devolve o ataque."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None and snap.arena is not None
     c, arena, now = snap.character, snap.arena, s.ctx.clock.now()
     if A.roll_day(arena, now):
         s.send(S_RESET, A.data_reset(snap, now))
-    if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - robot.grade) >= 10:
-        s.log.info("5160 castelo-robô recusado", castelo=robot.id, ataques=arena.attack_left, nivel=c.grades)
+    if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - target.grade) >= 10:
+        s.log.info("5160 castelo NPC recusado", castelo=target.id, ataques=arena.attack_left, nivel=c.grades)
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
         return []
     arena.attack_left -= 1  # sem await até criar a luta: dois 5160 seguidos não gastam o mesmo ataque
     rows = events.leed_gain(s, events.PLUNDER_LEED)
     _army_sync(s, ARMY_FIGHTING)
-    _robot_sync(s, robot, CASTLE_FIGHTING)
-    name = robots.robot_name(s.ctx.world, c.id or 0, robot)
-    spec = oc.robot_battle(snap, s.ctx.templates, robot.grade, name)
+    own = b.complete(b.castle_msg(snap, snap.castle))
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=own))
+    s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))
+    _send_player(s)
+    _target_sync(s, target, CASTLE_FIGHTING)
+    spec = target.spec()
 
     async def finished(battle: Battle, won: bool) -> None:
-        await _castle_over(s, battle, robot, won)
+        await _castle_over(s, battle, target, won)
 
     s.battle = Battle(
         spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
     )
-    s.log.info("batalha com castelo-robô", castelo=robot.id, battle=s.battle.id)
+    s.log.info("batalha com castelo NPC", castelo=target.id, battle=s.battle.id)
     s.battle.start()
     return [arena, *rows]
 
 
-def _robot_sync(s: GameSession, robot: RobotCastle, state: int) -> None:
-    snap = s.snapshot
-    assert snap is not None
-    castle = b.complete(robots.robot_castle_msg(snap, s.ctx.world, robot, state))
-    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=castle))
+def _target_sync(s: GameSession, target: _Target, state: int) -> None:
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=b.complete(target.msg(state))))
 
 
-async def _castle_over(s: GameSession, battle: Battle, robot: RobotCastle, won: bool) -> None:
-    """Fim da luta com o castelo-robô (inglês #1758-#1770): 150, 4103 (battleScene 6), 150, 100, 140 do exército,
-    140 do robô de volta ao state 1, 112 e 4382. Conta o tipo 8 com Para1 1 na vitória e 0 na derrota (#1765: a
-    missão 100 conta perdendo; 765 pede a vitória). O Daru são os soldados perdidos (``_casualties``; #1762:
-    strategyBonus 172 = as 172 tropas de #1758). ponytail: ouro saqueado da vitória sem captura, sai 0.
-    Grava o contador de ataques em uma save."""
+async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: bool) -> None:
+    """Fim da luta com o castelo NPC (tutorial_en #1758-#1770, oficial_20261023-171155-1 #819-#833): 150, 109, 3,
+    4103 (battleScene 6), 150, 100, 112, 148 (o relatório da batalha), 140 do exército, 140 do castelo de volta ao
+    state 1 e 4382. Conta o tipo 8 com Para1 1 na vitória e 0 na derrota (#1765: a missão 100 conta perdendo; 765
+    pede a vitória). O Daru são os soldados perdidos (``_casualties``; #1762: strategyBonus 172 = as 172 tropas de
+    #1758). TODO(inventado): ouro saqueado da vitória (as 3 lutas vistas são derrotas), sai 0."""
     snap = s.snapshot
     assert snap is not None and snap.arena is not None
-    templates = s.ctx.templates
+    templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
+    pawn = next((p for p in snap.pawns if p.army_count > 0), None)
+    fight = _capacity(s)
     daru = await _casualties(s, battle, won, oc.ROBOT_SCENE)
-    s.battle_strategy = 0  # o 4382 do robô sai aqui mesmo (#1770)
-    _army_sync(s, ARMY_IDLE)
-    _robot_sync(s, robot, CASTLE_IDLE)
+    s.battle_strategy = 0  # o 4382 do castelo sai aqui mesmo (#1770)
     quests = rules.quest_event(snap, templates, ATTACK_CASTLE, int(won), 1)
+    letter = _castle_report(s, target, won, pawn, daru, fight, now)
     await s.ctx.characters.save(snap.character, snap.arena, *quests)
+    await s.ctx.characters.write(lambda uow: stage(uow, letter))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    _send_player(s)  # attackLeftCount novo
+    notify(s.ctx.online, letter)
+    s.log.info("relatório do castelo NPC", castelo=target.id, carta=letter.id, venceu=won)
+    _army_sync(s, ARMY_IDLE)
+    _target_sync(s, target, CASTLE_IDLE)
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
+
+
+def _castle_report(
+    s: GameSession, target: _Target, won: bool, pawn: Pawn | None, lost: int, fight: int, now: datetime
+) -> Mail:
+    """A carta do 148 (tutorial_en #1766, oficial_20261023-171155-1 #827 e #1985): relatório de batalha (``MailType``
+    3, o XML de ``oc.report_contents``). TODO(inventado): o título (o oficial manda a carta por HTTP, fora da
+    captura) e as perdas do castelo (0)."""
+    snap = s.snapshot
+    assert snap is not None and snap.leader is not None
+    templates = s.ctx.templates
+    spec = target.spec()
+    enemy = spec["heroes"][0] if spec["heroes"] else {}
+    side2 = [u for u in spec["soldiers"] if u["side"] == 2]
+    pawn_name = str((templates.get("PawnTempInfos", pawn.template_id) or {}).get("PawnName", "")) if pawn else ""
+    enemy_pawn = str((templates.get("PawnTempInfos", side2[0]["tempId"]) or {}).get("PawnName", "")) if side2 else ""
+    map_id, x, y = target.where
+    contents = oc.report_contents(
+        {"type": 1, "time": mines.game_date(now), "camp": 1, "result": 1 if won else 2, "playerName": target.name,
+         "siteName": "", "pos": f"{x},{y}", "mapId": map_id},
+        {"heroId": snap.leader.template_id, "site1Name": pawn_name, "site1Count": lost, "site2Name": "",
+         "site2Count": 0, "strategy": lost, "gold": 0, "fight": fight, "grade": snap.character.grades, "crystal": 0},
+        {"heroId": enemy.get("tempId", 0), "site1Name": enemy_pawn, "site1Count": 0, "site2Name": "",
+         "site2Count": 0, "strategy": 0, "gold": 0, "fight": 0, "grade": target.grade, "crystal": 0},
+    )  # fmt: skip
+    title = f"Battle Report: {target.name}"
+    return Mail(snap.character.id or 0, now, title, contents, mail_type=MailType.BATTLE_REPORT, send_type=SYSTEM_SENDER)
 
 
 @router.on(8488)
@@ -956,6 +1039,20 @@ async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     _send_player(s)
 
 
+async def _tile_taken(s: GameSession, map_id: int, x: int, y: int) -> bool:
+    """O tile tem mina, castelo NPC, robô ou o castelo de outro jogador (o 5160 ali acharia esse)."""
+    snap = s.snapshot
+    assert snap is not None
+    world, templates = s.ctx.world, s.ctx.templates
+    if npc_castles.tile_taken(world, templates, map_id, x, y) or mines.mine_at(world, map_id, x, y) is not None:
+        return True
+    if robots.robot_at(snap, world, map_id, x, y) is not None:
+        return True
+    own = snap.character.id or 0
+    castles = await s.ctx.characters.read(lambda uow: uow.castles.on_map(map_id))
+    return any((c.pos_x, c.pos_y) == (x, y) and c.character_id != own for c in castles)
+
+
 @router.on(5176)
 async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     """Muda o castelo de lugar.
@@ -976,7 +1073,10 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             s.log.info("5176 recusado", motivo="ponto fora do mapa")
             _castle_state(s)
             return
-        # shortcut: não confere se o tile é de uma mina do mundo; resolver com a tabela de lugares de castelo
+        if await _tile_taken(s, castle.map_id, msg.posX, msg.posY):
+            s.log.info("5176 recusado", motivo="tile ocupado", x=msg.posX, y=msg.posY)
+            _castle_state(s)
+            return
         target, spot, need = castle.map_id, (msg.posX, msg.posY), oc.ENERGY_SAME_MAP
     else:
         if not oc.map_allowed(msg.magId, c.grades) or oc.map_size(templates, msg.magId) is None:
@@ -984,6 +1084,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             _castle_state(s)
             return
         target, spot, need = msg.magId, oc.centre(templates, msg.magId), oc.ENERGY_OTHER_MAP
+        while await _tile_taken(s, target, *spot):  # (dedução) o vizinho livre à direita do centro
+            spot = (spot[0] + 1, spot[1])
     top = cs.energy_max(templates)
     diamonds = oc.energy_diamonds(castle, top, need)
     entry = None

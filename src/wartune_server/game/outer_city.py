@@ -12,6 +12,7 @@ Exército andando de outro jogador não existe aqui. Minas em ``mines.py``, cast
 from __future__ import annotations
 
 import math
+from xml.sax.saxutils import quoteattr
 
 from ..domain.models import Castle, Pawn, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
@@ -30,6 +31,7 @@ BASE_MAP, INSTANCE_MAP = 100, 100_000  # mapas do castelo começam em 100000xxx 
 # luta com o castelo-robô (inglês #1657): battleType 4 no MapInfos 993 "Plunder City"; o 4103 vem com battleScene 6
 ROBOT_BATTLE_TYPE, ROBOT_MAP, ROBOT_SCENE = 4, 993, 6
 ROBOT_HERO_BASE = 11000  # GameHeroTemp 11001-11030 "Warrior (M)" com Grades = id - 11000 (11008 no robô de grau 8)
+ROBOT_HERO_TOP = 30
 ROBOT_HERO_LIVING, ROBOT_PAWN_LIVINGS = 6, ((4, 1), (5, 7))  # (livingId, pos) das 2 pilhas do robô
 # ponytail: 2 pilhas de 10102 com 282 de vida cada, as do robô de grau 8 (o único do catálogo); outro grau sem captura
 ROBOT_PAWN, ROBOT_PAWN_HP = 10102, 282
@@ -199,20 +201,29 @@ def holder_battle(
     }
 
 
-def robot_battle(snap: PlayerSnapshot, templates: GameTemplates, grade: int, name: str) -> dict[str, object]:
+def robot_battle(
+    snap: PlayerSnapshot,
+    templates: GameTemplates,
+    grade: int,
+    name: str,
+    pawn_id: int = ROBOT_PAWN,
+    pawn_hp: int = ROBOT_PAWN_HP,
+) -> dict[str, object]:
     """Spec da luta com o castelo-robô (inglês #1657): as tropas e o herói do jogador como na mina; do lado 2 o
-    herói ``11000 + grau`` (type 2, nome do robô, skills do SkillScript, vida Live) na 6 e 2 pilhas de 10102."""
+    herói ``11000 + grau`` (type 2, nome do robô, skills do SkillScript, vida Live) na 6 e 2 pilhas de 10102.
+    O castelo NPC do mundo (``npc_castles``) troca as pilhas. TODO(inventado): acima do grau 30 (o último
+    GameHeroTemp 110xx) o herói é o 11030 com a vida × grau / 30."""
     soldiers, pawn_tpl = army_soldiers(snap, templates)
-    pawn = templates.get("PawnTempInfos", ROBOT_PAWN) or {}
+    pawn = templates.get("PawnTempInfos", pawn_id) or {}
     skills = [int(s) for s in (pawn.get("DefaultSkill", ""), pawn.get("HighSkill", "")) if s] * 5
     for living, pos in ROBOT_PAWN_LIVINGS:
         soldiers.append(
-            {"livingId": living, "tempId": ROBOT_PAWN, "type": 1, "side": 2, "pos": pos,
-             "initHp": ROBOT_PAWN_HP, "hp": ROBOT_PAWN_HP, "qteTime": 0, "castTime": 4000, "skillId": skills}
+            {"livingId": living, "tempId": pawn_id, "type": 1, "side": 2, "pos": pos,
+             "initHp": pawn_hp, "hp": pawn_hp, "qteTime": 0, "castTime": 4000, "skillId": skills}
         )  # fmt: skip
-    hero_id = ROBOT_HERO_BASE + grade
+    hero_id = ROBOT_HERO_BASE + min(grade, ROBOT_HERO_TOP)
     row = templates.get("GameHeroTemp", hero_id) or {}
-    hp = max(1, int(row.get("Live") or 1))
+    hp = max(1, int(row.get("Live") or 1) * max(grade, ROBOT_HERO_TOP) // ROBOT_HERO_TOP)
     hero = npc_hero(
         livingId=ROBOT_HERO_LIVING, tempId=hero_id, nickName=name, grade=grade, maxHp=hp, initHp=hp, hp=hp,
         skillId=[int(x) for x in str(row.get("SkillScript", "")).split(",") if x],
@@ -244,3 +255,15 @@ def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
         leftEnergy=castle.energy,
         grade=castle.grade,
     )
+
+
+def report_contents(info: dict[str, object], me: dict[str, object], he: dict[str, object]) -> str:
+    """``Contents`` da carta de relatório de batalha (``MailType`` 3). (cliente) ``BattleReportHelp.covertToBattleInfo``
+    lê o XML: ``info`` (type, time, camp 1 = atacante, result 1 = vitória de quem lê, playerName, siteName, pos "x,y",
+    mapId), ``me`` e ``he`` (heroId, site1Name/site1Count = tropa perdida, site2Name/site2Count, strategy, gold, fight,
+    grade, crystal)."""
+
+    def attrs(d: dict[str, object]) -> str:
+        return " ".join(f"{k}={quoteattr(str(v))}" for k, v in d.items())
+
+    return f"<report><info {attrs(info)}/><me {attrs(me)}/><he {attrs(he)}/></report>"

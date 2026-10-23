@@ -534,6 +534,7 @@ class MailType(IntEnum):
 
     PLAYER = 1
     SYSTEM = 2
+    BATTLE_REPORT = 3
 
 
 @dataclass(eq=False)

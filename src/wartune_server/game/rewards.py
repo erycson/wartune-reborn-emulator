@@ -73,11 +73,8 @@ def grant(
         elif template_id == EXP:
             rules.add_gp(snap, templates, count)
         else:
-            tpl = templates.get("ItemTempInfos", template_id) or {}
-            # ponytail: o oficial sorteia randomSkill_1 nos equipamentos (RandomSkillCount); a tabela
-            # do sorteio não está nos templates, então vai o DefaultSkill (vazio = nenhum)
-            skill = int(tpl.get("DefaultSkill") or 0)
-            item = Item(c.id or 0, template_id, count=count, random_skill=skill)
+            item = Item(c.id or 0, template_id, count=count)
+            item.random_skills = bag.roll_random_skills(templates, template_id)
             item.pos = rules.free_bag_pos(snap)
             snap.items.append(item)
             new.append(item)

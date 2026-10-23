@@ -22,8 +22,8 @@ replay #706 e cevre #11 (só turco) trazem as mesmas 4 minas (ids e posições) 
 a outra. Por isso o servidor mostra ali só o castelo e as minas do próprio jogador; ocupação de outro jogador
 não aparece nem bloqueia. Nos mapas compartilhados (1 a 5) o 8201 traz os castelos dos outros jogadores nas
 grades pedidas. Os 2 castelos-robô da instância existem desde a missão 100 (ver *Castelos-robô*). Não há
-exércitos alheios andando nem os castelos "Köy" do mapa 2 (só turco: transfer). As minas dos mapas 1 a 5 existem (*Minas do
-mundo*), com a ocupação de todos os jogadores. Pedido que depende
+exércitos alheios andando. As minas dos mapas 1 a 5 existem (*Minas do mundo*), com a ocupação de todos os jogadores,
+e os castelos NPC também (*Castelos NPC do mundo*; os "Köy" do mapa 2 da captura turca são esses). Pedido que depende
 disso é recusado ou respondido vazio, do jeito que o cliente espera para não travar.
 
 ## Opcodes C>S
@@ -32,11 +32,11 @@ disso é recusado ou respondido vazio, do jeito que o cliente espera para não t
 |---|---|---|---|
 | 5004 | Registra. Sem resposta | *(cliente)* o cliente não lê resposta do 5004 | — (os exércitos da tela chegam pelo 169) |
 | 5181 | Sem resposta própria. A grade vem no 169 do 8201 | *(visto)* inglesa #715-#719: sem S>C | — |
-| 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100, ocupadas só pelo próprio jogador), o próprio castelo, os castelos-robô da grade (na instância) e, num mapa compartilhado (1 a 5), os castelos de outros jogadores nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* inglesa #716-#719; transfer #14-15 (só turco: no mapa 2 o 4129 traz o castelo de `asiesat` e 20 "Köy"; o 169 traz o exército dele); *(dedução)* castelo de outro jogador com os campos do próprio (a captura não tem um) | exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) e castelos "Köy" sem dono |
+| 8201 | Roda o refresh (ver *Minas de ouro*). 4129 com as minas das grades pedidas (mapa modelo 100, ocupadas só pelo próprio jogador), o próprio castelo, os castelos-robô da grade (na instância) e, num mapa compartilhado (1 a 5), os castelos NPC e os de outros jogadores nas grades pedidas (`baseCastle`); depois 169 com o exército próprio se cair numa grade pedida do mesmo mapa | *(visto)* inglesa #716-#719; transfer #14-15 (só turco: no mapa 2 o 4129 traz o castelo de `asiesat` e 20 "Köy"; o 169 traz o exército dele); *(dedução)* castelo de outro jogador com os campos do próprio (a captura não tem um) | exército de outro jogador (o servidor não guarda a posição dele), terras selvagens fora das 4 minas (no mapa 2 há minas tipo 20 e bosses tipo 21) |
 | 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,13 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* tutorial_en #774-#776 (18 tiles em 2,34 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
 | 9525 | 4938 com os chefes do mapa pedido e o tempo até o próximo refresh (ver *Chefes do mapa*) | *(visto)* inglesa #525-#526, #709-#710 (instância, sem chefes); transfer #7-10 (só turco: mapa 2 com chefes) | luta contra chefe, monstros do mapa, névoa (4939) e caixas (4940) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Roda o refresh. Treasure Cache: luta (ver *Treasure Cache*). Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o robô se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648-#1770 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
+| 5160 | Roda o refresh. Treasure Cache: luta (ver *Treasure Cache*). Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância) ou castelo NPC do mundo: luta com o castelo se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648-#1770 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Na pedreira 6001: a luta da coleta (140, 157; fim com Wood x18). Fora dela, registra | *(visto)* inglesa #1928-#2070 | — |
 | 9506 | Ataque extra: `ConfigInfos` `AddAttck_Point` diamantes (395 nos templates EN, como o texto EN "Additional attack attempts cost 395 Balens"; vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount`. O ataque ao castelo-robô (5160) gasta um e grava na hora | *(cliente)* `m3/.../AttackAlertFrame.as:130` (`setAddAttackCount`; o cliente só confere 98 de saldo, então abaixo do preço o servidor avisa "You don't have enough Balens!") | — |
@@ -156,9 +156,16 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   mina; do lado 2 o herói `11000 + grau` (11008 "Warrior (M)": type 2, nome do robô, nível 8, vida 240, skills
   10711/10811 do `SkillScript`) na pos 6 e 2 pilhas de 10102 com 282 de vida nas pos 1 e 7. A vida das pilhas
   é a da captura (robô de grau 8, o único do catálogo).
-- **Fim** *(visto)* inglesa #1758-#1770: 150, 4103 (`battleScene` 6), 150, 100, 140 ×2 do exército, 140 do robô de
-  volta ao `state` 1, 112, 3 e 4382. A captura é uma derrota: `strategyBonus` 172, as 172 tropas do exército; o
-  PlayerMsg sobe 172 de Daru e o 4382 leva `strategy` 172.
+- **Ataque** *(visto)* inglesa #1648-#1657 e oficial_20261023-171155-1 #740-#749 (`_attack_castle`): 4152 (leed 10),
+  140 ×2 do exército lutando, 140 do próprio castelo, 4452 (`defenceLefttime` 0), 3 com o `attackLeftCount` já
+  gasto, 140 do robô em luta e 157. Aqui o 83 da devoção vem logo depois do 4152 (no oficial, depois dos 140 do
+  exército).
+- **Fim** *(visto)* inglesa #1758-#1770: 150, 109, 3, 4103 (`battleScene` 6), 150, 100, 112, 148 (relatório da
+  batalha), 140 ×2 do exército, 140 do robô de volta ao `state` 1 e 4382. A captura é uma derrota: `strategyBonus`
+  172, as 172 tropas do exército; o PlayerMsg sobe 172 de Daru e o 4382 leva `strategy` 172.
+- **Relatório (148)** *(cliente)*: carta `MailType` 3, que o cliente lê com `BattleReportHelp.covertToBattleInfo`
+  (XML `info`/`me`/`he`: nome e tile do castelo, resultado, tropa perdida, Daru, poder e nível dos dois lados;
+  `oc.report_contents`). **TODO(inventado)**: o título ("Battle Report: nome") e as perdas do castelo (0).
 - **Daru de toda luta com tropa** *(visto)*: é o número de soldados perdidos, ganhando ou perdendo (`_casualties`).
   Na inglesa: Wulfgar 88, Karlan 9, Karda 28, o robô 172 = a queda da reserva. Em `oficial_20261023-153200-1`:
   mina 116 (#1620-#1636), tesouro tipo 22 perdido 201 (#1896-#1909), mina 106 (#2004-#2017). Com perda, o 109
@@ -167,10 +174,9 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 - **Missão**: `quest_event(8, vitória ? 1 : 0, 1)`. Para1 0 = qualquer, então 100 e 411 avançam também na derrota
   (*visto* #1765: a 100 com `condition_1` 1 depois de perder); a 765 (Para1 1) só na vitória. A gravação do
   ataque vai em uma só save.
-- **Vitória: ouro saqueado sem fonte.** A captura só tem a derrota, e o
-  `U_C_ARMY_ATTACK_CASTLE` (97) não tem listener no cliente (só a constante). Então a vitória sai com
-  `goldBonus` 0 (o Daru são as perdas, como em toda luta). O 148 (correio novo, #1766) também fica de fora: o conteúdo da carta não está
-  na captura.
+- **Vitória: ouro saqueado sem fonte.** As 3 capturas são derrotas, e o `U_C_ARMY_ATTACK_CASTLE` (97) não tem
+  listener no cliente (só a constante). **TODO(inventado)**: a vitória sai com `goldBonus` 0 (o Daru são as perdas,
+  como em toda luta).
 - **Níveis** *(cliente + grau 8)*: a diferença menor que 10 deixa atacar até o nível 17. A 411 pede nível 17,
   então só passa no 17. A 765 (nível 12) passa de 12 a 17. Se o grau do oficial for outro, isso muda.
 - **Não feito**: PvP contra castelo de jogador (8488 segue sem alvo, porque exército alheio não existe aqui);
@@ -342,9 +348,30 @@ Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1 "A
   **TODO(inventado)**: título e texto da carta (o cliente lê o correio por HTTP).
 - **5179 Give Up** *(cliente: `FieldItem`, `OuterCityController.sendGiveUp`)*: `position` "x,y"; o ouro até agora sai
   com a mina, 108 com a posição, 109, 152 e 140 da mina livre para quem vê. *(dedução)* sem captura.
-- Baús e monstros não nascem no tile de uma mina (o 5160 acharia o outro).
-- `shortcut:` o castelo de um jogador pode cair no tile de uma mina gerada (o 5176 não confere); some com a tabela de
-  lugares de castelo (passo dos castelos NPC).
+- Baús e monstros não nascem no tile de uma mina nem de um castelo NPC (o 5160 acharia o outro).
+- **5176** no mesmo mapa recusa (105 como está) o tile de mina, castelo NPC, robô ou castelo de outro jogador; mudando
+  de mapa, o castelo vai para o centro ou, ocupado, para o vizinho livre à direita (*dedução*).
+
+## Castelos NPC do mundo (mapas 1 a 5, `game/npc_castles.py`)
+
+Fonte: oficial_20261023-153200-1 #197/#1524/#1531/#1532 e oficial_20261023-171155-1 #290, #740-#833, #1886-#1993.
+
+- **Vistos** *(visto)*: 5 no mapa 1, iguais nas duas capturas: Alberthim 728858 (2454,2638) grau 14, Aladyr 729056
+  (2486,2671) 12, Barbh 732447 (2525,2569) 14, Calena 736544 (2559,2596) 18, Brochesth 745995 (2432,2594) 14, donos
+  1300000011-77 (`game_settings.npc_castles`, migração 0065).
+- **4129** *(visto)*: `baseCastle` type 1, state 1, sem guilda nem tempo de defesa, `castleName` = o nome; entram
+  depois do próprio castelo.
+- **Grades não vistas** **TODO(inventado)**: sorteio com semente (mapa, grade) pela contagem das 45 grades vistas
+  (40 sem castelo, 5 com um), grau na faixa do `MapInfos`, nome com a metade do começo de um nome visto e a do fim de
+  outro, ids `1_250_000_000 + mapa × 1_000_000 + (gx × 100 + gy) × 10 + n` e donos `1_300_100_000 + ...`. Fora dos
+  tiles das minas.
+- **Ataque e fim** *(visto)*: os do castelo-robô (*Castelos-robô*: leed, 140 do próprio castelo, 4452, 3, 157; no
+  fim 100, 148 do relatório, 140 ×2, 140 do castelo de volta ao state 1, 4382), com as mesmas recusas (ataque do dia,
+  10 níveis).
+- **Luta** *(visto)* #749 e #1893: battleType 4 no 993, herói 11012 "Aladyr" (vida 501 e skills 10711/10811/11011 do
+  `GameHeroTemp`), 2 pilhas de 10112 (o lanceiro do grau) com 443 de vida nas pos 1 e 7. **TODO(inventado)**: a vida
+  das pilhas nos outros graus (`Live` × 1,05, a razão 443 / 422 do grau 12) e o herói acima do grau 30 (o 11030 com
+  a vida × grau / 30).
 
 ## Treasure Cache (4129 type 22, `game/caches.py`)
 
@@ -415,8 +442,8 @@ Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, j
 1. **Mapa-múndi compartilhado.** Feito: castelos de outros jogadores nos mapas 1 a 5, nas grades pedidas
    (8201), e os 2 castelos-robô da instância (*Castelos-robô*). Falta: exércitos de outros jogadores (o 169 da
    transfer #15, só turco, traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168 não
-   existem aqui), castelos NPC "Köy" (só turco), e a resposta do 5160 e do 8488 contra castelo ou exército de jogador
-   (*precisa de captura*). Feito: Treasure Cache (*Treasure Cache*) e minas do mundo (*Minas do mundo*).
+   existem aqui) e a resposta do 5160 e do 8488 contra castelo ou exército de jogador (*precisa de captura*). Feito:
+   Treasure Cache (*Treasure Cache*), minas do mundo (*Minas do mundo*) e castelos NPC (*Castelos NPC do mundo*).
 2. **Gancho da campanha** (8292, 8293, 8295, 8525). Feito: Rest House (`docs/salas-campanha.md#rest-house`).
    Falta o PK no mapa (8525, BattleType 19).
 3. **Passe de progresso** (8636, 8637). A área é sempre 1. Falta o progresso das fases (8753, 8755).

@@ -7,8 +7,10 @@ mochila alugada), ``GoodsSonType.getSonTypePos`` (espaço do herói por SonType)
 
 from __future__ import annotations
 
+import random
 from collections.abc import Iterable
 from datetime import datetime
+from functools import cache
 
 from ..domain.models import BagType, Character, Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
@@ -20,6 +22,9 @@ RENTAL_SIZE = 217  # PlayerInfo.PLAYER_BAG_MAX_1 (mochila alugada)
 STORE_SIZE = 12  # bancada: 0 equipamento, 1 pedra da sorte; 0..11 na decomposição
 RANDOM_SKILLS = range(70000, 77200)  # SkillTempInfos dos atributos sorteados (randomSkill)
 _random_pool: list[int] = []
+# (dedução) os tipos 701-711 (Power ... Live): os sorteados nas capturas são 702-711 (711 só turco: Kronos' Authority);
+# 701 é da mesma família (7xx01-7xx11); 721 e 751-771 ficam de fora. TODO(inventado): 701 entra sem amostra
+RANDOM_TYPES = range(701, 712)
 # GoodsSonType.getSonTypePos: posições do equipamento do herói (bagType 4)
 HERO_SLOTS = {
     101: (0,),
@@ -83,6 +88,59 @@ def random_skill_pool(templates: GameTemplates) -> list[int]:
     return _random_pool
 
 
+@cache
+def _bands(templates: GameTemplates) -> dict[int, list[list[int]]]:
+    """Tipo -> faixas de atributos: cada faixa é uma subida de ``Grades`` (2, 3, 4 | 2, 4, 6 | ...; ``Grades`` 0 fica
+    de fora), na ordem do id."""
+    out: dict[int, list[list[int]]] = {}
+    last: dict[int, int] = {}
+    for r in sorted(templates.rows("SkillTempInfos"), key=lambda r: int(r["TemplateId"])):
+        sid, grade = int(r["TemplateId"]), int(r.get("Grades") or 0)
+        if sid // 100 not in RANDOM_TYPES or grade <= 0 or not templates.get("SkillPropertyTempInfos", sid):
+            continue
+        bands = out.setdefault(sid // 100, [])
+        if not bands or grade <= last[sid // 100]:
+            bands.append([])
+        bands[-1].append(sid)
+        last[sid // 100] = grade
+    return out
+
+
+def roll_random_skill(
+    templates: GameTemplates, need_grades: int, rng: random.Random, skip_types: Iterable[int] = ()
+) -> int:
+    """Um atributo sorteado para um item de nível ``need_grades``: um tipo de ``RANDOM_TYPES`` fora de
+    ``skip_types``, na faixa ``need_grades // 10`` dele (a última, se passar). (visto) oficial_20261023-153200-1/
+    171155-1 e tutorial_en, 11 sorteios: itens de nível 3 e 8 só na 1ª faixa (70905, 70705, 71004); de 12 e 15 a
+    2ª (70709, 70611, 70908: 7xx07-12 nos tipos 706-710; 70304, 70505, 70204, 70305: 7xx04-06 nos tipos 702-705);
+    (visto, só turco) o Kronos' Authority (1991017, nível 20, 5 atributos) com os 5 na 3ª (70407, 71123, 70509, 70719,
+    70209).
+    TODO(inventado): dentro da faixa e entre os tipos o sorteio é uniforme (amostra pequena)."""
+    bands = _bands(templates)
+    types = [t for t in bands if t not in set(skip_types)] or list(bands)
+    if not types:
+        return 0
+    chosen = bands[rng.choice(types)]
+    return rng.choice(chosen[min(max(0, need_grades) // 10, len(chosen) - 1)])
+
+
+def roll_random_skills(templates: GameTemplates, template_id: int, rng: random.Random | None = None) -> list[int]:
+    """Os ``randomSkill_1..5`` de um item novo. Com ``DefaultSkill``, os dele (visto: 1013103 com 70306, 70406 e
+    70506; 1013002 com 70302); senão ``RandomSkillCount`` atributos de tipos distintos (visto: 1030103 com 70611,
+    70304 e 70505; 1043103 com 70908, 70204 e 70305)."""
+    row = templates.get("ItemTempInfos", template_id) or {}
+    fixed = [int(x) for x in str(row.get("DefaultSkill") or "").split(",") if x.strip().isdigit()]
+    if fixed:
+        return (fixed + [0] * 5)[:5]
+    if row.get("MasterType") != EQUIP_MASTER:  # todos os sorteios vistos são de equipamento (MasterType 1)
+        return [0] * 5
+    rng = rng or random.Random()
+    need, out = int(row.get("NeedGrades") or 0), list[int]()
+    for _ in range(min(5, int(row.get("RandomSkillCount") or 0))):
+        out.append(roll_random_skill(templates, need, rng, [k // 100 for k in out]))
+    return out + [0] * (5 - len(out))
+
+
 def max_count(templates: GameTemplates, template_id: int) -> int:
     row = templates.get("ItemTempInfos", template_id)
     return max(1, int(row.get("MaxCount", 1))) if row else 1
@@ -94,9 +152,7 @@ def new_item(
     """Item novo como o oficial cria: equipamento nasce com ``Property1`` furos abertos (``join`` 0)."""
     row = templates.get("ItemTempInfos", template_id) or {}
     item = Item(snap.character.id or 0, template_id, count=count, is_binds=binds)
-    # ponytail: o oficial sorteia randomSkill_1..N (RandomSkillCount); a tabela do sorteio não está nos
-    # templates, então vai o DefaultSkill (vazio = nenhum)
-    item.random_skill = int((row.get("DefaultSkill") or "0").split(",")[0] or 0)
+    item.random_skills = roll_random_skills(templates, template_id)
     if row.get("MasterType") in (EQUIP_MASTER, PET_MASTER):
         holes = min(4, int(row.get("Property1") or 0))
         item.joins = [0] * holes + [-1] * (4 - holes)

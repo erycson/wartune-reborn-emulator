@@ -39,7 +39,8 @@ from ..templates.repository import GameTemplates, Row
 from . import outer_city as oc
 from .arena import npc_hero
 from .events import config
-from .mines import game_date, world_mine_at
+from .mines import game_date
+from .npc_castles import tile_taken
 
 if TYPE_CHECKING:
     from .battle import Battle
@@ -106,7 +107,7 @@ def on_map(world: World, templates: GameTemplates, map_id: int, now: datetime) -
         for _ in range(count if pool.get(boss_type) else 0):
             row = rng.choice(pool[boss_type])
             x, y = rng.randrange(EDGE, size[0] - EDGE), rng.randrange(EDGE, size[1] - EDGE)
-            while world_mine_at(world, templates, map_id, x, y) is not None:  # o tile é da mina
+            while tile_taken(world, templates, map_id, x, y):  # mina ou castelo NPC
                 x, y = rng.randrange(EDGE, size[0] - EDGE), rng.randrange(EDGE, size[1] - EDGE)
             uid = ID_BASE + map_id * 10_000 + len(out)
             out.append(Monster(uid, map_id, int(row["TemplateId"]), boss_type, x, y, born))

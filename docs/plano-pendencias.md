@@ -32,7 +32,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 ## 4. Itens e loja
 - [ ] Refino da forja: peso por nível
 - [ ] Avaliação de moda 8781 e composição 8594
-- [ ] randomSkill (RandomSkillCount) em itens novos e recompensas
+- [x] randomSkill (RandomSkillCount) em itens novos e recompensas
 - [ ] Teto diário de Beden/EXP de itens
 - [ ] Lojas pagas com pontuação (lordes, guerra de guildas, cristal de fada, volta de jogador)
 - [ ] Progresso do labirinto (andar e recorde) para a loja 4 e o tower
@@ -56,7 +56,8 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] 5027, 8740
 
 ## 8. Cidade externa
-- [ ] exércitos alheios (169/4167/4168), terras selvagens, robôs, castelos Köy, 5160 contra castelo/exército, 8488, 5004
+- [ ] exércitos alheios (169/4167/4168), 5160 contra castelo/exército de jogador, 8488, 5004 (feito: terras/minas do
+  mundo, robôs, castelos NPC "Köy")
 - [ ] monstros: prêmio, luta em equipe; mapa do tesouro 8744; passe 8636/8637; ametista 30000; 8699, 8745, 8535
 
 ## 9. Mercado

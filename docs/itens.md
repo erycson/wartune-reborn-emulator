@@ -48,7 +48,7 @@ ainda não usa (**dedução** do total, sem captura).
 | 8336 / 8339 refino | como no herói | pedras por `Profile` (`PET_STONES`, 6 → 24, outro → 100); sem o Refinement Lock: cada cadeado paga 45; as pedras que faltam saem em Balens pelo Point |
 
 Item novo: equipamento nasce com `Property1` furos abertos (`join` 0); os outros furos ficam −1
-(fechado) *(visto)*. `randomSkill_1` = `DefaultSkill` (o sorteio do oficial não está nos templates). *(visto, só turco: "yeraltı labirent marketi alışveriş")* o Kronos' Authority (1991017, `RandomSkillCount` 5) comprado na loja do labirinto chegou no 115 com `join_1` 0 e cinco `randomSkill` (70407, 71123, 70509, 70719, 70209); aqui sai só o `DefaultSkill`. Falta a regra do sorteio.
+(fechado) *(visto)*. `randomSkill_1..5` (`bag.roll_random_skills`): com `DefaultSkill`, os dele *(visto: 1013103 com 70306/70406/70506)*; senão, só em equipamento, `RandomSkillCount` atributos de tipos distintos entre 701 e 711, cada um na faixa `NeedGrades // 10` do tipo (faixa = uma subida de `Grades` no `SkillTempInfos`: 70201-03, 70204-06, 70207-10...; 70604-06, 70607-12...). *(dedução de 16 sorteios)*: níveis 3 e 8 na 1ª faixa, 12 e 15 na 2ª (oficial_20261023-153200-1/171155-1, tutorial_en); *(visto, só turco: "yeraltı labirent marketi alışveriş")* o Kronos' Authority (1991017, nível 20, `RandomSkillCount` 5) com os 5 na 3ª (70407, 71123, 70509, 70719, 70209). **TODO(inventado)**: o tipo 701 (sem amostra) e o sorteio uniforme dentro da faixa. O refino (8336) sorteia igual (mascote: uniforme entre todos).
 
 ### Vínculo (`Item.is_binds`, migração `0043`)
 

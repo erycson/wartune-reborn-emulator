@@ -36,8 +36,9 @@ O 5006 da mochila usa o mesmo código. Depois de gravar, `handlers/player.grante
 
 Definições do operador em **`data/events.json`** (`config.events_file`): `dataStamp` (subir quando
 mudar) e `actives[]` com GUIDs, datas, pacotes, itens e condições. Vêm preenchidos o Login Bonus
-(tipo 13, os dois pacotes do "10/15 Login Bonus I" da inglesa #60) e o presente online (tipo 14: 10 min, depois
-30 min x3; o -600 da captura virou -500; só turco: login.json), os dois sem fim (2099: o painel mostra a contagem
+(tipo 13, os dois pacotes do "10/15 Login Bonus I" da inglesa #60) e o presente online (tipo 14: os 4 pacotes do
+"10/22 Online Bonus", 30 min cada, condição `[15, 1800, 40]`; *(visto)* oficial_20261023-171155-1, os 4 resgatados em
+#1560, #4285 e #5176 até o "Your online rewards for today have been redeemed"), os dois sem fim (2099: o painel mostra a contagem
 até lá, "Countdown: 26732 Day"), e depois **as 41 atividades do oficial inglês** (#60-#67, GUIDs, textos, pacotes e
 datas de 2026-10-01 a 2026-11-04, iguais byte a byte: `test_atividades_troca`). Passado 2026-11-04 só sobram as
 duas do operador: novas atividades entram no arquivo com outras datas e o `dataStamp` sobe.
