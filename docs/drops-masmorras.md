@@ -56,7 +56,9 @@ Ligada no servidor: etapas 1131 → 1132 e 1141 → 1142.
 
 Drops: o 114104 deu 1080011 x1 *(dedução: chance 0,5)*, num baú (4103 com `signId`/`baseItem`, pego no 5129;
 inglesa #2910-#2939); o material (SonType 210: Worg Tooth, Wood) vai direto para a mochila. As caixas do caçador (113203, 114203) dão 10.000 Daru, e
-a tumba 114105 dá 5.000 Daru.
+a tumba 114105 dá 5.000 Daru (de novo 5.000 em oficial_encantar #1111: fixo). A 114203 também deu Lvl. 3 Luck Stone x1 no lugar
+do Daru (oficial_encantar #1436, aviso #1457 sem `x1`): migração 0052, `pick` sorteado por igual *(dedução: uma
+amostra de cada)*. A 113203 só tem a amostra de Daru.
 
 | Item | Nome | Classe | Atributos | Peso | Visto em |
 |---|---|---|---|---|---|

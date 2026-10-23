@@ -536,7 +536,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if loot.quests:
         _send(s, S_QUESTS, quest_update(loot.quests, rules.quest_bitmap(snap)))
     if loot.win:  # caixa do caçador: (visto) inglesa #2630-#2644: 3, 126, os nós do param4 DONE, 83
-        await _push_player(s)
+        if loot.win_paid:
+            await _push_player(s)
         _send(s, S_NOTIFY, pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=loot.win, delay=0))
         for done in loot.done:
             _node_update(s, done, DONE, fresh=True)
@@ -923,6 +924,17 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
         _node_update(s, target, NORMAL, fresh=True)
 
 
+def _win_text(templates: GameTemplates, drops: list[tuple[int, int]]) -> str:
+    """Aviso da caixa do caçador: como ``rewards.received``, mas item único sem ``x1`` (oficial_encantar #1457:
+    "Received: Lvl. 3 Luck Stone"; inglesa #3072: "Received: 10,000 Daru")."""
+    single = [(t, n) for t, n in drops if t > 0 and n == 1]
+    text = rewards.received(templates, drops)
+    for t, _ in single:
+        name = rewards.received(templates, [(t, 1)])[len("Received: ") :]
+        text = text.replace(name, name.removesuffix(" x1"), 1)
+    return text
+
+
 @dataclass
 class _Loot:
     """O que uma luta na masmorra dá: itens novos (já no snapshot), textos, missões que avançaram, a moeda da caixa
@@ -936,6 +948,7 @@ class _Loot:
     quests: list[Quest] = field(default_factory=list)
     end_quests: list[Quest] = field(default_factory=list)
     win: str = ""
+    win_paid: bool = False  # a caixa deu moeda: o 3 sai antes do 126 (só item: não sai, oficial_encantar #1436-#1457)
     done: list[int] = field(default_factory=list)
     finished: bool = False
     sign: str = ""  # baú da luta (``fallen``): signId e itens no 4103, pegos no 5129
@@ -950,7 +963,9 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
       do Luck Stone e do 1080011 é (dedução) de uma amostra só (docs/drops-masmorras.md). Material (SonType 210:
       Worg Tooth, Wood) vai direto para a mochila e empilha (``bag.add``); o resto cai num baú: ``signId`` e
       ``baseItem`` no 4103 (inglesa #2910: 1080011), pego no 5129 (``items.drop_take``).
-    - Caixa do caçador (``wins[nó]``): Daru, e os nós do ``param4`` do nó fecham com ela (#2633-#2642).
+    - Caixa do caçador (``wins[nó]``): ``drops``, ou uma das listas de ``pick`` sorteada por igual, e os nós do
+      ``param4`` do nó fecham com ela (#2633-#2642). (visto) 114203: 10.000 Daru (inglesa #3057) ou Lvl. 3 Luck Stone
+      (oficial_encantar #1436); a chance igual é (dedução) de uma amostra de cada.
     - Missões: 25 (soldado morto do tipo ``tempId``) e 26 (chefe morto, ``heroTempId``). No fim da etapa, 14 (passou
       a campanha) e 31 (cena com a ``Capacity`` da campanha), em ``end_quests``: (visto) inglesa #1103, #2710.
     """
@@ -979,10 +994,10 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
             loot.items += bag.add(snap, templates, template_id, count, now)  # completa a pilha que já existe
         loot.texts = [rewards.received(templates, [d]) for d in got]  # um aviso por item, como o oficial
     if (win := c.part("wins", camp)) is not None:
-        money = [(int(t), int(n)) for t, n in win["drops"]]
+        money = [(int(t), int(n)) for t, n in (random.choice(win["pick"]) if win.get("pick") else win["drops"])]
         new, _ = rewards.grant(snap, templates, money)
         loot.items += new
-        loot.win = rewards.received(templates, money)
+        loot.win, loot.win_paid = _win_text(templates, money), any(t < 0 for t, _ in money)
         node = c.node(camp)
         assert node is not None
         loot.done = [int(x) for x in str(node.get("param4", "")).split("|") if x and int(x) in c.nodes] or [camp]

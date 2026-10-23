@@ -13,6 +13,7 @@ from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import rules
 from wartune_server.game.campaign import DONE, NORMAL, SHOW, CampaignMap, StageRun, grades, report, total_gp
 from wartune_server.game.campaign import unlock_actions as actions
+from wartune_server.game.handlers import campaign as hc
 from wartune_server.game.handlers.campaign import _map_finished
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -39,6 +40,17 @@ def test_notas_das_seis_amostras_dao_1_5_5_e_4() -> None:
     assert grades(run, row_1002) == (5, 1, 3, 3)  # S no dano, todo o padrão sofrido = D, 2 derrotas = C
     msg = report(run, row_1002, start + timedelta(seconds=189.9))
     assert (msg.time, msg.batter, msg.failedCount, msg.totalGp) == (189, 7, 2, 839)
+
+
+async def test_caixa_do_cacador_114203_sorteia_daru_ou_luck_stone(tmp_path: Path) -> None:
+    """0052: o 114203 dá Daru (inglesa #3057) ou Lvl. 3 Luck Stone (oficial_encantar #1436); o aviso do item não
+    leva ``x1`` (#1457)."""
+    async with logged_in(tmp_path, novice=25500) as g:
+        world, templates = g.server.services.world, g.server.services.templates
+    assert world.campaigns[1002]["wins"]["114203"]["pick"] == [[[-300, 10000]], [[2040103, 1]]]
+    assert hc._win_text(templates, [(2040103, 1)]) == "Received: Lvl. 3 Luck Stone"
+    assert hc._win_text(templates, [(-300, 10000)]) == "Received: 10,000 Daru"
+    assert hc._win_text(templates, [(2040103, 2)]) == "Received: Lvl. 3 Luck Stone x2"
 
 
 def test_param4_com_e_sem_acao() -> None:
@@ -162,7 +174,7 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
         await won(g)
         daru = (await characters.snapshot(g.user_id)).character.strategy
         cache = await confirm(g, 114203)
-        after = await g.fight(pb.BattlePrepareMsg.FromString(cache[-1].body)) + await g.idle()
+        after = await g.fight(pb.BattlePrepareMsg.FromString(cache[-1].body)) + await g.idle()  # Sure: o 1º do pick
         assert text(after[codes(after).index(126)]) == "Received: 10,000 Daru"
         assert (await characters.snapshot(g.user_id)).character.strategy == daru + 10000 + 15  # + strategyBonus
         movie = await back_to_map(g)
