@@ -27,6 +27,7 @@ VIP_DAYS = {31: "One_MonthPoint", 93: "Three_MonthPoint", 186: "Six_MonthPoint"}
 VIP_GRADE = 4  # UpGradeTempInfos.Types da VIP (Data = vipGp acumulado)
 ALCHEMY_RIGHT, SOUL_RIGHT = 8, 9  # VipPrerogativeTempInfos.type: usos extras por dia
 VIP_COOL = 16  # VIPModel.VIP_COOL: type do "Speed up cool down timer for free"
+VIP_MYSTERY = 14  # type "Add Mystery Shop Attempts": compras a mais por dia, +10 no VIP 4 até +60 no 9
 VIP_EXP = 6  # type "Bonus EXP": "Bonus 50% Dungeon EXP" no VIP 1 até 150% no 9 (language VipPrivilegeFrame)
 VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2) e o 50 fixo de vipFriendPrivilege
 ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (só turco: login.json #9; o tutorial_en não manda o 4224)

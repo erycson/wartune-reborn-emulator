@@ -1,9 +1,11 @@
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import PlayerSnapshot
+from wartune_server.game import events
+from wartune_server.game.builders.login import fmt_time
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
@@ -90,6 +92,21 @@ async def test_fast_blood_buys_and_fills_the_reserve(tmp_path: Path) -> None:
         assert codes(got) == [170] and pb.FastUseBloodMsg.FromString(got[0].body).result == 4
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert (saved.character.gold, saved.leader.blood) == (1000, hero.blood)  # type: ignore[union-attr]
+
+
+async def test_vip_4_compra_10_a_mais_na_loja_misteriosa(tmp_path: Path) -> None:
+    """VipPrerogativeTempInfo type 14 "Add Mystery Shop Attempts": +10 no VIP 4 (maxBuyCount 30)."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        snap.character.grades = 26
+        now = g.server.services.clock.now()
+        vip = events.state(snap, "vip", now)
+        vip.text = fmt_time(now + timedelta(days=31))
+        vip.value = next(
+            int(r["Data"]) for r in g.server.services.templates.find("UpGradeTempInfos", Types=4, Grades=4)
+        )
+        g.client.send(8483, pb.ShopFreshReqMsg(isButton=False))
+        assert pb.ShopFreshRspMsg.FromString((await g.until(4384))[-1].body).maxBuyCount == 30
 
 
 async def test_mystery_shop_lists_and_sells_once(tmp_path: Path) -> None:

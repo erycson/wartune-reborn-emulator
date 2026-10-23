@@ -491,10 +491,18 @@ def _ints(text: str) -> list[int]:
     return [int(x) for x in text.split(",") if x]
 
 
+def _mystery_max(s: GameSession) -> int:
+    """Compras do dia: ``ShopBuy_MaxCount`` + o extra do VIP (type 14); o cliente só mostra o ``maxBuyCount``."""
+    from .vip import VIP_MYSTERY, vip_right  # vip importa player, que importa login, que importa este módulo
+
+    assert s.snapshot is not None
+    return _config(s, "ShopBuy_MaxCount", 20, "神秘") + vip_right(s, s.snapshot, VIP_MYSTERY)
+
+
 def _mystery_list(s: GameSession, shop: MysteryShop) -> pb.ShopFreshRspMsg:
     goods, bought = _ints(shop.goods), set(_ints(shop.bought))
     out = pb.ShopFreshRspMsg(freshLastdate=b.fmt_time(shop.fresh_at), buyCount=shop.buy_count)
-    out.maxBuyCount = _config(s, "ShopBuy_MaxCount", 20, "神秘")
+    out.maxBuyCount = _mystery_max(s)
     out.itemId.extend(goods)
     out.isCanBuy.extend(1 if i in bought else 0 for i in range(len(goods)))  # BuyGoodsItem: 0 = à venda, 1 = comprado
     return out
@@ -541,7 +549,7 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
         result = LEVEL
     elif not valid or row is None or (p := price(row)) is None:
         result = GONE
-    elif shop.buy_count >= _config(s, "ShopBuy_MaxCount", 20, "神秘"):
+    elif shop.buy_count >= _mystery_max(s):
         result = LIMIT
     elif not bag.fits(snap, templates, [(int(row["ItemId"]), 1)], now, binds=binds(p[0])):
         result = FAIL
