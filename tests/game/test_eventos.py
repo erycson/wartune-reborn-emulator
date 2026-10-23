@@ -257,3 +257,20 @@ async def test_login_bonus_is_daily_and_the_vip_pack_needs_vip(tmp_path: Path) -
         clock.advance(24 * 3600)  # "Claim them once everyday."
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=1))
         assert _packs(await g.until(4476), LOGIN) == [(1, 0), (1, 0)]
+
+
+async def test_vip_2_assina_o_dia_sozinho_no_login(tmp_path: Path) -> None:
+    """VipPrerogativeType.AUTO_SIGN_IN (3), para1 1 do VIP 2 em diante: o login assina o dia (4177); de novo, nada."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        snap = s.snapshot
+        assert snap is not None
+        now = s.ctx.clock.now()
+        vip = ev.state(snap, "vip", now)
+        vip.text = (now + timedelta(days=31)).strftime("%Y-%m-%d %H:%M:%S")
+        vip.value = next(int(r["Data"]) for r in s.ctx.templates.find("UpGradeTempInfos", Types=4, Grades=2))
+        await hev.login_push(s)
+        sign = pb.PlayerSignRspMsg.FromString((await g.until(4177))[-1].body)
+        assert sign.signTimes == 1
+        await hev.login_push(s)
+        assert 4177 not in [p.code for p in await g.idle()]

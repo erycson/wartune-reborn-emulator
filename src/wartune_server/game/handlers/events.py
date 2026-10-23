@@ -85,6 +85,11 @@ async def login_push(s: GameSession) -> None:
     s.online_since = s.ctx.clock.now()
     await shop.send_offers(s)  # 4238 antes do 4428/4434 (oficial_encantar #57-#60)
     vip.login_push(s)
+    assert s.snapshot is not None
+    if vip.vip_right(s, s.snapshot, vip.VIP_AUTO_SIGN):
+        # VipPrerogativeType.AUTO_SIGN_IN (3): "Auto Daily Check-In on Login" do VIP 2 em diante; o cliente não
+        # manda nada (nenhum uso do tipo no decompilado), então o servidor assina. (dedução) o 4177 logo aqui
+        await _sign(s, auto=True)
     offer.login_push(s)
     _send_leeds(s)
     _send_actives(s)
@@ -389,6 +394,11 @@ def _sign_state(snap: PlayerSnapshot, now: datetime) -> EventState:
 @router.on(8266)
 async def sign(s: GameSession, _: object) -> None:
     """Assina o dia; ao chegar num ``SignDrop.Times`` (2/5/10/17/26 no mês) o servidor dá o pacote."""
+    await _sign(s, auto=False)
+
+
+async def _sign(s: GameSession, auto: bool) -> None:
+    """``auto``: a assinatura do login do VIP (``auto_sign``); já assinado não responde nada."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -397,7 +407,9 @@ async def sign(s: GameSession, _: object) -> None:
     times = (st.value | bit).bit_count()
     drops = [(int(r["TemplateId"]), int(r["Data"])) for r in s.ctx.templates.find("SignDrop", Times=times)]
     if st.value & bit or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
-        s.log.info("8266 recusado", ja_assinado=bool(st.value & bit))
+        s.log.info("8266 recusado", ja_assinado=bool(st.value & bit), auto=auto)
+        if auto:
+            return
         s.send(S_SIGN, pb.PlayerSignRspMsg(signDate=b.fmt_time(now), signTimes=st.value.bit_count(), signSite=st.value))
         return
     st.value, st.updated_at = st.value | bit, now
