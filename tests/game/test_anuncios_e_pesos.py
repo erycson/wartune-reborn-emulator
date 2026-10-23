@@ -68,10 +68,12 @@ async def test_sylph_atoll_vai_para_todos_os_online_como_no_oficial(tmp_path: Pa
         b.client.send(20008)  # o relógio do outro no mesmo minuto não repete
         assert 83 not in [p.code for p in await b.idle()]
         assert 83 not in [p.code for p in await g.idle()]
-        clock.advance(5 * 60)  # 19:00:30: o início
+        clock.advance(5 * 60)  # 19:00:30: o início sai com o 4686 de cada um (0057 desativou o "has started.")
         b.client.send(20008)
+        assert 83 not in [p.code for p in await g.idle()]
+        g.client.send(20008)
         [start] = [pb.ChatChannelMsg.FromString(p.body) for p in await g.idle() if p.code == 83]
-        assert start.encodeMsg == "Defend Sylph Atoll event has started."
+        assert start.encodeMsg.startswith("Defend Sylph Atoll has opened.")
 
 
 def test_roleta_vip_respeita_o_peso() -> None:
@@ -97,9 +99,7 @@ async def test_pesos_vem_do_banco(tmp_path: Path) -> None:
         assert world.vip_wheel_weights == (1.0,) * 18  # 0035: padrão igual (uniforme, como antes)
         assert world.settings["star_open_next"] == 0.3 and world.settings["gem_maze_reward_weights"] == [1, 1, 1]
         assert set(world.settings["star_weights"]) == {"1", "2", "3", "4", "5", "6", "7"}
-        assert [a.text[:12] for a in world.announcements] == ["Sylph Atoll ", "Defend Sylph", "Defend Sylph"] + [
-            "Defend Sylph"
-        ]
+        assert [a.text[:12] for a in world.announcements] == ["Sylph Atoll ", "Defend Sylph"]  # 0057: só os vistos
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None
         got = drops.card(

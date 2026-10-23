@@ -188,7 +188,7 @@ Horários da captura no relógio da máquina (UTC-3); o oficial segue o Pacífic
 
 | Pacote | O que o oficial fez | Por que não foi feito |
 |---|---|---|
-| 4686 ilha dos pets | login 11:39 com invasão aberta (`mapId` 20002, `bossId` 5102, `leftTime` 1242307 ms: fim 12:00); 12:00:16 tudo zerado; 14:00:16 abre `mapId` 20004, `bossId` 5104, `leftTime` 3584000 (1 h). Janelas de 1 h, mapa e chefe mudando | o servidor manda sempre fechado; a invasão (nível 50, `peace*`, `ragePoint`) é um modo inteiro sem captura de luta, e duas janelas não fecham a agenda |
+| 4686 ilha dos pets | login 11:39 com invasão aberta (`mapId` 20002, `bossId` 5102, `leftTime` 1242307 ms: fim 12:00); 12:00:16 tudo zerado; 14:00:16 abre `mapId` 20004, `bossId` 5104, `leftTime` 3584000 (1 h). Janelas de 1 h, mapa e chefe mudando | **feito**: janela pelo `ConfigInfos` e 4686 no login e no 20008 ([eventos.md](eventos.md#defend-sylph-atoll-a-janela-gamepet_defendpy-handlerspet_defendpy)) |
 | 4512 veículos | `matchState` true às 14:00:25 e false às 14:25:28 (10:00-10:25 no Pacífico) | já igual: `MatchOfVehicleTime` 10:00,10:25 no fuso do jogo (`WARTUNE_GAME_TIMEZONE`) |
 | 4501 tecnologia de tanque | `param1` 218 às 14:30:29, 5 min depois da janela, sem o jogador ter jogado | não se sabe de onde vem o 218; o servidor manda 0 |
 | 11 lista de espera do PvE | 124 empurrões (65 entradas, 58 saídas, `playerState` 7) de outros jogadores, o dia todo. O cliente põe em `PlayerManager.watingList`, lido pela lista de jogadores do `PVERoomListFrame` | a captura não mostra o critério de quem entra na lista (o cliente não manda nada ao abrir a tela) |

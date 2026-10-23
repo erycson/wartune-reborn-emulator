@@ -138,6 +138,7 @@ class GameSession:
         self.pet_offer: dict[int, int] = {}
         self.vehicle_open: bool | None = None  # último 4512 mandado (o 20008 manda de novo se mudou)
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
+        self.pet_defend_map: int | None = None  # mapId do último 4686 (handlers.pet_defend.push_state)
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
         self.serven_sent: bytes | None = None  # último 4638 mandado (handlers.events.refresh_serven)

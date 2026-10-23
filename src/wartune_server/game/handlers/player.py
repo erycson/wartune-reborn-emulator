@@ -112,11 +112,13 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     roll_monsters(s)
     for a in s.ctx.announcer.tick(s.ctx.world.announcements, now):
         _announce(s, a)
+    from .pet_defend import push_state as push_defend
     from .vehicle import push_state  # vehicle importa este módulo
 
     await close_windows(s)
     push_states(s)
     push_state(s)
+    push_defend(s)
     if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now)):
         await s.ctx.characters.save(*changed)
         s.send(S_RESET, data_reset(s.snapshot, now))

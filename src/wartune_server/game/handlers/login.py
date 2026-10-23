@@ -24,7 +24,7 @@ from ..builders import player as pb_player
 from ..builders.army import army_pawn_msg, castle_pawns
 from ..router import router
 from ..session import LOGIN_CODE, GameSession
-from . import account, vehicle
+from . import account, pet_defend, vehicle
 
 KEY_SIZE = 8
 
@@ -48,7 +48,6 @@ S_SNS = 4245
 S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
-S_PET_ISLAND_BOSS = 4686
 S_WEDDING_ROOMS = 4662
 S_ITEM_BUFFER = 4188  # pergaminhos de efeito ativos (game/buffs.py)
 S_CASTLE_PAWNS = 100
@@ -246,10 +245,8 @@ async def _login_state(s: GameSession) -> None:
     s.send(S_SMITHY, pb_player.smithy(s.ctx.templates))
     if snap.character.novice_process >= space.POST_TUTORIAL:  # conta nova não recebe (tutorial_en #24-#136: sem 4512)
         vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
-    # ilha dos pets: sem invasão do chefe em andamento (tutorial_en #44, todos os campos zerados)
-    zero = dict.fromkeys(("leftTime", "mapId", "bossId", "peaceMiddle", "peaceHigh", "peaceBoss", "ragePoint"), 0)
     s.send(S_WEDDING_ROOMS, pb.EngageMsg())  # salas de casamento: vazio, como o oficial (tutorial_en #43)
-    s.send(S_PET_ISLAND_BOSS, pb.PetIslandDefendStateMsg(**zero))
+    pet_defend.login(s)  # 4686: invasão da ilha dos pets (tutorial_en #44, oficial_encantar #43)
     from . import events
 
     events.send_rate(s)  # 4247 logo depois do 4686 (tutorial_en #44-#45)

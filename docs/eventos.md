@@ -210,13 +210,22 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 |---|---|---|---|
 | 00:55, 03:55, …, 21:55 | `Sylph Atoll echoes, “Humans, how foolish you are!”` + 36 espaços | sim | (visto) #3029 |
 | idem, logo depois | `Defend Sylph Atoll event is starting soon. Sylphs here have hidden themselves.` | não | (visto) #3030 |
-| 01:00, 04:00, …, 22:00 | `Defend Sylph Atoll event has started.` | não | (cliente) `BaseManager.PetBossIsOpen`; canal 12 como o #3030 (dedução) |
-| 01:30, 04:30, …, 22:30 | `Defend Sylph Atoll event has ended` | não | (cliente) 1ª linha do `petBoss.reportStr` (o resto é o relatório do time, com `{0}`) |
+| ~~01:00~~ | `Defend Sylph Atoll event has started.` | não | **desativado** (0057): dedução trocada pelo texto visto |
+| ~~01:30~~ | `Defend Sylph Atoll event has ended` | não | **desativado** (0057): a janela é de 1 h |
 
   **Os horários são escolha do dono** (configuráveis). O padrão segue o help do cliente
   (`PetBossInfoView.boss.helpContent`: "Every day from 01:00, the Sylph Atoll attacks every 3 hours") e a captura:
-  #3029 saiu às 18:55 (entre os 4234 de 18:55:01 e 18:56:02), antes do ataque das 19:00. Os 5 min de antecedência e
-  os 30 min de evento são dedução. O mapa do evento (luta, ranking, prêmios) não existe: só os avisos.
+  #3029 saiu às 18:55 (entre os 4234 de 18:55:01 e 18:56:02), antes do ataque das 19:00. Os 5 min de antecedência são
+  dedução. A abertura e o fechamento não são anúncios agendados: saem com o 4686 (abaixo).
+
+### Defend Sylph Atoll: a janela (`game/pet_defend.py`, `handlers/pet_defend.py`)
+
+| o quê | regra | fonte |
+|---|---|---|
+| horas | `ConfigInfos.pet_island_defend_hour` (1,4,7,…,22), no fuso do jogo; o cliente conta com a mesma config | (visto) #43, #866, #2337: 07:00-08:00 e 10:00-11:00 PDT |
+| duração e andar | `game_settings.pet_island_defend` (0057): `duration` 3600, `floors` [20001] sorteado por janela; `bossId` = 5100 + andar | (visto) 1 h, andares 20002/20004 com 5102/5104; só o 20001 tem nós aqui |
+| login | 4686 com os sete campos; `peace*` = vitórias com prêmio hoje (`pet_defend:*`, dia do jogo) | (visto) tutorial_en #44, oficial_encantar #43 |
+| abre/fecha | no 20008 de cada um: 4686 **sem** `peace*` (o cliente só troca os contadores se vierem os três) + 83 canal 12: abre `Defend Sylph Atoll has opened. Warriors, …` (centro); fecha `Sylphs' anger has subsided. …` (centro) e `Defend Sylph Atoll is over. …` | (visto) #866-#868, #2337-#2338 |
 
 ## Alquimia, alma e loja do teste
 
