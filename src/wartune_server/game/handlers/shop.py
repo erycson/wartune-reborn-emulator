@@ -11,6 +11,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 from google.protobuf.message import Message
 
@@ -31,6 +32,8 @@ from .tower import MAZE_MAX_INDEX
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
 S_SHOP_BUY, S_HAS_BUY, S_FASHION_BUY, S_BLOOD = 90, 4145, 4486, 170
 S_FLASH_FRESH, S_BUY_COUNT, S_MYSTERY_BUY, S_MYSTERY_LIST, S_APPELLS = 4547, 4599, 4383, 4384, 4484
+S_OFFERS = 4238
+OFFERS_PER_MSG = 50  # o oficial parte em 50 + 3 com o mesmo flag (oficial_encantar #57-#58); o cliente junta
 
 # BuyInfo.result (ShopManager.shopingResult)
 OK, NO_PLAYER, NO_ITEM, NO_MONEY, LIMIT, VIP, GONE, GUILD, LEVEL, FAIL = 1, 2, 3, 4, 6, 7, 8, 9, 10, 11
@@ -191,8 +194,8 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     snap = s.snapshot
     assert snap is not None
     now, templates = s.ctx.clock.now(), s.ctx.templates
-    if info.isDiscount:  # ofertas da home (4238) são eventos do operador: nenhuma ativa
-        return GONE
+    if info.isDiscount:
+        return await buy_offer(s, info, pay_type)
     if info.receiveId not in (0, s.player_id):  # ponytail: presente depende do correio
         return NO_PLAYER
     row = templates.get("ShopTempInfos", info.goodId, key="Id")
@@ -216,6 +219,96 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     send(s, S_ITEMS, bag.moved(got, s.player_id))
     # texto deduzido (sem fonte no cliente/captura)
     alert(s, f"{bag.name(templates, tid)} x{info.count} purchased successfully!")
+    return OK
+
+
+# ---------------------------------------------------------------- ofertas por tempo (4238; Timed Sales do Hot Events)
+
+
+def _offer_time(text: str) -> datetime:
+    return datetime.strptime(text, "%Y-%m-%d %H:%M:%S").replace(tzinfo=gameday.GAME_TZ)
+
+
+def offers(s: GameSession) -> list[dict[str, Any]]:
+    """Ofertas de ``game_settings.shop_offers`` (0053) que ainda não acabaram. As futuras vão junto, como no oficial
+    (#57 traz ofertas que começam no dia 29); o cliente só mostra as que já começaram (``remainTime``)."""
+    now = s.ctx.clock.now()
+    cfg = s.ctx.world.settings.get("shop_offers") or {}
+    return [o for o in cfg.get("offers", []) if _offer_time(str(o["endDate"])) >= now]
+
+
+def offer_goods(offer: dict[str, Any]) -> list[tuple[int, int, int]]:
+    """(shopId, templateId, quantidade) de uma unidade: o item principal e os do pacote (``shopId1..8``)."""
+    goods = [(int(offer["shopId"]), int(offer["templateId"]), int(offer.get("counts", 0)))]
+    goods += [
+        (int(offer[f"shopId{n}"]), int(offer[f"templateId{n}"]), int(offer[f"count{n}"]))
+        for n in range(1, 9)
+        if int(offer.get(f"shopId{n}", 0))
+    ]
+    return goods
+
+
+def offer_key(offer_id: int) -> int:
+    """Chave em ``shop_buys``: negativa, para não misturar com ``ShopTempInfos.Id`` (o cliente separa pelo
+    ``isDiscount``)."""
+    return -offer_id
+
+
+def send_offers(s: GameSession) -> None:
+    """4238 no login (8224 ``user``; o oficial manda dois pares, #57-#58 e #84-#85, e o cliente refaz a lista igual).
+    Mesmo ``flag`` em todas as partes: ``ShopManager.__shopHandler`` (cliente inglês) junta as partes de flag igual e
+    recomeça a lista quando ele muda."""
+    cfg = s.ctx.world.settings.get("shop_offers") or {}
+    live = offers(s)
+    for i in range(0, max(len(live), 1), OFFERS_PER_MSG):
+        msg = pb.ShopMainRspMsg(flag=int(cfg.get("flag", 0)))
+        for o in live[i : i + OFFERS_PER_MSG]:
+            msg.discountInfo.add(**o)
+        send(s, S_OFFERS, msg)
+
+
+async def buy_offer(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
+    """Compra de oferta (5154 ``isDiscount``, ``goodId`` = id da oferta): preço ``price`` em Balens por unidade
+    (``MainShopInfo.price``: o ``price`` da oferta vale quando > 0; todas as do 0053 têm), dentro da janela,
+    até ``oneDayCount`` por dia (``MainShopInfo.canOneCount``). Itens saem livres, como na loja em Balens."""
+    snap = s.snapshot
+    assert snap is not None
+    now, templates = s.ctx.clock.now(), s.ctx.templates
+    offer = next((o for o in offers(s) if o["id"] == info.goodId), None)
+    if offer is None or not _offer_time(str(offer["beginDate"])) <= now or int(offer.get("price", 0)) <= 0:
+        return GONE
+    if not 1 <= info.count <= MAX_COUNT or info.receiveId not in (0, s.player_id):
+        return NO_ITEM
+    if int(offer.get("vip", 0)) > 0:
+        from .vip import is_vip, vip_grade  # vip -> player -> ... -> shop
+
+        if not is_vip(snap, now) or vip_grade(s, snap) < int(offer["vip"]):
+            return VIP
+    one_day = int(offer.get("oneDayCount", -1))
+    if one_day != -1 and today_count(snap, offer_key(info.goodId), now) + info.count > one_day:
+        return LIMIT
+    # shortcut: o currentCount (vendidos no servidor) não é contado; todas as ofertas do 0053 têm maxCount -1, que o
+    # cliente não limita (canTotalCount). Contar e mandar o 4375 (#1312) quando vier uma oferta com maxCount.
+    goods = [(tid, n * info.count) for _, tid, n in offer_goods(offer)]
+    if not bag.fits(snap, templates, goods, now, binds=False):
+        return FAIL
+    total = int(offer["price"]) * info.count
+    paid = charge(snap, "Point", total, pay_type, f"offer:{info.goodId} x{info.count}", now)
+    if paid is None:
+        return NO_MONEY
+    got: list[Item] = []
+    for shop_id, tid, n in offer_goods(offer):
+        row = templates.get("ShopTempInfos", shop_id, key="Id")
+        got += bag.add(snap, templates, tid, n * info.count, now, valid_minutes(row) if row else 0, False)
+    rec = count_buy(snap, offer_key(info.goodId), info.count, now)
+    tid = int(offer["templateId"])
+    bought = purchase(snap, "offer", info.goodId, tid, info.count, "Point", total, now)
+    extra = [paid.ledger] if paid.ledger else []
+    await s.ctx.characters.save(snap.character, *got, rec, *extra, bought)
+
+    send_charge(s, paid)
+    send(s, S_ITEMS, bag.moved(got, s.player_id))
+    alert(s, f"{offer['names']} x{info.count} purchased successfully!")  # mesmo texto deduzido da loja comum
     return OK
 
 
@@ -263,7 +356,8 @@ async def shop_has_buy(s: GameSession, _: object) -> None:
     out = pb.ShopMsg()
     for rec in snap.shop_buys:
         if rec.day == day(now) and rec.counts:
-            out.hasDataInfo.add(userId=s.player_id, itemId=rec.good_id, counts=rec.counts, buyDate=b.fmt_time(now))
+            info = out.hasDataInfo.add(userId=s.player_id, itemId=abs(rec.good_id), counts=rec.counts)
+            info.buyDate, info.isDiscount = b.fmt_time(now), rec.good_id < 0  # offer_key
     send(s, S_HAS_BUY, out)
 
 
@@ -274,13 +368,15 @@ async def buy_discount_count(s: GameSession, msg: pb.ShopMsg) -> None:
     assert snap is not None
     out = pb.ShopMsg()
     out.buyInfo.CopyFrom(msg.buyInfo)
-    out.buyInfo.count = 0 if msg.buyInfo.isDiscount else today_count(snap, msg.buyInfo.goodId, s.ctx.clock.now())
+    good = offer_key(msg.buyInfo.goodId) if msg.buyInfo.isDiscount else msg.buyInfo.goodId
+    out.buyInfo.count = today_count(snap, good, s.ctx.clock.now())
     send(s, S_BUY_COUNT, out)
 
 
 @router.on(8632)
 async def flash_sale_fresh(s: GameSession, _: object) -> None:
-    """Ofertas relâmpago: dependem das ofertas do operador (4238); nenhuma ativa, lista vazia."""
+    """Rodízio das ofertas (``type`` 2 do 4238; ``ShopManager.__refreshTimeBuyHandler``): o 0053 só tem ``type`` 1,
+    então a lista vai vazia (o oficial também manda só o ``refreshDate``, #1633)."""
     send(s, S_FLASH_FRESH, pb.ShopMsg(refreshDate=b.fmt_time(s.ctx.clock.now())))
 
 

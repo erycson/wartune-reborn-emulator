@@ -18,7 +18,7 @@ from ..builders import login as b
 from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
-from . import campaign, hero, minigames, offer, stars, systems, tower, vip
+from . import campaign, hero, minigames, offer, shop, stars, systems, tower, vip
 from .login import army
 from .player import alert, granted
 
@@ -83,6 +83,7 @@ def fill_player(msg: pb.PlayerMsg, snap: PlayerSnapshot, now: datetime) -> None:
 def login_push(s: GameSession) -> None:
     """O que o oficial manda no 8224 ``user`` antes do 4598: atividade diária, SumActive, guia."""
     s.online_since = s.ctx.clock.now()
+    shop.send_offers(s)  # 4238 antes do 4428/4434 (oficial_encantar #57-#60)
     vip.login_push(s)
     offer.login_push(s)
     _send_leeds(s)

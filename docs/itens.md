@@ -169,10 +169,11 @@ correio, 12).
 | 5154 ShopMsg | compra (o registro decodifica como FashionShopMsg; o handler relê como ShopMsg) | 3 ou 109 (ou 115 da moeda-item), 115 do item, 111 e 83 "{nome} x{n} purchased successfully!", 90 ShopMsg `{buyInfo + result}` | *(visto, só turco: "market alışveriş")* |
 | 8592 FashionShopMsg | compra de moda, uma ou várias | o mesmo por item (90 cada) e 4486 `{result}` no fim | *(cliente)* `FashionAllBuyFrame` |
 | 5633 ShopMsg | compra e usa a poção de HP (ShopType 100) | 109/3, 113 `{heroId, hp, blood, bloodId}`, 170 `{result, templateId}` | *(visto)* |
-| 8218 | compras de hoje | 4145 `hasDataInfo[{userId, itemId, counts, buyDate}]` | *(visto)* |
+| 8218 | compras de hoje (ofertas com `isDiscount` e `itemId` = id da oferta) | 4145 `hasDataInfo[{userId, itemId, counts, buyDate, isDiscount}]` | *(visto)*; ofertas: *(cliente)* `__getBuyDataInfosSuccess` |
 | 8693 ShopMsg | quantos daquele item já comprei hoje | 4599 `buyInfo.count` | *(cliente)* |
-| 8632 | ofertas relâmpago: vêm do 4238 (eventos do operador), nenhuma ativa | 4547 `{refreshDate}` vazio | *(cliente)* |
-| 8645 ShopMsg | compra coletiva: só existe com uma oferta type 3 do 4238; recusa sem resposta | — | *(cliente)* |
+| 8632 | rodízio das ofertas `type` 2 do 4238; o 0053 só tem `type` 1 | 4547 `{refreshDate}` sem `hasDataInfo` | *(visto)* oficial_encantar #1632-#1633, igual |
+| 8645 ShopMsg | compra coletiva: só existe com uma oferta type 3 do 4238 (o 0053 não tem); recusa sem resposta | — | *(cliente)* |
+| 5154 ShopMsg `isDiscount` | compra de oferta (`goodId` = id da oferta): `price` em Balens por unidade (nunca vinculado), dentro de `beginDate`..`endDate`, até `oneDayCount` por dia (result 6); entrega `templateId`×`counts` e `templateIdN`×`countN` do pacote, livres | 3, 115, 111/83, 90 | *(cliente)* `MainShopInfo.price`/`canOneCount`, `ShopManager.__shoppingHandler` |
 | 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (45 no inglês). Os itens trocam sozinhos 14400 s depois do `freshLastdate` (`MysteryShopModel.remainTime`, que pede a lista de novo ao zerar); as compras do dia zeram na virada das 5h | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
 | 8482 ShopItemBuyMsg | compra o item `index` da misteriosa (uma vez cada, até `ShopBuy_MaxCount` 20 por dia) | 3/109, 115, 111, 83, 4383 `{result, buyCount}`, 4384 | *(cliente)* |
 | 8597 AppellExchangeMsg | `look`: títulos (vazio); trocar exige ter o título (conquistas não existem); `appellId` 0 tira o título | 4484 AppellsMsg | *(cliente)* |
@@ -245,7 +246,9 @@ Os outros gastos de Balens passam por `services/ledger.pay` (vinculado primeiro 
 - Correio: presente para outro jogador (result 2) e compra com mochila cheia (o oficial manda pelo correio).
 - Guilda: preço em `ConsortiaOffer`, `NeedConsortiaLevels`, itens 203/8.
 - VIP: `NeedMinVip`, limites `VIP1Count`..`VIP6Count`, itens 203/12.
-- Eventos do operador (4238): descontos, ofertas relâmpago (8632), compra coletiva (8645).
+- Ofertas por tempo (4238): feitas (`game_settings.shop_offers`, migração 0053, 53 ofertas de oficial_encantar #57-#58).
+  Faltam: `currentCount` (vendidos no servidor) e o 4375 que o atualiza (#1312), porque todas têm `maxCount` -1;
+  rodízio (`type` 2, 8632) e compra coletiva (`type` 3, 8645) sem nenhuma oferta desses tipos.
 - Conquistas: títulos (8597).
 - Casamento: `saveBook` (8595) com as roupas do `MarryQualityTempInfo`.
 - Campanha em grupo: o gasto da entrada (4240), ver [salas-campanha.md](salas-campanha.md).

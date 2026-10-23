@@ -169,3 +169,55 @@ async def test_mystery_points_exchange_is_not_sold_for_bound_balens(tmp_path: Pa
         g.client.send(5154, buy(681, 1))
         assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result != 1
         assert c.gift_token == 7000 and ledger(tmp_path) == []
+
+
+VIP_CARD = 8187  # 0053: 30-Day VIP Card, 799 Balens, 1 por dia
+NOSTALGIC_I = 8285  # pacote: 2032101 x1 + 2030503 x2, 199 Balens, 3 por dia
+
+
+def _offer(offer_id: int) -> pb.BuyInfo:
+    return pb.ShopMsg(buyInfo=pb.BuyInfo(goodId=offer_id, count=1, isDiscount=True)).buyInfo
+
+
+async def test_timed_sales_are_sent_in_parts_and_sold_with_a_daily_limit(tmp_path: Path) -> None:
+    """Ofertas do 0053 (oficial_encantar #57-#58): partes de 50 com o mesmo flag; compra em Balens por oferta, com
+    o limite do dia (oneDayCount) contado à parte da loja comum (8218/8693 com isDiscount)."""
+    from wartune_server.game.handlers import shop
+
+    clock = FakeClock(datetime(2026, 10, 23, 12, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        shop.send_offers(s)
+        parts = [pb.ShopMainRspMsg.FromString(p.body) for p in await g.idle() if p.code == 4238]
+        assert [(m.flag, len(m.discountInfo)) for m in parts] == [(13, 50), (13, 3)]
+        card = next(d for m in parts for d in m.discountInfo if d.id == VIP_CARD)
+        assert (card.shopId, card.templateId, card.price, card.names) == (1198, 2031205, 799, "31-Day VIP Card")
+
+        c = me(g).character
+        c.point, c.gift_token = 1000, 1000
+        msg = pb.ShopMsg(payType=1)
+        msg.buyInfo.CopyFrom(_offer(NOSTALGIC_I))
+        for _ in range(3):
+            g.client.send(5154, msg)
+            assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 1
+        g.client.send(5154, msg)  # quarto no dia: oneDayCount 3
+        assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 6
+        assert c.point == 1000 - 3 * 199 and c.gift_token == 1000  # Balens, nunca vinculados
+        got = sorted((i.template_id, i.count, i.is_binds) for i in me(g).items if i.template_id in (2032101, 2030503))
+        assert got == [(2030503, 6, False), (2032101, 3, False)]
+
+        g.client.send(8693, msg)
+        assert pb.ShopMsg.FromString((await g.until(4599))[-1].body).buyInfo.count == 3
+        g.client.send(8218)
+        has = pb.ShopMsg.FromString((await g.until(4145))[-1].body).hasDataInfo
+        assert [(h.itemId, h.counts, h.isDiscount) for h in has] == [(NOSTALGIC_I, 3, True)]
+
+        msg.buyInfo.goodId = 8230  # Sylph Sepulcrum*10: começa no dia 29
+        g.client.send(5154, msg)
+        assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 8
+        clock.advance(86400)  # outro dia: o limite volta
+        msg.buyInfo.goodId = NOSTALGIC_I
+        g.client.send(5154, msg)
+        assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 1
+        assert ledger(tmp_path)[-1][4:] == ("shop", f"offer:{NOSTALGIC_I} x1")
