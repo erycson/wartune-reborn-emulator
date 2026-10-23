@@ -131,9 +131,9 @@ async def strengthen(s: GameSession, _: object) -> None:
         out = pb.StoreRspMsg(strengResult=True, strengthenGrade=grade, pos=0, objectId=0, bagType=BagType.STORE)
     else:
         out = pb.StoreRspMsg(strengResult=False)
-    s.send(S_STRENGTHEN, out)  # como está: o oficial não manda os campos que faltam
-    if quests:
+    if quests:  # o 112 vem antes do 86 (oficial_encantar #288-#289)
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    s.send(S_STRENGTHEN, out)  # como está: o oficial não manda os campos que faltam
 
 
 # --- engaste ---

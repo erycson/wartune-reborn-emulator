@@ -91,8 +91,9 @@ async def test_missao_17_reforco_conta_quando_o_grau_passa_do_minimo(
             assert wand.strengthen_grade == grade and 112 not in codes(got)
 
         g.client.send(5150)
-        got = await g.until(112)
+        got = await g.until(86)
         assert wand.strengthen_grade == 3 and _progress(got) == (121, 1)
+        assert codes(got)[-2:] == [112, 86]  # oficial_encantar #288-#289
 
 
 async def test_missao_18_qualquer_mosaico_avanca(tmp_path: Path) -> None:
