@@ -37,7 +37,20 @@ O 5006 da mochila usa o mesmo código. Depois de gravar, `handlers/player.grante
 Definições do operador em **`data/events.json`** (`config.events_file`): `dataStamp` (subir quando
 mudar) e `actives[]` com GUIDs, datas, pacotes, itens e condições. Vêm preenchidos o Login Bonus
 (tipo 13, os dois pacotes do "10/15 Login Bonus I" da inglesa #60) e o presente online (tipo 14: 10 min, depois
-30 min x3; o -600 da captura virou -500; só turco: login.json).
+30 min x3; o -600 da captura virou -500; só turco: login.json), os dois sem fim (2099: o painel mostra a contagem
+até lá, "Countdown: 26732 Day"), e depois **as 41 atividades do oficial inglês** (#60-#67, GUIDs, textos, pacotes e
+datas de 2026-10-01 a 2026-11-04, iguais byte a byte: `test_atividades_troca`). Passado 2026-11-04 só sobram as
+duas do operador: novas atividades entram no arquivo com outras datas e o `dataStamp` sobe.
+
+- Pacote: `condition` = `[conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4]` (zeros do fim podem
+  faltar); `items` = `[TemplateId, quantidade]` ou `[TemplateId, quantidade, templateType]`; `templateType` 4 é o
+  custo da troca (aparece no pacote, não é dado); `limit` = trocas por jogador no tipo 10 (o `getCount` do 4476 #68
+  no personagem novo: 1, 10 ou 200; ausente = sem limite).
+- O painel recebe **toda atividade que ainda não acabou**, também as que vão começar (#60, às 10-18, já manda as de
+  10-22 a 10-31; o cliente só descarta `stopTime` passado, `FunnyManager.__funnyTemHandler`, e mostra a data de
+  início no lugar da contagem, `FunnyBagView.setRemainTime`). Antes do `beginDate` todo pacote vai 3 e o resgate é
+  recusado; contadores só somam nas que já começaram.
+- Os testes usam um catálogo fixo (`tests/fixtures/events.json`, as duas do operador), não o do operador.
 
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
@@ -70,8 +83,18 @@ mudar) e `actives[]` com GUIDs, datas, pacotes, itens e condições. Vêm preenc
   devoção do dia (soma dos `Num` dos leeds de hoje, condição 13). Diário (zera no dia do jogo): 12, 14, 108, 109
   e 110, pelos textos "today" do cliente (`funny.FunnyRightView`); 21, 22 e 26 contam o período todo (texto sem
   "today": **dedução**). O resgate do diário marca o dia; o do período, o período.
-- Outros `activeType` ficam "ainda não" (3), cada um **depende de** um sistema: 1 gasto e 15 recarga de Balens
-  (cash), 10 troca, 18 cultivo de montaria, 2 montaria, 5 refino, 7 honra, 9 recarga, 11 moda, 19 selo de alma,
+- Troca (tipo 10, `getway` 2, condição 11): vale (1) com `conditionValue` do item `conditionBak` na mochila e
+  limite sobrando; 8586 tipo 2 com `count` (o `FunnyMutiFrame` escolhe; `count` × custo, `count` × itens); o
+  `getCount` do 4476 = trocas que ainda cabem (0 = sem limite), e com o limite usado o pacote vai 2 (pego); estado `sum:<active>:<pacote>` =
+  trocas feitas no período. Resposta: 115 do que saiu, depois a do resgate (3, 109, 115, 4476, 111, 4476 desta, 83).
+  **Dedução**: a inglesa não troca nada; o significado do `getCount` vem do cliente (`FunnyBagItem`, `mutiMaxNum`).
+- Gasto (tipo 1 "Spending Bonus", condição 9): soma os **Balens** (não os vinculados) que caíram em qualquer
+  pedido, no mesmo ponto do leed 15 (`GameSession.on_packet`); conta o período (cada uma dura um dia na inglesa).
+  **Dedução**: sem captura de gasto em inglês; "Spend" no texto.
+- `activeCharge` do 4476 vai 0: a inglesa #68 manda 1 em parte das trocas e de outras sem regra visível (o cliente
+  só o lê no tipo 4, `regressionActiveCost`).
+- Outros `activeType` ficam "ainda não" (3), cada um **depende de** um sistema: 15 recarga de Balens
+  (cash), 18 cultivo de montaria, 2 montaria, 5 refino, 7 honra, 9 recarga, 11 moda, 19 selo de alma,
   20 astrologia, 23 recompensa, 24 mistério, 25 runa, 27 anfiteatro, 28 campo de batalha, 100-102 runas e cartas,
   105 torre do rei, 106/107 roda, 111 campo minado, 112 pesca, 113 trilhas, 118 labirinto. O 4476 sai no pedido
   (8586 tipo 1), no login e depois de cada 115 de ganho (acima); **precisa de captura**: se o oficial também empurra

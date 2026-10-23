@@ -19,6 +19,7 @@ from ..services.characters import CharacterService
 from ..services.clock import Clock
 from ..services.login import LoginService
 from ..templates.repository import GameTemplates
+from . import events as ev
 from . import timebox
 from .announcements import Announcer
 from .boss_fight import Bosses
@@ -169,6 +170,11 @@ class GameSession:
             from .handlers import events  # handlers importa este módulo
 
             await events.leed_done(self, events.BALEN_LEED)
+            # atividade "Spending Bonus" (tipo 1, condição 9): só Balens, não os vinculados (*dedução*: "Spend" no
+            # texto, sem captura de gasto na inglesa)
+            if c.point < point:
+                spent = ev.count(snap, self.ctx.events, ev.SPEND, self.ctx.clock.now(), point - c.point)
+                await self.ctx.characters.save(*spent)
 
     async def _save_logout(self) -> None:
         """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""

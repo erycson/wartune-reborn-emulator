@@ -21,6 +21,8 @@ from wartune_server.protocol import Packet, PacketDecoder, StreamCipher
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 TEMPLATES = Path("data/templates/tempinfos.xml")
+# catálogo fixo das atividades (o Login Bonus e o presente online), longe do data/events.json do operador
+EVENTS = Path(__file__).parent / "fixtures" / "events.json"
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates/tempinfos.xml")
 
 INIT_CODES = {4153, 4154, 4155, 4156, 4157, 4160, 4173, 4176, 4233, 4245}  # LoginInitDataAccept
@@ -59,6 +61,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         rsa_key_file=tmp_path / "rsa.pem",
         log_dir=tmp_path / "logs",
         skip_tutorial=True,
+        events_file=EVENTS,
         _env_file=None,  # type: ignore[call-arg]
     )
     services = await build_services(settings)

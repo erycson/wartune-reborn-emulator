@@ -1,6 +1,6 @@
 {
-  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP) e 14 (presente online diário, condição 15 = segundos online desde o último resgate). Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
-  "dataStamp": 3,
+  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. O painel mostra toda atividade que ainda não acabou (endDate), também as que vão começar. Depois das duas do operador (Login Bonus e presente online, sem fim) vêm as 41 do oficial inglês (tutorial_en #60-#67, datas de 2026-10-01 a 2026-11-04). Pacote: condition = [conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4] (os zeros do fim podem faltar); items = [TemplateId, quantidade] ou [TemplateId, quantidade, templateType], e templateType 4 é o custo da troca (só aparece; não é dado); limit = trocas por jogador no tipo 10 (0 ou ausente = sem limite). Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP), 14 (presente online diário, condição 15 = segundos online desde o último resgate), 10 (troca, condição 11 = ter conditionValue do item conditionBak), 1 (Balens gastos no período, condição 9) e os contados de docs/eventos.md (12, 21, 22, 26, 108, 109, 110); os outros ficam 'ainda não'. Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
+  "dataStamp": 4,
   "actives": [
     {
       "activeId": "A0000013-0000-0000-0000-000000000001",
@@ -13,10 +13,8 @@
       "beginDate": "2026-01-01 00:00:00",
       "endDate": "2099-12-31 23:59:59",
       "packages": [
-        {"packageId": "B0000013-0000-0000-0000-000000000001", "order": 1, "condition": [14, 1],
-         "items": [[-500, 10], [-300, 10000], [-100, 10000], [208014, 5], [21261034, 1]]},
-        {"packageId": "B0000013-0000-0000-0000-000000000002", "order": 2, "condition": [14, 2],
-         "items": [[-600, 10000], [-500, 10], [208017, 2]]}
+        {"packageId": "B0000013-0000-0000-0000-000000000001", "order": 1, "condition": [14, 1], "items": [[-500, 10], [-300, 10000], [-100, 10000], [208014, 5], [21261034, 1]]},
+        {"packageId": "B0000013-0000-0000-0000-000000000002", "order": 2, "condition": [14, 2], "items": [[-600, 10000], [-500, 10], [208017, 2]]}
       ]
     },
     {
@@ -30,14 +28,826 @@
       "beginDate": "2026-01-01 00:00:00",
       "endDate": "2099-12-31 23:59:59",
       "packages": [
-        {"packageId": "B0000014-0000-0000-0000-000000000001", "order": 1, "condition": [15, 600],
-         "items": [[-100, 10000], [3040001, 5]]},
-        {"packageId": "B0000014-0000-0000-0000-000000000002", "order": 2, "condition": [15, 1800],
-         "items": [[-300, 10000], [2126023, 1]]},
-        {"packageId": "B0000014-0000-0000-0000-000000000003", "order": 3, "condition": [15, 1800],
-         "items": [[-500, 20], [21260987, 1]]},
-        {"packageId": "B0000014-0000-0000-0000-000000000004", "order": 4, "condition": [15, 1800],
-         "items": [[-500, 20], [21260987, 1]]}
+        {"packageId": "B0000014-0000-0000-0000-000000000001", "order": 1, "condition": [15, 600], "items": [[-100, 10000], [3040001, 5]]},
+        {"packageId": "B0000014-0000-0000-0000-000000000002", "order": 2, "condition": [15, 1800], "items": [[-300, 10000], [2126023, 1]]},
+        {"packageId": "B0000014-0000-0000-0000-000000000003", "order": 3, "condition": [15, 1800], "items": [[-500, 20], [21260987, 1]]},
+        {"packageId": "B0000014-0000-0000-0000-000000000004", "order": 4, "condition": [15, 1800], "items": [[-500, 20], [21260987, 1]]}
+      ]
+    },
+    {
+      "activeId": "0008F827-B82B-B247-A61F-CD8CDF6F26ED",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Amnesia)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 79,
+      "beginDate": "2026-10-31 00:00:00",
+      "endDate": "2026-10-31 23:59:59",
+      "packages": [
+        {"packageId": "56B8D2AE-C6A0-A26F-C841-CD8CDF70F3F0", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "6D38A1F3-9E2E-CC3D-75F5-CD8CDF701DA1", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "7DC96726-E52C-D7CC-ADF1-CD8CDF705D50", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "B83FC6F5-AAFE-3BFC-A1E1-CD8CDF70262D", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]},
+        {"packageId": "D5FE9A69-73EE-AF58-A5D7-CD8CDF706BBC", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020007, 1], [21261043, 2]]}
+      ]
+    },
+    {
+      "activeId": "840D63D8-3661-FFFC-0724-CD8CDF6CEB0D",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Healing)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 74,
+      "beginDate": "2026-10-26 00:00:00",
+      "endDate": "2026-10-26 23:59:59",
+      "packages": [
+        {"packageId": "16F1326D-1A98-6C20-1FF0-CD8CDF6CFAD1", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020009, 1], [21261043, 2]]},
+        {"packageId": "2E977B14-88A0-5EFC-CBBF-CD8CDF6C4878", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]},
+        {"packageId": "3E60A2BC-B494-DD55-511F-CD8CDF6C7784", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "42CC8DF4-1703-1517-FE7E-CD8CDF6CD5CC", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "687A75C9-C1BD-ADB6-DBCD-CD8CDF6C97A7", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]}
+      ]
+    },
+    {
+      "activeId": "A6137CD0-B1CB-35E2-1F8D-CD63F484E748",
+      "activeType": 28,
+      "title": "10/22 Battleground",
+      "detail": "Battleground",
+      "conditionDetail": "During the event, defeat the required amount of players to claim the rewards (Claim them once everyday).",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "369DF40A-E32F-6270-5972-CD63F4840322", "order": 3, "condition": [28, 5], "items": [[-600, 5000], [-100, 10000], [21261046, 1]]},
+        {"packageId": "8C12B9DC-6D15-23B0-6BE1-CD63F484D61F", "order": 2, "condition": [28, 2], "items": [[-300, 5000], [-100, 10000], [21261046, 1]]},
+        {"packageId": "A86D5D7B-EB20-ACAA-9594-CD63F4843050", "order": 1, "condition": [28, 1], "items": [[-100, 5000], [21261038, 1]]}
+      ]
+    },
+    {
+      "activeId": "050F5750-9776-DED8-8078-CD62C4A8DF55",
+      "activeType": 13,
+      "title": "10/15 Login Bonus I",
+      "detail": "During the event, login to receive daily rewards.",
+      "conditionDetail": "Claim them once everyday.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-18 23:59:59",
+      "packages": [
+        {"packageId": "6F4D92C8-00E9-95C8-245A-CD62C4A83CFF", "order": 2, "condition": [14, 2], "items": [[-600, 10000], [-500, 10], [208017, 2]]},
+        {"packageId": "FFEFE6C2-B599-9783-CBF5-CD62C4A879CE", "order": 1, "condition": [14, 1], "items": [[-500, 10], [-300, 10000], [-100, 10000], [208014, 5], [21261034, 1]]}
+      ]
+    },
+    {
+      "activeId": "5F360B88-1914-920B-04AF-CD8CDF69C8B0",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Rage)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 71,
+      "beginDate": "2026-10-23 00:00:00",
+      "endDate": "2026-10-23 23:59:59",
+      "packages": [
+        {"packageId": "0FCDB5CF-0E6F-CFA5-9377-CD8CDF69FFA4", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "638E3DBA-BB0A-7A67-E6F1-CD8CDF6A54D8", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "9627340A-00B9-9F94-D9E0-CD8CDF6A38A8", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "BBBA2244-5EC7-DB29-E8CB-CD8CDF691843", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020001, 1], [21261043, 2]]},
+        {"packageId": "FAE1D9A1-83E1-A683-E554-CD8CDF6AD2E8", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]}
+      ]
+    },
+    {
+      "activeId": "45A088CD-0DAA-D170-4175-CD63F485C2A7",
+      "activeType": 11,
+      "title": "10/24 Synthesize Fashion",
+      "detail": "Synthesize Fashion",
+      "conditionDetail": "During the event, synthesize a Fashion to the required Stage to claim rewards.",
+      "getway": 1,
+      "order": 1,
+      "beginDate": "2026-10-24 00:00:00",
+      "endDate": "2026-10-26 23:59:59",
+      "packages": [
+        {"packageId": "0320E835-E7BE-56BC-4283-CD63F488FDF0", "order": 22, "condition": [12, 7, 110], "items": [[-100, 50000], [208020, 4], [208021, 1]]},
+        {"packageId": "2C7D1C72-8E3D-DBCD-594A-CD63F486D9C0", "order": 11, "condition": [12, 4, 111], "items": [[-100, 30000], [208020, 1], [208021, 1]]},
+        {"packageId": "2D3EB5E6-1ABE-8513-7FA6-CD63F4874989", "order": 19, "condition": [12, 6, 111], "items": [[-100, 40000], [208020, 4], [208021, 1]]},
+        {"packageId": "3513CB98-6794-406D-FB5A-CD63F486D658", "order": 13, "condition": [12, 5, 109], "items": [[-100, 40000], [208020, 10], [208021, 1]]},
+        {"packageId": "39998E36-E58C-BFAB-8694-CD63F486BF0E", "order": 12, "condition": [12, 4, 112], "items": [[-100, 30000], [208020, 1], [208021, 1]]},
+        {"packageId": "41FC483B-A9AA-742D-382D-CD63F4859A69", "order": 4, "condition": [12, 2, 112], "items": [[-100, 10000], [2120043, 2]]},
+        {"packageId": "44768523-F4C4-C768-87C8-CD63F4869EBC", "order": 9, "condition": [12, 4, 109], "items": [[-100, 30000], [208020, 5], [208021, 1]]},
+        {"packageId": "4DF01C6B-B72D-6171-F041-CD63F485EDB2", "order": 2, "condition": [12, 2, 110], "items": [[-100, 10000], [2120043, 2]]},
+        {"packageId": "4FE03ADF-F33B-9B6B-7DD9-CD63F4881D38", "order": 23, "condition": [12, 7, 111], "items": [[-100, 50000], [208020, 4], [208021, 1]]},
+        {"packageId": "574AD7F0-4453-2B5F-0865-CD63F487324C", "order": 15, "condition": [12, 5, 111], "items": [[-100, 40000], [208020, 2], [208021, 1]]},
+        {"packageId": "731DEA0A-ADD1-3723-C0CB-CD63F48634BB", "order": 7, "condition": [12, 3, 111], "items": [[-100, 20000], [2120043, 5]]},
+        {"packageId": "732CC8A0-5717-D1B6-FF7E-CD63F4870D62", "order": 16, "condition": [12, 5, 112], "items": [[-100, 40000], [208020, 2], [208021, 1]]},
+        {"packageId": "73934C0C-5E20-562C-6E3D-CD63F48894E4", "order": 24, "condition": [12, 7, 112], "items": [[-100, 50000], [208020, 4], [208021, 1]]},
+        {"packageId": "8467220A-5909-B476-8742-CD63F48733E6", "order": 20, "condition": [12, 6, 112], "items": [[-100, 40000], [208020, 4], [208021, 1]]},
+        {"packageId": "8EE198F8-2A4C-FB4C-7B5B-CD63F48572BE", "order": 5, "condition": [12, 3, 109], "items": [[-100, 20000], [208020, 2]]},
+        {"packageId": "B1176CA9-DB77-EB3F-21CC-CD63F4862B55", "order": 6, "condition": [12, 3, 110], "items": [[-100, 20000], [2120043, 5]]},
+        {"packageId": "BEEEA97F-F749-42E6-B40A-CD63F4860ED3", "order": 14, "condition": [12, 5, 110], "items": [[-100, 40000], [208020, 2], [208021, 1]]},
+        {"packageId": "C5AADFED-E8C4-39BD-B78E-CD63F486AC42", "order": 8, "condition": [12, 3, 112], "items": [[-100, 20000], [2120043, 5]]},
+        {"packageId": "CECD996E-7BDF-9340-7B17-CD63F4861169", "order": 10, "condition": [12, 4, 110], "items": [[-100, 30000], [208020, 1], [208021, 1]]},
+        {"packageId": "D40B66B2-A581-EC64-F598-CD63F48528FD", "order": 3, "condition": [12, 2, 111], "items": [[-100, 10000], [2120043, 2]]},
+        {"packageId": "D8681F5F-58A7-C8EC-B048-CD63F4885F8A", "order": 21, "condition": [12, 7, 109], "items": [[-100, 50000], [208020, 15], [208021, 1]]},
+        {"packageId": "E3664EA9-2767-F5DD-1E50-CD63F48788C1", "order": 17, "condition": [12, 6, 109], "items": [[-100, 40000], [208020, 15], [208021, 1]]},
+        {"packageId": "FBF3B692-6A9A-3A38-ED43-CD63F487A833", "order": 18, "condition": [12, 6, 110], "items": [[-100, 40000], [208020, 4], [208021, 1]]},
+        {"packageId": "FD50A7B5-09F6-2A9D-E9C3-CD63F485E189", "order": 1, "condition": [12, 2, 109], "items": [[-100, 10000], [208020, 1]]}
+      ]
+    },
+    {
+      "activeId": "C4DC44B3-5849-A8EA-2D5F-CD63F48B2AAC",
+      "activeType": 22,
+      "title": "10/29 Daru Alchemy",
+      "detail": "Daru Alchemy",
+      "conditionDetail": "During the event, challenge Daru Alchemy the specific amount of times to receive rewards everyday.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "17C0EBAB-E5CA-03AC-AAFB-CD63F48B8F99", "order": 2, "condition": [22, 2], "items": [[2060487, 2], [21261038, 2]]},
+        {"packageId": "6F711E06-717E-49CA-DD50-CD63F48BD94A", "order": 1, "condition": [22, 1], "items": [[21261038, 1]]},
+        {"packageId": "DAB8BF73-6FF8-ECDF-C2EB-CD63F48BD551", "order": 3, "condition": [22, 3], "items": [[2060487, 3], [21261046, 1]]}
+      ]
+    },
+    {
+      "activeId": "255E0973-1C74-AB43-24AA-CD63F49262B2",
+      "activeType": 10,
+      "title": "10/22  Sylph Shards Exchange",
+      "detail": "Legendary Sylph Shards Exchange",
+      "conditionDetail": "Exchange Legendary Sylph Shards for items. The Legendary Sylph Shards can be stacked up.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "2EB6BB58-917D-0BA7-DC75-CD63F49322C3", "order": 7, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3063004, 1]]},
+        {"packageId": "570B4702-1747-2DE8-2BC3-CD63F4932947", "order": 9, "condition": [11, 119, 2126025], "items": [[2126025, 119, 4], [3066002, 1]]},
+        {"packageId": "587728E5-0608-372F-A039-CD63F4925FB8", "order": 2, "condition": [11, 10, 2126025], "items": [[208023, 20], [2126025, 10, 4]]},
+        {"packageId": "5C71CB6C-9CF3-4FF7-51CA-CD63F493D8DC", "order": 3, "condition": [11, 10, 2126025], "items": [[2126025, 10, 4], [3040001, 20]]},
+        {"packageId": "70B815FA-F598-CEE1-0DFE-CD63F4934485", "order": 8, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3064004, 1]]},
+        {"packageId": "7190B3C0-4DF6-8971-2FEF-CD63F4922733", "order": 1, "condition": [11, 1, 2126025], "items": [[2030102, 1], [2126025, 1, 4]]},
+        {"packageId": "7E2B45DC-7611-ADD4-B7F7-CD63F493279C", "order": 4, "condition": [11, 10, 2126025, 10], "items": [[2125057, 10], [2126025, 10, 4]]},
+        {"packageId": "AD681151-06A2-F794-7F5D-CD63F494A4A5", "order": 10, "condition": [11, 119, 2126025], "items": [[2126025, 119, 4], [3065002, 1]]},
+        {"packageId": "D34BE88C-4928-BE79-56E8-CD63F4939F5E", "order": 6, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3062004, 1]]},
+        {"packageId": "F96A13A1-7A9C-38F2-3395-CD63F4934F52", "order": 5, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3061004, 1]]}
+      ]
+    },
+    {
+      "activeId": "3F6E3AC8-C6FC-CE11-34F7-CD63F4947BCB",
+      "activeType": 10,
+      "title": "10/15  Duplicate Rune EXCH",
+      "detail": "Duplicate Rune Exchange",
+      "conditionDetail": "The power of duplicate runes is excessive. Please exchange duplicate runes for Runestone in this event and continue to develop your runes.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "2221FC4A-E481-1AF3-99B8-CD63F4953C64", "order": 9, "condition": [11, 1, 3020006, 1], "items": [[3020006, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "39A2B592-2DF4-DF8F-E6DB-CD63F494EFF2", "order": 3, "condition": [11, 1, 3020009, 1], "items": [[3020009, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "5FC02F41-3D60-2A27-C5CA-CD63F4949EFF", "order": 6, "condition": [11, 1, 3020003, 1], "items": [[3020003, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "75987409-FA33-D9D5-BFE6-CD63F494A87A", "order": 7, "condition": [11, 1, 3020004, 1], "items": [[3020004, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "8613A161-C8F4-FB93-3A63-CD63F494C43F", "order": 4, "condition": [11, 1, 3020001, 1], "items": [[3020001, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "927E30E4-3EE2-9AF0-7109-CD63F4940C01", "order": 2, "condition": [11, 1, 3020008, 1], "items": [[3020008, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "CFDA6FD3-7ADD-C4CF-A4A3-CD63F494DC4E", "order": 5, "condition": [11, 1, 3020002, 1], "items": [[3020002, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "D3FEE3C9-AB9F-9345-5A17-CD63F494DBFF", "order": 1, "condition": [11, 1, 3020007, 1], "items": [[3020007, 1, 4], [3020010, 50]], "limit": 1},
+        {"packageId": "EE805DAA-8046-0DF3-5D0A-CD63F4953069", "order": 8, "condition": [11, 1, 3020005, 1], "items": [[3020005, 1, 4], [3020010, 50]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "55BFD095-3D29-6EB5-E818-CD62C4A86EF1",
+      "activeType": 107,
+      "title": "10/15 Blessing Wheel Percentage",
+      "detail": "Blessing Wheel Percentage",
+      "conditionDetail": "During the event, spin the Blessing Wheel and reach 150% to receive rewards (Claim once everyday).",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "1EE3C7A5-8021-0AFD-F2FC-CD62C4A82949", "order": 1, "condition": [107, 150], "items": [[-100, 10000], [208023, 3], [3040001, 3], [21261034, 1]]}
+      ]
+    },
+    {
+      "activeId": "41490F66-DAEB-9864-4F77-CD63F490879D",
+      "activeType": 10,
+      "title": "Heartbeat Melody Chest EXCH II",
+      "detail": "Heartbeat Melody Chest EXCH II",
+      "conditionDetail": "Exchange Monthly Event Items for various items.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "03DAE032-B7F4-315B-706A-CD63F490E973", "order": 1, "condition": [11, 1, 21261045, 200], "items": [[2060488, 1], [21261045, 1, 4]], "limit": 1},
+        {"packageId": "30621B46-88F7-A925-F5EA-CD63F491CC9C", "order": 7, "condition": [11, 2, 21261045], "items": [[208008, 1], [21261045, 2, 4]], "limit": 1},
+        {"packageId": "3D214BA7-F8E1-F22E-57D9-CD63F4921741", "order": 15, "condition": [11, 20, 21261045], "items": [[208021, 1], [21261045, 20, 4]], "limit": 1},
+        {"packageId": "3D2BB4EA-F85B-F8C0-91F7-CD63F490C9C7", "order": 2, "condition": [11, 1, 21261045], "items": [[2060489, 4], [21261045, 1, 4]], "limit": 1},
+        {"packageId": "4778CBD5-9C3A-342C-4B37-CD63F491FD09", "order": 10, "condition": [11, 10, 21261045], "items": [[208023, 10], [21261045, 10, 4]], "limit": 1},
+        {"packageId": "4AA2BE02-4AE9-A967-D5CE-CD63F492F66F", "order": 12, "condition": [11, 10, 21261045, 10], "items": [[208045, 10], [21261045, 10, 4]], "limit": 1},
+        {"packageId": "4AB14069-F06F-ABF8-8161-CD63F492100A", "order": 11, "condition": [11, 10, 21261045], "items": [[3040001, 10], [21261045, 10, 4]], "limit": 1},
+        {"packageId": "6DA48987-E76E-0157-7F30-CD63F4910DB5", "order": 9, "condition": [11, 1, 21261045], "items": [[2060008, 2], [21261045, 1, 4]], "limit": 1},
+        {"packageId": "73432615-9137-989C-49CB-CD63F4918C76", "order": 4, "condition": [11, 10, 21261045], "items": [[208014, 100], [21261045, 10, 4]], "limit": 1},
+        {"packageId": "8D9DE93D-741D-BE03-09D2-CD63F491C218", "order": 5, "condition": [11, 1, 21261045], "items": [[208017, 1], [21261045, 1, 4]], "limit": 1},
+        {"packageId": "9C46B563-2F37-0D9E-7472-CD63F4924467", "order": 14, "condition": [11, 20, 21261045], "items": [[208020, 1], [21261045, 20, 4]], "limit": 1},
+        {"packageId": "A07F658F-5F89-2D93-3C77-CD63F49167E6", "order": 3, "condition": [11, 1, 21261045], "items": [[2030102, 1], [21261045, 1, 4]], "limit": 1},
+        {"packageId": "CB2D6E84-A6C0-79C9-6860-CD63F491E765", "order": 6, "condition": [11, 1, 21261045], "items": [[3020010, 1], [21261045, 1, 4]], "limit": 1},
+        {"packageId": "E7874F04-6252-F01F-8D20-CD63F49252AB", "order": 13, "condition": [11, 10, 21261045, 5], "items": [[3040002, 10], [21261045, 10, 4]], "limit": 1},
+        {"packageId": "EA1640F9-B112-258C-3A7E-CD63F4913C46", "order": 8, "condition": [11, 2, 21261045], "items": [[2130005, 1], [21261045, 2, 4]], "limit": 1},
+        {"packageId": "ED40A79F-F6B0-26EF-7481-CD63F492C127", "order": 16, "condition": [11, 2, 21261034], "items": [[21261034, 2, 4], [21261046, 1]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "FD5FA0BE-0EB4-DC8D-5CEA-CD63F488E276",
+      "activeType": 59,
+      "title": "10/22 Refine Sylph Equipment",
+      "detail": "Strengthen your Sylphs to win rewards.",
+      "conditionDetail": "Strengthen your Sylphs to win rewards.",
+      "getway": 3,
+      "order": 28,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "0FB5B249-B377-B1F0-0425-CD63F4880DFD", "order": 1, "condition": [59, 20], "items": [[3270101, 1]]},
+        {"packageId": "11B946AF-D5D7-9B99-7A72-CD63F4881142", "order": 3, "condition": [59, 50], "items": [[3270101, 3], [21261038, 1], [21261046, 2]]},
+        {"packageId": "93538C13-D84E-9288-7665-CD63F4887774", "order": 2, "condition": [59, 30], "items": [[3270101, 2], [21261038, 1], [21261046, 1]]}
+      ]
+    },
+    {
+      "activeId": "2CC466A0-675E-7C65-B05A-CD8663E94E82",
+      "activeType": 10,
+      "title": "Nostalgic Times Limited Exchange II",
+      "detail": "Nostalgic Times Limited Exchange II",
+      "conditionDetail": "Time flies, and you can't help but pause for a moment.",
+      "getway": 2,
+      "order": 2,
+      "beginDate": "2026-10-23 00:00:00",
+      "endDate": "2026-11-01 23:59:59",
+      "packages": [
+        {"packageId": "0F099278-1824-33A6-5668-CD8663E9ECEB", "order": 2, "condition": [11, 75, 21261043, 1], "items": [[1108254, 1], [1198254, 1], [21261043, 75, 4]], "limit": 1},
+        {"packageId": "1280F6D0-C54A-D10F-058F-CD8663EA0FC1", "order": 9, "condition": [11, 10, 21261043], "items": [[208017, 10], [208023, 10], [21261043, 10, 4]], "limit": 1},
+        {"packageId": "205C9357-2B84-640C-0061-CD8663EA305A", "order": 6, "condition": [11, 1, 21261043], "items": [[-100, 10000], [208014, 20], [21261043, 1, 4]], "limit": 1},
+        {"packageId": "2B5BFD15-2C40-006E-CB43-CD8663EA2F13", "order": 8, "condition": [11, 10, 21261043], "items": [[208017, 10], [3040001, 10], [21261043, 10, 4]], "limit": 1},
+        {"packageId": "3FEB9BA0-C922-0361-FEDD-CD8663EA0A05", "order": 4, "condition": [11, 2, 21261043], "items": [[2060489, 5], [21261043, 2, 4]], "limit": 1},
+        {"packageId": "41271BEB-F954-CB0E-A73C-CD8663E900C5", "order": 1, "condition": [11, 120, 21261043, 1], "items": [[2180013, 1], [21261043, 120, 4]], "limit": 1},
+        {"packageId": "48BF24DD-41DE-FD1E-FB86-CD8663E95B2F", "order": 3, "condition": [11, 75, 21261043, 1], "items": [[1118254, 1], [1128254, 1], [21261043, 75, 4]], "limit": 1},
+        {"packageId": "63F12496-677B-4543-B47B-CD8663EAB112", "order": 7, "condition": [11, 1, 21261043], "items": [[-100, 20000], [2120043, 4], [21261043, 1, 4]], "limit": 1},
+        {"packageId": "D620B849-1DAD-C33A-8BFE-CD8663EAA4C9", "order": 5, "condition": [11, 10, 21261043], "items": [[2060488, 5], [21261043, 10, 4]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "862469BA-CFF4-AC6A-F394-CD63F48DE1AE",
+      "activeType": 47,
+      "title": "10/29 Sylph Upgrade",
+      "detail": "Sylph Upgrade",
+      "conditionDetail": "During the event, upgrade Sylphs the required amount of times to receive rewards everyday.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "1FF9ED4D-8B17-79DE-0DBE-CD63F48D5077", "order": 1, "condition": [47, 10], "items": [[208023, 2], [2126025, 2]]},
+        {"packageId": "41E42F34-07F9-3096-2FC1-CD63F48D1D2A", "order": 2, "condition": [47, 20], "items": [[208023, 3], [2060487, 1], [21261038, 1]]},
+        {"packageId": "73C5586B-57B5-8E51-A63E-CD63F48D30F0", "order": 4, "condition": [47, 100], "items": [[208023, 5], [2060487, 4], [21261046, 2]]},
+        {"packageId": "B01D7787-431F-4FFB-DC28-CD63F48D1B94", "order": 3, "condition": [47, 50], "items": [[208023, 5], [2060487, 2], [21261046, 1]]}
+      ]
+    },
+    {
+      "activeId": "FE976B8F-E3DD-BD5B-9308-CD62C4B2C44B",
+      "activeType": 10,
+      "title": "10/8 Legendary Sylph Shards Exchange",
+      "detail": "Legendary Sylph Shards Exchange",
+      "conditionDetail": "Exchange Legendary Sylph Shards for items. The Legendary Sylph Shards can be stacked up.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-08 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "5AC4F9BA-3964-A5FD-16BF-CD62C4B29F61", "order": 4, "condition": [11, 10, 2126025, 10], "items": [[2125057, 10], [2126025, 10, 4]], "limit": 10},
+        {"packageId": "6462D2AE-C029-9C1A-B9C1-CD62C4B3E5D9", "order": 8, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3064004, 1]]},
+        {"packageId": "7941EAE6-082C-131E-07F1-CD62C4B25A5D", "order": 3, "condition": [11, 10, 2126025], "items": [[2126025, 10, 4], [3040001, 20]]},
+        {"packageId": "88A0F04D-8C58-AB5F-1F66-CD62C4B3C1E2", "order": 5, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3061004, 1]]},
+        {"packageId": "923F9CDA-DEA1-3E5F-2014-CD62C4B3004B", "order": 7, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3063004, 1]]},
+        {"packageId": "C1F5367A-0943-B3AF-8FC0-CD62C4B264E6", "order": 2, "condition": [11, 10, 2126025], "items": [[208023, 20], [2126025, 10, 4]]},
+        {"packageId": "C5151386-0B11-9C4C-6F6C-CD62C4B259C3", "order": 1, "condition": [11, 1, 2126025], "items": [[2030102, 1], [2126025, 1, 4]]},
+        {"packageId": "C97CC4F3-334C-D5DA-D1D9-CD62C4B369E3", "order": 6, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3062004, 1]]},
+        {"packageId": "D1C07515-F4F6-2B80-EA54-CD62C4B35CB0", "order": 9, "condition": [11, 119, 2126025], "items": [[2126025, 119, 4], [3066002, 1]]},
+        {"packageId": "E18262D5-B808-BC35-FF1D-CD62C4B3A938", "order": 10, "condition": [11, 119, 2126025], "items": [[2126025, 119, 4], [3065002, 1]]}
+      ]
+    },
+    {
+      "activeId": "7864C0C1-D36D-C99E-F520-CD62C4AD132C",
+      "activeType": 10,
+      "title": "Secret Aroma Chest EXCH II",
+      "detail": "Secret Aroma Chest EXCH II",
+      "conditionDetail": "Exchange Monthly Event Items for various of items.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-08 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "1602909B-C76F-1B34-B4ED-CD62C4AE5D9B", "order": 5, "condition": [11, 1, 21261039], "items": [[208017, 1], [21261039, 1, 4]]},
+        {"packageId": "28046C6E-BCE4-C8D9-C607-CD62C4AEB44C", "order": 6, "condition": [11, 1, 21261039], "items": [[3020010, 1], [21261039, 1, 4]]},
+        {"packageId": "65608477-0862-8A32-4B05-1E549137B705", "order": 16, "condition": [11, 2, 21261009], "items": [[21261009, 2, 4], [21261034, 1]]},
+        {"packageId": "72FC91C9-1792-219D-FA40-CD62C4AE6E43", "order": 8, "condition": [11, 2, 21261039], "items": [[2130005, 1], [21261039, 2, 4]]},
+        {"packageId": "7336B53A-6FB6-9076-9E13-CD62C4AE15D2", "order": 4, "condition": [11, 10, 21261039], "items": [[208014, 100], [21261039, 10, 4]]},
+        {"packageId": "82BBFFB4-342D-4035-0DB8-CD62C4AED6DE", "order": 1, "condition": [11, 1, 21261039, 200], "items": [[2060488, 1], [21261039, 1, 4]], "limit": 200},
+        {"packageId": "845D24C2-219B-889F-5494-CD62C4AF336A", "order": 12, "condition": [11, 10, 21261039, 10], "items": [[208045, 10], [21261039, 10, 4]], "limit": 10},
+        {"packageId": "8AA6A6DF-F0E9-5017-CB72-CD62C4AF8A4C", "order": 10, "condition": [11, 10, 21261039], "items": [[208023, 10], [21261039, 10, 4]]},
+        {"packageId": "8D26CB1D-63E4-FF12-E5F8-CD62C4AEF1BE", "order": 9, "condition": [11, 1, 21261039], "items": [[2060008, 2], [21261039, 1, 4]]},
+        {"packageId": "AB1CD90D-ACFC-AA89-33A9-CD62C4AED83E", "order": 7, "condition": [11, 2, 21261039], "items": [[208008, 1], [21261039, 2, 4]]},
+        {"packageId": "B29BBB88-DFB9-F2F7-FA6B-CD62C4AEF742", "order": 3, "condition": [11, 1, 21261039], "items": [[2030102, 1], [21261039, 1, 4]]},
+        {"packageId": "B7A6B463-B32E-F66C-6279-CD62C4AFB7CB", "order": 14, "condition": [11, 20, 21261039], "items": [[208020, 1], [21261039, 20, 4]]},
+        {"packageId": "DD5345D6-7C37-035D-5E74-CD62C4AF07A5", "order": 13, "condition": [11, 10, 21261039, 5], "items": [[3040002, 10], [21261039, 10, 4]], "limit": 5},
+        {"packageId": "ECE2199F-08B4-C531-58F3-CD62C4AEAAD9", "order": 2, "condition": [11, 1, 21261039], "items": [[2060489, 4], [21261039, 1, 4]]},
+        {"packageId": "F689EA6C-1C6E-BC8C-BC35-CD62C4AF9CA4", "order": 11, "condition": [11, 10, 21261039], "items": [[3040001, 10], [21261039, 10, 4]]},
+        {"packageId": "FF6CFCAB-216D-2E4B-585D-CD62C4AF11B5", "order": 15, "condition": [11, 20, 21261039], "items": [[208021, 1], [21261039, 20, 4]]}
+      ]
+    },
+    {
+      "activeId": "761C1593-AAD3-7AA4-27BA-CD8CDF6ABF7E",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Brutality)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 72,
+      "beginDate": "2026-10-24 00:00:00",
+      "endDate": "2026-10-24 23:59:59",
+      "packages": [
+        {"packageId": "41EEF5DC-1F7E-DE92-0E6B-CD8CDF6A8F95", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020002, 1], [21261043, 2]]},
+        {"packageId": "6CAC9DA8-6311-A7FB-9608-CD8CDF6A3150", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "A8C7096D-43E5-B4EB-10E0-CD8CDF6AD9A0", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "C34997CA-683E-B946-8D1A-CD8CDF6A487D", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "CA7A6E38-6F6F-6BE6-E1E2-CD8CDF6A0735", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]}
+      ]
+    },
+    {
+      "activeId": "46438F15-A73E-6B90-0B29-CD63F489DD6B",
+      "activeType": 109,
+      "title": "10/22 Fate Stones",
+      "detail": "Fate Stones",
+      "conditionDetail": "During the event, consume the required amount of Fate Stones everyday to receive rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "09E72A35-471D-E464-02F8-CD63F48AAC50", "order": 2, "condition": [109, 5], "items": [[208024, 2]]},
+        {"packageId": "56323E82-7666-60F4-0258-CD63F48AC769", "order": 5, "condition": [109, 50], "items": [[208024, 5], [21261046, 1]]},
+        {"packageId": "5FD67E10-2492-01DA-5B82-CD63F489E49E", "order": 1, "condition": [109, 2], "items": [[208024, 2]]},
+        {"packageId": "E179D57C-4223-A761-4603-CD63F48A0730", "order": 4, "condition": [109, 20], "items": [[208024, 3]]},
+        {"packageId": "EC0CC04D-915C-91EB-E15B-CD63F48AA82B", "order": 3, "condition": [109, 10], "items": [[208024, 2]]}
+      ]
+    },
+    {
+      "activeId": "F11E9794-74DA-00E3-2E39-CD62C4A8EBBB",
+      "activeType": 13,
+      "title": "10/19 Login Bonus II",
+      "detail": "During the event, login to receive daily rewards.",
+      "conditionDetail": "Claim them once everyday.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-19 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "1DDDFDD6-2B5A-2599-3113-CD62C4A87DC8", "order": 1, "condition": [14, 1], "items": [[-500, 10], [-300, 10000], [-100, 10000], [2050601, 1], [21261038, 1]]},
+        {"packageId": "5F0BBC1D-1FCE-C7EC-252E-CD62C4A8B1B6", "order": 2, "condition": [14, 2], "items": [[-600, 10000], [-500, 10], [208017, 2]]}
+      ]
+    },
+    {
+      "activeId": "AA45D6B9-7A58-EE3F-5EF4-CD8CDF6E36B3",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Blood)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 77,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-10-29 23:59:59",
+      "packages": [
+        {"packageId": "0CAC31B0-C157-AD41-454C-CD8CDF6EDC8A", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "914FD097-DE38-94BC-E78E-CD8CDF6E6B68", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "BB52C92B-96AC-B5D6-BDD1-CD8CDF6FDCBC", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]},
+        {"packageId": "D71BC3ED-F7E2-56B8-EF5B-CD8CDF6E9F6C", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "FD467384-5258-0B48-4B1D-CD8CDF6E8D02", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020008, 1], [21261043, 2]]}
+      ]
+    },
+    {
+      "activeId": "E7C9F074-E407-B547-287A-CD62C4AAADAB",
+      "activeType": 18,
+      "title": "10/15 Mount Training",
+      "detail": "Mount Training",
+      "conditionDetail": "During the event, train the Mount the required times everyday to receive rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "583102AA-9F20-E713-53E5-CD62C4AA5BF7", "order": 4, "condition": [18, 200], "items": [[208017, 20], [21261034, 1]]},
+        {"packageId": "61E20287-F121-3ECA-C00B-CD62C4AA2A38", "order": 1, "condition": [18, 30], "items": [[208017, 3], [21261038, 1]]},
+        {"packageId": "B42C646A-C02C-00F8-5812-CD62C4AA1CCE", "order": 3, "condition": [18, 100], "items": [[208017, 10], [21261034, 1]]},
+        {"packageId": "BD99B8E5-D50E-8C4E-1988-CD62C4AA2E44", "order": 2, "condition": [18, 50], "items": [[208017, 5], [2126025, 1]]}
+      ]
+    },
+    {
+      "activeId": "945099CE-0BC3-6E85-F61B-CD62C4A9678C",
+      "activeType": 27,
+      "title": "10/15 Arena Party",
+      "detail": "Arena Party",
+      "conditionDetail": "During the event, complete the Arena (party) the required times everyday to receive rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "4F896990-9997-9FF8-432D-CD62C4A9D22F", "order": 2, "condition": [27, 5], "items": [[-100, 10000], [208023, 3], [21261034, 1]]},
+        {"packageId": "764C3DA3-B1C5-788E-D6AD-CD62C4A9800D", "order": 1, "condition": [27, 3], "items": [[-300, 5000], [-100, 5000], [208001, 100]]}
+      ]
+    },
+    {
+      "activeId": "FE5FEDC0-8C07-38BB-EF40-CD62C4AFC42B",
+      "activeType": 10,
+      "title": "10/15  Legendary Equipment Shard Exch",
+      "detail": "Limited - Legendary Equipment Shard EXCH",
+      "conditionDetail": "Exchange Monthly Event Items for Legendary Equipment Shards.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "008BB387-CEAB-EC94-BF69-CD62C4B07A7B", "order": 3, "condition": [11, 1, 21261039], "items": [[2129004, 3], [21261039, 1, 4]]},
+        {"packageId": "20A16800-A512-347A-5C73-CD62C4B1DBF0", "order": 11, "condition": [11, 5, 21261039], "items": [[2129404, 1], [21261039, 5, 4]]},
+        {"packageId": "3914B4B0-9936-302A-E5FC-CD62C4B0C389", "order": 2, "condition": [11, 1, 21261039], "items": [[2129003, 4], [21261039, 1, 4]]},
+        {"packageId": "39F28905-1A69-6C43-D597-CD62C4B08853", "order": 6, "condition": [11, 4, 21261039], "items": [[2129400, 5], [21261039, 4, 4]]},
+        {"packageId": "46728D93-20DF-3EE9-C6F7-CD62C4B23BB0", "order": 19, "condition": [11, 7, 21261039], "items": [[2129604, 1], [21261039, 7, 4]]},
+        {"packageId": "58000AD0-C05B-074D-113A-CD62C4B239D7", "order": 20, "condition": [11, 7, 21261039], "items": [[2129606, 1], [21261039, 7, 4]]},
+        {"packageId": "5B5A7019-C0FB-957E-B8C3-CD62C4B079D6", "order": 7, "condition": [11, 4, 21261039], "items": [[2129500, 2], [21261039, 4, 4]]},
+        {"packageId": "7274B072-CE25-75C0-F3FC-CD62C4B0AB57", "order": 5, "condition": [11, 1, 21261039], "items": [[2129006, 1], [21261039, 1, 4]]},
+        {"packageId": "91548870-C9A9-F56C-1553-CD62C4B1F1D6", "order": 12, "condition": [11, 5, 21261039], "items": [[2129406, 1], [21261039, 5, 4]]},
+        {"packageId": "9E40B871-B9A0-7431-A46E-CD62C4B1A08D", "order": 15, "condition": [11, 6, 21261039], "items": [[2129504, 1], [21261039, 6, 4]]},
+        {"packageId": "A213EC09-EAC6-2ED0-CA53-CD62C4B2D77C", "order": 18, "condition": [11, 7, 21261039], "items": [[2129603, 1], [21261039, 7, 4]]},
+        {"packageId": "AD56F24D-25F0-59F7-F7A8-CD62C4B13F0D", "order": 9, "condition": [11, 5, 21261039], "items": [[2129401, 1], [21261039, 5, 4]]},
+        {"packageId": "BCCAA656-96FB-1072-DE7D-CD62C4B04CDC", "order": 8, "condition": [11, 4, 21261039], "items": [[2129600, 1], [21261039, 4, 4]]},
+        {"packageId": "C06BE37C-E103-7CBF-DFFC-CD62C4B1CF5B", "order": 13, "condition": [11, 6, 21261039], "items": [[2129501, 1], [21261039, 6, 4]]},
+        {"packageId": "CA2943D1-4D4E-ADFF-F9C5-CD62C4B1518C", "order": 16, "condition": [11, 6, 21261039], "items": [[2129506, 1], [21261039, 6, 4]]},
+        {"packageId": "D4E636E0-C9F8-20A2-5E84-CD62C4B11496", "order": 10, "condition": [11, 5, 21261039], "items": [[2129403, 1], [21261039, 5, 4]]},
+        {"packageId": "EE259FEE-5F78-E694-7E58-CD62C4B2F705", "order": 17, "condition": [11, 7, 21261039], "items": [[2129601, 1], [21261039, 7, 4]]},
+        {"packageId": "F45D796D-7FA2-B8F3-9947-CD62C4B09D26", "order": 4, "condition": [11, 1, 21261039], "items": [[2129005, 2], [21261039, 1, 4]]},
+        {"packageId": "F94C4350-BE8E-4F8C-3492-CD62C4AFC0FB", "order": 1, "condition": [11, 1, 21261039], "items": [[2129002, 5], [21261039, 1, 4]]},
+        {"packageId": "FA348356-BB7F-D613-87F4-CD62C4B1CB58", "order": 14, "condition": [11, 6, 21261039], "items": [[2129503, 1], [21261039, 6, 4]]}
+      ]
+    },
+    {
+      "activeId": "062CBA4F-C0A6-1D81-C04B-CD8CDF6C3668",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Purge)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 75,
+      "beginDate": "2026-10-27 00:00:00",
+      "endDate": "2026-10-27 23:59:59",
+      "packages": [
+        {"packageId": "563BFB0A-5962-2C01-E414-CD8CDF6D6A93", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "6AC05277-9DCE-EB8A-981E-CD8CDF6D0556", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "B0BEE234-BDE5-38E1-77D8-CD8CDF6D43C2", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "DA1B5F6D-5F12-FF95-9D3A-CD8CDF6D47CD", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]},
+        {"packageId": "DDBAEDB8-E3A5-2A26-F3CA-CD8CDF6C98BB", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020004, 1], [21261043, 2]]}
+      ]
+    },
+    {
+      "activeId": "395C666C-B7A2-E227-0CE3-CD63F48C9340",
+      "activeType": 48,
+      "title": "10/29 Sylph Enchant",
+      "detail": "Sylph Enchant",
+      "conditionDetail": "During the event, engulf the required amount of Sylph Sepulcrum to receive rewards everyday.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "E239DCCF-EF1B-76FA-260B-CD63F48CA9BB", "order": 4, "condition": [48, 100], "items": [[2060487, 4], [3040001, 10], [21261046, 2]]},
+        {"packageId": "E98BB4F8-4885-9620-0074-CD63F48CCEBE", "order": 1, "condition": [48, 10], "items": [[2126025, 2], [3040001, 2]]},
+        {"packageId": "F07F0097-D4EA-9117-8840-CD63F48CA384", "order": 2, "condition": [48, 20], "items": [[2060487, 1], [3040001, 3], [21261038, 1]]},
+        {"packageId": "FE5AF66A-B5BC-8F97-0519-CD63F48C967F", "order": 3, "condition": [48, 50], "items": [[2060487, 2], [3040001, 5], [21261046, 1]]}
+      ]
+    },
+    {
+      "activeId": "61435AA7-783B-8E99-055E-CD62C4AA00E1",
+      "activeType": 100,
+      "title": "10/15 Rune Upgrade",
+      "detail": "Rune Upgrade",
+      "conditionDetail": "During the event, spend Balens to refine runes everyday to receive rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "3FC1F84C-3426-138A-52BE-CD62C4AB9DF6", "order": 2, "condition": [100, 30], "items": [[-100, 200000], [3020010, 5], [21261034, 10]]},
+        {"packageId": "4D9AE7F8-4245-B0DF-A08A-CD62C4ABB2BD", "order": 3, "condition": [100, 50], "items": [[-100, 500000], [3020010, 8], [21261034, 20]]},
+        {"packageId": "A46AB605-3B62-C05E-4FD1-CD62C4AB1082", "order": 1, "condition": [100, 10], "items": [[-100, 100000], [3020010, 3]]}
+      ]
+    },
+    {
+      "activeId": "B2A5E925-0D97-8D1F-36B6-CD63F48A42AB",
+      "activeType": 12,
+      "title": "10/29 Devotion Rewards",
+      "detail": "Devotion Rewards",
+      "conditionDetail": "During the event, reach the required Devotion to claim rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "48E67A60-D599-F3ED-2754-CD63F48ABF41", "order": 1, "condition": [13, 70], "items": [[-300, 5000], [-100, 10000], [21261038, 1]]},
+        {"packageId": "73FBD04F-57AC-0AF3-35E5-CD63F48BE386", "order": 3, "condition": [13, 100], "items": [[-100, 40000], [208023, 10], [3040001, 10], [21261046, 1]]},
+        {"packageId": "E2DB6ACD-0283-E74D-0DD1-CD63F48BD89D", "order": 2, "condition": [13, 90], "items": [[-600, 8000], [-500, 20], [-100, 20000]]}
+      ]
+    },
+    {
+      "activeId": "E7F8A607-0883-E63E-091E-CD63F4833940",
+      "activeType": 118,
+      "title": "10/22 Illusory Catacombs",
+      "detail": "Illusory Catacombs",
+      "conditionDetail": "During the event, clear the required level of Tormented Necropolis to claim the rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "155A8C62-8A4A-883B-0B23-CD63F483DF59", "order": 2, "condition": [118, 15], "items": [[-100, 10000], [21261046, 1]]},
+        {"packageId": "59710D7A-3E0A-BA7F-AC60-CD63F483989F", "order": 1, "condition": [118, 5], "items": [[-100, 5000], [21261038, 1]]}
+      ]
+    },
+    {
+      "activeId": "566EB4E8-6FFD-5FCA-A301-CD63F48CD21F",
+      "activeType": 111,
+      "title": "10/29 Amethyst Mine",
+      "detail": "Amethyst Mine",
+      "conditionDetail": "During the event, challenge Amethyst War the specific amount of times to receive rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "11187025-E21E-06CD-4A0A-CD63F48CD884", "order": 1, "condition": [111, 1], "items": [[-600, 5000], [21261046, 1]]}
+      ]
+    },
+    {
+      "activeId": "CCD1BA42-2897-E8E3-EE13-CD8CDF6FD951",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Purification)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 78,
+      "beginDate": "2026-10-30 00:00:00",
+      "endDate": "2026-10-30 23:59:59",
+      "packages": [
+        {"packageId": "4BE97A05-3D4B-0D1E-92E2-CD8CDF6FC91A", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "66B2E4D6-B491-1FD5-EAAC-CD8CDF6F2192", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "9FE952BE-E2F4-AA24-AD0B-CD8CDF6F2267", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020005, 1], [21261043, 2]]},
+        {"packageId": "DBE834FA-5633-9A70-F1B0-CD8CDF6F146C", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "EC145ED5-DD58-C06F-30BA-CD8CDF6FF24E", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]}
+      ]
+    },
+    {
+      "activeId": "0E8DE8AA-8669-CCF3-789C-016FF692250C",
+      "activeType": 10,
+      "title": "Sylph Soul Shard Exchange",
+      "detail": "Sylph Soul Shard Exchange",
+      "conditionDetail": "Get stronger with your Sylphs!",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-01 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "00C2BF33-07D6-82FC-803F-016FF698E16F", "order": 5, "condition": [11, 10, 2126002], "items": [[2126002, 10, 4], [3040001, 20]]},
+        {"packageId": "3D585819-688F-9E5A-92E1-016FF696DF9D", "order": 1, "condition": [11, 1, 2126002, 200], "items": [[2030102, 2], [2126002, 1, 4]], "limit": 200},
+        {"packageId": "4866159E-451A-58A1-70F0-016FF698D84A", "order": 9, "condition": [11, 50, 2126002], "items": [[2126002, 50, 4], [3064004, 1]]},
+        {"packageId": "86F1F5FC-0D46-2EDD-3C7E-016FF6987E32", "order": 8, "condition": [11, 50, 2126002], "items": [[2126002, 50, 4], [3063004, 1]]},
+        {"packageId": "8E9FFB49-F13C-3CB3-B0F9-016FF698A139", "order": 7, "condition": [11, 50, 2126002], "items": [[2126002, 50, 4], [3062004, 1]]},
+        {"packageId": "A0EDEAEC-BADA-3CA9-2CB8-016FF6995892", "order": 12, "condition": [11, 250, 2126002], "items": [[208017, 50], [2126002, 250, 4], [2180073, 1]]},
+        {"packageId": "AEF26D94-554C-3092-EA8F-016FF6974FE7", "order": 2, "condition": [11, 10, 2126002, 3], "items": [[2060487, 20], [2126002, 10, 4]], "limit": 3},
+        {"packageId": "BF1C402F-F9B3-27C9-3977-016FF69887A8", "order": 4, "condition": [11, 10, 2126002], "items": [[208023, 20], [2126002, 10, 4]]},
+        {"packageId": "E11516F0-D603-3865-F13F-016FF69976DA", "order": 10, "condition": [11, 150, 2126002, 1], "items": [[2126002, 150, 4], [3066001, 1]], "limit": 1},
+        {"packageId": "E43D3B37-CDE9-C592-FDB2-016FF698406D", "order": 3, "condition": [11, 20, 2126002, 10], "items": [[2126002, 20, 4], [3230101, 400]], "limit": 10},
+        {"packageId": "EA09799E-321A-2C20-E21D-016FF6987808", "order": 6, "condition": [11, 50, 2126002], "items": [[2126002, 50, 4], [3061004, 1]]},
+        {"packageId": "FEA113C7-911A-CD19-19A6-016FF699F82B", "order": 11, "condition": [11, 150, 2126002, 1], "items": [[2126002, 150, 4], [3065001, 1]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "CE59442B-ECE5-AAAE-9B6A-CD9570900CFC",
+      "activeType": 10,
+      "title": "Nostalgic Times Golden Road Exch 10/26-11/01",
+      "detail": "Nostalgic Times Golden Road Exch 10/26-11/01",
+      "conditionDetail": "Exchange Golden Road Tokens for various of items.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-26 00:00:00",
+      "endDate": "2026-11-01 23:59:59",
+      "packages": [
+        {"packageId": "0D57F89B-E60F-029D-A6AB-CD957092D91D", "order": 9, "condition": [11, 1, 21260907], "items": [[208023, 2], [21260907, 1, 4]], "limit": 1},
+        {"packageId": "3AFB11EC-A623-BBF5-0304-CD957091D30F", "order": 1, "condition": [11, 90, 21260907, 1], "items": [[2183334, 1], [21260907, 90, 4]], "limit": 1},
+        {"packageId": "55113BF6-174C-7D23-B6D8-CD9570936A9E", "order": 10, "condition": [11, 1, 21260907], "items": [[3040001, 2], [21260907, 1, 4]], "limit": 1},
+        {"packageId": "59F65430-49A5-CF30-EFD2-CD957092D7EB", "order": 2, "condition": [11, 90, 21260907, 1], "items": [[2183223, 1], [21260907, 90, 4]], "limit": 1},
+        {"packageId": "654AD311-6F19-EBAB-17C9-CD9570933E2E", "order": 11, "condition": [11, 1, 21260907], "items": [[208017, 2], [21260907, 1, 4]], "limit": 1},
+        {"packageId": "6CA0AE77-138A-3CF7-2EAD-CD957092735F", "order": 3, "condition": [11, 90, 21260907, 1], "items": [[2183074, 1], [21260907, 90, 4]], "limit": 1},
+        {"packageId": "7594A569-2012-6BF2-2C23-CD9570931E25", "order": 13, "condition": [11, 6, 21260907, 10], "items": [[208021, 1], [21260907, 6, 4]], "limit": 1},
+        {"packageId": "7C72EB64-7099-AFD1-B650-CD957092C863", "order": 8, "condition": [11, 1, 21260907, 100], "items": [[3040002, 2], [21260907, 1, 4]], "limit": 1},
+        {"packageId": "85FD919B-1621-BAE5-F633-CD957092F563", "order": 4, "condition": [11, 50, 21260907, 1], "items": [[1098278, 1], [1108278, 1], [1118278, 1], [1128278, 1], [21260907, 50, 4]], "limit": 1},
+        {"packageId": "9E4D7A95-EFCB-2C3C-7D92-CD957093DF33", "order": 12, "condition": [11, 6, 21260907, 10], "items": [[208020, 1], [21260907, 6, 4]], "limit": 1},
+        {"packageId": "A38FFCEE-DFA1-22F3-6311-CD95709242AB", "order": 5, "condition": [11, 50, 21260907, 1], "items": [[1098163, 1], [1108163, 1], [1118163, 1], [1128163, 1], [21260907, 50, 4]], "limit": 1},
+        {"packageId": "C0298080-0C64-2588-E982-CD9570927722", "order": 7, "condition": [11, 1, 21260907, 100], "items": [[208045, 2], [21260907, 1, 4]], "limit": 1},
+        {"packageId": "E0C94A91-7BDF-8675-C93F-CD9570920D1D", "order": 6, "condition": [11, 50, 21260907, 1], "items": [[1098183, 1], [1108183, 1], [1118183, 1], [1128183, 1], [21260907, 50, 4]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "8D6CFAEE-0EFE-4BCA-E224-CD8663E634D9",
+      "activeType": 10,
+      "title": "Nostalgic Times Limited Exchange I",
+      "detail": "Nostalgic Times Limited Exchange I",
+      "conditionDetail": "Time flies, and you can't help but pause for a moment.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-23 00:00:00",
+      "endDate": "2026-11-01 23:59:59",
+      "packages": [
+        {"packageId": "181E1F83-635E-82C7-DA9E-CD8663E784FB", "order": 5, "condition": [11, 4, 21261042, 1], "items": [[208020, 40], [1098178, 1], [1108178, 1], [1118178, 1], [1128178, 1], [21261042, 4, 4]], "limit": 1},
+        {"packageId": "265EA56D-4F6A-1986-6CCA-CD8663E78772", "order": 1, "condition": [11, 10, 21261043, 25], "items": [[21261043, 10, 4], [21261044, 1]], "limit": 1},
+        {"packageId": "3F1DBAC5-C307-8A95-FBE9-CD8663E74259", "order": 8, "condition": [11, 2, 21261042, 10], "items": [[3240102, 10], [21261042, 2, 4]], "limit": 1},
+        {"packageId": "49383BCA-41F6-5F93-81B0-CD8663E9A738", "order": 18, "condition": [11, 2, 21261042], "items": [[208020, 2], [1128178, 1], [21261042, 2, 4]], "limit": 1},
+        {"packageId": "4D106833-48D7-47FD-5083-CD8663E724A4", "order": 2, "condition": [11, 4, 21261042, 3], "items": [[2125123, 100], [2125124, 100], [21261042, 4, 4]], "limit": 1},
+        {"packageId": "5D57606A-0D3E-DE17-6799-CD8663E883C1", "order": 12, "condition": [11, 1, 21261042], "items": [[208020, 2], [208021, 2], [3290504, 1], [21261042, 1, 4]], "limit": 1},
+        {"packageId": "67241EF3-804A-3451-1AC7-CD8663E81E0E", "order": 14, "condition": [11, 1, 21261042], "items": [[2060487, 20], [3240101, 100], [21261042, 1, 4]], "limit": 1},
+        {"packageId": "6A7DF342-60A7-F418-F9C1-CD8663E86B28", "order": 15, "condition": [11, 1, 21261042, 5], "items": [[2127005, 40], [21261042, 1, 4]], "limit": 1},
+        {"packageId": "889062ED-F783-A1D7-46FC-CD8663E846A8", "order": 16, "condition": [11, 1, 21261042], "items": [[208020, 2], [1108178, 1], [21261042, 1, 4]], "limit": 1},
+        {"packageId": "8CCC94EE-61B4-B3FD-54E5-CD8663E96136", "order": 17, "condition": [11, 1, 21261042], "items": [[208020, 2], [1118178, 1], [21261042, 1, 4]], "limit": 1},
+        {"packageId": "9781FE89-458F-F308-0908-CD8663E8D52A", "order": 11, "condition": [11, 3, 21261042, 1], "items": [[208020, 30], [1098276, 1], [1108276, 1], [1118276, 1], [1128276, 1], [21261042, 3, 4]], "limit": 1},
+        {"packageId": "A5757B16-97FB-ACDD-375B-CD8663E7C8B3", "order": 4, "condition": [11, 4, 21261042, 1], "items": [[2183431, 1], [21261042, 4, 4]], "limit": 1},
+        {"packageId": "BBFDE4E9-E411-F11F-D96E-CD8663E7E370", "order": 3, "condition": [11, 3, 21261042, 2], "items": [[2125125, 50], [21261042, 3, 4]], "limit": 1},
+        {"packageId": "C18B56F9-077A-A332-3CC4-CD8663E8149B", "order": 10, "condition": [11, 4, 21261042, 1], "items": [[2183383, 1], [21261042, 4, 4]], "limit": 1},
+        {"packageId": "D055B72C-A7FC-31DB-8DCA-CD8663E831E3", "order": 13, "condition": [11, 1, 21261042], "items": [[2060487, 20], [3270101, 100], [21261042, 1, 4]], "limit": 1},
+        {"packageId": "E60074B2-B902-F278-03C5-CD8663E8E147", "order": 9, "condition": [11, 3, 21261042, 1], "items": [[2183262, 1], [21261042, 3, 4]], "limit": 1},
+        {"packageId": "EA4C38B2-DD44-2932-9894-CD8663E75BC8", "order": 6, "condition": [11, 3, 21261042, 1], "items": [[21261036, 1], [21261042, 3, 4]], "limit": 1},
+        {"packageId": "FFDECF08-CD05-AC60-75C0-CD8663E7238C", "order": 7, "condition": [11, 4, 21261042, 10], "items": [[3240103, 10], [21261042, 4, 4]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "AE291B14-865A-55E3-9518-CD8CDF6D97D9",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Chaos)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 76,
+      "beginDate": "2026-10-28 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "1F3D24DC-37C5-072F-39DB-CD8CDF6DFFC0", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "80827DA9-B110-AC6E-FDF6-CD8CDF6E167C", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "94F20A42-BE6F-A654-2608-CD8CDF6DE95C", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020006, 1], [21261043, 2]]},
+        {"packageId": "9936F4C9-2DE7-47F5-E072-CD8CDF6E1BF2", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]},
+        {"packageId": "B0011A97-5E31-06C0-801F-CD8CDF6D74E6", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]}
+      ]
+    },
+    {
+      "activeId": "C470A83B-FAD8-97EB-406A-CD62C4A904A8",
+      "activeType": 58,
+      "title": "10/15 Enchant Sylph Equipment ",
+      "detail": "Strengthen your Sylphs to win rewards.",
+      "conditionDetail": "Strengthen your Sylphs to win rewards.",
+      "getway": 3,
+      "order": 28,
+      "beginDate": "2026-10-15 00:00:00",
+      "endDate": "2026-10-18 23:59:59",
+      "packages": [
+        {"packageId": "1AB4D77F-F19D-D810-D0B6-CD62C4A9E823", "order": 3, "condition": [58, 20], "items": [[2060488, 1], [21261034, 1]]},
+        {"packageId": "30566CC4-588F-6245-1BF6-CD62C4A9F7A6", "order": 2, "condition": [58, 10], "items": [[2060488, 1], [21261034, 1]]},
+        {"packageId": "A75E9859-61E6-3A7D-32F8-CD62C4A9B0C6", "order": 4, "condition": [58, 30], "items": [[2060488, 2], [21261034, 1]]},
+        {"packageId": "B5483A4A-7DA1-8755-9233-CD62C4A996C7", "order": 1, "condition": [58, 5], "items": [[2060488, 1], [2126025, 1]]}
+      ]
+    },
+    {
+      "activeId": "DBB6D0D8-33AD-EB1E-52FA-CD62C4ABBE50",
+      "activeType": 15,
+      "title": "10/17 Recharge Bonus",
+      "detail": "For a limited time only, players who recharge 500 or more Balens in a single payment will receive a special gift pack.\nNote: Each character may only redeem each reward once.",
+      "conditionDetail": "-",
+      "getway": 1,
+      "order": 1,
+      "beginDate": "2026-10-17 00:00:00",
+      "endDate": "2026-10-18 23:59:59",
+      "packages": [
+        {"packageId": "DE695931-80DB-ED0F-7225-CD62C4AB7AFA", "order": 1, "condition": [16, 500], "items": [[208021, 1], [208022, 10], [2060487, 20], [21261034, 5]]}
+      ]
+    },
+    {
+      "activeId": "1B37F34A-5539-0F49-0DE7-CD63F48911A2",
+      "activeType": 46,
+      "title": "10/22 Synthesize the Resistance Crystal",
+      "detail": "Synthesize the Resistance Crystal",
+      "conditionDetail": "During the event, synthesize Resistance Crystals of the specified levels to receive rewards (Claim them everyday).",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "0F8933D3-CC8F-A919-1665-CD63F489A57A", "order": 3, "condition": [46, 5, 1], "items": [[3120303, 1], [21261046, 2]]},
+        {"packageId": "1B44CF8D-47B6-6E15-4A0C-CD63F489B6AD", "order": 4, "condition": [46, 6, 1], "items": [[3120304, 1], [21261046, 2]]},
+        {"packageId": "4DCAC5E0-3BE8-79A6-029C-CD63F4898529", "order": 5, "condition": [46, 7, 1], "items": [[21261046, 3]]},
+        {"packageId": "954789C9-5647-3FCE-FDAB-CD63F48914BD", "order": 1, "condition": [46, 3, 1], "items": [[3120302, 1], [21261038, 1]]},
+        {"packageId": "CB11FBB6-8FCF-E737-FFA3-CD63F489EAEF", "order": 2, "condition": [46, 4, 1], "items": [[3120302, 2], [21261046, 1]]}
+      ]
+    },
+    {
+      "activeId": "E3EA2CA8-5AEA-FFF2-E433-CD63F48B2504",
+      "activeType": 101,
+      "title": "10/29 Great Card Hunt",
+      "detail": "Great Card Hunt",
+      "conditionDetail": "During the event, explore Great Card Hunt the required number of times to receive rewards.",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-29 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "22563B66-ECE7-2794-7D8C-CD63F48C3ADB", "order": 2, "condition": [101, 4], "items": [[2131022, 2], [21261046, 1]]},
+        {"packageId": "C6D561E4-A61E-ECC1-89DF-CD63F48B3CA2", "order": 1, "condition": [101, 2], "items": [[2131022, 1], [21261038, 1]]}
+      ]
+    },
+    {
+      "activeId": "2E028168-4115-CEF5-C612-CD63F48EC74E",
+      "activeType": 10,
+      "title": "Heartbeat Melody Chest EXCH I",
+      "detail": "Heartbeat Melody Chest EXCH I",
+      "conditionDetail": "Exchange Monthly Event Items for various items.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-11-04 23:59:59",
+      "packages": [
+        {"packageId": "002F4248-29EF-8E75-3292-CD63F48E5FB8", "order": 2, "condition": [11, 89, 21261046], "items": [[1098104, 1], [21261046, 89, 4]], "limit": 1},
+        {"packageId": "2BB7F2DF-F84B-8695-45D2-CD63F48F92BB", "order": 13, "condition": [11, 1, 21261038], "items": [[-100, 10000], [21261038, 1, 4]], "limit": 1},
+        {"packageId": "2E9FE235-700E-9B98-757D-CD63F48FF16F", "order": 12, "condition": [11, 10, 21261038], "items": [[21261038, 10, 4], [21261045, 1]], "limit": 1},
+        {"packageId": "317DB499-99FF-1BF6-D0D3-CD63F4903CB9", "order": 16, "condition": [11, 100, 21260052, 1], "items": [[2183435, 1], [21260052, 100, 4]], "limit": 1},
+        {"packageId": "5DD0512E-1BF4-CD15-2C39-CD63F48E55B8", "order": 6, "condition": [11, 70, 21261046], "items": [[21261035, 1], [21261046, 70, 4]], "limit": 1},
+        {"packageId": "652DF686-ED7C-005B-C4C2-CD63F48F2B6D", "order": 8, "condition": [11, 25, 21261046], "items": [[1108139, 1], [21261046, 25, 4]], "limit": 1},
+        {"packageId": "69BB3237-7001-1D90-CD36-CD63F49060A8", "order": 17, "condition": [11, 1, 2183435, 1], "items": [[2183435, 1, 4], [21260052, 20]], "limit": 1},
+        {"packageId": "A16ACD45-0968-17D0-4033-CD63F48EA217", "order": 1, "condition": [11, 220, 21261046], "items": [[2183435, 1], [21261046, 220, 4]], "limit": 1},
+        {"packageId": "A5E1E1DC-DDB8-BDEA-37B0-CD63F48FCC31", "order": 7, "condition": [11, 80, 21261046], "items": [[1098139, 1], [21261046, 80, 4]], "limit": 1},
+        {"packageId": "ACE3A9C9-D2F7-F972-C5E8-CD63F48F9334", "order": 10, "condition": [11, 25, 21261046], "items": [[1128139, 1], [21261046, 25, 4]], "limit": 1},
+        {"packageId": "BEAB8041-1BD9-3AF9-34AD-CD63F48FBAD5", "order": 15, "condition": [11, 9, 21260052], "items": [[208017, 100], [21260052, 9, 4]], "limit": 1},
+        {"packageId": "CB5B5ECF-5988-9E25-BFC6-CD63F48F3BCF", "order": 11, "condition": [11, 99, 21261038], "items": [[21261038, 99, 4], [21261045, 10]], "limit": 1},
+        {"packageId": "CBF2E697-7093-B13A-1BF2-CD63F48F6B61", "order": 14, "condition": [11, 1, 21260052], "items": [[208017, 10], [21260052, 1, 4]], "limit": 1},
+        {"packageId": "CEDC2902-8B26-0AB1-8EE8-CD63F48EE1C4", "order": 3, "condition": [11, 30, 21261046], "items": [[1108104, 1], [21261046, 30, 4]], "limit": 1},
+        {"packageId": "D9CF46F0-A3FA-D889-B11D-CD63F48E9496", "order": 4, "condition": [11, 30, 21261046], "items": [[1118104, 1], [21261046, 30, 4]], "limit": 1},
+        {"packageId": "DEE32BB7-CA30-5DD8-9875-CD63F48ED75D", "order": 5, "condition": [11, 30, 21261046], "items": [[1128104, 1], [21261046, 30, 4]], "limit": 1},
+        {"packageId": "DFB310F1-FECA-0C0F-9647-CD63F48F6BDE", "order": 9, "condition": [11, 25, 21261046], "items": [[1118139, 1], [21261046, 25, 4]], "limit": 1}
+      ]
+    },
+    {
+      "activeId": "EA9AD173-6200-F77E-487D-CD62C4ABC156",
+      "activeType": 10,
+      "title": "Secret Aroma Chest EXCH I",
+      "detail": "Secret Aroma Chest EXCH I",
+      "conditionDetail": "Exchange Monthly Event Items for various of items.",
+      "getway": 2,
+      "order": 1,
+      "beginDate": "2026-10-08 00:00:00",
+      "endDate": "2026-10-21 23:59:59",
+      "packages": [
+        {"packageId": "018A06A0-9AA4-13CF-9BCB-CD62C4AB87C6", "order": 1, "condition": [11, 220, 21261034], "items": [[2180939, 1], [21261034, 220, 4]]},
+        {"packageId": "56DE1B7E-94A4-420C-36F7-CD62C4AD1BC2", "order": 9, "condition": [11, 10, 21261038], "items": [[21261038, 10, 4], [21261039, 1]]},
+        {"packageId": "5CF913A9-639E-C342-781F-CD62C4AC52BD", "order": 3, "condition": [11, 89, 21261034], "items": [[1098104, 1], [21261034, 89, 4]]},
+        {"packageId": "5E351D37-29AC-7839-2833-CD62C4AD2913", "order": 10, "condition": [11, 1, 21261038], "items": [[-100, 10000], [21261038, 1, 4]]},
+        {"packageId": "5FB63031-3535-EE10-3CDE-CD62C4AC3016", "order": 2, "condition": [11, 220, 21261034], "items": [[2182004, 1], [21261034, 220, 4]]},
+        {"packageId": "7B109AB9-CA8C-F666-6812-CD62C4AD57F4", "order": 6, "condition": [11, 30, 21261034], "items": [[1128104, 1], [21261034, 30, 4]]},
+        {"packageId": "90A377DB-6208-7A1D-BC8E-CD62C4AD6110", "order": 7, "condition": [11, 70, 21261034, 1], "items": [[21260561, 1], [21261034, 70, 4]], "limit": 1},
+        {"packageId": "B545E2C4-82D7-FED7-544F-CD62C4ADBF2B", "order": 8, "condition": [11, 99, 21261038], "items": [[21261038, 99, 4], [21261039, 10]]},
+        {"packageId": "BBA47009-9D89-8CB6-3399-CD62C4AC11C2", "order": 4, "condition": [11, 30, 21261034], "items": [[1108104, 1], [21261034, 30, 4]]},
+        {"packageId": "BDB6DD98-1DF8-F0CF-22AF-CD62C4AD320E", "order": 5, "condition": [11, 30, 21261034], "items": [[1118104, 1], [21261034, 30, 4]]}
+      ]
+    },
+    {
+      "activeId": "7E33E883-E5F2-7414-0863-CD8CDF6BA4E0",
+      "activeType": 1,
+      "title": "Nostalgic Times Spending Bonus (Guardian)",
+      "detail": "Nostalgic Times Spending Bonus",
+      "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
+      "getway": 1,
+      "order": 73,
+      "beginDate": "2026-10-25 00:00:00",
+      "endDate": "2026-10-25 23:59:59",
+      "packages": [
+        {"packageId": "1E09675D-7FF5-46B7-DFA7-CD8CDF6BFBD7", "order": 3, "condition": [9, 1000], "items": [[2030102, 6], [21261043, 2]]},
+        {"packageId": "597BE1B4-DA3E-C914-710E-CD8CDF6CF736", "order": 5, "condition": [9, 5000], "items": [[2030102, 30], [3040001, 15], [21261044, 2]]},
+        {"packageId": "69BB3E4E-FAD8-5D88-8F4E-CD8CDF6BBC12", "order": 2, "condition": [9, 500], "items": [[2030102, 3], [21261043, 2]]},
+        {"packageId": "8F335C4B-BBDF-ADAA-88BE-CD8CDF6B318C", "order": 4, "condition": [9, 2000], "items": [[2030102, 12], [3040001, 10], [21261044, 1]]},
+        {"packageId": "F8786C3F-AA0B-53E0-8F97-CD8CDF6BBD5C", "order": 1, "condition": [9, 100], "items": [[2030102, 1], [3020003, 1], [21261043, 2]]}
       ]
     }
   ]

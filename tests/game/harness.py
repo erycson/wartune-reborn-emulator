@@ -15,7 +15,7 @@ from urllib.parse import quote_from_bytes
 from aiohttp.test_utils import TestClient, TestServer
 
 from tests.conftest import Portal
-from tests.test_end_to_end import FakeFlashClient
+from tests.test_end_to_end import EVENTS, FakeFlashClient
 from wartune_server.app import GameServerApp, build_services
 from wartune_server.config import Settings
 from wartune_server.net.servers import start_tcp
@@ -72,6 +72,7 @@ async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6, clock: Clock
         log_dir=tmp_path / "logs",
         skip_tutorial=False,
         game_timezone="UTC",
+        events_file=EVENTS,
         _env_file=None,  # type: ignore[call-arg]
     )
     services = await build_services(settings, clock)

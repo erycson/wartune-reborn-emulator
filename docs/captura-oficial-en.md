@@ -92,4 +92,4 @@ Correlações:
 - comparados, sem mudança (eventos datados do servidor, não do personagem): 4590 `param1` 2059 = botão do
   cartão de super login (2026-10-23 a 10-30, #110); 4612 = "钻石矿脉" `activeType` 1 até 10-18 (#86); 4422 =
   lista de chaves (`switchType` 3031 a partir de 10-26, #89); 4251 = "Level up and get rewards" da abertura
-  do servidor (#84). 4475: só os títulos/textos dos tipos 13/14 de `data/events.json` foram para o inglês.
+  do servidor (#84). 4475: as 41 atividades estão no `data/events.json` (iguais byte a byte; `limit` da troca = `getCount` do #68).

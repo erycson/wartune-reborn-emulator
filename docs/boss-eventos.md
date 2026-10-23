@@ -186,7 +186,7 @@ Implementados: regras, opcodes e dependências em [eventos.md](eventos.md).
 1. **Login sem quebrar os painéis:**
    - 4182 com 5001/5003, com estados coerentes com a hora;
    - 4248;
-   - 4475 com `maxPage=1`;
+   - 4475 em páginas (as 41 do oficial e as do operador: [eventos.md](eventos.md));
    - 4476 ao receber o 8586 tipo 1.
 2. Resgate de atividades (13 e 14), assinatura e login acumulado: feito ([eventos.md](eventos.md)).
 3. **Boss mundial:** agenda (8271 -> 4182) e recusas (8258, 8264, 8470) prontos. Falta o mapa

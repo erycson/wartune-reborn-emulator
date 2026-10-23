@@ -66,12 +66,22 @@ def config(templates: GameTemplates, name: str, default: str = "") -> str:
     return row["ConfigValue"] if row else default
 
 
+COST = 4  # SumActiveItemInfoMsg.templateType do custo da troca (tipo 10): só aparece, não é dado (tutorial_en #62)
+
+
 @dataclass(frozen=True, slots=True)
 class Package:
     package_id: str
     order: int
-    condition: tuple[int, int]  # (conditionId, conditionValue)
-    items: tuple[tuple[int, int], ...]
+    # (conditionId, conditionValue, conditionBak..Bak4); a troca usa Bak = o item pedido (FunnyHelper.mutiMaxNum)
+    condition: tuple[int, ...]
+    entries: tuple[tuple[int, int, int], ...]  # (templateId, count, templateType) na ordem do oficial
+    limit: int = 0  # trocas por jogador (getCount do 4476); 0 = sem limite
+
+    @property
+    def items(self) -> tuple[tuple[int, int], ...]:
+        """O que o pacote dá (sem o custo da troca)."""
+        return tuple((t, n) for t, n, kind in self.entries if kind != COST)
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,8 +125,9 @@ class EventCatalog:
                     Package(
                         p["packageId"],
                         int(p.get("order", 1)),
-                        (int(p["condition"][0]), int(p["condition"][1])),
-                        tuple((int(t), int(n)) for t, n in p["items"]),
+                        tuple(int(c) for c in p["condition"]),
+                        tuple((int(e[0]), int(e[1]), int(e[2]) if len(e) > 2 else 1) for e in p["items"]),
+                        int(p.get("limit", 0)),
                     )
                     for p in a["packages"]
                 ),
@@ -131,11 +142,18 @@ class EventCatalog:
     def running(self, now: datetime) -> list[Active]:
         return [a for a in self.actives if a.begin <= now <= a.end]
 
+    def listed(self, now: datetime) -> list[Active]:
+        """As que o painel mostra: as que ainda não acabaram, também as que vão começar (tutorial_en #60 às 10-18
+        manda as de 10-22 a 10-31; o cliente descarta só ``stopTime`` passado, FunnyManager.__funnyTemHandler)."""
+        return [a for a in self.actives if now <= a.end]
+
 
 # activeType que o servidor conta com ``count`` -> se o contador zera no dia (FunnyType do cliente; "today" no texto
 # do progresso, funny.FunnyRightView.processNN, = diário; sem "today" conta o período todo, *dedução*)
 ALCHEMY, REFINE_SOUL, CHALLENGE, FATE_TURN, FATE_EAT, PET_CHALLENGE = 21, 22, 26, 108, 109, 110
+SPEND = 1  # "Spending Bonus": Balens gastos (condição 9), "during the event" = o período (um dia na inglesa #60)
 COUNTED = {ALCHEMY: False, REFINE_SOUL: False, CHALLENGE: False, FATE_TURN: True, FATE_EAT: True, PET_CHALLENGE: True}
+COUNTED |= {SPEND: False}
 
 
 def count(snap: PlayerSnapshot, catalog: EventCatalog, active_type: int, now: datetime, n: int = 1) -> list[EventState]:

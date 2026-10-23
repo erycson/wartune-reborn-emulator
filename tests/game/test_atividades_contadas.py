@@ -17,7 +17,7 @@ CAN, TAKEN, NOT_YET = 1, 2, 3
 
 def _active(active_type: int, condition: int, values: tuple[int, ...]) -> ev.Active:
     packages = tuple(
-        ev.Package(f"P{active_type}-{i}", i, (condition, v), ((-100, 1000),)) for i, v in enumerate(values, 1)
+        ev.Package(f"P{active_type}-{i}", i, (condition, v), ((-100, 1000, 1),)) for i, v in enumerate(values, 1)
     )
     end = START + timedelta(days=7)
     return ev.Active(f"A{active_type}", active_type, "t", "d", "c", 3, 1, START, end, packages)
@@ -29,7 +29,7 @@ CATALOG = ev.EventCatalog(
         _active(12, 13, (5, 10)),  # devoção do dia: o login dá 5
         _active(21, 21, (1, 2)),  # Gold Alchemy, período todo
         _active(110, 110, (1,)),  # Sylph Arena, diário
-        _active(1, 9, (100,)),  # gasto de Balens: sem contador aqui
+        _active(1, 9, (100,)),  # Balens gastos no período (condição 9)
     ),
 )
 

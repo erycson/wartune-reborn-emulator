@@ -11,8 +11,8 @@ from datetime import datetime
 from ...domain import gameday
 from ...domain.models import EventState, PlayerSnapshot, Quest
 from ...protocol.messages import wartune_pb2 as pb
+from .. import bag, rewards, rules
 from .. import events as ev
-from .. import rewards, rules
 from ..builders import login as b
 from ..builders.player import quest_update
 from ..router import router
@@ -22,11 +22,12 @@ from .login import army
 from .player import alert, granted
 
 S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
-S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE = 83, 4152, 4150, 4412, 4247
+S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE, S_ITEMS = 83, 4152, 4150, 4412, 4247, 115
 SERVEN_QUEST = 130  # a conclusão dela abre o guia de 7 dias (4638)
 # (visto) tutorial_en #60-#67: 4475 de 11961/11616/11762/3821 bytes; a página fecha antes de passar disso
 PAGE_BYTES = 12000
-LOGIN_BONUS, ONLINE, DEVOTION = 13, 14, 12  # activeType com regra aqui (os contados por ação: ev.COUNTED)
+LOGIN_BONUS, ONLINE, DEVOTION, EXCHANGE = 13, 14, 12, 10  # activeType com regra aqui (os contados: ev.COUNTED)
+HAS_ITEM = 11  # condição da troca: ter ``conditionValue`` do item ``conditionBak`` (FunnyHelper.mutiMaxNum)
 EVERYONE, VIP_ONLY = 1, 2  # condição 14 do Login Bonus (FunnyBagData: title14 "non-VIP", title15 "VIP")
 CAN, TAKEN, NOT_YET = 1, 2, 3  # PackageData.status
 GIFT_OK = "Gift pack retrieval successful."  # texto do oficial inglês (tutorial_en #2770)
@@ -118,34 +119,39 @@ async def leave(s: GameSession) -> None:
 # ---------------------------------------------------------------- SumActive (4475/4476/8586)
 
 
+def active_info(a: ev.Active) -> pb.SumActiveinfoMsg:
+    """A atividade como o oficial manda no 4475 (tutorial_en #60-#67)."""
+    info = pb.SumActiveinfoMsg(
+        activeId=a.active_id,
+        beginDate=b.fmt_time(a.begin),
+        endDate=b.fmt_time(a.end),
+        title=a.title,
+        detail=a.detail,
+        conditionDetail=a.condition_detail,
+        getway=a.getway,
+        activeType=a.active_type,
+        startTime=b.fmt_time(a.begin),
+        stopTime=b.fmt_time(a.end),
+        order=a.order,
+        appendParam="null",
+    )
+    for p in a.packages:
+        pkg = info.packages.add(packageId=p.package_id, order=p.order)
+        for t, count, kind in p.entries:
+            pkg.items.add(templateId=t, templateType=kind, count=count, isbind=True, length=0, job=0)
+        c = (*p.condition, 0, 0, 0, 0)
+        pkg.conditions.add(conditionId=c[0], conditionValue=c[1], conditionBak=c[2], conditionBak2=c[3],
+                           conditionBak3=c[4], conditionBak4=c[5])  # fmt: skip
+    return info
+
+
 def _send_actives(s: GameSession) -> None:
     """4475 em páginas de até ``PAGE_BYTES`` e logo depois o 4476 de todas, sem pedido (tutorial_en #68)."""
     now = s.ctx.clock.now()
-    actives = s.ctx.events.running(now)
-    every = pb.SumActivesMsg()
-    for a in actives:
-        info = every.actives.add(
-            activeId=a.active_id,
-            beginDate=b.fmt_time(a.begin),
-            endDate=b.fmt_time(a.end),
-            title=a.title,
-            detail=a.detail,
-            conditionDetail=a.condition_detail,
-            getway=a.getway,
-            activeType=a.active_type,
-            startTime=b.fmt_time(a.begin),
-            stopTime=b.fmt_time(a.end),
-            order=a.order,
-            appendParam="null",
-        )
-        for p in a.packages:
-            pkg = info.packages.add(packageId=p.package_id, order=p.order)
-            for t, count in p.items:
-                pkg.items.add(templateId=t, templateType=1, count=count, isbind=True, length=0, job=0)
-            pkg.conditions.add(conditionId=p.condition[0], conditionValue=p.condition[1])
+    actives = s.ctx.events.listed(now)
     pages: list[list[pb.SumActiveinfoMsg]] = [[]]
     size = 0
-    for info in every.actives:
+    for info in map(active_info, actives):
         n = info.ByteSize() + 3  # + a etiqueta e o tamanho do campo
         if pages[-1] and size + n > PAGE_BYTES:
             pages.append([])
@@ -161,7 +167,7 @@ def _send_actives(s: GameSession) -> None:
 def items_gained(s: GameSession) -> None:
     """4476 de todas logo depois do 115 que dá item (tutorial_en: 26 dos 61 115, todos de ganho: missão #490, carta
     #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam."""
-    s.send(S_SUM_DATA, _active_data(s, s.ctx.events.running(s.ctx.clock.now())))
+    s.send(S_SUM_DATA, _active_data(s, s.ctx.events.listed(s.ctx.clock.now())))
 
 
 def _online_seconds(s: GameSession, a: ev.Active, now: datetime) -> int:
@@ -208,11 +214,36 @@ def _progress(s: GameSession, a: ev.Active, now: datetime) -> int | None:
     return None
 
 
+def _exchanges_left(snap: PlayerSnapshot, a: ev.Active, p: ev.Package) -> int | None:
+    """Trocas que ainda cabem no limite do pacote; ``None`` = sem limite."""
+    if not p.limit:
+        return None
+    st = ev.peek(snap, f"sum:{a.active_id}:{p.package_id}")
+    return max(0, p.limit - (st.value if st is not None else 0))
+
+
+def _can_exchange(snap: PlayerSnapshot, p: ev.Package, times: int = 1) -> bool:
+    """Tem ``times`` vezes o item pedido (condição 11: ``conditionValue`` de ``conditionBak``)."""
+    if p.condition[0] != HAS_ITEM or len(p.condition) < 3:
+        return False
+    have = sum(i.count for i in bag.in_bag(snap) if i.template_id == p.condition[2])
+    return have >= p.condition[1] * times
+
+
 def _status(s: GameSession, a: ev.Active, now: datetime) -> list[tuple[ev.Package, int, int]]:
     """(pacote, status, countDown) de cada pacote da atividade para este jogador."""
     snap = s.snapshot
     assert snap is not None
     out = []
+    if now < a.begin:  # listada antes de começar (tutorial_en #68: as de 10-22 em diante, todas 3)
+        return [(p, NOT_YET, 0) for p in a.packages]
+    if a.active_type == EXCHANGE:  # vale enquanto tiver o item e couber no limite (*dedução*: sem captura de troca)
+        for p in a.packages:
+            if _exchanges_left(snap, a, p) == 0:
+                out.append((p, TAKEN, 0))
+            else:
+                out.append((p, CAN if _can_exchange(snap, p) else NOT_YET, 0))
+        return out
     if a.active_type == ONLINE:  # um por vez, em ordem; o tempo zera a cada resgate
         elapsed = _online_seconds(s, a, now)
         ordered = sorted(a.packages, key=lambda p: p.order)
@@ -243,6 +274,8 @@ def _status(s: GameSession, a: ev.Active, now: datetime) -> list[tuple[ev.Packag
 
 def _active_data(s: GameSession, actives: Sequence[ev.Active]) -> pb.SumActiveDataMsg:
     now = s.ctx.clock.now()
+    snap = s.snapshot
+    assert snap is not None
     msg = pb.SumActiveDataMsg()
     for a in actives:
         # value = finishNum do cliente; nos tipos 13/14 o oficial manda 0 (tutorial_en #68); nos contados vai o
@@ -254,21 +287,26 @@ def _active_data(s: GameSession, actives: Sequence[ev.Active]) -> pb.SumActiveDa
             if a.active_type == ONLINE:
                 pd.countDown = countdown  # o oficial manda só isto no tipo 14
             else:
-                pd.param1, pd.finishValue, pd.getCount = "", 0, 0
+                # getCount da troca = quantas ainda cabem (o número no botão, FunnyBagItem; tutorial_en #68: 1, 10 e
+                # 200 no personagem novo); 0 = sem limite
+                pd.param1, pd.finishValue, pd.getCount = "", 0, _exchanges_left(snap, a, p) or 0
     return msg
 
 
 @router.on(8586)
 async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
-    """type 1: progresso de todas as atividades (4476); type 2: resgata ``packageId``."""
+    """type 1: progresso de todas as atividades (4476); type 2: resgata ``packageId`` (``count`` vezes na troca)."""
     now = s.ctx.clock.now()
-    running = s.ctx.events.running(now)
+    listed = s.ctx.events.listed(now)
     if msg.type != 2:
-        s.send(S_SUM_DATA, _active_data(s, running))
+        s.send(S_SUM_DATA, _active_data(s, listed))
         return
     snap = s.snapshot
     assert snap is not None
-    a = next((x for x in running if x.active_id == msg.activeId), None)
+    a = next((x for x in s.ctx.events.running(now) if x.active_id == msg.activeId), None)
+    if a is not None and a.active_type == EXCHANGE:
+        await _exchange(s, a, msg, listed)
+        return
     found = [(p, st) for p, st, _ in _status(s, a, now) if p.package_id == msg.packageId] if a else []
     if (
         a is None
@@ -293,7 +331,42 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     # 4476 só desta e o 83
     granted(s, p.items, new, text, chat=False)
     if not new:
-        s.send(S_SUM_DATA, _active_data(s, running))
+        s.send(S_SUM_DATA, _active_data(s, listed))
+    alert(s, GIFT_OK)
+    s.send(S_SUM_DATA, _active_data(s, [a]))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg, listed: list[ev.Active]) -> None:
+    """Troca (tipo 10, ``getway`` 2): ``count`` vezes ``conditionValue`` do item ``conditionBak`` pelos itens do
+    pacote (o FunnyMutiFrame escolhe o ``count``). *Dedução*, sem captura de troca: a resposta é a do resgate (3,
+    109, 115 do que entrou, 4476, 111, 4476 desta, 83), com o 115 do que saiu antes."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    p = next((x for x in a.packages if x.package_id == msg.packageId), None)
+    times = max(1, msg.count)
+    left = _exchanges_left(snap, a, p) if p else 0
+    drops = [(t, n * times) for t, n in p.items] if p else []
+    if (
+        p is None
+        or (left is not None and times > left)
+        or not _can_exchange(snap, p, times)
+        or not rewards.can_grant(snap, s.ctx.templates, drops, now)
+    ):
+        s.log.info("8586 troca recusada", atividade=msg.activeId, pacote=msg.packageId, vezes=times)
+        return
+    changed, gone = bag.take(snap, p.condition[2], p.condition[1] * times)
+    mark = ev.state(snap, f"sum:{a.active_id}:{p.package_id}", now)
+    mark.value, mark.updated_at = mark.value + times, now
+    new, text = rewards.grant(snap, s.ctx.templates, drops, style="active")
+    changed = [i for i in changed if i not in new]
+    await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new, delete=tuple(gone))
+
+    s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    granted(s, drops, new, text, chat=False)
+    if not new:
+        s.send(S_SUM_DATA, _active_data(s, listed))
     alert(s, GIFT_OK)
     s.send(S_SUM_DATA, _active_data(s, [a]))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

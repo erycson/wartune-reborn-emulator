@@ -12,7 +12,7 @@ from wartune_server.game.session import GameSession
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
-LOGIN = "A0000013-0000-0000-0000-000000000001"  # data/events.json
+LOGIN = "A0000013-0000-0000-0000-000000000001"  # tests/fixtures/events.json
 ONLINE = "A0000014-0000-0000-0000-000000000001"
 
 
