@@ -8,8 +8,9 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from tests.game.test_masmorra_1001 import back_to_map, codes, content, enter, fast_battles, leave, won
+from tests.game.test_masmorra_1001 import Sure, back_to_map, codes, content, enter, fast_battles, leave, won
 from tests.test_end_to_end import TEMPLATES
+from wartune_server.game import campaign as cm
 from wartune_server.game import rules
 from wartune_server.game.campaign import DONE, NORMAL, SHOW, CampaignMap, StageRun, grades, report, total_gp
 from wartune_server.game.campaign import unlock_actions as actions
@@ -90,7 +91,7 @@ def text(packet: Packet) -> str:
     return pb.ChatChannelMsg.FromString(packet.body).encodeMsg
 
 
-async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
+async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         got = await enter(g, 1002)
         assert codes(got) == [125, 140, 21, 127, 130, 143, 138, 3, 83]  # inglesa #2311-#2320
@@ -100,7 +101,9 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
         g.client.send(5038, pb.CampaignReqMsg(paraInt1=1131))
         assert list(pb.SystemArmyMsg.FromString((await g.until(20))[-1].body).soldierTemplated) == [2022]
 
-        tomb = await confirm(g, 113105)  # tumba: o sentinela acorda (#2400-#2404)
+        with monkeypatch.context() as m:
+            m.setattr(Sure, "outcome", cm.OUT_FIGHT)
+            tomb = await confirm(g, 113105)  # tumba: o sentinela acorda (#2400-#2404)
         assert codes(tomb)[:2] == [126, 128] and text(tomb[0]) == "You've startled a sentinel... begin battle!"
         assert list(pb.CampaignNodeUpdateMsg.FromString(tomb[1].body).visitUserIds) == [g.user_id]
         await g.fight(pb.BattlePrepareMsg.FromString(next(p.body for p in tomb if p.code == 157)))

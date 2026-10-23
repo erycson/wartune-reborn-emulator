@@ -400,6 +400,19 @@ def set_progress(q: Quest, k: int, value: int) -> None:
     setattr(q, PROGRESS_FIELDS[k], value)
 
 
+def quest_goods_wanted(snap: PlayerSnapshot, templates: GameTemplates, template_id: int, campaign_id: int) -> bool:
+    """O drop ``template_id`` na campanha sai? Item de missão de coleta (tipo 27 com Para3 = a campanha) só com a
+    missão aberta: (visto) oficial_20261023-171155-1, Perene Bone (190) só na 2ª volta da 1003, depois do aceite
+    (#2949), e nenhum nas lutas depois da entrega (#3558: 103103, 103104, 103106); os outros drops saem sempre.
+    (dedução) para na entrega: o 5º (Para2) veio antes dela, então a captura não separa "missão fechada" de "já tem
+    os 5"."""
+    quests = {
+        int(c["TemplateId"])
+        for c in templates.find("QuestCondictionInfos", CondictionType=27, Para1=template_id, Para3=campaign_id)
+    }
+    return not quests or any(q.template_id in quests and not q.completed for q in snap.quests)
+
+
 def goods_count(snap: PlayerSnapshot, template_id: int) -> int:
     """Unidades do item na mochila, como ``goodsCountByTempId`` no cliente (TaskTemplate.checkGoodsCount)."""
     return sum(i.count for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id)

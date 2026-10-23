@@ -177,9 +177,22 @@ com o nó trocado.
 | Tumba com sentinela (113105) | 126 "You've startled a sentinel... begin battle!", 128 com `visitUserIds`, depois a luta (#2400-#2404). |
 | Caixa do caçador (113203, 114203) | A luta. Na vitória (Daru; a 114203 sorteia Daru ou Lvl. 3 Luck Stone, que vem como 115, 4476, 126 sem o 3, oficial_encantar #1436-#1457): 3, 126 "Received: 10,000 Daru", 128 DONE para cada nó do `param4` da caixa (a caixa e os reforços 113207/113208) e 83 (#2630-#2644). |
 | Tumba com Daru (114105) | 3, 126 "Received: 5,000 Daru", 128 state 1 visitado, 83 (#2874-#2877). |
+| Caixa com chave (Mystery Box 103108) | O 29 traz `itemTempId` 208005 (Skeleton Key): sem a chave o 5033 não faz nada (log "5033 sem a chave"). Com ela, gasta a chave: 115 da chave, 109 (ouro), 128 DONE, 111 e 83 "Received: 5,000 Gold" (oficial_20261023-153200-1 #914-#918) ou 115, 128, 115 do item, 111 e 83 "Received: Lvl. 2 Luck Stone x2" (oficial_20261023-171155-1 #2538-#2552). |
 
-*(dedução)* O desfecho de cada nó é fixo, o mesmo da captura. O oficial pode sortear: só uma passada foi
-capturada.
+O desfecho é sorteado (`_roll`): o `param5` do nó traz `tipo,item,n,peso|...` (-300 item, -200 Daru, -500 luta;
+ex. tumba "-200,0,5000,50|-500,0,0,50", caixa "-300,2040103,1,50|-200,0,10000,50") e sai pelo peso; sem
+`param5`, uma das listas de `pick` do conteúdo por igual, ou `drops`. Nó com `wins` (caixa do caçador) sempre luta, e
+o sorteio vale para o prêmio da vitória. *(visto)* oficial_20261023-171155-1: a mina 103105 deu 10.000 Daru numa volta
+e Lvl. 3 Luck Stone na outra. Nó sem luta própria (tumba 114105) usa a de um nó do mesmo `sonType`
+(`CampaignMap.battle_like`, *dedução*).
+
+**Drops de missão.** Item de missão de coleta (`QuestCondictionInfos` tipo 27 com `Para3` = a campanha, ex. Worg
+Tooth da 90 na 1001, Perene Bone da 190 na 1003) só cai com a missão aberta (`rules.quest_goods_wanted`). *(visto)*
+oficial_20261023-171155-1: nenhum Perene Bone na 1ª volta; na 2ª, com a 190 aberta (#2949), 2 no 103102 (#3296) e
+1 em cada nó que a mina 103105 fecha (#3514, #3540, #3560, numa luta só; o relay atrasa os avisos); nenhum nas lutas
+depois da entrega (#3558: 103103, 103104, 103106). *(dedução)* para na entrega: o 5º veio antes dela, e a captura
+não separa "missão fechada" de "já tem os 5". Nó que fecha outros
+(`param4` de um nó com `wins`) solta o drop de cada um.
 
 **Grupo de monstros.** O `param4` do monstro diz o que muda quando o grupo cai:
 
@@ -314,7 +327,7 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 
 - `tests/game/test_rooms_teams.py`: registros de salas e times, sem sessão.
 - `tests/game/test_masmorra_1001.py`: 1001 pela captura inglesa: entrada (125, 140, 21, 127, 130, 143, 138, 3, 83 em inglês), campanha inexistente e a pedreira não entram pelo 5039, estamina, luta do lobo (4382 só no 5035 state 4), Pandora (29 e 4126 na chegada; 4165, 150, 150, 111, 128, 83), baú de 500, chefe travado, 5122/5180 fora do fim, fim do 1011 (137 com `totalGp` 630, 4151, carta 115, 26, 83; 134 no 5180; etapa avança), 1021 (aviso, DISAPPEARD, FLICKER, chefe, Daru 88, etapa volta a 0), 5126, 5038 do banco, missões 70, 80 e 90 jogando a 1001 inteira e o guia depois da 70.
-- `tests/game/test_masmorra_1003.py`: entrada na 1003, portal para o 1032, alavanca (ordem, textos, `extend2`, estados) e o diálogo do chefe.
+- `tests/game/test_masmorra_1003.py`: entrada na 1003, portal para o 1032, alavanca (ordem, textos, `extend2`, estados) e o diálogo do chefe; Perene Bone só com a missão 190; Mystery Box com e sem a chave.
 - `tests/game/test_masmorra_1002_pedreira.py`: `total_gp` (630, 839), notas das amostras (1, 5, 5, 4) e uma etapa com derrotas, `param4` com e sem ação, portal e fim de mapa; 1002 jogada (tumba com sentinela, portal 125 tipo 3, caixa do caçador com Daru e os nós que fecham, Karlan pelo 5032, fim com 839 e o 4151, 2ª etapa no 1141, tumba com Daru); pedreira (8258, COLLECTION, colheita, 8699 com Wood x18, 5025).
 - `tests/game/test_missoes_masmorra.py`: condições 14, 25, 26, 27 e 31 contra a masmorra (casam o id e não somam, Para1 em lista, chefe pelo template, bolsa com entrega de todas as unidades, cena solo, fim de mapa com o grupo caído e sem `param4`) e os drops por nó (com chance).
 - `tests/game/test_salas_campanha.py`: os 29 opcodes têm handler (e 5025); corpo vazio não derruba a

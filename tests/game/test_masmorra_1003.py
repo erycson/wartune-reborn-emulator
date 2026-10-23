@@ -5,18 +5,19 @@ Ordem e textos de ``captures/oficial_20261023-153200-1.json``; conteúdo da migr
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from tests.game.harness import logged_in
-from tests.game.test_masmorra_1001 import back_to_map, codes, enter, fast_battles, take  # noqa: F401  (fixture)
+from tests.game.test_masmorra_1001 import Sure, back_to_map, codes, enter, fast_battles, take, won  # noqa: F401  (fixture)
+from tests.game.test_masmorra_1002_pedreira import confirm
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import Pawn
+from wartune_server.domain.models import Pawn, Quest
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import events as ev
-from wartune_server.game import rules
+from wartune_server.game import rewards, rules
 from wartune_server.game.builders import login as b
 from wartune_server.game.campaign import DONE, HIDDEN, NORMAL
 from wartune_server.game.handlers import campaign as handlers
@@ -25,6 +26,7 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 
 HUB, GATE, BOSS = 103204, 103205, 103207
+MYSTERY, KEY, PERENE = 103108, 208005, 2100003
 
 
 async def test_1003_entra_e_a_alavanca_mostra_o_chefe(tmp_path: Path) -> None:
@@ -117,3 +119,53 @@ async def test_buff_do_contrato_7_soma_10_por_cento_na_masmorra(tmp_path: Path) 
         prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
         hero = next(h for h in prepare.heros if h.userId == g.user_id)
         assert (hero.maxHp, hero.hp) == (live * 110 // 100, live * 110 // 100)
+
+
+async def test_perene_bone_so_cai_com_a_missao_190_aberta(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1: na 1ª volta nenhum Perene Bone; com a 190 aberta, 2 no 103102 (#3296)."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap = session.snapshot
+        await enter(g, 1003)
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=103102, paraBool1=True))
+        await won(g)
+        assert rules.goods_count(snap, PERENE) == 0
+        snap.quests.append(Quest(g.user_id, 190, datetime.now(UTC)))
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=103103, paraBool1=True))
+        await won(g)
+        assert rules.goods_count(snap, PERENE) == 2
+
+
+async def test_mystery_box_gasta_a_chave_e_da_o_ouro(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-153200-1 #914-#918: 115 da chave, 109, 128 DONE, 111 e 83 "Received: 5,000 Gold"."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap = session.snapshot
+        await enter(g, 1003)
+        assert codes(await confirm(g, MYSTERY)) == []  # sem a chave nada sai
+        new, _ = rewards.grant(snap, session.ctx.templates, [(KEY, 1)])
+        await session.ctx.characters.save(snap.character, *new)
+        gold = snap.character.gold
+        got = await confirm(g, MYSTERY)
+        assert codes(got) == [115, 109, 128, 111, 83]  # Sure: o 1º do pick
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Received: 5,000 Gold"
+        assert (rules.goods_count(snap, KEY), snap.character.gold) == (0, gold + 5000)
+        assert pb.CampaignNodeUpdateMsg.FromString(got[2].body).nodeState == DONE
+
+
+async def test_mystery_box_com_o_item(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) oficial_20261023-171155-1 #2538-#2552: 115 da chave, 128, 115 do item, 111 e 83 "... x2", sem o 109."""
+    monkeypatch.setattr(Sure, "choice", staticmethod(lambda seq: seq[-1]))
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap = session.snapshot
+        await enter(g, 1003)
+        new, _ = rewards.grant(snap, session.ctx.templates, [(KEY, 1)])
+        await session.ctx.characters.save(snap.character, *new)
+        got = await confirm(g, MYSTERY)
+        assert codes(got) == [115, 128, 115, 111, 83]
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Received: Lvl. 2 Luck Stone x2"
+        assert (rules.goods_count(snap, KEY), rules.goods_count(snap, 2040102)) == (0, 2)

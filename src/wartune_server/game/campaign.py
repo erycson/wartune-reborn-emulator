@@ -121,6 +121,17 @@ class CampaignMap:
         spec: dict[str, Any] | None = (self.content or {}).get("battles", {}).get(str(camp))
         return spec
 
+    def battle_like(self, camp: int) -> dict[str, Any] | None:
+        """Luta do nó ou, sem uma própria, a de outro nó do conteúdo com o mesmo ``sonType``: (dedução) a Tauren Tomb
+        114105 só caiu na moeda nas capturas; o param5 dela também tem a luta, que sai com a da 113105."""
+        if (spec := self.battle(camp)) is not None or (node := self.node(camp)) is None:
+            return spec
+        for m in (self.content or {}).get("maps", {}).values():
+            for n in m["nodes"]:
+                if n["sonType"] == node["sonType"] and (spec := self.battle(n["campDataId"])) is not None:
+                    return spec
+        return None
+
     def part(self, name: str, camp: int | str) -> Any:
         """Entrada ``camp`` de uma seção do conteúdo (``chests``, ``confirms``, ``wins``, ``plots``...)."""
         return (self.content or {}).get(name, {}).get(str(camp))
@@ -154,6 +165,27 @@ class CampaignMap:
             if any(target == camp and action in (1, SHOW) for target, action in unlock_actions(n)):
                 return any(self.nodes[g]["state"] != DONE for g in group_of(n) if g in self.nodes)
         return False
+
+
+# param5 dos nós de caixa (127): "tipo,item,n,peso|...", sorteados pelo peso. (visto) Tauren Tomb 113105/114105
+# "-200,0,5000,50|-500,0,0,50" (5.000 Daru ou luta: as duas aconteceram, tutorial_en #2397 e #2874); Hunter's Treasure
+# Cache e Enchanted Crystal Mine "-300,2040103,1,50|-200,0,10000,50" (Lvl. 3 Luck Stone ou 10.000 Daru: os dois na
+# 103105, oficial_20261023-153200-1 e oficial_20261023-171155-1). O cliente não lê o param5.
+OUT_ITEM, OUT_DARU, OUT_FIGHT = -300, -200, -500
+DARU, GOLD = -300, -100  # TemplateIds das moedas em ``rewards.CURRENCIES`` (strategy, gold)
+
+
+def outcomes(node: Mapping[str, Any]) -> list[tuple[int, list[tuple[int, int]], int]]:
+    """Desfechos do ``param5`` do nó: (tipo, drops, peso); vazio se o param5 não for dessa forma."""
+    out = []
+    for part in str(node.get("param5", "")).split("|"):
+        fields = part.split(",")
+        if len(fields) != 4 or not all(f.lstrip("-").isdigit() for f in fields):
+            return []
+        kind, tid, n, weight = (int(f) for f in fields)
+        drops = [(tid, n)] if kind == OUT_ITEM else [(DARU, n)] if kind == OUT_DARU else []
+        out.append((kind, drops, weight))
+    return out
 
 
 def group_of(node: Mapping[str, Any]) -> list[int]:

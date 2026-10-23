@@ -461,7 +461,7 @@ def passive_skills(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int,
 
 def _start_battle(s: GameSession, camp: int) -> None:
     c = _map(s)
-    spec = c.battle(camp) if c.content is not None else battle_spec(camp)
+    spec = c.battle_like(camp) if c.content is not None else battle_spec(camp)
     assert spec is not None
     c.fighting = camp
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
@@ -867,6 +867,20 @@ def _confirm(c: CampaignMap, camp: int) -> dict[str, Any] | None:
     return None
 
 
+def _roll(c: CampaignMap, camp: int, own: Mapping[str, Any]) -> tuple[int, list[tuple[int, int]]]:
+    """Desfecho de uma caixa: o ``param5`` do nó sorteado pelo peso (``cm.outcomes``); sem ele, uma das listas de
+    ``pick`` por igual ou ``drops``; sem prêmio, a luta."""
+    node = c.node(camp) or {}
+    if outs := cm.outcomes(node):
+        kind, drops, _ = random.choices(outs, weights=[w for *_, w in outs])[0]
+        return kind, drops
+    if own.get("pick"):
+        return cm.OUT_ITEM, [(int(t), int(n)) for t, n in random.choice(own["pick"])]
+    if own.get("drops"):
+        return cm.OUT_ITEM, [(int(t), int(n)) for t, n in own["drops"]]
+    return cm.OUT_FIGHT, []
+
+
 def _buffers(s: GameSession) -> pb.CampaignBufferMsg:
     return pb.CampaignBufferMsg(
         armyId=s.player_id, bufferInfo=[pb.BufferInfoMsg(bufferTempId=b, leftTime=0) for b in _map(s).buffs]
@@ -875,13 +889,17 @@ def _buffers(s: GameSession) -> pb.CampaignBufferMsg:
 
 @router.on(5033)
 async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
-    """Resposta ao 29 (``paraInt2`` = nó, ``paraBool1`` = sim). Três desfechos, pelo conteúdo do nó:
+    """Resposta ao 29 (``paraInt2`` = nó, ``paraBool1`` = sim). Desfechos, pelo conteúdo do nó:
 
     - Pandora (buffs no param3): (visto) inglesa #1433-#1438: 4165 com o buff, 150, 150, 111, 128 DONE, 83
-      "Received: Rage Boost". (dedução) o buff é sorteado entre os do param3; só um saiu na captura (1701).
-    - luta (tumba 113105, caixas 113203/114203): 126 com o aviso se houver (#2400), 128 com ``visitUserIds``, luta.
-    - moeda (tumba 114105): (visto) #2874-#2877: 3, 126 "Received: 5,000 Daru", 128 state 1 visitado, 83.
-    (dedução) o desfecho de cada nó é fixo (o da captura); pode ser sorteado no oficial (docs/salas-campanha.md).
+      "Received: Rage Boost". O buff é sorteado entre os do param3 (oficial_20261023-171155-1: 1701 e 1101 no 103110).
+    - Caixa com prêmio de vitória (``wins``: caixas do caçador, mina 103105): sempre luta; o param5 é o prêmio dela.
+    - Os outros sorteiam o desfecho (``_roll``: param5 do nó, ou ``pick``/``drops`` do conteúdo):
+    - luta (tumba): 126 com o aviso se houver (#2400), 128 com ``visitUserIds``, luta.
+    - moeda (tumba): (visto) #2874-#2877: 3, 126 "Received: 5,000 Daru", 128 state 1 visitado, 83.
+    - caixa com chave (Mystery Box 103108, o 29 traz ``itemTempId``): gasta a chave; (visto)
+      oficial_20261023-153200-1 #914-#918: 115 da chave, 109, 128 DONE (param1 -300), 111 e 83 "Received: 5,000
+      Gold"; oficial_20261023-171155-1 #2538-#2552: 115, 128, 115 do item, 111 e 83 "Received: Lvl. 2 Luck Stone x2".
     """
     c, snap = s.campaign, s.snapshot
     if c is not None and c.hook:
@@ -895,8 +913,12 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     node = c.node(camp)
     if node is None or node["state"] != NORMAL or _confirm(c, camp) is None:
         return
-    c.talked.add(camp)
     own = c.part("confirms", camp) or {}
+    key = int(own.get("confirm", {}).get("itemTempId") or 0)
+    if key and rules.goods_count(snap, key) < int(own["confirm"].get("itemCount") or 1):
+        s.log.info("5033 sem a chave", nó=camp, item=key)
+        return
+    c.talked.add(camp)
     if buffs := _buffs_of(node):
         buff = random.choice(buffs)
         c.buffs.append(buff)
@@ -908,20 +930,39 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
         _node_update(s, camp, DONE)
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
-    elif c.battle(camp) is not None:
+        return
+    kind, got = (cm.OUT_FIGHT, []) if c.part("wins", camp) is not None else _roll(c, camp, own)
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    if kind == cm.OUT_FIGHT and c.battle_like(camp) is not None:
         if notice := own.get("notice"):
             _send(s, S_NOTIFY, pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=notice, delay=0))
             _node_update(s, camp, NORMAL, fresh=True, visited=True)
         _start_battle(s, camp)
-    elif own.get("drops"):
-        got = [(int(t), int(n)) for t, n in own["drops"]]
-        rewards.grant(snap, s.ctx.templates, got)  # só moeda (Daru)
-        await s.ctx.characters.save(snap.character)
-        text = rewards.received(s.ctx.templates, got)
+        return
+    if not got or not rewards.can_grant(snap, templates, got, now):
+        s.log.info("5033 sem prêmio ou sem espaço", nó=camp, desfecho=kind, drops=got)
+        c.talked.discard(camp)
+        return
+    taken = rewards.take_one(snap, key) if key else None
+    new, _ = rewards.grant(snap, templates, got)
+    await s.ctx.characters.save(*rewards.owners(snap), *new, *([taken[0]] if taken and not taken[1] else []),
+                                delete=(taken[0],) if taken and taken[1] else ())  # fmt: skip
+    text = rewards.received(templates, got)
+    if taken is not None:
+        _send(s, S_ITEMS, rewards.taken_msg(taken[0], taken[1], s.player_id))
+        if any(t == cm.GOLD for t, _ in got):
+            castle_yield(s)
+        if any(t < 0 and t != cm.GOLD for t, _ in got):
+            await _push_player(s)
+        _node_update(s, camp, DONE)
+        if new:
+            _send(s, S_ITEMS, rewards.items_msg(new, s.player_id))
+        _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    else:
         await _push_player(s)
         _send(s, S_NOTIFY, pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=text, delay=0))
         _node_update(s, camp, NORMAL, fresh=True, visited=True)
-        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 @router.on(8282)
@@ -1091,7 +1132,17 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
     loot = _Loot()
     if not won:
         return loot
-    drops = [(int(t), int(n)) for t, n, chance in c.part("drops", camp) or [] if random.random() < float(chance)]
+    cid = run.campaign_id if run is not None else int((c.content or {}).get("campaign", 0))
+    if (win := c.part("wins", camp)) is not None:
+        node = c.node(camp)
+        assert node is not None
+        loot.done = [int(x) for x in str(node.get("param4", "")).split("|") if x and int(x) in c.nodes] or [camp]
+    drops = [
+        (int(t), int(n))
+        for at in loot.done or [camp]  # (visto) #3514-#3563: a mina 103105 fecha 103111 e 103112, um drop por nó
+        for t, n, chance in c.part("drops", at) or []
+        if random.random() < float(chance) and rules.quest_goods_wanted(snap, templates, int(t), cid)
+    ]
     got = [d for d in drops if _material(templates, d[0])]
     if fallen := [d for d in drops if d not in got]:
         loot.sign, loot.fallen = str(int(now.timestamp() * 1000)), fallen  # (visto) #2910: milissegundos da luta
@@ -1102,14 +1153,11 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
         for template_id, count in got:
             loot.items += bag.add(snap, templates, template_id, count, now)  # completa a pilha que já existe
         loot.texts = [rewards.received(templates, [d]) for d in got]  # um aviso por item, como o oficial
-    if (win := c.part("wins", camp)) is not None:
-        money = [(int(t), int(n)) for t, n in (random.choice(win["pick"]) if win.get("pick") else win["drops"])]
+    if win is not None:
+        money = _roll(c, camp, win)[1]
         new, _ = rewards.grant(snap, templates, money)
         loot.items += new
         loot.win, loot.win_paid = _win_text(templates, money), any(t < 0 for t, _ in money)
-        node = c.node(camp)
-        assert node is not None
-        loot.done = [int(x) for x in str(node.get("param4", "")).split("|") if x and int(x) in c.nodes] or [camp]
     kills = Counter(int(x["tempId"]) for x in battle.spec["soldiers"] if int(x["side"]) == 2)
     kinds = [(rules.PAWN_KILL_CONDITION, t, n) for t, n in kills.items()]
     kinds += [(rules.HERO_KILL_CONDITION, int(h["tempId"]), 1) for h in battle.spec["heroes"] if int(h["side"]) == 2]
@@ -1119,7 +1167,6 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
                 loot.quests.append(q)
     loot.finished = _map_finished(c, camp) and (run is None or c.map_id == run.maps[-1])
     if loot.finished:
-        cid = run.campaign_id if run is not None else int((c.content or {}).get("campaign", 0))
         end = [
             (rules.CAMPAIGN_CONDITION, cid, 1),
             (rules.SOLO_CONDITION, int(_campaign_row(s, cid).get("Capacity") or 0), 1),

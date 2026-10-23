@@ -79,8 +79,14 @@ Wood x18 (inglesa #2050-#2066), ganhando ou perdendo.
 ## 1003 Temple of Ibalize (Outer) (Lv 11, solo)
 
 Ligada no servidor (migração 0058, `oficial_20261023-153200-1`): etapa 1031 → 1032. A caixa do caçador 103105 deu
-Lvl. 3 Luck Stone (2040103) x1 (aviso sem `x1`, #527). O chefe 103207 não caiu (três derrotas): as cartas do fim
-são *(dedução)* as das 1001/1002 (5 cartas, 5 pagas, preço 0) sorteadas no `Campaigns.Item`.
+Lvl. 3 Luck Stone (2040103) x1 (aviso sem `x1`, #527) ou 10.000 Daru (oficial_20261023-171155-1), pelo `param5`.
+O chefe 103207 caiu duas vezes em oficial_20261023-171155-1: 135 com 5 cartas, 5 pagas, preço 0 *(visto)*, e as
+cartas 1030102 e 1030103 com `randomSkill`.
+
+Perene Bone (2100003, missão 190) só com a missão aberta (migração 0062): 103102 x2 e 103105/103111/103112 x1
+*(visto)*; 103103 x2 *(dedução: mesmo Undead Warrior)*; 103104, 103106, 103202, 103203, 103206 x1
+**TODO(inventado)**. Mystery Box 103108 (Skeleton Key): 5.000 Gold ou Lvl. 2 Luck Stone x2, por igual *(dedução,
+três amostras)*.
 
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|

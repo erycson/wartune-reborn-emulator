@@ -6,7 +6,7 @@ Ordem e textos da captura inglesa (``captures/tutorial_en.txt``); o conteúdo ve
 from __future__ import annotations
 
 import json
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -16,9 +16,10 @@ import wartune_server
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import BagType, Item
+from wartune_server.domain.models import BagType, Item, Quest
 from wartune_server.game import bag, buffs, drops, events
 from wartune_server.game import battle as battle_mod
+from wartune_server.game import campaign as cm
 from wartune_server.game.builders.login import fmt_time
 from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.game.handlers import campaign as handlers
@@ -53,9 +54,15 @@ class Sure:
     def choice(seq: list[int]) -> int:
         return seq[0]
 
+    outcome = cm.OUT_DARU  # desfecho do param5 que sai (``_roll``), se o nó tiver; senão o 1º
+
     @staticmethod
     def randint(low: int, high: int) -> int:
         return low
+
+    @classmethod
+    def choices(cls, population: list[Any], weights: list[int] | None = None) -> list[Any]:
+        return [next((p for p in population if p[0] == cls.outcome), population[0])]
 
 
 def _undying(self: battle_mod.Battle, target: battle_mod.Unit, value: int) -> int:
@@ -308,6 +315,10 @@ async def test_grupo_de_1021_libera_o_chefe_e_fecha_a_masmorra(tmp_path: Path) -
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=102109, paraBool1=True))
         assert await g.idle() == []  # chefe travado enquanto o grupo vive
+
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        session.snapshot.quests.append(Quest(g.user_id, 90, datetime.now(UTC)))  # Worg Tooth só com a missão aberta
 
         for camp in WOLVES_1021[:-1]:
             await battle(g, camp)

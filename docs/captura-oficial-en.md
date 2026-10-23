@@ -23,7 +23,7 @@ trocar `game.jsp` por `Loading.swf` e abrir no projector; `pktmon filter add -p 
 |---|---|---|
 | 1011, 1021 Worg Lair | 1001 | **feito**: conteúdo inglês no banco (`campaign_contents`, migração 0034) |
 | 1131→1132, 1141→1142 Baylon Plains | 1002 | **feito**: etapas em par, portal (125 tipo 3), tumbas, caixa do caçador, Karlan e Karda |
-| 1031→1032 Temple of Ibalize (Outer) | 1003 | **feito** (oficial_20261023-153200-1, migração 0058): 9 lutas, caixa do caçador 103105 (Lvl. 3 Luck Stone), alavanca 103204 que some o 103205 e mostra o chefe 103207. O chefe não caiu na captura: as cartas do fim são dedução |
+| 1031→1032 Temple of Ibalize (Outer) | 1003 | **feito** (oficial_20261023-153200-1, migração 0058): 9 lutas, caixa do caçador 103105 (Lvl. 3 Luck Stone), alavanca 103204 que some o 103205 e mostra o chefe 103207. O chefe caiu em oficial_20261023-171155-1 (duas voltas): cartas do fim vistas; `param5` sorteado, Perene Bone da missão 190 e Mystery Box com chave na migração 0062 |
 | 6001 Resource Quarry | 6001 | **feito**: 8258 entra, 5125 → 143 COLLECTION, 5032 colhe Wood (115, 111, 83), 8699 luta (Wood x18), 5025 sai. Destrava a missão 102 |
 
 `tools/extract_dungeon.py captures/tutorial_en.json --campaign N` (N = 1001, 1002, 6001) junta cada campanha em
