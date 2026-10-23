@@ -12,16 +12,19 @@ from __future__ import annotations
 
 import asyncio
 import math
+import random
+from collections.abc import Callable
 from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 
-from ...domain.models import Castle, WildMonsterKill
+from ...domain.models import Castle, Item, TreasureCacheOpen, WildMonsterKill
 from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
-from .. import bosses, mines, monsters, robots, rules
+from .. import bosses, mines, monsters, rewards, robots, rules
+from .. import caches as tc
 from .. import castle as cs
 from .. import outer_city as oc
 from ..battle import Battle
@@ -34,12 +37,13 @@ from ..session import GameSession
 from . import events
 from .campaign import player_hero, quarry_fight
 from .login import army, player_info
-from .player import alert, hero_after_fight, hp_pack
+from .player import S_CHAT, alert, hero_after_fight, hp_pack
 from .wild_boxes import drop_box, send_boxes
 
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
+S_ITEMS = 115
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
 # tutorial_en #773-#777: 18 tiles em 2,34 s (do 140 andando ao 140 parado). ponytail: velocidade fixa, sem
 # montaria nem efeitos
@@ -124,6 +128,25 @@ async def _boss_info(s: GameSession, map_id: int) -> None:
     s.send(S_MAP_BOSS, bosses.boss_msg(ctx.world, ctx.templates, ctx.wilds, s.snapshot.character, map_id, killed, now))
 
 
+async def _opened(s: GameSession, map_id: int) -> set[tuple[int, datetime]]:
+    """(id, nascimento) dos Treasure Caches do mapa já abertos (por qualquer jogador)."""
+    return await s.ctx.characters.read(lambda uow: uow.cache_opens.on_map(map_id))
+
+
+def _cache_state(s: GameSession, c: tc.Cache) -> int:
+    fight = s.ctx.wilds.fighting.get((c.map_id, c.id, c.born))
+    return tc.CACHE_FIGHTING if fight is not None and fight.running else tc.CACHE_ALIVE
+
+
+def _cache_sync(s: GameSession, c: tc.Cache, state: int) -> None:
+    """140 do baú (state 4 em luta, 0 aberto, 1 de volta) a quem vê a grade dele (#328, #381, #667)."""
+    land = tc.cache_msg(s.ctx.templates, c, s.ctx.clock.now(), state)
+    for other in viewers(s, c.map_id):
+        assert other.outer_view is not None
+        if oc.grid_of(c.x, c.y) in other.outer_view[1]:
+            other.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
+
+
 @router.on(9525)
 async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
     """Painel dos chefes; o cliente pede ao entrar no mapa, então vão junto os baús fechados dele (só se houver:
@@ -198,13 +221,23 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
             land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s))
             reply.wildLand.append(land)
     now = s.ctx.clock.now()
-    if found := monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now):
+    found = monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now)
+    boxes = tc.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now)
+    if found or boxes:
         s.outer_view = (msg.mapId, grids, monsters.cycle_start(s.ctx.templates, now))
+    if found:
         killed = await _killed(s, msg.mapId, now)
         for m in found:
             # no meio das terras, antes dos castelos (só turco: transfer_kampi_sistemi #14)
             if oc.grid_of(m.x, m.y) in grids and (state := s.ctx.wilds.state(m, killed)) != monsters.MONSTER_GONE:
                 reply.wildLand.append(monsters.monster_msg(s.ctx.world, s.ctx.templates, m, state))
+    s.outer_caches, s.outer_caches_at = {}, now
+    if boxes:
+        opened = await _opened(s, msg.mapId)
+        for c in boxes:
+            if oc.grid_of(c.x, c.y) in grids and (c.id, c.born) not in opened:
+                s.outer_caches[c.id] = c
+                reply.wildLand.append(tc.cache_msg(s.ctx.templates, c, now, _cache_state(s, c)))
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
     # (visto) tutorial_en #532: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
@@ -224,6 +257,7 @@ def roll_monsters(s: GameSession) -> None:
         return
     map_id, grids, cycle = s.outer_view
     world, templates, now = s.ctx.world, s.ctx.templates, s.ctx.clock.now()
+    _roll_caches(s, map_id, grids)
     start = monsters.cycle_start(templates, now)
     if start == cycle:
         return
@@ -233,6 +267,23 @@ def roll_monsters(s: GameSession) -> None:
             if oc.grid_of(m.x, m.y) in grids:
                 land = monsters.monster_msg(world, templates, m, state)
                 s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
+
+
+def _roll_caches(s: GameSession, map_id: int, grids: set[str]) -> None:
+    """Cada baú tem a sua vida: o que venceu sai da vista (140 state 0) e o que nasceu nela entra (140 state 1).
+    (dedução) o oficial avisa assim (a captura só mostra o 140 do recém-nascido 828569, #1938); o aberto já saiu
+    da lista no fim da luta e não volta antes da vida seguinte (``_opened`` no 8201)."""
+    now = s.ctx.clock.now()
+    for c in [c for c in s.outer_caches.values() if c.ends <= now]:
+        del s.outer_caches[c.id]
+        land = tc.cache_msg(s.ctx.templates, c, now, tc.CACHE_GONE)
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
+    for c in tc.on_map(s.ctx.world, s.ctx.templates, map_id, now):
+        if oc.grid_of(c.x, c.y) in grids and c.id not in s.outer_caches and c.born > s.outer_caches_at:
+            s.outer_caches[c.id] = c
+            land = tc.cache_msg(s.ctx.templates, c, now)
+            s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
+    s.outer_caches_at = now
 
 
 @router.on(8254)
@@ -303,8 +354,8 @@ def _army_sync(s: GameSession, state: int) -> None:
 async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (tutorial_en #723-#727): 140 do
     exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô: luta (ver ``_attack_robot``).
-    Monstro dos Wilds: luta (ver ``_attack_monster``). Mina já ocupada, castelo de outro jogador, terra ou
-    tesouro: o exército só para (140 parado)."""
+    Monstro dos Wilds: luta (ver ``_attack_monster``). Treasure Cache: luta (ver ``_attack_cache``). Mina já
+    ocupada ou castelo de outro jogador: o exército só para (140 parado)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     await refresh(s)
@@ -313,6 +364,10 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     if robot is not None:
         if rows := _attack_robot(s, robot):
             await s.ctx.characters.save(*rows)
+        return
+    boxes = tc.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now())
+    if (box := tc.at(boxes, msg.posX, msg.posY)) is not None:
+        await _attack_cache(s, box)
         return
     found = monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now())
     if (monster := monsters.at(found, msg.posX, msg.posY)) is not None:
@@ -338,11 +393,15 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     s.battle.start()
 
 
-async def _casualties(s: GameSession, battle: Battle, won: bool, scene: int) -> int:
+async def _casualties(
+    s: GameSession, battle: Battle, won: bool, scene: int, before_report: Callable[[], None] | None = None
+) -> int:
     """150 com o exército sem as tropas mortas (#1760: 0 depois de perder as 172), 4103, a reposição pela reserva
     e 150 e 100 de novo (#1763-#1764: 172 e a reserva 640 -> 468). Com perda, 109 (população) e 3 antes do 4103:
     o Daru é o número de soldados perdidos, ganhando ou perdendo (oficial_20261023-153200-1 #1620-#1625: 116 na
-    mina; #1896-#1903: 201 no tesouro; #2004-#2009: 106). Devolve o Daru, que o 4382 mostra na volta ao mapa."""
+    mina; #1896-#1903: 201 no tesouro; #2004-#2009: 106). Devolve o Daru, que o 4382 mostra na volta ao mapa.
+    ``before_report``: o que vai logo antes do 4103 (o prêmio do Treasure Cache, oficial_20261023-171155-1
+    #650-#662)."""
     snap = s.snapshot
     assert snap is not None
     hit = oc.lose_troops(snap, s.ctx.templates, battle.troops())
@@ -355,6 +414,8 @@ async def _casualties(s: GameSession, battle: Battle, won: bool, scene: int) -> 
         snap.character.strategy += daru
         castle_yield(s)
         _send_player(s)
+    if before_report is not None:
+        before_report()
     s.send(S_REPORT, report)
     hp_pack(s, healed)  # (visto) #1899-#1901 (com o 139 no meio, que aqui não há)
     if hit is not None:
@@ -448,6 +509,84 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
         _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
     await _boss_info(s, m.map_id)
+
+
+async def _attack_cache(s: GameSession, c: tc.Cache) -> None:
+    """Luta com o Treasure Cache (oficial_20261023-171155-1 #325-#329, #570-#574): 140 do exército lutando, 140 do
+    baú em luta (state 4) e a 157 (battleType 3). Recusa com 140 parado se já há luta, se o baú já foi aberto nesta
+    vida ou se outro está lutando com ele."""
+    snap = s.snapshot
+    assert snap is not None
+    opened = await _opened(s, c.map_id)
+    if s.battle is not None or (c.id, c.born) in opened or _cache_state(s, c) == tc.CACHE_FIGHTING:
+        s.log.info("5160 baú recusado", bau=c.id, nivel=c.level, aberto=(c.id, c.born) in opened)
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
+        return
+    _army_sync(s, ARMY_FIGHTING)
+    spec = tc.battle(snap, s.ctx.templates, c)
+
+    async def finished(battle: Battle, won: bool) -> None:
+        await _cache_over(s, battle, c, won)
+
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
+    s.log.info("batalha com baú", bau=c.id, template=c.template_id, battle=s.battle.id)
+    s.ctx.wilds.fighting[(c.map_id, c.id, c.born)] = s.battle
+    _cache_sync(s, c, tc.CACHE_FIGHTING)
+    s.battle.start()
+
+
+async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) -> None:
+    """Fim da luta com o Treasure Cache, na ordem do oficial (#645-#670): 150, 109, 3, o prêmio (115, 4476, 111),
+    4103 (battleScene 0), 83 do HP, 150, 100, 140 ×2 do exército, 140 do baú (state 0 aberto; 1 perdendo), 83
+    "Received: ... x1", 169 e o 4382 logo em seguida (no mapa do mundo ele não espera o 8747: #670, #1812, #3082).
+    O primeiro a vencer leva (``treasure_cache_opens``); a vida que acabou no meio da luta não dá nada. Mochila
+    cheia: o baú se abre sem item (log). Desvio: os 4484 de título (×9 no oficial) não existem aqui."""
+    snap = s.snapshot
+    assert snap is not None
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
+    s.ctx.wilds.fighting.pop((c.map_id, c.id, c.born), None)
+    alive = now < c.ends
+    opened = False
+    new: list[Item] = []
+    text = ""
+    if won and alive:
+        mark = TreasureCacheOpen(c.map_id, c.id, c.born, snap.character.id or 0, now)
+        try:
+            await s.ctx.characters.write(lambda uow: uow.cache_opens.add(mark))
+        except IntegrityError:
+            s.log.info("baú já aberto por outro", bau=c.id)
+        else:
+            opened = True
+            got = tc.loot(s.ctx.world, templates, snap, c, random.Random())
+            if rewards.can_grant(snap, templates, got, now):
+                new, text = rewards.grant(snap, templates, got)
+                await s.ctx.characters.save(*rewards.owners(snap), *new)
+            else:
+                s.log.info("baú sem espaço na mochila", bau=c.id, premio=got)
+
+    def prize() -> None:
+        if new:
+            s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+            events.items_gained(s)
+        if text:
+            alert(s, text)
+
+    daru = await _casualties(s, battle, won, tc.SCENE, prize)
+    s.battle_strategy = 0  # o 4382 sai aqui mesmo
+    _army_sync(s, ARMY_IDLE)
+    if opened:
+        s.outer_caches.pop(c.id, None)
+    if alive:
+        _cache_sync(s, c, tc.CACHE_GONE if opened else tc.CACHE_ALIVE)
+    if text:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    assert snap.castle is not None
+    map_id, x, y = oc.position(snap.castle, s.outer_army)
+    s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))
+    s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
 
 
 def _attack_robot(s: GameSession, robot: RobotCastle) -> list[object]:

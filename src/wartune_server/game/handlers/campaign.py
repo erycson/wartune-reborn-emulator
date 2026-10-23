@@ -389,7 +389,7 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
         nickName=leader.nickname,
         grade=leader.grades,
         side=1,
-        pos=player["pos"],
+        pos=outer_city.hero_pos(leader.fight_pos) if player["pos"] == outer_city.FRONT_HERO_POS else player["pos"],
         maxHp=live,
         initHp=hp,
         hp=hp,

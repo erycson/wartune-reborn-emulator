@@ -68,6 +68,7 @@ from ..domain.models import (
     ShopBuy,
     SnsProfile,
     Star,
+    TreasureCacheOpen,
     TreasureMap,
     WildBox,
     WildLand,
@@ -694,6 +695,16 @@ wild_monster_kills = Table(
     _int("character_id"),
     Column("killed_at", UTCDateTime, nullable=False),
 )
+# Treasure Caches abertos (0063): o id da vaga se repete a cada vida, então a chave leva o nascimento
+treasure_cache_opens = Table(
+    "treasure_cache_opens",
+    metadata,
+    Column("map_id", Integer, primary_key=True, autoincrement=False),
+    Column("cache_id", Integer, primary_key=True, autoincrement=False),
+    Column("born_at", UTCDateTime, primary_key=True),
+    _int("character_id"),
+    Column("opened_at", UTCDateTime, nullable=False),
+)
 # o que cai no baú (0030): cada linha sorteada sozinha; ``source`` diz de onde veio o número
 world_monster_drops = Table(
     "world_monster_drops",
@@ -1125,6 +1136,7 @@ def map_entities() -> None:
         (TreasureMap, treasure_maps),
         (WildLand, wild_lands),
         (WildMonsterKill, wild_monster_kills),
+        (TreasureCacheOpen, treasure_cache_opens),
         (WildBox, wild_boxes),
         (WorldBossFight, world_boss_fights),
         (WorldBossWound, world_boss_wounds),

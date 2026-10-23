@@ -35,7 +35,7 @@ disso é recusado ou respondido vazio, do jeito que o cliente espera para não t
 | 8254 | Guarda o último ponto andado (pixels // 20). 140 ×2 andando (state 1) no ponto de saída e, na chegada, 140 ×2 parado no destino (0,13 s por tile). Rota vazia, outro exército ou fora do mapa são ignorados | *(visto)* tutorial_en #774-#776 (18 tiles em 2,34 s); *(cliente)* `OuterCitySocketOutManager` | outros exércitos no mapa (4167) |
 | 9525 | 4938 com os chefes do mapa pedido e o tempo até o próximo refresh (ver *Chefes do mapa*) | *(visto)* inglesa #525-#526, #709-#710 (instância, sem chefes); transfer #7-10 (só turco: mapa 2 com chefes) | luta contra chefe, monstros do mapa, névoa (4939) e caixas (4940) |
 | 5161 | Volta o exército ao castelo, de graça: 98 com a posição | *(cliente)* o botão do exército não checa nada | — |
-| 5160 | Roda o refresh. Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o robô se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648-#1770 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
+| 5160 | Roda o refresh. Treasure Cache: luta (ver *Treasure Cache*). Mina livre: luta com o guarda (ver *Minas de ouro*). Castelo-robô (tile de 765958 em (44,22) ou 765957 em (59,56), na instância): luta com o robô se há ataque no dia e a diferença de nível é menor que 10; senão 140 parado (ver *Castelos-robô*). Sem alvo ou mina já do jogador: 140 com o exército parado (state 0), sem luta | *(visto)* inglesa #723-#806 (minas) e #1648-#1770 (robô); *(cliente)* `CityInfoFrame.__attackHandler` e `MapPhysicsCastle.attack` mandam o 5160 com a posição do castelo; *(dedução)* parar sem alvo | castelos de jogador e exércitos alheios, terras e tesouros (precisa de captura) |
 | 8488 | Registra. Sem resposta (a 157 só vem de batalha) | *(cliente)* PvP contra exército de outro jogador | exército de outro jogador no mapa |
 | 8699 | Na pedreira 6001: a luta da coleta (140, 157; fim com Wood x18). Fora dela, registra | *(visto)* inglesa #1928-#2070 | — |
 | 9506 | Ataque extra: `ConfigInfos` `AddAttck_Point` diamantes (395 nos templates EN, como o texto EN "Additional attack attempts cost 395 Balens"; vinculado primeiro se `type` 2), até 5 por dia. Responde PlayerMsg com `attackLeftCount`. O ataque ao castelo-robô (5160) gasta um e grava na hora | *(cliente)* `m3/.../AttackAlertFrame.as:130` (`setAddAttackCount`; o cliente só confere 98 de saldo, então abaixo do preço o servidor avisa "You don't have enough Balens!") | — |
@@ -308,6 +308,37 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   vídeos ("he's lost one life"), o reviver no mapa, e a regra "+/-15 levels" da wiki (o post oficial e o help
   só falam de 15 abaixo, que é o que está feito).
 
+## Treasure Cache (4129 type 22, `game/caches.py`)
+
+Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, jogador nível 12).
+
+- **Mensagem** *(visto)*: `templateId` 2201xx ("Treasure Cache", `MapPhysicsTempInfos` MasterType 22, `Description`
+  "Rebel", `Grades` = nível 1 a 60, `RefreshTime` 14400 a 51200 s conforme a faixa), `type` 22, `level`, `state` 1,
+  `createDate` e `refreshTime` próprios de cada baú: o `refreshTime` é o que falta da vida dele, em ms (18000000 no
+  recém-nascido 828569 de #1938, criado às 14:51:53). `armyPawn` com 3 guardas de `ownPawns` 1.
+- **Luta** *(visto)* #325-#329 e #570-#574: 140 ×2 do exército lutando, 140 do baú em luta (state 4), 157 com
+  `battleType` 3, `mapTempId` = o mapa, 3 guardas nas posições 4, 2 e 8 com a vida de um soldado (`Live` / 100: 840
+  no 6011). Guardas vistos: nível 13 → 6011, 14 → 6013, 15 → 6014. *(dedução)* a regra é o 1º `PawnTempInfos` 60xx
+  de nível = baú + 2 (bate nos três).
+- **Vitória** *(visto)* #645-#670: 150, 109, 3, 115 do item, 4476, 4484 ×9 (títulos: não existem aqui), 111
+  "Received: Lvl. 3 Luck Stone x1", 4103 (`battleScene` 0, Daru = tropas perdidas), 150, 100, 140 ×2 do exército,
+  140 do baú em state 0, 83 com o mesmo texto, 169 e o 4382 logo em seguida. Prêmios vistos: Lvl. 3 Luck Stone x1
+  (baú 13, #661) e Elders Robe x1 (baú 13, mago, #1810).
+- **Derrota** *(visto)* #370-#385: 4103 result 2 e o baú volta a state 1.
+- **4382 no mapa do mundo** *(visto)*: sai logo no fim de toda luta no mapa 1 (baú #670, #1812; mina #3082, #3162;
+  robô #833), sem esperar o 8747. No baú o servidor faz assim; mina e robô seguem como antes (ver *Minas de ouro*).
+- **Sorteio** (`caches.on_map`): cada mapa tem `count` vagas (`game_settings.treasure_caches`, migração 0063); cada
+  vaga tem nível fixo na faixa do mapa (`MapInfos` MinLevel-MaxLevel: 11-20 no mapa 1 ... 51-60 no 5; vistos 13 a 15)
+  e vive o `RefreshTime` do template, com um deslocamento sorteado; a cada vida nasce num tile sorteado
+  (semente mapa, vaga, vida), a 20 da borda. Todo jogador vê os mesmos, sem tabela de estado.
+- **Aberto**: o primeiro a vencer leva (`treasure_cache_opens`, chave mapa, vaga, nascimento); o baú some para todos
+  até a próxima vida. A vida que acaba no meio da luta não dá nada. Mochila cheia: abre sem item (log).
+- **Na vista**: o 20008 tira os baús cuja vida acabou (140 state 0) e mostra os que nasceram nas grades do último
+  8201 *(dedução: a captura só mostra o 140 do recém-nascido, #1938)*.
+- **TODO(inventado)**: quantas vagas por mapa (1000, 640, 250, 160, 90: uma a cada 25 000 tiles; a captura mostra 7
+  baús em ~300 × 250 tiles perto do castelo) e o prêmio: Lvl. `ceil(nível/5)` Luck Stone ou um equipamento da
+  classe do jogador (`Profile` 2, `NeedGrades` de nível - 5 a nível + 2), por igual.
+
 ## Coleta (Resource Harvesting, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 
 - **Botão ir** *(cliente)*: `TaskFrameII.as:707-708` pega `worldBossTemplateDict[NeedFightId]` (6001) e
@@ -337,6 +368,8 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   `snapshot` (`PlayerSnapshot.treasure`), como `mystery_shops`.
 - **0017** `wild_lands` (minas ocupadas) e **0018** `castles.mines_at` (começo do ciclo de 12 h das minas;
   vazio em castelo antigo). Ver *Minas de ouro*.
+- **0063** `treasure_cache_opens` (baú aberto, chave mapa, vaga, nascimento) e `game_settings.treasure_caches`.
+  Ver *Treasure Cache*.
 - Diamantes passam por `services/ledger.py` (`pay`). Não há tabela de ledger nova.
 
 ## Dependências em aberto
@@ -345,10 +378,9 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
    (8201), e os 2 castelos-robô da instância (*Castelos-robô*). Falta: exércitos de outros jogadores (o 169 da
    transfer #15, só turco, traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168 não
    existem aqui), terras selvagens fora das 4 minas, castelos NPC "Köy" (só turco), e a resposta do 5160 e do 8488 contra
-   castelo ou exército de jogador (*precisa de captura*).
-2. **Gancho da campanha** (8292, 8293, 8295, 8525). O servidor responde o gancho zerado (4200) e as 9 salas
-   do gancho livres (4204); o cancelar (8292) não muda nada; clicar numa sala (8258) dá o aviso, sem o mapa. O ganho de tempo offline da campanha precisa do
-   sistema de gancho, e os ganchos de outros jogadores não existem.
+   castelo ou exército de jogador (*precisa de captura*). Feito: Treasure Cache (*Treasure Cache*).
+2. **Gancho da campanha** (8292, 8293, 8295, 8525). Feito: Rest House (`docs/salas-campanha.md#rest-house`).
+   Falta o PK no mapa (8525, BattleType 19).
 3. **Passe de progresso** (8636, 8637). A área é sempre 1. Falta o progresso das fases (8753, 8755).
 4. **Mapa do tesouro.** Falta a tabela de sorteio da qualidade do mapa (o servidor dá o de bronze). Refresh,
    escavação, uso do mapa e recompensa dependem de pontos no mapa do mundo e de batalha de equipe.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -143,6 +143,9 @@ class GameSession:
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
+        # Treasure Caches na vista do último 8201 (id -> baú) e o último 20008 que os conferiu (``_roll_caches``)
+        self.outer_caches: dict[int, Any] = {}
+        self.outer_caches_at = datetime.min.replace(tzinfo=UTC)
         self.pet_offer: dict[int, int] = {}
         self.vehicle_open: bool | None = None  # último 4512 mandado (o 20008 manda de novo se mudou)
         self.match_open: bool | None = None  # último estado do PvP (4201); o 20008 manda quando muda

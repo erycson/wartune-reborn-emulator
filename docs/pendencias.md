@@ -114,6 +114,9 @@ Outros eventos:
   monstro do mapa (157) e o baú (4940/9526). O baú existe, com a tabela de queda `world_monster_drops`: chances
   e faixas de nível são **dedução** sobre a wiki e relatos ([cidade-externa.md](cidade-externa.md)). Luta em
   equipe/entrar na luta não existe.
+- Treasure Cache (type 22): **feito** ([cidade-externa.md](cidade-externa.md#treasure-cache-4129-type-22-gamecachespy)).
+  **TODO(inventado)**: vagas por mapa e o prêmio (pedra do nível ou equipamento da classe). Falta: os 4484 de título
+  depois do item.
 - Subida de nível: o exército completa com as tropas do castelo até a nova liderança e vai 139 (castelo
   vazio), 100, 150 e 4640 (fundo de novato) como no replay #625-#628 e tutorial_en. **dedução**: o mesmo nas
   subidas por batalha, coliseu, fazenda, livro de EXP e prêmio 8287 (as capturas só têm a da missão).

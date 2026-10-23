@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import TracebackType
 from typing import Any, Self
 
@@ -44,6 +44,7 @@ from ..domain.models import (
     Relation,
     SnsProfile,
     Star,
+    TreasureCacheOpen,
     WildMonsterKill,
     WorldBossFight,
     WorldBossWound,
@@ -441,6 +442,25 @@ class SqlWildKillRepository(_Repo):
         await self._s.flush()
 
 
+class SqlCacheOpenRepository(_Repo):
+    """Treasure Caches abertos (de todos os jogadores), por mapa."""
+
+    async def on_map(self, map_id: int) -> set[tuple[int, datetime]]:
+        k: Any = TreasureCacheOpen
+        rows = await self._s.execute(select(k.cache_id, k.born_at).where(k.map_id == map_id))
+        return {(int(i), at) for i, at in rows}
+
+    async def add(self, opened: TreasureCacheOpen) -> None:
+        """Grava a abertura e apaga as do mapa que já passaram (nenhuma vida dura um dia: ``RefreshTime`` até
+        51200 s). Repetido: IntegrityError."""
+        k: Any = TreasureCacheOpen
+        await self._s.execute(
+            delete(k).where(k.map_id == opened.map_id, k.born_at < opened.born_at - timedelta(days=1))
+        )
+        self._s.add(opened)
+        await self._s.flush()
+
+
 class SqlWorldBossRepository(_Repo):
     """Janelas dos chefes do mundo e o dano de cada jogador nelas."""
 
@@ -502,6 +522,7 @@ class SqlAlchemyUnitOfWork:
         self.lands = SqlFarmLandRepository(self._session)
         self.events = SqlEventStateRepository(self._session)
         self.wild_kills = SqlWildKillRepository(self._session)
+        self.cache_opens = SqlCacheOpenRepository(self._session)
         self.world_boss = SqlWorldBossRepository(self._session)
         self.pawns = SqlOwnedRepository(self._session, Pawn)
         self.stars = SqlOwnedRepository(self._session, Star)

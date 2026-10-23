@@ -94,8 +94,23 @@ def energy_diamonds(castle: Castle, top: int, need: int) -> int:
     return math.ceil((top - castle.energy) / 5)
 
 
+FRONT_HERO_POS = 4  # o herói na fileira da frente, no meio (inglês #727); a formação o leva para a 6
+
+
+def column(fight_pos: int) -> int:
+    """Fileira da formação (8276: 1 frente, 3 trás; outro valor = o padrão de cada um)."""
+    return fight_pos if fight_pos in (1, 3) else 0
+
+
+def hero_pos(fight_pos: int) -> int:
+    """(visto) o herói fica no meio da fileira dele: 4 com ``fightPos`` 1 (tutorial_en #727) e 6 com 3
+    (oficial_20261023-171155-1, todas as 25 lutas)."""
+    return 3 + (column(fight_pos) or 1)
+
+
 def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[dict[str, object]], int]:
-    """As tropas do exército na luta (inglês #727): duas pilhas (pos 3 e 9, livingId 1 e 2). A vida total
+    """As tropas do exército na luta (inglês #727): duas pilhas (livingId 1 e 2) em cima e embaixo da fileira da
+    tropa: pos 3 e 9 com ``fightPos`` 3 (tutorial_en #727), 1 e 7 com 1 (oficial_20261023-171155-1). A vida total
     Live × soldados / 100 se divide arredondando para cima na primeira (visto tutorial_en: 523 -> 262/261,
     637 -> 319/318). Devolve as pilhas e o template da tropa (0 sem tropa)."""
     soldiers: list[dict[str, object]] = []
@@ -106,7 +121,8 @@ def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[
         skills = [int(s) for s in (tpl["DefaultSkill"], tpl.get("HighSkill", "")) if s] * 5
         total = max(1, int(tpl["Live"]) * pawn.army_count // 100)
         first = (total + 1) // 2 if pawn.army_count > 1 else total
-        for living, pos, hp in ((1, 3, first), (2, 9, total - first)):
+        row = column(pawn.fight_pos) or 3
+        for living, pos, hp in ((1, row, first), (2, row + 6, total - first)):
             if hp <= 0:
                 continue
             soldiers.append(

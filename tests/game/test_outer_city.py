@@ -919,3 +919,18 @@ async def test_voltar_ao_castelo_so_manda_o_4382_com_luta_pendente(tmp_path: Pat
         g.server.online.get(g.user_id).outer_fight_over = True  # type: ignore[union-attr]
         g.client.send(8747, pb.SimplePropertyMsg(param7=True))
         assert [p.code for p in await g.idle()].count(4382) == 1
+
+
+def test_formacao_muda_as_posicoes_na_luta() -> None:
+    """8276: herói e tropa na fileira 1 ou 3. (visto) tutorial_en #727 (herói 1, tropa 3): herói 4, tropas 3 e 9;
+    oficial_20261023-171155-1 (herói 3, tropa 1, as 25 lutas): herói 6, tropas 1 e 7."""
+    from types import SimpleNamespace
+
+    from wartune_server.templates.repository import GameTemplates
+
+    templates = GameTemplates.parse(Path("data/templates/tempinfos.xml").read_bytes())
+    assert (oc.hero_pos(1), oc.hero_pos(3), oc.hero_pos(0)) == (4, 6, 4)
+    for fight_pos, want in ((3, [3, 9]), (1, [1, 7]), (0, [3, 9])):
+        snap = SimpleNamespace(pawns=[Pawn(1, 10101, army_count=150, fight_pos=fight_pos)])
+        soldiers, _ = oc.army_soldiers(snap, templates)  # type: ignore[arg-type]
+        assert [s["pos"] for s in soldiers] == want

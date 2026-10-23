@@ -684,6 +684,17 @@ class WildMonsterKill:
     killed_at: datetime
 
 
+@dataclass
+class TreasureCacheOpen:
+    """Treasure Cache aberto (``game/caches.py``): some do mapa para todos até a próxima vida dele."""
+
+    map_id: int
+    cache_id: int
+    born_at: datetime
+    character_id: int
+    opened_at: datetime
+
+
 @dataclass(eq=False)
 class WildBox:
     """Baú que o monstro dos Wilds deixou no mapa para quem o matou (4940), até ser aberto (9526). O que tem

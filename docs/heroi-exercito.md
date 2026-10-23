@@ -59,7 +59,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8580 trocar tipo | 3, 116, 116, 150 | cliente | 200 diamantes (payType 3 = vinculado) ou 2M de Ruh |
 | 8455 compreender | 3, 116 (+112) | cliente | 1M de Ruh; sorteio por TakeRandom até o grau atual (**dedução**); bênção Types 16 cheia = só especialidades do grau acima, até o 10 (`PawnSpecialAbilityFrame.helpContent` inglês) |
 | 8456 salvar especialidade | 116, 150 | cliente | subir de grau zera a bênção ("Blessing levels are reset after each specialty level upgrade") |
-| 8276 formação | 150 (+112, missão 34) | visto + cliente | herói e tropa na fileira 1 (frente) ou 3 (trás): `AllocateView` "fightPos must be 1 or 3" |
+| 8276 formação | 150 (+112, missão 34) | visto + cliente | herói e tropa na fileira 1 (frente) ou 3 (trás): `AllocateView` "fightPos must be 1 or 3". Na luta (157) o herói fica no meio da fileira dele (pos 3 + fightPos: 4 ou 6) e as duas pilhas da tropa em cima e embaixo da dela (fightPos e fightPos + 6: 3/9 ou 1/7): tutorial_en #727 (herói 1, tropa 3) e oficial_20261023-171155-1, 25 lutas (herói 3, tropa 1); `outer_city.hero_pos` e `army_soldiers` |
 | 8277 / 8278 formação de campanha | 4186 | cliente | só a posição do próprio herói (dedução: salas) |
 | 8326 teleporte | 4237, 3 / 4263 | cliente | 100 de energia ou 100 diamantes; posição não persiste (depende da cidade externa) |
 | 8328 posição do exército | 4241 | cliente | |
