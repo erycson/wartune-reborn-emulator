@@ -10,11 +10,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from ...domain import gameday
-from ...domain.models import PlayerSnapshot
+from ...domain.models import EventState, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import events as ev
@@ -31,8 +31,9 @@ S_BUGLE_REQ, S_BUGLE_REWARD, S_NEW_YEAR, S_SLOT = 4553, 4554, 4811, 4901
 S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
-S_ORE, S_TOP_TOOL = 190, 4590
+S_ORE, S_TOP_TOOL, S_SIGNIN, S_SIGNIN_TEMP = 190, 4590, 513, 514
 SUPER_SIGNIN = 2059  # 4590 param1 da super assinatura (SuperSigninCardManager)
+ORE_OP, SIGNIN_OP = 35, 38  # extend1 do 9645: StokesOreManager e SuperSigninCardManager (PackageOut(9645, 0, n))
 
 FUND = "fund:novice"  # value = nível comprado (0 = nenhum), text = data da compra
 FUND_GET = "fund:novice:get:{}"  # uma marca por vez (times) já resgatada
@@ -281,8 +282,7 @@ def login_push(s: GameSession) -> None:
     _send(s, S_LUCKY_TEMP, pb.LuckExchangeTempListMsg())
     _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
     _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
-    # o oficial manda também o 514 (cartões da super assinatura, #111); fechada, o cliente não usa
-    _send(s, S_TOP_TOOL, pb.SimplePropertyMsg(param1=SUPER_SIGNIN, param7=False))
+    signin_login(s)
     _send(s, S_CHAIRS_OPEN, pb.SimplePropertyMsg(param7=False))
 
 
@@ -293,6 +293,178 @@ def fund_opened(s: GameSession, before: int) -> None:
     cfg = _fund_cfg(s)
     if cfg and before < int(cfg.get("openGrades", 0)) <= snap.character.grades:
         _send_fund(s, snap)
+
+
+# ---------------------------------------------------------------- super assinatura (9645 extend1 38 / 513 / 514 / 4590)
+# Regras do cliente inglês (language.txt ``SuperSigninCardFrame.*`` e ``supersignincard...helpFrame.content``): o cartão
+# custa ``cardPrice`` Balens; o dia 1 sai na compra e cada dia seguinte abre à meia-noite; quem estava no jogo naquele
+# dia assina ("Login to collect"); o dia perdido assina por ``reSigninPrice`` Balens; o cartão vale até 8 dias.
+# Estados do 513 (``SuperSigninCardItem.refreshView``): 0 ainda não, 1 pode receber, 2 recebido (sem botão), 3 perdido.
+
+SIGNIN_BUY, SIGNIN_RECEIVE, SIGNIN_RESIGN = 2, 3, 4  # SuperSigninCardManager (1 = OPEN_FRAME, nunca mandado)
+NOT_YET, READY, TAKEN, MISSED = 0, 1, 2, 3
+TAKEN_SHIFT = 8  # EventState.value: bit k = dia k assinado; bit k + 8 = dia k recebido
+
+
+def _signin_cfg(s: GameSession) -> Mapping[str, Any]:
+    """``game_settings.super_signin`` (0054, oficial_encantar #118-#119)."""
+    return s.ctx.world.settings.get("super_signin") or {}
+
+
+def _signin_key(cfg: Mapping[str, Any]) -> str:
+    return f"signin:super:{cfg['openTime']}"  # um cartão por edição
+
+
+def _signin_day(now: datetime) -> date:
+    return gameday.local(now).date()  # o dia do cartão vira à meia-noite (helpFrame), não às 5h
+
+
+def _signin_current(card: EventState, now: datetime) -> int:
+    """Dia do cartão hoje: 1 no dia da compra."""
+    return (_signin_day(now) - date.fromisoformat(card.text)).days + 1
+
+
+def _signin_window(cfg: Mapping[str, Any], now: datetime) -> bool:
+    return _at(cfg, "openTime") <= now < _at(cfg, "stopTime")
+
+
+def _signin_state(card: EventState, cfg: Mapping[str, Any], day: int, now: datetime) -> int:
+    if card.value & 1 << (day + TAKEN_SHIFT):
+        return TAKEN
+    if card.value & 1 << day:
+        return READY
+    return MISSED if day < min(_signin_current(card, now), int(cfg["cardDays"]) + 1) else NOT_YET
+
+
+def _signin_msg(s: GameSession, card: EventState | None) -> pb.SuperSigninCardRespMsg:
+    """513: os 7 dias com cartão; vazio sem cartão (``SuperSigninCardFrame``: o botão de compra só vale vazio)."""
+    cfg, now = _signin_cfg(s), s.ctx.clock.now()
+    msg = pb.SuperSigninCardRespMsg()
+    if card is not None:
+        for day, _ in cfg["temp"]:
+            msg.details.add(date=int(day), state=_signin_state(card, cfg, int(day), now))
+    return msg
+
+
+def _sign_today(cfg: Mapping[str, Any], card: EventState, now: datetime) -> bool:
+    """Marca o dia de hoje como assinado (quem está no jogo assina). True se mudou."""
+    day = _signin_current(card, now)
+    if not 1 <= day <= len(cfg["temp"]) or card.value & 1 << day:
+        return False
+    card.value |= 1 << day
+    card.updated_at = now
+    return True
+
+
+def _send_signin(s: GameSession, card: EventState | None) -> None:
+    msg = _signin_msg(s, card)
+    s.signin_sent = msg.SerializeToString()
+    _send(s, S_SIGNIN, msg)
+
+
+def signin_login(s: GameSession) -> None:
+    """Login: 4590 e 514 como o oficial (#118-#119, mesmo sem cartão); com cartão, também o 513. O 4590 abre o ícone
+    durante a edição e, depois dela, enquanto o cartão comprado vale. A assinatura do dia é gravada no primeiro
+    ``refresh_signin`` (o login não espera o banco aqui)."""
+    snap = s.snapshot
+    assert snap is not None
+    cfg, now = _signin_cfg(s), s.ctx.clock.now()
+    if not cfg:
+        _send(s, S_TOP_TOOL, pb.SimplePropertyMsg(param1=SUPER_SIGNIN, param7=False))
+        return
+    card = ev.peek(snap, _signin_key(cfg))
+    active = card is not None and _signin_current(card, now) <= int(cfg["cardDays"])
+    top = pb.SimplePropertyMsg(param1=SUPER_SIGNIN, param4=str(cfg["openTime"]), param5=str(cfg["stopTime"]))
+    top.param7 = _signin_window(cfg, now) or active
+    _send(s, S_TOP_TOOL, top)
+    temp = pb.SuperSigninRewardMsg(cardPrice=int(cfg["cardPrice"]), reSigninPrice=int(cfg["reSigninPrice"]))
+    for day, items in cfg["temp"]:
+        temp.temp.add(date=int(day), itemMsg=str(items))
+    _send(s, S_SIGNIN_TEMP, temp)
+    if card is not None:
+        _sign_today(cfg, card, now)
+        _send_signin(s, card)
+        s.signin_sent = None  # o refresh grava a assinatura de hoje
+
+
+async def refresh_signin(s: GameSession) -> None:
+    """Depois de cada pedido (``GameSession.on_packet``; o cliente manda 5015 a cada poucos segundos): na virada da
+    meia-noite o dia novo fica assinado para quem está no jogo, e o 513 vai de novo se mudou."""
+    snap = s.snapshot
+    cfg = _signin_cfg(s)
+    if snap is None or not cfg or s.battle is not None:
+        return
+    card = ev.peek(snap, _signin_key(cfg))
+    if card is None:
+        return
+    signed = _sign_today(cfg, card, s.ctx.clock.now())
+    if signed or _signin_msg(s, card).SerializeToString() != s.signin_sent:
+        await s.ctx.characters.save(card)
+        _send_signin(s, card)
+
+
+def _signin_items(cfg: Mapping[str, Any], day: int) -> list[tuple[int, int]]:
+    """``itemMsg`` do 514: ``"id,n|id,n"``."""
+    text = next(str(items) for d, items in cfg["temp"] if int(d) == day)
+    return [(int(t), int(n)) for t, n in (part.split(",") for part in text.split("|") if part)]
+
+
+async def _signin_buy(s: GameSession, snap: PlayerSnapshot, cfg: Mapping[str, Any], card: EventState | None) -> None:
+    """Compra: só sem cartão nesta edição, dentro da edição, nível ``minGrades``
+    (``TopToolsBar.showSuperSigninCardBtn``). O cliente confere ``point`` (Balens livres): o vinculado não paga."""
+    now = s.ctx.clock.now()
+    if card is not None or not cfg or not _signin_window(cfg, now) or snap.character.grades < int(cfg["minGrades"]):
+        s.log.info("super assinatura: compra recusada")
+        _send_signin(s, card)
+        return
+    spent = ledger.spend(snap.character, int(cfg["cardPrice"]), "super_signin", now, bound=False, ref="card")
+    if spent is None:
+        s.log.info("super assinatura: sem Balens")
+        _send_signin(s, card)
+        return
+    card = ev.state(snap, _signin_key(cfg), now)
+    card.text = _signin_day(now).isoformat()
+    _sign_today(cfg, card, now)
+    await s.ctx.characters.save(snap.character, card, spent)
+    granted(s, [], [], "", chat=False)
+    _send_signin(s, card)
+
+
+async def signin_op(s: GameSession, msg: pb.SuperSigninCardReqMsg) -> None:
+    """9645 com ``extend1`` 38: comprar (2), receber o dia (3) ou assinar o dia perdido (4). Recusa: o 513 igual."""
+    snap = s.snapshot
+    assert snap is not None
+    cfg, now = _signin_cfg(s), s.ctx.clock.now()
+    card = ev.peek(snap, _signin_key(cfg)) if cfg else None
+    if msg.opType == SIGNIN_BUY:
+        await _signin_buy(s, snap, cfg, card)
+        return
+    days = {int(d) for d, _ in cfg.get("temp", [])}
+    state = _signin_state(card, cfg, msg.date, now) if card is not None and msg.date in days else None
+    if card is not None and msg.opType == SIGNIN_RESIGN and state == MISSED:
+        price = int(cfg["reSigninPrice"])
+        spent = ledger.spend(snap.character, price, "super_signin", now, bound=False, ref=str(msg.date))
+        if spent is None:
+            s.log.info("super assinatura: sem Balens para assinar", dia=msg.date)
+        else:
+            card.value |= 1 << msg.date
+            card.updated_at = now
+            await s.ctx.characters.save(snap.character, card, spent)
+            granted(s, [], [], "", chat=False)
+    elif card is not None and msg.opType == SIGNIN_RECEIVE and state == READY:
+        drops = _signin_items(cfg, msg.date)
+        if not rewards.can_grant(snap, s.ctx.templates, drops, now):
+            s.log.info("super assinatura: mochila cheia", dia=msg.date)
+        else:
+            card.value |= 1 << (msg.date + TAKEN_SHIFT)
+            card.updated_at = now
+            new, text = rewards.grant(snap, s.ctx.templates, drops)
+            await s.ctx.characters.save(*rewards.owners(snap), card, *new)
+            alert(s, text)
+            granted(s, drops, new, text)
+    else:
+        s.log.info("super assinatura: pedido recusado", op=msg.opType, dia=msg.date, estado=state)
+    _send_signin(s, card)
 
 
 # ---------------------------------------------------------------- recuperar EXP (9503)
@@ -438,7 +610,11 @@ async def chairs(s: GameSession, _: object) -> None:
 
 @router.on(9645)
 async def ore_or_super_signin(s: GameSession, _: object) -> None:
-    """Minério (190) e super assinatura (4590) fechados. O código não diz qual dos dois é (o extend1
-    do cabeçalho não chega ao handler), e os dois fechados é o estado certo para ambos."""
+    """O mesmo código para o minério (``extend1`` 35, fechado: 190 falso) e a super assinatura (38). O corpo é relido
+    do pacote: o registro decodifica como ``OreActiveClientOpMsg``, cujo campo 2 é bool (o ``date`` viraria 1)."""
+    if s.packet.extend1 == SIGNIN_OP:
+        await signin_op(s, pb.SuperSigninCardReqMsg.FromString(s.packet.body))
+        return
+    if s.packet.extend1 != ORE_OP:
+        s.log.info("9645 com extend1 desconhecido", extend1=s.packet.extend1)
     _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
-    _send(s, S_TOP_TOOL, pb.SimplePropertyMsg(param1=SUPER_SIGNIN, param7=False))

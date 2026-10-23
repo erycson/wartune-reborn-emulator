@@ -346,7 +346,8 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 9610 `LuckExchangeOpMsg` | é a troca (`exchangeId` x `exchangeCount`), não um pedido: sem edição vigente, recusa só no log. As listas (363, 364) vão vazias no login, sem pedido | (cliente) LuckyExchangeManager + (visto) tutorial_en #88, #102 |
 | 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) tutorial_en #112 (414); 415 só turco: login #127 |
 | 8604 | árvore dourada, real (acima); sem a linha no banco: 295 `open` falso e 4526 `openView` falso | (visto) tutorial_en #71-#72 + (cliente) BottleManager, BottleFrame |
-| 9645 | 190 e 4590 fechados (o código não diz qual dos dois; os dois fechados é o estado certo). O login já manda os dois, sem pedido | (visto) tutorial_en #109 (190), #110 (4590 `param1` 2059) |
+| 9645 `extend1` 35 | minério: 190 fechado | (visto) tutorial_en #109 |
+| 9645 `extend1` 38 `SuperSigninCardReqMsg` | super assinatura: `opType` 2 compra (500 Balens livres, nível 6, uma por edição), 3 recebe o dia `date` (estado 1), 4 assina o dia perdido (estado 3, 10 Balens); responde 513 com os 7 estados (0 ainda não, 1 recebe, 2 recebido, 3 perdido). O login manda 4590 (datas da edição) e 514 (preços e prêmios), e o 513 só com cartão; quem está no jogo assina o dia (o 513 vai de novo depois de qualquer pedido quando muda, como na virada da meia-noite) | (visto) oficial_encantar #118-#119 (`game_settings.super_signin`, 0054); regras: `SuperSigninCardFrame`/`Item` e o `language.txt` inglês; (dedução) o 513 de cada operação, sem amostra |
 
 **Labirinto de gemas (9508–9517, real)**: `handlers/gemmaze.py`; a regra da troca e da cascata está em
 `game/gemmaze.py`.
@@ -423,7 +424,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   casas "?", 100 pontos) existem; as casas (4933 `cellInfo`) e o custo de cada dado vêm do servidor. **Captura que
   falta**: abrir (4933) e jogar o dado nos três modos (4934 `CastDiceMsg`), mais o "refresh".
 - **Minério (9645):** `MineOfActiveTime`, `Mine_Level`, `FreshManDepositCost` existem; sem tabela de
-  recompensa da mineração (op 1/2). **Super assinatura** (9645): sem template.
+  recompensa da mineração (op 1/2). **Super assinatura** (9645 `extend1` 38): feita (ver a tabela).
 - **Corneta (8638..8640):** `SinglePass_Count` existe; sem item nem tabela do passe.
 - **Loteria (8748/8750), caça-níquel (9500), cadeiras (9638), recompensa de grupo (9523), caixa de
   ano novo (8994), história (8629/8630):** sem template nem config no servidor; a captura inglesa só os mostra

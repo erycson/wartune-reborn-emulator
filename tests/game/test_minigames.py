@@ -99,10 +99,9 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
         assert pb.SimplePropertyMsg.FromString(_body(got, 414)).param7 is False
         assert pb.ChairsListMsg.FromString(_body(got, 415)).luckyNickName == []
 
-        g.client.send(9645)
+        g.client.send(9645, extend1=minigames.ORE_OP)
         got = await g.idle()
-        assert pb.SimplePropertyMsg.FromString(_body(got, 190)).param7 is False
-        assert pb.SimplePropertyMsg.FromString(_body(got, 4590)).param1 == 2059
+        assert [p.code for p in got] == [190] and pb.SimplePropertyMsg.FromString(got[0].body).param7 is False
 
         g.client.send(9610, pb.LuckExchangeOpMsg(exchangeId="x", exchangeCount=1))  # sem edição: só log
         assert await g.idle() == []
@@ -118,6 +117,65 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
 
         g.client.send(8750)
         assert pb.LotteryMsg.FromString(_body(await g.idle(), 4637)).isOpen is False
+
+
+def _signin(g: Game, op: int, day: int = 0) -> None:
+    g.client.send(9645, pb.SuperSigninCardReqMsg(opType=op, date=day), extend1=minigames.SIGNIN_OP)
+
+
+def _states(got: list[Packet]) -> list[int]:
+    return [d.state for d in pb.SuperSigninCardRespMsg.FromString(_body(got, 513)).details]
+
+
+async def test_super_signin_card_buys_receives_and_signs_a_missed_day(tmp_path: Path) -> None:
+    """0054 (oficial_encantar #118-#119): cartão de 500 Balens; o dia 1 sai na compra, o dia perdido assina por 10."""
+    clock = FakeClock(datetime(2026, 10, 23, 10, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        minigames.signin_login(s)
+        got = await g.idle()
+        assert [p.code for p in got] == [4590, 514]  # sem cartão: nem 513, como o oficial
+        top = pb.SimplePropertyMsg.FromString(got[0].body)
+        assert (top.param1, top.param4, top.param5, top.param7) == (
+            2059,
+            "2026-10-23 00:00:00",
+            "2026-10-30 00:00:00",
+            True,
+        )
+        temp = pb.SuperSigninRewardMsg.FromString(got[1].body)
+        assert (temp.cardPrice, temp.reSigninPrice, temp.temp[0].itemMsg) == (500, 10, "3040001,5|21261044,1")
+
+        c = _snap(g).character
+        c.point, c.gift_token = 600, 1000
+        _signin(g, minigames.SIGNIN_BUY)  # nível 1: o ícone só abre no 6
+        assert _states(await g.idle()) == []
+        c.grades = 10
+        _signin(g, minigames.SIGNIN_BUY)
+        assert _states(await g.idle()) == [1, 0, 0, 0, 0, 0, 0]
+        assert (c.point, c.gift_token) == (100, 1000)  # só Balens livres
+
+        _signin(g, minigames.SIGNIN_RECEIVE, 1)
+        assert _states(await g.idle()) == [2, 0, 0, 0, 0, 0, 0]
+        assert sorted((i.template_id, i.count) for i in _snap(g).items if i.template_id in (3040001, 21261044)) == [
+            (3040001, 5),
+            (21261044, 1),
+        ]
+        _signin(g, minigames.SIGNIN_RECEIVE, 2)  # ainda não abriu: recusa, estado igual
+        assert _states(await g.idle()) == [2, 0, 0, 0, 0, 0, 0]
+
+        clock.advance(2 * 86400)  # dia 3 do cartão; no dia 2 ninguém entrou
+        g.client.send(8750)  # qualquer pedido: quem está no jogo assina o dia
+        assert _states(await g.idle()) == [2, 3, 1, 0, 0, 0, 0]
+        _signin(g, minigames.SIGNIN_RESIGN, 2)
+        assert _states(await g.idle()) == [2, 1, 1, 0, 0, 0, 0]
+        assert c.point == 90
+        _signin(g, minigames.SIGNIN_BUY)  # um cartão por edição
+        assert _states(await g.idle()) == [2, 1, 1, 0, 0, 0, 0] and c.point == 90
+        assert [r for r in await _ledger(g) if r[2] == "super_signin"] == [
+            (-500, 0, "super_signin"),
+            (-10, 0, "super_signin"),
+        ]
 
 
 async def test_recover_list_is_empty_and_refuses_any_recover(tmp_path: Path) -> None:

@@ -141,6 +141,8 @@ class GameSession:
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
         self.serven_sent: bytes | None = None  # último 4638 mandado (handlers.events.refresh_serven)
+        self.signin_sent: bytes | None = None  # último 513 mandado (handlers.minigames.refresh_signin)
+        self.packet = Packet(0)  # o pedido em curso: o 9645 serve o minério e a super assinatura (extend1 35 / 38)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
@@ -161,6 +163,7 @@ class GameSession:
             self.log.debug("opcode sem handler", code=packet.code, nome=self.ctx.registry.name(packet.code))
             return
         message = self.ctx.registry.decode(packet.code, Direction.CLIENT_TO_SERVER, packet.body)
+        self.packet = packet
         c = self.snapshot.character if self.snapshot is not None else None
         point, gift = (c.point, c.gift_token) if c is not None else (0, 0)
         await handler(self, message)
@@ -180,6 +183,9 @@ class GameSession:
             from .handlers import events  # handlers importa este módulo
 
             events.refresh_serven(self)
+            from .handlers import minigames  # handlers importa este módulo
+
+            await minigames.refresh_signin(self)
 
     async def _save_logout(self) -> None:
         """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""

@@ -49,7 +49,7 @@ Itens fora da loja:
 | Quiz | 9501 | `HeartTempInfos` não tem resposta certa (são perguntas de personalidade); agenda do help (seg/qua/sex 19:30) diferente do template (1,3,5,6 às 14:35). **precisa de captura** de uma rodada |
 | Labirinto de gemas | 9508–9517 | **real** ([eventos.md](eventos.md)). **precisa de captura**: subida de nível (tabela de `maxExp`), pesos dos prêmios, o que o oficial faz com troca sem combinação, bolsa do prêmio das caixas (9513), período da renovação diária (dedução), ajuda de amigo (9510/9515/4925), ranking semanal, preço e teto da compra (dedução) |
 | Estrada dourada | 9520–9522 | casas (4933 `cellInfo`) e custo dos dados: **precisa de captura** (abrir e jogar nos 3 modos) |
-| Pesca, caça ao tesouro, minério | 9507, 9502, 9645 | regras de aparecimento, nós e prêmios (**precisa de captura**: abrir e jogar uma vez cada); no 9645 o cabeçalho (`extend1`) que separa minério de super assinatura não chega ao handler |
+| Pesca, caça ao tesouro, minério | 9507, 9502, 9645 | regras de aparecimento, nós e prêmios (**precisa de captura**: abrir e jogar uma vez cada); o 9645 separa minério (`extend1` 35) de super assinatura (38) pelo cabeçalho (`GameSession.packet`) |
 | Loteria, caça-níquel, cadeiras, caixa de ano novo, história, sorteio de grupo | 8748/8750, 9500, 9638, 8994, 8629/8630, 9523 | template e tabela de prêmios: a captura EN só os tem fechados. **precisa de captura** num dia em que o oficial abre |
 | Recuperar EXP | 9503 | **depende de**: os sistemas (campanha, arena, chefe, imposto) gravarem a participação do dia (a fórmula do custo está conferida) |
 | Troca da sorte | 9610 | as edições da captura inglesa não têm as trocas (vencida e futura) |
@@ -201,8 +201,7 @@ O que ainda depende de captura turca sem versão inglesa: [fontes-turcas.md](fon
 
 - Luta com o castelo-robô (#1657): `battleType` 4, `mapTempId` 993, herói 11008 com o nome do robô, 2 pilhas
   10102 (posições 1 e 7). Aqui usa a luta do guarda da mina (`outer_city.guard_battle`, `ponytail:`).
-- 363/364 vão vazios no login; a inglesa (#88/#102) tem as edições. 4590 vai fechado sem datas; a inglesa (#110) tem
-  `param4`/`param5`. O 514 (cartões da super assinatura, #111) não sai.
+- 363/364 vão vazios no login; a inglesa (#88/#102) tem as edições.
 - 4156 sem amigos: `maxPage` 0 na inglesa (#61); aqui 1. 4544 vazio na resposta ao 8224 (#42): aqui não sai.
 - 4248 com `state: 2` (#104); `warfield.py` manda 1.
 - `ENEMY_CAST_MS` 3500: a inglesa tem 3500/4500/4900 por skill (#1662/#1675/#1689).
