@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import random
+import time
 from pathlib import Path
 from typing import Any
 
@@ -137,3 +138,21 @@ def test_atordoamento_tira_a_vez_e_respeita_o_reject_type() -> None:
     assert stun is not None and b._has(worg, bt.NO_ACTION)
     b._turn_buffs(worg)  # a vez perdida conta o turno
     assert not b._has(worg, bt.NO_ACTION) and stun.see == 2
+
+
+@needs_templates
+async def test_sem_ordem_o_heroi_da_o_golpe_basico_na_vez_dele() -> None:
+    """(visto) tutorial_en #152, #271, #274: sem 10008 o herói golpeia com o 30000 na vez dele; a ordem que
+    chega antes vale, e a que não dá mais (fúria) vira golpe básico (#279 -> #281)."""
+    b, _ = _battle()
+    b._t0 = time.monotonic()
+    assert await b._player_skill(b.frame + 2) == 30000
+
+    hero = _unit(b, 3)
+    hero.sp = 100
+    b.order(3, 30711)
+    assert await b._player_skill(b.frame + 2) == 30711
+
+    b.order(3, 30811)
+    hero.sp = 0  # gastou a fúria antes da vez
+    assert await b._player_skill(b.frame + 2) == 30000

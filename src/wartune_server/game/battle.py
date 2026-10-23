@@ -7,8 +7,8 @@ acontece; mandar adiantado faz o cliente saltar o relógio. Detalhes do protocol
 Modelo observado na captura: rodadas em que cada unidade viva age uma vez; ações do mesmo lado
 começam com 12 quadros de diferença, a troca de lado e a rodada seguinte vêm ~9 quadros depois do
 fim da última animação (``frameNum``); a primeira ação sai por volta do quadro 100. O herói do
-jogador espera a ordem (10008) do cliente. No PvE (tutorial) o lado dele não morre; com
-``spec["pvp"]`` ele perde de verdade e o herói inimigo anuncia a skill no 75; com
+jogador usa a ordem (10008) do cliente; sem ordem na vez dele, dá o golpe básico. No PvE (tutorial)
+o lado dele não morre; com ``spec["pvp"]`` ele perde de verdade e o herói inimigo anuncia a skill no 75; com
 ``spec["lethal"]`` (monstros dos Wilds) ele também pode perder, sem as outras regras do PvP.
 Sem herói do jogador (torneio de fadas) a luta é toda automática e, depois de ``notice`` quadros,
 o 4361 avisa que o dano sobe ``damageImprove`` %.
@@ -55,7 +55,7 @@ PASSIVE = "2"  # SkillTempInfo.UseWay: passiva (vira buffer no 157, não se usa)
 MAGIC = "2"  # SkillTempInfo.CountWay: 2 mágico (maga 30000/30711/30811), 1 e 3 físico (visto tutorial_en)
 PLAYER_SIDE = 1
 AUTO = 1  # AttackModeMsg.mode / BattlePrepareMsg.attackModel
-ORDER_TIMEOUT = 112  # PvP: sem ordem em 4,5 s (castTime do herói) o herói age sozinho
+ORDER_TIMEOUT = 112  # PvP: espera a ordem até 4,5 s (castTime do herói) antes de agir sozinho
 # HeroOrderMsg.castTime do herói inimigo: 3500 no 10711 (inglês #1662, castelo-robô; o coliseu turco também);
 # o inglês tem 4500 no 10000 e 4900 no 10811 (#1675, #1689): ponytail: a regra por skill não foi decifrada
 ENEMY_CAST_MS = 3500
@@ -499,18 +499,22 @@ class Battle:
         self._send(S_ORDER, msg)
 
     async def _player_skill(self, due: int) -> int:
+        assert self.player is not None
         self._order_frame = None
-        # manual: no PvE espera a ordem sem prazo (o guia pausa no meio da batalha para ensinar a
-        # 30811; golpear sozinho poderia acabar a luta antes). No PvP, quem não escolhe em
-        # ORDER_TIMEOUT quadros age sozinho (não dá para travar a tentativa do coliseu).
-        limit = self.frame + ORDER_TIMEOUT
-        while self._order is None and not self.auto and not (self.pvp and self.frame >= max(due, limit)):
+        if self.auto:
+            return self._auto_skill()
+        # manual: sem ordem na vez dele, golpe básico (visto: tutorial_en #152, #271, #274, sem 10008, e o
+        # 30000 do #1657 ao #1704, com fúria sobrando). No PvE a vez é o ``due``; o guia que ensina a 30811
+        # pausa a luta (10010), e a pausa congela o relógio. No PvP espera até ORDER_TIMEOUT (#1667, quadro 111).
+        limit = max(due, self.frame + ORDER_TIMEOUT) if self.pvp else due
+        while self._order is None and not self.auto and self.frame < limit:
             await self._tick()
         if self._order is None:
-            return self._auto_skill()
+            return self._auto_skill() if self.auto else self.player.default_skill
         skill, self._order_frame = self._order
         self._order = None
-        return skill if self._affordable(skill) else self._auto_skill()
+        # ordem que não dá mais (fúria): golpe básico (visto #279 recusada, #281 com 30000)
+        return skill if self._affordable(skill) else self.player.default_skill
 
     def _auto_skill(self) -> int:
         assert self.player is not None

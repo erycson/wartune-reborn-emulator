@@ -31,9 +31,11 @@ Na campanha, depois do 154 vêm 3, 4103, 83 (EXP), 150, 100, 140, 131 e 128 (nó
   inimigos, herói do jogador (a iniciativa real não foi decifrada, ver Dano).
 - A primeira ação sai no quadro 100. Do mesmo lado, uma ação começa 12 quadros depois da
   anterior. Troca de lado e rodada nova vêm 9 quadros depois do fim da animação anterior.
-- O herói espera a ordem do 10008 sem prazo e golpeia 25 quadros depois dela (o guia pausa no meio
-  da luta para ensinar a 30811; golpear sozinho poderia acabar a luta antes). Em modo automático
-  usa a primeira skill que o SP permite.
+- O herói usa a ordem do 10008 que chegou até a vez dele e golpeia 25 quadros depois dela. Sem ordem
+  na vez dele, dá o golpe básico (`defaultSkill`, 30000 na maga) **(visto)** tutorial_en #152, #271,
+  #274 sem 10008, e #1657 a #1704 sempre 30000 com fúria sobrando; a ordem recusada também vira golpe
+  básico (#279 → #281). O guia que ensina a 30811 pausa a luta (10010), e a pausa congela o relógio.
+  Em modo automático usa a primeira skill que o SP permite.
 - `frameNum = ActionTempInfo.FrameNum + 5`; `damages` agrupado por alvo, `AttackTimes` entradas
   por alvo; `sp`/`spAdded` pelo `Cost` da skill (só o herói do jogador gasta SP); `attackMillis`
   em `YYYY-MM-DD hh:mm:ss`.
@@ -118,7 +120,8 @@ linhas de `SkillBufferTempInfos`. `BufferMsg` no 153 de quem age e dos alvos.
 - O lado do jogador morre de verdade; o dano é a mesma fórmula, mais `damageImprove` % depois do 4361.
 - Herói NPC do lado 2: antes do golpe vai um 75 com `heroIndexId` dele, skill e alvos (o cliente
   só põe o ícone da skill sobre ele; `castTime` não é usado).
-- Herói do jogador em modo manual: sem ordem em 112 quadros (4,5 s) age sozinho.
+- Herói do jogador em modo manual: espera a ordem até 112 quadros (4,5 s) e então dá o golpe básico
+  (#1667, quadro 111).
 - A spec aceita `stats`, `attack` e `defaultSkill` nos heróis e pets (cópia de jogador, robô, pet), fora do
   protobuf (`ParseDict(ignore_unknown_fields=True)`).
 - Batalha só de pets (battleType 35): `pets` no 157, sem herói do jogador; o cliente manda o 10007
