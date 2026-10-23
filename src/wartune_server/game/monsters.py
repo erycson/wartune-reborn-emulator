@@ -225,5 +225,4 @@ def battle(snap: PlayerSnapshot, world: World, templates: GameTemplates, m: Mons
         "soldiers": soldiers,
         "heroes": heroes,
         "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
-        "lethal": True,  # (internet) dá para perder: vídeo https://www.youtube.com/watch?v=Cn6cQpeImEM
     }

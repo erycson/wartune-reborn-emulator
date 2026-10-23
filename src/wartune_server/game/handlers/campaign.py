@@ -452,6 +452,7 @@ async def special_boss(s: GameSession, _: object) -> None:
 
     async def finished(battle: Battle, won: bool) -> None:
         s.battle, s.hero_sp = None, battle.player_sp
+        s.outer_fight_over = True  # tutorial_en #576-#577: o 4382 sai na volta ao castelo (8747)
         _send(s, S_BATTLE_REPORT, _report(battle, won, 0))
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
@@ -484,9 +485,13 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     snap.character.strategy += strategy  # Daru do chefe: (visto) inglesa #1509, strategyBonus 88
     loot = _Loot()
     dungeon = s.campaign is not None and s.campaign.dungeon
+    # tropas mortas saem e a reserva repõe (visto #1466 -> #1511: a reserva 738 -> 650); a luta roteirizada não perde
+    hit = None if battle.spec.get("undying") else outer_city.lose_troops(snap, s.ctx.templates, battle.troops())
+    if hit is not None:
+        outer_city.refill(*hit)
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
-    if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win:
+    if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win or hit:
         await s.ctx.characters.save(
             snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests
         )

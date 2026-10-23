@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 
-from ..domain.models import Castle, PlayerSnapshot
+from ..domain.models import Castle, Pawn, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from .arena import npc_hero
@@ -115,6 +115,32 @@ def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[
                  "skillId": skills}
             )  # fmt: skip
     return soldiers, pawn.template_id if soldiers and pawn else 0
+
+
+def lose_troops(
+    snap: PlayerSnapshot, templates: GameTemplates, troops: tuple[int, int] | None
+) -> tuple[Pawn, int] | None:
+    """Tropas que morreram na luta saem do exército: ficam ``ceil(vida que sobrou × 100 / Live)`` (visto tutorial_en
+    #1466: 162 Lancers, Live 323, 238 de vida no fim -> 74 vivos, a reserva caiu 88; #1657: as 172 morreram).
+    Devolve a tropa e quantas morreram, ou ``None`` sem perda."""
+    pawn = next((p for p in snap.pawns if p.army_count > 0), None)
+    tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
+    if troops is None or pawn is None or tpl is None or troops[0] >= troops[1]:
+        return None
+    alive = min(pawn.army_count, math.ceil(troops[0] * 100 / int(tpl["Live"])))
+    lost = pawn.army_count - alive
+    if lost <= 0:
+        return None
+    pawn.army_count = alive
+    return pawn, lost
+
+
+def refill(pawn: Pawn, lost: int) -> None:
+    """O exército se completa com a reserva do castelo depois da luta (visto #1511: 738 -> 650 com o exército em
+    162 de novo; #1760 -> #1764: 0 -> 172 e a reserva 640 -> 468). Sem reserva bastante, fica menor."""
+    take = min(lost, pawn.castle_count)
+    pawn.castle_count -= take
+    pawn.army_count += take
 
 
 def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> dict[str, object]:

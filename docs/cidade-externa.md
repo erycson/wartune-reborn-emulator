@@ -237,7 +237,7 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   na Kongregate "I ... died near the end" (http://web.archive.org/web/20230903070232/https://www.kongregate.com/forums/12-kongregate-multiplayer-games/topics/419195-wartune-wilds-monsters);
   e perder não gasta o limite: "attempts are not used if you fail to beat em... only when you actually win
   rewards" (post #7 de http://web.archive.org/web/20201130235433/https://forum.r2games.com/forum/browser-games/wartune/news-events-aa/93675-guide-the-wilds).
-  Então a luta tem ``spec["lethal"]``: o lado do jogador morre (sem as outras regras do PvP). Derrota: o
+  Então o lado do jogador morre, como em toda luta fora do tutorial (docs/batalha.md). Derrota: o
   monstro volta a state 1, sem abate nem contador. Perda de tropas e espera para voltar: nenhuma fonte.
 - **Simulação** (personagem novato com só o nível trocado: herói com 390 de vida no "nível 20" e 990 no "nível
   80", sem equipamento, 150 lanceiros 10101; não é um jogador real): sozinho ele perde para todos de nível 20

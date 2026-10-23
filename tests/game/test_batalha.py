@@ -156,3 +156,37 @@ async def test_sem_ordem_o_heroi_da_o_golpe_basico_na_vez_dele() -> None:
     b.order(3, 30811)
     hero.sp = 0  # gastou a fúria antes da vez
     assert await b._player_skill(b.frame + 2) == 30000
+
+
+@needs_templates
+def test_so_a_luta_roteirizada_segura_o_lado_do_jogador_em_1_de_vida() -> None:
+    """Tutorial (``undying``): nenhuma unidade do jogador a 0 (#144-#540); fora dele morre (#1466, #1657)."""
+    b, _ = _battle()
+    hero = _unit(b, 3)
+    assert b._floor_hp(hero, 9999) == 9999
+    b, _ = _battle(undying=True)
+    hero = _unit(b, 3)
+    assert b._floor_hp(hero, 9999) == hero.hp - 1
+
+
+@needs_templates
+def test_tropas_mortas_saem_e_a_reserva_repoe() -> None:
+    """tutorial_en #1466: 162 Lancers (Live 323) com 238 de vida no fim -> 88 mortos; a reserva 738 -> 650."""
+    from types import SimpleNamespace
+
+    from wartune_server.domain.models import Pawn
+    from wartune_server.game import outer_city as oc
+
+    pawn = Pawn(1, 10101, castle_count=738, army_count=162)
+    snap: Any = SimpleNamespace(pawns=[pawn])  # lose_troops só lê as tropas
+    templates = _templates()
+    assert oc.lose_troops(snap, templates, (523, 523)) is None  # sem dano, sem perda
+    hit = oc.lose_troops(snap, templates, (238, 523))
+    assert hit == (pawn, 88) and pawn.army_count == 74
+    oc.refill(*hit)
+    assert (pawn.army_count, pawn.castle_count) == (162, 650)
+    pawn.castle_count = 50  # reserva curta: o exército fica menor
+    hit = oc.lose_troops(snap, templates, (0, 523))
+    assert hit == (pawn, 162)
+    oc.refill(*hit)
+    assert (pawn.army_count, pawn.castle_count) == (50, 0)

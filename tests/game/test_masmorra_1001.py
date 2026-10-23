@@ -56,10 +56,17 @@ class Sure:
         return low
 
 
+def _undying(self: battle_mod.Battle, target: battle_mod.Unit, value: int) -> int:
+    return min(value, max(0, target.hp - 1)) if target.side == battle_mod.PLAYER_SIDE else value
+
+
 @pytest.fixture(autouse=True)
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Lutas rápidas, sem sorte nos drops e sem derrota: estes testes são do fluxo da masmorra, e o personagem de
+    teste é nível 1 sem tropa (na inglesa #893 ele chega aos lobos no nível 6 com duas pilhas de Lancers)."""
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     monkeypatch.setattr(handlers, "random", Sure)
+    monkeypatch.setattr(battle_mod.Battle, "_floor_hp", _undying)
 
 
 def codes(packets: list[Packet]) -> list[int]:

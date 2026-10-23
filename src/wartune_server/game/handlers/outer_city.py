@@ -338,6 +338,21 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     s.battle.start()
 
 
+async def _casualties(s: GameSession, battle: Battle, report: pb.BattleReportMsg) -> None:
+    """150 com o exército sem as tropas mortas (#1760: 0 depois de perder as 172), 4103, a reposição pela reserva
+    e 150 e 100 de novo (#1763-#1764: 172 e a reserva 640 -> 468)."""
+    snap = s.snapshot
+    assert snap is not None
+    hit = oc.lose_troops(snap, s.ctx.templates, battle.troops())
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    s.send(S_REPORT, report)
+    if hit is not None:
+        oc.refill(*hit)
+        await s.ctx.characters.save(hit[0])
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
+
+
 async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> None:
     """Fim da luta da mina, na ordem do oficial (tutorial_en #741-#752): 150, 4103, 150, 100, 140 ×2; vencendo,
     a mina fica do jogador: 112 da missão 60, 4152, 109, 152 com o rendimento e 140 da mina ocupada."""
@@ -347,10 +362,7 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
     report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
-    s.send(S_REPORT, report)
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
-    s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
+    await _casualties(s, battle, report)
     _army_sync(s, ARMY_IDLE)
     await refresh(s)  # a luta pode ter cruzado o refresh: a ocupação é do ciclo novo
     now = s.ctx.clock.now()
@@ -409,10 +421,7 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     s.ctx.wilds.fighting.pop((m.map_id, m.id, m.born), None)
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
     report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
-    s.send(S_REPORT, report)
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
-    s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
+    await _casualties(s, battle, report)
     _army_sync(s, ARMY_IDLE)
     same = monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: o monstro já sumiu
     gone = won and same
@@ -487,10 +496,7 @@ async def _castle_over(s: GameSession, battle: Battle, robot: RobotCastle, won: 
     snap.character.strategy += daru
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=daru, gpBonus=0, battleScene=oc.ROBOT_SCENE)
     report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
-    s.send(S_REPORT, report)
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
-    s.send(S_ARMY_PAWN, castle_pawns(snap, templates))
+    await _casualties(s, battle, report)
     _army_sync(s, ARMY_IDLE)
     _robot_sync(s, robot, CASTLE_IDLE)
     quests = rules.quest_event(snap, templates, ATTACK_CASTLE, int(won), 1)

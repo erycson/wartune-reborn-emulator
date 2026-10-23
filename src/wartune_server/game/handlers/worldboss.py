@@ -201,7 +201,7 @@ def battle_spec(s: GameSession, pool: boss_fight.Pool) -> dict[str, Any]:
     return {
         "battleType": BATTLE_TYPE, "mapTempId": boss.campaign_id, "attackModel": 2, "battleScene": CAMPAIGN_SCENE,
         "soldiers": soldiers, "heroes": [enemy], "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
-        "killTurn": boss.kill_turn,
+        "killTurn": boss.kill_turn, "undying": True,
     }  # fmt: skip
 
 
@@ -243,7 +243,7 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
     janela; 3, 4103, 150 e 140; o 4174 novo vai a todos no mapa."""
     snap = s.snapshot
     assert snap is not None
-    s.battle, s.hero_sp = None, battle.player_sp
+    s.hero_sp = battle.player_sp
     if s.campaign is not None:
         s.campaign.fighting = 0
     ch = snap.character
@@ -259,6 +259,9 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
         rows.append(pool.fight)
     async with pool.lock:
         await s.ctx.characters.save(*rows)
+    # só agora: durante a gravação o último golpe de outro jogador roda o ``settle``, que tira (4203, 22) quem está
+    # fora de luta; sem a luta ainda marcada, este sairia antes do próprio 4103/140
+    s.battle = None
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))

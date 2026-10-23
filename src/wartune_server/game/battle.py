@@ -7,9 +7,10 @@ acontece; mandar adiantado faz o cliente saltar o relógio. Detalhes do protocol
 Modelo observado na captura: rodadas em que cada unidade viva age uma vez; ações do mesmo lado
 começam com 12 quadros de diferença, a troca de lado e a rodada seguinte vêm ~9 quadros depois do
 fim da última animação (``frameNum``); a primeira ação sai por volta do quadro 100. O herói do
-jogador usa a ordem (10008) do cliente; sem ordem na vez dele, dá o golpe básico. No PvE (tutorial)
-o lado dele não morre; com ``spec["pvp"]`` ele perde de verdade e o herói inimigo anuncia a skill no 75; com
-``spec["lethal"]`` (monstros dos Wilds) ele também pode perder, sem as outras regras do PvP.
+jogador usa a ordem (10008) do cliente; sem ordem na vez dele, dá o golpe básico. Com ``spec["undying"]`` (as
+lutas roteirizadas do tutorial e o chefe do mundo antes do ``killTurn``) o lado dele não morre; nas outras ele morre
+e pode perder (visto: #1466 o herói
+na masmorra 1021, #1657 e #1930 os três). Com ``spec["pvp"]`` o herói inimigo anuncia a skill no 75.
 Sem herói do jogador (torneio de fadas) a luta é toda automática e, depois de ``notice`` quadros,
 o 4361 avisa que o dano sobe ``damageImprove`` %.
 
@@ -257,6 +258,17 @@ class Battle:
     @property
     def player_sp(self) -> int:
         return self.player.sp if self.player is not None else 0
+
+    def troops(self) -> tuple[int, int] | None:
+        """(vida que sobrou, vida do começo) das pilhas da tropa do jogador; ``None`` sem tropa na luta."""
+        ids = {
+            s["livingId"]: int(s.get("initHp", s["hp"]))
+            for s in self.spec["soldiers"]
+            if is_player_troop(self.templates, s)
+        }
+        if not ids:
+            return None
+        return sum(max(0, u.hp) for u in self.units if u.living_id in ids), sum(ids.values())
 
     @property
     def frame(self) -> int:
@@ -624,8 +636,8 @@ class Battle:
     # -- golpe ------------------------------------------------------------------------------
 
     def _floor_hp(self, target: Unit, value: int) -> int:
-        """As batalhas do tutorial são vitórias roteirizadas: o lado do jogador não morre no PvE."""
-        if target.side == PLAYER_SIDE and not (self.pvp or self.spec.get("lethal")):
+        """Com ``undying`` (tutorial roteirizado, chefe do mundo) o lado do jogador não cai abaixo de 1 de vida."""
+        if target.side == PLAYER_SIDE and self.spec.get("undying") and not self.pvp:
             return min(value, max(0, target.hp - 1))
         return value
 

@@ -45,9 +45,19 @@ Na campanha, depois do 154 vêm 3, 4103, 83 (EXP), 150, 100, 140, 131 e 128 (nó
 
 `SkillTempInfo.AcceptObject` 3 acerta todos os inimigos, 4 o próprio; o resto acerta um (o de menor
 `livingId`). Cura (`Parameter1` 0 e `Parameter2` < 0) vai no aliado com menos vida proporcional
-(**dedução**). Confuso (buffer 38) acerta qualquer um vivo, até aliado (**dedução**). No PvE o lado
-do jogador nunca cai abaixo de 1 de vida: as batalhas do tutorial são vitórias roteirizadas, e uma
-derrota no chefe deixaria o guia preso (`spec["lethal"]` desliga). No PvP ele morre de verdade.
+(**dedução**). Confuso (buffer 38) acerta qualquer um vivo, até aliado (**dedução**). Só com
+`spec["undying"]` o lado do jogador nunca cai abaixo de 1 de vida: nas lutas roteirizadas do tutorial (as de
+`content/tutorial.json`) **(visto)** tutorial_en #144-#540, nenhuma unidade dele a 0, e uma derrota no chefe do
+guia o deixaria preso; e no chefe do mundo até o golpe `killTurn` (`handlers/worldboss.battle_spec`). Nessas
+duas as tropas também não morrem. Nas outras ele morre e pode perder **(visto)** #1466 (o herói na masmorra 1021),
+#1657 (os três no castelo-robô, mapa 993) e #1930.
+
+Tropas mortas: no fim da luta ficam `ceil(vida que sobrou nas pilhas × 100 / Live)` tropas; as outras saem e a
+reserva do castelo completa o exército **(visto)** #1466 -> #1511 (162 Lancers, Live 323, 238 de vida: 88 mortos,
+reserva 738 -> 650, exército 162 de novo) e #1657 -> #1764 (as 172, 150 com 0 no #1760, reserva 640 -> 468). Na
+cidade externa vai o 150 sem as mortas, o 4103 e o 150 e o 100 já repostos. A pedreira não perde tropa **(visto)**
+#1930 -> #2065 (morreram os três, reserva 468 igual), nem a luta roteirizada; arena e chefe do mundo também não
+(sem captura de perda: ficam como estavam).
 
 ## Dano
 

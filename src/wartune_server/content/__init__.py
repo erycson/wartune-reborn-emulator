@@ -15,9 +15,13 @@ from typing import Any
 
 @cache
 def tutorial() -> dict[str, Any]:
-    """Nós, batalhas e diálogos da campanha de treino (``tools/extract_tutorial.py``)."""
+    """Nós, batalhas e diálogos da campanha de treino (``tools/extract_tutorial.py``). As lutas são roteirizadas
+    (``undying``): o lado do jogador não morre (visto: tutorial_en #144-#540, nenhuma unidade dele a 0)."""
     text = resources.files(__package__).joinpath("tutorial.json").read_text(encoding="utf-8")
-    return json.loads(text)  # type: ignore[no-any-return]
+    data: dict[str, Any] = json.loads(text)
+    for spec in data["battles"].values():
+        spec["undying"] = True
+    return data
 
 
 @cache
