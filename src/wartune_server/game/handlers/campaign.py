@@ -1152,8 +1152,13 @@ async def _dungeon_end(s: GameSession) -> None:
     # (cliente, ItemTempInfo 2013001-4). (dedução) o grau vai no propJoin (o "prop" do CampaignResultView)
     report.propJoin = buffs.grade(snap, buffs.EXP_BOOST, now)
     report.totalGp = buffs.boost(report.totalGp, snap, buffs.EXP_BOOST, now)
+    from .vip import VIP_EXP, vip_right  # vip importa player, que importa login, que importa este módulo
+
+    # (cliente) CampaignResultView mostra o vipJoin à parte (vip_exp), como o petGp; (dedução) o VIP soma
+    # vipJoin = totalGp x para1% e o jogador ganha os dois
+    report.vipJoin = report.totalGp * vip_right(s, snap, VIP_EXP) // 100
     before = snap.character.grades
-    rules.add_gp(snap, s.ctx.templates, report.totalGp)
+    rules.add_gp(snap, s.ctx.templates, report.totalGp + report.vipJoin)
     rank = events.state(snap, RANK_KEY.format(run.campaign_id), now)
     rank.value, rank.updated_at = max(rank.value, report.totalAppraisal), now
     stage = events.state(snap, STAGE_KEY.format(run.campaign_id), now)
@@ -1164,7 +1169,7 @@ async def _dungeon_end(s: GameSession) -> None:
     await _push_player(s)
     _send(s, S_REPORT, report)
     _send(s, S_RANK, ranks(s))
-    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp)))
+    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp + report.vipJoin)))
     cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
     _send(s, S_CARDS, ParseDict(cards, pb.CampaignCardsMsg()))
     if quests:

@@ -6,6 +6,7 @@ Ordem e textos da captura inglesa (``captures/tutorial_en.txt``); o conteúdo ve
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -16,8 +17,9 @@ from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import BagType, Item
-from wartune_server.game import bag, buffs, drops
+from wartune_server.game import bag, buffs, drops, events
 from wartune_server.game import battle as battle_mod
+from wartune_server.game.builders.login import fmt_time
 from wartune_server.game.campaign import DONE, CampaignMap
 from wartune_server.game.handlers import campaign as handlers
 from wartune_server.protocol import Packet
@@ -237,6 +239,19 @@ async def test_pergaminho_de_exp_dobra_a_exp_do_fim_da_etapa(tmp_path: Path) -> 
         report = pb.CampaignReportMsg.FromString(next(p.body for p in end if p.code == 137))
         assert (report.totalGp, report.propJoin) == (1260, 100)
         assert "Received 1,260 EXP " in [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83]
+
+
+async def test_vip_1_ganha_50_por_cento_da_exp_da_masmorra(tmp_path: Path) -> None:
+    """VipPrerogativeTempInfo type 6 "Bonus EXP" (VIP 1: 50): o 137 leva o extra no vipJoin e o 83 a soma."""
+    async with logged_in(tmp_path, novice=25500) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.snapshot is not None
+        now = s.ctx.clock.now()
+        events.state(s.snapshot, "vip", now).text = fmt_time(now + timedelta(days=31))
+        end = await play_1011(g)
+        report = pb.CampaignReportMsg.FromString(next(p.body for p in end if p.code == 137))
+        assert (report.totalGp, report.vipJoin) == (630, 315)
+        assert "Received 945 EXP " in [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83]
 
 
 async def test_5122_so_vira_carta_depois_do_fim(tmp_path: Path) -> None:
