@@ -111,6 +111,16 @@ Os atributos dos itens equipados e o atributo sorteado (`SkillPropertyTempInfo`,
 "Intellect +2") entram nos atributos antes das fórmulas; os bônus fixos (`Attack`, `MagicAttack`…) só
 no total. O poder de combate bate com os 150 da captura (fórmula em [heroi-exercito.md](heroi-exercito.md#atributos-do-herói)).
 
+## Erro conhecido do cliente: guia do Mystic's Gate no nível 11
+
+Visto no oficial (oficial_encantar #2868-#2892): ao entregar a missão 182 (Cottage nível 8), o EXP leva ao nível 11 e o Flash mostra `TypeError #1009` em `NewbieBaseActionMediator.getGuildTarget` / `createGuildFrame1`. Causa (cliente, m8 e m4):
+
+* o grupo 28500 do `newbie.xml` (guia do teleporte) começa no nível 11, logo que o quadro de nível sobe (`c9` 6);
+* o nó 28535 (`a14`, `29_1511`) lê `castleMap.buildingsDic[-11].curView.effect_area`;
+* o prédio -11 (151101, Mystic's Gate) é do próprio cliente: `CastleWalkLayer.createTransferBuild` só cria a vista com `grades >= 11`, no `THANE_LEVEL_UPDATE`, e o `curView` só existe depois que `images/chuansong.swf` carrega. O guia chega antes: `curView` nulo.
+
+Não depende do servidor (o oficial dá o mesmo erro) e não há pacote que evite. Fechar o aviso ou entrar de novo resolve: o `noviceProcess` salvo continua 28500 e, no login, a vista do prédio já nasce no `initBuild` do castelo.
+
 ## Testes
 
 - `tests/game/test_tutorial.py`: cliente falso nos trechos principais (primeira batalha, missão
