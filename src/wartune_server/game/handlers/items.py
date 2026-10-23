@@ -46,7 +46,9 @@ BINDS_ON_EQUIP = (BagType.HERO, BagType.RUNE, BagType.PET_EQUIP)
 # nomes do inglês: ItemTempInfo -100/-400/-500/-300/-700 e language.txt (Honor, Multi-player Dungeon); Stamina: a
 # captura EN escreve "deducted 20 stamina" na entrada da masmorra
 USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bound Balens"), 5: ("weary", "Stamina")}
-USE_KINDS |= {6: ("repute", "Honor"), 7: ("gp", "EXP"), 10: ("strategy", "Daru")}
+# Honor Certificate (2030601-3, "Provides an honor increase"): a honra do cliente é o geste (thane.honer = geste em
+# PlayerManager e ThaneInfoHelper; a loja confere NeedGeste com ela); repute é outro valor
+USE_KINDS |= {6: ("geste", "Honor"), 7: ("gp", "EXP"), 10: ("strategy", "Daru")}
 USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (2032101): +1 entrada de campanha em grupo
 VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
 # Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,

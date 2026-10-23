@@ -9,6 +9,7 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 WAND = 1013002  # Templar Priest Staff: arma de mago (SonType 101, espaço 0), SellGold 150
 GOLD_BOX = 2030101  # Gold Chest: SonType 203, Property1 1 (ouro), Property2 1000
 EXP_BOOK = 2030701  # Lvl. 1 EXP Book: EXP+500
+HONOR_CERT = 2030601  # Lvl. 1 Honor Certificate: honra (geste) +500
 GEM_BOX = 2060008  # Lvl. 1 Gem Pack
 SMALL_HP = 2090101  # Minor HP Pack: SonType 209, +10000 HP
 
@@ -57,6 +58,13 @@ async def test_using_resources_potions_and_gem_boxes(tmp_path: Path) -> None:
         g.client.send(5006, pb.ItemUseMsg(pos=1, count=1, bagType=1))
         got = await g.until(83)
         assert codes(got)[:4] == [115, 111, 3, 83] and c.total_gp == gp + 500
+
+        honor = Item(g.user_id, HONOR_CERT, pos=10)
+        snap.items.append(honor)
+        await g.server.services.characters.save(honor)
+        g.client.send(5006, pb.ItemUseMsg(pos=10, count=1, bagType=1))
+        got = await g.until(3)
+        assert pb.PlayerMsg.FromString(got[-1].body).geste == c.geste == 500 and c.repute == 0
         assert not pb.ItemMovedListMsg.FromString(got[0].body).moved[0].HasField("item")  # o livro acabou
 
         g.client.send(5006, pb.ItemUseMsg(pos=2, count=2, bagType=1))
