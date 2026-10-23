@@ -207,7 +207,9 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         return
     # Ordem da captura EN (#210-#218, #482-#507, #1569-#1576, #2077-#2085, #2242-#2265): 112 do progresso (só tipos
     # 23, 2 e 10), 115 do que a entrega gasta, 3 (já com o bit da missão), 112 concluída, 3 da RewardStrategy, 109,
-    # 150 (só quando sobe de nível), 3, 115 dos itens ganhos, 111 de cada item, 52, 83 da EXP e 83 de cada item.
+    # 150 (só quando sobe de nível), 3, 115 dos itens ganhos, 4476, 111 de cada item, 52, 83 da EXP e 83 de cada item.
+    # O 83 da EXP varia no oficial: antes do 100 nas subidas de nível (#630, #3187) e logo depois do 3 em
+    # oficial_20261023-153200-1 #204 e #2130; fica depois do 52, como na maioria do tutorial (#700, #834, #2159).
     if rules.finish_progress(snap, templates, q):
         s.send(S_QUESTS, quest_update([q], rules.quest_bitmap(snap)))
     taken: list[Item] = []
@@ -251,6 +253,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     _player(s)
     if new:
         s.send(S_ITEMS, bag.moved(new, s.player_id))
+        events.items_gained(s)  # (visto) tutorial_en #490, oficial_20261023-153200-1 #205-#206
     texts = [f"Received: {bag.name(templates, template_id)} x{count}" for template_id, count in goods]
     for text in texts:
         alert(s, text)

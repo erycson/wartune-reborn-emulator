@@ -153,8 +153,9 @@ async def test_entrega_cabe_quando_a_pilha_libera_espaco(tmp_path: Path) -> None
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=9))
         got = await g.until(52)
         assert _quest(got, 9).isComplete
-        # captura EN #489-#505 (45): o 115 dos itens ganhos depois do 3, um 111 por item e o 52; depois os 83 (#506-#507)
-        assert _codes(got)[-4:] == [115, 111, 111, 52]
+        # captura EN #489-#505 (45): o 115 dos itens ganhos depois do 3, o 4476, um 111 por item e o 52; depois os 83
+        # (#506-#507)
+        assert _codes(got)[-5:] == [115, 4476, 111, 111, 52]
         names = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
         assert names == [
             f"Received: {bag.name(g.server.services.templates, t)} x{n}" for t, n in ((2060013, 1), (208005, 2))
