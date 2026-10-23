@@ -26,6 +26,7 @@ from . import gemmaze, gold_tree
 from .player import alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
+S_REBATE_USER = 4463
 S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
 S_BUGLE_REQ, S_BUGLE_REWARD, S_NEW_YEAR, S_SLOT = 4553, 4554, 4811, 4901
 S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
@@ -271,6 +272,7 @@ def login_push(s: GameSession) -> None:
     #88 e 364 #102, sem pedido; vazios: o servidor não tem as edições) e minério, super assinatura e cadeiras fechados
     (190, 4590, 414: #109, #110, #112)."""
     gemmaze.login_push(s)
+    send_rebate(s)
     snap = s.snapshot
     assert snap is not None
     cfg = _fund_cfg(s)
@@ -493,10 +495,76 @@ async def questionnaire(s: GameSession, _: object) -> None:
     s.send(S_QUESTIONNAIRE, pb.QuestionnarieInfoMsg())
 
 
+REBATE_INFO, REBATE_GET = 1, 2  # RebateOpMsg.op: FeedBackManager (depois do 4461) e FeedBackItem (resgatar)
+
+
+def _rebate_cfg(s: GameSession) -> Mapping[str, Any]:
+    """``game_settings.rebate`` (0055): o Recharge Gift Pack do oficial_encantar #61."""
+    return s.ctx.world.settings.get("rebate") or {}
+
+
+def _rebate_open(cfg: Mapping[str, Any], now: datetime) -> bool:
+    return bool(cfg) and _at(cfg, "beginDate") <= now <= _at(cfg, "endDate")
+
+
+def send_rebate(s: GameSession) -> None:
+    """4461 no login (oficial_encantar #61): a edição na janela; fora dela o ``id`` vazio esconde o botão
+    (``FeedBackManager.__rebateActiveHandler``; tutorial_en #59). Com ``id`` o cliente pede o progresso (8574 op 1)."""
+    cfg = _rebate_cfg(s)
+    if not _rebate_open(cfg, s.ctx.clock.now()):
+        _send(s, S_REBATE, pb.RebateInfoMsg())
+        return
+    msg = pb.RebateInfoMsg(id=cfg["id"], beginDate=cfg["beginDate"], endDate=cfg["endDate"], type=int(cfg["type"]))
+    for pk in cfg["packages"]:
+        p = msg.packages.add(packageId=pk["packageId"], order=int(pk["order"]), point=int(pk["point"]))
+        p.price = int(pk["price"])
+        for n in range(1, 9):  # o oficial manda os 8 pares, zerados os que sobram
+            tid, count = pk["items"][n - 1] if n <= len(pk["items"]) else (0, 0)
+            setattr(p, f"itemid{n}", int(tid))
+            setattr(p, f"count{n}", int(count))
+    _send(s, S_REBATE, msg)
+
+
+async def _rebate_user(s: GameSession, cfg: Mapping[str, Any], taken: int) -> pb.UserRebateMsg:
+    """4463 (#76): ``point`` = Balens recarregados na janela; ``isget`` por pacote."""
+    since, until = _at(cfg, "beginDate"), _at(cfg, "endDate")
+    point = await s.ctx.characters.read(lambda uow: uow.characters.recharged(s.player_id, since, until))
+    msg = pb.UserRebateMsg(id=cfg["id"], userid=s.player_id, point=point, type=int(cfg["type"]))
+    for i, pk in enumerate(cfg["packages"]):
+        msg.packagestates.add(id=pk["packageId"], isget=bool(taken & 1 << i))
+    return msg
+
+
 @router.on(8574)
-async def rebate(s: GameSession, _: object) -> None:
-    """Reembolso (4461 com ``id`` vazio = esconde), como o tutorial_en #59 no login."""
-    _send(s, S_REBATE, pb.RebateInfoMsg())
+async def rebate(s: GameSession, msg: pb.RebateOpMsg) -> None:
+    """Recharge Gift Pack: ``op`` 1 pede o progresso; 2 resgata o ``packageid`` quando a recarga da janela chega ao
+    ``point`` dele (``FeedBackManager.__rebateDataHandler``: brilha com ``userPoint >= point`` e não resgatado).
+    Fora da edição: 4461 vazio, como o tutorial_en #59."""
+    snap = s.snapshot
+    assert snap is not None
+    cfg, now = _rebate_cfg(s), s.ctx.clock.now()
+    if not _rebate_open(cfg, now) or msg.id != cfg["id"]:
+        _send(s, S_REBATE, pb.RebateInfoMsg())
+        return
+    st = ev.state(snap, f"rebate:{cfg['id']}", now)  # bit i = pacote i do ``packages`` resgatado
+    info = await _rebate_user(s, cfg, st.value)
+    if msg.op == REBATE_GET:
+        i = next((i for i, pk in enumerate(cfg["packages"]) if pk["packageId"] == msg.packageid), None)
+        drops = [(int(t), int(n)) for t, n in cfg["packages"][i]["items"]] if i is not None else []
+        if i is None or st.value & 1 << i or info.point < int(cfg["packages"][i]["point"]):
+            s.log.info("rebate: resgate recusado", pacote=msg.packageid, recarga=info.point)
+        elif not rewards.can_grant(snap, s.ctx.templates, drops, now):
+            s.log.info("rebate: mochila cheia", pacote=msg.packageid)
+        else:
+            st.value, st.updated_at = st.value | 1 << i, now
+            new, text = rewards.grant(snap, s.ctx.templates, drops)
+            await s.ctx.characters.save(*rewards.owners(snap), st, *new)
+            alert(s, text)
+            granted(s, drops, new, text)
+            info.packagestates[i].isget = True
+    elif msg.op != REBATE_INFO:
+        s.log.info("rebate: op desconhecida", op=msg.op)
+    _send(s, S_REBATE_USER, info)
 
 
 @router.on(8629, 8630, 8634, 8638, 8748, 9521, 9522)

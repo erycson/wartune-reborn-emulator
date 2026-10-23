@@ -320,7 +320,8 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 8703 | fundo normal, real (acima) | (visto) tutorial_en #86 + (cliente) FundManager, FundRewardItem |
 | 9503 | 4912 vazio sempre; resgate recusado. Fórmula de custo para quando houver contagem: `itemCost = num*ItemCount`, `goldCost = num*Gold`, `goldReward = itemReward*GoldPercent/ItemPercent` (conferida nos sonTypes 1, 2 e 4 da login.json #54, só turco) | (visto) tutorial_en #51 (vazio) + (cliente) ExpBackManager |
 | 8534 | 4428 vazio (igual ao login, tutorial_en #57) | (visto) |
-| 8574 | 4461 com `id` vazio (esconde) | (visto) tutorial_en #59 |
+| login | 4461 do Recharge Gift Pack (`game_settings.rebate`, 0055) na janela; fora dela `id` vazio esconde o botão | (visto) oficial_encantar #61; tutorial_en #59 (vazio) |
+| 8574 `RebateOpMsg` | `op` 1: 4463 `{id, userid, point, type, packagestates}` com `point` = Balens recarregados na janela (`cash_ledger` `reason='recharge'`, gravado pelo portal); `op` 2 `packageid`: resgata quando `point` >= o do pacote e ainda não resgatado (itens e 4463 de novo). Fora da janela: 4461 vazio | (visto) oficial_encantar #62 (op 1), #76 (4463); (cliente) `FeedBackManager`, `FeedBackItem`; (dedução) o resgate, sem amostra |
 | 8629, 8630, 8634, 8638, 8748 | sem resposta (nunca 4546 nem 4550) | (cliente) TimeStoryFrame, TopToolsBar, SinglePass, LotteryManager |
 | 8639 / 8640 | 4554 / 4553 vazios (corneta sem item) | (cliente) SinglePassManager |
 | 8722 / 8723 | 4543 vazio: botão só com `isIn360Agent` (plataforma 360) | (cliente) Bag360Manager |

@@ -178,6 +178,44 @@ async def test_super_signin_card_buys_receives_and_signs_a_missed_day(tmp_path: 
         ]
 
 
+REBATE_ID = "05E8C640-2BDA-E798-EFE5-CD8663F29F62"  # 0055 (oficial_encantar #61)
+PACK_500, PACK_1000 = "A7C07FB5-4874-7375-1344-CD8663F2FE8C", "BFA9BF57-58FF-E0F1-2A9E-CD8663F2FCB7"
+
+
+async def test_recharge_gift_pack_counts_the_recharges_of_the_window(tmp_path: Path) -> None:
+    """Recharge Gift Pack: o pacote sai quando a recarga da janela (cash_ledger ``recharge``) chega ao ``point``."""
+    clock = FakeClock(datetime(2026, 10, 23, 10, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        minigames.send_rebate(s)
+        info = pb.RebateInfoMsg.FromString(_body(await g.idle(), 4461))
+        assert (info.id, len(info.packages)) == (REBATE_ID, 7)
+        first = next(p for p in info.packages if p.order == 1)
+        assert (first.point, first.itemid1, first.count1, first.itemid8) == (500, 208017, 4, 0)
+
+        c = _snap(g).character
+        old = CashLedger(c.id or 0, 900, 0, 900, 0, "recharge", "portal", datetime(2026, 10, 22, tzinfo=UTC))
+        new = CashLedger(c.id or 0, 600, 0, 1500, 0, "recharge", "portal", datetime(2026, 10, 23, 9, tzinfo=UTC))
+        async with g.server.services.database.sessions() as db:  # como o portal: direto no banco
+            db.add_all([old, new])  # só a de dentro da janela conta
+            await db.commit()
+        g.client.send(8574, pb.RebateOpMsg(id=REBATE_ID, op=1))
+        user = pb.UserRebateMsg.FromString(_body(await g.idle(), 4463))
+        assert (user.point, user.userid, any(x.isget for x in user.packagestates)) == (600, g.user_id, False)
+
+        for pack in (PACK_500, PACK_500, PACK_1000):  # o segundo 500 já foi; 1000 passa da recarga
+            g.client.send(8574, pb.RebateOpMsg(id=REBATE_ID, packageid=pack, op=2))
+            user = pb.UserRebateMsg.FromString(_body(await g.idle(), 4463))
+        assert [x.id for x in user.packagestates if x.isget] == [PACK_500]
+        got = sorted((i.template_id, i.count) for i in _snap(g).items if i.template_id in (208017, 2060487, 2126025))
+        assert got == [(208017, 4), (2060487, 5), (2126025, 2)]
+
+        clock.advance(6 * 86400)  # dia 29: acabou, o botão some
+        g.client.send(8574, pb.RebateOpMsg(id=REBATE_ID, op=1))
+        assert pb.RebateInfoMsg.FromString(_body(await g.idle(), 4461)).id == ""
+
+
 async def test_recover_list_is_empty_and_refuses_any_recover(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         for kind in (0, 1):  # 0 pede a lista; 1 tenta resgatar: a lista continua vazia

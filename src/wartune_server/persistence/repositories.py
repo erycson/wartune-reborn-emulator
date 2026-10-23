@@ -15,6 +15,7 @@ from ..domain.models import (
     ArenaRank,
     Building,
     BuildOrder,
+    CashLedger,
     Castle,
     ChallengeLog,
     Character,
@@ -133,6 +134,14 @@ class SqlCharacterRepository(_Repo):
         return list(
             await self._s.scalars(select(Character).where(*self._ranked(server_id)).order_by(*order).limit(limit))
         )
+
+    async def recharged(self, character_id: int, since: datetime, until: datetime) -> int:
+        """Balens recarregados (``cash_ledger`` ``reason`` ``recharge``, gravado pelo portal) entre as datas."""
+        c: Any = CashLedger
+        query = select(func.coalesce(func.sum(c.delta_point), 0)).where(
+            c.character_id == character_id, c.reason == "recharge", c.created_at >= since, c.created_at <= until
+        )
+        return int(await self._s.scalar(query) or 0)
 
     async def nickname_taken(self, server_id: int, nickname: str) -> bool:
         stmt = select(
