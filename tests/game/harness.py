@@ -64,14 +64,16 @@ class Game:
 
 
 @asynccontextmanager
-async def logged_in(tmp_path: Path, novice: int, job_icon: int = 6, clock: Clock | None = None) -> AsyncIterator[Game]:
+async def logged_in(
+    tmp_path: Path, novice: int, job_icon: int = 6, clock: Clock | None = None, timezone: str = "UTC"
+) -> AsyncIterator[Game]:
     """Servidor no ar e a conta "maga" logada. ``game.join("outro")`` loga mais um jogador."""
     settings = Settings(
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'game.db'}",
         rsa_key_file=tmp_path / "rsa.pem",
         log_dir=tmp_path / "logs",
         skip_tutorial=False,
-        game_timezone="UTC",
+        game_timezone=timezone,
         events_file=EVENTS,
         _env_file=None,  # type: ignore[call-arg]
     )

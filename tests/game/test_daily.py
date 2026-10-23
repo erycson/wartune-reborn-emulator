@@ -28,11 +28,11 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
         g.client.send(20008)
         assert codes(await g.idle()) == [4234]  # mesmo dia: só o relógio
 
-        clock.advance(16 * HOUR + 59 * 60)  # 04:59 (fuso dos testes: UTC): ainda o dia 1
+        clock.advance(15 * HOUR + 59 * 60)  # 03:59 (fuso dos testes: UTC): ainda o dia 1; fora da invasão das 04:00
         g.client.send(20008)
         assert codes(await g.idle()) == [4234]
 
-        clock.advance(60)  # 05:00
+        clock.advance(61 * 60)  # 05:00 (a invasão das 04:00 já fechou)
         g.client.send(20008)
         got = await g.until(3)
         reset = body(got, 4202, pb.DataResetMsg)

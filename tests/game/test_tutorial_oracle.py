@@ -42,7 +42,9 @@ NOT_IMPLEMENTED = {
 # - 140 ×2 da chegada do exército (#776-#777): o timer é de 2,4 s reais e o próximo pacote chega antes;
 # - 2 (U_C_PLAYER_GRADE, corpo 32023332, sem mensagem conhecida) depois do Lvl. 5 Starter Pack (#690): não existe aqui.
 # O 8586 do #678 (login de 7 dias, dia 1) vai com o GUID do nosso pacote do mesmo tipo e ordem (_official_packages).
-KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 2: 1})
+# 83: #664, chat do mundo de outro jogador (canal 10, "~" de Moondust); antes casava por acaso com o anúncio
+# deduzido das 01:30 UTC, desativado na 0057
+KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 2: 1, 83: 1})
 KNOWN_EXTRA: Counter[int] = Counter()
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
@@ -120,7 +122,8 @@ async def test_tutorial_matches_capture(tmp_path: Path) -> None:
 
     # o relógio anda como na captura: obras (10 s) e produção terminam no mesmo ponto que no oficial
     clock = FakeClock(datetime.fromtimestamp(packets[0]["time"], UTC))
-    async with logged_in(tmp_path, novice=11000, clock=clock) as g:
+    # fuso do oficial inglês (Pacífico): os avisos do Sylph Atoll das 18:55 (#3028-#3029) e a invasão fechada no login
+    async with logged_in(tmp_path, novice=11000, clock=clock, timezone="America/Los_Angeles") as g:
         # a 10 nasce com o personagem (#81, antes do FIRST: o oficial nunca manda 5012 dela)
         got: list[int] = []
         battle_id, hero_id, hero_living, fighting = "", 0, 0, False
