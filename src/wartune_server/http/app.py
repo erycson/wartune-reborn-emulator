@@ -243,7 +243,8 @@ class GameHttpApi:
         """O oficial serve ``images/`` no mesmo host do REQUEST_PATH; aqui o arquivo é do espelho do s134
         (``site_url``). O que faltar lá vira 404 do Apache, que o ``download.php`` (``jobs_404``) baixa."""
         tail = re.sub("/+", "/", request.match_info["tail"]).lstrip("/")  # o 4238 manda shop//726.png
-        raise web.HTTPFound(self._d.settings.site_url.rstrip("/") + "/images/" + tail)
+        # retornado (não ``raise``) para o ``allow_any_origin`` pôr o CORS que o Ruffle exige no 302
+        return web.Response(status=302, headers={"Location": self._d.settings.site_url.rstrip("/") + "/images/" + tail})
 
     async def empty_list(self, _: web.Request) -> web.Response:
         # o cliente faz ByteArray.uncompress() no corpo: o XML vai em zlib

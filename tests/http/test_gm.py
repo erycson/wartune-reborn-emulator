@@ -45,5 +45,6 @@ async def test_images_redirect_to_the_game_site(tmp_path: Path) -> None:
             r = await http.get("/images/shop//726.png", allow_redirects=False)
             assert r.status == 302
             assert r.headers["Location"] == g.server.settings.site_url + "images/shop/726.png"
+            assert r.headers["Access-Control-Allow-Origin"] == "*"  # Ruffle: fetch de outra origem
         finally:
             await http.close()

@@ -16,7 +16,7 @@ funcionava no projector depois que parou de mandar gzip para quem não pedia.
 | `GET/POST /visualizeregister` | MainFigureView | `userid`, `username`, `nickname`, `sex`, `camp`, `icon`, `site`, `key` | `<Result value="true" type="0"/>` ou `value="false"` com `message` |
 | `POST /updateplayernovice` | Loading / NewbieSPHelper | `op` (0 lê, 1 grava), `userid`, `noviceprocess`, `key` | inteiro: o `noviceProcess` atual |
 | `* /flashversionservlet` | StartupResourcesLoader | — | `true` |
-| `GET /images/...` | ShopManager (ícone da oferta, `url` do 4238) | — | 302 para `site_url` + `images/...` (barras repetidas juntadas). O oficial serve `images/shop/*.png` no host do jogo (s134); aqui é o espelho no Apache, e o que faltar vira 404 que o `download.php` baixa |
+| `GET /images/...` | ShopManager (ícone da oferta, `url` do 4238) | — | 302 para `site_url` + `images/...` (barras repetidas juntadas). O oficial serve `images/shop/*.png` no host do jogo (s134); aqui é o espelho no Apache, e o que faltar vira 404 que o `download.php` baixa. O 302 leva o CORS do middleware e o `images/.htaccess` do espelho manda `Access-Control-Allow-Origin` (o Ruffle segue o redirecionamento com `Origin: null`) |
 
 Regras que o cliente impõe:
 
