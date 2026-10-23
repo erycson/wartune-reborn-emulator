@@ -16,7 +16,6 @@ from google.protobuf.message import Message
 from ...domain.models import Building, Castle, Character, Consortia, Hero, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
-from .. import timebox
 
 NEVER = "2000-01-01 00:00:00"
 MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2: tutorial_en)
@@ -227,8 +226,6 @@ def player_msg(
         isAuto=c.is_auto,
         lastOutConsortia=fmt_time(c.last_out_consortia) if c.last_out_consortia else NEVER,
     )
-    msg.timeProcess, msg.timeRun = timebox.box_state(c, now)
-    msg.timeGet = msg.timeProcess > 0  # recebeu o último período alcançado (BoxManager)
     msg.order.playerId = c.id or 0
     if snap.systems is not None:  # estrelas: sorteios grátis, espaços comprados e moeda da loja
         msg.startFree, msg.starCount = snap.systems.star_free, snap.systems.star_bag

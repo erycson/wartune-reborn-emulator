@@ -27,8 +27,8 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
   linha. Terras abertas = 3 + grau da fazenda // 5, até 9 (cliente inglês `FarmLandLayer`: a terra p de 3 a 8
   abre no nível (p − 2) × 5, "Additional plot available at Lvl. {0}."; 9 a 11 nunca abrem). `castles.land_grade`
   (0041): nível das terras, 1 a 10.
-- **Caixa por tempo / offline** (colunas `box_*`, `offline_*` em `characters`): o tempo online do
-  dia é acumulado a cada 5019 e na saída (`GameSession.on_disconnect`); a saída grava a hora para
+- **Caixa por tempo / offline** (colunas `box_*`, `offline_*` em `characters`): o tempo desde o último
+  resgate é acumulado a cada 5019 e na saída (`GameSession.on_disconnect`); a saída grava a hora para
   o tempo offline do próximo login.
 
 ## Opcodes
@@ -66,7 +66,7 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 8219 | árvores dos ids pedidos (o cliente pede a própria ao chegar no nível 11) | 4146 FriendTreeRsp | cliente |
 | 8231 | estado das fazendas: o próprio jogador primeiro (`isChargeEnergy` = pode regar a própria); para amigo, `isReap` (alguma terra roubável por mim), `isChargeEnergy` (não reguei hoje e cabe no dia), `isRevive`, `isWorm`, `isGrass` pelas terras dele; quem não é amigo vem tudo falso | 4190 LoadFarmRsp.friendFarmState | visto (só turco: ciftlik #3) |
 | 8565 | invocar a árvore da terra secreta da guilda: sem guilda, nada | — | cliente |
-| 5019 | `operate=false`: sincroniza; `operate=true, time=P`: paga o TimeDrop do período P se for o próximo e já houver `P×60` s online desde o último resgate (a contagem começa no 1º 5019 da sessão) | 4 BoxBoxMsg (`time` = último período recebido, `operate` = recebido, `timerun` = segundos desde o último resgate, 0 no resgate); ao pagar 109 (ou 3), 115, 111, 4250, 4, 83 ×2 | visto (inglesa #1594, #2109-#2115) + cliente |
+| 5019 | `operate=false`: sincroniza; `operate=true, time=P`: paga o TimeDrop do período P se for o próximo e já houver `P×60` s online desde o último resgate (a contagem começa no 1º 5019; depois dele conta também o tempo fora, regra em `game_settings.time_box`, 0056) | 4 BoxBoxMsg (`time` = último período recebido, `operate` = recebido, `timerun` = segundos desde o último resgate, 0 no resgate); ao pagar 109 (ou 3), 115, 4476, 111, 4250, 4, 83 ×2 (os 9 4484 de títulos do oficial não vão) | visto (inglesa #1594, #2109-#2115; oficial_encantar #131, #2683-#2699) + cliente |
 | 8287 | EXP offline (`rateCount` 0 = ×1) | 3 PlayerMsg | cliente |
 | 8255 | reforço numa batalha em curso num nó do mapa: sem batalha em grupo, nada | — | cliente |
 
@@ -98,7 +98,7 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
 - **Árvore**: nenhuma captura tem `fruitCount` > 0 (147, 4190, 4146) nem 5178/106. **Precisa de captura**: regar a própria árvore até `fruitCount` > 0 (147), colher (5178 com `index`) e gravar a resposta (106, 4189, 3, 109), para conferir o Daru e o Kyanite de `tree_fruit`, os textos e se o oficial manda `isFirstFruit`. Os itens 2160037–2160046 e 2160055 são sementes da fazenda (SonType 216), não o fruto.
 - **Offline**: ×1,5 e ×2 custam diamante no oficial, preço desconhecido (recusados); EXP =
   nível × minutos fora, até 8 h *(dedução)*.
-- **Caixa por tempo**: o dia vira às 5h no fuso do jogo, como os outros contadores diários.
+- **Caixa por tempo**: tempo fora e sem reset diário vêm de uma amostra única (#131); `time_box.count_offline`/`daily_reset` trocam a regra. Depois do 180 o cliente para de pedir (`BoxManager.needCountTime`).
 - **Trégua** (8562) e **terras selvagens** (5179): só confirmam; dependem do mapa-múndi.
 - **Árvore da guilda** (8565, resposta 4432) e **reforço** (8255): sistemas de guilda e batalha em grupo.
 - **Bênção do seminário**: o `blessingBuff` (o bônus que o cliente mostra) ainda não entra nos atributos do

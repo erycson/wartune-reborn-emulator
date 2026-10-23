@@ -88,6 +88,9 @@ def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     copies = snap.character.multi_copies(rules.copies_base(s.ctx.templates), now)  # o oficial não manda 4240 no login
     msg = b.player_msg(snap, fighting, now, rules.quest_bitmap(snap), copies, mine[0] if mine else None)
     events.fill_player(msg, snap, s.ctx.clock.now())
+    r = timebox.rule(s.ctx.world.settings)
+    msg.timeProcess, msg.timeRun = timebox.box_state(snap.character, now, online=s.box_counting, r=r)
+    msg.timeGet = msg.timeProcess > 0  # recebeu o último período alcançado (BoxManager)
     return msg
 
 
@@ -129,7 +132,9 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         s.connection.close()
         return
     now = s.ctx.clock.now()
-    timebox.on_login(snap.character, now)  # antes do PlayerMsg: timeRun e tempo offline
+    timebox.on_login(
+        snap.character, now, timebox.rule(s.ctx.world.settings)
+    )  # antes do PlayerMsg: timeRun e tempo offline
     changed = castle.ensure(snap, s.ctx.templates, now)
     # o dia vira antes do PlayerMsg (stamina, energia e attackLeftCount já do dia) e grava junto: senão o 8224
     # recarrega o arena do banco com o dia de ontem

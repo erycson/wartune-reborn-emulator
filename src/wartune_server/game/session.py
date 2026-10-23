@@ -190,7 +190,8 @@ class GameSession:
     async def _save_logout(self) -> None:
         """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""
         assert self.snapshot is not None
-        timebox.on_logout(self.snapshot.character, self.ctx.clock.now(), counting=self.box_counting)
+        r = timebox.rule(self.ctx.world.settings)
+        timebox.on_logout(self.snapshot.character, self.ctx.clock.now(), counting=self.box_counting, r=r)
         try:
             await self.ctx.characters.save(self.snapshot.character)
         except Exception:  # banco fora do ar no desligamento: perde só o tempo desta sessão

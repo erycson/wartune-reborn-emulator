@@ -24,7 +24,8 @@ BOX_OK = "Reward retrieval successful!"  # tutorial_en #2114, #3360
 
 def box_msg(s: GameSession) -> pb.BoxBoxMsg:
     assert s.snapshot is not None
-    period, run = timebox.box_state(s.snapshot.character, s.ctx.clock.now(), online=s.box_counting)
+    r = timebox.rule(s.ctx.world.settings)
+    period, run = timebox.box_state(s.snapshot.character, s.ctx.clock.now(), online=s.box_counting, r=r)
     return pb.BoxBoxMsg(time=period, operate=period > 0, timerun=run)
 
 
@@ -43,7 +44,7 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
-    timebox.settle_box(c, now, online=s.box_counting)
+    timebox.settle_box(c, now, online=s.box_counting, r=timebox.rule(s.ctx.world.settings))
     if not s.box_counting:
         s.box_counting = True
     if not msg.operate:
@@ -81,14 +82,19 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
             changed.append(record_cash(c, *delta, reason="time_box", ref=f"period:{period}", now=now))
     await s.ctx.characters.save(*changed)
 
-    # ordem do oficial (tutorial_en #2097-#2115, #3343-#3361): 109 (ouro) ou 3 (outras moedas), 115, 111, 4250,
-    # 4, 83 com o texto e 83 de sucesso; o texto lista do fim para o começo, como o pacote da mochila
+    # ordem do oficial (tutorial_en #2097-#2115, #3343-#3361; oficial_encantar #2683-#2699): 109 (ouro) ou 3 (outras
+    # moedas), 115, 4476 (atividades, depois de item), 111, 4250, 4, 83 com o texto e 83 de sucesso; o texto lista do
+    # fim para o começo, como o pacote da mochila. Os nove 4484 do oficial (títulos) não vão: não há títulos
     if any(f in ("gold", "crystals") for f, _ in currencies):
         cs.castle_yield(s)
     if any(f not in ("gold", "crystals") for f, _ in currencies):
         s.send(S_PLAYER, b.complete(player_info(s, snap)))
     for item in new:
         s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
+    if new:
+        from . import events  # events importa login
+
+        events.items_gained(s)
     text = rewards.text(templates, [(int(d["TemplateId"]), int(d["Data"])) for d in reversed(drops)])
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     _box_star(s)

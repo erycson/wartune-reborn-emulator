@@ -400,13 +400,13 @@ async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:
         clock.advance(300)
         g.client.send(5019, pb.BoxBoxMsg(time=5, operate=True))
         got = await g.idle()
-        assert [p.code for p in got] == [109, 115, 111, 4250, 4, 83, 83]  # ordem de #2097-#2114
+        assert [p.code for p in got] == [109, 115, 4476, 111, 4250, 4, 83, 83]  # ordem de #2097-#2114
         assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount >= gold
         text = "Received: 50,000 Gold, Moderate HP Pack x1"  # #2110: do fim da TimeDrop para o começo
-        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == text
-        assert got[3].body == bytes.fromhex("080518012000")  # #2111
-        assert pb.BoxBoxMsg.FromString(got[4].body) == pb.BoxBoxMsg(time=5, operate=True, timerun=0)
-        chats = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got[5:]]
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == text
+        assert got[4].body == bytes.fromhex("080518012000")  # #2111
+        assert pb.BoxBoxMsg.FromString(got[5].body) == pb.BoxBoxMsg(time=5, operate=True, timerun=0)
+        chats = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got[6:]]
         assert chats == [text, "Reward retrieval successful!"]
 
         clock.advance(2)
@@ -422,7 +422,7 @@ async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:
         clock.advance(1)
         g.client.send(5019, pb.BoxBoxMsg(time=10, operate=True))
         got = await g.idle()
-        assert [p.code for p in got] == [3, 115, 111, 4250, 4, 83, 83]  # Daru: 3 em vez de 109 (#3343)
+        assert [p.code for p in got] == [3, 115, 4476, 111, 4250, 4, 83, 83]  # Daru: 3 em vez de 109 (#3343)
 
 
 async def test_offline_reward_gives_exp_once(tmp_path: Path) -> None:
@@ -444,8 +444,22 @@ def test_offline_time_and_online_time_are_counted_apart() -> None:
     timebox.on_login(c, start)
     timebox.on_logout(c, start + timedelta(minutes=30))
     assert (c.box_seconds, c.offline_at) == (1800, start + timedelta(minutes=30))
-    timebox.on_login(c, start + timedelta(hours=20))  # dia seguinte: a caixa recomeça
-    assert (c.box_seconds, c.box_period, c.offline_seconds) == (0, 0, timebox.OFFLINE_MAX)
+    timebox.on_login(c, start + timedelta(hours=20))  # padrão (#131): começada, conta o tempo fora e não zera no dia
+    assert (c.box_seconds, c.box_period, c.offline_seconds) == (1800 + 19.5 * 3600, 0, timebox.OFFLINE_MAX)
+
+    old = timebox.BoxRule(count_offline=False, daily_reset=True)
+    c = Character(1, 1, start)
+    timebox.on_login(c, start, old)
+    timebox.on_logout(c, start + timedelta(minutes=30), r=old)
+    timebox.on_login(c, start + timedelta(hours=1), old)  # tempo fora não conta
+    assert c.box_seconds == 1800
+    timebox.on_login(c, start + timedelta(hours=20), old)  # dia seguinte: a caixa recomeça
+    assert (c.box_seconds, c.box_period) == (0, 0)
+
+    fresh = Character(1, 1, start)  # conta nova: nada antes do primeiro 5019, mesmo com count_offline
+    timebox.on_login(fresh, start)
+    timebox.on_login(fresh, start + timedelta(hours=2))
+    assert fresh.box_seconds == 0
 
 
 async def test_novice_set_over_http_survives_the_logout_save(tmp_path: Path) -> None:
