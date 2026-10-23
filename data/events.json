@@ -1,6 +1,6 @@
 {
-  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. O painel mostra toda atividade que ainda não acabou (endDate), também as que vão começar. Depois das duas do operador (Login Bonus e presente online, sem fim) vêm as 41 do oficial inglês (tutorial_en #60-#67, datas de 2026-10-01 a 2026-11-04). Pacote: condition = [conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4] (os zeros do fim podem faltar); items = [TemplateId, quantidade] ou [TemplateId, quantidade, templateType], e templateType 4 é o custo da troca (só aparece; não é dado); limit = trocas por jogador no tipo 10 (0 ou ausente = sem limite). Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP), 14 (presente online diário, condição 15 = segundos online desde o último resgate), 10 (troca, condição 11 = ter conditionValue do item conditionBak), 1 (Balens gastos no período, condição 9) e os contados de docs/eventos.md (12, 21, 22, 26, 108, 109, 110); os outros ficam 'ainda não'. Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
-  "dataStamp": 4,
+  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. O painel mostra toda atividade que ainda não acabou (endDate), também as que vão começar. Depois das duas do operador (Login Bonus e presente online, sem fim) vêm as 41 do oficial inglês (tutorial_en #60-#67, datas de 2026-10-01 a 2026-11-04) e mais 2 que o 4475 de oficial_encantar #63/#68 trouxe (Recharge Bonus I-1023, tipo 15, e 10/22 Online Bonus, tipo 14), cada uma depois da vizinha que o oficial manda antes dela. Pacote: condition = [conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4] (os zeros do fim podem faltar); items = [TemplateId, quantidade] ou [TemplateId, quantidade, templateType], e templateType 4 é o custo da troca (só aparece; não é dado); limit = trocas por jogador no tipo 10 (0 ou ausente = sem limite). Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP), 14 (presente online diário, condição 15 = segundos online desde o último resgate), 10 (troca, condição 11 = ter conditionValue do item conditionBak), 1 (Balens gastos no período, condição 9) e os contados de docs/eventos.md (12, 21, 22, 26, 108, 109, 110); os outros ficam 'ainda não'. Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
+  "dataStamp": 5,
   "actives": [
     {
       "activeId": "A0000013-0000-0000-0000-000000000001",
@@ -193,6 +193,20 @@
         {"packageId": "AD681151-06A2-F794-7F5D-CD63F494A4A5", "order": 10, "condition": [11, 119, 2126025], "items": [[2126025, 119, 4], [3065002, 1]]},
         {"packageId": "D34BE88C-4928-BE79-56E8-CD63F4939F5E", "order": 6, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3062004, 1]]},
         {"packageId": "F96A13A1-7A9C-38F2-3395-CD63F4934F52", "order": 5, "condition": [11, 50, 2126025], "items": [[2126025, 50, 4], [3061004, 1]]}
+      ]
+    },
+    {
+      "activeId": "FEB6B971-1F43-035B-2121-CD8663F39977",
+      "activeType": 15,
+      "title": "Recharge Bonus I-1023",
+      "detail": "Recharge Bonus I-0925",
+      "conditionDetail": "For a limited time only, players who recharge 500 or more Balens in a single payment will receive a special gift pack.\nNote: Each character may only redeem each reward once.",
+      "getway": 1,
+      "order": 1,
+      "beginDate": "2026-10-23 00:00:00",
+      "endDate": "2026-10-23 23:59:59",
+      "packages": [
+        {"packageId": "A4094BD7-0C03-8DC8-6C2C-CD8663F351D5", "order": 1, "condition": [16, 500], "items": [[208020, 5], [2016001, 1], [3240102, 10]]}
       ]
     },
     {
@@ -401,6 +415,23 @@
         {"packageId": "5FD67E10-2492-01DA-5B82-CD63F489E49E", "order": 1, "condition": [109, 2], "items": [[208024, 2]]},
         {"packageId": "E179D57C-4223-A761-4603-CD63F48A0730", "order": 4, "condition": [109, 20], "items": [[208024, 3]]},
         {"packageId": "EC0CC04D-915C-91EB-E15B-CD63F48AA82B", "order": 3, "condition": [109, 10], "items": [[208024, 2]]}
+      ]
+    },
+    {
+      "activeId": "4BA7BD15-F714-040B-2E63-CD63F482B8A9",
+      "activeType": 14,
+      "title": "10/22 Online Bonus",
+      "detail": "Online Bonus",
+      "conditionDetail": "During the event, stay online the required amount of time to receive rewards (Claim them once everyday).",
+      "getway": 3,
+      "order": 1,
+      "beginDate": "2026-10-22 00:00:00",
+      "endDate": "2026-10-28 23:59:59",
+      "packages": [
+        {"packageId": "4AE88C4A-F2A2-B8D4-035C-CD63F483B9DF", "order": 4, "condition": [15, 1800, 40], "items": [[-500, 20], [-100, 20000], [21261038, 1]]},
+        {"packageId": "631FB995-5DFC-A299-FCC6-CD63F4836D40", "order": 3, "condition": [15, 1800, 40], "items": [[-600, 10000], [208023, 1], [2120043, 2]]},
+        {"packageId": "CBC62B6F-4D0C-DFC7-357A-CD63F48383D9", "order": 1, "condition": [15, 1800, 40], "items": [[-300, 10000], [-100, 10000], [2120043, 1]]},
+        {"packageId": "F35A4615-0FDD-F608-36FD-CD63F483D9FF", "order": 2, "condition": [15, 1800, 40], "items": [[-300, 10000], [2120043, 1], [3040001, 1]]}
       ]
     },
     {
