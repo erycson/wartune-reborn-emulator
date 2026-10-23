@@ -106,13 +106,14 @@ def pending_gold(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) 
 
 def settle(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> None:
     """Acumula a produção no ouro do personagem (grave personagem e castelo juntos). Passou o refresh de
-    12 h das minas: o ouro até o fim do ciclo sai com a taxa delas e o ciclo novo começa em ``now``, sem
-    ocupação (``mines.occupied`` só vale no ciclo atual)."""
+    12 h das minas: o ouro até o fim do ciclo sai com a taxa delas e o ciclo novo começa (``mines.next_cycle``:
+    ``now`` no mapa do castelo, o do mundo num mapa do mundo), sem ocupação (``mines.occupied`` só vale no ciclo
+    atual)."""
     if snap.castle is not None:
         snap.castle.mines_at = mines.cycle_start(snap)  # castelo de antes da 0018 fixa o ciclo
         if now >= mines.cycle_end(snap):
             _settle(snap, templates, mines.cycle_end(snap))
-            snap.castle.mines_at = now
+            snap.castle.mines_at = mines.next_cycle(snap, now)
     _settle(snap, templates, now)
 
 

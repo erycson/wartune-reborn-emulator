@@ -40,6 +40,7 @@ from .models import (
     SnsProfile,
     Star,
     TreasureCacheOpen,
+    WildLand,
     WildMonsterKill,
     WorldBossFight,
     WorldBossWound,
@@ -179,6 +180,10 @@ class CacheOpenRepository(Protocol):
     async def add(self, opened: TreasureCacheOpen) -> None: ...
 
 
+class WildLandRepository(Protocol):
+    async def held_on(self, map_id: int, cycle_at: datetime) -> list[WildLand]: ...
+
+
 class WorldBossRepository(Protocol):
     async def fight(self, campaign_id: int, opened_at: datetime) -> WorldBossFight | None: ...
     async def last(self, campaign_id: int) -> WorldBossFight | None: ...
@@ -247,6 +252,8 @@ class UnitOfWork(Protocol):
     def wild_kills(self) -> WildKillRepository: ...
     @property
     def cache_opens(self) -> CacheOpenRepository: ...
+    @property
+    def wild_lands(self) -> WildLandRepository: ...
     @property
     def world_boss(self) -> WorldBossRepository: ...
     @property

@@ -25,7 +25,7 @@ from .vip import free_cool
 
 S_PLAYER, S_CHAT, S_ALERT, S_QUESTS = 3, 83, 111, 112
 S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 104, 102, 4187
-S_IMPOSE, S_TRANSFER, S_UNOCCUPY, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 108, 4452, 100
+S_IMPOSE, S_TRANSFER, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 4452, 100
 BUY_ORDER_PRICE = 395  # (cliente inglês) QueueBar.buyQueueItem: "mainBar.QueueBar.content" com 395
 IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
@@ -296,12 +296,6 @@ async def transfer_cool(s: GameSession, _: pb.PayTypeMsg) -> None:
     # sem chamador no cliente decompilado e sem recarga de teleporte aqui: só devolve o estado
     assert s.snapshot is not None and s.snapshot.castle is not None
     s.send(S_TRANSFER, pb.TransInfoMsg(currentEnergy=s.snapshot.castle.energy, remainTime=0))
-
-
-@router.on(5179)
-async def unoccupy_wild_land(s: GameSession, _: pb.BuildingReqMsg) -> None:
-    # terras selvagens são do mapa-múndi (outro sistema): nenhuma ocupada, posição vazia = nada a mostrar
-    s.send(S_UNOCCUPY, pb.GiveupWildLandMsg(wildLandPos=""))
 
 
 @router.on(8562)

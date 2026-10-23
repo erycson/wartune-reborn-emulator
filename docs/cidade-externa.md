@@ -22,7 +22,8 @@ replay #706 e cevre #11 (só turco) trazem as mesmas 4 minas (ids e posições) 
 a outra. Por isso o servidor mostra ali só o castelo e as minas do próprio jogador; ocupação de outro jogador
 não aparece nem bloqueia. Nos mapas compartilhados (1 a 5) o 8201 traz os castelos dos outros jogadores nas
 grades pedidas. Os 2 castelos-robô da instância existem desde a missão 100 (ver *Castelos-robô*). Não há
-exércitos alheios andando, terras selvagens fora das 4 minas nem os castelos "Köy" do mapa 2 (só turco: transfer). Pedido que depende
+exércitos alheios andando nem os castelos "Köy" do mapa 2 (só turco: transfer). As minas dos mapas 1 a 5 existem (*Minas do
+mundo*), com a ocupação de todos os jogadores. Pedido que depende
 disso é recusado ou respondido vazio, do jeito que o cliente espera para não travar.
 
 ## Opcodes C>S
@@ -308,6 +309,43 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   vídeos ("he's lost one life"), o reviver no mapa, e a regra "+/-15 levels" da wiki (o post oficial e o help
   só falam de 15 abaixo, que é o que está feito).
 
+## Minas do mundo (mapas 1 a 5, `game/mines.py`)
+
+Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1 "Autaric Plains", jogador nível 11-12).
+
+- **Catálogo** *(visto)*: 60 minas do mapa 1 com id e tile do oficial (`world_mines`, migração 0064). Nas 45 grades
+  que o cliente pediu nas capturas só existem estas (7 grades sem nenhuma). Nas outras grades e nos mapas 2 a 5
+  **TODO(inventado)**: sorteio com semente (mapa, grade) pela contagem das vistas (0:7, 1:23, 2:10, 3:4, 5:1 por
+  grade), ids `1_200_000_000 + mapa × 1_000_000 + (gx × 100 + gy) × 10 + n`.
+- **Nível e guarda** *(visto)*: template 2004xx sorteado de novo a cada ciclo (806736: 200418 no ciclo das 13:15) na
+  faixa do mapa (`MapInfos` MinLevel-MaxLevel: 11-20 no mapa 1). Guardas vistos 11→6506, 12→6509, 13→6511, 14→6513,
+  15→6514, 16→6516, 17→6517, 18→6520, 19→6521, 20→6522. **TODO(inventado)**: 21 a 60 (o 1º 65xx de nível >= o da
+  mina depois do anterior). A semente é (mapa, mina, ciclo): todo jogador vê o mesmo nível.
+- **Ciclo** *(visto)*: o do mundo, createDate 01:15:41 e 13:15:52 (fuso do jogo) em todas as minas, de 12 em 12 h
+  (`game_settings.world_mines.anchor`). `refreshTime` = o que falta do ciclo em ms (5109784 às 11:50). Ao entrar
+  num mapa do mundo (5176) o `mines_at` do castelo passa a ser o do mundo, e a virada anda de 12 em 12 h
+  (`mines.next_cycle`); um castelo que entrou antes é alinhado no próximo refresh.
+- **4129** *(visto)* #1503: a mina de outro jogador com `occupyPlayerName`, `occupyLeagueName` (guilda) e o poder dele em
+  `fightCapaity`; a livre com o poder do guarda (866 no 6506 ... 1601 no 6522). *(dedução)* os outros guardas:
+  `Live` / 100 × 0,6 + ataques + defesas - 6 (dá o visto em 9 de 10). Uma ocupação por mina e ciclo
+  (`uq_wild_lands_wild_id_cycle_at`), lida de todos os jogadores (`wild_lands.held_on`).
+- **Luta** *(visto)* #3037-#3082: 140 ×2 do exército, 140 da mina em luta (state 4), 157 battleType 1 com `mapTempId`
+  = o mapa; vitória: 150, 109, 3, 4103 (battleScene 4), 150, 100, 140 ×2, 109, 152 ("Autaric Plains(2487,2632)",
+  `mapId` 1), 140 da mina com o dono, 169 e o 4382 logo em seguida.
+- **Recusas** *(cliente)*: até 2 minas (`MapPhysicsField`: `fieldDic` >= 2, "Max number of occupiable resource
+  quarries"; `max_held`); mina de alguém da mesma guilda (`AttackConsortiaMember`); a própria; outro lutando por ela.
+- **Mina de outro jogador**: o cliente mostra "Attack" (`PhysicsMenu`). **TODO(inventado)**: luta battleType 1 contra
+  a cópia do herói dele (`oc.holder_battle`, pvp) no lugar do guarda; vencendo, a mina sai dele (ouro acertado até
+  a hora, carta "took ...", 109 e 152 se online) e fica com quem venceu no mesmo nível.
+- **Virada com o jogador online** *(visto)* #170-#175: cada mina sai com 109, 152 (com as que faltam) e 148 (carta);
+  aqui no 20008 seguinte (*dedução*: até ~60 s depois). No login ou num pedido, só a carta (sem 148).
+  **TODO(inventado)**: título e texto da carta (o cliente lê o correio por HTTP).
+- **5179 Give Up** *(cliente: `FieldItem`, `OuterCityController.sendGiveUp`)*: `position` "x,y"; o ouro até agora sai
+  com a mina, 108 com a posição, 109, 152 e 140 da mina livre para quem vê. *(dedução)* sem captura.
+- Baús e monstros não nascem no tile de uma mina (o 5160 acharia o outro).
+- `shortcut:` o castelo de um jogador pode cair no tile de uma mina gerada (o 5176 não confere); some com a tabela de
+  lugares de castelo (passo dos castelos NPC).
+
 ## Treasure Cache (4129 type 22, `game/caches.py`)
 
 Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, jogador nível 12).
@@ -377,8 +415,8 @@ Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, j
 1. **Mapa-múndi compartilhado.** Feito: castelos de outros jogadores nos mapas 1 a 5, nas grades pedidas
    (8201), e os 2 castelos-robô da instância (*Castelos-robô*). Falta: exércitos de outros jogadores (o 169 da
    transfer #15, só turco, traz o de `asiesat`, mas a posição de outro jogador só existe na sessão dele; 4167 e 4168 não
-   existem aqui), terras selvagens fora das 4 minas, castelos NPC "Köy" (só turco), e a resposta do 5160 e do 8488 contra
-   castelo ou exército de jogador (*precisa de captura*). Feito: Treasure Cache (*Treasure Cache*).
+   existem aqui), castelos NPC "Köy" (só turco), e a resposta do 5160 e do 8488 contra castelo ou exército de jogador
+   (*precisa de captura*). Feito: Treasure Cache (*Treasure Cache*) e minas do mundo (*Minas do mundo*).
 2. **Gancho da campanha** (8292, 8293, 8295, 8525). Feito: Rest House (`docs/salas-campanha.md#rest-house`).
    Falta o PK no mapa (8525, BattleType 19).
 3. **Passe de progresso** (8636, 8637). A área é sempre 1. Falta o progresso das fases (8753, 8755).

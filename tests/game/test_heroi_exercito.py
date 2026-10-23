@@ -462,3 +462,31 @@ async def test_formation_rows_and_comprehend_blessing(tmp_path: Path) -> None:
         g.client.send(8456, pb.ComprehendMsg(templateId=pawn.template_id))
         await g.until(150)
         assert (grade(pawn.specials), pawn.bless, pawn.comprehend) == (2, 0, "")
+
+
+async def test_pawn_upgrade_closing_the_seven_day_task_sends_4638_before_the_army(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #1676-#1682: Lancer ao nível 10 fecha a tarefa 1 do guia de 7 dias, e o 4638
+    vem entre o 116 e o 150."""
+    from wartune_server.domain.models import Quest
+    from wartune_server.game.handlers import events as hev
+
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        s = g.server.online.get(g.user_id)
+        assert s is not None and snap.leader is not None
+        done = s.ctx.clock.now()
+        snap.quests.append(Quest(snap.character.id or 0, hev.SERVEN_QUEST, done, completed=True, completed_at=done))
+        hev.send_serven(s)
+        await g.idle()
+        snap.character.strategy, snap.leader.grades = 100_000, 20
+        lancer = Pawn(g.user_id, 10109, castle_count=10)
+        snap.pawns.append(lancer)
+        barracks = next(b for b in snap.buildings if b.template_id // 100 == 402)
+        barracks.template_id = 40210
+        await g.server.services.characters.save(snap.character, snap.leader, lancer, barracks)
+
+        g.client.send(5158, pb.ArmyPawnInfoMsg(tempateId=10109))
+        got = await g.until(83)
+        assert codes(got) == [3, 116, 4638, 150, 83]
+        day1 = pb.ServenDayLeadMsg.FromString(got[2].body).singleDay[0]
+        assert day1.simpleTask[0].isComplete == 1

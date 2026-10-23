@@ -648,3 +648,27 @@ async def test_vip_trial_card_tells_the_guild_chat_4455(tmp_path: Path) -> None:
         b.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))
         vip = _one(await a.idle(), 4455, pb.VipToConsortiaMsg)
         assert (vip.userid, vip.isVip, vip.vipType, vip.consortiaId) == (b.user_id, True, 2, _guild(a).id)
+
+
+async def test_applications_list_newest_first_with_the_day_at_midnight(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #4249-#4260: 5135 -> 35 com o ``applyId``; o 4135 lista a candidatura mais
+    nova primeiro, com ``createDate`` e ``inviteDate`` no dia da candidatura à meia-noite."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a, "Lobos")
+        b = await a.join("bruxa")
+        await _create(b, "Corvos")
+        c = await a.join("clara")
+        _rich(c)
+        await c.idle()
+        ids = []
+        for g in (a, b):
+            c.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(g).id))
+            ids.append(_one(await c.idle(), 35, pb.ConsortiaMsg).applyId)
+        c.client.send(8209)
+        rows = _one(await c.idle(), 4135, pb.ConsortiaUserInviteInfoListRspMsg).inviteInfo
+        assert [(r.id, r.consortiaName, r.chairmanNickname) for r in rows] == [
+            (ids[1], "Corvos", "Bruxa"), (ids[0], "Lobos", "Maga")
+        ]  # fmt: skip
+        assert {(r.createDate[11:], r.inviteDate[11:], r.isexist, r.fromType) for r in rows} == {
+            ("00:00:00", "00:00:00", True, False)
+        }

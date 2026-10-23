@@ -630,7 +630,11 @@ wild_lands = Table(
     _int("template_id"),  # nível sorteado no ciclo da ocupação (MapPhysicsTempInfos): o rendimento sai daqui
     _int("pos_x"),
     _int("pos_y"),
+    Column("map_id", Integer, nullable=False, server_default="100"),  # 100 = o do castelo; 1 a 5 = mundo
+    Column("cycle_at", UTCDateTime, nullable=True),  # ciclo do mundo (mapas 1 a 5): uma ocupação por mina e ciclo
+    _int("capacity"),  # poder de quem ocupou: o fightCapaity que os outros jogadores veem
     UniqueConstraint("character_id", "wild_id"),
+    UniqueConstraint("wild_id", "cycle_at"),
 )
 
 # -- catálogo do mundo (semente na migração 0027; lido uma vez ao subir: persistence/world_store.py) --------

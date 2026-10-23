@@ -46,7 +46,7 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 8327 | cobrança de ouro: nível ≥ 14, 5 por dia, fila 3 livre; ouro = 901.P1×6 + 101.P1×3; fila 3 ocupada 1 h | 109, 111, 151 (antes do 4242: a LevyView redesenha nele), 4242 (`leftImpose` = usadas), 83 | visto + cliente |
 | 5174 | enche a energia de teleporte até 151101.Property2: (máx − atual)/5 diamantes, `payType` 2 = vinculado | 3, 103 TransInfoMsg | cliente |
 | 5173 | sem chamador no cliente; devolve o estado | 103 | cliente |
-| 5179 | abandonar terra selvagem: não há terras ainda | 108 vazio | cliente |
+| 5179 | desistir da mina (`handlers/outer_city.py`, ver cidade-externa.md *Minas do mundo*) | 108 com a posição, 109, 152 | cliente |
 | 8562 | cancelar a trégua (buff 2001): não há trégua ainda | 4452 `defenceLefttime` 0 | cliente |
 | 8747 | entrar no castelo (já tratado em `outer_city.py`) | 4382 | visto |
 | 15044 op 0 | dados da fazenda (própria ou de outro jogador) | 4386 FarmInfoRspMsg | visto (só turco: ciftlik) |
@@ -99,7 +99,7 @@ recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
 - **Offline**: ×1,5 e ×2 custam diamante no oficial, preço desconhecido (recusados); EXP =
   nível × minutos fora, até 8 h *(dedução)*.
 - **Caixa por tempo**: tempo fora e sem reset diário vêm de uma amostra única (#131); `time_box.count_offline`/`daily_reset` trocam a regra. Depois do 180 o cliente para de pedir (`BoxManager.needCountTime`).
-- **Trégua** (8562) e **terras selvagens** (5179): só confirmam; dependem do mapa-múndi.
+- **Trégua** (8562): só confirma; depende do mapa-múndi.
 - **Árvore da guilda** (8565, resposta 4432) e **reforço** (8255): sistemas de guilda e batalha em grupo.
 - **Bênção do seminário**: o `blessingBuff` (o bônus que o cliente mostra) ainda não entra nos atributos do
   personagem. `Blessing_ItemId` (208026) não é usado pelo servidor.

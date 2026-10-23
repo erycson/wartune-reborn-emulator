@@ -32,7 +32,7 @@ from ..domain.world import World
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import outer_city as oc
-from .mines import game_date
+from .mines import game_date, world_mine_at
 from .rules import job_type
 
 CACHE_TYPE = 22  # WildLandMsg.type e MapPhysicsTempInfos.MasterType
@@ -106,6 +106,8 @@ def on_map(world: World, templates: GameTemplates, map_id: int, now: datetime) -
         born = EPOCH + timedelta(seconds=life * period + offset)
         rng = random.Random(f"cache:{map_id}:{slot}:{life}")
         x, y = rng.randrange(EDGE, size[0] - EDGE), rng.randrange(EDGE, size[1] - EDGE)
+        while world_mine_at(world, templates, map_id, x, y) is not None:  # o tile é da mina (o 5160 acharia o baú)
+            x, y = rng.randrange(EDGE, size[0] - EDGE), rng.randrange(EDGE, size[1] - EDGE)
         uid = ID_BASE + map_id * 10_000 + slot
         out.append(Cache(uid, map_id, template, level, x, y, born, born + timedelta(seconds=period)))
     return out

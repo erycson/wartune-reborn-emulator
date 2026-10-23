@@ -4,8 +4,8 @@ Regras vindas do cliente (`OuterCityController`, `WorldMapControler`, `WorldMapH
 `transfer_kampi_sistemi.json` (só turco: 5176 -> 140, 152, 105; a inglesa não muda o castelo de mapa).
 O mapa 100000xxx do castelo é uma instância
 de cada jogador (o próprio castelo, os 2 castelos-robô e as 4 minas do mapa 100); nos mapas 1 a 5,
-compartilhados, aparecem os castelos dos outros jogadores (ver docs/cidade-externa.md). Exército andando
-de outro jogador e terra selvagem fora das 4 minas não existem aqui. Minas em ``mines.py``, castelos-robô em
+compartilhados, aparecem os castelos dos outros jogadores e as minas do mundo (ver docs/cidade-externa.md).
+Exército andando de outro jogador não existe aqui. Minas em ``mines.py``, castelos-robô em
 ``robots.py`` e chefes do mapa em ``bosses.py``.
 """
 
@@ -176,6 +176,25 @@ def guard_battle(snap: PlayerSnapshot, templates: GameTemplates, guard: int) -> 
         "battleScene": 4,
         "soldiers": soldiers,
         "heroes": [],
+        "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
+    }
+
+
+def holder_battle(
+    snap: PlayerSnapshot, templates: GameTemplates, hero: dict[str, object], map_id: int
+) -> dict[str, object]:
+    """Luta pela mina do mundo que outro jogador ocupa (o cliente mostra "Attack" nela: ``PhysicsMenu``).
+    TODO(inventado): nenhuma captura; a da mina livre (battleType 1, battleScene 4, oficial_20261023-171155-1 #3041)
+    com a cópia do herói de quem ocupa (``arena.copy_hero``) no lugar do guarda (livingId 4, pos 5), em pvp."""
+    soldiers, pawn_tpl = army_soldiers(snap, templates)
+    return {
+        "battleType": 1,
+        "mapTempId": map_id,
+        "attackModel": 2,
+        "battleScene": 4,
+        "pvp": True,
+        "soldiers": soldiers,
+        "heroes": [hero | {"livingId": 4, "pos": 5}],
         "player": {"livingId": 3, "pos": 4, "pawnTempId": pawn_tpl},
     }
 

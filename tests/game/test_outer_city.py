@@ -278,13 +278,13 @@ async def test_refresh_de_12_horas_sorteia_nivel_e_guarda(tmp_path: Path) -> Non
         draws = []
         for k in range(40):
             castle.mines_at = start + k * mines.MINE_PERIOD
-            draws += [mines.draw(snap, world, templates, mine) for mine in world.mines]
+            draws += [mines.draw(snap, world, templates, mine) for mine in world.mines_on(oc.BASE_MAP)]
         for template, guard in draws:
             level = template - 200400
             assert level in (8, 9, 10) and mines.level_template(templates, level) == template
             assert guard == {8: 6504, 9: 6505, 10: 6505}[level]
         assert {t for t, _ in draws} == {200408, 200409, 200410}  # o sorteio muda de um ciclo para o outro
-        first = world.mines[0]
+        first = world.mines_on(oc.BASE_MAP)[0]
         assert mines.draw(snap, world, templates, first) == mines.draw(snap, world, templates, first)  # mesmo ciclo
 
 
@@ -382,7 +382,7 @@ async def test_castelo_de_outro_jogador_num_mapa_compartilhado(tmp_path: Path) -
         assert [(c.occupyPlayerId, c.occupyPlayerName, c.posX) for c in page.baseCastle][1:] == [
             (other.user_id, "Outro", 2110)
         ]
-        assert list(page.wildLand) == []  # as minas do mapa 2 não existem no servidor
+        assert {w.type for w in page.wildLand} <= {20}  # só minas do mundo (geradas: o mapa 2 não tem captura)
 
 
 async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
@@ -577,11 +577,12 @@ async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
     """Minas, guardas, robôs e monstros saem das tabelas das migrações 0027, 0028 e 0040, na ordem da captura."""
     async with logged_in(tmp_path, novice=22500) as g:
         world = g.server.services.world
-        assert [(m.id, m.x, m.y, m.levels) for m in world.mines] == [
+        assert [(m.id, m.x, m.y, m.levels) for m in world.mines_on(oc.BASE_MAP)] == [
             (853876, 16, 34, range(8, 11)), (853877, 36, 34, range(8, 11)),
             (853874, 71, 54, range(8, 11)), (853875, 54, 64, range(8, 11)),
         ]  # fmt: skip
-        assert dict(world.mine_guards) == {8: 6504, 9: 6505, 10: 6505}
+        assert {lv: world.mine_guards[lv] for lv in (8, 9, 10)} == {8: 6504, 9: 6505, 10: 6505}
+        assert len(world.mines_on(1)) == 60 and len(world.mine_guards) == 53  # 0064: mapa 1 e níveis 11 a 60
         assert [(r.id, r.x, r.y, r.grade) for r in world.robots] == [(765958, 44, 22, 8), (765957, 59, 56, 8)]
         assert [str(n) for n in world.robot_names] == ["Aillendre", "Addyn"]
         assert dict(world.monster_counts[2]) == {1: 40, 2: 20, 3: 5} and 100 not in world.monster_counts

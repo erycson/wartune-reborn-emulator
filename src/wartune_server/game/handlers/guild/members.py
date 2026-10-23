@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ....domain import gameday
 from ....domain.models import (
     BagType,
     Consortia,
@@ -49,7 +50,10 @@ from .common import (
 
 
 def _invite_msg(s: GameSession, i: ConsortiaInvite) -> pb.ConsortiaUserInviteInfoMsg:
+    """(visto) oficial_20261023-171155-1 #4253 e #4259: ``createDate`` e ``inviteDate`` são o dia da candidatura à
+    meia-noite ("2026-10-23 00:00:00", também na guilda criada antes), ``isexist`` verdadeiro."""
     g = s.ctx.guilds
+    day = f"{gameday.local(i.created_at):%Y-%m-%d} 00:00:00"
     guild = g.guilds.get(i.consortia_id)
     user, inviter = _profile(s, i.user_id), _profile(s, i.invite_id)
     chairman = _profile(s, guild.chairman_id) if guild else None
@@ -57,13 +61,13 @@ def _invite_msg(s: GameSession, i: ConsortiaInvite) -> pb.ConsortiaUserInviteInf
         id=i.id,
         consortiaId=i.consortia_id,
         consortiaName=guild.name if guild else "",
-        createDate=b.fmt_time(guild.created_at) if guild else b.NEVER,
+        createDate=day if guild else b.NEVER,
         userId=i.user_id,
         userNickname=(user.nickname or "") if user else "",
         inviteId=i.invite_id,
         inviteNickname=(inviter.nickname or "") if inviter else "",
         chairmanNickname=(chairman.nickname or "") if chairman else "",
-        inviteDate=b.fmt_time(i.created_at),
+        inviteDate=day,
         fromType=i.from_type,
         isexist=True,
     )
@@ -71,9 +75,10 @@ def _invite_msg(s: GameSession, i: ConsortiaInvite) -> pb.ConsortiaUserInviteInf
 
 @router.on(8209)
 async def invite_list(s: GameSession, _: object) -> None:
-    """Candidaturas do jogador (``fromType`` falso) e convites recebidos (verdadeiro)."""
+    """Candidaturas do jogador (``fromType`` falso) e convites recebidos (verdadeiro), a mais nova primeiro
+    ((visto) #4259: 302 antes de 301)."""
     out = pb.ConsortiaUserInviteInfoListRspMsg()
-    for i in s.ctx.guilds.invites_of(s.player_id):
+    for i in sorted(s.ctx.guilds.invites_of(s.player_id), key=lambda i: i.id or 0, reverse=True):
         out.inviteInfo.append(_invite_msg(s, i))
     s.send(S_INVITES, b.complete(out))
 

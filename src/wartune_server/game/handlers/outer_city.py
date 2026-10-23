@@ -18,7 +18,8 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 
-from ...domain.models import Castle, Item, TreasureCacheOpen, WildMonsterKill
+from ...domain.errors import NotFoundError
+from ...domain.models import Castle, Item, Mail, MailType, PlayerSnapshot, TreasureCacheOpen, WildLand, WildMonsterKill
 from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
@@ -31,7 +32,8 @@ from ..battle import Battle
 from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import quest_update
-from ..castle import castle_yield, politics_msg
+from ..castle import S_CASTLE_YIELD, castle_yield, politics_msg, yield_msg
+from ..mail import SYSTEM_SENDER, notify, stage
 from ..router import router
 from ..session import GameSession
 from . import events
@@ -43,7 +45,7 @@ from .wild_boxes import drop_box, send_boxes
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
-S_ITEMS = 115
+S_ITEMS, S_UNOCCUPY = 115, 108
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
 # tutorial_en #773-#777: 18 tiles em 2,34 s (do 140 andando ao 140 parado). ponytail: velocidade fixa, sem
 # montaria nem efeitos
@@ -99,19 +101,61 @@ def _castle_state(s: GameSession) -> None:
     )
 
 
-async def refresh(s: GameSession) -> None:
-    """Refresh de 12 h das minas (``castle.settle`` vira o ciclo). Sem tarefa periódica: roda ao logar,
-    nos pedidos de mina (8201, 5160 e o fim da luta) e em todo ``settle`` de ouro, então quem fica online
-    cruzando o refresh vê a mina cair no próximo pedido."""
+async def refresh(s: GameSession, push: bool = False) -> None:
+    """Refresh de 12 h das minas (``castle.settle`` vira o ciclo). Sem tarefa periódica: roda ao logar, nos pedidos
+    de mina (8201, 5160 e o fim da luta), em todo ``settle`` de ouro e no 20008 (``push``). Num mapa do mundo o
+    ciclo é o do mundo (``mines.world_cycle_start``): o castelo que entrou num mapa do mundo antes disso é alinhado
+    aqui (as minas dele, de um ciclo que não é o do mundo, caem sem carta). Cada mina vencida rende uma carta;
+    com ``push`` (o jogador online na virada) vão também 109 e 152 por mina e o 148, como no oficial
+    (oficial_20261023-171155-1 #170-#175). (dedução) a virada sai no 20008 seguinte, até ~60 s depois da hora."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    now = s.ctx.clock.now()
+    now, castle = s.ctx.clock.now(), snap.castle
     if filled := mines.backfill(snap, s.ctx.world, s.ctx.templates):
         await s.ctx.characters.save(*filled)
-    if snap.castle.mines_at is not None and now < mines.cycle_end(snap):
+    if mines.is_world(s.ctx.world, castle.map_id):
+        start = mines.world_cycle_start(s.ctx.world, now)
+        if castle.mines_at is None or (start - castle.mines_at) % mines.MINE_PERIOD:
+            cs.settle(snap, s.ctx.templates, now)
+            castle.mines_at = start
+            s.log.info("ciclo das minas alinhado ao do mundo", mapa=castle.map_id, ciclo=start.isoformat())
+            await s.ctx.characters.save(snap.character, castle)
+            return
+    if castle.mines_at is not None and now < mines.cycle_end(snap):
         return
+    before, end = mines.held(snap), mines.cycle_end(snap)
     cs.settle(snap, s.ctx.templates, now)
-    await s.ctx.characters.save(snap.character, snap.castle)
+    gone = [w for w in before if w not in mines.held(snap)]
+    await s.ctx.characters.save(snap.character, castle)
+    await _mines_over(s, gone, end, push)
+
+
+async def _mines_over(s: GameSession, gone: list[WildLand], end: datetime, push: bool) -> None:
+    """Uma carta por mina vencida (148 só com ``push``: no login o cliente lê o correio por conta própria) e, com
+    ``push``, 109 e 152 com as minas que ainda faltam sair (#170-#175: 3480 -> 2400 -> 1240).
+    TODO(inventado): título e texto da carta (o cliente lê o correio por HTTP; a captura só tem o 148)."""
+    snap = s.snapshot
+    assert snap is not None
+    templates, created = s.ctx.templates, end - mines.MINE_PERIOD
+    left = list(gone)
+    for land in gone:
+        left.remove(land)
+        row = mines.yield_row(templates, land, created)
+        if push:
+            rows = [mines.yield_row(templates, w, created) for w in left]
+            gold = yield_msg(snap, templates, s.ctx.clock.now())
+            gold.goldYield += sum(r.wildYield for r in rows)
+            s.send(S_CASTLE_YIELD, gold)
+            politics = politics_msg(snap, templates)
+            politics.wildYield.extend(rows)
+            s.send(S_POLITICS, politics)
+        text = f"Your occupation of {row.wildName} at {row.wildPoxName} has ended: the mine was refreshed."
+        letter = Mail(snap.character.id or 0, end, row.wildName, text, mail_type=MailType.SYSTEM,
+                      send_type=SYSTEM_SENDER)  # fmt: skip
+        await s.ctx.characters.write(lambda uow, m=letter: stage(uow, m))  # type: ignore[misc]
+        s.log.info("mina venceu", mina=land.wild_id, mapa=land.map_id, carta=letter.id)
+        if push:
+            notify(s.ctx.online, letter)
 
 
 async def _killed(s: GameSession, map_id: int, now: datetime) -> set[int]:
@@ -216,11 +260,15 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     await refresh(s)
     grids = {g for g in msg.reqGrid.split(",") if g}
     reply = pb.PhysicListUpdateMsg(reqGrid=msg.reqGrid)
+    now = s.ctx.clock.now()
     if oc.template_of(msg.mapId) == oc.BASE_MAP:  # tutorial_en #532: as minas vêm antes do castelo
         for mine in mines.mines_in(s.ctx.world, grids):
             land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s))
             reply.wildLand.append(land)
-    now = s.ctx.clock.now()
+    if found_mines := mines.world_mines_in(s.ctx.world, s.ctx.templates, msg.mapId, grids):
+        holders = await _holders(s, msg.mapId, now)
+        for mine in found_mines:
+            reply.wildLand.append(_world_land(s, mine, now, holders.get(mine.id)))
     found = monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now)
     boxes = tc.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now)
     if found or boxes:
@@ -246,6 +294,62 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
         reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
     s.send(S_PHYSICS, reply)
     s.send(S_GRID_ARMY, _grid_msg(s, grids, msg.mapId))
+
+
+Holder = tuple[WildLand, str, str]  # ocupação, nome e guilda de quem ocupa
+
+
+async def _holders(s: GameSession, map_id: int, now: datetime) -> dict[int, Holder]:
+    """Quem ocupa cada mina do mapa no ciclo do mundo: id da mina -> (ocupação, nome, guilda). As do próprio jogador
+    vêm do snapshot (mais novo que o banco)."""
+    snap = s.snapshot
+    assert snap is not None
+    own, cycle = snap.character.id or 0, mines.world_cycle_start(s.ctx.world, now)
+    lands = [w for w in await s.ctx.characters.read(lambda uow: uow.wild_lands.held_on(map_id, cycle))]
+    lands = [w for w in lands if w.character_id != own] + [w for w in mines.held(snap) if w.map_id == map_id]
+    others = [w.character_id for w in lands if w.character_id != own]
+    chars = await s.ctx.characters.read(lambda uow: uow.characters.by_ids(others)) if others else []
+    names = {c.id: c.nickname or "" for c in chars} | {own: snap.character.nickname or ""}
+    out: dict[int, Holder] = {}
+    for w in lands:
+        guild = s.ctx.guilds.of(w.character_id)
+        out[w.wild_id] = (w, names.get(w.character_id, ""), guild[0].name if guild else "")
+    return out
+
+
+def _world_state(s: GameSession, mine: Mine, now: datetime) -> int:
+    fight = s.ctx.wilds.fighting.get((mine.map_id, mine.id, mines.world_cycle_start(s.ctx.world, now)))
+    return mines.MINE_FIGHTING if fight is not None and fight.running else mines.MINE_FREE
+
+
+def _world_land(s: GameSession, mine: Mine, now: datetime, holder: Holder | None, state: int = 0) -> pb.WildLandMsg:
+    state = state or _world_state(s, mine, now)
+    if holder is None:
+        return mines.world_mine_msg(s.ctx.world, s.ctx.templates, mine, now, state)
+    return mines.world_mine_msg(s.ctx.world, s.ctx.templates, mine, now, state, *holder)
+
+
+def _world_sync(s: GameSession, mine: Mine, state: int, holder: Holder | None) -> None:
+    """140 da mina do mundo a quem vê a grade dela (e ao próprio jogador, que pode não ter monstros na vista)."""
+    land = _world_land(s, mine, s.ctx.clock.now(), holder, state)
+    targets = {
+        id(o): o for o in viewers(s, mine.map_id) if o.outer_view and oc.grid_of(mine.x, mine.y) in o.outer_view[1]
+    }
+    targets[id(s)] = s
+    for other in targets.values():
+        other.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
+
+
+async def _other(s: GameSession, user_id: int) -> PlayerSnapshot | None:
+    """Snapshot de quem ocupa a mina: o da sessão se online (mais novo que o banco), senão do banco."""
+    online = s.ctx.online.get(user_id)
+    if online is not None and online.snapshot is not None:
+        return online.snapshot
+    try:
+        snap = await s.ctx.characters.snapshot(user_id)
+    except NotFoundError:
+        return None
+    return snap if snap.castle is not None and snap.leader is not None else None
 
 
 def roll_monsters(s: GameSession) -> None:
@@ -373,6 +477,10 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     if (monster := monsters.at(found, msg.posX, msg.posY)) is not None:
         await _attack_monster(s, monster)
         return
+    world_mine = mines.world_mine_at(s.ctx.world, s.ctx.templates, msg.mapId, msg.posX, msg.posY)
+    if world_mine is not None:
+        await _attack_world_mine(s, world_mine)
+        return
     mine = mines.mine_at(s.ctx.world, msg.mapId, msg.posX, msg.posY)
     if mine is None or mines.occupied(snap, mine) is not None or s.battle is not None:
         s.log.info("5160 sem alvo", mapa=msg.mapId, x=msg.posX, y=msg.posY)
@@ -455,6 +563,163 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     _mine_sync(s, mine, mines.MINE_FREE)
     map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # tutorial_en #754
+
+
+async def _attack_world_mine(s: GameSession, mine: Mine) -> None:
+    """Luta pela mina do mundo (oficial_20261023-171155-1 #3037-#3041): 140 ×2 do exército lutando, 140 da mina em
+    luta (state 4) e a 157 (battleType 1, ``mapTempId`` = o mapa). Livre: o guarda do nível sorteado no ciclo. De
+    outro jogador: o herói dele (``oc.holder_battle``, TODO(inventado)). Recusa com 140 parado se já há luta, se
+    outro está lutando por ela, se é do próprio jogador, se ele já tem ``max_held`` minas (cliente: 2) ou se é de
+    alguém da mesma guilda (cliente: ``AttackConsortiaMember``)."""
+    snap = s.snapshot
+    assert snap is not None
+    world, templates, now = s.ctx.world, s.ctx.templates, s.ctx.clock.now()
+    cycle = mines.world_cycle_start(world, now)
+    holder = (await _holders(s, mine.map_id, now)).get(mine.id)
+    own = snap.character.id or 0
+    guild = s.ctx.guilds.of(own)
+    full = len(mines.held(snap)) >= int(mines.world_settings(world)["max_held"])
+    same_guild = holder is not None and guild is not None and holder[2] == guild[0].name
+    victim = await _other(s, holder[0].character_id) if holder is not None and holder[0].character_id != own else None
+    busy = _world_state(s, mine, now) == mines.MINE_FIGHTING
+    mine_own = holder is not None and holder[0].character_id == own
+    if s.battle is not None or busy or mine_own or full or same_guild or (holder is not None and victim is None):
+        s.log.info("5160 mina do mundo recusada", mina=mine.id, cheio=full, ocupada=mine_own, guilda=same_guild,
+                   em_luta=busy)  # fmt: skip
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
+        return
+    _army_sync(s, ARMY_FIGHTING)
+    _world_sync(s, mine, mines.MINE_FIGHTING, holder)
+    if victim is not None:
+        spec = oc.holder_battle(snap, templates, A.copy_hero(victim, templates, now), mine.map_id)
+    else:
+        spec = oc.guard_battle(snap, templates, mines.world_draw(world, templates, mine, cycle)[1])
+        spec["mapTempId"] = mine.map_id  # (visto) #3041: mapTempId 1
+    taken_from = holder[0].character_id if holder is not None else 0
+
+    async def finished(battle: Battle, won: bool) -> None:
+        await _world_mine_over(s, battle, mine, cycle, won, taken_from)
+
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
+    s.ctx.wilds.fighting[(mine.map_id, mine.id, cycle)] = s.battle
+    s.log.info("batalha da mina do mundo", mina=mine.id, mapa=mine.map_id, dono=taken_from, battle=s.battle.id)
+    s.battle.start()
+
+
+async def _world_mine_over(
+    s: GameSession, battle: Battle, mine: Mine, cycle: datetime, won: bool, taken_from: int
+) -> None:
+    """Fim da luta pela mina do mundo, na ordem do oficial (#3069-#3082): 150, 109, 3, 4103, 150, 100, 140 ×2 do
+    exército; vencendo, 109, 152 com a mina, 140 da mina ocupada; depois 169 e o 4382 logo em seguida. Ganha a mina
+    se o ciclo é o mesmo e ela ainda está como no começo (livre, ou com quem foi atacado); a de outro jogador sai
+    dele (``_evict``). Uma ocupação por mina e ciclo no banco: quem chega depois perde (IntegrityError, log)."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    world, templates = s.ctx.world, s.ctx.templates
+    s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
+    s.ctx.wilds.fighting.pop((mine.map_id, mine.id, cycle), None)
+    daru = await _casualties(s, battle, won, 4)
+    s.battle_strategy = 0  # (visto) #3082: o 4382 sai aqui mesmo
+    _army_sync(s, ARMY_IDLE)
+    await refresh(s)
+    now = s.ctx.clock.now()
+    holder = (await _holders(s, mine.map_id, now)).get(mine.id)
+    same = mines.world_cycle_start(world, now) == cycle and (holder[0].character_id if holder else 0) == taken_from
+    room = len(mines.held(snap)) < int(mines.world_settings(world)["max_held"])
+    land = None
+    if won and same and room:
+        if holder is not None:
+            await _evict(s, holder, mine)
+        cs.settle(snap, templates, now)  # o ouro até agora sai na taxa antiga; a mina conta daqui em diante
+        template = holder[0].template_id if holder is not None else mines.world_draw(world, templates, mine, cycle)[0]
+        land = mines.occupy_world(snap, mine, template, cycle, _capacity(s), now)
+        quests = rules.quest_event(snap, templates, OCCUPY, mines.MINE_SON_TYPE, 1)
+        try:
+            await s.ctx.characters.save(snap.character, snap.castle, land, *quests)
+        except IntegrityError:
+            s.log.info("mina do mundo já ocupada por outro", mina=mine.id)
+            land.cycle_at, land.occupied_at = None, cycle - mines.MINE_PERIOD  # fica como ocupação vencida
+            await s.ctx.characters.save(snap.character, snap.castle, land)
+            land = None
+        else:
+            if quests:
+                s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+            await events.leed_done(s, LEED_MINE)
+            castle_yield(s)
+            s.send(S_POLITICS, politics_msg(snap, templates))
+    if land is not None:
+        _world_sync(s, mine, mines.MINE_FREE, (land, snap.character.nickname or "", _guild_name(s)))
+    else:
+        _world_sync(s, mine, mines.MINE_FREE, (await _holders(s, mine.map_id, now)).get(mine.id))
+    map_id, x, y = oc.position(snap.castle, s.outer_army)
+    s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))
+    s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
+
+
+def _guild_name(s: GameSession) -> str:
+    guild = s.ctx.guilds.of(s.player_id)
+    return guild[0].name if guild else ""
+
+
+async def _evict(s: GameSession, holder: Holder, mine: Mine) -> None:
+    """Tira a mina de quem ocupava: o ouro dele até agora sai com ela, a ocupação some do snapshot (se online, o
+    da sessão) e do banco, e ele recebe carta, 109 e 152. TODO(inventado): o texto da carta e os avisos."""
+    snap = s.snapshot
+    assert snap is not None
+    templates, now = s.ctx.templates, s.ctx.clock.now()
+    victim = await _other(s, holder[0].character_id)
+    land = holder[0]
+    if victim is not None and victim.castle is not None:
+        cs.settle(victim, templates, now)
+        land = next((w for w in victim.wild_lands if w.wild_id == land.wild_id and w.cycle_at == land.cycle_at), land)
+        if land in victim.wild_lands:
+            victim.wild_lands.remove(land)
+        await s.ctx.characters.save(victim.character, victim.castle, delete=(land,))
+    else:
+        await s.ctx.characters.save(delete=(land,))
+    row = mines.yield_row(templates, land, land.cycle_at or now)
+    text = f"{snap.character.nickname} defeated your army and took {row.wildName} at {row.wildPoxName}."
+    letter = Mail(land.character_id, now, row.wildName, text, mail_type=MailType.SYSTEM, send_type=SYSTEM_SENDER)
+    await s.ctx.characters.write(lambda uow: stage(uow, letter))
+    notify(s.ctx.online, letter)
+    if victim is not None and (other := s.ctx.online.get(land.character_id)) is not None:
+        other.send(S_CASTLE_YIELD, yield_msg(victim, templates, now))
+        other.send(S_POLITICS, politics_msg(victim, templates))
+    s.log.info("mina tomada", mina=mine.id, de=land.character_id)
+
+
+@router.on(5179)
+async def unoccupy_wild_land(s: GameSession, msg: pb.BuildingReqMsg) -> None:
+    """Desistir da mina ("Give Up" no mapa ou no conselho: ``FieldItem``, "No gold will be obtained if you abandon
+    this quarry"). ``position`` = "x,y" (o ``wildPox`` do 152). O ouro até agora sai com ela (``settle``); responde
+    108 com a posição (o cliente zera o dono e mostra o aviso), 109 e 152; a mina do mundo volta livre (140) para
+    quem vê. Sem mina ocupada no tile: 108 com posição vazia (o cliente não faz nada). (dedução) sem captura."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    await refresh(s)
+    parts = msg.position.split(",")
+    land = (
+        mines.land_at(snap, int(parts[0]), int(parts[1]))
+        if len(parts) == 2 and all(p.isdigit() for p in parts)
+        else None
+    )
+    if land is None:
+        s.log.info("5179 sem mina", posicao=msg.position)
+        s.send(S_UNOCCUPY, pb.GiveupWildLandMsg(wildLandPos=""))
+        return
+    now = s.ctx.clock.now()
+    cs.settle(snap, s.ctx.templates, now)
+    mines.give_up(snap, land)
+    await s.ctx.characters.save(snap.character, snap.castle, delete=(land,))
+    s.log.info("5179 mina abandonada", mina=land.wild_id, mapa=land.map_id)
+    s.send(S_UNOCCUPY, pb.GiveupWildLandMsg(wildLandPos=msg.position))
+    castle_yield(s)
+    s.send(S_POLITICS, politics_msg(snap, s.ctx.templates))
+    mine = mines.world_mine(s.ctx.world, s.ctx.templates, land.map_id, land.wild_id)
+    if mine is not None and mines.is_world(s.ctx.world, land.map_id):
+        _world_sync(s, mine, mines.MINE_FREE, None)
 
 
 async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
@@ -711,6 +976,7 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             s.log.info("5176 recusado", motivo="ponto fora do mapa")
             _castle_state(s)
             return
+        # shortcut: não confere se o tile é de uma mina do mundo; resolver com a tabela de lugares de castelo
         target, spot, need = castle.map_id, (msg.posX, msg.posY), oc.ENERGY_SAME_MAP
     else:
         if not oc.map_allowed(msg.magId, c.grades) or oc.map_size(templates, msg.magId) is None:
@@ -735,6 +1001,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
         released = mines.release(snap)
     moved_map = target != castle.map_id
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
+    if moved_map and mines.is_world(s.ctx.world, target):
+        castle.mines_at = mines.world_cycle_start(s.ctx.world, now)  # as minas do mundo vivem no ciclo do mundo
     quests = rules.update_state_quests(snap, templates, snap.quests)  # 37: missões do mapa (checkMapId)
     _stop_walk(s)
     s.outer_army = None

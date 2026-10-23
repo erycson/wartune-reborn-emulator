@@ -127,14 +127,17 @@ def _announce(s: GameSession, a: Announcement) -> None:
 
 @router.on(20008)
 async def synchronized_time(s: GameSession, _: object) -> None:
-    """Relógio (a cada ~60 s). Também vira o dia de quem está online (4202 com os valores novos e o 3) e os
-    monstros da cidade externa que ele está vendo, e solta os anúncios agendados (``game/announcements.py``)."""
-    from .outer_city import roll_monsters  # outer_city importa events, que importa este módulo
+    """Relógio (a cada ~60 s). Também vira o dia de quem está online (4202 com os valores novos e o 3), os
+    monstros da cidade externa que ele está vendo e o ciclo das minas (``outer_city.refresh`` com ``push``), e solta
+    os anúncios agendados (``game/announcements.py``)."""
+    from .outer_city import refresh, roll_monsters  # outer_city importa events, que importa este módulo
     from .worldboss import close_windows, push_states  # worldboss importa este módulo
 
     now = s.ctx.clock.now()
     s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(now)))
     roll_monsters(s)
+    if s.snapshot is not None and s.snapshot.castle is not None:
+        await refresh(s, push=True)
     for a in s.ctx.announcer.tick(s.ctx.world.announcements, now):
         _announce(s, a)
     from .arena import push_match  # arena importa este módulo

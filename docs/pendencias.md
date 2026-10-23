@@ -99,8 +99,9 @@ Outros eventos:
 
 - Mapa compartilhado: **parcial**. O mapa do castelo é uma instância de cada conta (minas e castelo só do
   jogador). Nos mapas 1 a 5 o 4129 leva os castelos de outros jogadores nas grades. Não existem: exércitos
-  alheios andando (169, 4167, 4168; precisa de presença entre sessões), terras selvagens fora das 4 minas do
-  mapa 100, os 2 robôs da instância e os castelos NPC "Köy" (precisa da tabela de terras e robôs por mapa).
+  alheios andando (169, 4167, 4168; precisa de presença entre sessões) e os castelos NPC "Köy" (precisa da
+  tabela de castelos por mapa). Minas dos mapas 1 a 5: **feito** ([cidade-externa.md](cidade-externa.md#minas-do-mundo-mapas-1-a-5-gameminespy));
+  **TODO(inventado)**: minas das grades não vistas, guardas 21-60, a luta pela mina de outro jogador e as cartas.
   O 5160 luta só contra mina livre; castelo e exército alheio só param o exército. 8488 (PvP no mapa) e 5004
   só registram. **precisa de captura**: resposta do 5160 e do 8488 contra castelo ou exército alheio.
 - Minas de ouro: refresh de 12 h feito, por jogador (`castles.mines_at`, `createDate` no fuso UTC+3; nível
@@ -169,7 +170,8 @@ Outros eventos:
 - ~~Melhorar terreno (op 9), terras pelo nível da fazenda, acelerar 50%~~ feitos pelo cliente inglês. Pets da fazenda (15044 ops 10–16): **depende de** pets.
 - Colher a árvore (5178): feito; Daru e Kyanite de `tree_fruit` são internet + dedução. **precisa de captura** (passos em castelo.md).
 - Recompensa offline ×1,5/×2 (8287): preço desconhecido. **sem dado**.
-- 8255 (batalha em grupo), 8562 (trégua), 5179 (terras selvagens): respondem vazio. **depende de** esses sistemas.
+- 8255 (batalha em grupo), 8562 (trégua): respondem vazio. **depende de** esses sistemas. 5179 (desistir da mina):
+  feito.
 - Rendimento: prefeitura + minas bate exato com a captura inglesa (#579, #591, #772, #2744); bônus de guilda e efeitos ainda não entram.
 - **dedução**: EXP offline = nível × minutos (até 8 h), arredondamento do bônus da terra melhorada, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto, grau da fazenda do dono × 20 (`oficial_20261023-153200-1` #2228 e #2242; textos ingleses "Tree of the Ancients EXP +1", "Friendliness  +1").
 

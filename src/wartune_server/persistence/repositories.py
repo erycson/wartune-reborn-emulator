@@ -45,6 +45,7 @@ from ..domain.models import (
     SnsProfile,
     Star,
     TreasureCacheOpen,
+    WildLand,
     WildMonsterKill,
     WorldBossFight,
     WorldBossWound,
@@ -461,6 +462,14 @@ class SqlCacheOpenRepository(_Repo):
         await self._s.flush()
 
 
+class SqlWildLandRepository(_Repo):
+    """Minas do mundo ocupadas (de todos os jogadores)."""
+
+    async def held_on(self, map_id: int, cycle_at: datetime) -> list[WildLand]:
+        w: Any = WildLand
+        return list(await self._s.scalars(select(w).where(w.map_id == map_id, w.cycle_at == cycle_at)))
+
+
 class SqlWorldBossRepository(_Repo):
     """Janelas dos chefes do mundo e o dano de cada jogador nelas."""
 
@@ -523,6 +532,7 @@ class SqlAlchemyUnitOfWork:
         self.events = SqlEventStateRepository(self._session)
         self.wild_kills = SqlWildKillRepository(self._session)
         self.cache_opens = SqlCacheOpenRepository(self._session)
+        self.wild_lands = SqlWildLandRepository(self._session)
         self.world_boss = SqlWorldBossRepository(self._session)
         self.pawns = SqlOwnedRepository(self._session, Pawn)
         self.stars = SqlOwnedRepository(self._session, Star)

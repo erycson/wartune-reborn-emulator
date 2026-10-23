@@ -72,7 +72,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] cartas de poder na batalha; dragão; posição em salas e teleporte 8277/8278/8326
 
 ## 12. Castelo e fazenda
-- [ ] pets da fazenda 15044 ops 10-16; offline x1,5/x2 8287; 8255, 8562 trégua, 5179; bônus de guilda no rendimento
+- [ ] pets da fazenda 15044 ops 10-16; offline x1,5/x2 8287; 8255, 8562 trégua; bônus de guilda no rendimento
 
 ## 13. PvP
 - [ ] lordes 8710-8721, lordes casados 8975-8981, campo de guerra 8332-8338, campo de minas 8633, 8635

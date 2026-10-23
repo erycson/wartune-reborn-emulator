@@ -58,7 +58,7 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8211 | cargos | 4137 com os bitmaps | *(visto)* `login.json #116` (só turco: `login`) |
 | 8207 | membros (`isVip`/`vipType` de quem está online, *ponytail* para offline) | 4133 em pedaços | *(visto)* `login.json` (só turco: `login`) |
 | 8210 | eventos | 4136 | `remark` em partes separadas por `|`, montadas pelo tipo do `ConsortiaEventItem` (m6): 3 entrou/saiu/fundou, 1 expulsou, 7 chefia, 9 altar, 11 melhoria; o texto de cada parte é *dedução*; os antigos sem `|` viram tipo 0 (migração 0046) |
-| 8209 | candidaturas e convites do jogador | 4135 | *(cliente)* m2 |
+| 8209 | candidaturas e convites do jogador, a mais nova primeiro; `createDate` e `inviteDate` = dia da candidatura às 00:00:00 | 4135 | *(cliente)* m2; *(visto)* oficial_20261023-171155-1 #4253, #4259 |
 | 5135 | candidatar-se | 35 `{applyId}`; 4266 para quem pode aceitar | *(cliente)* m2 `__joinConsortiaHandler` |
 | 5141 | apagar candidatura | 36 | *(cliente)* m2 |
 | 8214 | candidatos da guilda | 4140, `parameter1` = id da candidatura | *(cliente)* m6 |

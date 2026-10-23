@@ -662,15 +662,18 @@ class TreasureMap:
 
 @dataclass(eq=False)
 class WildLand:
-    """Mina de ouro (``WildLandMsg`` type 20) do mapa do castelo que o personagem ocupou (5160)."""
+    """Mina de ouro (``WildLandMsg`` type 20) que o personagem ocupou (5160): do mapa do castelo ou do mundo."""
 
     character_id: int
-    wild_id: int  # world_mines.id
+    wild_id: int  # world_mines.id ou a gerada (``mines.world_mines_in``)
     occupied_at: datetime
     id: int | None = None
     template_id: int = 0  # nível sorteado no ciclo da ocupação (MapPhysicsTempInfos)
     pos_x: int = 0
     pos_y: int = 0
+    map_id: int = 100  # BASE_MAP; 1 a 5 = mapa do mundo
+    cycle_at: datetime | None = None  # começo do ciclo do mundo (só nos mapas 1 a 5)
+    capacity: int = 0  # poder de quem ocupou, para o 4129 dos outros
 
 
 @dataclass(eq=False)

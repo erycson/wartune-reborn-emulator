@@ -156,7 +156,9 @@ def send_pawn(s: GameSession, pawn: Pawn) -> None:
 async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     """Evolui o tipo para NextLevelTemplateId: custa Daru (UpGrade Types 1) e exige quartel no nível
     seguinte. tutorial_en #2089-#2094: 3, 116, 150 e o 83 "Lancer successfully upgraded to Lvl. 2" (sem 109 nem 112:
-    a missão 101 "Upgrade Lancers" só aparece no 5014, #2179-#2180)."""
+    a missão 101 "Upgrade Lancers" só aparece no 5014, #2179-#2180). Fechando a tarefa do guia de 7 dias (tropa no
+    nível 10), o 4638 vem entre o 116 e o 150 (oficial_20261023-171155-1 #1676-#1682; lá um 3 a mais só com o
+    ``fightingCapacity`` novo, que aqui já vai no primeiro)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None and snap.leader is not None
     found = current_pawn(s, msg.tempateId)
@@ -184,6 +186,9 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
 
     _player(s)
     send_pawn(s, pawn)
+    from .events import refresh_serven  # events importa player, que importa este módulo
+
+    refresh_serven(s)
     _army(s)
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{nxt['PawnName']} successfully upgraded to Lvl. {level}"))
 
