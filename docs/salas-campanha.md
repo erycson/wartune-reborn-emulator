@@ -143,7 +143,8 @@ exército do 5038, diálogo de entrada e o 135), as lutas por nó, os diálogos 
 com o desfecho, as moedas das caixas, os drops com chance, os avisos, os portais e a coleta. O `World` carrega
 tudo uma vez (`world.campaigns` e `world.campaign_cards`). As fontes são as linhas `#N` de `captures/tutorial_en.txt`.
 
-**Etapas.** As etapas são: 1001 = [1011], [1021]; 1002 = [1131 → 1132], [1141 → 1142]; 6001 = [6001].
+**Etapas.** As etapas são: 1001 = [1011], [1021]; 1002 = [1131 → 1132], [1141 → 1142]; 1003 = [1031 → 1032] (migração
+0058, `oficial_20261023-153200-1`); 6001 = [6001].
 
 **Entrada (5039).** O 5039 manda `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}` (o corpo `08 01 10 e9 07` é
 a 1001). A etapa sai do estado do personagem: o `EventState` `campaign_stage:<id>` avança no fim de cada etapa. A
@@ -187,6 +188,11 @@ capturada.
 - só `id`, sem ação (1002): o nó aparece só com o 128, como o portal do 1131 (#2470-#2471).
 
 O 1021 manda o aviso 126 "Defeat all the worgs to remove the obstacle." antes.
+
+**Alavanca (1003).** O Temple Hub 103204 (61, `param4` `103205,0|103207,1`) não tem luta: o 5125 manda 126
+"Successfully open the outer temple." (delay 25), 142 no 103205, 143 DISAPPEARD, 142 no 103207 (75), 128 da
+alavanca DONE, 143 FLICKER, 142 (0, 0) e o 128 do chefe aparecendo (`oficial_20261023-153200-1` #1117-#1126). O
+extrator grava como `switches` o nó com 126 sem drop; `_switch` em `handlers/campaign.py`.
 
 Há um desvio de ordem. No oficial (#1408-#1422), o aviso e os filmes saem antes do 128 do lobo, e o 128 do chefe
 sai depois do 4382. Aqui eles saem depois do 128 e do 83 do drop.
@@ -284,6 +290,7 @@ e o custo é alto para conteúdo que não muda.
 
 - `tests/game/test_rooms_teams.py`: registros de salas e times, sem sessão.
 - `tests/game/test_masmorra_1001.py`: 1001 pela captura inglesa: entrada (125, 140, 21, 127, 130, 143, 138, 3, 83 em inglês), campanha inexistente e a pedreira não entram pelo 5039, estamina, luta do lobo (4382 só no 5035 state 4), Pandora (29 e 4126 na chegada; 4165, 150, 150, 111, 128, 83), baú de 500, chefe travado, 5122/5180 fora do fim, fim do 1011 (137 com `totalGp` 630, 4151, carta 115, 26, 83; 134 no 5180; etapa avança), 1021 (aviso, DISAPPEARD, FLICKER, chefe, Daru 88, etapa volta a 0), 5126, 5038 do banco, missões 70, 80 e 90 jogando a 1001 inteira e o guia depois da 70.
+- `tests/game/test_masmorra_1003.py`: entrada na 1003, portal para o 1032, alavanca (ordem, textos, `extend2`, estados) e o diálogo do chefe.
 - `tests/game/test_masmorra_1002_pedreira.py`: `total_gp` (630, 839), notas das amostras (1, 5, 5, 4) e uma etapa com derrotas, `param4` com e sem ação, portal e fim de mapa; 1002 jogada (tumba com sentinela, portal 125 tipo 3, caixa do caçador com Daru e os nós que fecham, Karlan pelo 5032, fim com 839 e o 4151, 2ª etapa no 1141, tumba com Daru); pedreira (8258, COLLECTION, colheita, 8699 com Wood x18, 5025).
 - `tests/game/test_missoes_masmorra.py`: condições 14, 25, 26, 27 e 31 contra a masmorra (casam o id e não somam, Para1 em lista, chefe pelo template, bolsa com entrega de todas as unidades, cena solo, fim de mapa com o grupo caído e sem `param4`) e os drops por nó (com chance).
 - `tests/game/test_salas_campanha.py`: os 29 opcodes têm handler (e 5025); corpo vazio não derruba a

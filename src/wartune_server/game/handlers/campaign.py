@@ -42,6 +42,7 @@ from ..campaign import (
     PANDORA,
     PET_ISLANDS,
     SECOND_MAP,
+    SHOW,
     CampaignMap,
     StageRun,
     battle_spec,
@@ -709,6 +710,8 @@ async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> No
         _enter_dungeon(s, c.content, int(target), c.run, PORTAL_ENTER)
     elif (plot := c.part("plots", camp)) is not None:
         _send_plot(s, plot)  # Karlan (#2666-#2667, um 138 por 5125); a luta vem no 5032 do fim do diálogo
+    elif (switch := c.part("switches", camp)) is not None and node["state"] == NORMAL:
+        _switch(s, camp, node, switch)
     elif (confirm := _confirm(c, camp)) is not None:
         # (visto) inglesa #1428-#1429, #2397-#2398: 29 e 4126 na posição do nó + 2
         _send(s, S_CONFIRM, ParseDict(confirm, pb.CampaignConfirmMsg()))
@@ -926,6 +929,51 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
         if action == 1:  # FLICKER e 128 com o nó novo: o chefe aparece (tutorial_en #1414, #1422)
             movie = pb.PlayerMovieMsg(movieTargetType=0, targetId=t["nodeId"], movieType="FLICKER", delay=FLICKER_DELAY)
             _send(s, S_MOVIE, movie, extend2=FLICKER_DELAY)
+        _node_update(s, target, NORMAL, fresh=True)
+
+
+SWITCH_CAMERA, SWITCH_DISAPPEAR, SWITCH_SHOW, SWITCH_FLICKER, SWITCH_BACK = 25, 35, 75, 85, 125  # extend2 visto
+
+
+def _switch(s: GameSession, camp: int, node: dict[str, Any], switch: Mapping[str, Any]) -> None:
+    """Alavanca (61 com ``param4`` ``alvo,ação|...``, o Temple Hub da 1032). (visto) oficial_20261023-153200-1
+    #1117-#1126: 126 com o aviso (delay 25), câmera no que some (142), DISAPPEARD, câmera no que aparece, 128 da
+    alavanca DONE (``param1`` 1), FLICKER, câmera de volta (0, 0) e o 128 do nó que aparece."""
+    c = _map(s)
+    notice = pb.CampaignNotifyMsg(id=2, scene=SCENE, mapId=1, body=switch["notice"], delay=SWITCH_CAMERA)
+    _send(s, S_NOTIFY, notice, extend2=SWITCH_CAMERA)
+    actions = [(int(t), int(a or SHOW)) for t, _, a in (x.partition(",") for x in str(node["param4"]).split("|") if x)]
+    shown: list[tuple[int, int]] = []
+    for target, action in actions:
+        t = c.node(target)
+        if t is None:
+            continue
+        if action == 0:
+            camera = pb.PlayerMoveCameraMsg(scene=SCENE, targetX=t["posX"], targetY=t["posY"])
+            _send(s, S_CAMERA, camera, extend2=SWITCH_CAMERA)
+            movie = pb.PlayerMovieMsg(
+                movieTargetType=0, targetId=t["nodeId"], movieType="DISAPPEARD", delay=SWITCH_DISAPPEAR
+            )
+            _send(s, S_MOVIE, movie, extend2=SWITCH_DISAPPEAR)
+            t["state"] = HIDDEN
+        else:
+            shown.append((target, action))
+    for target, _ in shown:
+        t = c.node(target)
+        assert t is not None
+        _send(
+            s, S_CAMERA, pb.PlayerMoveCameraMsg(scene=SCENE, targetX=t["posX"], targetY=t["posY"]), extend2=SWITCH_SHOW
+        )
+    _node_update(s, camp, DONE)
+    for target, action in shown:
+        t = c.node(target)
+        assert t is not None and action in (1, SHOW)
+        if action == SHOW:
+            continue  # só o 128, como o grupo do 1002
+        movie = pb.PlayerMovieMsg(movieTargetType=0, targetId=t["nodeId"], movieType="FLICKER", delay=SWITCH_FLICKER)
+        _send(s, S_MOVIE, movie, extend2=SWITCH_FLICKER)
+    _send(s, S_CAMERA, pb.PlayerMoveCameraMsg(scene=SCENE, targetX=0, targetY=0), extend2=SWITCH_BACK)
+    for target, _ in shown:
         _node_update(s, target, NORMAL, fresh=True)
 
 

@@ -78,6 +78,10 @@ Wood x18 (inglesa #2050-#2066), ganhando ou perdendo.
 
 ## 1003 Temple of Ibalize (Outer) (Lv 11, solo)
 
+Ligada no servidor (migração 0058, `oficial_20261023-153200-1`): etapa 1031 → 1032. A caixa do caçador 103105 deu
+Lvl. 3 Luck Stone (2040103) x1 (aviso sem `x1`, #527). O chefe 103207 não caiu (três derrotas): as cartas do fim
+são *(dedução)* as das 1001/1002 (5 cartas, 5 pagas, preço 0) sorteadas no `Campaigns.Item`.
+
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
 | 1030103 | Martial Helmet | todas | 3 |  |

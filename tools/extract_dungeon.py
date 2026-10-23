@@ -71,6 +71,8 @@ class Names:
             return [self.ids[m.group(2)], int(m.group(1).replace(",", ""))] if m.group(2) in self.ids else None
         if m := re.fullmatch(r"(.+) x(\d+)", body):  # item: "Worg Tooth x2"
             return [self.ids[m.group(1)], int(m.group(2))] if m.group(1) in self.ids else None
+        if body in self.ids:  # item único sem "x1" na caixa do caçador (oficial_20261023-153200-1 #527)
+            return [self.ids[body], 1]
         return None  # "Received: Rage Boost" (buff da Pandora): não é drop
 
 
@@ -86,7 +88,7 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
     maps_of = {int(r["Id"]) for r in templates.find("MapInfos", CampaignId=campaign)}
     out: dict[str, Any] = {
         "campaign": campaign, "stages": [], "maps": {}, "battles": {}, "plots": {}, "chests": {},
-        "confirms": {}, "wins": {}, "drops": {}, "notices": {}, "portals": {}, "collect": {},
+        "confirms": {}, "wins": {}, "drops": {}, "notices": {}, "portals": {}, "collect": {}, "switches": {},
     }  # fmt: skip
     runtime_to_camp: dict[int, int] = {}
     current = 0  # mapa da campanha em que o jogador está (0 = fora)
@@ -216,7 +218,7 @@ def _text(
             out["collect"].setdefault(str(collecting), [drop[0], []])[1].append(drop[1])
         return
     if battle_key:
-        if drop is not None and drop[0] < 0:  # moeda depois da luta da caixa (#2631: 10,000 Daru, 126)
+        if drop is not None and (drop[0] < 0 or code == 126):  # caixa da luta: 126 (#2631 Daru; #527 item)
             out["wins"].setdefault(battle_key, {"drops": [drop], "notify": code == 126})
         elif drop is not None:
             _drop(out, battle_key, drop)
@@ -231,6 +233,10 @@ def _text(
         elif code == 126:  # (visto) #2400: "You've startled a sentinel... begin battle!", e a luta começa
             box.setdefault("notice", text)
         # o 111 da Pandora ("Received: Rage Boost") é o nome do buff sorteado do param3: o servidor monta
+        return
+    if arrived and drop is None and code == 126:
+        # alavanca (61 com ações no param4): o 5125 abre, com aviso (oficial_20261023-153200-1 #1117-#1126)
+        out["switches"].setdefault(str(arrived), {"notice": text})
         return
     if arrived and drop is not None and str(arrived) not in out["chests"]:
         # (visto) #946: baú de ouro com 126 e 83; #1295: só 111 e 83 (o 102104)
