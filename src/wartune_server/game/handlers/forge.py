@@ -118,13 +118,20 @@ async def strengthen(s: GameSession, _: object) -> None:
     quests = rules.quest_event(snap, templates, STRENGTHEN, item.strengthen_grade, 1) if ok else []
     await s.ctx.characters.save(c, *changed, *quests, delete=tuple(gone))
 
+    # o oficial manda o 109 duas vezes antes de tudo, no sucesso e na falha (inglês #219-#220 e #3209-#3210, turco
+    # "atölye item basma ve mozaik" #9-#10); a falha só leva strengResult no 86
+    castle_yield(s)
+    castle_yield(s)
     if luck is not None:
         send(s, S_ITEMS, bag.moved([i for i in changed if i is luck], s.player_id, empty=gone))
-    castle_yield(s)
     if ok or bound:
         send(s, S_ITEMS, bag.moved([item], s.player_id))
-    out = pb.StoreRspMsg(strengResult=ok, strengthenGrade=item.strengthen_grade, pos=0, bagType=BagType.STORE)
-    send(s, S_STRENGTHEN, out)
+    if ok:
+        grade = item.strengthen_grade
+        out = pb.StoreRspMsg(strengResult=True, strengthenGrade=grade, pos=0, objectId=0, bagType=BagType.STORE)
+    else:
+        out = pb.StoreRspMsg(strengResult=False)
+    s.send(S_STRENGTHEN, out)  # como está: o oficial não manda os campos que faltam
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 

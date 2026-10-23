@@ -31,15 +31,20 @@ async def test_strengthen_success_and_failure(tmp_path: Path, monkeypatch: pytes
         monkeypatch.setattr(forge.random, "randint", lambda a, b: 1)
         g.client.send(5150)
         got = await g.until(86)
-        assert codes(got) == [115, 109, 115, 86]
+        assert codes(got) == [109, 109, 115, 115, 86]  # oficial_encantar #219-#223 (com pedra)
         rsp = pb.StoreRspMsg.FromString(got[-1].body)
+        assert (
+            got[-1].body
+            == pb.StoreRspMsg(strengResult=True, strengthenGrade=1, pos=0, objectId=0, bagType=0).SerializeToString()
+        )
         assert (rsp.strengResult, rsp.strengthenGrade, wand.strengthen_grade, luck.count) == (True, 1, 1, 1)
         assert c.gold == 2000 - 522  # 1.5^1 * (2+1) * 1^2.2 * 5 + 500
 
         monkeypatch.setattr(forge.random, "randint", lambda a, b: 101)  # 90% + 10% da pedra: só passa até 100
         g.client.send(5150)
         got = await g.until(86)
-        assert codes(got) == [115, 109, 86] and not pb.StoreRspMsg.FromString(got[-1].body).strengResult
+        assert codes(got) == [109, 109, 115, 86]  # turco "atölye item basma ve mozaik" #9-#12
+        assert got[-1].body == pb.StoreRspMsg(strengResult=False).SerializeToString()
         assert wand.strengthen_grade == 1 and luck not in me(g).items  # a pedra vai mesmo na falha
 
         c.gold = 0
@@ -50,8 +55,8 @@ async def test_strengthen_success_and_failure(tmp_path: Path, monkeypatch: pytes
         c.gold, wand.is_binds = 2000, False
         g.client.send(5150)
         got = await g.until(86)
-        assert codes(got) == [109, 115, 86] and wand.is_binds and wand.strengthen_grade == 1
-        assert pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item.bind
+        assert codes(got) == [109, 109, 115, 86] and wand.is_binds and wand.strengthen_grade == 1
+        assert pb.ItemMovedListMsg.FromString(got[2].body).moved[0].item.bind
 
 
 async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
