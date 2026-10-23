@@ -887,3 +887,13 @@ async def test_derrota_para_monstro_nao_abate_nem_conta(tmp_path: Path, monkeypa
         assert (info.count1, info.count2, info.count3) == (0, 0, 0)
         cycle = monsters.cycle_start(templates, clock.now())
         assert await g.server.services.characters.read(lambda uow: uow.wild_kills.in_cycle(2, cycle)) == set()
+
+
+async def test_voltar_ao_castelo_so_manda_o_4382_com_luta_pendente(tmp_path: Path) -> None:
+    """tutorial_en #576: 4382 depois da luta; #826 e #1128: sem luta, nada (o OuterCityManager quebraria)."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
+        assert 4382 not in [p.code for p in await g.idle()]
+        g.server.online.get(g.user_id).outer_fight_over = True  # type: ignore[union-attr]
+        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
+        assert [p.code for p in await g.idle()].count(4382) == 1

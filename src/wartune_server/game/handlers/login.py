@@ -5,7 +5,7 @@ Sequência (ver ``docs/startup-sequence.md``):
 1. 20001 ``LoginReqMsg`` -> troca de chave, 3841, 3 ``PlayerMsg``, 150 ``ArmyArmyMsg``.
    O primeiro ``PlayerMsg`` dispara LOGIN_SUCCESS e o cliente carrega os recursos.
 2. 8224 com vários flags -> os 10 pacotes que ``LoginInitDataAccept`` espera.
-3. 8224 ``user=true`` -> 112 (missões), 115 (itens, se houver), 4598, 150 e 6 ``LoginStateMsg``;
+3. 8224 ``user=true`` -> 112 (missões), 115 (itens, se houver), 4598, 150, 6 ``LoginStateMsg`` e 4151;
    o cliente escolhe a cena pelo ``noviceProcess`` (>= 19000 vai para o castelo).
 """
 
@@ -254,7 +254,9 @@ async def _login_state(s: GameSession) -> None:
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
-    from . import marriage  # marriage importa este módulo
+    from . import campaign, marriage  # os dois importam este módulo
+
+    _send(s, campaign.S_RANK, campaign.ranks(s))  # tutorial_en #94; sem ele o mapa de campanhas quebra (AreaView)
 
     await marriage.expire(s)  # noivado de mais de 20 dias cai antes do 4657
     if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)

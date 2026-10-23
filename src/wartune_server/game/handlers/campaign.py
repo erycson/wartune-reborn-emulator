@@ -701,7 +701,7 @@ async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> No
         _send(s, S_STANDPOS, pb.StandPosMsg(id=s.player_id, posX=node["posX"] + 2, posY=node["posY"] + 2))
     elif c.battle(camp) is not None and node["masterType"] in (MONSTER, BOSS):
         _start_battle(s, camp)  # o chefe 102109/114206 é masterType 41, não 42
-    elif (chest := c.part("chests", camp)) is not None:
+    elif (chest := _chest(c, camp)) is not None:
         await _gold_chest(s, camp, chest)
 
 
@@ -753,6 +753,23 @@ async def _gold_chest(s: GameSession, camp: int, chest: Mapping[str, Any]) -> No
     _node_update(s, camp, DONE)
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     await s.ctx.characters.save(snap.character)
+
+
+def _chest(c: CampaignMap, camp: int) -> Mapping[str, Any] | None:
+    """O baú de ouro do nó. O baú de bronze do 1011 (101104) nunca foi aberto na captura inglesa: (dedução) vale o
+    de mesmo ``sonType`` de outro mapa (102104, 500 de ouro sem aviso, #1295), como a Pandora em ``_confirm``.
+    """
+    if (own := c.part("chests", camp)) is not None:
+        return own  # type: ignore[no-any-return]
+    node = c.node(camp)
+    if node is None or node["masterType"] != PANDORA:
+        return None
+    for m in (c.content or {}).get("maps", {}).values():
+        for n in m["nodes"]:
+            same = c.part("chests", n["campDataId"])
+            if same is not None and n["sonType"] == node["sonType"]:
+                return same  # type: ignore[no-any-return]
+    return None
 
 
 def _buffs_of(node: Mapping[str, Any]) -> list[int]:
@@ -988,8 +1005,9 @@ def _material(templates: GameTemplates, template_id: int) -> bool:
     return int(row.get("SonType") or 0) == MATERIAL
 
 
-def _ranks(s: GameSession) -> pb.RankListRspMsg:
-    """4151: a melhor nota de cada campanha (``campaign_rank``). (visto) inglesa #2706: 1001 e 1002, na ordem."""
+def ranks(s: GameSession) -> pb.RankListRspMsg:
+    """4151: a melhor nota de cada campanha (``campaign_rank``). (visto) inglesa #2706: 1001 e 1002, na ordem; no
+    login (#94, logo depois do 6) libera os capítulos do mapa de campanhas (``checkCanChoose``)."""
     snap = s.snapshot
     assert snap is not None
     prefix = RANK_KEY.format("")
@@ -1023,7 +1041,7 @@ async def _dungeon_end(s: GameSession) -> None:
     await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, *saved)
     await _push_player(s)
     _send(s, S_REPORT, report)
-    _send(s, S_RANK, _ranks(s))
+    _send(s, S_RANK, ranks(s))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp)))
     cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
     _send(s, S_CARDS, ParseDict(cards, pb.CampaignCardsMsg()))

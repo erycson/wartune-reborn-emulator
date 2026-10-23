@@ -146,6 +146,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
             4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4612, 4497, 295, 363, 364, 190, 4590, 414, 4598, 150, 6,
         ]  # fmt: skip
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
+        assert [p.code for p in await client.until(4151)] == [4151]  # tutorial_en #94: libera o mapa de campanhas
         assert len(server.online) == 1
 
         # segundo login do mesmo personagem derruba o primeiro

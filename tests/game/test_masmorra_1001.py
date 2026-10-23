@@ -204,6 +204,11 @@ async def test_bau_de_ouro_da_500_uma_vez_e_grava(tmp_path: Path) -> None:
         assert await g.idle() == []  # nó DONE: o ouro sai uma vez só
         assert (await characters.snapshot(g.user_id)).character.gold == before + 500
 
+        # baú de bronze do 1011, nunca aberto na captura: (dedução) o do 102104, 500 sem aviso (#1295: 111 e 83)
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=101104, paraBool1=True))
+        assert codes(await g.idle()) == [109, 111, 128, 83]
+        assert (await characters.snapshot(g.user_id)).character.gold == before + 1000
+
 
 def test_chefe_so_aparece_com_o_grupo_caido() -> None:
     camp = CampaignMap.enter_dungeon(content(1001), 1021)
