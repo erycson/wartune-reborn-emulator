@@ -41,7 +41,7 @@ def _send_player(s: GameSession) -> None:
 def _buildings(s: GameSession, only: list[Building]) -> pb.BuildingInfoListMsg:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
-    return b.buildings_msg(snap, snap.castle, s.ctx.templates, only, cs.impose_used(snap.castle, s.ctx.clock.now()))
+    return b.buildings_msg(snap, s.ctx.templates, only, cs.impose_used(snap.castle, s.ctx.clock.now()))
 
 
 def _refuse(s: GameSession, code: int, why: str, **extra: object) -> None:

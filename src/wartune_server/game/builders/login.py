@@ -303,13 +303,14 @@ def system_property(now: datetime, opened_at: datetime) -> pb.SystemPropertyMsg:
 
 def buildings_msg(
     snap: PlayerSnapshot,
-    castle: Castle,
     templates: GameTemplates,
     only: Sequence[Building] | None = None,
     impose_used: int = 0,
 ) -> pb.BuildingInfoListMsg:
     """4154/4130. ``propterty1/2`` do conselho (901) = cobranças usadas/máximo do dia; da casa (1201),
-    o limite de população do nível (o cliente lê daí, ver ``BuildingModel.checkCanAlchemy``)."""
+    o limite de população do nível (o cliente lê daí, ver ``BuildingModel.checkCanAlchemy``). Sem ``castleId``,
+    ``createdDate`` e ``isExist``: o oficial nunca manda (tutorial_en #582, oficial_encantar #32, #1595) e o cliente
+    não lê."""
     msg = pb.BuildingInfoListMsg(result=True)
     for building in snap.buildings if only is None else only:
         row = templates.get("BuildingTempInfos", building.template_id)
@@ -322,9 +323,6 @@ def buildings_msg(
         msg.building.add(
             userId=snap.character.id or 0,
             buildingId=building.id or 0,
-            castleId=castle.id or 0,
-            createdDate=fmt_time(snap.character.created_at),
-            isExist=True,
             templateId=building.template_id,
             sonType=son_type,
             propterty1=p1,

@@ -46,7 +46,10 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         assert pb.CastleYieldMsg.FromString(got[1].body).goldYield == 280 + 140  # conselho 2 + mina 1
         order = pb.OrderInfoMsg.FromString(got[2].body)
         assert (order.orderId, order.orderType, order.remainTime) == (1, 1, 10)
-        assert pb.BuildingInfoListMsg.FromString(got[3].body).building[0].templateId == 90102
+        built = pb.BuildingInfoListMsg.FromString(got[3].body).building[0]
+        assert built.templateId == 90102
+        # oficial_encantar #1595: só userId, buildingId, templateId, sonType e as duas propriedades
+        assert not any(built.HasField(f) for f in ("castleId", "createdDate", "isExist"))
         assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Town Hall has been upgraded to Lvl. 2"
         await g.idle()
 

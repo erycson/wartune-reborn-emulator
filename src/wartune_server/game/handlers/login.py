@@ -177,7 +177,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(
             s,
             S_BUILDINGS,
-            b.buildings_msg(snap, snap.castle, s.ctx.templates, impose_used=castle.impose_used(snap.castle, now)),
+            b.buildings_msg(snap, s.ctx.templates, impose_used=castle.impose_used(snap.castle, now)),
         )
         _send(s, S_BUILD_ORDERS, castle.order_list(snap, now))
         _send(s, S_POLITICS, castle.politics_msg(snap, s.ctx.templates))
