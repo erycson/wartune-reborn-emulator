@@ -188,7 +188,7 @@ async def test_timed_sales_are_sent_in_parts_and_sold_with_a_daily_limit(tmp_pat
     async with logged_in(tmp_path, novice=19000, clock=clock) as g:
         s = g.server.online.get(g.user_id)
         assert s is not None
-        shop.send_offers(s)
+        await shop.send_offers(s)
         parts = [pb.ShopMainRspMsg.FromString(p.body) for p in await g.idle() if p.code == 4238]
         assert [(m.flag, len(m.discountInfo)) for m in parts] == [(13, 50), (13, 3)]
         card = next(d for m in parts for d in m.discountInfo if d.id == VIP_CARD)
@@ -198,9 +198,12 @@ async def test_timed_sales_are_sent_in_parts_and_sold_with_a_daily_limit(tmp_pat
         c.point, c.gift_token = 1000, 1000
         msg = pb.ShopMsg(payType=1)
         msg.buyInfo.CopyFrom(_offer(NOSTALGIC_I))
-        for _ in range(3):
+        for n in range(1, 4):
             g.client.send(5154, msg)
-            assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 1
+            got = await g.until(90)  # o 4375 vai antes do 90 (a resposta da compra sai depois do handler)
+            assert pb.ShopMsg.FromString(got[-1].body).buyInfo.result == 1
+            sold = pb.MainDiscountInfo.FromString(next(p.body for p in got if p.code == 4375))
+            assert (sold.id, sold.currentCount, sold.names) == (NOSTALGIC_I, n, "Nostalgic Times Gift Pack I")
         g.client.send(5154, msg)  # quarto no dia: oneDayCount 3
         assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 6
         assert c.point == 1000 - 3 * 199 and c.gift_token == 1000  # Balens, nunca vinculados
@@ -213,6 +216,10 @@ async def test_timed_sales_are_sent_in_parts_and_sold_with_a_daily_limit(tmp_pat
         has = pb.ShopMsg.FromString((await g.until(4145))[-1].body).hasDataInfo
         assert [(h.itemId, h.counts, h.isDiscount) for h in has] == [(NOSTALGIC_I, 3, True)]
 
+        await shop.send_offers(s)  # o login seguinte já vem com os vendidos
+        again = [pb.ShopMainRspMsg.FromString(p.body) for p in await g.idle() if p.code == 4238]
+        assert next(d.currentCount for m in again for d in m.discountInfo if d.id == NOSTALGIC_I) == 3
+
         msg.buyInfo.goodId = 8230  # Sylph Sepulcrum*10: começa no dia 29
         g.client.send(5154, msg)
         assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 8
@@ -221,3 +228,7 @@ async def test_timed_sales_are_sent_in_parts_and_sold_with_a_daily_limit(tmp_pat
         g.client.send(5154, msg)
         assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 1
         assert ledger(tmp_path)[-1][4:] == ("shop", f"offer:{NOSTALGIC_I} x1")
+        offer = next(o for o in s.ctx.world.settings["shop_offers"]["offers"] if o["id"] == NOSTALGIC_I)
+        offer["maxCount"] = 4  # já vendidas 4: o teto do servidor (canTotalCount) recusa a quinta
+        g.client.send(5154, msg)
+        assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 6

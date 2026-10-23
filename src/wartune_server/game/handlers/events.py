@@ -80,10 +80,10 @@ def fill_player(msg: pb.PlayerMsg, snap: PlayerSnapshot, now: datetime) -> None:
     msg.leedProcess = ev.daily(snap, "leedbox", now).value
 
 
-def login_push(s: GameSession) -> None:
+async def login_push(s: GameSession) -> None:
     """O que o oficial manda no 8224 ``user`` antes do 4598: atividade diária, SumActive, guia."""
     s.online_since = s.ctx.clock.now()
-    shop.send_offers(s)  # 4238 antes do 4428/4434 (oficial_encantar #57-#60)
+    await shop.send_offers(s)  # 4238 antes do 4428/4434 (oficial_encantar #57-#60)
     vip.login_push(s)
     offer.login_push(s)
     _send_leeds(s)

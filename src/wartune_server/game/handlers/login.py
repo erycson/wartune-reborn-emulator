@@ -250,7 +250,7 @@ async def _login_state(s: GameSession) -> None:
     events.send_rate(s)  # 4247 logo depois do 4686 (tutorial_en #44-#45)
     if on := buffs.active(snap, s.ctx.clock.now()):  # (dedução) sem captura de login com pergaminho ativo
         _send(s, S_ITEM_BUFFER, buffs.buffer_list(on, s.ctx.clock.now()))
-    events.login_push(s)
+    await events.login_push(s)
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

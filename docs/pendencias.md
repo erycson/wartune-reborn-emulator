@@ -26,7 +26,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 | Loja misteriosa (ShopType 5): peso `Rands` | 110 | ok: 6 itens (`MysteryShopModel.MAX_GOODS_NUM`) pelo peso `Rands`, a partir do nível 26 |
 | Presente para outro jogador (`receiveId`) | — | recusado. **depende de**: entrega pelo correio na compra |
 | Mochila cheia | — | recusa (o oficial manda pelo correio, resultado 12) |
-| Ofertas por tempo (4238, Timed Sales) | — | ok: `game_settings.shop_offers` (0053, oficial_encantar #57-#58), compra com limite do dia. `currentCount`/4375 não contados (todas têm `maxCount` -1). Rodízio (8632) e compra coletiva (8645): nenhuma oferta `type` 2/3 nas capturas |
+| Ofertas por tempo (4238, Timed Sales) | — | ok: `game_settings.shop_offers` (0053, oficial_encantar #57-#58), compra com limite do dia. `currentCount` = vendidos no servidor, 4375 a todos a cada compra (oficial_encantar #2640-#2666). Rodízio (8632) e compra coletiva (8645): nenhuma oferta `type` 2/3 nas capturas |
 
 Itens fora da loja:
 - Refino da forja (8336): sorteio uniforme entre os 1584 atributos com `Grades` > 0 (visto: os 42 das capturas têm Grades 1–10). Falta o peso por nível: **precisa de captura** 8336 → 4258 com itens de NeedGrades baixo e alto. Pedras por `Profile` e cadeado (208027 ou 45 Balens) já vêm da `RefreshView` inglesa.

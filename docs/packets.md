@@ -278,7 +278,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4371 | 0x1113 | U_C_TIME_JUDGE |  | TimeJudgeMsg |
 | 4372 | 0x1114 | U_C_REFININGSOUL_FRFRESH |  | PlayerRefiningSoulMsg |
 | 4373 | 0x1115 | U_C_TOWERLIST |  | TowerListMsg |
-| 4375 | 0x1117 | U_C_SHOP_DISCOUNT |  | MainDiscountInfo |
+| 4375 | 0x1117 | U_C_SHOP_DISCOUNT | a todos a cada compra de oferta (`currentCount` novo) | MainDiscountInfo |
 | 4376 | 0x1118 | U_C_QUESTION_REPLAY |  | ReplayListMsg |
 | 4377 | 0x1119 | U_C_REQUEST_GUILDCHALLENGE |  | GuildChallengeOrderListMsg |
 | 4379 | 0x111B | U_C_REQUEST_GUILDLIST |  | GuildChallengeOrderListMsg |

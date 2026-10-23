@@ -247,8 +247,9 @@ Os outros gastos de Balens passam por `services/ledger.pay` (vinculado primeiro 
 - Guilda: preço em `ConsortiaOffer`, `NeedConsortiaLevels`, itens 203/8.
 - VIP: `NeedMinVip`, limites `VIP1Count`..`VIP6Count`, itens 203/12.
 - Ofertas por tempo (4238): feitas (`game_settings.shop_offers`, migração 0053, 53 ofertas de oficial_encantar #57-#58).
-  Faltam: `currentCount` (vendidos no servidor) e o 4375 que o atualiza (#1312), porque todas têm `maxCount` -1;
-  rodízio (`type` 2, 8632) e compra coletiva (`type` 3, 8645) sem nenhuma oferta desses tipos.
+  `currentCount` = unidades vendidas neste servidor (`purchases` `source` `offer`), no login e no 4375 que vai a
+  todos a cada compra, com a oferta inteira (visto: oficial_encantar #2640-#2666, compras de outros jogadores); o
+  `maxCount` (-1 em todas) limita o total. Faltam o rodízio (`type` 2, 8632) e compra coletiva (`type` 3, 8645) sem nenhuma oferta desses tipos.
 - Conquistas: títulos (8597).
 - Casamento: `saveBook` (8595) com as roupas do `MarryQualityTempInfo`.
 - Campanha em grupo: o gasto da entrada (4240), ver [salas-campanha.md](salas-campanha.md).

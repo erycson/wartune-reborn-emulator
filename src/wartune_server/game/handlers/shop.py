@@ -32,7 +32,7 @@ from .tower import MAZE_MAX_INDEX
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
 S_SHOP_BUY, S_HAS_BUY, S_FASHION_BUY, S_BLOOD = 90, 4145, 4486, 170
 S_FLASH_FRESH, S_BUY_COUNT, S_MYSTERY_BUY, S_MYSTERY_LIST, S_APPELLS = 4547, 4599, 4383, 4384, 4484
-S_OFFERS = 4238
+S_OFFERS, S_OFFER = 4238, 4375
 OFFERS_PER_MSG = 50  # o oficial parte em 50 + 3 com o mesmo flag (oficial_encantar #57-#58); o cliente junta
 
 # BuyInfo.result (ShopManager.shopingResult)
@@ -254,16 +254,23 @@ def offer_key(offer_id: int) -> int:
     return -offer_id
 
 
-def send_offers(s: GameSession) -> None:
+async def _sold(s: GameSession) -> dict[int, int]:
+    snap = s.snapshot
+    assert snap is not None
+    server = snap.character.server_id
+    return await s.ctx.characters.read(lambda uow: uow.characters.offers_sold(server))
+
+
+async def send_offers(s: GameSession) -> None:
     """4238 no login (8224 ``user``; o oficial manda dois pares, #57-#58 e #84-#85, e o cliente refaz a lista igual).
     Mesmo ``flag`` em todas as partes: ``ShopManager.__shopHandler`` (cliente inglês) junta as partes de flag igual e
-    recomeça a lista quando ele muda."""
+    recomeça a lista quando ele muda. ``currentCount`` = vendidos neste servidor (o do oficial é o dele)."""
     cfg = s.ctx.world.settings.get("shop_offers") or {}
-    live = offers(s)
+    live, sold = offers(s), await _sold(s)
     for i in range(0, max(len(live), 1), OFFERS_PER_MSG):
         msg = pb.ShopMainRspMsg(flag=int(cfg.get("flag", 0)))
         for o in live[i : i + OFFERS_PER_MSG]:
-            msg.discountInfo.add(**o)
+            msg.discountInfo.add(**o, currentCount=sold.get(int(o["id"]), 0))
         send(s, S_OFFERS, msg)
 
 
@@ -287,8 +294,9 @@ async def buy_offer(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     one_day = int(offer.get("oneDayCount", -1))
     if one_day != -1 and today_count(snap, offer_key(info.goodId), now) + info.count > one_day:
         return LIMIT
-    # shortcut: o currentCount (vendidos no servidor) não é contado; todas as ofertas do 0053 têm maxCount -1, que o
-    # cliente não limita (canTotalCount). Contar e mandar o 4375 (#1312) quando vier uma oferta com maxCount.
+    sold = (await _sold(s)).get(info.goodId, 0)
+    if int(offer.get("maxCount", -1)) != -1 and sold + info.count > int(offer["maxCount"]):
+        return LIMIT  # MainShopInfo.canTotalCount; todas as do 0053 têm -1
     goods = [(tid, n * info.count) for _, tid, n in offer_goods(offer)]
     if not bag.fits(snap, templates, goods, now, binds=False):
         return FAIL
@@ -309,6 +317,8 @@ async def buy_offer(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
     alert(s, f"{offer['names']} x{info.count} purchased successfully!")  # mesmo texto deduzido da loja comum
+    # 4375 para todos: a oferta inteira com o currentCount novo (oficial_encantar #2640-#2666, compras de outros)
+    s.ctx.online.broadcast(S_OFFER, b.complete(pb.MainDiscountInfo(**offer, currentCount=sold + info.count)))
     return OK
 
 

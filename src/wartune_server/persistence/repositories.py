@@ -39,6 +39,7 @@ from ..domain.models import (
     Pet,
     PlayerSystems,
     PlayTicket,
+    Purchase,
     Quest,
     Relation,
     SnsProfile,
@@ -142,6 +143,17 @@ class SqlCharacterRepository(_Repo):
             c.character_id == character_id, c.reason == "recharge", c.created_at >= since, c.created_at <= until
         )
         return int(await self._s.scalar(query) or 0)
+
+    async def offers_sold(self, server_id: int) -> dict[int, int]:
+        """Unidades vendidas por oferta (``purchases`` ``source`` ``offer``) entre os personagens do servidor."""
+        p: Any = Purchase
+        query = (
+            select(p.good_id, func.sum(p.count))
+            .join(Character, Character.id == p.character_id)
+            .where(p.source == "offer", Character.server_id == server_id)  # type: ignore[arg-type]
+            .group_by(p.good_id)
+        )
+        return {int(good): int(n) for good, n in await self._s.execute(query)}
 
     async def nickname_taken(self, server_id: int, nickname: str) -> bool:
         stmt = select(
