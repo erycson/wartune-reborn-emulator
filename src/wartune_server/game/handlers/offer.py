@@ -17,7 +17,6 @@ from ..builders import login as b
 from ..router import router
 from ..session import GameSession
 from .player import S_ITEMS, alert, granted
-from .vip import has_contract
 
 S_REWARD, S_FRESH, S_COUNT = 4198, 4197, 4360
 S_RING, S_RING_SUM = 4614, 4616
@@ -200,7 +199,7 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
         for t, k in ((rewards.EXP, "RewardPlayGP"), (-100, "RewardGold"), (-300, "RewardStrategy"))
         if row and int(row[k])
     ]
-    if row is None or not msg.isPass or not has_contract(snap, PASS_CONTRACT, now):
+    if row is None or not msg.isPass or not ev.has_contract(snap, PASS_CONTRACT, now):
         # ponytail: as condições (RewardCondictionInfos: capturar NPC, missões, etc.) dependem de
         # outros sistemas que ainda não avisam; sem o contrato não há como terminar
         s.log.info("8291 recusado", tarefa=msg.templateId, passe=msg.isPass)

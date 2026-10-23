@@ -37,6 +37,17 @@ def peek(snap: PlayerSnapshot, key: str) -> EventState | None:
     return next((e for e in snap.events if e.key == key), None)
 
 
+def contract_end(snap: PlayerSnapshot, cid: int) -> datetime | None:
+    """Fim do contrato do rei ``cid`` (KingContracts), guardado em ``king:{cid}``; ``None`` se nunca comprado."""
+    st = peek(snap, f"king:{cid}")
+    return parse_time(st.text) if st and st.text else None
+
+
+def has_contract(snap: PlayerSnapshot, cid: int, now: datetime) -> bool:
+    end = contract_end(snap, cid)
+    return end is not None and end > now
+
+
 def daily(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
     """Como ``state``, mas zera ``value``/``text`` se a última mudança foi em outro dia."""
     st = state(snap, key, now)

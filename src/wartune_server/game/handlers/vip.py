@@ -350,16 +350,6 @@ async def vip_custom(s: GameSession, _: object) -> None:
 # ---------------------------------------------------------------- contrato do rei (8540)
 
 
-def _king_end(snap: PlayerSnapshot, cid: int) -> datetime | None:
-    st = ev.peek(snap, f"king:{cid}")
-    return ev.parse_time(st.text) if st and st.text else None
-
-
-def has_contract(snap: PlayerSnapshot, cid: int, now: datetime) -> bool:
-    end = _king_end(snap, cid)
-    return end is not None and end > now
-
-
 def send_king(s: GameSession) -> None:
     """Só os contratos já comprados: (visto) tutorial_en #10-#11, conta nova = 4434 vazio; (cliente)
     KingContractInfo.endData null = sem contrato (leftTime -1)."""
@@ -368,7 +358,7 @@ def send_king(s: GameSession) -> None:
     msg = pb.KingContractMsg()
     for row in s.ctx.templates.rows("KingContracts"):
         cid = int(row["Id"])
-        if (end := _king_end(snap, cid)) is not None:
+        if (end := ev.contract_end(snap, cid)) is not None:
             msg.kingContractInfos.add(contractId=cid, endData=b.fmt_time(end))
     s.send(S_KING, msg)
 
@@ -383,7 +373,7 @@ async def king_contract(s: GameSession, msg: pb.KingContractBuyMsg) -> None:
     rows = {int(r["Id"]): r for r in s.ctx.templates.rows("KingContracts")}
     if getattr(msg, "__use"):
         day = ev.daily(snap, "king:fetch", now)
-        if not has_contract(snap, KING_BUFF_FROM, now) or day.value or KING_BUFF not in rows:
+        if not ev.has_contract(snap, KING_BUFF_FROM, now) or day.value or KING_BUFF not in rows:
             s.log.info("8540 buff recusado")
             return
         st = ev.state(snap, f"king:{KING_BUFF}", now)
@@ -407,7 +397,7 @@ async def king_contract(s: GameSession, msg: pb.KingContractBuyMsg) -> None:
     changed = []
     for i in ids:
         st = ev.state(snap, f"king:{i}", now)
-        start = max(now, _king_end(snap, i) or now)  # renovar soma ao que falta
+        start = max(now, ev.contract_end(snap, i) or now)  # renovar soma ao que falta
         st.text, st.updated_at = b.fmt_time(start + timedelta(minutes=int(rows[i]["Duration"]))), now
         changed.append(st)
     await s.ctx.characters.save(snap.character, spent, *changed)

@@ -22,6 +22,7 @@ from ..domain.models import (
 )
 from ..templates.repository import GameTemplates, Row
 from . import buffs
+from . import events as ev
 from .builders.login import QUEST_SITE_LEN, HeroStats, hero_hp
 
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
@@ -187,16 +188,21 @@ STAR_ATTRS |= {"MagicDefence", "ForceHit", "Parry", "Live", "Conat"}
 
 
 FREE_HEAL_GRADE = 10  # (cliente) BaseManager.showAlertTip: o aviso de vida sem poção só a partir do nível 10
+HEALING_CONTRACT = 3  # KingContracts 3 "Power of Healing": "HP Packs won't be consumed when you restore HP."
 
 
 def heal_hero(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> int:
     """A reserva das poções (``blood``) completa a vida do líder; devolve quanto gastou. (visto)
     oficial_20261023-153200-1: 529 depois de cada derrota (#804, #1320, #1445, #1896: 9471 -> 7884) e 120 ao vestir
-    um item que sobe a vida máxima (#2185)."""
+    um item que sobe a vida máxima (#2185). Com o contrato Power of Healing a vida enche sem gastar a reserva
+    (texto do template; *dedução*: o 83 "Used HP pack" continua indo)."""
     leader = snap.leader
     assert leader is not None
     live = leader_stats(snap, templates, now).live
     hp = hero_hp(leader, live)
+    if ev.has_contract(snap, HEALING_CONTRACT, now):
+        leader.hp = live
+        return live - hp
     use = min(leader.blood, live - hp)
     leader.blood -= use
     leader.hp = hp + use

@@ -5,6 +5,7 @@ Ordem e textos de ``captures/oficial_20261023-153200-1.json``; conteúdo da migr
 
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,9 @@ from tests.game.test_masmorra_1001 import back_to_map, codes, enter, fast_battle
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import Pawn
 from wartune_server.game import battle as battle_mod
+from wartune_server.game import events as ev
+from wartune_server.game import rules
+from wartune_server.game.builders import login as b
 from wartune_server.game.campaign import DONE, HIDDEN, NORMAL
 from wartune_server.game.handlers import campaign as handlers
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -91,3 +95,10 @@ async def test_derrota_paga_o_daru_das_tropas_e_conta_o_failcount(
                 assert codes(got)[codes(got).index(4103) + 1] == 83 and texts[0] == "Used HP pack to restore HP."
                 assert snap.leader.hp > 1 and snap.leader.blood == 100_000 - (snap.leader.hp - 1)
         assert snap.character.strategy == strategy + 250
+
+        now = session.ctx.clock.now()  # Power of Healing (KingContracts 3): a vida enche sem gastar a reserva
+        ev.state(snap, f"king:{rules.HEALING_CONTRACT}", now).text = b.fmt_time(now + timedelta(days=1))
+        snap.leader.hp, blood = 1, snap.leader.blood
+        live = rules.leader_stats(snap, session.ctx.templates, now).live
+        assert rules.heal_hero(snap, session.ctx.templates, now) == live - 1
+        assert (snap.leader.hp, snap.leader.blood) == (live, blood)

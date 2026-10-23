@@ -186,6 +186,16 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 | 8756 | só registro (atendimento QQ) | (cliente) |
 | 8540 | compra `ids` (`NeedPoint` cada; os seis por `All_KingContract`=1295), só diamante, renova somando 31 dias; `__use` com o contrato 6 ativa o 7 (30 min) uma vez por dia; 3 + 4434 | (cliente) KingContractFrame |
 
+- Contrato do rei = "Spirit Covenant" na tela inglesa (os seis por 1295, `All_KingContract`). Efeitos
+  (`KingContracts`, `events.has_contract`):
+  - 1 Pocket Market: só o cliente (abre o mercado de qualquer lugar).
+  - 2 Bounty Helper: a tarefa do painel de recompensas termina na hora (`offer.py`, `PASS_CONTRACT`).
+  - 3 Power of Healing: a vida do herói enche sem gastar a reserva das poções (`rules.heal_hero`,
+    `HEALING_CONTRACT`; *dedução*: o 83 "Used HP pack to restore HP." continua indo).
+  - 4 Lord of Time: **depende de** o gancho (Altar of Ennoblement) existir; hoje não há aceleração para cobrar.
+  - 5 Free Blitz: **depende de** a varredura (8528) existir; hoje ela só registra.
+  - 6 Attribute Boost: dá o buff 7 (30 min, uma vez por dia, "Retrieve Buff"); os +10% nas masmorras ainda **não
+    entram** na batalha.
 - Nível VIP: `UpGradeTempInfos` `Types=4` (Data = vipGp acumulado).
 - ponytail: o vipGp do período (`Vip_DailyAddGp` x dias) entra todo na compra.
 - ponytail: presentear VIP/contrato a um amigo é recusado (exige gravar outro personagem).
