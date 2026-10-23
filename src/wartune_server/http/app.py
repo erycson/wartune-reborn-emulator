@@ -14,6 +14,7 @@ Formatos conferidos no cliente decompilado:
 from __future__ import annotations
 
 import hmac
+import re
 import zlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -85,6 +86,7 @@ class GameHttpApi:
         r.add_post("/maillist", self.mail_list)  # EmailManager.getMailList
         r.add_route("*", "/nicknamecheck", self.nickname_check)  # RenameView, antes do 8345
         r.add_post("/questionreplaylist", self.empty_list)  # CustomerServiceManager: respostas do suporte
+        r.add_get("/images/{tail:.+}", self.images)  # ShopManager: ícones das ofertas (4238 ``url``)
         if self._d.settings.gm_secret:  # sem segredo a rota nem existe (a porta é pública)
             r.add_post("/gm/kick", self.gm_kick)
             r.add_post("/gm/ban", self.gm_ban)
@@ -236,6 +238,12 @@ class GameHttpApi:
             lambda uow: uow.characters.nickname_taken(self._d.settings.server_id, nick)
         )
         return xml_result(not taken, NAME_TAKEN if taken else "")
+
+    async def images(self, request: web.Request) -> web.Response:
+        """O oficial serve ``images/`` no mesmo host do REQUEST_PATH; aqui o arquivo é do espelho do s134
+        (``site_url``). O que faltar lá vira 404 do Apache, que o ``download.php`` (``jobs_404``) baixa."""
+        tail = re.sub("/+", "/", request.match_info["tail"]).lstrip("/")  # o 4238 manda shop//726.png
+        raise web.HTTPFound(self._d.settings.site_url.rstrip("/") + "/images/" + tail)
 
     async def empty_list(self, _: web.Request) -> web.Response:
         # o cliente faz ByteArray.uncompress() no corpo: o XML vai em zlib

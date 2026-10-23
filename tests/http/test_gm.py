@@ -35,3 +35,15 @@ async def test_gm_route_off_without_secret(tmp_path: Path) -> None:
             assert (await http.post("/gm/kick", data={"character_id": g.user_id})).status == 404
         finally:
             await http.close()
+
+
+async def test_images_redirect_to_the_game_site(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        http = TestClient(TestServer(g.server.http_app))
+        await http.start_server()
+        try:
+            r = await http.get("/images/shop//726.png", allow_redirects=False)
+            assert r.status == 302
+            assert r.headers["Location"] == g.server.settings.site_url + "images/shop/726.png"
+        finally:
+            await http.close()

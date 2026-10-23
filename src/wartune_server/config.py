@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # pasta xml/ do site do jogo (TEMPLATE_PATH, ex.: D:/xampp/htdocs/wartune-reborn/game/xml): o servidor grava ali o
     # challengeorder.xml do ranking do coliseu a cada ranking_seconds. Vazio: não grava (fica o arquivo do espelho)
     ranking_xml_dir: Path | None = None
+    # site do jogo (o game_url do portal: espelho do s134 no Apache). O cliente pede imagens como
+    # images/shop/726.png (ícones das ofertas do 4238) em REQUEST_PATH; o servidor redireciona para cá
+    site_url: str = "http://127.0.0.1:8090/wartune-reborn/game/"
     ranking_seconds: int = 3600
 
     log_dir: Path = Path("logs")
