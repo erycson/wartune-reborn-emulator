@@ -102,3 +102,18 @@ async def test_derrota_paga_o_daru_das_tropas_e_conta_o_failcount(
         live = rules.leader_stats(snap, session.ctx.templates, now).live
         assert rules.heal_hero(snap, session.ctx.templates, now) == live - 1
         assert (snap.leader.hp, snap.leader.blood) == (live, blood)
+
+
+async def test_buff_do_contrato_7_soma_10_por_cento_na_masmorra(tmp_path: Path) -> None:
+    """KingContracts 7 (Attribute Boost): +10% de vida, ataques, defesas e tropa só nas masmorras."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None and session.snapshot.leader is not None
+        snap, now = session.snapshot, session.ctx.clock.now()
+        live = rules.leader_stats(snap, session.ctx.templates, now).live
+        ev.state(snap, f"king:{rules.BOOST_CONTRACT}", now).text = b.fmt_time(now + timedelta(minutes=30))
+        await enter(g, 1003)
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=103102, paraBool1=True))
+        prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+        hero = next(h for h in prepare.heros if h.userId == g.user_id)
+        assert (hero.maxHp, hero.hp) == (live * 110 // 100, live * 110 // 100)

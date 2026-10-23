@@ -180,8 +180,7 @@ Outros eventos:
 - Canal de time (6) no chat: recusado.
 - ~~VIP ignorado em limite de amigos e 5172 índice 0~~ **feito** pelo cliente (`VIPModel.vipFriendPrivilege`/`vipCoolPrivilege`). Cota de cornetas: `game_settings.vip_bugle_bonus` (0036), padrão 0 = **sem fonte**; **falta captura** do 8705 → 4500 de uma conta VIP (ver chat.md).
 - Presente do contrato do rei para amigo (8540): recusado (gravar outro personagem). O do VIP (8513) o inglês não manda.
-- Contrato do rei: Lord of Time (4) depende do gancho, Free Blitz (5) da varredura 8528, e o buff 7 (+10% nas
-  masmorras) ainda não entra na batalha ([eventos.md](eventos.md#vip-e-contrato-do-rei)).
+- Contrato do rei: Lord of Time (4) depende do gancho, Free Blitz (5) da varredura 8528 ([eventos.md](eventos.md#vip-e-contrato-do-rei)).
 - ~~Mochila de 42 espaços base em coliseu, fazenda, caixa por tempo, correio e `rewards.can_grant`~~ **feito**: todos usam `bag.free_positions` (`bag.capacity`: 42 + comprados, 217 alugada).
 
 ## Oráculo do tutorial e protocolo

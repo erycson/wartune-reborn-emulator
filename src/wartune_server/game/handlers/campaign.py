@@ -23,7 +23,7 @@ from ...protocol.registry import Direction
 from ...templates.repository import GameTemplates
 from .. import bag, buffs, drops, events, outer_city, rewards, rules, space
 from .. import campaign as cm
-from ..battle import Battle, PlayerHero
+from ..battle import STATS, Battle, PlayerHero
 from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import item_moved, quest_update
@@ -346,11 +346,31 @@ async def _leave_campaign(s: GameSession) -> None:
 # -- batalha -----------------------------------------------------------------------------------
 
 
-def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
+def boosted(s: GameSession) -> bool:
+    """O buff do contrato 7 vale nesta luta: masmorra, Catacombs ou Necropolis (``rules.BOOST_TYPES``)."""
+    c, snap = s.campaign, s.snapshot
+    if c is None or c.run is None or snap is None:
+        return False
+    kind = int(_campaign_row(s, c.run.campaign_id).get("Types") or -1)
+    return kind in rules.BOOST_TYPES and events.has_contract(snap, rules.BOOST_CONTRACT, s.ctx.clock.now())
+
+
+def _boost(value: int) -> int:
+    return value * (100 + rules.BOOST_PCT) // 100
+
+
+def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) -> PlayerHero:
+    """``boost``: o buff do contrato 7 (+10% nos ataques, defesas, vida e tropa; ``boosted``). (dedução) a vida
+    atual ganha o mesmo tanto que a máxima."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     leader = snap.leader
     stats = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now())
+    total, live = dict(stats.total), stats.live
+    hp = b.hero_hp(leader, live)
+    if boost:
+        total.update({k: _boost(int(total.get(k, 0))) for k in STATS})
+        live, hp = _boost(live), hp + _boost(live) - live
     tpl_row = s.ctx.templates.get("GameHeroTemp", leader.template_id) or {}
     player = spec["player"]
     assert isinstance(player, dict)
@@ -365,9 +385,9 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
         grade=leader.grades,
         side=1,
         pos=player["pos"],
-        maxHp=stats.live,
-        initHp=b.hero_hp(leader, stats.live),
-        hp=b.hero_hp(leader, stats.live),
+        maxHp=live,
+        initHp=hp,
+        hp=hp,
         hp2=0,
         sp=s.hero_sp,
         slotAvata=rules.arm_avatar(snap, s.ctx.templates),
@@ -398,9 +418,12 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
     runes = rune_skills(leader.rune_key, s.ctx.templates)
     msg.skillId.extend(runes)
     army, _ = outer_city.army_soldiers(snap, s.ctx.templates)
+    if boost:
+        for unit in army:
+            unit["initHp"] = unit["hp"] = _boost(int(str(unit["hp"])))
     return PlayerHero(
         msg,
-        stats.total,
+        total,
         int(tpl_row.get("DefaultSkill", 0)),
         passives=passive_skills(snap, s.ctx.templates),
         army=tuple(army),
@@ -444,7 +467,13 @@ def _start_battle(s: GameSession, camp: int) -> None:
         await _battle_over(s, battle, camp, won)
 
     s.battle = Battle(
-        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+        spec,
+        player_hero(s, spec, boosted(s)),
+        s.ctx.templates,
+        s.ctx.clock,
+        s.send,
+        finished,
+        settings=s.ctx.world.settings,
     )
     s.log.info("batalha", nó=camp, battle=s.battle.id)
     s.battle.start()
@@ -467,7 +496,13 @@ async def special_boss(s: GameSession, _: object) -> None:
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
 
     s.battle = Battle(
-        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+        spec,
+        player_hero(s, spec, boosted(s)),
+        s.ctx.templates,
+        s.ctx.clock,
+        s.send,
+        finished,
+        settings=s.ctx.world.settings,
     )
     s.log.info("batalha do chefe", battle=s.battle.id)
     s.battle.start()
@@ -1214,7 +1249,13 @@ async def quarry_fight(s: GameSession) -> bool:
         await _quarry_over(s, battle, won)
 
     s.battle = Battle(
-        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+        spec,
+        player_hero(s, spec, boosted(s)),
+        s.ctx.templates,
+        s.ctx.clock,
+        s.send,
+        finished,
+        settings=s.ctx.world.settings,
     )
     s.log.info("batalha da pedreira", battle=s.battle.id)
     s.battle.start()

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from ...domain.models import Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
-from .. import bag, rewards
+from .. import bag, rewards, rules
 from .. import events as ev
 from .. import guild as gd
 from ..builders import login as b
@@ -31,7 +31,7 @@ VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2)
 ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (só turco: login.json #9; o tutorial_en não manda o 4224)
 ALCHEMY_GRADE = 14  # MainToolBar: o cliente pede o 8320 de novo ao chegar no nível 14
 MAX_COST = 200  # AlchemyFrame/SoulMakeFrame: o 1º uso do dia é grátis, depois 40 + 10 x usos, no máximo 200
-KING_BUFF, KING_BUFF_FROM = 7, 6  # contrato 6 dá o buff 7 (30 min) uma vez por dia (KingContractFrame)
+KING_BUFF, KING_BUFF_FROM = rules.BOOST_CONTRACT, 6  # o 6 dá o buff 7 (30 min) 1x por dia (KingContractFrame)
 KING_ALL = (1, 2, 3, 4, 5, 6)  # "comprar todos" = All_KingContract
 S_VIP_FIRST, S_WHEEL_RESULT = 4539, 4415
 S_GUILD_VIP = 4455  # VipToConsortiaMsg (U_C_CONSORTIA_VIP)
