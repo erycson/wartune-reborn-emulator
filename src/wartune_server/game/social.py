@@ -148,6 +148,7 @@ def friend_grade(ctx: GameContext, r: Relation) -> int:
 def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | None = None) -> pb.FriendInfoMsg:
     """78 / 165 (``FriendManager.readFriendInfo``)."""
     state = state_of(ctx, c.id or 0)
+    guild = ctx.guilds.of(c.id or 0)
     return b.complete(
         pb.FriendInfoMsg(
             userId=c.id,
@@ -164,6 +165,8 @@ def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | Non
             fightCapacity=c.fighting_capacity,
             job=c.job,
             groupId=r.group_id,
+            consortiaId=guild[0].id if guild else 0,  # oficial_encantar #1777: a guilda do outro
+            consortiaName=guild[0].name if guild else "",
             snsInfo=sns_info(c, p),
             chatState=state,
         )
@@ -212,6 +215,9 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
     )
 
 
-def player_link(c: Character) -> str:
-    """Link de jogador no chat (``<a t="1" .../>``), como no 83 oficial do pedido de amizade."""
-    return f'<a t="1" id="{c.id}" name="{c.nickname}" consortiaId="0" serverName="" grades="0" />'
+def player_link(ctx: GameContext, c: Character) -> str:
+    """Link de jogador no chat (``<a t="1" .../>``), como no 83 oficial do pedido de amizade (oficial_encantar #1779:
+    ``consortiaId`` é a guilda do jogador; ``grades`` vai 0)."""
+    guild = ctx.guilds.of(c.id or 0)
+    gid = guild[0].id if guild else 0
+    return f'<a t="1" id="{c.id}" name="{c.nickname}" consortiaId="{gid}" serverName="" grades="0" />'

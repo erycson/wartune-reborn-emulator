@@ -45,6 +45,30 @@ async def test_friend_request_accept_and_login_logout_notice(tmp_path: Path) -> 
         assert friends == [] or friends[-1].maxPage == 1
 
 
+async def test_friend_request_texts_follow_the_english_official(tmp_path: Path) -> None:
+    """oficial_encantar #1777-#1779 (pedido) e #1792-#1793 (o outro aceitou)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        for g in (a, b):
+            _session(g).snapshot.character.grades = 40  # type: ignore[union-attr]
+        link = f'<a t="1" id="{b.user_id}" name="Bruxa" consortiaId="0" serverName="" grades="0" />'
+        a.client.send(15003, pb.FriendRelationMsg(nickName="Bruxa", relation=1))
+        got = await a.until(83)
+        assert [p.code for p in got][-3:] == [78, 111, 83]
+        assert _bodies(got, 78, pb.FriendInfoMsg)[0].relation == RelationType.PENDING
+        alert = _bodies(got, 111, pb.ChatChannelMsg)[0]
+        assert (alert.channel, alert.encodeMsg) == (111, "Added successfully, awaiting the other player's response.")
+        assert _bodies(got, 83, pb.ChatChannelMsg)[0].encodeMsg == f"You added a new friend: {link}."
+
+        await b.until(84)
+        b.client.send(15003, pb.FriendRelationMsg(nickName="Maga", relation=1))
+        got = await a.until(83)
+        assert [p.code for p in got] == [165, 83]
+        assert _bodies(got, 165, pb.FriendInfoMsg)[0].relation == RelationType.FRIEND
+        text = _bodies(got, 83, pb.ChatChannelMsg)[0].encodeMsg
+        assert text == f"{link} has added you to his/her friends list."
+
+
 async def test_blacklist_hides_private_chat(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as a:
         b = await a.join("bruxa")

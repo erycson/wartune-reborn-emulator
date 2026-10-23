@@ -71,8 +71,10 @@ FULL = {
     RelationType.FRIEND: "Friend number limit has been reached.",  # FriendManager.command02
     RelationType.BLACKLIST: "Your Blacklist number has reached 50, delete some of them before adding more.",  # content
 }
-# texto deduzido (sem fonte no cliente/captura)
-WAITING, ADDED = "Added, waiting for a reply.", "You have added a new friend"  # só turco: arkadas_istegi_gonderme #2-3
+# oficial_encantar #1778 (111 no canal 111), #1779 e #1793 (83 no canal 3)
+WAITING = "Added successfully, awaiting the other player's response."
+ADDED, ADDED_YOU = "You added a new friend: {}.", "{} has added you to his/her friends list."
+WAITING_CHANNEL = 111
 
 
 def _fail(s: GameSession, text: str) -> None:
@@ -134,13 +136,16 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
     other = s.ctx.online.get(target.id)
     if theirs in changed and other is not None and theirs is not None:
         other.send(S_UPDATE, social.friend_info(s.ctx, me, theirs, snap.sns))
+        if theirs.relation == RelationType.FRIEND:  # aceitou: 165 e o aviso, como em #1792-#1793
+            text = ADDED_YOU.format(social.player_link(s.ctx, me))
+            other.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
     if mine.relation == RelationType.BLACKLIST:
         return
     if mine.relation == RelationType.PENDING:
-        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=WAITING))
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=WAITING_CHANNEL, encodeMsg=WAITING))
         if other is not None and not social.blocks(other, me.id or 0):
             other.send(S_REQUEST, b.complete(pb.FriendRelationMsg(otherId=me.id, nickName=me.nickname or "")))
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=ADDED + social.player_link(target)))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=ADDED.format(social.player_link(s.ctx, target))))
 
 
 @router.on(15003)

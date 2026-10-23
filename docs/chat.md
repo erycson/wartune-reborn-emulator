@@ -87,8 +87,8 @@ convidar, 5143/5134 convites e candidaturas, 5132 expulsar, 8207 membros, 8212 i
 | 15042 | busca | 160 / 161 | amigo entrou / saiu |
 | | | 4156 | lista paginada `relationList[]` (hoje vai vazia no login) |
 
-*(visto)* `arkadas_istegi_gonderme.json` 1–3: 78 com `relation:3` (pendente), 111 "Eklendi,
-yanıtını bekleyin", 83 canal 3 (só turco: `arkadas_istegi_gonderme`). `login.json #68/#79`: 4156 em 2 páginas,
+*(visto)* oficial_encantar #1777-#1779: 78 com `relation:3` (pendente), 111 no canal 111 "Added successfully, awaiting
+the other player's response.", 83 canal 3 "You added a new friend: {link}." (o turco `arkadas_istegi_gonderme` 1–3 tem a mesma ordem). `login.json #68/#79`: 4156 em 2 páginas,
 relations 1 e 3 (só turco: `login`, conta com amigos; na inglesa #61 a lista vazia vai `{maxPage: 0, curPage: 0}`).
 
 ## Correio e guilda

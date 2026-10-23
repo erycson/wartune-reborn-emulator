@@ -32,7 +32,7 @@ no lado dele até eu mandar 15003 relation 1 de volta. Lista negra (2) filtra mu
 
 | C>S | mensagem | S>C | situação |
 |---|---|---|---|
-| 15003 | FriendRelationMsg `{nickName, relation}` | 78 FriendInfoMsg (relation 3 pendente) + 111 "Eklendi,yanıtını bekleyin." + 83 canal 3 "Yeni arkadaşı eklediniz" + link; 84 para o alvo; 165 para o outro lado quando vira amizade | pronto *(visto)* `arkadas_istegi_gonderme.json` (só turco: `arkadas_istegi_gonderme`, textos turcos sem equivalente inglês conhecido) |
+| 15003 | FriendRelationMsg `{nickName, relation}` | 78 FriendInfoMsg (relation 3 pendente, com `consortiaId`/`consortiaName` do alvo) + 111 **canal 111** "Added successfully, awaiting the other player's response." + 83 canal 3 "You added a new friend: {link}."; 84 para o alvo; quando vira amizade, o outro lado recebe 165 e 83 "{link} has added you to his/her friends list." | pronto *(visto)* oficial_encantar #1776-#1779 e #1792-#1793 (o link leva o `consortiaId` da guilda) |
 | 15012 | FriendRelationMsg | como 15003 relation 1 | pronto; sem chamador no cliente *(dedução)* |
 | 15004 | `{otherId}` | 79 `{otherId, result}`; o outro lado volta a pendente (165) | pronto *(cliente)* |
 | 8285 | vazio | 4193 RefuseFriendRspMsg | pronto: alterna "recusar pedidos" *(cliente)* |
