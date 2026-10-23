@@ -83,16 +83,14 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         # dia 1 do login acumulado: ReloginDrops 24001 (10.000 ouro e Worn Weapon x1, sem diamante vinculado); o 2 ainda não
         g.client.send(8496, pb.TakeLoginReward(index=2))
         g.client.send(8496, pb.TakeLoginReward(index=1))
-        got = await g.until(3)
-        player = pb.PlayerMsg.FromString(got[-1].body)
+        got = await g.until(83)
+        # (visto) oficial_20261023-153200-1 #1702-#1716: 109, 115, 4476, 3 e o 83 (sem 111), texto ``Name xN``
+        assert [p.code for p in got] == [109, 115, 4476, 3, 83]
+        player = pb.PlayerMsg.FromString(got[3].body)
         assert (player.reloginProcess, player.giftToken, player.reloginCount) == (1, 0, 1)
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: Worn Weapon x1, Gold x10000"
         g.client.send(8496, pb.TakeLoginReward(index=1))
-        assert [p.code for p in await g.idle()] == [
-            109,
-            115,
-            4476,
-            83,
-        ]  # só o fim do anterior (ouro, item e o 4476 do ganho); nada novo
+        assert await g.idle() == []  # já resgatado: nada
 
         # atividade diária: o login (leed 1) vale 5; o baú 1 precisa de 10
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))

@@ -67,9 +67,13 @@ def push_level(s: GameSession, before: int) -> None:
     fund_opened(s, before)
 
 
-def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True) -> None:
-    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro e cristais), 115 (itens) e o 83."""
-    _player(s)
+def granted(
+    s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True, player: bool = True
+) -> None:
+    """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro e cristais), 115 (itens) e o 83.
+    ``player=False``: o 3 vai depois dos itens, logo antes do 83 (login acumulado)."""
+    if player:
+        _player(s)
     if any(t == rewards.EXP for t, _ in drops):
         # ponytail: só o 150; quem chama não passa o nível antigo, então sem o 139/100/4640 do push_level
         # (o exército já foi completado em rules.add_gp). Passar o nível antigo se um pacote com EXP subir alguém.
@@ -81,6 +85,8 @@ def granted(s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text
 
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
         events.items_gained(s)
+    if not player:
+        _player(s)
     if chat:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 

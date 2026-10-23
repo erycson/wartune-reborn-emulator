@@ -49,7 +49,10 @@ def received(templates: GameTemplates, drops: Sequence[Drop]) -> str:
 
 def text(templates: GameTemplates, drops: Sequence[Drop], style: str = "bag") -> str:
     """``Received: ...`` como o oficial inglês escreve: ``bag`` (``50,000 Gold, Moderate HP Pack x1``, #2110) ou
-    ``active`` (atividades: ``Bound Balens x 10,Daru x 10000``, #2772)."""
+    ``active`` (atividades: ``Bound Balens x 10,Daru x 10000``, #2772) ou ``plain`` (login acumulado: ``Worn Weapon
+    x1, Gold x10000``, oficial_20261023-153200-1 #1716)."""
+    if style == "plain":
+        return "Received: " + ", ".join(f"{_name(templates, t)} x{n}" for t, n in drops)
     if style == "active":
         return "Received: " + ",".join(f"{_name(templates, t)} x {n}" for t, n in drops)
     return "Received: " + ", ".join(

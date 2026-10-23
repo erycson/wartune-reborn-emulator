@@ -20,7 +20,7 @@ from ..router import router
 from ..session import GameSession
 from . import campaign, hero, minigames, offer, shop, stars, systems, tower, vip
 from .login import army
-from .player import alert, granted
+from .player import _player, alert, granted
 
 S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
 S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE, S_ITEMS = 83, 4152, 4150, 4412, 4247, 115
@@ -433,10 +433,16 @@ async def relogin_reward(s: GameSession, msg: pb.TakeLoginReward) -> None:
         s.log.info("8496 recusado", dia=msg.index, logins=days)
         return
     st.value, st.updated_at = st.value | bit, now
-    new, text = rewards.grant(snap, s.ctx.templates, drops)
+    new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
-    alert(s, text)
-    granted(s, drops, new, text)
+    # (visto) oficial_20261023-153200-1 #1701-#1747, dias 1 a 3: 3 (se mudou moeda do jogador, o Daru), 109, 115,
+    # 4476, (os 4484 de títulos, que não temos), 3 e o 83 sem o 111. Texto: ``Name xN`` também para moedas, na
+    # ordem do oficial = linhas do ReloginDrops invertidas de 3 em 3 (*dedução* que bate com os três dias: Worn
+    # Armor, Daru, Gold, 1-Day VIP Card, The Empire Crusade, Bounty Scroll)
+    shown = [d for i in range(0, len(drops), 3) for d in reversed(drops[i : i + 3])]
+    if any(t in rewards.CURRENCIES and t not in (-100, -600) for t, _ in drops):
+        _player(s)
+    granted(s, drops, new, rewards.text(s.ctx.templates, shown, "plain"), player=False)
 
 
 # ---------------------------------------------------------------- atividade diária (leed)
