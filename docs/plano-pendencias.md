@@ -81,3 +81,34 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 
 ## 15. `ponytail:` do código
 - [ ] classificar os 138: comportamento faltando (implementar), dado inventado (TODO(inventado)), atalho (fica)
+
+## Notas de pesquisa (cliente) para os itens abertos
+
+### Rest House / Altar of Ennoblement (gancho): devolve estamina, não EXP
+- Entrar: 8258 `WorldBossMsg.param1` = 7001..7009 (Campaigns Types 3, MapInfo 1500x900, nível 1-50). Mapa 7000-7100 =
+  sala do gancho (`WorldBossHelper`). 4204 `maxCount` decide "Full" (`curCount >= maxCount/2`).
+- Estátua: nó `types` 111 (`PosType.HOOK_NODE`); clique = 5033; o servidor responde 29 `CampaignConfirmMsg`
+  (`type` fora de {0,2,3,4,5,6,10..14,17,21,22}, ex. 7) que abre `HookAlertFrame`; "Begin" = 5033 `paraBool1` true.
+- Estado: 4199 (`leftWeay`, na entrada, antes da view), 4206 `PlayerHangupStateListMsg{armyId,state>0}` (desenha
+  `images/hook/<state>.png`), 4200 (início/fim: `isStartHangup`, `addWeay`), 4235 a cada tique (+1, `addWeay` 1).
+  Tempo na tela = `leftWeay` × 120 s. 8292 cancela (guarda o que falta), 8293 `payType` acelera:
+  `min(leftWeay, 200 - weary)` Balens (1 por estamina); grátis com contrato 4 (o cliente manda `payType` 0).
+  Sair: 5025. PK: 8525 op 1/2/3, S>C 4421, BattleType 19. Abre no nível 21 (`OpenGradesII.HOOK`), prédio 150401.
+- `DataResetMsg` tem `hangupCount` (2) e `leftHangupWeary` (6); o cliente não lê. Teto diário: sem fonte (inventar).
+- Textos ingleses: `map.campaign.view.ui.HookTimeView.chatData.msg` "Restored 1 Stamina through cultivation.";
+  HookAlertFrame title "Divine Statue", text "Welcome to the land of ancient spirits! Here you can receive bonus
+  Stamina, would you like to get started?".
+
+### VIP (VipPrerogativeTempInfo) ainda abertos
+- 1 CASTLE_VIEW: `BaseCastleMsg.vipCastleView` (16) = para1 (1, VIP9 2) no 4153 e nos castelos do mapa; 17 = vipType.
+- 7 kyanite no saque de castelo: +para1 cristais ao atacante na vitória (só servidor).
+- 11 astro 1 clique: 8269 `StarRandReqMsg.site` -1 → VIP 4+, repete captura (ouro) até 16 na lista temporária ou
+  acabar o ouro, vende as brancas; responde 4180.
+- 12 missões VIP: `QuestTempInfo.TemplateType` 3 (21, 22, 863); o cliente pede pelo 5012 até sem VIP: o servidor
+  recusa sem VIP.
+- 15 honra no campo de batalha: perda × (100 - para1)% (4269 `WarMovieMsg.geste`), depende do campo de batalha.
+- 17 bênção em 1 clique (guilda 5145 `param1`): VIP 6+; o valor de "todas" não está no decompilado.
+- 18 pular luta de fadas: 8727 com VIP 3+ (já feito em arena.py).
+- 19 montaria VIP: `MountTempInfo` MountType 3 = 1116 "Panda Guardian"; VIP + nível 40 → avatar no 4427 e 4610
+  `param7` true; VIP vencido → 4610 false e tira a montaria.
+- 20 baú VIP na masmorra: nenhum campo no cliente (inferência: carta a mais no 135 para VIP).
