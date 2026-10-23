@@ -221,13 +221,19 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
             list(prepare.soldiers[0].skillId) == [10, 11] * 5 and prepare.heros[0].pawnTempId == 10101
         )  # inglesa #727
 
+        strategy = snap.character.strategy
         got = await g.fight(prepare)
         got += await g.idle()
         report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
         assert (report.battleResult, report.battleScene) == (1, 4)
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
-        # o 83 da devoção (leed 9) logo depois do 4152; o oficial manda depois do 140 (tutorial_en #748-#753)
-        assert after == [150, 4103, 150, 100, 140, 140, 112, 4152, 83, 109, 152, 140, 169]
+        # o 83 da devoção (leed 9) logo depois do 4152; o oficial manda depois do 140 (tutorial_en #748-#753).
+        # Com soldados perdidos, 109 e 3 antes do 4103 e o Daru = os perdidos (oficial_20261023-153200-1 #1620-#1623)
+        assert after == [150, 109, 3, 4103, 150, 100, 140, 140, 112, 4152, 83, 109, 152, 140, 169]
+        assert report.strategyBonus > 0 and snap.character.strategy == strategy + report.strategyBonus
+        g.client.send(5035, pb.LoginStateMsg(state=3))  # de volta ao mapa: o 4382 mostra o Daru (#1636)
+        movie = pb.FightOverMoiveMsg.FromString((await g.until(4382))[-1].body)
+        assert movie.strategy == report.strategyBonus
         quest = pb.QuestUpdatedRspMsg.FromString(next(p for p in got if p.code == 112).body).quest[0]
         assert (quest.templateId, quest.condition_1) == (60, 1)
         land = pb.MapUpdatedMsg.FromString([p for p in got if p.code == 140][-1].body).wildLand
@@ -405,8 +411,11 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
     luta, battleType 4, mapa 993, herói 11008 com o nome do robô e 2 pilhas 10102); o fim conta o tipo 8, manda o
     112 e o 4382 e gasta um ataque do dia (o PlayerMsg mostra o contador)."""
 
-    async def lose(_: battle_mod.Battle) -> bool:
-        return False  # a captura é uma derrota (#1762); a simulação daqui venceria
+    async def lose(battle: battle_mod.Battle) -> bool:
+        for unit in battle.units:  # a captura é uma derrota com o exército todo morto (#1760); daqui venceria
+            if unit.side == 1:
+                unit.hp = 0
+        return False
 
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     monkeypatch.setattr(battle_mod.Battle, "_fight", lose)
@@ -448,7 +457,7 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
         report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
         assert report.battleScene == 6
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
-        assert after == [150, 4103, 150, 100, 140, 140, 140, 112, 3, 4382]
+        assert after == [150, 109, 3, 4103, 150, 100, 140, 140, 140, 112, 3, 4382]  # #1758-#1770 sem o 150 cheio
         back = pb.MapUpdatedMsg.FromString([p.body for p in got if p.code == 140][-1])
         assert (back.baseCastle.id, back.baseCastle.state) == (765958, 1)
         # a missão 100 conta vencendo ou perdendo (#1765: derrota com condition_1 1)

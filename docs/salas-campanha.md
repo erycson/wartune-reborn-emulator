@@ -197,6 +197,12 @@ extrator grava como `switches` o nó com 126 sem drop; `_switch` em `handlers/ca
 Há um desvio de ordem. No oficial (#1408-#1422), o aviso e os filmes saem antes do 128 do lobo, e o 128 do chefe
 sai depois do 4382. Aqui eles saem depois do 128 e do 83 do drop.
 
+**Daru e derrota.** O Daru de cada luta (`strategyBonus`, o 3 e o 4382) são os soldados perdidos, ganhando ou
+perdendo: inglesa #1509 (88 = a reserva 738 -> 650), oficial_20261023-153200-1 #892-#1205 (127, 98, 115, 121) e
+as derrotas #778 (53), #1324 e #1449 (202, o exército inteiro). Sem tropa, 0. Na derrota o `failCount` sobe: 1, 2
+e 3 nas três derrotas da 1003. As lutas da cidade externa repetem o valor sem somar (#1623, #1899). *(dedução)* A
+conta é da sessão.
+
 **Luta.** O fim da luta manda: 3, 4103, 83 "Received 35 EXP " (com o espaço no fim, #909), 150, 100, 140, 131. Se
 houver drop, vêm 115 e 111. Depois saem 112, o 128 DONE e o 83 do drop. O 4382 só sai quando o cliente volta ao
 mapa, no 5035 state 4 (#1094-#1096). Ele leva o `strategy` do chefe (Daru: 88 no Wulfgar, 9 no Karlan, 28 na

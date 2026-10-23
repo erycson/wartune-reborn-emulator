@@ -487,15 +487,20 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     gp = int(battle.spec.get("gpBonus", 0)) if won else 0
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
-    strategy = int(battle.spec.get("strategyBonus", 0)) if won else 0
     before = snap.character.grades
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
-    snap.character.strategy += strategy  # Daru do chefe: (visto) inglesa #1509, strategyBonus 88
     loot = _Loot()
     dungeon = s.campaign is not None and s.campaign.dungeon
     # tropas mortas saem e a reserva repõe (visto #1466 -> #1511: a reserva 738 -> 650); a luta roteirizada não perde
-    hit = None if battle.spec.get("undying") else outer_city.lose_troops(snap, s.ctx.templates, battle.troops())
+    undying = bool(battle.spec.get("undying"))
+    hit = None if undying else outer_city.lose_troops(snap, s.ctx.templates, battle.troops())
+    # Daru = soldados perdidos, ganhando ou perdendo: (visto) inglesa #1466 (88 mortos, Wulfgar 88) e
+    # oficial_20261023-153200-1 (a reserva cai 127, 98, 115, 121; derrotas 53, 202, 202 = o exército inteiro)
+    strategy = hit[1] if hit is not None else int(battle.spec.get("strategyBonus", 0)) if won and undying else 0
+    snap.character.strategy += strategy
+    if not won:
+        s.fail_count += 1
     if hit is not None:
         outer_city.refill(*hit)
     if dungeon:
@@ -507,6 +512,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     s.battle_gp = 0 if dungeon else gp  # a masmorra guarda o 4382 no mapa (``over``), com o Daru do chefe
     await _push_player(s)
     report = _report(battle, won, gp, strategy)
+    report.failCount = s.fail_count
     if loot.fallen:
         report.signId = loot.sign
         report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in loot.fallen)
@@ -611,8 +617,9 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
         if c.ending is not None:
             await _dungeon_end(s)
     if msg.state == OUTER_CITY and s.outer_fight_over:  # tutorial_en #758 e #812: depois da luta da mina
-        _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=0))
-        s.outer_fight_over = False
+        # o Daru das perdas: oficial_20261023-153200-1 #1636 (116), #1909 (201), #2017 (106)
+        _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=s.battle_strategy))
+        s.outer_fight_over, s.battle_strategy = False, 0
 
 
 # -- masmorras (1001, 1002) e pedreira (6001) ----------------------------------------------------

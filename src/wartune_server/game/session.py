@@ -125,6 +125,10 @@ class GameSession:
         self.battle: Battle | None = None
         self.hero_sp = 0  # SP do herói entre batalhas (o oficial carrega de uma para a outra)
         self.battle_gp = 0  # EXP da última batalha, mostrada no 4382 quando o cliente volta ao mapa
+        self.battle_strategy = 0  # Daru da última luta da cidade externa (4382 na volta ao mapa)
+        # derrotas em campanha: (visto) oficial_20261023-153200-1 #778, #1324, #1449 dão failCount 1, 2, 3 e as
+        # lutas da cidade externa repetem o valor sem somar (#1623, #1899 perdida, #2007). (dedução) conta na sessão
+        self.fail_count = 0
         self.space_pos: tuple[int, int] | None = None  # tile na cidade do céu; None = fora dela
         self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
         self.vice_confirmed = False  # senha secundária digitada nesta sessão (8806 op 1)

@@ -45,7 +45,10 @@ NOT_IMPLEMENTED = {
 # 83: #664, chat do mundo de outro jogador (canal 10, "~" de Moondust); antes casava por acaso com o anúncio
 # deduzido das 01:30 UTC, desativado na 0057
 KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 2: 1, 83: 1})
-KNOWN_EXTRA: Counter[int] = Counter()
+# Sobrando: 109 e 3 nas duas minas (#742, #796). O guarda do oficial bateu no herói (#736) e ninguém morreu; o nosso
+# mira o menor livingId (a tropa) e mata soldados, e a perda manda 109 e 3 (o Daru). O oficial escolhe o alvo ao
+# acaso entre os vivos (tropas e herói, nas duas capturas inglesas)
+KNOWN_EXTRA = Counter({109: 2, 3: 2})
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
 SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
 

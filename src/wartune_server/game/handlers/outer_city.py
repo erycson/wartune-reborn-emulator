@@ -338,19 +338,30 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     s.battle.start()
 
 
-async def _casualties(s: GameSession, battle: Battle, report: pb.BattleReportMsg) -> None:
+async def _casualties(s: GameSession, battle: Battle, won: bool, scene: int) -> int:
     """150 com o exército sem as tropas mortas (#1760: 0 depois de perder as 172), 4103, a reposição pela reserva
-    e 150 e 100 de novo (#1763-#1764: 172 e a reserva 640 -> 468)."""
+    e 150 e 100 de novo (#1763-#1764: 172 e a reserva 640 -> 468). Com perda, 109 (população) e 3 antes do 4103:
+    o Daru é o número de soldados perdidos, ganhando ou perdendo (oficial_20261023-153200-1 #1620-#1625: 116 na
+    mina; #1896-#1903: 201 no tesouro; #2004-#2009: 106). Devolve o Daru, que o 4382 mostra na volta ao mapa."""
     snap = s.snapshot
     assert snap is not None
     hit = oc.lose_troops(snap, s.ctx.templates, battle.troops())
+    daru = hit[1] if hit is not None else 0
+    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=daru, gpBonus=0, battleScene=scene)
+    report.failCount, report.goldBonus, report.petGpBonus = s.fail_count, 0, 0
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    if hit is not None:
+        snap.character.strategy += daru
+        castle_yield(s)
+        _send_player(s)
     s.send(S_REPORT, report)
     if hit is not None:
         oc.refill(*hit)
-        await s.ctx.characters.save(hit[0])
+        await s.ctx.characters.save(snap.character, hit[0])
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
+    s.battle_strategy = daru
+    return daru
 
 
 async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> None:
@@ -360,9 +371,7 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     assert snap is not None
     templates = s.ctx.templates
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
-    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
-    report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
-    await _casualties(s, battle, report)
+    await _casualties(s, battle, won, 4)
     _army_sync(s, ARMY_IDLE)
     await refresh(s)  # a luta pode ter cruzado o refresh: a ocupação é do ciclo novo
     now = s.ctx.clock.now()
@@ -419,9 +428,7 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
     s.ctx.wilds.fighting.pop((m.map_id, m.id, m.born), None)
-    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=0, gpBonus=0, battleScene=4)
-    report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
-    await _casualties(s, battle, report)
+    await _casualties(s, battle, won, 4)
     _army_sync(s, ARMY_IDLE)
     same = monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: o monstro já sumiu
     gone = won and same
@@ -485,18 +492,15 @@ def _robot_sync(s: GameSession, robot: RobotCastle, state: int) -> None:
 async def _castle_over(s: GameSession, battle: Battle, robot: RobotCastle, won: bool) -> None:
     """Fim da luta com o castelo-robô (inglês #1758-#1770): 150, 4103 (battleScene 6), 150, 100, 140 do exército,
     140 do robô de volta ao state 1, 112 e 4382. Conta o tipo 8 com Para1 1 na vitória e 0 na derrota (#1765: a
-    missão 100 conta perdendo; 765 pede a vitória). Na derrota o Daru é o exército inteiro (#1762: strategyBonus 172
-    = as 172 tropas de #1758, e o PlayerMsg sobe 172); ponytail: Daru e ouro saqueado da vitória sem captura, saem 0.
+    missão 100 conta perdendo; 765 pede a vitória). O Daru são os soldados perdidos (``_casualties``; #1762:
+    strategyBonus 172 = as 172 tropas de #1758). ponytail: ouro saqueado da vitória sem captura, sai 0.
     Grava o contador de ataques em uma save."""
     snap = s.snapshot
     assert snap is not None and snap.arena is not None
     templates = s.ctx.templates
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
-    daru = 0 if won else sum(p.army_count for p in snap.pawns)
-    snap.character.strategy += daru
-    report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=daru, gpBonus=0, battleScene=oc.ROBOT_SCENE)
-    report.failCount, report.goldBonus, report.petGpBonus = 0, 0, 0
-    await _casualties(s, battle, report)
+    daru = await _casualties(s, battle, won, oc.ROBOT_SCENE)
+    s.battle_strategy = 0  # o 4382 do robô sai aqui mesmo (#1770)
     _army_sync(s, ARMY_IDLE)
     _robot_sync(s, robot, CASTLE_IDLE)
     quests = rules.quest_event(snap, templates, ATTACK_CASTLE, int(won), 1)
@@ -599,5 +603,5 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
 async def enter_castle(s: GameSession, _: pb.SimplePropertyMsg) -> None:
     # só com luta pendente (tutorial_en #576 sim, #826 e #1128 não): sem luta o OuterCityManager quebra
     if s.outer_fight_over or s.battle_gp:
-        s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
-    s.battle_gp, s.outer_fight_over = 0, False
+        s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=s.battle_strategy))
+    s.battle_gp, s.outer_fight_over, s.battle_strategy = 0, False, 0

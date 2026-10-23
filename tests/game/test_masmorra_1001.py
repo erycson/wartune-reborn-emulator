@@ -309,7 +309,8 @@ async def test_grupo_de_1021_libera_o_chefe_e_fecha_a_masmorra(tmp_path: Path) -
         strategy = (await characters.snapshot(g.user_id)).character.strategy
         boss = await battle(g, 102109)
         assert codes(boss)[-len(END) + 2 :] == END[:-2]  # a devoção do leed 4 já saiu no fim do 1011
-        assert (await characters.snapshot(g.user_id)).character.strategy == strategy + 88  # inglesa #1509
+        # o Daru são as tropas perdidas (inglesa #1466-#1509: 88 mortos, 88 de Daru); sem tropa, nada
+        assert (await characters.snapshot(g.user_id)).character.strategy == strategy
         assert codes(await take(g, 1)) == CARD  # a carta do 1021 é outra, uma também
         snap = await characters.snapshot(g.user_id)
         assert {e.key: e.value for e in snap.events}["campaign_stage:1001"] == 0  # (dedução) volta ao 1011

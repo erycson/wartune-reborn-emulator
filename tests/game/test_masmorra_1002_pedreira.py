@@ -176,9 +176,11 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path) -> None:
         cache = await confirm(g, 114203)
         after = await g.fight(pb.BattlePrepareMsg.FromString(cache[-1].body)) + await g.idle()  # Sure: o 1º do pick
         assert text(after[codes(after).index(126)]) == "Received: 10,000 Daru"
-        assert (await characters.snapshot(g.user_id)).character.strategy == daru + 10000 + 15  # + strategyBonus
+        assert (
+            await characters.snapshot(g.user_id)
+        ).character.strategy == daru + 10000  # Daru da luta = tropas perdidas
         movie = await back_to_map(g)
-        assert pb.FightOverMoiveMsg.FromString(movie[0].body).strategy == 15  # inglesa #3076
+        assert pb.FightOverMoiveMsg.FromString(movie[0].body).strategy == 0  # inglesa #3076: 15 mortos; aqui sem tropa
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=114206, paraBool1=True))  # Karda: luta na chegada
         end = await won(g)

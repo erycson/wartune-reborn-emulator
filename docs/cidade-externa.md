@@ -157,13 +157,18 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   é a da captura (robô de grau 8, o único do catálogo).
 - **Fim** *(visto)* inglesa #1758-#1770: 150, 4103 (`battleScene` 6), 150, 100, 140 ×2 do exército, 140 do robô de
   volta ao `state` 1, 112, 3 e 4382. A captura é uma derrota: `strategyBonus` 172, as 172 tropas do exército; o
-  PlayerMsg sobe 172 de Daru e o 4382 leva `strategy` 172. Na derrota o servidor dá de Daru o exército inteiro.
+  PlayerMsg sobe 172 de Daru e o 4382 leva `strategy` 172.
+- **Daru de toda luta com tropa** *(visto)*: é o número de soldados perdidos, ganhando ou perdendo (`_casualties`).
+  Na inglesa: Wulfgar 88, Karlan 9, Karda 28, o robô 172 = a queda da reserva. Em `oficial_20261023-153200-1`:
+  mina 116 (#1620-#1636), tesouro tipo 22 perdido 201 (#1896-#1909), mina 106 (#2004-#2017). Com perda, o 109
+  (população) e o 3 saem antes do 4103, e o 4382 da volta ao mapa (5035 state 3) leva o Daru.
+  O `failCount` do 4103 é o de derrotas em campanha na sessão (ver `docs/salas-campanha.md`).
 - **Missão**: `quest_event(8, vitória ? 1 : 0, 1)`. Para1 0 = qualquer, então 100 e 411 avançam também na derrota
   (*visto* #1765: a 100 com `condition_1` 1 depois de perder); a 765 (Para1 1) só na vitória. A gravação do
   ataque vai em uma só save.
-- **Vitória: Daru e ouro saqueado sem fonte.** A captura só tem a derrota, e o
+- **Vitória: ouro saqueado sem fonte.** A captura só tem a derrota, e o
   `U_C_ARMY_ATTACK_CASTLE` (97) não tem listener no cliente (só a constante). Então a vitória sai com
-  `strategyBonus` e `goldBonus` 0. O 148 (correio novo, #1766) também fica de fora: o conteúdo da carta não está
+  `goldBonus` 0 (o Daru são as perdas, como em toda luta). O 148 (correio novo, #1766) também fica de fora: o conteúdo da carta não está
   na captura.
 - **Níveis** *(cliente + grau 8)*: a diferença menor que 10 deixa atacar até o nível 17. A 411 pede nível 17,
   então só passa no 17. A 765 (nível 12) passa de 12 a 17. Se o grau do oficial for outro, isso muda.
