@@ -108,6 +108,22 @@ async def test_refuses_without_gold_player_grade_or_someone_elses_building(tmp_p
         assert (await g.server.services.characters.snapshot(g.user_id)).character.gold == 1000
 
 
+async def test_cottage_waits_for_the_town_hall_of_the_same_grade(tmp_path: Path) -> None:
+    """``PreTemplateId``: o Cottage N pede a prefeitura N (120108 -> 90108), como a missão do Cottage 8."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _set(g, grades=50, gold=10**7)
+        cottage = next(b for b in snap.buildings if b.template_id // 100 == 1201)
+        hall = next(b for b in snap.buildings if b.template_id // 100 == 901)
+        cottage.template_id = hall.template_id + 120101 - 90101  # mesmo nível da prefeitura
+        await g.server.services.characters.save(cottage)
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=cottage.id or 0))
+        assert await g.idle() == []  # recusado: prefeitura ainda no nível de antes
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=hall.id or 0))
+        assert 4130 in [p.code for p in await g.until(83)]
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=cottage.id or 0))  # fila de prédio ocupada
+        assert await g.idle() == []
+
+
 async def test_tech_upgrade_spends_crystals_on_the_tech_order(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=READY) as g:
         snap = _snap(g)  # a academia 1 já liberou a tecnologia 1304 no nível 0 (NextTemplateId)
