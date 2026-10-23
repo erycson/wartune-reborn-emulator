@@ -172,7 +172,7 @@ com o nó trocado.
 
 | Nó | Resposta |
 |---|---|
-| Pandora | 4165 com o buff, 150, 150, 111, 128 DONE, 83 "Received: Rage Boost" (#1433-#1438). O buff é sorteado entre os do `param3`, e o texto é o `CampaignBufferTemps.TemplateName`. |
+| Pandora | 4165 com o buff, 150, 150, 111, 128 DONE, 83 "Received: Rage Boost" (#1433-#1438). O buff é sorteado entre os do `param3` (*visto*: a mesma 102107 deu 1701 Rage Boost no tutorial e 1301 "Lvl. 1 PDEF Boost" no gravador, `oficial_encantar` #629-#635, onde o 128 veio antes do 111: a ordem entre os dois varia no oficial), e o texto é o `CampaignBufferTemps.TemplateName`. |
 | Tumba com sentinela (113105) | 126 "You've startled a sentinel... begin battle!", 128 com `visitUserIds`, depois a luta (#2400-#2404). |
 | Caixa do caçador (113203, 114203) | A luta. Na vitória: 3, 126 "Received: 10,000 Daru", 128 DONE para cada nó do `param4` da caixa (a caixa e os reforços 113207/113208) e 83 (#2630-#2644). |
 | Tumba com Daru (114105) | 3, 126 "Received: 5,000 Daru", 128 state 1 visitado, 83 (#2874-#2877). |
@@ -212,11 +212,11 @@ do mapa (#1124-#1126).
 | `hurtValue` | Dano que o lado do jogador sofreu na etapa. A soma da captura não fechou com os 153, então vale a nossa simulação. |
 | `failedCount` | Lutas perdidas. |
 | `batter` | Maior 8282 recebido na etapa. O 8282 da última luta chega depois do 137 (#2698 → #2705), e o 7 mostrado é o maior anterior. |
-| `woundAppraisal` | `1 + quantos de (0,6; 0,7; 0,8; 1,0)` a razão dano causado / `StandardDamage` alcança. |
+| `woundAppraisal` | `1 + quantos de (0,7; 0,8; 0,9; 1,0)` a razão dano causado / `StandardDamage` alcança (0,62 ainda é D: `oficial_encantar` #689). |
 | `hurtAppraisal` | `5 − quantos de (0,2; 0,4; 0,6; 0,8)` a razão dano sofrido / `StandardHurt` passa. |
 | `failedAppraisal` | `max(1, 5 − derrotas)`. |
 | `totalAppraisal` | Média das três notas, arredondada. |
-| `totalGp` | `int(float32(BaseGp) × 1.05f)`: 600 → 630 e 800 → 839, como na captura (#1100, #2707). |
+| `totalGp` | `int(float32(BaseGp) × 1.05f)`: 600 → 630 e 800 → 839, como na captura (#1100, #2707). **Falta**: com o personagem no nível 10 e a Worg Lair (MinLevel 5, MaxLevel 7) repetida, o oficial deu 252 no fim (×0,4), 21 por lobo em vez de 35 e 52 de Daru no chefe em vez de 88 (×0,6) (`oficial_encantar` #449-#691). Ainda não se sabe se a redução é por nível acima do `MaxLevel` ou por repetir; o servidor dá o valor cheio. |
 
 As notas vão de 1 = D a 5 = S. *(dedução)* Os limites das notas foram deduzidos. As seis amostras (inglesa #1098,
 #1521, #2705, #3157; só turco: replay #1215, #1722) dão 1, 5, 5, 4 e fecham com esses degraus. A internet não trouxe a

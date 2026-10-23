@@ -183,10 +183,11 @@ def battle_spec(camp: int) -> dict[str, Any] | None:
 
 
 # -- relatório do fim da etapa (137) ---------------------------------------------------------------
-# (visto) os quatro 137 da captura inglesa (#1098, #1521, #2705, #3157) têm notas 1, 5, 5 e 4: dano causado /
-# StandardDamage de 0,17 a 0,49 é D, dano sofrido / StandardHurt até 0,17 é S, sem derrota é S.
+# (visto) os quatro 137 da captura inglesa (#1098, #1521, #2705, #3157) e o do gravador (oficial_encantar #689, Worg
+# Lair de novo) têm notas 1, 5, 5 e 4: dano causado / StandardDamage de 0,17 a 0,62 é D, dano sofrido /
+# StandardHurt até 0,17 é S, sem derrota é S.
 # (dedução) os degraus abaixo e a nota total = média arredondada; nada além disso fecha com as amostras.
-WOUND_STEPS = (0.6, 0.7, 0.8, 1.0)  # causado/StandardDamage: abaixo do 1º = D (1) ... a partir do último = S (5)
+WOUND_STEPS = (0.7, 0.8, 0.9, 1.0)  # causado/StandardDamage: abaixo do 1º = D (1) ... a partir do último = S (5)
 HURT_STEPS = (0.2, 0.4, 0.6, 0.8)  # sofrido/StandardHurt: até o 1º = S (5) ... acima do último = D (1)
 GP_BONUS = 1.05  # (visto) totalGp 630 com BaseGp 600 e 839 com 800: (int)(BaseGp * 1.05f) em float de 32 bits
 
