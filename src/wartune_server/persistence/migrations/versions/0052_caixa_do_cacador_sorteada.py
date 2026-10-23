@@ -25,7 +25,7 @@ CAMPAIGN, NODE = 1002, "114203"
 PICK = [[[-300, 10000]], [[2040103, 1]]]  # Daru; Lvl. 3 Luck Stone
 
 
-def _patch(pick: list[object] | None) -> None:
+def _patch(pick: list[list[list[int]]] | None) -> None:
     bind = op.get_bind()
     row = bind.execute(sa.text("SELECT data FROM campaign_contents WHERE campaign_id = :c"), {"c": CAMPAIGN}).first()
     if row is None:
