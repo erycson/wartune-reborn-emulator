@@ -526,7 +526,8 @@ async def leed_done(s: GameSession, template_id: int) -> None:
 
 @router.on(8234, 8322)
 async def leed_client(s: GameSession, msg: object) -> None:
-    """C_LEED_ADD / C_LEED_CLIENT: nenhuma tela do cliente manda (só existem no SocketOutManager).
+    """C_LEED_ADD (nenhuma tela manda) / C_LEED_CLIENT (``LoginInitDataAccept`` manda ``templateId`` 1 no login;
+    o oficial devolve um 4152, oficial_encantar #25 e #52).
     O progresso vem do que o servidor vê (``leed_done``); aqui só devolve o estado."""
     s.log.info("leed pedido pelo cliente; só estado", pedido=str(msg))
     _send_leeds(s)

@@ -66,7 +66,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 | qualquer pedido | 4638 de novo se uma tarefa ou prêmio mudou desde o último (o cliente nunca pede o painel: `GuideTaskManager` só escuta o 4638); só fora de campanha e batalha | (dedução) |
 | login | 4247 com os eventos de EXP em curso (`exp_rate_events`), logo depois do 4686; multiplicador não aplicado (o EXP das capturas já inclui o evento) | (visto) tutorial_en #44-#46 |
 | 5019 | baú online: conta só depois do 1º 5019; resgate zera; 109 (ou 3), 115, 111, 4250, 4, 83 "Received: ...", 83 "Reward retrieval successful!" | (visto) tutorial_en #1594-#1598, #2097-#2114 |
-| 8234, 8322 | só devolvem 4152 (nenhuma tela manda; o progresso vem do servidor) | (cliente) |
+| 8234, 8322 | só devolvem 4152 (o 8322 vem do login com `templateId` 1, como oficial_encantar #25/#52; o 8234 nenhuma tela manda; o progresso vem do servidor) | (cliente), (visto) |
 | 8235 | baú `site` 1..5 da atividade diária (10/40/60/80/100 pontos), `LeedDrop`; 4150 | (cliente) |
 | 8518 | 4412 vazio (contadores do painel do dia) | (cliente) |
 
