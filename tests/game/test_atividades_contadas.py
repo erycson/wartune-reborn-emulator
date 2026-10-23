@@ -63,7 +63,7 @@ async def test_devocao_contadores_e_tipos_sem_regra(tmp_path: Path) -> None:
         await g.until(4224)
         assert (await _data(g))["A21"] == (1, [CAN, NOT_YET])
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId="A21", packageId="P21-1", count=1))
-        assert 111 in [p.code for p in await g.idle()]  # "Gift pack retrieval successful."
+        await g.until(111)  # "Gift pack retrieval successful."
         assert (await _data(g))["A21"][1] == [TAKEN, NOT_YET]
 
         await s.ctx.characters.save(*ev.count(snap, s.ctx.events, ev.PET_CHALLENGE, clock.now()))

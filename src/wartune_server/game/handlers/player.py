@@ -43,6 +43,25 @@ def _army(s: GameSession) -> None:
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
 
 
+HP_PACK = "Used HP pack to restore HP."  # (visto) oficial_20261023-153200-1 #807, #1332, #1450, #1901, #2184
+
+
+def hero_after_fight(s: GameSession, left: int | None) -> int:
+    """Acerta a vida do líder com o que sobrou na luta (``None``: sem herói, não mexe) e cura pela reserva;
+    o chamador grava o líder e manda ``hp_pack``. Nível da cura grátis: ``game_settings.hero_free_heal_grade``."""
+    snap = s.snapshot
+    assert snap is not None
+    if left is None or snap.leader is None:
+        return 0
+    free = int(s.ctx.world.settings.get("hero_free_heal_grade", rules.FREE_HEAL_GRADE))
+    return rules.hero_after_fight(snap, s.ctx.templates, s.ctx.clock.now(), left, free)
+
+
+def hp_pack(s: GameSession, used: int) -> None:
+    if used:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=HP_PACK))
+
+
 def push_level(s: GameSession, before: int) -> None:
     """Subiu do nível ``before`` (o exército já foi completado em ``rules.add_gp``). Ordem do oficial (tutorial_en
     #636-#639, #1132-#1133, #1587-#1588, #3191-#3192): 139 se ainda falta soldado no exército (o cliente mostra
@@ -118,6 +137,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     roll_monsters(s)
     for a in s.ctx.announcer.tick(s.ctx.world.announcements, now):
         _announce(s, a)
+    from .arena import push_match  # arena importa este módulo
     from .pet_defend import push_state as push_defend
     from .vehicle import push_state  # vehicle importa este módulo
 
@@ -125,6 +145,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     push_states(s)
     push_state(s)
     push_defend(s)
+    push_match(s)
     if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now)):
         await s.ctx.characters.save(*changed)
         s.send(S_RESET, data_reset(s.snapshot, now))

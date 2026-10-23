@@ -26,7 +26,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .guild import shop_buy as guild_shop_buy
-from .player import _army, _player
+from .player import _army, _player, hp_pack
 from .tower import MAZE_MAX_INDEX
 
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
@@ -420,22 +420,26 @@ async def fast_use_blood(s: GameSession, msg: pb.ShopMsg) -> None:
     leader = snap.leader
     leader.blood += int(tpl.get("Property1") or 0) * info.count
     leader.blood_id = int(tpl["TemplateId"])
+    healed = rules.heal_hero(snap, templates, now)  # (visto) #804: a vida enche na hora (blood 10000 -> 9471)
     extra = [paid.ledger] if paid.ledger else []
     cost = price(row) if row is not None else None
     assert cost is not None  # cobrado acima: tem preço
     record = purchase(snap, "blood", info.goodId, leader.blood_id, info.count, cost[0], cost[1] * info.count, now)
     await s.ctx.characters.save(snap.character, leader, *paid.changed, *extra, record, delete=tuple(paid.gone))
 
+    # (visto) oficial_20261023-153200-1 #803-#807: 109, 113, 170, 111 e o 83 da cura
     send_charge(s, paid)
     send_blood(s)
     send(s, S_BLOOD, pb.FastUseBloodMsg(result=OK, templateId=leader.blood_id))
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Purchase Successful!"))
+    hp_pack(s, healed)
 
 
 def send_blood(s: GameSession) -> None:
     """113 só com a reserva de HP (como o oficial depois de usar a poção)."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    hp = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live
+    hp = b.hero_hp(snap.leader, rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live)
     send(
         s,
         S_HERO,

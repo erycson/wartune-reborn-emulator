@@ -180,7 +180,7 @@ Fontes: *(visto)* captura e índice; *(cliente)* arquivo do cliente decompilado 
 
 | C>S | O servidor faz / responde | Fonte |
 |---|---|---|
-| 8294 | 4201 `MatchStateMsg{matchState}`: `true` a partir do nível 22 (`PVP_GRADE`), `false` antes. Sem corpo, nada cobrado, nada guardado | *(cliente)* `TopToolsBar.sendMatch`; o botão só aparece com `grades >= 22` e `isPVPStart` |
+| 8294 | 4201 `MatchStateMsg{matchState}`: `true` com a janela do PvP aberta agora (`game_settings.pvp_match`: horas no fuso do jogo, padrão 12h, e duração em segundos, padrão 3600), `false` fora dela. O 20008 manda o 4201 sozinho quando a janela abre ou fecha (o primeiro tique só guarda). Sem corpo, nada cobrado | *(visto)* oficial_20261023-153200-1 #2231 (4201 `true` às 12:00, nível 12, sem pedido); *(cliente)* `TopToolsBar.sendMatch`/`showPVP`: o botão só aparece com `grades >= 22` e `isPVPStart`; *(dedução)* a duração de 1 hora (o fechamento não está na captura) |
 
 ### Coliseu
 

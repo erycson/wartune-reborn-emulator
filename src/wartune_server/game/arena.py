@@ -9,6 +9,7 @@ import asyncio
 import json
 import math
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from functools import cache
@@ -29,6 +30,9 @@ COLOSSEUM_COOL, PET_COOL = 600, 300  # segundos de espera depois de lutar (só t
 ATTACK_FREE = 5  # attackLeftCount do dia (PlayerMsg; o AttackAlertFrame mostra "x/5")
 ROBOT_BASE = 1_300_000_000  # userId dos robôs (capturas: 13000xxxxx); nunca viram personagem
 PET_ROBOT_BASE = ROBOT_BASE + 1400
+# janela do PvP (4201 ``matchState``, ``playerInfo.isPVPStart``): (visto) oficial_20261023-153200-1 #2231, o 4201
+# true chega sozinho às 12:00:00 do jogo. O fim não está na captura: 1 h é dedução. game_settings.pvp_match
+MATCH: dict[str, Any] = {"hours": [12], "duration": 3600}
 REWARDS_FILE = Path("data/colosseum_rewards.json")
 RANK_LOCK = asyncio.Lock()  # troca de posições do coliseu: ler, trocar e gravar sem outra luta no meio
 LOGS = 10  # o cliente mostra ~10 lutas no histórico
@@ -159,6 +163,19 @@ def rank_reward(rank: int) -> tuple[int, int]:
 
 def can_claim(arena: Arena, rank: int, now: datetime) -> bool:
     return rank > 0 and arena.reward_day != period(now)[0]
+
+
+def match_open(settings: Mapping[str, Any], now: datetime) -> bool:
+    """O PvP está aberto agora (``game_settings.pvp_match``: horas do jogo e duração em segundos)."""
+    cfg: dict[str, Any] = MATCH | dict(settings.get("pvp_match") or {})
+    local = gameday.local(now)
+    duration = timedelta(seconds=int(cfg["duration"]))
+    for day in (0, -1):
+        for h in cfg["hours"]:
+            start = local.replace(hour=int(h), minute=0, second=0, microsecond=0) + timedelta(days=day)
+            if start <= local < start + duration:
+                return True
+    return False
 
 
 def battle_gp(grade: int, won: bool) -> int:

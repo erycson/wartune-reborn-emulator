@@ -71,6 +71,8 @@ async def test_derrota_paga_o_daru_das_tropas_e_conta_o_failcount(
         assert session is not None and session.snapshot is not None
         snap = session.snapshot
         snap.pawns.append(Pawn(g.user_id, 10101, army_count=150, castle_count=100))
+        assert snap.leader is not None
+        snap.character.grades = snap.leader.grades = 10  # do 10 em diante a vida não volta de graça
         strategy = snap.character.strategy
         await enter(g, 1003)
         for fails, lost in ((1, 150), (2, 100)):  # a reserva repõe 100 depois da primeira
@@ -81,4 +83,11 @@ async def test_derrota_paga_o_daru_das_tropas_e_conta_o_failcount(
             assert (report.battleResult, report.strategyBonus, report.failCount) == (2, lost, fails)
             movie = next(p.body for p in await back_to_map(g) if p.code == 4382)
             assert pb.FightOverMoiveMsg.FromString(movie).strategy == lost
+            texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 83]
+            if fails == 1:  # sem reserva: o herói fica com 1 (#774)
+                assert snap.leader.hp == 1 and "Used HP pack to restore HP." not in texts
+                snap.leader.blood = 100_000
+            else:  # com reserva: o 83 logo depois do 4103 e a vida cheia (#1449-#1450)
+                assert codes(got)[codes(got).index(4103) + 1] == 83 and texts[0] == "Used HP pack to restore HP."
+                assert snap.leader.hp > 1 and snap.leader.blood == 100_000 - (snap.leader.hp - 1)
         assert snap.character.strategy == strategy + 250

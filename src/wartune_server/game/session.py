@@ -144,6 +144,7 @@ class GameSession:
         self.outer_view: tuple[int, set[str], datetime] | None = None
         self.pet_offer: dict[int, int] = {}
         self.vehicle_open: bool | None = None  # último 4512 mandado (o 20008 manda de novo se mudou)
+        self.match_open: bool | None = None  # último estado do PvP (4201); o 20008 manda quando muda
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.pet_defend_map: int | None = None  # mapId do último 4686 (handlers.pet_defend.push_state)
         self.pet_defend_nodes: tuple[datetime, bool] | None = None  # (janela, chefe à vista) dos nós 1003

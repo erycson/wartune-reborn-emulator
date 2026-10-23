@@ -22,7 +22,7 @@ from ..domain.models import (
 )
 from ..templates.repository import GameTemplates, Row
 from . import buffs
-from .builders.login import QUEST_SITE_LEN, HeroStats
+from .builders.login import QUEST_SITE_LEN, HeroStats, hero_hp
 
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
@@ -184,6 +184,32 @@ def star_bonuses(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
 
 STAR_ATTRS = {"Power", "Agility", "Intellect", "Captain", "Physique", "Attack", "Defence", "MagicAttack"}
 STAR_ATTRS |= {"MagicDefence", "ForceHit", "Parry", "Live", "Conat"}
+
+
+FREE_HEAL_GRADE = 10  # (cliente) BaseManager.showAlertTip: o aviso de vida sem poção só a partir do nível 10
+
+
+def heal_hero(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> int:
+    """A reserva das poções (``blood``) completa a vida do líder; devolve quanto gastou. (visto)
+    oficial_20261023-153200-1: 529 depois de cada derrota (#804, #1320, #1445, #1896: 9471 -> 7884) e 120 ao vestir
+    um item que sobe a vida máxima (#2185)."""
+    leader = snap.leader
+    assert leader is not None
+    live = leader_stats(snap, templates, now).live
+    hp = hero_hp(leader, live)
+    use = min(leader.blood, live - hp)
+    leader.blood -= use
+    leader.hp = hp + use
+    return use
+
+
+def hero_after_fight(snap: PlayerSnapshot, templates: GameTemplates, now: datetime, left: int, free: int) -> int:
+    """Vida do líder depois da luta: a derrota deixa 1 (#774, sem reserva); abaixo do nível ``free`` volta cheia
+    de graça (tutorial_en: o herói chega a 0 em #1466 e #1657 e o 150 seguinte mostra a vida cheia, sem reserva).
+    Depois a reserva cura (``heal_hero``); devolve quanto gastou."""
+    assert snap.leader is not None
+    snap.leader.hp = 0 if snap.character.grades < free else max(1, left)
+    return heal_hero(snap, templates, now)
 
 
 def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime | None) -> HeroStats:
@@ -402,6 +428,7 @@ def add_gp(snap: PlayerSnapshot, templates: GameTemplates, gp: int) -> int:
     c.grades, c.gp = grade, c.total_gp - floor
     if leader is not None and gained > 0:
         leader.grades = grade
+        leader.hp = 0  # subir de nível enche a vida sem a reserva (oficial_20261023-153200-1 #2132: 530 -> 560)
         refresh_skill_point(leader, templates)
         for attr, per_level in GROWTH[job_type(c.job)].items():
             setattr(leader, attr, getattr(leader, attr) + per_level * gained)

@@ -116,10 +116,19 @@ async def test_move_castle_to_another_map_spends_energy_and_answers_105(tmp_path
         castle.energy = 500
         other = 1  # mapa 1: nível 11 (WorldMapHelper)
         centre = oc.centre(g.server.services.templates, other)
+        world = g.server.services.world
+        mine = world.mines[0]
+        land = mines.occupy(
+            snap, mine, mines.draw(snap, world, g.server.services.templates, mine)[0], datetime.now(UTC)
+        )
+        await g.server.services.characters.save(land)
 
         g.client.send(5176, pb.CastleReqMsg(magId=other, posX=0, posY=0, payType=1))
         got = await g.until(105)
-        assert [p.code for p in got] == [140, 105]
+        # (visto) oficial_20261023-153200-1 #185-#187: a mina se solta e o 152 vem sem wildYield
+        assert [p.code for p in got] == [140, 152, 105]
+        assert not pb.CastleYieldMsg.FromString(got[1].body).wildYield and snap.wild_lands == []
+        assert (await g.server.services.characters.snapshot(g.user_id)).wild_lands == []
         moved = pb.CastleReqMsg.FromString(got[-1].body)
         assert (moved.magId, moved.posX, moved.posY, moved.leftEnergy) == (other, centre[0], centre[1], 300)
         assert (castle.map_id, castle.pos_x, castle.pos_y, castle.energy) == (other, centre[0], centre[1], 300)
@@ -501,7 +510,11 @@ async def test_castelo_robo_so_existe_na_instancia_do_castelo(tmp_path: Path) ->
         snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
         castle.energy = 500
         g.client.send(5176, pb.CastleReqMsg(magId=1, posX=0, posY=0, payType=1))
-        assert [p.code for p in await g.until(105)] == [140, 105]
+        assert [p.code for p in await g.until(105)] == [
+            140,
+            152,
+            105,
+        ]  # mudou de mapa: o 152 (oficial_20261023-153200-1 #186)
         assert castle.map_id == 1
 
         got = await _grid(g, "0_0")

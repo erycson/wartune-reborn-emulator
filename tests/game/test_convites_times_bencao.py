@@ -6,6 +6,7 @@ docs/cidade-externa.md, docs/castelo.md, docs/pvp.md e docs/boss-eventos.md.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from wartune_server.game.handlers.login import player_info
 from wartune_server.game.router import router
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
 
 CODES = [5027, 8286, 8292, 8294, 8295, 8489, 8535, 8740, 8741, 8746]
 INVITE_TEAM, TEAM_CREATE, TEAM_INFO, TEAM_LEFT, TEAM_DISMISS = 4620, 4622, 4624, 4629, 4625
@@ -199,7 +201,8 @@ async def test_bencao_do_seminario(tmp_path: Path) -> None:
 
 
 async def test_gancho_pvp_e_transporte(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as a:
+    clock = FakeClock(datetime(2026, 1, 1, 11, 59, 30, tzinfo=UTC))  # o PvP abre às 12h (game_settings.pvp_match)
+    async with logged_in(tmp_path, novice=19000, clock=clock) as a:
         a.client.send(8292)  # cancelar gancho: 4200 zerado
         hang = _body(await a.idle(), HANGUP, pb.HangupInfoMsg)
         assert (hang.isStartHangup, hang.leftWeay) == (False, 0)
@@ -208,11 +211,16 @@ async def test_gancho_pvp_e_transporte(tmp_path: Path) -> None:
         assert rooms.maxCount > 0 and [(r.campaignId, r.curCount) for r in rooms.hangupState] == [
             (7001 + i, 0) for i in range(9)
         ]
-        a.client.send(8294)  # abaixo do nível 22 o botão de PvP fica desligado
+        a.client.send(8294)  # 11:59:30: fechado
         assert _body(await a.idle(), MATCH, pb.MatchStateMsg).matchState is False
-        _session(a).snapshot.character.grades = 22  # type: ignore[union-attr]
-        a.client.send(8294)
+        clock.advance(60)
+        a.client.send(20008)  # o relógio do cliente: abriu, 4201 sem pedir
         assert _body(await a.idle(), MATCH, pb.MatchStateMsg).matchState is True
+        a.client.send(20008)  # sem mudança, nada
+        assert MATCH not in _codes(await a.idle())
+        clock.advance(3600)  # passou a hora
+        a.client.send(20008)
+        assert _body(await a.idle(), MATCH, pb.MatchStateMsg).matchState is False
         a.client.send(8535)  # transporte do chefe: sem resposta
         a.client.send(5027)  # aba Hall do convite: 4161 (sozinho, vazio)
         a.client.send(5026, pb.RoomReqMsg())

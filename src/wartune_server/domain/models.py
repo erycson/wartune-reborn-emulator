@@ -209,6 +209,7 @@ class Hero:
     hide_fashion: bool = False  # 5008: esconder a moda
     blood: int = 0  # reserva de HP das poções (SonType 209), SimpleHeroInfoMsg.blood
     blood_id: int = 0  # última poção usada (bloodId)
+    hp: int = 0  # vida atual do líder; 0 = cheia (o máximo de agora). A reserva ``blood`` completa
     talent_grade: int = 0
     talent_script: str = ""  # talentSkill: templateIds de talento aprendidos
     runes: str = ""  # "runeId:gp:swallow,..." (HeroRuneInfoMsg)

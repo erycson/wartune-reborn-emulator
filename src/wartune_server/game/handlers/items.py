@@ -23,7 +23,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import fashion
-from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, exp_text, push_level
+from .player import CURRENCIES, S_ALERT, S_CHAT, S_ITEMS, _army, _player, exp_text, hp_pack, push_level
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
@@ -173,10 +173,15 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     wearer = next((p for p in snap.pets if p.id == end_obj), None) if end_bag == BagType.PET_EQUIP else None
     if wearer is not None:
         wearer.is_bind = True  # PetBagCellDropMediator.prompt02 "Sylph will become bound after putting on equipment"
-    kept = (i for i in (item, other, book, wearer) if i is not None and i not in gone)
+    healed = 0
+    if BagType.HERO in (begin[0], end[0]) and snap.leader is not None:
+        # a vida máxima pode subir: a atual fica e a reserva completa (oficial_20261023-153200-1 #2182-#2185)
+        healed = rules.heal_hero(snap, s.ctx.templates, s.ctx.clock.now())
+    kept = (i for i in (item, other, book, wearer, snap.leader if healed else None) if i is not None and i not in gone)
     await s.ctx.characters.save(*kept, delete=gone)
 
     _player(s)
+    hp_pack(s, healed)
     _army(s)
     s.send(S_ITEMS, item_moved(*begin, first, s.player_id))
     s.send(S_ITEMS, item_moved(*end, second, s.player_id))
@@ -379,10 +384,12 @@ async def _use_blood(s: GameSession, item: Item, row: Row, n: int) -> bool:
     changed, gone = _consume(snap, item, n)
     leader.blood += int(row.get("Property1") or 0) * n
     leader.blood_id = item.template_id
+    healed = rules.heal_hero(snap, s.ctx.templates, s.ctx.clock.now())  # (dedução) como a compra do 5633
     await s.ctx.characters.save(leader, *changed, delete=tuple(gone))
 
     _send_items(s, changed, gone)
     send_blood(s)
+    hp_pack(s, healed)
     _army(s)
     _player(s)
     return True

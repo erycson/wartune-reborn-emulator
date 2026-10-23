@@ -86,6 +86,14 @@ def occupied(snap: PlayerSnapshot, mine: Mine) -> WildLand | None:
     return next((w for w in _current(snap) if w.wild_id == mine.id), None)
 
 
+def release(snap: PlayerSnapshot) -> list[WildLand]:
+    """Solta as minas do ciclo: o castelo saiu do mapa delas. (visto) oficial_20261023-153200-1 #184-#186: o 5176
+    para o mapa 1 manda o 152 sem ``wildYield`` e o ``goldYield`` cai de 2760 para 1240 (#183, #186)."""
+    gone = _current(snap)
+    snap.wild_lands[:] = [w for w in snap.wild_lands if w not in gone]
+    return gone
+
+
 def occupy(snap: PlayerSnapshot, mine: Mine, template: int, now: datetime) -> WildLand:
     """Grava a mina como do jogador, com o nível sorteado agora: o rendimento sai da linha, e o catálogo
     pode mudar sem mexer no que já está ocupado."""

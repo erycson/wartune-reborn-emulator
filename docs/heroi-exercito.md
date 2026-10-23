@@ -23,6 +23,18 @@ Migração: `0003_tropas_estrelas_pets_e_sistemas_do_heroi` (quem integrar renum
 também criou uma 0003). `CharacterService.snapshot` cria `player_systems` em memória quando falta;
 ela é gravada no primeiro `save` que a inclui.
 
+## Vida do herói e poções
+
+`heroes.hp` (migração 0059) é a vida atual do líder; 0 = cheia. A luta da campanha e da cidade externa começa com
+ela (`player_hero`). Depois da luta a vida fica no que sobrou, e a derrota deixa 1 (*visto*
+`oficial_20261023-153200-1` #774, sem reserva). Então a reserva das poções (`blood`) completa a vida
+(`rules.heal_hero`): 529 em cada derrota (9471 -> 7884), com o 83 "Used HP pack to restore HP." logo depois do
+4103. A reserva também cura na compra (5633: 109, 113, 170, 111 "Purchase Successful!", 83; #803-#807), no uso
+da poção da mochila (*dedução*) e ao vestir um item que sobe a vida máxima (#2182-#2185: 3, 83, 150; 120 de
+reserva). Subir de nível enche a vida de graça (#2132). Abaixo de `game_settings.hero_free_heal_grade` (10) a vida
+volta cheia sem reserva: no tutorial o herói chega a 0 e volta cheio, e o cliente (`BaseManager.showAlertTip`) só
+avisa da falta de poção a partir do nível 10. Arena, carruagem e ilha dos pets seguem com a vida própria.
+
 ## Atributos do herói
 
 `rules.leader_stats` = herói + equipamentos + **estrelas equipadas** (coluna × grau) + **montaria**

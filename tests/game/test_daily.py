@@ -30,7 +30,7 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
 
         clock.advance(15 * HOUR + 59 * 60)  # 03:59 (fuso dos testes: UTC): ainda o dia 1; fora da invasão das 04:00
         g.client.send(20008)
-        assert codes(await g.idle()) == [4234]
+        assert codes(await g.idle()) == [4234, 4201]  # o PvP aberto às 12h (game_settings.pvp_match) fechou
 
         clock.advance(61 * 60)  # 05:00 (a invasão das 04:00 já fechou)
         g.client.send(20008)

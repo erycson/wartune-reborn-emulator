@@ -104,6 +104,11 @@ class HeroStats:
         return cls(own | derived, attrs | total)
 
 
+def hero_hp(hero: Hero, live: int) -> int:
+    """Vida atual: ``hp`` 0 é cheia; nunca passa do máximo (``live``) de agora."""
+    return live if hero.hp <= 0 else min(hero.hp, live)
+
+
 def hero_info(hero: Hero, player_id: int, stats: HeroStats, talent_point: int = 0) -> pb.SimpleHeroInfoMsg:
     second = hero.skill_index == 1
     skills = [s for s in (hero.skill_script2 if second else hero.skill_script).split(",") if s]
@@ -117,7 +122,7 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats, talent_point: int = 
         skillPoint=hero.skill_point,
         skillScript="".join(f"{s}," for s in skills),
         fastKey=fast_key or "".join(f"{s[:3]}," for s in skills),
-        hp=stats.live,
+        hp=hero_hp(hero, stats.live),
         powerPoint=hero.power_point,
         agilityPoint=hero.agility_point,
         intellectPoint=hero.intellect_point,

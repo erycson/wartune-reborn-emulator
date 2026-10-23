@@ -34,7 +34,6 @@ S_PET_LIST, S_PET_TOP, S_PET_REWARD, S_PET_INFO, S_BATTLE_REPORT = 4611, 4619, 4
 S_QUESTS = 112  # QuestUpdatedRspMsg
 QUEST_PET_TOURNAMENT = 87  # QuestCondictionInfos: participar do torneio de fadas (Para2 1)
 S_MATCH = 4201  # MatchStateMsg: liga o botão de PvP (playerInfo.isPVPStart)
-PVP_GRADE = 22  # TopToolsBar: o botão de PvP só aparece a partir do nível 22
 ARMY_IDLE, ARMY_FIGHTING = 0, 2
 WON, LOST = 1, 2  # BattleReportMsg.battleResult e ChallengeLogMsg.result
 OPPONENTS = 4
@@ -643,8 +642,17 @@ async def pet_rank_reward(s: GameSession, msg: pb.RankRewardMsg) -> None:
 
 @router.on(8294)
 async def match_state(s: GameSession, _: object) -> None:
-    """Estado do botão de PvP (``TopToolsBar.sendMatch``: no login com nível 22 e ao chegar nele). O login turco
-    (login.json #82, nível 56) manda 4201 falso; o inglês (tutorial_en #24-#136, nível 1) não manda nenhum; o
-    cliente só pede daí em diante."""
-    assert s.snapshot is not None
-    s.send(S_MATCH, b.complete(pb.MatchStateMsg(matchState=s.snapshot.character.grades >= PVP_GRADE)))
+    """Estado do PvP (``TopToolsBar.sendMatch``: no login com nível 22 e ao chegar nele). ``matchState`` é a janela
+    aberta (``A.match_open``); o botão só aparece com nível 22 e ela aberta (``TopToolsBar.showPVP``). O login
+    turco (login.json #82, nível 56) manda 4201 falso; o inglês (tutorial_en #24-#136, nível 1) não manda nenhum."""
+    s.match_open = A.match_open(s.ctx.world.settings, s.ctx.clock.now())
+    s.send(S_MATCH, b.complete(pb.MatchStateMsg(matchState=s.match_open)))
+
+
+def push_match(s: GameSession) -> None:
+    """No relógio (20008): o 4201 vai sozinho a todos quando a janela abre ou fecha (oficial_20261023-153200-1
+    #2231, nível 12). O primeiro tique só guarda o estado."""
+    now_open = A.match_open(s.ctx.world.settings, s.ctx.clock.now())
+    if s.match_open is not None and now_open != s.match_open:
+        s.send(S_MATCH, b.complete(pb.MatchStateMsg(matchState=now_open)))
+    s.match_open = now_open

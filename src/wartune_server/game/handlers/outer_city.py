@@ -34,7 +34,7 @@ from ..session import GameSession
 from . import events
 from .campaign import player_hero, quarry_fight
 from .login import army, player_info
-from .player import alert
+from .player import alert, hero_after_fight, hp_pack
 from .wild_boxes import drop_box, send_boxes
 
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
@@ -347,6 +347,7 @@ async def _casualties(s: GameSession, battle: Battle, won: bool, scene: int) -> 
     assert snap is not None
     hit = oc.lose_troops(snap, s.ctx.templates, battle.troops())
     daru = hit[1] if hit is not None else 0
+    healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=daru, gpBonus=0, battleScene=scene)
     report.failCount, report.goldBonus, report.petGpBonus = s.fail_count, 0, 0
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
@@ -355,9 +356,11 @@ async def _casualties(s: GameSession, battle: Battle, won: bool, scene: int) -> 
         castle_yield(s)
         _send_player(s)
     s.send(S_REPORT, report)
+    hp_pack(s, healed)  # (visto) #1899-#1901 (com o 139 no meio, que aqui não há)
     if hit is not None:
         oc.refill(*hit)
-        await s.ctx.characters.save(snap.character, hit[0])
+    assert snap.leader is not None
+    await s.ctx.characters.save(snap.character, snap.leader, *([hit[0]] if hit is not None else []))
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     s.battle_strategy = daru
@@ -556,7 +559,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     Outro mapa (``magId`` diferente): o servidor escolhe o ponto (centro do mapa) e gasta 200 de
     energia de teleporte; sem energia, completa até o teto com diamante (``payType 2`` = vinculado).
     Mesmo mapa com ``posX``/``posY``: 100 de energia, no ponto pedido se estiver no mapa.
-    Resposta: 140 com o exército no lugar novo e 105 com o castelo (mapa, posição, energia). Recusa:
+    Resposta: 140 com o exército no lugar novo e 105 com o castelo (mapa, posição, energia). Mudando de mapa,
+    as minas ocupadas se soltam e o 152 vai entre os dois (oficial_20261023-153200-1 #184-#187). Recusa:
     105 com o castelo como está.
     """
     snap = s.snapshot
@@ -586,12 +590,19 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             return
         castle.energy = top
     castle.energy -= need
+    released = []
+    if target != castle.map_id:
+        cs.settle(snap, templates, now)  # o ouro até agora sai com as minas
+        released = mines.release(snap)
+    moved_map = target != castle.map_id
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
     quests = rules.update_state_quests(snap, templates, snap.quests)  # 37: missões do mapa (checkMapId)
     _stop_walk(s)
     s.outer_army = None
-    await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests)
+    await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests, delete=tuple(released))
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_brief(s)))
+    if moved_map:
+        s.send(S_POLITICS, politics_msg(snap, templates))
     s.send(S_TRANSFER, pb.CastleReqMsg(magId=target, posX=spot[0], posY=spot[1], leftEnergy=castle.energy))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))

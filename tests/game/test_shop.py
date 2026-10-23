@@ -70,21 +70,26 @@ async def test_buy_with_gift_token_writes_the_ledger(tmp_path: Path) -> None:
 
 async def test_fast_blood_buys_and_fills_the_reserve(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        c = me(g).character
-        c.gold = 6000
-        await g.server.services.characters.save(c)
+        c, leader = me(g).character, me(g).leader
+        assert leader is not None
+        c.gold, leader.hp = 6000, 100  # ferido: a reserva nova completa a vida na hora
+        await g.server.services.characters.save(c, leader)
 
         g.client.send(5633, buy(SMALL_HP, 1))
-        got = await g.until(170)
-        assert codes(got) == [109, 113, 170]
-        assert pb.SimpleHeroInfoMsg.FromString(got[1].body).blood == 10000
-        assert pb.FastUseBloodMsg.FromString(got[-1].body).result == 1
+        got = await g.until(83)
+        # (visto) oficial_20261023-153200-1 #803-#807
+        assert codes(got) == [109, 113, 170, 111, 83]
+        hero = pb.SimpleHeroInfoMsg.FromString(got[1].body)
+        assert hero.blood == 10000 - (hero.hp - 100) and hero.hp > 100
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Purchase Successful!"
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Used HP pack to restore HP."
+        assert pb.FastUseBloodMsg.FromString(got[2].body).result == 1
 
         g.client.send(5633, buy(SMALL_HP, 1))  # 1000 de ouro não paga
         got = await g.until(170)
         assert codes(got) == [170] and pb.FastUseBloodMsg.FromString(got[0].body).result == 4
         saved = await g.server.services.characters.snapshot(g.user_id)
-        assert (saved.character.gold, saved.leader.blood) == (1000, 10000)  # type: ignore[union-attr]
+        assert (saved.character.gold, saved.leader.blood) == (1000, hero.blood)  # type: ignore[union-attr]
 
 
 async def test_mystery_shop_lists_and_sells_once(tmp_path: Path) -> None:

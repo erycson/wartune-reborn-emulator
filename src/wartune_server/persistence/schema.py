@@ -267,6 +267,7 @@ heroes = Table(
     Column("hide_fashion", Boolean, nullable=False, default=False, server_default="0"),
     _int("blood"),
     _int("blood_id"),
+    _int("hp"),
     _int("talent_grade"),
     _str("talent_script"),
     _str("runes", 1024),

@@ -366,8 +366,8 @@ def player_hero(s: GameSession, spec: dict[str, object]) -> PlayerHero:
         side=1,
         pos=player["pos"],
         maxHp=stats.live,
-        initHp=stats.live,
-        hp=stats.live,
+        initHp=b.hero_hp(leader, stats.live),
+        hp=b.hero_hp(leader, stats.live),
         hp2=0,
         sp=s.hero_sp,
         slotAvata=rules.arm_avatar(snap, s.ctx.templates),
@@ -503,6 +503,9 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         s.fail_count += 1
     if hit is not None:
         outer_city.refill(*hit)
+    from .player import hero_after_fight, hp_pack  # player importa login, que importa este módulo
+
+    healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
     if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win or hit:
@@ -517,6 +520,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         report.signId = loot.sign
         report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in loot.fallen)
     _send(s, S_BATTLE_REPORT, report)
+    hp_pack(s, healed)  # (visto) oficial_20261023-153200-1 #1449-#1450
     if gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
     if snap.character.grades > before:
