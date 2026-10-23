@@ -168,7 +168,7 @@ Outros eventos:
 - Recompensa offline ×1,5/×2 (8287): preço desconhecido. **sem dado**.
 - 8255 (batalha em grupo), 8562 (trégua), 5179 (terras selvagens): respondem vazio. **depende de** esses sistemas.
 - Rendimento: prefeitura + minas bate exato com a captura inglesa (#579, #591, #772, #2744); bônus de guilda e efeitos ainda não entram.
-- **dedução**: EXP offline = nível × minutos (até 8 h), arredondamento do bônus da terra melhorada, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto (× 20); que seja o nível de jogador do dono (e não o grau da fazenda) é dedução.
+- **dedução**: EXP offline = nível × minutos (até 8 h), arredondamento do bônus da terra melhorada, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto, grau da fazenda do dono × 20 (`oficial_20261023-153200-1` #2228 e #2242; textos ingleses "Tree of the Ancients EXP +1", "Friendliness  +1").
 
 ## PvP ([pvp.md](pvp.md))
 

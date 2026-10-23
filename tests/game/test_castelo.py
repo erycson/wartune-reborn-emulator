@@ -246,16 +246,21 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
 async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -> None:
     clock = FakeClock()
     async with logged_in(tmp_path, novice=READY, clock=clock) as g:
-        await _set(g, gold=0, grades=11)
+        snap = await _set(g, gold=0, grades=11)
+        assert snap.castle is not None
+        snap.castle.farm_grade = 11  # ouro = grau da fazenda x 20
+        await g.server.services.characters.save(snap.castle)
         g.client.send(8231, pb.FriendUserIdsMsg(friendId=[g.user_id + 5]))
         states = pb.LoadFarmRsp.FromString((await g.until(4190))[-1].body).friendFarmState
         assert [(x.userId, x.isChargeEnergy) for x in states] == [(g.user_id, True), (g.user_id + 5, False)]
 
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
         got = await g.until(147)
-        assert [p.code for p in got] == [109, 146, 83, 147]  # só turco: ciftlik #7-#10
-        assert pb.TreeUpdateRsp.FromString(got[1].body).harvestMsg == ["Energy + 1", "Gold + 220", "Farm EXP + 1"]
-        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg.startswith("Energize successful! Gold + 220,")
+        assert [p.code for p in got] == [109, 146, 83, 147]  # oficial_20261023-153200-1 #2227-#2230
+        harvest = pb.TreeUpdateRsp.FromString(got[1].body).harvestMsg
+        assert harvest == ["Energy +1", "Gold +220", "Tree of the Ancients EXP +1"]
+        text = pb.ChatChannelMsg.FromString(got[2].body).encodeMsg
+        assert text == "Energized Successfully,Gold +220,Energy +1,Tree of the Ancients EXP +1"
         tree = pb.TreeUpdateRsp.FromString(got[3].body).tree[0]
         assert (tree.waterCount, tree.leftTime) == (1, 600)
 
@@ -340,6 +345,9 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         now = clock.now()
         await _set(g, gold=0, grades=11)
         owner = await _set(other, grades=66)
+        assert owner.castle is not None
+        owner.castle.farm_grade = 66  # o ouro de quem rega é o grau da fazenda do dono x 20
+        await g.server.services.characters.save(owner.castle)
         await _friends(g, other, gp=33)  # grau 4 (só turco: ciftlik #85, 34 depois de regar)
         lands = [
             FarmLand(other.user_id, 0, SEED, now - timedelta(hours=2), now - timedelta(minutes=30), 2400),  # madura
@@ -384,7 +392,10 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         assert [(t.userId, t.waterCount) for t in trees] == [(other.user_id, 1), (g.user_id, 0)]
         info = pb.FriendInfoMsg.FromString(got[3].body)
         assert (info.userId, info.relationGrade, info.relationGp) == (other.user_id, 4, 34)
-        assert pb.TreeUpdateRsp.FromString(got[4].body).harvestMsg[0] == "Farm EXP + 4"
+        harvest = pb.TreeUpdateRsp.FromString(got[4].body).harvestMsg
+        assert harvest == ["Tree of the Ancients EXP +4", "Gold +1,320", "Friendliness  +1"]
+        text = pb.ChatChannelMsg.FromString(got[5].body).encodeMsg
+        assert text == "Gold +1,320,Tree of the Ancients EXP +4,Friendliness  +1"
         g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))  # uma por dia por amigo
         assert await g.idle() == []
 

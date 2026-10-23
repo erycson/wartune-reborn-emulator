@@ -35,6 +35,7 @@ OWN_FARM, FRIEND_FARM = 0, 1  # Para1 do tipo 60: 263/860 a própria, 266/861 a 
 OWN_TREE, FRIEND_TREE = 1, 0  # Para1 do tipo 20: 260 a própria, 22/261/271 a de amigo
 MAX_IDS = 100  # listas de amigos que o cliente manda (8219/8231)
 TREE_PICK_GP = 1  # FarmModel._expTreePick (expByOper 11, somado pelo cliente no 4189)
+TREE_GOLD = 20  # ouro por grau da fazenda do dono ao regar a árvore (oficial_20261023-153200-1 #2228, #2242)
 REVIVE_BACK = timedelta(minutes=1)  # (visto, só turco: ciftlik #88-#89) reviver às 20:22:41 dá matureTime 20:21:42
 
 
@@ -349,8 +350,9 @@ async def _clear(
 
 @router.on(15017)
 async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
-    """Rega a própria árvore a cada 10 minutos, 3 vezes por dia (só turco: ciftlik #5-#10: ouro, energia e EXP da
-    fazenda); com ``userId`` de amigo, a árvore dele (``_water_friend``)."""
+    """Rega a própria árvore a cada 10 minutos, 3 vezes por dia (ouro, energia e EXP da fazenda; inglês:
+    oficial_20261023-153200-1 #2226-#2230: 109, 146, 83, 147); com ``userId`` de amigo, a árvore dele
+    (``_water_friend``)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     if msg.userId not in (0, s.player_id):
@@ -361,9 +363,9 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     if farm.tree_left(castle, now) > 0 or castle.tree_fruit > 0 or castle.tree_water_today >= farm.OWN_TREE_DAILY:
         s.log.info("15017 recusado", motivo="em espera, com fruto ou 3 no dia", hoje=castle.tree_water_today)
         return
-    # ouro = nível do dono x 20: (visto, só turco: ciftlik #5-#10 e #81-#87) 220 no nível 11, 1.320 na árvore de
-    # amigo de nível 66
-    gold = c.grades * 20
+    # ouro = grau da fazenda do dono x 20: (visto) oficial_20261023-153200-1 #2226-#2229, 20 com a fazenda no grau 1
+    # (o jogador no nível 12); #2236-#2243, 920 no amigo de fazenda 46. Bate com o turco (ciftlik: 220 e 1.320)
+    gold = castle.farm_grade * TREE_GOLD
     cs.settle(snap, templates, now)
     c.gold += gold
     # o "Enerji + 1" do texto é a carga da árvore (waterCount), não a energia de teleporte
@@ -375,24 +377,22 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, OWN_TREE, 1)
     await s.ctx.characters.save(c, castle, *quests)
     cs.castle_yield(s)
-    # (visto, só turco: ciftlik #8) 146 com as 3 linhas antes do 83; textos em inglês deduzidos (termo Energize do
-    # language.txt)
-    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=["Energy + 1", f"Gold + {gold:,}", "Farm EXP + 1"]))
-    s.send(
-        S_CHAT,
-        pb.ChatChannelMsg(channel=3, encodeMsg=f"Energize successful! Gold + {gold:,}, Energy + 1, Farm EXP + 1"),
-    )
+    # (visto) oficial_20261023-153200-1 #2228-#2229: os textos ingleses (a vírgula de milhar é dedução)
+    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=["Energy +1", f"Gold +{gold:,}", "Tree of the Ancients EXP +1"]))
+    text = f"Energized Successfully,Gold +{gold:,},Energy +1,Tree of the Ancients EXP +1"
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> None:
-    """Rega a árvore de um amigo: uma vez por dia por amigo, até 200 no dia (help do cliente). (visto, só
-    turco: ciftlik #81-#87) quem rega ganha ouro = nível do dono x 20 (1.320 com o dono no 66) e EXP da fazenda =
-    grau de amizade (+4 no grau 4; expByOper caso 8, dentro do teto do dia); a árvore do dono ganha 1 de carga
-    (8 -> 9) sem mexer no tempo de espera dele; a amizade sobe 1. Pacotes: 4158, 109, 147 (a dele, depois a
-    minha), 165, 146, 83."""
+    """Rega a árvore de um amigo: uma vez por dia por amigo, até 200 no dia (help do cliente). Quem rega ganha
+    ouro = grau da fazenda do dono x 20 (visto: 920 com a fazenda 46, oficial_20261023-153200-1 #2238; 1.320 com
+    66 no turco) e EXP da fazenda = grau de amizade (+4 no grau 4, só turco ciftlik #85; +1 no grau 1, #2242;
+    expByOper caso 8, dentro do teto do dia); a árvore do dono ganha 1 de carga (8 -> 9) sem mexer no tempo de
+    espera dele; a amizade sobe 1. Pacotes (#2237-#2243): 4158, 109, 112 (missão), 147 (a dele, depois a minha),
+    165, 146, 83."""
     assert snap.castle is not None
     found = await _friend(s, user_id)
     c, castle, templates, now = snap.character, snap.castle, s.ctx.templates, s.ctx.clock.now()
@@ -410,8 +410,7 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
         return
     target, mine = found
     theirs = await social.row_of(s.ctx, user_id, s.player_id)
-    # (dedução) ouro pelo nível de jogador do dono (o 66 do THoR também é o grau da fazenda dele)
-    gold = target.character.grades * 20
+    gold = owner.farm_grade * TREE_GOLD
     cs.settle(snap, templates, now)
     c.gold += gold
     gp = farm.add_friend_gp(castle, c.grades, templates, social.friend_grade(s.ctx, mine),
@@ -428,21 +427,18 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     await s.ctx.characters.save(*rows, *quests)
     s.send(S_WATER_LOG, pb.FarmLogRsp(playerId=s.player_id, operUserId=user_id))
     cs.castle_yield(s)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in trees]))
     s.send(S_FRIEND_UPDATE, social.friend_info(s.ctx, target.character, mine, target.sns))
     if theirs is not None and (other := s.ctx.online.get(user_id)) is not None:
         other.send(S_FRIEND_UPDATE, social.friend_info(s.ctx, c, theirs, snap.sns))
-    lines = [f"Farm EXP + {gp}", f"Energize successful, Gold + {gold:,}", "Friendship + 1"]
-    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines))
-    s.send(
-        S_CHAT,
-        pb.ChatChannelMsg(
-            channel=3, encodeMsg=f"Energize successful, Gold + {gold:,}, Farm EXP + {gp}, Friendship + 1"
-        ),
-    )
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    # (visto) #2242-#2243, com os dois espaços de "Friendliness  +1"
+    lines = [f"Tree of the Ancients EXP +{gp}", f"Gold +{gold:,}", "Friendliness  +1"]
+    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines, isUpGrade=False))
+    text = f"Gold +{gold:,},Tree of the Ancients EXP +{gp},Friendliness  +1"
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 @router.on(5178)
