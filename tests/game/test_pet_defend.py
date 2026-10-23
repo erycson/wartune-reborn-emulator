@@ -4,6 +4,8 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import logged_in
 from wartune_server.domain import gameday
 from wartune_server.game import pet_defend as pd
@@ -57,3 +59,75 @@ def test_window_follows_the_config_hours(tmp_path: Path) -> None:
     assert floor in (20001, 20003) and pd.boss_id(floor) in (5101, 5103)
     assert pd.window(templates, settings, _at(10, 30)) is None
     assert pd.window(templates, {"pet_island_defend": {"floors": []}}, _at(10, 0)) is None
+
+
+def _riot(session: object, hero: int) -> int:
+    """O primeiro nó 1003 do herói (o vencido conta: fica DONE)."""
+    nodes = session.campaign.nodes  # type: ignore[attr-defined]
+    return next(camp for camp, n in nodes.items() if n["masterType"] == 1003 and n["heroTempId"] == hero)
+
+
+def _open_riot(session: object, hero: int) -> int:
+    nodes = session.campaign.nodes  # type: ignore[attr-defined]
+    return next(c for c, n in nodes.items() if n["masterType"] == 1003 and n["heroTempId"] == hero and n["state"] == 1)
+
+
+async def test_riot_fights_count_rage_and_bring_the_boss(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from wartune_server.game.handlers.space import enter_pet_island
+    from wartune_server.templates.repository import GameTemplates
+
+    real = GameTemplates.get
+
+    def weak(self: GameTemplates, table: str, value: object, **kw: object) -> object:
+        row = real(self, table, value, **kw)  # type: ignore[arg-type]
+        if table == "GameHeroTemp" and value in (75112, 75122, 5101) and row is not None:
+            return {**row, "Live": "1", "Attack": "1", "MagicAttack": "1"}  # vence no primeiro golpe
+        return row
+
+    monkeypatch.setattr(GameTemplates, "get", weak)
+
+    clock = FakeClock(_at(7, 0))
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        session.snapshot.character.grades = 50
+        await g.idle()
+        enter_pet_island(session, 20001)
+        await g.idle()
+        nodes = session.campaign.nodes  # type: ignore[union-attr]
+        riots = [n for n in nodes.values() if n["masterType"] == 1003]
+        assert {n["state"] for n in riots if n["heroTempId"] != 5101} == {1}  # janela aberta: à vista
+        assert {n["state"] for n in riots if n["heroTempId"] == 5101} == {8}  # chefe só com a fúria cheia
+
+        async def fight(camp: int) -> list[object]:
+            g.client.send(5125, pb.CampaignReqMsg(paraInt1=camp))
+            prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+            assert prepare.battleType == 6
+            got = await g.fight(prepare)
+            return got + await g.idle()
+
+        got = await fight(_riot(session, 75112))
+        [report] = [pb.BattleReportMsg.FromString(p.body) for p in got if p.code == 4103]  # type: ignore[attr-defined]
+        assert report.battleResult == 1
+        state = pb.PetIslandDefendStateMsg.FromString([p.body for p in got if p.code == 4686][-1])  # type: ignore[attr-defined]
+        assert (state.peaceMiddle, state.peaceHigh, state.peaceBoss, state.ragePoint) == (1, 0, 0, 2)
+        assert any(i.template_id == 2100038 and i.count == 2 for i in session.snapshot.items)
+        first = _riot(session, 75112)
+        assert nodes[first]["state"] == 8  # vencido: some para quem venceu
+        assert sum(n["state"] == 1 for n in riots if n["heroTempId"] == 75112) == 36  # os outros seguem à vista
+
+        start = _at(7, 0)
+        session.ctx.pet_rage[start] = 95
+        got = await fight(_open_riot(session, 75122))  # +5: a fúria enche
+        assert session.ctx.pet_rage[start] == 100
+        assert {n["state"] for n in riots if n["heroTempId"] == 5101} == {1}
+        got = await fight(_open_riot(session, 5101))
+        state = pb.PetIslandDefendStateMsg.FromString([p.body for p in got if p.code == 4686][-1])  # type: ignore[attr-defined]
+        assert (state.peaceMiddle, state.peaceHigh, state.peaceBoss, state.ragePoint) == (1, 1, 1, 100)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert sum(i.count for i in saved.items if i.template_id == 2100038) == 2 + 5 + 20
+
+        clock.advance(3600)  # 08:00: tudo some
+        g.client.send(20008)
+        await g.idle()
+        assert {n["state"] for n in riots} == {8}

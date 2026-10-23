@@ -226,6 +226,11 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 | duração e andar | `game_settings.pet_island_defend` (0057): `duration` 3600, `floors` [20001] sorteado por janela; `bossId` = 5100 + andar | (visto) 1 h, andares 20002/20004 com 5102/5104; só o 20001 tem nós aqui |
 | login | 4686 com os sete campos; `peace*` = vitórias com prêmio hoje (`pet_defend:*`, dia do jogo) | (visto) tutorial_en #44, oficial_encantar #43 |
 | abre/fecha | no 20008 de cada um: 4686 **sem** `peace*` (o cliente só troca os contadores se vierem os três) + 83 canal 12: abre `Defend Sylph Atoll has opened. Warriors, …` (centro); fecha `Sylphs' anger has subsided. …` (centro) e `Defend Sylph Atoll is over. …` | (visto) #866-#868, #2337-#2338 |
+| monstros | nós `masterType` 1003 do 20001 (37 avançados 7511x, 37 sofisticados 7512x, 4 do chefe 5101) chegam DONE (8) no 127; na janela do andar ficam NORMAL (no 127 de quem entra e em 128 no 20008 de quem já está lá); fora dela voltam a 8. O vencido some só para quem venceu | (dedução) nós da captura turca + `PosType.PET_BOSS_MONSTER` |
+| luta | 5125 no nó: battleType 6 (nó de campanha) contra o herói do nó com a vida do template; 4103, 150, 100, 140/131 e o 128 DONE (ou NORMAL na derrota) | (dedução) sem captura de luta |
+| prêmio | vitória conta em `pet_defend:middle/high/boss` (dia do jogo) até `pet_island_defend_reward_count` (20, 10, 1); dentro do teto, `game_settings.pet_island_defend.rewards` (Sylph Crystalloid 2100038 x2 / x5 / x20 + Sylph Equipment Shard Pack 2060489 no chefe) com 115, 4476, 111 e 83 | (inventado) itens; teto do `ConfigInfos` |
+| fúria | por janela, do andar: +`pet_island_defend_rage_add` (2 avançado, 5 sofisticado), até `pet_island_defend_boss_rage` (100); 4686 novo a todos (com `peace*` só para quem lutou). Cheia: os nós do chefe aparecem a todos no andar. Só em memória (`GameContext.pet_rage`, `shortcut`) | (cliente) `PetBossInfoView`; ajuda "the Lord appears after enough kills" |
+| chefe | luta individual contra 510x com a vida inteira (a janela não divide a vida como o chefe do mundo); sem ranking do grupo (`PetBossSortView`, sem captura) | (dedução) |
 
 ## Alquimia, alma e loja do teste
 

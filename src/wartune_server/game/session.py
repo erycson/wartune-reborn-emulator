@@ -63,6 +63,9 @@ class GameContext:
     # árvore dourada: andares e sorte por edição (handlers/gold_tree.py)
     gold_tree: dict[str, Any] = field(default_factory=dict)
     vehicles: Arena = field(default_factory=Arena)  # fila e partidas de veículos (game/vehicles.py)
+    # fúria da invasão da ilha dos pets por janela (início -> pontos; handlers/pet_defend.py)
+    # shortcut: só em memória, um restart no meio da janela zera a fúria; gravar se a janela ficar longa
+    pet_rage: dict[datetime, int] = field(default_factory=dict)
 
 
 class OnlinePlayers:
@@ -139,6 +142,7 @@ class GameSession:
         self.vehicle_open: bool | None = None  # último 4512 mandado (o 20008 manda de novo se mudou)
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.pet_defend_map: int | None = None  # mapId do último 4686 (handlers.pet_defend.push_state)
+        self.pet_defend_nodes: tuple[datetime, bool] | None = None  # (janela, chefe à vista) dos nós 1003
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
         self.serven_sent: bytes | None = None  # último 4638 mandado (handlers.events.refresh_serven)

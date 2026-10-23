@@ -52,6 +52,7 @@ from ..campaign import (
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
+from . import pet_defend
 from .login import army, player_info
 
 S_PLAYER, S_NOVICE, S_ARMY_PAWN = 3, 1, 100
@@ -248,6 +249,10 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         return
     if c.content is not None:
         await _dungeon_arrive(s, camp, node)
+        return
+    if c.map_id in PET_ISLANDS:
+        if node["masterType"] == pet_defend.RIOT:
+            await pet_defend.attack(s, camp, node)
         return
     if camp in ARRIVE_PLOT:
         if camp not in c.talked:  # o cliente repete o 5125 enquanto anda sobre o nó

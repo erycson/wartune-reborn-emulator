@@ -114,6 +114,10 @@ def enter_pet_island(s: GameSession, map_id: int) -> None:
     assert s.snapshot is not None
     me = space.room_player(s.snapshot, s.ctx.templates, s.campaign.pos, map_id, s.ctx.clock.now())
     s.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me]))
+    from .pet_defend import sync_nodes  # pet_defend importa a campanha, que importa este módulo
+
+    s.pet_defend_nodes = None
+    sync_nodes(s, send=False)  # monstros da invasão já no 127, se a janela deste andar estiver aberta
     s.send(S_NODES, s.campaign.node_list())
 
 
