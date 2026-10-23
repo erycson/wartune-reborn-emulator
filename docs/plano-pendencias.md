@@ -9,7 +9,7 @@ Ordem pedida pelo dono (2026-10-23): nada fica sem implementação. Dado que fal
 Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C cliente, R replay, I internet, X inventado.
 
 ## 1. Contrato do rei e VIP
-- [ ] Varredura/Blitz 8528 + progresso de campanha (MopupManager; custos ConfigInfos) → Free Blitz (5)
+- [x] Varredura/Blitz 8528 de campanha (Free Blitz 5). Labirinto: junto do progresso do labirinto (seção 4)
 - [ ] Gancho / Altar of Ennoblement: ganho offline (HookContorler/HookFrame) → Lord of Time (4), leed 22
 - [x] Buff 7 (+10% nas masmorras, Catacombs, Necropolis) na batalha
 - [x] Power of Healing: o 83 com contrato → marcar TODO(inventado)

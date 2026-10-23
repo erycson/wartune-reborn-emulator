@@ -193,7 +193,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   - 3 Power of Healing: a vida do herói enche sem gastar a reserva das poções (`rules.heal_hero`,
     `HEALING_CONTRACT`; *dedução*: o 83 "Used HP pack to restore HP." continua indo).
   - 4 Lord of Time: **depende de** o gancho (Altar of Ennoblement) existir; hoje não há aceleração para cobrar.
-  - 5 Free Blitz: **depende de** a varredura (8528) existir; hoje ela só registra.
+  - 5 Free Blitz: a varredura de campanha não cobra ouro nas rodadas nem a aceleração (`sweep.free`).
   - 6 Attribute Boost: dá o buff 7 (30 min, uma vez por dia, "Retrieve Buff"): +10% de atributos, vida e tropa nas lutas de masmorra (`Campaigns.Types` 0 e 4; `campaign.boosted`).
 - Nível VIP: `UpGradeTempInfos` `Types=4` (Data = vipGp acumulado).
 - ponytail: o vipGp do período (`Vip_DailyAddGp` x dias) entra todo na compra.

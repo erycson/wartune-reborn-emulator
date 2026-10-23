@@ -89,7 +89,7 @@ Outros eventos:
 - Caixa Pandora (5033 com S>C 29, mapId 879/880, nodeId 101107/102107): feita na masmorra, com o buff 1301/1701 da captura. Falta a recompensa além do buff (a captura traz `itemTempId` 0). Exército na campanha (5121): falta captura da resposta. **depende de**: nada agora; o progresso de campanha ainda não é salvo.
 - Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
 - Torre (8297/8300): limites vistos na captura; totalGp e itens **dependem de** progresso da torre.
-- Varredura (8528): falta captura do pedido C>S. Custos em `ConfigInfos` (campanha 5000 ouro e 300 s; labirinto 1000 e 30 s por andar). **depende de** progresso de campanha.
+- Varredura (8528): campanha feita (`game/sweep.py`); a do labirinto **depende de** progresso da torre.
 - Guarda de batalha (8742): o login oficial manda 4631 com `watchInfo` e o servidor não manda. **depende de** modelar gemas.
 - Pedágio (8752–8755): fechado, sem agenda. Configuração e tabelas de recompensa existem no template, mas o parser descarta as tabelas aninhadas.
 - Link de sala no chat (9504): feito (4913). Sala inexistente: sem resposta (dedução).
@@ -180,7 +180,7 @@ Outros eventos:
 - Canal de time (6) no chat: recusado.
 - ~~VIP ignorado em limite de amigos e 5172 índice 0~~ **feito** pelo cliente (`VIPModel.vipFriendPrivilege`/`vipCoolPrivilege`). Cota de cornetas: `game_settings.vip_bugle_bonus` (0036), padrão 0 = **sem fonte**; **falta captura** do 8705 → 4500 de uma conta VIP (ver chat.md).
 - Presente do contrato do rei para amigo (8540): recusado (gravar outro personagem). O do VIP (8513) o inglês não manda.
-- Contrato do rei: Lord of Time (4) depende do gancho, Free Blitz (5) da varredura 8528 ([eventos.md](eventos.md#vip-e-contrato-do-rei)).
+- Contrato do rei: Lord of Time (4) depende do gancho ([eventos.md](eventos.md#vip-e-contrato-do-rei)).
 - ~~Mochila de 42 espaços base em coliseu, fazenda, caixa por tempo, correio e `rewards.can_grant`~~ **feito**: todos usam `bag.free_positions` (`bag.capacity`: 42 + comprados, 217 alugada).
 
 ## Oráculo do tutorial e protocolo

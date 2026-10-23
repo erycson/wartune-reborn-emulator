@@ -91,6 +91,9 @@ async def login_push(s: GameSession) -> None:
         # manda nada (nenhum uso do tipo no decompilado), então o servidor assina. (dedução) o 4177 logo aqui
         await _sign(s, auto=True)
     offer.login_push(s)
+    from . import dungeon  # dungeon importa player, que importa login, que importa este módulo
+
+    await dungeon.login_push(s)
     _send_leeds(s)
     _send_actives(s)
     send_serven(s)
