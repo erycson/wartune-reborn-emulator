@@ -139,6 +139,7 @@ class GameSession:
         # exército na cidade externa (mapa, x, y em tiles) depois de andar; None = parado no castelo
         self.outer_army: tuple[int, int, int] | None = None
         self.outer_walk: asyncio.Task[None] | None = None  # chegada do exército andando (140 parado)
+        self.hangup: Any = None  # meditação na sala do gancho (``handlers.hangup.Cultivation``)
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
@@ -214,12 +215,13 @@ class GameSession:
             self.outer_walk.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
-            from .handlers import events, room, team, vehicle, worldboss  # idem
+            from .handlers import events, hangup, room, team, vehicle, worldboss  # idem
 
             try:  # sala e time antes do unbind: quem fica ainda recebe a saída
                 room.leave_room(self)
                 team.leave_team(self)
                 worldboss.leave_boss(self)
+                await hangup.leave_room(self, back=False)
                 await vehicle.leave_vehicle(self)
             except Exception:
                 self.log.exception("falha ao sair da sala ou do time")

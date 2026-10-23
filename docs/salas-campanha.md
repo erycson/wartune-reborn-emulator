@@ -269,6 +269,25 @@ e o custo é alto para conteúdo que não muda.
 | 130 | Os irmãos tauren, Karlan (1022) e Karda (1023). |
 | 102 | Wood 2100022 (tipo 32), da pedreira 6001. |
 
+## Rest House
+
+Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, mapa `7001`), nível 21
+(`OpenGradesII.HOOK`). Sem captura; tudo do cliente (`HookMapMediator`, `HookTimeView`, `HookAlertFrame`,
+`CampaignMapController`) e dos arquivos do mapa.
+
+- Entrada (8258 `param1`): 4199 `leftWeay` antes da view, 125, 21, 127 (4 estátuas), 130, 4206 e o leed 22.
+- Estátuas: nó `types` 111, `resource` 2, sonType 7001 (o `mapmaterial/build/7001.swf` é vazio: a estátua está na
+  arte). **dedução**: as quatro `guajifang/shenxiang01-04` do `7001.maps` e os tiles valor 3 do `.titles` ao pé
+  delas; o estado do 4206 é o índice da estátua (a CDN só tem `images/hook/1.png` a `4.png`). Entrada no bloco de
+  tiles valor 4 (36,22).
+- Chegar na estátua (5125) manda o 29 `type` 7, que abre o "Divine Statue"; o 5033 `paraBool1` começa (4200
+  `isStartHangup`, 4206 para a sala). Cada 120 s: 4235 `addWeay` 1 e +1 de estamina (gravada).
+- 8292 cancela (paga os tiques vencidos), 8293 acelera `min(resta, limite - estamina)` × `HangupFastPoint` (10)
+  Balens, grátis com o contrato 4 (Lord of Time). Sem meditação, os dois devolvem o 4200 parado.
+- Teto diário: `game_settings.rest_house.daily` (0061, padrão 50) **TODO(inventado)**.
+- **dedução**: a meditação para ao sair (5025) ou desconectar; o oficial pode seguir offline (sem fonte).
+- Falta: PK no mapa (8525 / 4421, BattleType 19).
+
 ## Dependências que faltam
 
 - **Começar a campanha da sala**: o dono escolhe a campanha no 5034 (`InstanceSelectFrame`) e o 5039 entra na campanha pedida (seção das masmorras). Sem escolha, o cliente inglês mostra "Room owner has not selected a map yet." (`RoomRightView.command02`); o `roomName` do 32 o cliente não lê.

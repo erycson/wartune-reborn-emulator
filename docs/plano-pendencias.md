@@ -10,7 +10,8 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 
 ## 1. Contrato do rei e VIP
 - [x] Varredura/Blitz 8528 de campanha (Free Blitz 5). Labirinto: junto do progresso do labirinto (seção 4)
-- [ ] Gancho / Altar of Ennoblement: ganho offline (HookContorler/HookFrame) → Lord of Time (4), leed 22
+- [x] Rest House / Altar of Ennoblement (estátuas, tiques, aceleração, Lord of Time 4, leed 22)
+- [ ] PK na Rest House (8525/4421, BattleType 19)
 - [x] Buff 7 (+10% nas masmorras, Catacombs, Necropolis) na batalha
 - [x] Power of Healing: o 83 com contrato → marcar TODO(inventado)
 - [ ] VIP: montaria exclusiva, missões diárias VIP, baús de masmorra VIP, privilégios 7 e 8 (VipPrivilegeFrame)

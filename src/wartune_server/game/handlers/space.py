@@ -144,9 +144,10 @@ async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
     if s.ctx.rooms.of(s.player_id) is not None:
         leave_room(s)
         return
+    from .hangup import leave_room as leave_hook  # hangup importa space
     from .worldboss import leave_boss  # worldboss importa space
 
-    if leave_boss(s) or leave_quarry(s):
+    if leave_boss(s) or leave_quarry(s) or await leave_hook(s):
         return
     s.log.info("5025 sem ilha dos pets nem sala", mapa=s.campaign and s.campaign.map_id)
 

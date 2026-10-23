@@ -30,6 +30,7 @@ from ..campaign import NORMAL, CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
 from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, enter_quarry, map_sync, player_hero
+from .hangup import enter_room
 from .login import army, player_info
 from .player import alert
 
@@ -101,6 +102,8 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
     view. Os outros jogadores do mapa recebem o 21 de quem entrou (``CampaignManager.readMember`` soma um a um).
     """
     if await enter_quarry(s, msg.param1):  # 6001: o botão "ir" da missão 102 usa o mesmo 8258
+        return
+    if await enter_room(s, msg.param1):  # 7001-7009: Rest House (HookFrame)
         return
     if (why := _refusal(s, msg.param1)) is not None:
         alert(s, why)

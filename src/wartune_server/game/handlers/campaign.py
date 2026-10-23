@@ -243,6 +243,11 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if c is None or node is None or node["state"] != NORMAL or c.fighting or c.locked(msg.paraInt1):
         return
     camp = msg.paraInt1
+    if c.hook:
+        from .hangup import arrive as hook_arrive  # hangup importa player, que importa login, que importa este módulo
+
+        hook_arrive(s, node)
+        return
     if c.world_boss:
         from .worldboss import boss_attack  # worldboss importa este módulo
 
@@ -879,6 +884,11 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     (dedução) o desfecho de cada nó é fixo (o da captura); pode ser sorteado no oficial (docs/salas-campanha.md).
     """
     c, snap = s.campaign, s.snapshot
+    if c is not None and c.hook:
+        from .hangup import confirm  # idem
+
+        await confirm(s, msg)
+        return
     if c is None or snap is None or not c.dungeon or not msg.paraBool1 or c.fighting:
         return
     camp = msg.paraInt2

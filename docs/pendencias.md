@@ -65,8 +65,7 @@ Outros eventos:
   campo de batalha, runas, cartas...). **precisa de captura**: se o oficial empurra 4476 sozinho quando um
   contador sobe (aqui só vai no pedido 8586 tipo 1). Lista em [eventos.md](eventos.md).
 - Devoção (leed): ~~8, 15, 17, 18, 24, 25, 33 sem gancho~~ e ~~devoção do VIP~~ feitos (18, 24, 25 por **dedução**
-  do título; VIP pelo tipo 2 "Devotion Bonus"). **Depende de**: 13 arena em grupo, 22 "Altar of Ennoblement" (sistema
-  desconhecido), 23 entrada no labirinto (Catacombs), 27 campo de batalha, 28 Spire. **Precisa de captura**: VIP 3+
+  do título; VIP pelo tipo 2 "Devotion Bonus"). ~~22 "Altar of Ennoblement"~~ feito (entrada na Rest House). **Depende de**: 13 arena em grupo, 23 entrada no labirinto (Catacombs), 27 campo de batalha, 28 Spire. **Precisa de captura**: VIP 3+
   no login e os leeds 18/24/25 ([eventos.md](eventos.md#captura-que-falta-devoção)).
 
 ## Chefe do mundo ([boss-eventos.md](boss-eventos.md))
@@ -118,7 +117,7 @@ Outros eventos:
   vazio), 100, 150 e 4640 (fundo de novato) como no replay #625-#628 e tutorial_en. **dedução**: o mesmo nas
   subidas por batalha, coliseu, fazenda, livro de EXP e prêmio 8287 (as capturas só têm a da missão).
 - ~~Ataque a castelo: 9506 compra tentativas, mas nada as gasta.~~ O 5160 no castelo-robô gasta e grava na hora; o 9506 cobra AddAttck_Point (395 EN). Castelo de jogador: segue sem luta (exército alheio).
-- Gancho (8293, 8525, 8292, 8295): respondem zerado (o 8295 com as 9 salas livres); o ganho offline do gancho não existe.
+- ~~Gancho (8293, 8292, 8295) zerado~~ **feito**: Rest House ([salas-campanha.md](salas-campanha.md#rest-house)). Falta o PK no mapa (8525, BattleType 19).
 - Passe de progresso (8636/8637): área 1 fixa, prêmio recusado. **depende de**: 8753/8755.
 - Mapa do tesouro (8744): só receber o mapa; atualizar, cavar, usar e prêmio **dependem de** pontos de tesouro e batalha em equipe. Limite diário e nível 55 são **dedução**.
 - 8699 (guia do tutorial) sem nó de coleta para abrir; 8745 depende do mapa da guilda; 8535 depende do mapa de PvP do chefe.
@@ -180,7 +179,7 @@ Outros eventos:
 - Canal de time (6) no chat: recusado.
 - ~~VIP ignorado em limite de amigos e 5172 índice 0~~ **feito** pelo cliente (`VIPModel.vipFriendPrivilege`/`vipCoolPrivilege`). Cota de cornetas: `game_settings.vip_bugle_bonus` (0036), padrão 0 = **sem fonte**; **falta captura** do 8705 → 4500 de uma conta VIP (ver chat.md).
 - Presente do contrato do rei para amigo (8540): recusado (gravar outro personagem). O do VIP (8513) o inglês não manda.
-- Contrato do rei: Lord of Time (4) depende do gancho ([eventos.md](eventos.md#vip-e-contrato-do-rei)).
+- ~~Contrato do rei: Lord of Time (4) depende do gancho~~ **feito**: o 8293 sai de graça ([salas-campanha.md](salas-campanha.md#rest-house)).
 - ~~Mochila de 42 espaços base em coliseu, fazenda, caixa por tempo, correio e `rewards.can_grant`~~ **feito**: todos usam `bag.free_positions` (`bag.capacity`: 42 + comprados, 217 alugada).
 
 ## Oráculo do tutorial e protocolo

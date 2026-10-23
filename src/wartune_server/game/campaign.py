@@ -93,6 +93,7 @@ class CampaignMap:
     over: tuple[int, int] | None = None  # (gp, strategy) do 4382 que espera a volta ao mapa (5035 state 4)
     ending: list[Any] | None = None  # etapa vencida: missões (Quest) que fecham no fim, que sai com o 4382
     fallen: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # baús da luta por signId (5129)
+    hook: bool = False  # sala do gancho (7001-7009): estátuas, em ``handlers/hangup.py``
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:

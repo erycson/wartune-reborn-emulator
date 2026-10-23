@@ -203,9 +203,9 @@ async def test_bencao_do_seminario(tmp_path: Path) -> None:
 async def test_gancho_pvp_e_transporte(tmp_path: Path) -> None:
     clock = FakeClock(datetime(2026, 1, 1, 11, 59, 30, tzinfo=UTC))  # o PvP abre às 12h (game_settings.pvp_match)
     async with logged_in(tmp_path, novice=19000, clock=clock) as a:
-        a.client.send(8292)  # cancelar gancho: 4200 zerado
+        a.client.send(8292)  # cancelar sem meditar: 4200 parado com o teto do dia (game_settings.rest_house)
         hang = _body(await a.idle(), HANGUP, pb.HangupInfoMsg)
-        assert (hang.isStartHangup, hang.leftWeay) == (False, 0)
+        assert (hang.isStartHangup, hang.leftWeay) == (False, 50)
         a.client.send(8295)  # salas do gancho (HookFrame): uma por campanha 7001-7009, livres
         rooms = _body(await a.idle(), HANGUP_ROOM, pb.HangupStateListMsg)
         assert rooms.maxCount > 0 and [(r.campaignId, r.curCount) for r in rooms.hangupState] == [
