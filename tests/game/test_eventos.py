@@ -4,10 +4,12 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import Quest
+from wartune_server.domain.models import BagType, Building, EventState, Item, Pawn, Quest, Star, StarBag
 from wartune_server.domain.world import ExpRate
 from wartune_server.game import events as ev
+from wartune_server.game import rules
 from wartune_server.game.handlers import events as hev
+from wartune_server.game.handlers import systems
 from wartune_server.game.session import GameSession
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -155,6 +157,67 @@ async def test_seven_day_guide_starts_at_quest_130(tmp_path: Path) -> None:
         hev.send_serven(s)
         [p] = await g.idle()
         assert p.code == 4638 and pb.ServenDayLeadMsg.FromString(p.body).beginTime == hev.b.fmt_time(done)
+
+
+async def test_seven_day_tasks_follow_each_system(tmp_path: Path) -> None:
+    """Cada ``SimpleTasks`` do guia, falsa no personagem novo e verdadeira com o estado que o ``Detail`` pede."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        snap = s.snapshot
+        assert snap is not None and snap.character.id is not None
+        t, c, me = s.ctx.templates, snap.character, snap.character.id
+
+        def first(category: str, **attrs: object) -> int:
+            return int(next(t.find(category, **attrs))["TemplateId"])
+
+        def done() -> set[int]:
+            return {task for tasks in hev.SERVEN.values() for task in tasks if hev._task_done(s, task)}
+
+        assert done() == set()
+        c.grades, c.consortia_total_offer, c.store_grade, c.geste = 30, 500, 8, 2000  # 4, 17, 19, 25/27
+        c.skill_attack = c.skill_agility = c.skill_ability = 3  # 2 e 14
+        snap.pawns.append(Pawn(me, first("PawnTempInfos", MasterType=1, Level=10)))  # 1
+        snap.buildings.append(Building(me, first("BuildingTempInfos", MasterType=13, BuildingGrade=10)))  # 3
+        stars = [Star(me, first("starTempInfos", Profile=3), bag_type=StarBag.EQUIP, grade=3)]  # 5, 9
+        snap.stars.extend(stars)
+        armor = Item(me, first("ItemTempInfos", MasterType=1, NeedGrades=30), bag_type=BagType.HERO)  # 6
+        armor.joins = [2050103, 2050101, 2050101, 2050101]  # 15 (Lvl. 3)
+        legend = Item(me, first("ItemTempInfos", MasterType=1, NeedGrades=40, Profile=5), strengthen_grade=21)  # 7, 13
+        snap.items.extend([armor, legend])
+        bare = Item(me, armor.template_id)
+        bare.joins = [2050101] * 4  # 10: 8 pedras ao todo
+        snap.items.append(bare)
+        assert snap.leader is not None
+        snap.leader.runes = f"{first('RuneTempInfos', RuneGrade=3)}:0:0"  # 11, 21
+        sy = rules.systems(snap)
+        need = next(int(r["Data"]) for r in t.find("UpGradeTempInfos", Types=systems.MOUNT_SOUL, Grades=2))
+        sy.mount_avatars, sy.mount_gp = str(first("MountTempInfos")), f"{need},0,0,0"  # 12, 23
+        assert done() == set(range(1, 30)) - {8, 16, 18, 20, 22, 24, 25, 26, 28, 29}
+        snap.events.append(EventState(me, "campaign_rank:9004", c.created_at, value=1))  # 16
+        assert 16 in done() and stars[0].grade == 3
+
+
+async def test_seven_day_panel_is_sent_again_when_a_task_closes(tmp_path: Path) -> None:
+    """O cliente nunca pede o 4638: depois de um pedido qualquer, ele vai de novo só se algo mudou."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        snap = s.snapshot
+        assert snap is not None
+        g.client.send(20010)
+        assert await g.idle() == []  # sem a missão 130 o guia nem começou
+        done = s.ctx.clock.now()
+        snap.quests.append(Quest(snap.character.id or 0, hev.SERVEN_QUEST, done, completed=True, completed_at=done))
+        hev.send_serven(s)
+        assert [p.code for p in await g.idle()] == [4638]
+        g.client.send(20010)
+        assert await g.idle() == []  # nada mudou
+        snap.character.grades = 30  # tarefa 4
+        g.client.send(20010)
+        [p] = await g.idle()
+        day1 = pb.ServenDayLeadMsg.FromString(p.body).singleDay[0]
+        assert p.code == 4638 and [x.isComplete for x in day1.simpleTask] == [0, 0, 0, 1]
+        g.client.send(20010)
+        assert await g.idle() == []
 
 
 async def test_login_pages_actives_by_size_and_then_sends_their_progress(

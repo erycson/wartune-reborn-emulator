@@ -330,6 +330,9 @@ async def _leave_campaign(s: GameSession) -> None:
     from . import events as hev  # handlers.events importa login, que importa este módulo
 
     await hev.leed_done(s, hev.CAMPAIGN_LEED)  # (visto) tutorial_en #520-#523: 140, 4152 (leed 4), 83, 134
+    # (visto) oficial_encantar #694-#706: o 4638 vem logo depois do 4152 (e mais 5 cópias iguais depois do 83); aqui
+    # vai um, depois do 83
+    hev.send_serven(s)
     _send(s, S_CAMPAIGN_FINISH)
     s.campaign = None
 

@@ -140,6 +140,7 @@ class GameSession:
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
+        self.serven_sent: bytes | None = None  # último 4638 mandado (handlers.events.refresh_serven)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada
         self.log = log.bind(conn=connection.id)
 
@@ -175,6 +176,10 @@ class GameSession:
             if c.point < point:
                 spent = ev.count(snap, self.ctx.events, ev.SPEND, self.ctx.clock.now(), point - c.point)
                 await self.ctx.characters.save(*spent)
+        if snap is not None:
+            from .handlers import events  # handlers importa este módulo
+
+            events.refresh_serven(self)
 
     async def _save_logout(self) -> None:
         """Hora da saída (recompensa offline) e o tempo online da caixa por tempo."""

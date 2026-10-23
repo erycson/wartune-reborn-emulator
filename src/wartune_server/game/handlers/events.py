@@ -9,15 +9,16 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from ...domain import gameday
-from ...domain.models import EventState, PlayerSnapshot, Quest
+from ...domain.models import BagType, EventState, PlayerSnapshot, Quest, StarBag
 from ...protocol.messages import wartune_pb2 as pb
-from .. import bag, rewards, rules
+from ...templates.repository import Row
+from .. import bag, castle, guild, rewards, rules
 from .. import events as ev
 from ..builders import login as b
 from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
-from . import minigames, offer, vip
+from . import campaign, hero, minigames, offer, stars, systems, tower, vip
 from .login import army
 from .player import alert, granted
 
@@ -49,6 +50,7 @@ RELOGIN_DAYS = 7  # ReloginDrops.Times 1..7
 # ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (tutorial_en #3193)
 SERVEN: dict[int, tuple[int, ...]] = {1: (1, 2, 3, 4), 2: (5, 6, 7, 8), 3: (9, 10, 11, 12), 4: (13, 14, 15, 16)}
 SERVEN |= {5: (17, 18, 19, 20), 6: (21, 23, 27), 7: (26, 28, 29)}
+ALL_DAYS = 0b11111110  # bits 1-7 do estado "serven": os 7 prêmios resgatados
 
 
 # ---------------------------------------------------------------- login e PlayerMsg
@@ -567,16 +569,83 @@ async def daily_counts(s: GameSession, _: object) -> None:
 # ---------------------------------------------------------------- guia de 7 dias (8749)
 
 
+GEM_SON = "205"  # pedras do equipamento do herói; o nível é o fim do id (Lvl. N = TemplateId % 100, nas 96)
+PRIVATE_TITLE = 8  # AppellInfos "Private": CondtionType 7, honra (geste) >= Para
+
+
 def _task_done(s: GameSession, task_id: int) -> bool:
-    """``SimpleTasks``: só nível (4) e poder de combate (22) existem no servidor ainda."""
+    """``SimpleTasks`` por ``Type`` (``GuideTaskType`` do cliente); IParam5 é só o nível que mostra a tarefa
+    (``GuideTaskItem``). O sentido dos IParam vem do ``Detail`` em inglês; fontes em docs/eventos.md."""
     snap = s.snapshot
     assert snap is not None
-    row = s.ctx.templates.get("SimpleTasks", task_id, key="TaskId") or {}
-    kind, need = int(row.get("Type", 0)), int(row.get("IParam1", 0))
+    t, c = s.ctx.templates, snap.character
+    row = t.get("SimpleTasks", task_id, key="TaskId") or {}
+    kind = int(row.get("Type", 0))
+    p1, p2, p3 = (int(row.get(f"IParam{i}", 0)) for i in (1, 2, 3))
+    sy = rules.systems(snap)
+    worn = [i for i in snap.items if i.bag_type == BagType.HERO]
+    worn_stars = [x for x in snap.stars if x.bag_type == StarBag.EQUIP]
+    learned = [r for h in snap.heroes for r in hero.runes(h)]
+
+    def tpl(category: str, template_id: int) -> Row:
+        return t.get(category, template_id) or {}
+
+    def num(r: Row, key: str) -> int:
+        return int(r.get(key) or 0)
+
+    if kind == 1:  # ARMY_LEVEL: alguma tropa no nível
+        return any(num(tpl("PawnTempInfos", p.template_id), "Level") >= p1 for p in snap.pawns)
+    if kind == 2:  # GUILD_SKILL: p1 habilidades da guilda no nível p2
+        return sum(int(getattr(c, col)) >= p2 for col in guild.SKILLS.values()) >= p1
+    if kind == 3:  # PERSONAL_SKILL (abre o SeminaryFrame): alguma tecnologia no nível
+        techs = [
+            r for b in snap.buildings if (r := tpl("BuildingTempInfos", b.template_id)).get("MasterType") in castle.TECH
+        ]
+        return any(num(r, "BuildingGrade") >= p1 for r in techs)
     if kind == 4:
-        return snap.character.grades >= need
+        return c.grades >= p1
+    if kind == 5:  # USE_STAR: p1 estrelas equipadas de qualidade p2+ (Profile 3 = rara; lixo e Energine não equipam)
+        return sum(num(stars.star_tpl(t, x), "Profile") >= p2 for x in worn_stars) >= p1
+    if kind == 6:  # USE_EQUIPMENT: p1 peças vestidas de nível p3+
+        return sum(num(tpl("ItemTempInfos", i.template_id), "NeedGrades") >= p3 for i in worn) >= p1
+    if kind == 7:  # STRENGTHEN_EQU: encantada a p3, de nível p1+ e qualidade p2+ (Profile 5 = [Legendary])
+        return any(
+            i.strengthen_grade >= p3 and num(r, "NeedGrades") >= p1 and num(r, "Profile") >= p2
+            for i in snap.items
+            if (r := tpl("ItemTempInfos", i.template_id))
+        )
+    if kind == 8:  # PASS_TOWER: recorde do Forgotten Catacombs (maxIndex do 4205)
+        return p1 <= tower.MAZE_MAX_INDEX
+    if kind == 9:  # STAR_LEVEL: estrela equipada no grau
+        return any(x.grade >= p1 for x in worn_stars)
+    if kind == 10:  # INLAY_STONE: p1 pedras de nível p2+ engastadas (a Divinity Soul do mascote não conta)
+        gems = [j for i in snap.items for j in i.joins if j > 0 and tpl("ItemTempInfos", j).get("SonType") == GEM_SON]
+        return sum(j % 100 >= p2 for j in gems) >= p1
+    if kind == 11:  # LEARN_FU_WEN
+        return bool(learned)
+    if kind == 12:  # GET_MOUNT
+        return bool(systems.avatars(sy, s.ctx.clock.now()))
+    if kind == 13:  # PASS_CAMPAIGN: a masmorra p1 vencida (a nota só é gravada no fim, campaign._finish)
+        return ev.peek(snap, campaign.RANK_KEY.format(p1)) is not None
+    if kind == 14:  # GUILD_DEVOTE
+        return c.consortia_total_offer >= p1
+    if kind == 15:  # STAR_VALUE: o "Astral Value" do HoroscopeFrame (StarModel.getStarPow: EXP das equipadas / 10)
+        return sum(stars.value(t, x) for x in worn_stars) // 10 >= p1
+    if kind == 16:  # SOUL_IMPORT_PARVAT: FightingManager.getMarkingScore lê o SOUL de jewelGrades = storeGrade
+        return c.store_grade >= p1
+    if kind == 17:  # FU_WEN_LEVEL: alguma runa no nível p2
+        return any(num(tpl("RuneTempInfos", r), "RuneGrade") >= p2 for r in learned)
+    if kind == 18:  # TALENT_LEVEL
+        return any(h.talent_grade >= p1 for h in snap.heroes)
+    if kind == 19:  # GET_PET
+        return bool(snap.pets)
+    if kind == 20:  # MOUNT_LEVEL: o nível da tela de montaria (MountInfo.grade = Beast Soul Lvl)
+        return bool(systems.avatars(sy)) and systems.soul_grade(t, sy) >= p1
+    if kind == 21:  # HONOUR_SOLDIER: título Private, a honra (thane.honer = geste) no Para dele
+        return c.geste >= num(tpl("AppellInfos", PRIVATE_TITLE), "Para") > 0
     if kind == 22:
-        return army(s, snap)[1] >= need
+        return army(s, snap)[1] >= p1
+    # ponytail: 23 ENTER_CAMPAIGN (The Spire, 8201) não tem entrada no servidor; nada grava ter entrado
     return False
 
 
@@ -592,7 +661,7 @@ def _serven_msg(s: GameSession) -> pb.ServenDayLeadMsg:
     assert snap is not None
     taken = _value(snap, "serven")
     start = serven_start(snap) or snap.character.created_at
-    msg = pb.ServenDayLeadMsg(beginTime=b.fmt_time(start), statu=int(taken != 0b11111110))
+    msg = pb.ServenDayLeadMsg(beginTime=b.fmt_time(start), statu=int(taken != ALL_DAYS))
     for day, tasks in SERVEN.items():
         d = msg.singleDay.add(day=day, getReward=int(bool(taken & 1 << day)))
         for t in tasks:
@@ -601,10 +670,29 @@ def _serven_msg(s: GameSession) -> pb.ServenDayLeadMsg:
 
 
 def send_serven(s: GameSession) -> None:
-    """4638: no login de quem já concluiu a 130 e na conclusão dela (``player.quest_finish``)."""
+    """4638: no login de quem já concluiu a 130, na conclusão dela (``player.quest_finish``) e na volta da campanha
+    (``campaign._leave_campaign``)."""
     assert s.snapshot is not None
     if serven_start(s.snapshot) is not None:
-        s.send(S_SERVEN, _serven_msg(s))
+        msg = _serven_msg(s)
+        s.serven_sent = msg.SerializeToString()
+        s.send(S_SERVEN, msg)
+
+
+def refresh_serven(s: GameSession) -> None:
+    """Depois de cada pedido (``GameSession.on_packet``): manda o 4638 de novo se alguma tarefa ou prêmio mudou desde o
+    último. O cliente nunca pede o painel (``GuideTaskManager`` só escuta o 4638), e o oficial manda o 4638 no meio da
+    sessão (oficial_encantar #700-#706, na volta da campanha). (dedução) mandar também quando uma tarefa fecha fora da
+    campanha; fora da campanha e da batalha, e só até os 7 prêmios saírem, para não refazer as contas à toa."""
+    snap = s.snapshot
+    if snap is None or s.serven_sent is None or s.battle is not None or (s.campaign and not s.campaign.finished):
+        return
+    if _value(snap, "serven") == ALL_DAYS:
+        return
+    msg = _serven_msg(s)
+    if (raw := msg.SerializeToString()) != s.serven_sent:
+        s.serven_sent = raw
+        s.send(S_SERVEN, msg)
 
 
 @router.on(8749)

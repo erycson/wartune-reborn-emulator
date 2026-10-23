@@ -62,6 +62,8 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 | 8496 | dia `index` do login acumulado (`ReloginDrops.Times`), exige `index <= dias logados`; 3 com `reloginProcess` | (cliente) |
 | 8749 | guia de 7 dias: dia alcançado (contado da conclusão da missão 130), tarefas do dia feitas, `ServenLeadRewards`; 4638 | (visto) login.json #93 (só turco: a inglesa não tem 8749) |
 | login, 5014 (130) | 4638 só depois de concluir a missão 130 (`beginTime` = conclusão dela) | (visto) tutorial_en #3187-#3193 |
+| volta da campanha | 4638 de novo (o oficial manda logo depois do 4152 e mais 5 cópias iguais depois do 83; aqui um, depois do 83) | (visto) oficial_encantar #694-#706 |
+| qualquer pedido | 4638 de novo se uma tarefa ou prêmio mudou desde o último (o cliente nunca pede o painel: `GuideTaskManager` só escuta o 4638); só fora de campanha e batalha | (dedução) |
 | login | 4247 com os eventos de EXP em curso (`exp_rate_events`), logo depois do 4686; multiplicador não aplicado (o EXP das capturas já inclui o evento) | (visto) tutorial_en #44-#46 |
 | 5019 | baú online: conta só depois do 1º 5019; resgate zera; 109 (ou 3), 115, 111, 4250, 4, 83 "Received: ...", 83 "Reward retrieval successful!" | (visto) tutorial_en #1594-#1598, #2097-#2114 |
 | 8234, 8322 | só devolvem 4152 (nenhuma tela manda; o progresso vem do servidor) | (cliente) |
@@ -135,7 +137,33 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   A dica da linha (`ProjectItem`, `vipActivePrivilege`) lê o tipo 9, que nesta tempinfos é a alquimia de Daru: o
   número da dica sai errado, o total não. Sem captura com VIP 3+ (a inglesa só tem VIP 1). Sem prêmio por nível de
   devoção além dos baús (8235).
-- Guia de 7 dias: só tarefas `SimpleTasks` tipo 4 (nível) e 22 (poder de combate) são verificadas.
+- Guia de 7 dias: `SimpleTasks.Type` = `GuideTaskType` do cliente; o sentido dos IParam vem do `Detail` em inglês
+  (IParam5 é só o nível que mostra a tarefa, `GuideTaskItem`). `events._task_done`:
+
+  | Tipo | Tarefas | Conferido | Fonte |
+  |---|---|---|---|
+  | 1 ARMY_LEVEL | 1 | alguma tropa com `PawnTempInfos.Level` >= IP1 | (dedução) Detail |
+  | 2 GUILD_SKILL | 2, 14 | IP1 habilidades da guilda (`skill_*`) no nível IP2 | (dedução) Detail "3 Guild skills reach Lvl. 3" |
+  | 3 PERSONAL_SKILL | 3 | alguma tecnologia (prédio MasterType 13/14) no nível IP1 | (cliente) abre o SeminaryFrame |
+  | 4, 22 | 4, 26 | nível do herói; poder de combate | (dedução) Detail |
+  | 5 USE_STAR | 5 | IP1 estrelas equipadas com `Profile` >= IP2 (3 = rara) | (dedução) Detail |
+  | 6 USE_EQUIPMENT | 6 | IP1 peças vestidas com `NeedGrades` >= IP3 | (dedução) Detail |
+  | 7 STRENGTHEN_EQU | 7, 13 | item encantado a IP3, `NeedGrades` >= IP1 e `Profile` >= IP2 (5 = [Legendary]) | (dedução) Detail |
+  | 8 PASS_TOWER | 8 | recorde do Forgotten Catacombs (`maxIndex`) >= IP1: **nunca**, o labirinto não guarda progresso | — |
+  | 9 STAR_LEVEL | 9 | estrela equipada no grau IP1 | (dedução) Detail |
+  | 10 INLAY_STONE | 10, 15 | IP1 pedras (SonType 205) de nível IP2+ engastadas; nível = `TemplateId % 100` | (visto) tempinfos: as 96 |
+  | 11, 17 | 11, 21 | runa aprendida; runa com `RuneGrade` >= IP2 | (dedução) Detail |
+  | 12, 20 | 12, 23 | montaria possuída; nível da montaria (Beast Soul Lvl, `MountInfo.grade`) | (dedução) Detail |
+  | 13 PASS_CAMPAIGN | 16, 20, 28 | `campaign_rank:<IP1>` existe (gravado no fim da campanha) | (dedução) |
+  | 14 GUILD_DEVOTE | 17 | `consortia_total_offer` >= IP1 | (dedução) Detail |
+  | 15 STAR_VALUE | 18 | "Astral Value" = EXP das estrelas equipadas / 10 | (cliente) StarModel.getStarPow, HoroscopeFrame |
+  | 16 SOUL_IMPORT_PARVAT | 19 | `store_grade` >= IP1 | (cliente) FightingManager: SOUL = jewelGrades = storeGrade |
+  | 18, 19 | — | talento; ter mascote | (dedução) Detail |
+  | 21 HONOUR_SOLDIER | 25, 27 | honra (`geste`) >= `Para` do título Private (AppellInfos 8, 2000) | (cliente) thane.honer = geste |
+  | 23 ENTER_CAMPAIGN | 29 | **nunca**: The Spire (8201) não tem entrada no servidor | — |
+
+  Sem conteúdo no servidor (só 1001, 1002 e 6001 têm mapa): as masmorras MP 9004/9104/9105 (tarefas 16, 20, 28) e
+  o Spire; e o labirinto (tarefa 8). Precisam de captura desses sistemas, não do guia.
 
 ### Captura que falta (devoção)
 
