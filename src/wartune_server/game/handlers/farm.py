@@ -26,6 +26,9 @@ from .player import CURRENCIES, push_level
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_QUESTS = 3, 83, 111, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
 S_HARVEST, S_WATER_LOG, S_FRIEND_UPDATE, S_TREE_PICK, S_PICK_HARVEST = 146, 4158, 165, 106, 4189
+S_FARM_LOG = 145  # aviso ao dono online do que o amigo fez (FarmLogRsp)
+LOG_WATER, LOG_PEST = 1, 2  # FarmLogRsp.type: (visto) oficial_20261023-215937-1 #1028 e #1033
+HELPED = 2  # 4387.result que o dono recebe quando o amigo ajudou (215937 #1034)
 REQ, PLANT, WORM, WEED, PICK, STEAL, REVIVE, ACCELERATE, CLEAR, LAND_UP = range(10)  # FarmOperateType
 OK, FAIL = 0, 1
 EXP = -700  # ItemTempInfos -700: as sementes de EXP rendem EXP do jogador
@@ -150,8 +153,9 @@ async def _plant(
     return True
 
 
-def _helper_gp(s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, gp: int) -> None:
-    """EXP da fazenda de quem ajudou: na própria, direto; na de amigo, até o teto do dia (expByOper)."""
+def _helper_gp(s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, gp: int) -> int:
+    """EXP da fazenda de quem ajudou: na própria, direto; na de amigo, até o teto do dia (expByOper). Devolve o
+    grau de antes para o ``_farm_up`` depois do 4387 (oficial_20261024-121659-1 #217-#221)."""
     assert snap.castle is not None
     grade, templates, before = snap.character.grades, s.ctx.templates, snap.castle.farm_grade
     if target is snap:
@@ -159,7 +163,7 @@ def _helper_gp(s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, gp:
     else:
         farm.roll_day(snap.castle, s.ctx.clock.now())
         farm.add_friend_gp(snap.castle, grade, templates, gp, _config(s, "Farm_TodayFromFriend_GP", 200))
-    _farm_up(s, snap, before)  # (dedução) na hora, como na rega do amigo
+    return before
 
 
 def _farm_up(s: GameSession, snap: PlayerSnapshot, before: int) -> bool:
@@ -187,13 +191,38 @@ async def _pest(
         land.worm = 0
     else:
         land.grass = 0
-    _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
+    before = _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_BUG, BUG_PARA1, 1) if worm else []  # o mato não conta
     await s.ctx.characters.save(land, snap.castle, *quests)
     _land_reply(s, target.character.id or 0, msg.pos, land, msg.opType, OK)
+    _farm_up(s, snap, before)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    if target is not snap and (owner := s.ctx.online.get(target.character.id or 0)) is not None:
+        _tell_pest(s, owner, target, land, msg.opType)
     return True
+
+
+def _farm_log(s: GameSession, desc: str, kind: int) -> pb.FarmLogRsp:
+    c = s.snapshot.character if s.snapshot is not None else None
+    assert c is not None
+    when = b.fmt_time(s.ctx.clock.now())
+    return pb.FarmLogRsp(operUserId=c.id, operNickName=c.nickname or "", desc=desc, operDate=when, type=kind)
+
+
+def _tell_pest(s: GameSession, owner: GameSession, target: PlayerSnapshot, land: FarmLand, op: int) -> None:
+    """O dono online vê: 145 type 2, 4387 da terra com ``result`` 2 e 83 com o link de quem ajudou. (visto)
+    oficial_20261023-215937-1 #1033-#1035, praga (opType 2). TODO(inventado): os textos do mato (opType 3) sem
+    captura; vão os da praga."""
+    owner.send(S_FARM_LOG, _farm_log(s, "just exterminated pests from your crops!", LOG_PEST))
+    shown = farm.land_msg(target.character.id or 0, land.pos, land)
+    shown.opType, shown.result = op, HELPED
+    owner.send(S_FARM_LAND, pb.FarmInfoRspMsg(farmLandInfo=[shown]))
+    assert s.snapshot is not None
+    link = social.player_link(s.ctx, s.snapshot.character)
+    owner.send(
+        S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{link} just helped exterminate the bugs in your crops!")
+    )
 
 
 def _payout(
@@ -264,11 +293,20 @@ async def _pick(
     await _payout_sent(s, snap, reward, item, gained)
     text = rewards.received(templates, [(reward, land.reward_count)])
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    # (visto) o 83 do ouro vem logo depois do 111 (171155 #185-#186); o do Daru, depois do 4387 e do 4152 e antes do
+    # 83 da devoção (oficial_20261024-121659-1 #155-#160, #162-#165)
+    late = CURRENCIES.get(reward) != "gold"
+    if not late:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
     if quests:  # (dedução) sem captura; junto da terra
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    await events.leed_done(s, events.FARM_LEED)  # leed 25 "Harvest from your own farm"
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.FARM_LEED, say=False)  # leed 25 "Harvest from your own farm"
+    if late:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
     return True
 
 
@@ -317,9 +355,10 @@ async def _revive(
     if land is None or not farm.is_dead(land, farm.seed(s.ctx.templates, land.item_template_id), now):
         return False
     land.mature_at = now - REVIVE_BACK
-    _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
+    before = _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
     await s.ctx.characters.save(land, snap.castle)
     _land_reply(s, target.character.id or 0, msg.pos, land, REVIVE, OK)
+    _farm_up(s, snap, before)  # (dedução) como na praga
     return True
 
 
@@ -337,8 +376,17 @@ async def _accelerate(
         return False
     land.mature_at, land.accelerated = now + (land.mature_at - now) / 2, True
     await s.ctx.characters.save(c, land, entry)
+    from . import events  # handlers.events importa login
+
+    # (visto) oficial_20261024-121659-1 #204-#210: 3, 4152 (leed 15), 4387 e o 83 da devoção (os 150/4434 no meio
+    # são o refresco do exército, ``player._army_refresh``)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.BALEN_LEED, say=False)
+    s.balen_leed_sent = True
     _land_reply(s, s.player_id, msg.pos, land, ACCELERATE, OK)
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
     return True
 
 
@@ -466,8 +514,20 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in trees]))
     s.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, user_id, mine))
-    if theirs is not None and (other := s.ctx.online.get(user_id)) is not None:
-        other.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, s.player_id, theirs))
+    if (other := s.ctx.online.get(user_id)) is not None:
+        # (visto) oficial_20261023-215937-1 #1028-#1032 e 171155 #8005-#8009: o dono vê 145, 147 (a dele primeiro),
+        # 165 e os dois 83 com o link de quem regou
+        other.send(S_FARM_LOG, _farm_log(s, "You received energy + 1, friendliness +1", LOG_WATER))
+        owner_trees = [farm.tree_msg(target, now, own=True), farm.tree_msg(snap, now, own=False)]
+        other.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in owner_trees]))
+        if theirs is not None:
+            other.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, s.player_id, theirs))
+        link = social.player_link(s.ctx, c)
+        other.send(
+            S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Friendliness for you and {link} has increased by 1.")
+        )
+        energized = f"{link} has energized your Tree of Ancients. Ancient Energy +1"
+        other.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=energized))
     # (visto) #2242-#2243, com os dois espaços de "Friendliness  +1"
     lines = [f"Tree of the Ancients EXP +{gp}", f"Gold +{gold:,}", "Friendliness  +1"]
     s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines, isUpGrade=up))  # (visto) #1284 true, #1294 false

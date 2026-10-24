@@ -146,6 +146,7 @@ class GameSession:
         self.hangup: Any = None  # meditação na sala do gancho (``handlers.hangup.Cultivation``)
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
         self.army_tick: int | None = None  # janela de 5 min do último 150/4434 (handlers.player._army_refresh)
+        self.balen_leed_sent = False  # o handler já contou o leed 15 do gasto de diamante deste pedido
         self.fam_paid_at: datetime | None = None  # último tique de EXP da árvore pago a esta sessão
         self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
@@ -207,14 +208,18 @@ class GameSession:
         self.packet = packet
         c = self.snapshot.character if self.snapshot is not None else None
         point, gift = (c.point, c.gift_token) if c is not None else (0, 0)
+        self.balen_leed_sent = False
         await handler(self, message)
         # LeedTemp 15 "Consume Balens/Bound Balens": qualquer gasto de diamante, de qualquer pedido. (visto)
-        # (só turco) yeralti_labirenti #7-#8: 3 com o vinculado a menos e então o 4152. Aqui, depois do handler inteiro.
+        # (só turco) yeralti_labirenti #7-#8: 3 com o vinculado a menos e então o 4152. Aqui, depois do handler inteiro,
+        # a não ser que o handler já tenha mandado no lugar do oficial (``balen_leed_sent``, ex.: acelerar a fazenda)
         snap = self.snapshot
-        if c is not None and snap is not None and snap.character is c and (c.point < point or c.gift_token < gift):
+        spent_any = c is not None and (c.point < point or c.gift_token < gift)
+        if c is not None and snap is not None and snap.character is c and spent_any:
             from .handlers import events  # handlers importa este módulo
 
-            await events.leed_done(self, events.BALEN_LEED)
+            if not self.balen_leed_sent:
+                await events.leed_done(self, events.BALEN_LEED)
             # atividade "Spending Bonus" (tipo 1, condição 9): só Balens, não os vinculados (*dedução*: "Spend" no
             # texto, sem captura de gasto na inglesa)
             if c.point < point:

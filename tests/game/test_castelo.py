@@ -201,6 +201,7 @@ async def test_gold_is_produced_per_hour_up_to_the_depot(tmp_path: Path) -> None
         assert (await g.server.services.characters.snapshot(g.user_id)).character.gold == 450000
 
 
+DARU_SEED = 2160028  # [L1] Ultimate Daru Seed (Property2 -300: Daru)
 SEED = 2160001  # [L1] Gold Seed: 3000 de ouro em 60 min (rende 2400, amadurece em 59; só turco: ciftlik.json)
 
 
@@ -237,11 +238,11 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=1, bagPos=0, templateId=SEED))
         await g.until(4387)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=7, pos=1, payType=1))
-        got = await g.until(4387)
-        assert [p.code for p in got] == [3, 4387]
+        got = await g.until(83)
+        assert [p.code for p in got] == [3, 4152, 4387, 83]  # oficial_20261024-121659-1 #205-#210; leed 15
         assert pb.PlayerMsg.FromString(got[0].body).point == 0
-        assert pb.FarmInfoRspMsg.FromString(got[1].body).farmLandInfo[0].matureTime == "2026-01-01 00:29:30"  # 50%
-        assert [p.code for p in await g.until(83)] == [4152, 83]  # leed 15 (gasto de diamante)
+        assert pb.FarmInfoRspMsg.FromString(got[2].body).farmLandInfo[0].matureTime == "2026-01-01 00:29:30"  # 50%
+        assert [p.code for p in await g.idle()] == []
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=7, pos=0, payType=1))  # sem diamante
         assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1
         clock.advance(30 * 60)
@@ -262,6 +263,24 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         async with g.server.services.database.sessions() as db:
             ledger = (await db.execute(select(CashLedger))).scalars().all()
         assert [(e.delta_point, e.reason) for e in ledger] == [(-cost, "farm_accelerate")]
+
+
+async def test_daru_harvest_says_received_after_the_land(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-121659-1 #154-#160: 3, 111, 4387, 4152, 83 "Received: 12,000 Daru" e o 83 da
+    devoção."""
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        snap = _snap(g)
+        now = clock.now()
+        land = FarmLand(g.user_id, 0, DARU_SEED, now - timedelta(hours=13), now - timedelta(minutes=1), 12000)
+        snap.lands.append(land)
+        await g.server.services.characters.save(land)
+        await g.idle()
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=0))
+        got = await g.until(83)
+        got += await g.idle()
+        assert [p.code for p in got][:5] == [3, 111, 4387, 4152, 83]
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: 12,000 Daru"
 
 
 async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -> None:
@@ -402,6 +421,14 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         assert (land.result, land.matureTime) == (0, "2025-12-31 23:59:00")  # 1 min antes de agora
         g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=2, pos=2))  # tirar o inseto
         assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 0
+        seen = [p for p in await other.idle() if p.code in (145, 4387, 83)]  # (visto) 215937 #1033-#1035
+        assert [p.code for p in seen] == [145, 4387, 83]
+        assert pb.FarmLogRsp.FromString(seen[0].body).type == 2
+        shown = pb.FarmInfoRspMsg.FromString(seen[1].body).farmLandInfo[0]
+        assert (shown.userId, shown.pos, shown.opType, shown.result) == (other.user_id, 2, 2, 2)
+        assert pb.ChatChannelMsg.FromString(seen[2].body).encodeMsg.endswith(
+            " just helped exterminate the bugs in your crops!"
+        )
 
         leaving = g.server.online.get(other.user_id)
         assert leaving is not None
@@ -454,6 +481,17 @@ async def test_watering_a_friend_tree_can_level_up_the_farm(tmp_path: Path) -> N
         assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Your farm has been upgraded to level 2!"
         assert pb.FarmInfoRspMsg.FromString(got[3].body).grades == 2
         assert pb.TreeUpdateRsp.FromString(got[7].body).isUpGrade is True
+
+        # o dono online: (visto) oficial_20261023-215937-1 #1028-#1032
+        seen = await other.idle()
+        assert [p.code for p in seen] == [145, 147, 165, 83, 83]
+        log = pb.FarmLogRsp.FromString(seen[0].body)
+        assert (log.operUserId, log.desc, log.type) == (g.user_id, "You received energy + 1, friendliness +1", 1)
+        trees = pb.TreeUpdateRsp.FromString(seen[1].body).tree
+        assert [t.userId for t in trees] == [other.user_id, g.user_id]
+        texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in seen[3:]]
+        assert texts[0].startswith('Friendliness for you and <a t="1"') and texts[0].endswith("has increased by 1.")
+        assert texts[1].endswith(" has energized your Tree of Ancients. Ancient Energy +1")
 
 
 async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:
