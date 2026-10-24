@@ -566,14 +566,19 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
 
 
 async def _casualties(
-    s: GameSession, battle: Battle, won: bool, scene: int, before_report: Callable[[], None] | None = None
-) -> int:
+    s: GameSession,
+    battle: Battle,
+    won: bool,
+    scene: int,
+    before_report: Callable[[], None] | None = None,
+    note: bool = True,
+) -> tuple[int, int]:
     """150 com o exército sem as tropas mortas (#1760: 0 depois de perder as 172), 4103, a reposição pela reserva
     e 150 e 100 de novo (#1763-#1764: 172 e a reserva 640 -> 468). Com perda, 109 (população) e 3 antes do 4103:
     o Daru é o número de soldados perdidos, ganhando ou perdendo (oficial_20261023-153200-1 #1620-#1625: 116 na
     mina; #1896-#1903: 201 no tesouro; #2004-#2009: 106). Devolve o Daru, que o 4382 mostra na volta ao mapa.
     ``before_report``: o que vai logo antes do 4103 (o prêmio do Treasure Cache, oficial_20261023-171155-1
-    #650-#662)."""
+    #650-#662). ``note`` falso: o 83 do HP pack fica para quem chama (devolve ``(daru, curado)``)."""
     snap = s.snapshot
     assert snap is not None
     hit = oc.lose_troops(snap, s.ctx.templates, battle.troops())
@@ -590,7 +595,8 @@ async def _casualties(
     if before_report is not None:
         before_report()
     s.send(S_REPORT, report)
-    hp_pack(s, healed)  # (visto) #1899-#1901 (com o 139 no meio, que aqui não há)
+    if note:  # (visto) #1899-#1901 (com o 139 no meio, que aqui não há); mina: oficial_20261023-171155-1 #3151-#3152
+        hp_pack(s, healed)
     if hit is not None:
         oc.refill(*hit)
     assert snap.leader is not None
@@ -598,7 +604,7 @@ async def _casualties(
     s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
     s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     s.battle_strategy = daru
-    return daru
+    return daru, healed
 
 
 async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> None:
@@ -830,7 +836,7 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
     s.ctx.wilds.fighting.pop((m.map_id, m.id, m.born), None)
-    await _casualties(s, battle, won, monsters.SCENE)
+    _, healed = await _casualties(s, battle, won, monsters.SCENE, note=False)
     _army_sync(s, ARMY_IDLE)
     same = monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: o monstro já sumiu
     gone = won and same
@@ -848,12 +854,14 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
                 _boss_killed(s, m)
     if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
         _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
-    if won:
-        await _boss_info(s, m.map_id)
-    else:
+    if not won:
         _stop_walk(s)
         s.outer_army = None
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
+    # (visto) oficial_20261023-171155-1 #6955, #7235, #7513: o 83 do HP pack depois dos 140 (e da volta para casa)
+    hp_pack(s, healed)
+    if won:
+        await _boss_info(s, m.map_id)
 
 
 # (só turco: teknoloji_upgrade #1) o chefe morto sai no 83 canal 2 para o servidor inteiro, com o link 111 que abre o
@@ -937,7 +945,7 @@ async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) ->
         if text:
             alert(s, text)
 
-    daru = await _casualties(s, battle, won, tc.SCENE, prize)
+    daru, _ = await _casualties(s, battle, won, tc.SCENE, prize)
     s.battle_strategy = 0  # o 4382 sai aqui mesmo
     _army_sync(s, ARMY_IDLE)
     if opened:
@@ -1048,7 +1056,7 @@ async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: boo
     templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
     fight = _capacity(s)
-    daru = await _casualties(s, battle, won, oc.ROBOT_SCENE)
+    daru, _ = await _casualties(s, battle, won, oc.ROBOT_SCENE)
     s.battle_strategy = 0  # o 4382 do castelo sai aqui mesmo (#1770)
     gold = npc_castles.loot(s.ctx.world, target.grade) if won else 0
     crystals = vip_right(s, snap, VIP_PLUNDER_CRYSTALS) if won else 0

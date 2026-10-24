@@ -14,7 +14,7 @@ from wartune_server.domain.models import Item, Pawn, PlayerSnapshot, Quest, Wild
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import castle as castle_mod
-from wartune_server.game import mines, monsters, robots
+from wartune_server.game import mines, monsters, robots, rules
 from wartune_server.game import outer_city as oc
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -932,12 +932,19 @@ async def test_derrota_para_monstro_nao_abate_nem_conta(tmp_path: Path, monkeypa
         m = max((x for x in found if x.boss_type == 2), key=lambda x: monsters.level(templates, x))
         g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
         await g.until(169)
+        leader = _snap(g).leader
+        assert leader is not None
+        leader.blood = 0  # reserva vazia: "HP Pack has been exhausted." (171155 #7513)
+        _snap(g).character.grades = rules.FREE_HEAL_GRADE  # abaixo dele a vida volta cheia de graça
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=m.x, posY=m.y))
         prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
         assert [h.tempId for h in prepare.heros if h.side == 2] == [world.monsters[m.template_id].hero_id]
         got = await g.fight(prepare)
         got += await g.idle()
         assert pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body).battleResult == 2
+        last = max(i for i, p in enumerate(got) if p.code == 140)
+        assert got[last + 1].code == 83  # o 83 depois da volta para casa (#7512-#7513)
+        assert pb.ChatChannelMsg.FromString(got[last + 1].body).encodeMsg == "HP Pack has been exhausted."
         back = [pb.MapUpdatedMsg.FromString(p.body) for p in got if p.code == 140]
         assert (back[-2].wildLand.id, back[-2].wildLand.state) == (m.id, monsters.MONSTER_ALIVE)
         snap = _snap(g)

@@ -62,9 +62,18 @@ def hero_after_fight(s: GameSession, left: int | None) -> int:
     return rules.hero_after_fight(snap, s.ctx.templates, s.ctx.clock.now(), left, free)
 
 
+HP_GONE = "HP Pack has been exhausted."  # (visto) oficial_20261023-171155-1 #7513: derrota, herói ferido, sem reserva
+
+
 def hp_pack(s: GameSession, used: int) -> None:
+    """O 83 da cura pela reserva; sem gastar nada com o herói ferido e a reserva vazia, o "exhausted"."""
+    snap = s.snapshot
     if used:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=HP_PACK))
+    elif snap is not None and (leader := snap.leader) is not None and leader.blood <= 0:
+        live = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live
+        if b.hero_hp(leader, live) < live:
+            s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=HP_GONE))
 
 
 async def push_level(s: GameSession, before: int) -> None:
