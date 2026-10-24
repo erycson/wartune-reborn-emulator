@@ -82,19 +82,20 @@ async def test_colosseum_against_a_robot_enters_the_ranking(tmp_path: Path, monk
             first.simplePlayer[0].nickName,
         )
         report = body(got, 4103, pb.BattleReportMsg)
-        assert (report.battleResult, report.battleScene, report.gpBonus) == (1, 7, 60)
+        assert (report.battleResult, report.battleScene, report.gpBonus) == (1, 7, 180)  # 180 por nível (215937 #1164)
         cool = body(got, 4176, pb.ChallengeCoolTimeMsg)
         assert (cool.type, cool.challengeCount, cool.leftTime) == (0, 1, 600)
         assert 75 in codes(got)  # o herói inimigo anuncia a skill
         # (visto) oficial_20261023-215937-1 #1163-#1181: sem 150 no fim; o VIP Token (0072) depois do 4176
         tail = codes(got)[codes(got).index(4103) - 1 :]
-        assert [c for c in tail if c in (3, 150, 4103, 83, 140, 4176, 115, 111)] == [
+        assert [c for c in tail if c in (3, 150, 4103, 83, 140, 4176, 115, 4476, 111)] == [
             3,
             4103,
             83,
             140,
             4176,
             115,
+            4476,
             111,
             83,
         ]

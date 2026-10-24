@@ -5,11 +5,12 @@
     "(strategy) e dias ate o proximo resgate. Valores escolhidos pelo operador; ver docs/pvp.md.",
     "period_days: de quantos em quantos dias o resgate (8329) volta a valer (leftDay=3 na captura).",
     "rank_rewards: faixas [primeira, ultima] posicao; a primeira faixa que contem a posicao vale.",
-    "win_gp_per_grade / lose_gp_per_grade: EXP da luta = valor x nivel do jogador (4103 gpBonus)."
+    "win_gp_per_grade / lose_gp_per_grade: EXP da luta = valor x nivel do jogador (4103 gpBonus); (visto) 215937 #1164",
+    "nivel 16 ganhou 2880, 231733 #4934 nivel 19 ganhou 3420 e #1745 nivel 17 perdeu 2040; (so turco: meydan_okuma #26) 56 x 180."
   ],
   "period_days": 3,
-  "win_gp_per_grade": 60,
-  "lose_gp_per_grade": 20,
+  "win_gp_per_grade": 180,
+  "lose_gp_per_grade": 120,
   "rank_rewards": [
     {"ranks": [1, 1], "gold": 300000, "strategy": 3000},
     {"ranks": [2, 3], "gold": 200000, "strategy": 2000},

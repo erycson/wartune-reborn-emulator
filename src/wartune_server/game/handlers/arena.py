@@ -25,7 +25,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .campaign import map_sync, player_hero
-from .events import click_info
+from .events import click_info, items_gained
 from .login import player_info
 from .player import push_level
 from .vip import free_cool, is_vip, vip_grade
@@ -330,8 +330,9 @@ async def _colosseum_over(
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(gp, world, rested)))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _cool(s, A.COLOSSEUM)
-    if prize:
+    if prize:  # (visto) oficial_20261023-215937-1 #1168-#1181: 115, 4476, 4426, 4484 ×9, 111, 83
         s.send(S_ITEMS, bag.moved(prize[0], s.player_id))
+        items_gained(s)
         s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=prize[1]))
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=prize[1]))
 

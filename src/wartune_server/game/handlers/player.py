@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import replace
+from datetime import datetime
 
 from ...domain.models import Consortia, Item
 from ...domain.world import Announcement
@@ -163,6 +164,30 @@ def _announce(s: GameSession, a: Announcement) -> None:
             o.send(S_CHAT, msg)
 
 
+ARMY_REFRESH = 300  # segundos
+ARMY_PHASE = 0.0  # segundos depois do múltiplo de 300 do epoch; o oficial usa ~180,7 (o boot do servidor dele)
+
+
+def army_tick(now: datetime) -> int:
+    return int((now.timestamp() - ARMY_PHASE) // ARMY_REFRESH)
+
+
+def _army_refresh(s: GameSession, now: datetime) -> None:
+    """150 (com o 4902 quando há cartas) e 4434 uma vez por janela de 5 min do servidor, para todos: (visto) nas
+    seis capturas inglesas, de 300 em 300 s, todos com ``time % 300`` ≈ 180,7 (oficial_encantar #230, #487, #744;
+    171155 #292, #774), quase sempre logo antes do 20008 do cliente e do 4234; também nas turcas (meydan_okuma
+    #16-#18, no meio da luta). O oficial tem o próprio relógio; aqui vai no 20008 (a cada ~60 s)."""
+    from .vip import send_king  # noqa: PLC0415  (vip importa este módulo)
+
+    tick = army_tick(now)
+    if s.army_tick is None:
+        s.army_tick = tick
+    elif tick != s.army_tick:
+        s.army_tick = tick
+        _army(s)
+        send_king(s)
+
+
 @router.on(20008)
 async def synchronized_time(s: GameSession, _: object) -> None:
     """Relógio (a cada ~60 s). Também vira o dia de quem está online (4202 com os valores novos e o 3), os
@@ -172,6 +197,8 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     from .worldboss import close_windows, push_states  # worldboss importa este módulo
 
     now = s.ctx.clock.now()
+    if s.snapshot is not None:
+        _army_refresh(s, now)
     s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(now)))
     roll_monsters(s)
     if s.snapshot is not None and s.snapshot.castle is not None:

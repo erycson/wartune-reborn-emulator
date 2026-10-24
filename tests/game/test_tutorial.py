@@ -101,12 +101,12 @@ async def test_portal_chest_and_equip(tmp_path: Path) -> None:
         assert pb.RoomCreatedMsg.FromString(got[1].body).room.campaignId == 10002
 
         c.send(5125, pb.CampaignReqMsg(paraInt1=1000202, paraBool1=True))
-        got = await g.until(150)
-        assert codes(got) == [115, 111, 128, 150]
+        got = await g.until(128)
+        assert codes(got) == [115, 4476, *[4484] * 9, 111, 128]  # tutorial_en #351-#363
         weapon = pb.ItemMovedListMsg.FromString(got[0].body).moved[0].item
         assert (weapon.templateId, weapon.randomSkill_1, weapon.bagType) == (1013002, 70302, 1)
 
-        hero_id = pb.ArmyArmyMsg.FromString(got[-1].body).simpleHeroInfo.heroId
+        hero_id = g.server.online.get(g.user_id).snapshot.leader.id  # type: ignore[union-attr]
         c.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=weapon.pos, endBagType=4, endObjId=hero_id, endPos=0))
         got = await g.until(115)
         got += await g.until(115)
@@ -198,5 +198,5 @@ async def test_chest_gives_weapon_once(tmp_path: Path) -> None:
             g.client.send(5127, pb.NoviceReqMsgMsg(type=1))
             await g.until(143)
             g.client.send(5125, pb.CampaignReqMsg(paraInt1=1000202, paraBool1=True))
-            got = await g.until(150)
-        assert codes(got) == [128, 150]
+            got = await g.until(128)
+        assert codes(got) == [128]  # o 150 do #364 é o dos 5 min

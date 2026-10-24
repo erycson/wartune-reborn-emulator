@@ -13,7 +13,7 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Fazenda e árvore | ciftlik (apagada) | ops 0/1/6, rega, 8231, grau de amizade (34 → 4) | castelo.md, social.md, test_castelo | fazenda própria e de amigo |
 | Guilda | birlik_katkisi (apagada), login | contribuição (5144), ranking, baú, mercado (goodId 19), cargos 4137/4138/4133 | guilda.md, test_guild | criar/entrar em guilda, contribuir, comprar |
 | Amizade | login | 4156 em 2 páginas | social.md, chat.md | uma lista de amigos com mais de uma página |
-| Coliseu | meydan_okuma | 4169, 157 tipo 16, 4176; drop da vitória Lvl. 3 Luck Stone (`arena_challenge_items`, 0072; o inglês viu VIP Token) | pvp.md, handlers/arena.py `_prize` | mais vitórias no coliseu (o que mais sai, se derrota dá, limite por dia) |
+| Coliseu | meydan_okuma (apagada) | 4169, 157 tipo 16, 4176; drop da vitória Lvl. 3 Luck Stone (`arena_challenge_items`, 0072; o inglês viu VIP Token) | pvp.md, handlers/arena.py `_prize` | mais vitórias no coliseu (o que mais sai, se derrota dá, limite por dia) |
 | Torneio de fadas | peri_turnuvasi (apagada) | 4611, 157 tipo 35, 4361, "Puan +5" | pvp.md, test_missoes_fazenda_pets_simbolos | uma luta no torneio |
 | Despertar de fada | peri_uyanis | 5038 2011: herói 3011 e dois soldados | test_salas_tipos | campanha 2011 |
 | Astral (kader) | kader_sistemi | leed 17, 8269/4180 (o anúncio da Profile 5 já é inglês: oficial_encantar #2753) | eventos.md, test_heroi_exercito | um sorteio de estrela |
@@ -25,7 +25,7 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Montaria, cartas, login com veículos | login.json | soulScore 400, cartas de poder (#76), 4512/4515/4516, 4696, eventos do login | heroi-exercito.md, diversos.md, eventos.md | login de conta antiga (nível alto) |
 | Login 20001 | relay | chave e corpo cifrado do 20001 (`test_cipher_and_packet`, `pcap_samples` c2s 20001) | tests/protocol | capturar desde o login (a inglesa começa no meio) |
 | Amostras do .proto | replay | c2s 5172, 8574, 10020; s2c 102, 4224, 4463, 4922 | test_messages_against_pcap | usar esses sistemas |
-| Textos de pontos | meydan_okuma, av_askeri (apagada) | "Puan" do chat virou "Points" por dedução (`arena.py`, `gemmaze.py`) | pvp.md, eventos.md | uma luta no torneio e uma troca no labirinto |
+| Textos de pontos | meydan_okuma (apagada), av_askeri (apagada) | "Puan" do chat virou "Points" por dedução (`arena.py`, `gemmaze.py`) | pvp.md, eventos.md | uma luta no torneio e uma troca no labirinto |
 | Cartas das masmorras | replay #1241/#1355/#1744 | sem filtro de classe, 3 atributos no 1080013, Lvl. 1 Luck Stone 0,5 no 102102 (migração 0034) | drops-masmorras.md | rodar a 1001 mais vezes |
 | Forgotten Catacombs | login.json #55, yeralti_labirenti, labirent_sandik | 4205, campanha 8001 (`handlers/tower.py`; o maxIndex 60 é o recorde daquele personagem) | salas-campanha.md | abrir e entrar (8296 e a resposta: os andares não têm nós nos templates), resetar (8299) |
 | Sala em grupo | exp_kitabi_…_ek_sahne_mob #17-#23 | 12/17/32/120, playerState 2 do dono (`handlers/room.py`; 0/1 dos outros vêm do cliente) | salas-campanha.md | criar sala de campanha em grupo, entrar com outra conta, pronto, convite (5028), aba Hall (5027 → 4161) |
@@ -58,3 +58,4 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 | çevre altın madeni savaşı | mina do mundo e as outras instâncias; a ordem do fim da luta e o 4382 no 5035 seguem o inglês (tutorial_en #748-#754, 153200 #1634-#1636) |
 | transfer kampı sistemi | mudança de castelo 5176 (140, 152, 105), chefes do mapa 2 (9525/4938), a entrega da missão 390 com a EXP do mundo e a descansada (`rules.exp_bonus`) e o 4540, 4387 do guarda e 150 do mascote (`pets.send_gained`); o 83 da EXP fica depois do 52 como no inglês |
 | peri turnuvası | torneio de fadas (`handlers/arena.py`): 4540 da formação no 8725, 4176 tipo 1 e 4611 no 8256, a atividade contada na entrada (140, 4476, 157), 4361, 4176, 4103, o 4540/4387/150 do time, 112, 4413, 140, "Points  +5" no 83 e no 111; a missão 504 com a EXP do mundo e a descansada |
+| meydan okuma | coliseu: EXP 180 por nível na vitória e 120 na derrota (`data/colosseum_rewards.json`, como as inglesas), com a EXP do mundo e a descansada; 4540/4387/150 do mascote; prêmio com 115, 4476, 4426, 4484, 111, 83 (o inglês igual); o 4902/150/4434 do meio da luta é o periódico de 5 min (`player._army_refresh`) |

@@ -141,6 +141,9 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         snap.character, now, timebox.rule(s.ctx.world.settings)
     )  # antes do PlayerMsg: timeRun e tempo offline
     rules.rest(snap.character, s.ctx.world.settings, timebox.offline_gp(snap.character))  # leaveGp do PlayerMsg
+    from .player import army_tick  # player importa este módulo
+
+    s.army_tick = army_tick(now)  # o login já manda 150/4434: o periódico só na próxima janela
     changed = castle.ensure(snap, s.ctx.templates, now)
     # o dia vira antes do PlayerMsg (stamina, energia e attackLeftCount já do dia) e grava junto: senão o 8224
     # recarrega o arena do banco com o dia de ontem

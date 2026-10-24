@@ -106,3 +106,20 @@ async def test_pesos_vem_do_banco(tmp_path: Path) -> None:
             session.snapshot, templates, 1002, 0, random.Random(1), table=[(2040102, 0.0)], now=session.ctx.clock.now()
         )
         assert got is not None and got[0].template_id == 2040102  # tudo 0 no banco: uniforme, sem erro
+
+
+async def test_150_e_4434_a_cada_cinco_minutos(tmp_path: Path) -> None:
+    """(visto) oficial_encantar #230, #487, #744: 150 e 4434 uma vez por janela de 300 s, antes do 4234 do 20008."""
+    from wartune_server.services.clock import FakeClock
+
+    clock = FakeClock(PRE)
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        g.client.send(20008)  # o primeiro só marca
+        assert [p.code for p in await g.idle()].count(150) == 0
+        clock.advance(299 - PRE.timestamp() % 300)  # a mesma janela do login
+        g.client.send(20008)
+        assert 4434 not in [p.code for p in await g.idle()]
+        clock.advance(1)  # janela nova
+        g.client.send(20008)
+        got = [p.code for p in await g.idle()]
+        assert [c for c in got if c in (150, 4434, 4234)] == [150, 4434, 4234]

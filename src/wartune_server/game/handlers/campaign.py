@@ -424,10 +424,13 @@ async def _open_chest(s: GameSession, node: dict[str, object]) -> None:
         snap.items.append(item)
         await s.ctx.characters.save(item)
         _send(s, S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
-        # (visto) inglesa #362 "Received: Templar Priest Staff"
+        from . import events as hev  # handlers.events importa login, que importa este módulo
+
+        hev.items_gained(s)
+        # (visto) tutorial_en #351-#363: 115, 4476, 4484 ×9, 111 "Received: Templar Priest Staff", 128; o 150 do #364
+        # é o dos 5 min (``player._army_refresh``)
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Received: {row.get('TemplateName', '')}"))
     _node_update(s, CHEST, DONE)
-    _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
 
 
 async def _leave_campaign(s: GameSession) -> None:

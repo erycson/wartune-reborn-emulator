@@ -20,6 +20,7 @@ import pytest
 from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import battle as battle_mod
+from wartune_server.game.handlers import player as player_mod
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.protocol.registry import Direction, MessageRegistry
 from wartune_server.services.clock import FakeClock
@@ -61,6 +62,7 @@ pytestmark = [
 @pytest.fixture(autouse=True)
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    monkeypatch.setattr(player_mod, "ARMY_PHASE", 181.9)  # a fase do 150/4434 dos 5 min nesta captura (#365, #855)
     # o oráculo reenvia as ordens (10008) da captura, em número fixo: sem sorteio (±8%, crítico, bloqueio)
     # cada luta dura as mesmas ações do herói que no oficial
     # depois do __init__: o banco (game_settings.battle_formula, migração 0039) sobrepõe o FORMULA

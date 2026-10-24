@@ -145,6 +145,7 @@ class GameSession:
         self.npc_patrol: asyncio.Task[None] | None = None  # patrulha dos monstros do mapa de campanha (4122)
         self.hangup: Any = None  # meditação na sala do gancho (``handlers.hangup.Cultivation``)
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
+        self.army_tick: int | None = None  # janela de 5 min do último 150/4434 (handlers.player._army_refresh)
         self.fam_left = False  # saiu da terra secreta: o 8747 seguinte manda "Left Guild Chamber" (handlers/fam.py)
         self.fam_paid_at: datetime | None = None  # último tique de EXP da árvore pago a esta sessão
         self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)
