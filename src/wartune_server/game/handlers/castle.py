@@ -243,7 +243,8 @@ async def order_add(s: GameSession, msg: pb.PayTypeMsg) -> None:
 @router.on(8327)
 async def gold_impose(s: GameSession, _: object) -> None:
     """Cobrança de ouro no conselho (LevyView): 901.Property1*6 + mina.Property1*3, 5 por dia,
-    fila tipo 3 ocupada por 1 hora. (só turco: login.json/city) 46.620 = 7320*6 + 900*3."""
+    fila tipo 3 ocupada por 1 hora. (só turco: login.json/city) 46.620 = 7320*6 + 900*3; (visto)
+    oficial_20261023-171155-1 #5876: 11.280 = 1880*6."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
@@ -262,15 +263,16 @@ async def gold_impose(s: GameSession, _: object) -> None:
     # (visto) tempinfos: 763 = tipo 42, Para1 0, "Collect Levy" no Town Hall; (cliente) case 16 = levyBtn
     quests = rules.quest_event(snap, templates, LEVY, 0, 1)  # cada cobrança conta 1 (dedução)
     await s.ctx.characters.save(c, snap.castle, order, *quests)
+    # (visto) oficial_20261023-171155-1 #5875-#5880: 112 da missão 763, 109, 111, 151, 4242 e 83, com o texto
+    # "Successfully levied 11,280 gold!"
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     castle_yield(s)
-    # texto deduzido (sem fonte no cliente/captura)
-    text = f"Successfully collected {gold:,} Gold."
+    text = f"Successfully levied {gold:,} gold!"
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     s.send(S_ORDER_USE, cs.order_info(order, now))  # antes do 4242: a LevyView redesenha nele
     s.send(S_IMPOSE, pb.GoldImposeMsg(leftImpose=used + 1, maxImpose=b.MAX_IMPOSE))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5174)

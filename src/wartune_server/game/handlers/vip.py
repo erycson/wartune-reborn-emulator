@@ -452,7 +452,10 @@ async def alchemy(s: GameSession, _: object) -> None:
     snap.character.gold += info.gold
     counted = ev.count(snap, s.ctx.events, ev.ALCHEMY, now)  # atividade "Gold Alchemy" (tipo 21)
     await s.ctx.characters.save(snap.character, st, *([spent] if spent else []), *counted)
-    granted(s, [(-100, info.gold)], [], "", chat=False)  # 3 + 109
+    # (visto) oficial_20261023-171155-1 #7828-#7829: a grátis manda só 109 e 4224; pagando, o 3 leva os Balens
+    if spent is not None:
+        _player(s)
+    castle_yield(s)
     s.send(S_LUCKY, _lucky_msg(s, snap))  # gold = quanto cada uso rende (texto do cliente)
 
 

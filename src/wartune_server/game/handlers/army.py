@@ -88,17 +88,18 @@ async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
         s.log.info("5155 recusado", pedido=str(msg), ouro=snap.character.gold, populacao=(used, cap))
         return
     snap.character.gold -= cost
+    castle_yield(s)  # (visto) oficial_20261023-171155-1 #5471: o 1º 109 já pago, com a população de antes
     pawn.castle_count += n
     keep(snap, pawn)
     quests = rules.quest_event(snap, templates, RECRUIT, int(tpl["MasterType"]), n)
     await s.ctx.characters.save(snap.character, pawn, *quests)
 
-    castle_yield(s)
     send_quests(s, quests)
     castle_yield(s)
     s.send(S_CASTLE_PAWNS, castle_pawns(snap, templates, [pawn]))
-    # texto do oficial inglês (111, tutorial_en #659: "Successfully Recruited 900 Lancer")
-    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Successfully Recruited {n} {tpl['PawnName']}"))
+    # texto do oficial inglês (111, tutorial_en #659 e oficial_20261023-171155-1 #5474: "Successfully Recruited 1,166
+    # Lancer")
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Successfully Recruited {n:,} {tpl['PawnName']}"))
 
 
 @router.on(5156)
@@ -174,8 +175,9 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
         return
     pawn, tpl = found
     cost, level = int(cost_row["Data"]), int(nxt["Level"])
-    # o cliente só oferece se Level < nível do herói - 3 (PawnLevelUpFrame) e o quartel alcança
-    if grade < level or int(tpl["Level"]) >= snap.leader.grades - 3 or snap.character.strategy < cost:
+    # PawnLevelUpFrame.__upgradeHandler só confere o Daru e o quartel; o "nível do herói - 3" do ArmyManager é só a
+    # dica visual (visto: oficial_20261023-171155-1 #4891 sobe a tropa 10 com o herói 13, #5899 a 11 com o 14)
+    if grade < level or snap.character.strategy < cost:
         s.log.info("5158 recusado", pedido=str(msg), quartel=grade, daru=snap.character.strategy)
         return
     snap.character.strategy -= cost

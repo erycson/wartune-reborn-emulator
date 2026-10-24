@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from ...domain.models import BagType, Item
+from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import record_cash
 from .. import bag, rewards, rules, timebox
 from .. import castle as cs
 from ..builders import login as b
-from ..builders.player import item_moved
 from ..router import router
 from ..session import GameSession
 from .login import player_info
@@ -66,10 +65,11 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
         return
 
     c.box_period, c.box_seconds = period, 0  # o próximo período conta do resgate (o 4 volta com timerun 0)
+    # (visto) oficial_20261023-171155-1 #4869: completa a pilha que já existe (82795, pos 17) e manda um 115 só, na
+    # ordem inversa da TimeDrop
     new: list[Item] = []
-    for d in goods:
-        new.append(Item(c.id or 0, int(d["TemplateId"]), count=int(d["Data"]), pos=rules.free_bag_pos(snap)))
-        snap.items.append(new[-1])
+    for d in reversed(goods):
+        new += [i for i in bag.add(snap, templates, int(d["TemplateId"]), int(d["Data"]), now) if i not in new]
     changed: list[object] = [c, *new]
     currencies = [(CURRENCIES[int(d["TemplateId"])], int(d["Data"])) for d in drops if int(d["TemplateId"]) < 0]
     if any(f == "gold" for f, _ in currencies):
@@ -89,9 +89,8 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
         cs.castle_yield(s)
     if any(f not in ("gold", "crystals") for f, _ in currencies):
         s.send(S_PLAYER, b.complete(player_info(s, snap)))
-    for item in new:
-        s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
     if new:
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
         from . import events  # events importa login
 
         events.items_gained(s)
