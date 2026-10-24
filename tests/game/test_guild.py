@@ -212,7 +212,16 @@ async def test_contribution_matches_the_capture(tmp_path: Path) -> None:
         leed = _one(got, 4152, pb.LeedUpdatedRspMsg)  # leed 8 "Contribute to your Guild" (só turco: birlik_katkisi #11)
         assert [(x.templateId, x.isComplete) for x in leed.leed] == [(8, True)]
         # (visto) oficial_20261023-171155-1 #4951-#4961: o 83 da devoção vai por último
-        assert [p.code for p in got if p.code in (111, 4152, 150, 42, 164, 83)] == [111, 4152, 150, 42, 164, 83]
+        assert [p.code for p in got if p.code in (111, 4152, 4484, 150, 4434, 42, 164, 83)] == [
+            111,
+            4152,
+            4484,
+            150,
+            4434,
+            42,
+            164,
+            83,
+        ]
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=55999))
         got = await a.idle()
         assert [p.code for p in got if p.code in (109, 3, 111, 150, 42, 164, 83)] == [109, 3, 111, 150, 42, 164]

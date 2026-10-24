@@ -414,6 +414,9 @@ async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
 
     _send_items(s, changed, gone)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
+    from . import events  # events importa login, que importa este módulo
+
+    events.items_gained(s)  # (só turco: lvl1_degerli_tas_sandigi) 4476, 4426 e os 4484 depois do 115 da pedra
     text = "Received: " + ", ".join(f"{bag.name(templates, tid)} x{count}" for tid, count in stones.items())
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     _player(s)

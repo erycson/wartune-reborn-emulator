@@ -110,8 +110,8 @@ async def test_compose_and_transform(tmp_path: Path) -> None:
 
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))
         got = await g.until(83)
-        assert codes(got) == [115, 109, 115, 4476] + [4484] * 9 + [111, 89, 83] and c.gold == 40000
-        assert pb.ChatChannelMsg.FromString(got[13].body).encodeMsg == "Received: Gartan Sword x1"
+        assert codes(got) == [115, 109, 109, 115, 4476] + [4484] * 9 + [111, 89, 83] and c.gold == 40000
+        assert pb.ChatChannelMsg.FromString(got[14].body).encodeMsg == "Received: Gartan Sword x1"
         assert {(i.template_id, i.count) for i in me(g).items if i.bag_type == 1} >= {(2129001, 1), (1991011, 1)}
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))  # falta material
         assert await g.idle() == []

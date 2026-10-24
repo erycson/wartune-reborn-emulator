@@ -303,17 +303,18 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     quests = rules.quest_event(snap, templates, GEM_COMPOSE, 0, 1) if gem else []
     await s.ctx.characters.save(c, *changed, *got, *quests, delete=tuple(gone))
 
+    # (visto) oficial_20261023-231733-1 #1493-#1511: 115, 109, 109 (iguais), 115, 4476, 4426, 4484 ×9, 111, 112, 89, 83
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
+    castle_yield(s)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    _gained(s)  # (só turco: degerli_tas_birlestirme #6-#7) 4476 e 4426 depois do 115 da pedra nova
-    # formato do oficial inglês (111, tutorial_en: "Received: Worg Tooth x2")
-    text = f"Received: {bag.name(templates, product)} x{made}"
+    _gained(s)
+    text = f"Received: {bag.name(templates, product)} x{made}"  # (visto) #1508 "Received: Lvl. 2 HP Gem x1"
     send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg=text))
-    send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))  # como o oficial
-    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))  # como o oficial
+    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 def _upgrade_piece(s: GameSession, recipe: Row) -> Item | None:

@@ -97,7 +97,7 @@ async def test_using_resources_potions_and_gem_boxes(tmp_path: Path) -> None:
 
         g.client.send(5006, pb.ItemUseMsg(pos=2, count=2, bagType=1))
         got = await g.until(83)
-        assert codes(got) == [115, 115, 111, 3, 83]
+        assert codes(got) == [115, 115, 4476, *[4484] * 9, 111, 3, 83]  # (só turco: lvl1_degerli_tas_sandigi)
         stones = [i for i in snap.items if 2050101 <= i.template_id <= 2050801 and i.template_id % 100 == 1]
         assert sum(i.count for i in stones) == 2 and all(i.template_id != GEM_BOX for i in snap.items)
 

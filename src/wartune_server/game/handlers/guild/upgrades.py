@@ -68,8 +68,8 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     """Doação: 1000 ouro ou 5 Balens = 1 de contribuição (arredondados para baixo; só se gasta o que
     vira contribuição), para a riqueza da guilda e para o jogador. Os Balens vinculados vão primeiro
     (cliente inglês ``useBindPoint``: "Use Bound Balens first"). (visto) oficial_20261023-171155-1 #4951-#4961,
-    #4964-#4974, #5028-#5036: 109, 3, 111 "Contribution Submitted!", 4152 (a 1ª do dia), 150, 42, 164 e o 83 da
-    devoção por último; 10000 de ouro = 10, 5 Balens = 1."""
+    #4964-#4974, #5028-#5036: 109, 3, 111 "Contribution Submitted!", 4152 (a 1ª do dia), 4484 (o título de
+    contribuição), 150, 4434, 42, 164 e o 83 da devoção por último; 10000 de ouro = 10, 5 Balens = 1."""
     mine = _mine(s)
     c = _char(s)
     gold = max(msg.offerGold, 0) // GOLD_PER_OFFER * GOLD_PER_OFFER
@@ -101,9 +101,13 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
 
     devotion = events.devotion(s)
     await events.leed_done(s, events.GUILD_OFFER_LEED, say=False)
+    events.send_titles(s)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_ARMY, b.complete(army(s, snap)[0]))
+    from ..vip import send_king  # vip importa player, que importa este pacote
+
+    send_king(s)
     s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))
     _push_info(s, guild)
     if events.devotion(s) > devotion:
