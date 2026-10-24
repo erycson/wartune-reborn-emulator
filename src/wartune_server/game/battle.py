@@ -260,7 +260,7 @@ class Battle:
         self._player_msg = player.msg if player is not None else None
         self._once = set(player.once) if player is not None else set()
         self.spec = self._with_army(spec, player)
-        self._pet_id = 0  # livingId do mascote do jogador (0: sem mascote, sem despertar)
+        self.pet_id = 0  # livingId do mascote do jogador (0: sem mascote, sem despertar)
         if player is not None and player.pet is not None:
             self.spec = self._with_pet(player, player.pet)
         self.buffs: list[Buff] = []
@@ -333,9 +333,9 @@ class Battle:
         spec = self.spec
         used = [u["livingId"] for k in ("soldiers", "heroes", "pets") for u in spec.get(k, [])]
         used += [u["livingId"] for wave in spec.get("reinforce", []) for u in wave]
-        self._pet_id = max([*used, player.msg.livingId]) + 1
-        player.msg.livingId2 = self._pet_id
-        entry = dict(pet) | {"livingId": self._pet_id, "livingId2": player.msg.livingId}
+        self.pet_id = max([*used, player.msg.livingId]) + 1
+        player.msg.livingId2 = self.pet_id
+        entry = dict(pet) | {"livingId": self.pet_id, "livingId2": player.msg.livingId}
         return spec | {"pets": [*spec.get("pets", []), entry]}
 
     def _units(self, player: PlayerHero | None) -> list[Unit]:
@@ -811,7 +811,7 @@ class Battle:
         duas ações dele; dedução: exp_kitabi #59-#63, três golpes e um 4600); transformado, cada ação gasta e golpe
         não dá. 700001 troca as skills pelas ``changeSkillId`` e põe as passivas do mascote; 700002 desfaz."""
         hero, f = self.player, self.formula
-        if hero is None or not self._pet_id:
+        if hero is None or not self.pet_id:
             return
         old = self.awake
         if unit is hero:

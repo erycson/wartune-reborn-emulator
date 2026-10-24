@@ -677,6 +677,15 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     before = snap.character.grades
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
+    # (só turco: peri_uyanis #73, #78) o mascote em batalha ganha a mesma EXP (petGpBonus = gpBonus) e o 4540 sai
+    # logo depois do 3
+    # shortcut: o oficial manda depois do 4540 o 4387 com guardPetInfo (#74), do mascote guarda da fazenda; sem as
+    # terras de mascote (farm.py, opType 12-16) não há guarda. Mandar quando existirem
+    pet = next((p for p in snap.pets if p.is_fight), None) if gp and battle.pet_id else None
+    if pet is not None:
+        from . import pets as P  # noqa: PLC0415  (pets importa shop, que importa este módulo)
+
+        P.add_pet_gp(pet, s.ctx.templates, gp, snap.character.grades)
     loot = _Loot()
     dungeon = s.campaign is not None and s.campaign.dungeon
     # tropas mortas saem e a reserva repõe (visto #1466 -> #1511: a reserva 738 -> 650); a luta roteirizada não perde
@@ -697,8 +706,9 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
     if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win or hit:
         await s.ctx.characters.save(
-            snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests
-        )
+            snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests,
+            *([pet] if pet is not None else []),
+        )  # fmt: skip
     s.battle_gp = 0 if dungeon else gp  # a masmorra guarda o 4382 no mapa (``over``), com o Daru do chefe
     # masmorra: (visto) oficial_20261023-171155-1 #5318-#5325, #5532-#5543, #5780-#5790 (1004) e #2096-#2106 (1003):
     # 109 com a população depois das baixas, 3, o 83 da poção de vida, outro 3 com a EXP, 4103, 150, 100, 140, os
@@ -708,12 +718,16 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if dungeon and hit is not None:
         castle_yield(s)
     await _push_player(s)
+    if pet is not None:
+        _send(s, P.S_PETS, P.pets_msg(snap, s.ctx.templates, [pet]))
     if dungeon and won:
         hp_pack(s, healed)
         if gp:
             await _push_player(s)
     report = _report(battle, won, gp, strategy)
     report.failCount = s.fail_count
+    if pet is not None:
+        report.petGpBonus = gp
     if dungeon and loot.finished:
         report.petGpBonus = -1
     if loot.fallen:

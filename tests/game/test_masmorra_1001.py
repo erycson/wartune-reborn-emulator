@@ -16,7 +16,7 @@ import wartune_server
 from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_fazenda_pets_simbolos import _done
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import BagType, Item, Quest
+from wartune_server.domain.models import BagType, Item, Pet, Quest
 from wartune_server.game import bag, buffs, drops, events
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import campaign as cm
@@ -195,6 +195,22 @@ async def test_lobo_comeca_a_luta_na_chegada_e_o_4382_espera_a_volta(tmp_path: P
         assert codes(back) == [4382]
         assert pb.FightOverMoiveMsg.FromString(back[0].body).gp == 35
         assert codes(await back_to_map(g)) == []  # um 4382 por luta
+
+
+async def test_mascote_em_batalha_ganha_a_exp_da_luta(tmp_path: Path) -> None:
+    """(só turco: peri_uyanis #72-#78) petGpBonus = gpBonus e o 4540 do mascote logo depois do 3."""
+    async with logged_in(tmp_path, novice=25500) as g:
+        snap = g.server.online.get(g.user_id).snapshot  # type: ignore[union-attr]
+        pet = Pet(g.user_id, 101103, "Amazon", is_fight=True, pos=0)
+        snap.pets.append(pet)
+        await enter(g)
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=101102, paraBool1=True))
+        got = await g.fight(pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)) + await g.idle()
+        report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
+        assert (report.gpBonus, report.petGpBonus) == (35, 35)
+        after = codes(got)
+        assert after.index(3) < after.index(4540) < after.index(4103)
+        assert pet.gp == 35
 
 
 async def test_pandora_pede_confirmacao_e_da_buff_uma_vez(tmp_path: Path) -> None:
