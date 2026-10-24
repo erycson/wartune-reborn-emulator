@@ -94,6 +94,9 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
     current = 0  # mapa da campanha em que o jogador está (0 = fora)
     arrived = 0  # nó do último 5125 (baú, diálogo, portal)
     confirmed = 0  # nó do último 5033 (caixa: buff, aviso ou moeda, até a luta começar)
+    # caixa paga cujo texto chega depois do 5125 seguinte (oficial_20261023-171155-1 #5608-#5626: o baú de prata
+    # 105110 manda o 115 da Lvl. 1 Luck Stone na hora e o 111 só depois do 5125 no 105107, que é luta)
+    pending = 0
     collecting = 0  # sonType da pilha de madeira do último 5032
     fighting = 0  # nó do último 128 em combate (state 4)
     battle_key = ""  # luta cujo fim ainda pode trazer drop (até o próximo pedido do cliente)
@@ -107,9 +110,11 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
         msg = _decode(registry, p)
         if p["isClient"]:
             if code == 5125 and msg is not None:
+                if confirmed and "drops" not in out["confirms"].get(str(confirmed), {}):
+                    pending = confirmed  # o cliente pode mandar o 5125 duas vezes (#5616, #5624): fica até o texto
                 arrived, confirmed, collecting, battle_key = msg.paraInt1, 0, 0, ""
             elif code == 5033 and msg is not None and msg.paraBool1:
-                confirmed, battle_key = msg.paraInt2, ""
+                confirmed, battle_key, pending = msg.paraInt2, "", 0
             elif code == 5032 and msg is not None:
                 pile = _node(out, current, msg.nodeId)  # as pilhas iguais (mesmo sonType) dão o mesmo: chave sonType
                 collecting = int(pile["sonType"]) if pile.get("masterType") == COLLECT else 0
@@ -163,6 +168,9 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
             out["confirms"].setdefault(str(msg.nodeId), {})["confirm"] = _dict(msg)
         elif code in (111, 126):
             text = msg.encodeMsg if code == 111 else msg.body
+            if pending and not confirmed and _node(out, current, arrived).get("masterType") != GROUP_LOOT:
+                confirmed = pending  # o nó novo não é caixa: o texto é da caixa paga de antes
+            pending = 0
             _text(out, names, code, text, arrived, confirmed, collecting, battle_key)
         elif code == 128 and msg.nodeState == 4:
             fighting = runtime_to_camp.get(msg.nodeId, 0)
@@ -178,7 +186,7 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
                 "player": next({"livingId": h.livingId, "pos": h.pos} for h in msg.heros if h.userId != 0),
                 "map": current,
             }
-            battle_key, quarry_fight, fighting, stage_open = key, False, 0, False
+            battle_key, quarry_fight, fighting, stage_open, pending = key, False, 0, False, 0
         elif code == 4103 and battle is not None:
             battle["gpBonus"] = msg.gpBonus
             battle["strategyBonus"] = msg.strategyBonus

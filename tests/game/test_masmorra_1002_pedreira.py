@@ -131,7 +131,8 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path, monkeypa
         assert codes(cache)[-1] == 157  # caixa do caçador: luta direto (#2599-#2602)
         after = await g.fight(pb.BattlePrepareMsg.FromString(cache[-1].body)) + await g.idle()
         tail = codes(after)[codes(after).index(126) - 1 :]
-        assert tail == [3, 126, 128, 128, 128, 83]  # inglesa #2630-#2644, sem os 140/131 repetidos
+        # inglesa #2630-#2644, sem os 140/131 repetidos; o 83 da EXP depois dos 128 (oficial_20261023-171155-1 #5543)
+        assert tail == [3, 126, 128, 128, 128, 83, 83]
         assert text(after[codes(after).index(126)]) == "Received: 10,000 Daru"
         done = [pb.CampaignNodeUpdateMsg.FromString(p.body) for p in after if p.code == 128][-3:]
         assert {(n.nodeId, n.nodeState) for n in done} == {(14086, DONE), (14088, DONE), (14089, DONE)}

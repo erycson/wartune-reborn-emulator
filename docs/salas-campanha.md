@@ -144,7 +144,7 @@ com o desfecho, as moedas das caixas, os drops com chance, os avisos, os portais
 tudo uma vez (`world.campaigns` e `world.campaign_cards`). As fontes são as linhas `#N` de `captures/tutorial_en.txt`.
 
 **Etapas.** As etapas são: 1001 = [1011], [1021]; 1002 = [1131 → 1132], [1141 → 1142]; 1003 = [1031 → 1032] (migração
-0058, `oficial_20261023-153200-1`); 6001 = [6001].
+0058, `oficial_20261023-153200-1`); 1004 = [1051] (migração 0069, `oficial_20261023-171155-1`); 6001 = [6001].
 
 **Entrada (5039).** O 5039 manda `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}` (o corpo `08 01 10 e9 07` é
 a 1001). A etapa sai do estado do personagem: o `EventState` `campaign_stage:<id>` avança no fim de cada etapa. A
@@ -216,8 +216,12 @@ as derrotas #778 (53), #1324 e #1449 (202, o exército inteiro). Sem tropa, 0. N
 e 3 nas três derrotas da 1003. As lutas da cidade externa repetem o valor sem somar (#1623, #1899). *(dedução)* A
 conta é da sessão.
 
-**Luta.** O fim da luta manda: 3, 4103, 83 "Received 35 EXP " (com o espaço no fim, #909), 150, 100, 140, 131. Se
-houver drop, vêm 115 e 111. Depois saem 112, o 128 DONE e o 83 do drop. O 4382 só sai quando o cliente volta ao
+**Luta.** Fora da masmorra (tutorial_en #906-#914) o fim da luta manda: 3, 4103, 83 "Received 35 EXP " (com o espaço
+no fim), 150, 100, 140, 131. Na masmorra vale a ordem das capturas novas *(visto: oficial_20261023-171155-1 #5318-#5325,
+#5532-#5543 na 1004, #2096-#2106 na 1003)*: 109 (população depois das baixas), 3, o 83 "Used HP pack to restore HP." se
+a reserva curou, outro 3 se houve EXP, 4103, 150, 100, 140, 115 e 111 do drop, 112, 131, 128 DONE, o 83 da EXP e o 83
+do drop; na derrota o 83 da poção vem logo depois do 4103 (oficial_20261023-153200-1 #1446-#1457). A última luta
+(o chefe que fecha a masmorra) leva `gpBonus` 0 e `petGpBonus` -1 (tutorial_en #1509, #2692, #3146; #5783). O 4382 só sai quando o cliente volta ao
 mapa, no 5035 state 4 (#1094-#1096). Ele leva o `strategy` do chefe (Daru: 88 no Wulfgar, 9 no Karlan, 28 na
 Karda).
 
@@ -327,6 +331,7 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 
 - `tests/game/test_rooms_teams.py`: registros de salas e times, sem sessão.
 - `tests/game/test_masmorra_1001.py`: 1001 pela captura inglesa: entrada (125, 140, 21, 127, 130, 143, 138, 3, 83 em inglês), campanha inexistente e a pedreira não entram pelo 5039, estamina, luta do lobo (4382 só no 5035 state 4), Pandora (29 e 4126 na chegada; 4165, 150, 150, 111, 128, 83), baú de 500, chefe travado, 5122/5180 fora do fim, fim do 1011 (137 com `totalGp` 630, 4151, carta 115, 26, 83; 134 no 5180; etapa avança), 1021 (aviso, DISAPPEARD, FLICKER, chefe, Daru 88, etapa volta a 0), 5126, 5038 do banco, missões 70, 80 e 90 jogando a 1001 inteira e o guia depois da 70.
+- `tests/game/test_masmorra_1004.py`: entrada na 1004 (sala 1051), cartas com a Skeleton Key, baú de prata pago com ouro (ordem, texto, `param1` -100) e a recusa sem ouro.
 - `tests/game/test_masmorra_1003.py`: entrada na 1003, portal para o 1032, alavanca (ordem, textos, `extend2`, estados) e o diálogo do chefe; Perene Bone só com a missão 190; Mystery Box com e sem a chave.
 - `tests/game/test_masmorra_1002_pedreira.py`: `total_gp` (630, 839), notas das amostras (1, 5, 5, 4) e uma etapa com derrotas, `param4` com e sem ação, portal e fim de mapa; 1002 jogada (tumba com sentinela, portal 125 tipo 3, caixa do caçador com Daru e os nós que fecham, Karlan pelo 5032, fim com 839 e o 4151, 2ª etapa no 1141, tumba com Daru); pedreira (8258, COLLECTION, colheita, 8699 com Wood x18, 5025).
 - `tests/game/test_missoes_masmorra.py`: condições 14, 25, 26, 27 e 31 contra a masmorra (casam o id e não somam, Para1 em lista, chefe pelo template, bolsa com entrega de todas as unidades, cena solo, fim de mapa com o grupo caído e sem `param4`) e os drops por nó (com chance).

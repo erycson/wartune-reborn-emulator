@@ -553,15 +553,29 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
             snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests
         )
     s.battle_gp = 0 if dungeon else gp  # a masmorra guarda o 4382 no mapa (``over``), com o Daru do chefe
+    # masmorra: (visto) oficial_20261023-171155-1 #5318-#5325, #5532-#5543, #5780-#5790 (1004) e #2096-#2106 (1003):
+    # 109 com a população depois das baixas, 3, o 83 da poção de vida, outro 3 com a EXP, 4103, 150, 100, 140, os
+    # itens (115, 111) e o 112, 131, 128 e por fim o 83 da EXP; a última luta leva ``petGpBonus`` -1 (também na
+    # tutorial_en #1509, #2692, #3146). Na derrota o 83 da poção vem depois do 4103 (oficial_20261023-153200-1
+    # #1446-#1457: 109, 3, 4103, 83, 150, 100, 140, 131, 128). Fora da masmorra fica a ordem da tutorial_en (#906-#914).
+    if dungeon and hit is not None:
+        castle_yield(s)
     await _push_player(s)
+    if dungeon and won:
+        hp_pack(s, healed)
+        if gp:
+            await _push_player(s)
     report = _report(battle, won, gp, strategy)
     report.failCount = s.fail_count
+    if dungeon and loot.finished:
+        report.petGpBonus = -1
     if loot.fallen:
         report.signId = loot.sign
         report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in loot.fallen)
     _send(s, S_BATTLE_REPORT, report)
-    hp_pack(s, healed)  # (visto) oficial_20261023-153200-1 #1449-#1450
-    if gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
+    if not dungeon or not won:
+        hp_pack(s, healed)  # (visto) oficial_20261023-153200-1 #1449-#1450
+    if not dungeon and gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
     if snap.character.grades > before:
         from .player import push_level  # player importa login, que importa este módulo
@@ -575,10 +589,13 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     c = s.campaign
     c.fighting = 0
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
-    _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
+    if not dungeon:
+        _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     if dungeon:
         c.over = (gp, strategy)  # (visto) inglesa #1094-#1096: o 4382 sai na volta ao mapa (5035 state 4)
     if not won:
+        if dungeon:
+            _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
         c.talked.discard(camp)  # tumba/caixa perdida: o 29 volta a perguntar (dedução, sem captura de derrota)
         _node_update(s, camp, NORMAL)
         return
@@ -591,6 +608,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     if loot.quests:
         _send(s, S_QUESTS, quest_update(loot.quests, rules.quest_bitmap(snap)))
+    if dungeon:  # (visto) tutorial_en #1264-#1279: 140, 115, 111, 131, 128
+        _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     if loot.win:  # caixa do caçador: (visto) inglesa #2630-#2644: 3, 126, os nós do param4 DONE, 83
         if loot.win_paid:
             await _push_player(s)
@@ -599,6 +618,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
             _node_update(s, done, DONE, fresh=True)
     else:
         _node_update(s, camp, DONE, fresh=True)
+    if dungeon and gp:
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
     for text in [*loot.texts, *([loot.win] if loot.win else [])]:
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     if dungeon:
@@ -900,6 +921,9 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     - caixa com chave (Mystery Box 103108, o 29 traz ``itemTempId``): gasta a chave; (visto)
       oficial_20261023-153200-1 #914-#918: 115 da chave, 109, 128 DONE (param1 -300), 111 e 83 "Received: 5,000
       Gold"; oficial_20261023-171155-1 #2538-#2552: 115, 128, 115 do item, 111 e 83 "Received: Lvl. 2 Luck Stone x2".
+    - caixa paga com ouro (Silver Treasure Chest 105110: ``param1`` -100 e ``param2`` 1000 no nó): (visto)
+      oficial_20261023-171155-1 #5608-#5627: 109 já sem o ouro, 128 DONE (param1 -100), 115 do item, 111 e 83
+      "Received: Lvl. 1 Luck Stone x1". Sem ouro, nada.
     """
     c, snap = s.campaign, s.snapshot
     if c is not None and c.hook:
@@ -917,6 +941,10 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     key = int(own.get("confirm", {}).get("itemTempId") or 0)
     if key and rules.goods_count(snap, key) < int(own["confirm"].get("itemCount") or 1):
         s.log.info("5033 sem a chave", nó=camp, item=key)
+        return
+    price = int(node.get("param2") or 0) if not key and int(node.get("param1") or 0) == cm.GOLD else 0
+    if price > snap.character.gold:
+        s.log.info("5033 sem ouro", nó=camp, preço=price)
         return
     c.talked.add(camp)
     if buffs := _buffs_of(node):
@@ -944,13 +972,15 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         c.talked.discard(camp)
         return
     taken = rewards.take_one(snap, key) if key else None
+    snap.character.gold -= price
     new, _ = rewards.grant(snap, templates, got)
     await s.ctx.characters.save(*rewards.owners(snap), *new, *([taken[0]] if taken and not taken[1] else []),
                                 delete=(taken[0],) if taken and taken[1] else ())  # fmt: skip
     text = rewards.received(templates, got)
-    if taken is not None:
-        _send(s, S_ITEMS, rewards.taken_msg(taken[0], taken[1], s.player_id))
-        if any(t == cm.GOLD for t, _ in got):
+    if taken is not None or price:
+        if taken is not None:
+            _send(s, S_ITEMS, rewards.taken_msg(taken[0], taken[1], s.player_id))
+        if price or any(t == cm.GOLD for t, _ in got):
             castle_yield(s)
         if any(t < 0 and t != cm.GOLD for t, _ in got):
             await _push_player(s)

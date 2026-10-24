@@ -1,0 +1,1242 @@
+{
+ "1004": {
+  "campaign": 1004,
+  "stages": [
+   [
+    1051
+   ]
+  ],
+  "maps": {
+   "1051": {
+    "start": [
+     20,
+     17
+    ],
+    "nodes": [
+     {
+      "nodeId": 24849,
+      "campDataId": 105103,
+      "nodeName": "Hiss Statue",
+      "masterType": 42,
+      "sonType": 2338,
+      "preNodeIds": "0",
+      "nextNodeIds": "105104",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 65,
+      "posY": 23,
+      "curX": 65,
+      "curY": 23,
+      "level": 13,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 5,
+      "sizeType": 0,
+      "toward": 180,
+      "resource": 2,
+      "resetX": 63,
+      "resetY": 25,
+      "fixX": 1309,
+      "fixY": 470,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 814,
+      "param1": 0,
+      "param2": 1,
+      "param3": "105103|105107",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24848,
+      "campDataId": 105101,
+      "nodeName": "",
+      "masterType": 40,
+      "sonType": 2301,
+      "preNodeIds": "0",
+      "nextNodeIds": "105103",
+      "state": 2,
+      "refreshSpeed": 1,
+      "posX": 20,
+      "posY": 17,
+      "curX": 20,
+      "curY": 17,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 0,
+      "toward": 0,
+      "resource": 2,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 408,
+      "fixY": 349,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 0,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24857,
+      "campDataId": 105112,
+      "nodeName": "Mystery Box",
+      "masterType": 61,
+      "sonType": 2203,
+      "preNodeIds": "0",
+      "nextNodeIds": "",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 56,
+      "posY": 49,
+      "curX": 56,
+      "curY": 49,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 4,
+      "sizeType": 0,
+      "toward": 0,
+      "resource": 2,
+      "resetX": 58,
+      "resetY": 51,
+      "fixX": 1128,
+      "fixY": 988,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": -300,
+      "param2": 208005,
+      "param3": "Are you sure you want to use 1 Skeleton Key to open this Mystery Box?",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24858,
+      "campDataId": 105113,
+      "nodeName": "[Elite] Demonic Mage",
+      "masterType": 42,
+      "sonType": 2142,
+      "preNodeIds": "0",
+      "nextNodeIds": "",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 85,
+      "posY": 54,
+      "curX": 85,
+      "curY": 54,
+      "level": 14,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 5,
+      "sizeType": 0,
+      "toward": 90,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1708,
+      "fixY": 1089,
+      "heroTempId": 1042,
+      "handlerRange": 0,
+      "fightCapaity": 1418,
+      "param1": 0,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24855,
+      "campDataId": 105110,
+      "nodeName": "Silver Treasure Chest",
+      "masterType": 61,
+      "sonType": 2202,
+      "preNodeIds": "0",
+      "nextNodeIds": "",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 60,
+      "posY": 86,
+      "curX": 60,
+      "curY": 86,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 4,
+      "sizeType": 0,
+      "toward": 0,
+      "resource": 2,
+      "resetX": 58,
+      "resetY": 84,
+      "fixX": 1209,
+      "fixY": 1729,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": -100,
+      "param2": 1000,
+      "param3": "Are you sure you want to spend 1000 gold to open this Silver Treasure Chest?",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24856,
+      "campDataId": 105111,
+      "nodeName": "Pandora's Box",
+      "masterType": 61,
+      "sonType": 2335,
+      "preNodeIds": "0",
+      "nextNodeIds": "",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 22,
+      "posY": 61,
+      "curX": 22,
+      "curY": 61,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 4,
+      "sizeType": 0,
+      "toward": 0,
+      "resource": 2,
+      "resetX": 24,
+      "resetY": 61,
+      "fixX": 449,
+      "fixY": 1229,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 0,
+      "param2": 0,
+      "param3": "1301|1401|1701",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24853,
+      "campDataId": 105108,
+      "nodeName": "",
+      "masterType": 53,
+      "sonType": 2315,
+      "preNodeIds": "0",
+      "nextNodeIds": "105109",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 34,
+      "posY": 67,
+      "curX": 34,
+      "curY": 67,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 0,
+      "toward": 0,
+      "resource": 2,
+      "resetX": 37,
+      "resetY": 69,
+      "fixX": 689,
+      "fixY": 1350,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 1,
+      "param2": 0,
+      "param3": "105103|105107",
+      "param4": "",
+      "param5": "Defeat all Divine Statues to pass this stage."
+     },
+     {
+      "nodeId": 24854,
+      "campDataId": 105109,
+      "nodeName": "Divine Temple",
+      "masterType": 41,
+      "sonType": 2325,
+      "preNodeIds": "0",
+      "nextNodeIds": "",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 26,
+      "posY": 50,
+      "curX": 26,
+      "curY": 50,
+      "level": 14,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 5,
+      "sizeType": 0,
+      "toward": 0,
+      "resource": 2,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 529,
+      "fixY": 1009,
+      "heroTempId": 1041,
+      "handlerRange": 0,
+      "fightCapaity": 1604,
+      "param1": 0,
+      "param2": 1,
+      "param3": "",
+      "param4": "",
+      "param5": "0"
+     },
+     {
+      "nodeId": 24851,
+      "campDataId": 105106,
+      "nodeName": "Undead Warrior",
+      "masterType": 42,
+      "sonType": 2105,
+      "preNodeIds": "0",
+      "nextNodeIds": "105107",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 61,
+      "posY": 58,
+      "curX": 61,
+      "curY": 58,
+      "level": 14,
+      "styleType": 1,
+      "attackTypes": 1,
+      "nameColor": 5,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1229,
+      "fixY": 1170,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 950,
+      "param1": 0,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24852,
+      "campDataId": 105107,
+      "nodeName": "Hiss Statue",
+      "masterType": 42,
+      "sonType": 2338,
+      "preNodeIds": "0",
+      "nextNodeIds": "105108",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 59,
+      "posY": 80,
+      "curX": 59,
+      "curY": 80,
+      "level": 13,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 5,
+      "sizeType": 0,
+      "toward": 180,
+      "resource": 2,
+      "resetX": 57,
+      "resetY": 82,
+      "fixX": 1188,
+      "fixY": 1609,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 814,
+      "param1": 0,
+      "param2": 1,
+      "param3": "105103|105107",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 24850,
+      "campDataId": 105104,
+      "nodeName": "Undead Warrior",
+      "masterType": 42,
+      "sonType": 2105,
+      "preNodeIds": "0",
+      "nextNodeIds": "105106",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 75,
+      "posY": 39,
+      "curX": 75,
+      "curY": 39,
+      "level": 14,
+      "styleType": 1,
+      "attackTypes": 1,
+      "nameColor": 5,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1509,
+      "fixY": 789,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 950,
+      "param1": 0,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     }
+    ],
+    "fog": {
+     "row": 24,
+     "col": 19,
+     "forArray": [
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000",
+      "00000000000000000000000000000000000000"
+     ]
+    },
+    "plot": {
+     "extend2": 2,
+     "plot": {
+      "loop": false,
+      "sceneType": 3,
+      "info": [
+       {
+        "index": 1,
+        "direction": 0,
+        "roleId": 19,
+        "roleName": "Dinah",
+        "event": "",
+        "param": "",
+        "text": "Look! The divine light is coming from the temple just ahead! But it looks like someone has left some dangerous traps in our way. We must <font color='#ef0101'><b>break through</b></font> to gain access to the inner temple."
+       },
+       {
+        "index": 2,
+        "direction": 0,
+        "roleId": 3,
+        "roleName": "{nick}",
+        "event": "",
+        "param": "",
+        "text": "You're right! Be careful where you step. I see some strange statues ahead. We should be a closer look."
+       }
+      ]
+     }
+    },
+    "army": {
+     "hero": [
+      1041,
+      1042
+     ],
+     "soldier": [
+      2042,
+      2043,
+      2041
+     ]
+    },
+    "cards": {
+     "sceneType": "SINGLE_CAMPAIGN_MAP_SCENE",
+     "cardCount": 5,
+     "payCardCount": 5,
+     "price": 0
+    }
+   }
+  },
+  "battles": {
+   "105103": {
+    "battleType": 6,
+    "mapTempId": 1051,
+    "attackModel": 2,
+    "soldiers": [
+     {
+      "livingId": 1,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 1,
+      "initHp": 471,
+      "hp": 471,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 2,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 7,
+      "initHp": 470,
+      "hp": 470,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 4,
+      "tempId": 2041,
+      "type": 1,
+      "side": 2,
+      "pos": 3,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000
+     },
+     {
+      "livingId": 5,
+      "tempId": 2042,
+      "type": 1,
+      "side": 2,
+      "pos": 5,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000,
+      "skillId": [
+       40063,
+       40063,
+       40067,
+       40063
+      ]
+     },
+     {
+      "livingId": 6,
+      "tempId": 2041,
+      "type": 1,
+      "side": 2,
+      "pos": 9,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000
+     }
+    ],
+    "heroes": [],
+    "player": {
+     "livingId": 3,
+     "pos": 6
+    },
+    "map": 1051,
+    "gpBonus": 81,
+    "strategyBonus": 25,
+    "battleScene": 3
+   },
+   "105104": {
+    "battleType": 6,
+    "mapTempId": 1051,
+    "attackModel": 2,
+    "soldiers": [
+     {
+      "livingId": 1,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 1,
+      "initHp": 471,
+      "hp": 471,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 2,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 7,
+      "initHp": 470,
+      "hp": 470,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 4,
+      "tempId": 2042,
+      "type": 1,
+      "side": 2,
+      "pos": 2,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000,
+      "skillId": [
+       40063,
+       40063,
+       40067,
+       40063
+      ]
+     },
+     {
+      "livingId": 5,
+      "tempId": 2043,
+      "type": 1,
+      "side": 2,
+      "pos": 6,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 6000,
+      "skillId": [
+       40065,
+       40066,
+       40065
+      ]
+     },
+     {
+      "livingId": 6,
+      "tempId": 2042,
+      "type": 1,
+      "side": 2,
+      "pos": 8,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000,
+      "skillId": [
+       40063,
+       40063,
+       40067,
+       40063
+      ]
+     }
+    ],
+    "heroes": [],
+    "player": {
+     "livingId": 3,
+     "pos": 6
+    },
+    "map": 1051,
+    "gpBonus": 95,
+    "strategyBonus": 28,
+    "battleScene": 3
+   },
+   "105106": {
+    "battleType": 6,
+    "mapTempId": 1051,
+    "attackModel": 2,
+    "soldiers": [
+     {
+      "livingId": 1,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 1,
+      "initHp": 471,
+      "hp": 471,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 2,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 7,
+      "initHp": 470,
+      "hp": 470,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 4,
+      "tempId": 2042,
+      "type": 1,
+      "side": 2,
+      "pos": 2,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000,
+      "skillId": [
+       40063,
+       40063,
+       40067,
+       40063
+      ]
+     },
+     {
+      "livingId": 5,
+      "tempId": 2043,
+      "type": 1,
+      "side": 2,
+      "pos": 6,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 6000,
+      "skillId": [
+       40065,
+       40066,
+       40065
+      ]
+     },
+     {
+      "livingId": 6,
+      "tempId": 2042,
+      "type": 1,
+      "side": 2,
+      "pos": 8,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000,
+      "skillId": [
+       40063,
+       40063,
+       40067,
+       40063
+      ]
+     }
+    ],
+    "heroes": [],
+    "player": {
+     "livingId": 3,
+     "pos": 6
+    },
+    "map": 1051,
+    "gpBonus": 95,
+    "strategyBonus": 70,
+    "battleScene": 3
+   },
+   "105113": {
+    "battleType": 6,
+    "mapTempId": 1051,
+    "attackModel": 2,
+    "soldiers": [
+     {
+      "livingId": 1,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 1,
+      "initHp": 471,
+      "hp": 471,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 2,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 7,
+      "initHp": 470,
+      "hp": 470,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     }
+    ],
+    "heroes": [
+     {
+      "heroId": 1300000000,
+      "livingId": 4,
+      "userId": 0,
+      "userPics": 0,
+      "tempId": 1042,
+      "type": 3,
+      "nickName": "Demonic Mage",
+      "grade": 14,
+      "side": 2,
+      "pos": 5,
+      "maxHp": 2000,
+      "initHp": 2000,
+      "hp": 2000,
+      "hp2": 0,
+      "sp": 0,
+      "slotAvata": "",
+      "clothAvate": "",
+      "cloakPath": "",
+      "hairPath": "",
+      "captain": 1,
+      "res": "boss008",
+      "qteTime": 0,
+      "castTime": 6000,
+      "pawnTempId": 0,
+      "skillId": [
+       60065,
+       60065,
+       60064,
+       60065,
+       60066
+      ],
+      "headId": 0,
+      "isShow": false,
+      "serverName": "",
+      "wingAvata": "",
+      "fashionArmAvata": "",
+      "fashionClothAvata": "",
+      "awake": 0,
+      "livingId2": 0,
+      "fateSkillTempIds": "",
+      "isChange": false,
+      "fightCapacity": 0,
+      "hasShadow": false,
+      "mateId": 0,
+      "curturn": 0
+     }
+    ],
+    "player": {
+     "livingId": 3,
+     "pos": 6
+    },
+    "map": 1051,
+    "gpBonus": 210,
+    "strategyBonus": 157,
+    "battleScene": 3
+   },
+   "105107": {
+    "battleType": 6,
+    "mapTempId": 1051,
+    "attackModel": 2,
+    "soldiers": [
+     {
+      "livingId": 1,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 1,
+      "initHp": 471,
+      "hp": 471,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 2,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 7,
+      "initHp": 470,
+      "hp": 470,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 4,
+      "tempId": 2041,
+      "type": 1,
+      "side": 2,
+      "pos": 3,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000
+     },
+     {
+      "livingId": 5,
+      "tempId": 2042,
+      "type": 1,
+      "side": 2,
+      "pos": 5,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000,
+      "skillId": [
+       40063,
+       40063,
+       40067,
+       40063
+      ]
+     },
+     {
+      "livingId": 6,
+      "tempId": 2041,
+      "type": 1,
+      "side": 2,
+      "pos": 9,
+      "initHp": 300,
+      "hp": 300,
+      "qteTime": 0,
+      "castTime": 5000
+     }
+    ],
+    "heroes": [],
+    "player": {
+     "livingId": 3,
+     "pos": 6
+    },
+    "map": 1051,
+    "gpBonus": 81,
+    "strategyBonus": 30,
+    "battleScene": 3
+   },
+   "105109": {
+    "battleType": 6,
+    "mapTempId": 1051,
+    "attackModel": 2,
+    "soldiers": [
+     {
+      "livingId": 1,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 1,
+      "initHp": 471,
+      "hp": 471,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     },
+     {
+      "livingId": 2,
+      "tempId": 10111,
+      "type": 1,
+      "side": 1,
+      "pos": 7,
+      "initHp": 470,
+      "hp": 470,
+      "qteTime": 0,
+      "castTime": 4000,
+      "skillId": [
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11,
+       10,
+       11
+      ]
+     }
+    ],
+    "heroes": [
+     {
+      "heroId": 1300000000,
+      "livingId": 4,
+      "userId": 0,
+      "userPics": 0,
+      "tempId": 1041,
+      "type": 3,
+      "nickName": "Bantashee",
+      "grade": 13,
+      "side": 2,
+      "pos": 5,
+      "maxHp": 3008,
+      "initHp": 3008,
+      "hp": 3008,
+      "hp2": 0,
+      "sp": 0,
+      "slotAvata": "",
+      "clothAvate": "",
+      "cloakPath": "",
+      "hairPath": "",
+      "captain": 1,
+      "res": "boss006",
+      "qteTime": 0,
+      "castTime": 4000,
+      "pawnTempId": 0,
+      "skillId": [
+       60141,
+       60141,
+       60141,
+       60144,
+       60141,
+       60145,
+       60144,
+       60141,
+       60141,
+       60144,
+       60145,
+       60141,
+       60144,
+       60144
+      ],
+      "headId": 0,
+      "isShow": false,
+      "serverName": "",
+      "wingAvata": "",
+      "fashionArmAvata": "",
+      "fashionClothAvata": "",
+      "awake": 0,
+      "livingId2": 0,
+      "fateSkillTempIds": "",
+      "isChange": false,
+      "fightCapacity": 0,
+      "hasShadow": false,
+      "mateId": 0,
+      "curturn": 0
+     }
+    ],
+    "player": {
+     "livingId": 3,
+     "pos": 6
+    },
+    "map": 1051,
+    "gpBonus": 0,
+    "strategyBonus": 124,
+    "battleScene": 3
+   }
+  },
+  "plots": {
+   "105109": {
+    "extend2": 0,
+    "plot": {
+     "loop": false,
+     "sceneType": 3,
+     "info": [
+      {
+       "index": 1,
+       "direction": 1,
+       "roleId": 12,
+       "roleName": "Ibalize",
+       "event": "",
+       "param": "",
+       "text": "You have violated this scared space! Leave here at once or suffer a painful death from the God of Destruction himself!"
+      },
+      {
+       "index": 2,
+       "direction": 0,
+       "roleId": 19,
+       "roleName": "Dinah",
+       "event": "",
+       "param": "",
+       "text": "Do not fear, my brave warrior. This is only the spirit of Ibalize who has remained here to protect and defend the place where he once fell to Aklorn."
+      },
+      {
+       "index": 3,
+       "direction": 1,
+       "roleId": 12,
+       "roleName": "Ibalize",
+       "event": "",
+       "param": "",
+       "text": "*lets out a terrifying shriek* Do not utter that name in my presence! Prepare to fall to your knees!"
+      },
+      {
+       "index": 4,
+       "direction": 0,
+       "roleId": 3,
+       "roleName": "{nick}",
+       "event": "",
+       "param": "",
+       "text": "We must find our way to the light! Out of my way, vile spectre!"
+      },
+      {
+       "index": 0,
+       "direction": 1,
+       "roleId": 3,
+       "roleName": "",
+       "event": "SESSION_OVER",
+       "param": "mapId:3206|nodeId:105109|command:2",
+       "text": ""
+      }
+     ]
+    }
+   }
+  },
+  "confirms": {
+   "105112": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Are you sure you want to use 1 Skeleton Key to open this Mystery Box?",
+     "mapId": 3206,
+     "nodeId": 105112,
+     "itemTempId": 208005,
+     "itemCount": 1,
+     "type": 0
+    },
+    "drops": [
+     [
+      -100,
+      5000
+     ]
+    ],
+    "notify": false
+   },
+   "105110": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Are you sure you want to spend 1000 gold to open this Silver Treasure Chest?",
+     "mapId": 3206,
+     "nodeId": 105110,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "drops": [
+     [
+      2040101,
+      1
+     ]
+    ],
+    "notify": false
+   },
+   "105111": {
+    "confirm": {
+     "title": "Hints",
+     "body": "You've discovered Pandora's Box! Who know what could happen when it is opened! Would you like to open it?",
+     "mapId": 3206,
+     "nodeId": 105111,
+     "itemTempId": 0,
+     "itemCount": 0,
+     "type": 0
+    }
+   }
+  },
+  "drops": {
+   "105113": [
+    [
+     1070103,
+     1,
+     1.0
+    ]
+   ]
+  },
+  "notices": {
+   "1051": ""
+  }
+ }
+}

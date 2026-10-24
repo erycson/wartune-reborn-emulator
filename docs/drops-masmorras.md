@@ -96,6 +96,12 @@ três amostras)*.
 
 ## 1004 Temple of Ibalize (Inner) (Lv 13, solo)
 
+Ligada no servidor (migração 0069, `oficial_20261023-171155-1` #5249-#5831): uma sala, 1051, e o chefe Bantashee
+(105109) com o diálogo do Ibalize. *(visto)* o Demonic Mage (105113) deu Lamenter's Band (1070103) x1 no 4103; o baú
+de prata 105110 cobra 1000 de ouro e deu Lvl. 1 Luck Stone x1; a Mystery Box 105112 (Skeleton Key) deu 5.000 Gold; a
+Pandora 105111 deu Rage Boost (1701, do `param3` 1301|1401|1701). Cartas do fim: a 3 deu Skeleton Key (208005) x1,
+fora do `Campaigns.Item`; a tabela `campaign_cards` leva as quatro com o mesmo peso *(dedução, uma amostra)*.
+
 | Item | Nome | Classe | Atributos | Visto em |
 |---|---|---|---|---|
 | 1070103 | Lamenter's Band | todas | 3 |  |
