@@ -9,15 +9,15 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 |---|---|---|---|---|
 | Ilha dos pets | peri_adasi_tp | sequência de entrada (`content/petisland.json`) | mundo-compartilhado.md, test_space | entrar no Sylph Atoll |
 | Mapa 2 e mudança de castelo | transfer_kampi_sistemi | chefes do mapa 2 (migração 0027), energia 500→300, monstro 210127, relógio dos chefes | cidade-externa.md, test_outer_city | mudar o castelo para o mapa 2, abrir 9525 nele |
-| Segunda conta das minas | cevre_altin_madeni_savasi, replay | outras instâncias, mina nível 8 (guarda 6504), createDate em UTC+3 | cidade-externa.md, multiplayer.md, test_outer_city | minas de uma segunda conta |
-| Fazenda e árvore | ciftlik | ops 0/1/6, rega, 8231, grau de amizade (34 → 4) | castelo.md, social.md, test_castelo | fazenda própria e de amigo |
-| Guilda | birlik_katkisi, login | contribuição (5144), ranking, baú, mercado (goodId 19), cargos 4137/4138/4133 | guilda.md, test_guild | criar/entrar em guilda, contribuir, comprar |
+| Segunda conta das minas | cevre_altin_madeni_savasi (apagada), replay | outras instâncias, mina nível 8 (guarda 6504), createDate em UTC+3 | cidade-externa.md, multiplayer.md, test_outer_city | minas de uma segunda conta |
+| Fazenda e árvore | ciftlik (apagada) | ops 0/1/6, rega, 8231, grau de amizade (34 → 4) | castelo.md, social.md, test_castelo | fazenda própria e de amigo |
+| Guilda | birlik_katkisi (apagada), login | contribuição (5144), ranking, baú, mercado (goodId 19), cargos 4137/4138/4133 | guilda.md, test_guild | criar/entrar em guilda, contribuir, comprar |
 | Amizade | login | 4156 em 2 páginas | social.md, chat.md | uma lista de amigos com mais de uma página |
 | Coliseu | meydan_okuma | 4169, 157 tipo 16, 4176; drop da vitória Lvl. 3 Luck Stone (`arena_challenge_items`, 0072; o inglês viu VIP Token) | pvp.md, handlers/arena.py `_prize` | mais vitórias no coliseu (o que mais sai, se derrota dá, limite por dia) |
 | Torneio de fadas | peri_turnuvasi | 4611, 157 tipo 35, 4361, "Puan +5" | pvp.md, test_missoes_fazenda_pets_simbolos | uma luta no torneio |
 | Despertar de fada | peri_uyanis | 5038 2011: herói 3011 e dois soldados | test_salas_tipos | campanha 2011 |
 | Astral (kader) | kader_sistemi | leed 17, 8269/4180 (o anúncio da Profile 5 já é inglês: oficial_encantar #2753) | eventos.md, test_heroi_exercito | um sorteio de estrela |
-| Leeds 8/15/33 | birlik_katkisi, replay #1289, yeralti_labirenti, city_city_upgrade | onde sai o 4152 | eventos.md, test_castelo, test_devocao | gastar Balens, girar a roda da bênção |
+| Leeds 8/15/33 | birlik_katkisi (apagada), replay #1289, yeralti_labirenti, city_city_upgrade | onde sai o 4152 | eventos.md, test_castelo, test_devocao | gastar Balens, girar a roda da bênção |
 | Academia e tecnologia | city_city_upgrade_academy_upgrade | tecnologia de atributo (110 tipo 3, 150, ×1,5); a de ouro e o nascimento da academia já têm fonte inglesa (oficial_20261023-231733-1 #3939-#3981) | castelo.md, pendencias.md | subir uma tecnologia de atributo (Hero/Troop) |
 | Aceleração paga | savasa_baskin_ve_elmas_ile_hizlandirma | texto 111 do cooldown | castelo.md | acelerar com Balens |
 | Pergaminho de EXP | exp_kitabi_kullanim | 115, 110, 4188, 3 (2013002) | itens.md, test_pergaminhos | usar o Lvl. 2 Bonus EXP Scroll (a inglesa tem e não usou) |
@@ -51,3 +51,8 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 | değerli taş birleştirme | composição de pedras 5153 (`forge.compose`): 115, 109 ×2, 115, 4476, 4426, 4484, 111 "Received: ...", 89, 83, com a ordem inglesa (231733 #1493-#1511) |
 | lvl1 değerli taş sandığı açımı ve içinden çıkanlar | caixa de pedras (`items._open_gem_box`): 115, 115, 4476, 4426, 4484, 111, 3, 83 |
 | market alışveriş | compra na loja 5154 (`shop.buy`): 115, 4476, 4426, 4484, 111, 83, 90 na ordem inglesa (itens.md) |
+| amfi marketi alışveriş | loja da arena (5154 com Honor, `shop.buy`): 115 da honra, 115 do item, 4476, 4426, 4484, 111, 83, 90 |
+| değerli taş nitelik sistemi | transformação de pedra 8538 (`forge.py`): 115, 109, 115, 4476, 4426, 4484, 111, 83 |
+| çiftlik | fazenda (`handlers/farm.py`): 8231/4190, 15044 (plantar, reviver), rega própria e do amigo (4158, 109, 147, 165, 146, 83), compras na loja |
+| birlik katkısı ve birlik market alışverişi | contribuição (5144) na ordem inglesa (171155 #4964-#4974), listas 4134/4138/4466/4133, 4599 e a compra no mercado da guilda |
+| çevre altın madeni savaşı | mina do mundo e as outras instâncias; a ordem do fim da luta e o 4382 no 5035 seguem o inglês (tutorial_en #748-#754, 153200 #1634-#1636) |
