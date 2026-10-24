@@ -9,14 +9,14 @@ from __future__ import annotations
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
-from .. import rewards
+from .. import bag, rewards
 from .. import sweep as sw
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
-from .player import _player, push_level
+from .player import _player, alert, push_level
 
-S_SWEEP, S_ITEMS = 4425, 115
+S_SWEEP, S_ITEMS, S_CHAT = 4425, 115, 83
 
 
 def _send(s: GameSession, msg: pb.CampaignSweepRsp) -> None:
@@ -30,6 +30,7 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     snap = s.snapshot
     assert snap is not None
     now, before, done = s.ctx.clock.now(), snap.character.grades, sweep.done
+    first = len(sweep.rounds)
     table = s.ctx.world.campaign_cards.get(sweep.campaign_id, ())
     exp = vip_right(s, snap, VIP_EXP)
     changed, gone = sw.settle(snap, s.ctx.templates, sweep, now, vip_exp=exp, table=table, all_now=all_now)
@@ -43,6 +44,20 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
         s.send(S_ITEMS, rewards.items_msg(moved, s.player_id))
     for item in gone:
         s.send(S_ITEMS, rewards.taken_msg(item, True, s.player_id))
+    from . import events  # events importa este módulo (login_push)
+
+    # (só turco: savasa_baskin_ve_elmas_ile_hizlandirma #10-#31) cada rodada conta como campanha (4152 leed 4 e a
+    # devoção), o 4476/4426 depois do 115 e o aviso dos itens no 111 e no 83
+    new = sweep.rounds[first:]
+    for _ in new:
+        await events.leed_done(s, events.CAMPAIGN_LEED)
+    if moved:
+        events.items_gained(s)
+    if got := [t for r in new for t in r.items]:
+        # (dedução) "Kazanılan Eşyalar:" traduzido como os outros "Kazanılan:" (o oficial inglês escreve "Received:")
+        text = "Received items: " + ", ".join(f"{bag.name(s.ctx.templates, t)} x{n}" for t, n in got)
+        alert(s, text)
+        s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
     if snap.character.grades > before:
         push_level(s, before)
 

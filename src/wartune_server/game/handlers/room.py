@@ -23,6 +23,8 @@ S_FOUND = 4370  # RoomMsg: o PVERoomListControler entra sozinho (5024) ou abre a
 S_EXIT, S_KILL, S_MASTER = 15, 28, 121
 S_INVITE, S_READY, S_STATE = 16, 24, 25  # RoomInviteMsg, PlayerReadyRspMsg, RoomStateRspMsg
 S_HALL = 4161  # RoomPlayerListMsg: aba Hall do RoomInviteFrame (U_C_INVITE_PLAYER_LIST)
+S_WAITING = 11  # RoomPlayerListMsg: PlayerManager.watingList, a lista de jogadores da sala de veículo
+LEFT, JOINED = 0, 1  # state do 11: 1 entra na lista, 0 sai (PlayerManager.__playerListHandler)
 ONLINE = 1  # playerState da aba Hall: o cliente só lista com state != 0 (SimplePlayerInfo.isOnline)
 S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
 S_ROOM_STATE = 4913  # SimplePropertyMsg: sala do link no chat (9504), BaseManager.__mulityCampaignRequestHandler
@@ -370,6 +372,48 @@ async def invite_hall(s: GameSession, _: object) -> None:
         entry.sex, entry.playerState = snap.character.sex, ONLINE
         hall.roomPlayer.extend([entry])
     s.send(S_HALL, hall)
+
+
+def _waiting_entry(other: GameSession) -> pb.RoomPlayerMsg:
+    """Os campos do oficial (oficial_20261023-215937-1 #102), nada além: o cliente só lê esses."""
+    from .vip import is_vip, vip_type  # vip importa este módulo
+
+    snap = other.snapshot
+    assert snap is not None and snap.leader is not None
+    c, mine = snap.character, other.ctx.guilds.of(other.player_id)
+    return pb.RoomPlayerMsg(
+        playerState=other.chat_state,
+        playerId=c.id,
+        grades=c.grades,
+        nickName=c.nickname or "",
+        sex=c.sex,
+        templateId=snap.leader.template_id,
+        fightingCapacity=rules.leader_stats(snap, other.ctx.templates, other.ctx.clock.now()).fighting_capacity,
+        consortiaId=mine[0].id if mine else 0,
+        consortiaName=mine[0].name if mine else "",
+        isVip=is_vip(snap, other.ctx.clock.now()),
+        vipType=vip_type(snap),
+    )
+
+
+def waiting_login(s: GameSession) -> None:
+    """11 no login: quem já está online, de uma vez (state 1), e o recém-chegado para cada um deles. (visto)
+    oficial_20261023-231733-1: a lista inteira logo depois do 4151 (#105), e depois um 11 com um só jogador a cada
+    entrada (state 1) ou saída (state 0) de outro, por todo o servidor. (dedução) é a presença online."""
+    others = [o for o in s.ctx.online.sessions() if o is not s and o.snapshot is not None and o.snapshot.leader]
+    if others:
+        s.send(S_WAITING, pb.RoomPlayerListMsg(state=JOINED, roomPlayer=[_waiting_entry(o) for o in others]))
+    waiting_broadcast(s, JOINED, others)
+
+
+def waiting_broadcast(s: GameSession, state: int, others: list[GameSession] | None = None) -> None:
+    """O 11 de um jogador só para todos os outros online (entrada ou saída)."""
+    if s.snapshot is None or s.snapshot.leader is None:
+        return
+    msg = pb.RoomPlayerListMsg(state=state, roomPlayer=[_waiting_entry(s)])
+    for other in others if others is not None else s.ctx.online.sessions():
+        if other is not s and other.snapshot is not None:
+            other.send(S_WAITING, msg)
 
 
 @router.on(8286)

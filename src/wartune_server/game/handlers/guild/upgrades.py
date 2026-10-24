@@ -286,8 +286,11 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     await s.ctx.characters.save(c, *got, count_buy(snap, buy.goodId, count, now))
     _player(s)
     s.send(S_ITEMS, bag.moved(got, s.player_id))
-    # texto deduzido (sem fonte no cliente/captura)
-    text = f"{item_row.get('TemplateName', row['ItemId'])} x{count} purchased successfully!"
+    from .. import events, shop  # os dois importam guild
+
+    events.items_gained(s)
+    # o mesmo texto da loja comum (só turco: birlik_katkisi #60-#62 tem a mesma forma, 111, 90 e 83)
+    text = shop.bought_text(item_row.get("TemplateName", row["ItemId"]), count)
     _alert(s, text)
     _buy_result(s, buy, 1)
     s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))

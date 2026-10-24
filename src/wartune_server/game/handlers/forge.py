@@ -51,6 +51,13 @@ UNBOUND_ONLY = 2  # SmithFreshReqMsg.bindType: 0 = vinculado primeiro ("Use boun
 _pending: dict[int, list[int]] = {}
 
 
+def _gained(s: GameSession) -> None:
+    """A regra inglesa: 4476 depois de todo 115 que dá item (``events.items_gained``)."""
+    from . import events  # events importa este módulo
+
+    events.items_gained(s)
+
+
 def _store(snap: PlayerSnapshot, pos: int = 0) -> Item | None:
     return bag.at(snap, BagType.STORE, 0, pos)
 
@@ -297,6 +304,7 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
+    _gained(s)  # (só turco: degerli_tas_birlestirme #6-#7) 4476 e 4426 depois do 115 da pedra nova
     # formato do oficial inglês (111, tutorial_en: "Received: Worg Tooth x2")
     text = f"Received: {bag.name(templates, product)} x{made}"
     send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg=text))
@@ -559,6 +567,7 @@ async def transform(s: GameSession, msg: pb.StoreReqMsg) -> None:
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
+    _gained(s)  # (só turco: degerli_tas_nitelik_sistemi #6-#7)
     # texto deduzido (sem fonte no cliente/captura); termo conversion do language.txt
     alert(s, "Conversion successful")
 

@@ -43,3 +43,17 @@ async def test_pacotes_do_login(tmp_path: Path) -> None:
         got = await g.idle()
         assert _codes(got) == [4182, 4451, 4637, 462, 4741, 4683, 4685]
         assert got[3].body == bytes.fromhex("3800")  # igual ao oficial (#121)
+
+
+async def test_presenca_dos_outros_no_11(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-231733-1 #105 (lista no login) e #1332/#1398 (um jogador por entrada ou saída)."""
+    async with logged_in(tmp_path, novice=33000) as g:
+        other = await g.join("bruxa")
+        [mine] = [pb.RoomPlayerListMsg.FromString(p.body) for p in await g.idle() if p.code == 11]
+        assert (mine.state, [r.nickName for r in mine.roomPlayer]) == (1, ["Bruxa"])
+        other.client.send(8224, pb.PlayerDataMsg(user=True))
+        theirs = [pb.RoomPlayerListMsg.FromString(p.body) for p in await other.until(4725) if p.code == 11]
+        assert [(m.state, [r.nickName for r in m.roomPlayer]) for m in theirs] == [(1, ["Maga"])]
+        other.client.writer.close()
+        *_, gone = [pb.RoomPlayerListMsg.FromString(p.body) for p in await g.idle(0.5) if p.code == 11]
+        assert (gone.state, [r.playerId for r in gone.roomPlayer]) == (0, [other.user_id])

@@ -217,9 +217,21 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    # texto deduzido (sem fonte no cliente/captura)
-    alert(s, f"{bag.name(templates, tid)} x{info.count} purchased successfully!")
+    _gained(s)
+    alert(s, bought_text(bag.name(templates, tid), info.count))
     return OK
+
+
+def bought_text(name: str, count: int) -> str:
+    """(visto) oficial_20261023-153200-1 #1687/#1690 e 171155-1 #240-#241, 111 e 83 iguais."""
+    return f"Successfully purchased {name} x{count}."
+
+
+def _gained(s: GameSession) -> None:
+    """4476 (e o 4426 com montaria) logo depois do 115 da compra: (visto) oficial_20261023-171155-1 #229-#230."""
+    from . import events  # events importa este módulo
+
+    events.items_gained(s)
 
 
 # ---------------------------------------------------------------- ofertas por tempo (4238; Timed Sales do Hot Events)
@@ -316,7 +328,8 @@ async def buy_offer(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    alert(s, f"{offer['names']} x{info.count} purchased successfully!")  # mesmo texto deduzido da loja comum
+    _gained(s)
+    alert(s, bought_text(offer["names"], info.count))
     # 4375 para todos: a oferta inteira com o currentCount novo (oficial_encantar #2640-#2666, compras de outros)
     s.ctx.online.broadcast(S_OFFER, b.complete(pb.MainDiscountInfo(**offer, currentCount=sold + info.count)))
     return OK
@@ -572,8 +585,8 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
 
     send_charge(s, paid)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    # texto deduzido (sem fonte no cliente/captura)
-    alert(s, f"{bag.name(templates, tid)} x1 purchased successfully!")
+    _gained(s)
+    alert(s, bought_text(bag.name(templates, tid), 1))
     send(s, S_MYSTERY_BUY, pb.ShopItemBuyRspMsg(result=OK, buyCount=shop.buy_count, score=0))
     send(s, S_MYSTERY_LIST, _mystery_list(s, shop))
 

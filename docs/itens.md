@@ -166,7 +166,7 @@ correio, 12).
 
 | C>S | o que faz | S>C | fonte |
 |---|---|---|---|
-| 5154 ShopMsg | compra (o registro decodifica como FashionShopMsg; o handler relê como ShopMsg) | 3 ou 109 (ou 115 da moeda-item), 115 do item, 111 e 83 "{nome} x{n} purchased successfully!", 90 ShopMsg `{buyInfo + result}` | *(visto, só turco: "market alışveriş")* |
+| 5154 ShopMsg | compra (o registro decodifica como FashionShopMsg; o handler relê como ShopMsg) | 3 ou 109 (ou 115 da moeda-item), 115 do item, 4476 (e 4426 com montaria), 111 e 83 "Successfully purchased {nome} x{n}.", 90 ShopMsg `{buyInfo + result}` | *(visto)* oficial_20261023-171155-1 #227-#242 |
 | 8592 FashionShopMsg | compra de moda, uma ou várias | o mesmo por item (90 cada) e 4486 `{result}` no fim | *(cliente)* `FashionAllBuyFrame` |
 | 5633 ShopMsg | compra e usa a poção de HP (ShopType 100) | 109/3, 113 `{heroId, hp, blood, bloodId}`, 170 `{result, templateId}` | *(visto)* |
 | 8218 | compras de hoje (ofertas com `isDiscount` e `itemId` = id da oferta) | 4145 `hasDataInfo[{userId, itemId, counts, buyDate, isDiscount}]` | *(visto)*; ofertas: *(cliente)* `__getBuyDataInfosSuccess` |

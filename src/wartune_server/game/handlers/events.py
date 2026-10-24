@@ -172,13 +172,22 @@ def _send_actives(s: GameSession) -> None:
     for n, page in enumerate(pages, 1):
         msg = pb.SumActivesMsg(dataStamp=s.ctx.events.data_stamp, curPage=n, maxPage=len(pages), actives=page)
         s.send(S_SUM_TEMP, b.complete(msg))
+    _sum_data(s, actives)
+
+
+def _sum_data(s: GameSession, actives: list[ev.Active]) -> None:
+    """4476 e, com montaria, o 4426 logo depois: (visto) oficial_20261023-231733-1, os 28 4426 da sessão vêm depois
+    de um 4476 (#63, #80, #265, #901...), e as sessões sem montaria (tutorial_en, 153200) não têm nenhum."""
+    from .systems import send_mount  # systems importa este módulo
+
     s.send(S_SUM_DATA, _active_data(s, actives))
+    send_mount(s)
 
 
 def items_gained(s: GameSession) -> None:
     """4476 de todas logo depois do 115 que dá item (tutorial_en: 26 dos 61 115, todos de ganho: missão #490, carta
     #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam."""
-    s.send(S_SUM_DATA, _active_data(s, s.ctx.events.listed(s.ctx.clock.now())))
+    _sum_data(s, s.ctx.events.listed(s.ctx.clock.now()))
 
 
 def _online_seconds(s: GameSession, a: ev.Active, now: datetime) -> int:
@@ -310,7 +319,7 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     now = s.ctx.clock.now()
     listed = s.ctx.events.listed(now)
     if msg.type != 2:
-        s.send(S_SUM_DATA, _active_data(s, listed))
+        _sum_data(s, listed)
         return
     snap = s.snapshot
     assert snap is not None
@@ -342,9 +351,9 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     # 4476 só desta e o 83
     granted(s, p.items, new, text, chat=False)
     if not new:
-        s.send(S_SUM_DATA, _active_data(s, listed))
+        _sum_data(s, listed)
     alert(s, GIFT_OK)
-    s.send(S_SUM_DATA, _active_data(s, [a]))
+    _sum_data(s, [a])
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
@@ -377,9 +386,9 @@ async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg
     s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     granted(s, drops, new, text, chat=False)
     if not new:
-        s.send(S_SUM_DATA, _active_data(s, listed))
+        _sum_data(s, listed)
     alert(s, GIFT_OK)
-    s.send(S_SUM_DATA, _active_data(s, [a]))
+    _sum_data(s, [a])
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 

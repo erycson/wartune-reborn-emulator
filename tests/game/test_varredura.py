@@ -73,6 +73,11 @@ async def test_rodadas_no_tempo_aceleracao_e_fechar(tmp_path: Path) -> None:
         assert [(r.type, r.finishCount, r.gp) for r in poll.result] == [(1, 1, 630), (sw.RUNNING, 1, 0)]
         assert len(poll.result[0].items) == 1  # a carta da rodada
         assert 115 in [p.code for p in got] and (snap.character.weary, snap.character.gold) == (80, 95_000)
+        # (só turco: savasa_baskin #10-#31) a rodada conta como campanha (leed 4), 4476 e o aviso dos itens
+        codes = [p.code for p in got]
+        assert codes.index(115) < codes.index(4152) and 4476 in codes
+        [text] = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
+        assert text.startswith("Received items: ") and text.endswith(" x1")
 
         g.client.send(8528, pb.CampaignSweepReq(sweepType=1, opType=2, campaignId=WORG, payType=1))
         done = _rsp(await g.until(4425))  # faltam 601 s: ceil(601/60) = 11 Balens

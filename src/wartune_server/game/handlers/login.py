@@ -295,12 +295,9 @@ async def _login_state(s: GameSession) -> None:
     from . import campaign, marriage  # os dois importam este módulo
 
     _send(s, campaign.S_RANK, campaign.ranks(s))  # tutorial_en #94; sem ele o mapa de campanhas quebra (AreaView)
+    from .room import waiting_login  # room -> vip -> ... -> login
 
-    await marriage.expire(s)  # noivado de mais de 20 dias cai antes do 4657
-    if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)
-        _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
-    space.present(s)  # (dedução) os outros depois do 4151; o oficial não manda 4597 no login (215937 #100-#106)
-    guild.on_login(s)
+    waiting_login(s)  # 11 logo depois do 4151 (oficial_20261023-231733-1 #105)
     # (visto) 215937 #104-#105, #109-#110: canOpen 1 (sem leitor no cliente); honra do dia / teto (o geste não sobe
     # aqui); torre do rei sem entradas; as moedas de pet, cristal eterno, selo do rei e inspiração zeradas
     s.send(S_CUSTOMER, pb.FastOpenCustomerMsg(canOpen=1))
@@ -308,3 +305,9 @@ async def _login_state(s: GameSession) -> None:
     s.send(S_KING_TOWER, pb.KingTowerInfoMsg(enterCount=0, maxIndex=0))
     tokens = [pb.TokenInfoMsg(masterType=t, amount=0, expiredDate=b.NEVER) for t in TOKEN_TYPES]
     s.send(S_TOKENS, pb.PlayerTokenInfoMsg(tokenInfos=tokens))
+
+    await marriage.expire(s)  # noivado de mais de 20 dias cai antes do 4657
+    if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)
+        _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
+    space.present(s)  # (dedução) os outros depois do 4151; o oficial não manda 4597 no login (215937 #100-#106)
+    guild.on_login(s)

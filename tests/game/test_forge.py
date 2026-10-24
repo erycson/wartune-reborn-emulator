@@ -110,15 +110,15 @@ async def test_compose_and_transform(tmp_path: Path) -> None:
 
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))
         got = await g.until(83)
-        assert codes(got) == [115, 109, 115, 111, 89, 83] and c.gold == 40000
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Received: Gartan Sword x1"
+        assert codes(got) == [115, 109, 115, 4476, 111, 89, 83] and c.gold == 40000
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: Gartan Sword x1"
         assert {(i.template_id, i.count) for i in me(g).items if i.bag_type == 1} >= {(2129001, 1), (1991011, 1)}
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))  # falta material
         assert await g.idle() == []
 
         g.client.send(8538, pb.StoreReqMsg(srcItemid=ATTACK_1, desItemid=MAGIC_1, count=2))
         got = await g.until(83)
-        assert codes(got) == [115, 109, 115, 111, 83] and c.gold == 20000
+        assert codes(got) == [115, 109, 115, 4476, 111, 83] and c.gold == 20000
         assert {(i.template_id, i.count) for i in me(g).items} >= {(ATTACK_1, 1), (MAGIC_1, 2)}
         g.client.send(8538, pb.StoreReqMsg(srcItemid=ATTACK_1, desItemid=ATTACK_2, count=1))  # nível diferente
         assert await g.idle() == []

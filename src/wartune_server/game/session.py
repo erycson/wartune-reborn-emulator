@@ -248,5 +248,6 @@ class GameSession:
                 self.ctx.online.unbind(self.player_id, self)
                 if self.ctx.online.get(self.player_id) is None:  # relogin: a sessão nova já avisou o 160
                     social.announce(self, online=False)
+                    room.waiting_broadcast(self, room.LEFT)
                 self.log.info("jogador saiu", player=self.player_id)
         self.gone.set()
