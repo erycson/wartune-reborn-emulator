@@ -35,7 +35,6 @@ from .common import (
     R_NO_PLAYER,
     R_OK,
     S_ARMY,
-    S_CHAT,
     S_ITEMS,
     S_OFFER,
     S_OFFERS,
@@ -249,8 +248,9 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
 
     Não tem opcode próprio: o cliente usa a compra genérica 5154 (``ShopManager.sendShoping``), e o
     handler dele (``handlers/shop.py``) chama esta função primeiro. Devolve False se o ``goodId`` não
-    é do mercado da guilda. Ordem do oficial: 3, 115, 111, 90, 83 (só turco:
-    birlik_katkisi_ve_birlik_market_alisverisi #45-#62).
+    é do mercado da guilda. (visto) oficial_20261024-121659-1 #674-#690: 3, 115, 4476, 4426, 4484, 111 e 83
+    "Successfully purchased Lvl. 4 Luck Stone x1." e o 90 por último (o turco
+    birlik_katkisi_ve_birlik_market_alisverisi #45-#62 tem o 90 antes do 83).
     """
     row = s.ctx.templates.get("ShopTempInfos", buy.goodId, key="Id")
     if row is None or row.get("ShopType") != GUILD_SHOP:
@@ -293,9 +293,7 @@ async def shop_buy(s: GameSession, buy: pb.BuyInfo) -> bool:
     from .. import events, shop  # os dois importam guild
 
     events.items_gained(s)
-    # o mesmo texto da loja comum (só turco: birlik_katkisi #60-#62 tem a mesma forma, 111, 90 e 83)
-    text = shop.bought_text(item_row.get("TemplateName", row["ItemId"]), count)
-    _alert(s, text)
+    # o mesmo texto e o mesmo 111 + 83 da loja comum (121659 #688-#689)
+    shop.alert(s, shop.bought_text(item_row.get("TemplateName", row["ItemId"]), count))
     _buy_result(s, buy, 1)
-    s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
     return True

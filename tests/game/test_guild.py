@@ -298,7 +298,8 @@ async def test_guild_shop_pays_with_contribution(tmp_path: Path) -> None:
         _guild(a).shop_level = 6
         assert await handlers.shop_buy(s, pb.BuyInfo(goodId=19, count=1))
         got = await a.idle()
-        assert [p.code for p in got if p.code in (3, 115, 111, 90, 83)] == [3, 115, 111, 90, 83]
+        # oficial_20261024-121659-1 #674-#690 (o turco tinha o 90 antes do 83)
+        assert [p.code for p in got if p.code in (3, 115, 111, 90, 83)] == [3, 115, 111, 83, 90]
         assert _one(got, 90, pb.ShopMsg).buyInfo.result == handlers.R_OK
         assert c.consortia_offer == 60
         assert any(i.template_id == 2040106 for i in s.snapshot.items)  # type: ignore[union-attr]
@@ -321,6 +322,8 @@ async def test_guild_market_is_bought_through_5154(tmp_path: Path) -> None:
         a.client.send(5154, pb.ShopMsg(buyInfo=pb.BuyInfo(goodId=19, count=1), payType=0))
         got = await a.idle()
         assert _one(got, 90, pb.ShopMsg).buyInfo.result == handlers.R_OK
+        tail = [p.code for p in got if p.code in (111, 83, 90)]
+        assert tail[-3:] == [111, 83, 90]  # oficial_20261024-121659-1 #688-#690
         assert c.consortia_offer == 60
         snap = _session(a).snapshot
         assert snap is not None and any(i.template_id == 2040106 for i in snap.items)
