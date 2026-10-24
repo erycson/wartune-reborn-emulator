@@ -291,6 +291,10 @@ async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
         room.ready.add(s.player_id)
     else:
         room.ready.discard(s.player_id)
+    if msg.state == READY and msg.isGet:
+        room.rewarded.add(s.player_id)
+    else:
+        room.rewarded.discard(s.player_id)
     states = [pb.PlayerreadyrspmsgPlayerReady(playerId=pid, readyState=_ready_state(room, pid)) for pid in room.members]
     _to_room(s, room, S_READY, pb.PlayerReadyRspMsg(readyState=states))
 

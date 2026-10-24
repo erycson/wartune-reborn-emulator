@@ -34,6 +34,7 @@ NORMAL, FIGHTING, DONE = 1, 4, 8  # CampaignNodeMsg.state (2 = NPC parado, 16 = 
 HIDDEN = 16
 MONSTER, TRIGGER, PANDORA = 42, 53, 61  # masterType (61 também é o baú de ouro, sem buff em param3)
 BOSS, COLLECT = 41, 91  # masterType: chefe (a vitória fecha o mapa) e pilha da pedreira (6001)
+GATE = 62  # masterType do portal que o grupo caído mostra (1002: 113106 -> 1132; 9001: 201107)
 SHOW = 2  # ação do param4 sem ``,ação`` (1002: "113106"): o nó aparece só com o 128, sem FLICKER (#2471)
 AGGRESSIVE = 1  # attackTypes: persegue o jogador (8196 -> 4105)
 FLICKER_DELAY, DISAPPEAR_DELAY = 85, 35  # delay das PlayerMovieMsg de liberar/esconder um nó (inglês #1414/#1412)
@@ -71,6 +72,7 @@ class StageRun:
     hurt: int = 0  # dano que o lado do jogador sofreu
     lost: int = 0  # lutas perdidas (``failedCount``)
     batter: int = 0  # maior 8282 (combo) da etapa
+    rewarded: bool = True  # campanha em grupo sem a entrada do dia: sem EXP, drop nem carta (cliente)
 
 
 @dataclass

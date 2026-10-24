@@ -18,6 +18,7 @@ from google.protobuf.json_format import ParseDict
 from google.protobuf.message import Message
 
 from ...content import tutorial
+from ...domain import gameday
 from ...domain.models import EventState, Item, PlayerSnapshot, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
@@ -53,6 +54,7 @@ from ..campaign import (
     unlock_actions,
 )
 from ..castle import castle_yield
+from ..rooms import PLAYING, PVE, Room
 from ..router import router
 from ..session import GameSession
 from . import pet_defend
@@ -674,7 +676,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     s.battle, s.hero_sp = None, battle.player_sp
-    gp = int(battle.spec.get("gpBonus", 0)) if won else 0
+    gp = int(battle.spec.get("gpBonus", 0)) if won and _rewarded(s) else 0
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
     before = snap.character.grades
@@ -900,6 +902,10 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     stages = content["stages"]
     if "fog" not in content["maps"][str(stages[0][0])]:
         return  # a pedreira entra pelo 8258
+    room = s.ctx.rooms.of(s.player_id)
+    if room is not None and room.type == PVE and msg.paraInt1 != 1:
+        await _group_start(s, room, content, msg)
+        return
     if snap.character.weary < WEARY:
         # ponytail: sem energia não entra e não responde; a recusa do oficial precisa de captura com estamina < 20
         s.log.info("5039 sem energia", weary=snap.character.weary)
@@ -916,6 +922,92 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     name = _campaign_row(s, msg.paraInt2).get("CampaignName", "")
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Entered [{name}] and deducted {WEARY} stamina."))
     await s.ctx.characters.save(snap.character)
+
+
+# (cliente) "MP Dungeon attempts" (ThewAlertFrame.disclist01); TODO(inventado) a frase: o turco diz "[Büyük Kristal]
+# girildi, bugün kalan grup sahne hakkı: 1/2" (exp_kitabi #40)
+GROUP_TEXT = "Entered [{}]. MP Dungeon attempts remaining today: {}/{}"
+
+
+async def _group_start(s: GameSession, room: Room, content: Mapping[str, Any], msg: pb.CampaignReqMsg) -> None:
+    """Start da sala (``RoomRightView._startClick`` -> ``sendStartCampaignScene``: 5039 com ``paraInt2`` = campanha e
+    ``paraBool1`` = usar a entrada do dia). Só o dono, com a campanha da sala e todos prontos (``allPlayerReader``).
+    (só turco: exp_kitabi #24-#40) 24 com o dono em 2 e cada um entra (``_group_enter``)."""
+    from .room import S_READY, _ready_state, _to_room  # room importa space, que este pacote também usa
+
+    others = [p for p in room.members if p != room.master]
+    if room.master != s.player_id or room.campaign != msg.paraInt2 or any(p not in room.ready for p in others):
+        s.log.info("5039 recusado: sala", sala=room.id, campanha=msg.paraInt2)
+        return
+    states = [pb.PlayerreadyrspmsgPlayerReady(playerId=p, readyState=_ready_state(room, p)) for p in room.members]
+    _to_room(s, room, S_READY, pb.PlayerReadyRspMsg(readyState=states))
+    room.state = PLAYING
+    for pid in room.members:
+        other = s.ctx.online.get(pid)
+        if other is None or other.snapshot is None or other.battle is not None:
+            continue
+        if other.campaign is not None and not other.campaign.finished:
+            continue
+        await _group_enter(
+            other, room, content, msg.paraInt2, msg.paraBool1 if pid == room.master else pid in room.rewarded
+        )
+
+
+async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], cid: int, use: bool) -> None:
+    """Entrada de um da sala. (só turco: exp_kitabi #25-#40) 125 com a sala inteira (``roomState`` 3), 140, 21 com
+    o lugar, 3, 150, 4903, 3 (a entrada gasta), 4165, 150, 150, 127, 130, 143, o 83 da poção e o 83 das entradas.
+    Sem estamina (o aviso do cliente só fala das entradas). Sem entrada ou sem ``use``: entra sem prêmio
+    (cliente: "You can complete the quest but cannot obtain rewards", ``RoomRightView.incomePrompt``)."""
+    from . import systems  # systems importa este módulo
+    from .player import hp_pack  # player importa login, que importa este módulo
+
+    snap, now, templates = s.snapshot, s.ctx.clock.now(), s.ctx.templates
+    assert snap is not None
+    c_ = snap.character
+    stages = content["stages"]
+    stage = events.state(snap, STAGE_KEY.format(cid), now).value % len(stages)
+    maps = tuple(int(m) for m in stages[stage])
+    count, top = c_.multi_copies(rules.copies_base(templates), now)
+    run = StageRun(cid, stage, maps, now, rewarded=use and count > 0)
+    s.campaign = c = CampaignMap.enter_dungeon(content, maps[0], run)
+    row = _campaign_row(s, cid)
+    name = row.get("CampaignName", "")
+    created = pb.RoomCreatedMsg(createdType=ENTER)
+    created.room.CopyFrom(
+        pb.RoomMsg(
+            roomId=room.id, campaignId=maps[0], masterId=room.master, name=name, count=len(room.members),
+            capacity=room.capacity, roomState=room.state, roomType=room.type, isSetPassword=bool(room.password),
+        )
+    )  # fmt: skip
+    _send(s, S_ROOM_CREATED, created)
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+    enter = _room_enter(s)
+    me = enter.player[0]
+    me.roomId, me.count, me.currentRoomIndex = room.id, len(room.members), room.seats.index(s.player_id)
+    me.playerState = 2 if s.player_id == room.master else 1  # (só turco: #27) o dono em 2, como o 24
+    _send(s, S_ROOM_ENTER, enter)
+    await _push_player(s)
+    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    systems.send_camp_buffs(s, systems.camp_type(row))
+    if run.rewarded:
+        count -= 1
+        c_.multi_copy_count, c_.multi_copy_max, c_.multi_copy_day = count, top, gameday.today(now)
+    await _push_player(s)
+    _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
+    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
+    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
+    _send(s, S_NODES, c.node_list())
+    _send(s, S_FOG, c.fog())
+    _send(s, S_MOVIE, pb.PlayerMovieMsg(movieTargetType=3, targetId=0, movieType="MOVIE_MAP_NAME", delay=0))
+    healed = rules.heal_hero(snap, templates, now) if snap.leader is not None else 0
+    hp_pack(s, healed)  # (só turco: #39) a poção enche a vida na entrada
+    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=GROUP_TEXT.format(name, count, top)))
+    await s.ctx.characters.save(c_, *([snap.leader] if snap.leader is not None else []))
+
+
+def _rewarded(s: GameSession) -> bool:
+    c = s.campaign
+    return c is None or c.run is None or c.run.rewarded
 
 
 def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run: StageRun | None, created: int) -> None:
@@ -1117,8 +1209,11 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         s.log.info("5033 sem a chave", nó=camp, item=key)
         return
     price = int(node.get("param2") or 0) if not key and int(node.get("param1") or 0) == cm.GOLD else 0
-    if price > snap.character.gold:
-        s.log.info("5033 sem ouro", nó=camp, preço=price)
+    coin = rewards.CURRENCIES[cm.GOLD]
+    if cost := own.get("cost"):  # baú VIP da 9001: 2000 Kyanite (o texto do 29)
+        coin, price = rewards.CURRENCIES[int(cost[0])], int(cost[1])
+    if price > getattr(snap.character, coin):
+        s.log.info("5033 sem moeda", nó=camp, preço=price, moeda=coin)
         return
     c.talked.add(camp)
     if buffs := _buffs_of(node):
@@ -1146,7 +1241,7 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         c.talked.discard(camp)
         return
     taken = rewards.take_one(snap, key) if key else None
-    snap.character.gold -= price
+    setattr(snap.character, coin, getattr(snap.character, coin) - price)
     new, _ = rewards.grant(snap, templates, got)
     await s.ctx.characters.save(*rewards.owners(snap), *new, *([taken[0]] if taken and not taken[1] else []),
                                 delete=(taken[0],) if taken and taken[1] else ())  # fmt: skip
@@ -1208,7 +1303,15 @@ def _map_finished(c: CampaignMap, camp: int) -> bool:
     group = group_of(node)
     if not group or any(c.nodes[g]["state"] != DONE and g != camp for g in group if g in c.nodes):
         return False
-    return not unlock_actions(node)
+    return not [a for a in unlock_actions(node) if not _dead_gate(c, a[0])]
+
+
+def _dead_gate(c: CampaignMap, camp: int) -> bool:
+    """Portal escondido sem mapa no conteúdo: TODO(inventado) a etapa acaba no grupo caído (9001: o 201107
+    levaria ao 2012, que nenhuma captura mostra). O 113201 do 1132 (62 à vista) não é portal."""
+    node = c.node(camp)
+    hidden = node is not None and node["masterType"] == cm.GATE and node["state"] == HIDDEN
+    return hidden and c.part("portals", camp) is None
 
 
 def _dungeon_unlock(s: GameSession, camp: int) -> None:
@@ -1353,6 +1456,8 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
         for t, n, chance in c.part("drops", at) or []
         if random.random() < float(chance) and rules.quest_goods_wanted(snap, templates, int(t), cid)
     ]
+    if run is not None and not run.rewarded:
+        drops = []  # sem a entrada do dia: sem drop (cliente, ``incomePrompt``); as missões contam
     got = [d for d in drops if _material(templates, d[0])]
     if fallen := [d for d in drops if d not in got]:
         loot.sign, loot.fallen = str(int(now.timestamp() * 1000)), fallen  # (visto) #2910: milissegundos da luta
@@ -1469,6 +1574,9 @@ async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     snap = s.snapshot
     if c is None or snap is None or not c.dungeon or not c.finished or c.card is not None or c.run is None:
         s.log.info("5122 sem carta para virar", p2=msg.paraInt2)
+        return  # fora do fim da masmorra, ou a carta já saiu: uma só por etapa
+    if not c.run.rewarded:
+        s.log.info("5122 sem prêmio: campanha em grupo sem a entrada do dia")
         return  # fora do fim da masmorra, ou a carta já saiu: uma só por etapa
     cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
     if not 0 <= msg.paraInt2 < int(cards.get("cardCount", 0)):

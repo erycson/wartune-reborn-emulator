@@ -118,7 +118,7 @@ minutos por unidade (× `count`), Property3 = grau (o `{Grades}` da descrição)
 
 | pacote | o que faz | fonte |
 |---|---|---|
-| 5006 → 115, 110 `PropertyUpdatedMsg{propertyType = PropertyType1 do efeito, value = grau}`, 4188 `ItemBufferRspMsg{templateId = efeito, validityDate = minutos restantes, grade, type 2, typeTemplateid = item, isCancel false}`, 3 (sem texto) | liga o efeito | *(visto, só turco: `exp_kitabi_kullanim_kahraman_sarayi...` #2-#10)*, 2013002: `{30, 100}` e `{2030, 60, 100, 2, 2013002}` (o 4902/150/4434 no meio são de outros sistemas) |
+| 5006 → 115, 110 `PropertyUpdatedMsg{propertyType = PropertyType1 do efeito, value = grau}`, 4188 `ItemBufferRspMsg{templateId = efeito, validityDate = minutos restantes, grade, type 2, typeTemplateid = item, isCancel false}`, 4902/150 (pergaminho de EXP e poções de atributo), 3 (sem texto) | liga o efeito | *(visto, só turco: `exp_kitabi_kullanim_kahraman_sarayi...` #2-#10)*, 2013002: `{30, 100}` e `{2030, 60, 100, 2, 2013002}` (o 4902/150/4434 de #3-#5 é o periódico; o 4902/150 de #8-#9, sem o 4434, é do pergaminho) |
 | + 109 | depois dos pergaminhos de ouro/população | *(dedução)* |
 | mesmo efeito, grau menor | recusa sem resposta | *(cliente)* `MulItemUseFrame` já barra: "Stronger buff already active, overlapping not allowed." |
 | mesmo efeito, grau igual / maior | soma o tempo / substitui grau e tempo | *(dedução)* |

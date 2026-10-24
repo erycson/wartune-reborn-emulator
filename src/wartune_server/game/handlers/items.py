@@ -516,8 +516,9 @@ async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
     send_buffers(s, [st])
     if effect in (buffs.GOLD_MAX, buffs.POPULATION):
         castle_yield(s)  # (dedução) teto do armazém/população novos na barra
-    if _effect_type(s, effect) in buffs.STATS:
-        # poção de atributo: o 110 desses tipos o cliente ignora (PlayerEffectHelper); o 150 leva os total* novos
+    if _effect_type(s, effect) in buffs.STATS or effect == buffs.EXP_BOOST:
+        # poção de atributo: o 110 desses tipos o cliente ignora (PlayerEffectHelper); o 150 leva os total* novos.
+        # O pergaminho de EXP também (só turco: exp_kitabi #7-#10: 4188, 4902, 150, 3)
         _army(s)
     _player(s)
     return True

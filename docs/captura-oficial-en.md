@@ -76,7 +76,7 @@ Correlações (missão ↔ item ↔ monstro ↔ texto):
 |---|---|---|
 | baú online (`TimeDrop`, minutos) | contagem começa no 1º 5019 e zera a cada resgate; resgate manda 109 (ou 3), 115, 111, 4250, 4, 83×2 | **feito** (`handlers/rewards.py`, `timebox.py`) |
 | EXP +100% | 4247 `rateInfo{rate:100, beginDay, endDay}`: evento do servidor por datas (é o ícone "1x EXP" do print: `PlayerBufferInfo.name` "{0}x EXP" com `rate/100`) | **feito**: tabela `exp_rate_events` (0033), 4247 no login; multiplicador não aplicado (o EXP das capturas já vem com o evento) |
-| pergaminho Lvl. 2 Bonus EXP Scroll (2013002) | veio do baú online #3356 e **não foi usado** na captura inglesa | **feito** pela captura turca `exp_kitabi_kullanim...` (115, 110, 4188, 3), ver [itens.md](itens.md#pergaminhos-de-efeito-sontype-201) |
+| pergaminho Lvl. 2 Bonus EXP Scroll (2013002) | veio do baú online #3356 e **não foi usado** na captura inglesa | **feito** pela captura turca `exp_kitabi_kullanim...` (115, 110, 4188, 4902/150, 3), ver [itens.md](itens.md#pergaminhos-de-efeito-sontype-201) |
 | cartão VIP de teste 2031201 (`Property1=12`, 1 h) | 5006 → 115, 111, 4410 `vipType:2`, 3 | **feito** (`vip.use_trial_card`) |
 | VipInfo no login | `takeGiftDate` = criação | **feito** |
 | presente semanal VIP (`VipDrop`) | 8505 → 115, 111, 4410, 4539, 83; próximo em 10-26 | **feito**: próxima liberação = segunda da semana seguinte (semana começa no domingo; dedução de um ponto só) |

@@ -16,7 +16,7 @@ MAX_SEATS = 4  # o oficial tem 4 lugares (visto: ek sahne, capacity 4)
 NAME_NEW = "No battle selected"  # nome de sala sem campanha escolhida (visto: 12/32)
 OPEN, CLOSED = 0, -1  # valor de um lugar livre aberto ou fechado (PlaceStateRspMsg); userId = ocupado
 # RoomState do cliente: 0 sem uso, 1 em uso (esperando), 2 competindo, 3 jogando. O PVERoomItem só entra com 1.
-IN_USE = 1
+IN_USE, PLAYING = 1, 3  # (só turco: exp_kitabi #25) o 125 do começo da campanha leva o 3
 
 
 @dataclass
@@ -28,6 +28,7 @@ class Room:
     campaign: int = 0  # Campaigns.CampaignId escolhida; 0 = ainda não escolhida
     seats: list[int] = field(default_factory=list)  # MAX_SEATS entradas: userId, OPEN ou CLOSED
     ready: set[int] = field(default_factory=set)  # membros (não o dono) que apertaram "pronto" (5036)
+    rewarded: set[int] = field(default_factory=set)  # prontos com o ``isGet`` (usar a entrada do dia)
     state: int = IN_USE  # RoomMsg/RoomStateRspMsg.roomState (5037)
     type: int = PVE  # RoomMsg.roomType
 

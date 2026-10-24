@@ -63,7 +63,7 @@ async def test_exp_scroll_packets_double_the_battle_exp_and_survive_restart(tmp_
     async with logged_in(tmp_path, novice=11000, clock=FakeClock(START)) as g:
         await _give(g, EXP_LV2)
         got = await _use(g)
-        assert codes(got) == [115, 110, 4188, 3]  # visto: 115, 110, 4188, 3 (sem texto)
+        assert codes(got) == [115, 110, 4188, 150, 3]  # visto: 115, 110, 4188, 4902/150, 3 (sem texto)
         effect = pb.PropertyUpdatedMsg.FromString(got[1].body)
         assert (effect.propertyType, effect.value) == (30, 100)
         data = _buffer(got)
@@ -103,7 +103,7 @@ async def test_same_grade_adds_time_weaker_is_refused_and_stop_clears(tmp_path: 
 
         g.client.send(5006, pb.ItemUseMsg(pos=1, count=1, bagType=1))  # 50% sobre 100%: recusa, sem resposta
         got = await _use(g, pos=2)
-        assert codes(got) == [115, 110, 4188, 3] and weak.count == 1
+        assert codes(got) == [115, 110, 4188, 150, 3] and weak.count == 1
         assert (_buffer(got).grade, _buffer(got).validityDate) == (200, 60)  # maior substitui grau e tempo
 
         g.client.send(8283, pb.EffectRemoveReqMsg(templateId=2030))

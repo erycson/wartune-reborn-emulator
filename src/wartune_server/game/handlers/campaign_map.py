@@ -12,12 +12,8 @@ from ..router import router
 from ..session import GameSession
 
 S_SYSTEM_ARMY = 20
-# exército do sistema dos mapas fora das campanhas no banco (SystemArmyMsg); as masmorras e a pedreira levam o seu
-# no conteúdo (``maps[mapa]["army"]``, migração 0034, inglesa #924, #1524, #2513). Os demais ficam vazios
-SYSTEM_ARMY: dict[int, tuple[list[int], list[int]]] = {  # mapa -> (heroTemplated, soldierTemplated)
-    # (visto, só turco: peri_uyanis #89-90) 5038 paraInt1=2011 -> 20
-    2011: ([3011], [4012, 4011]),
-}
+# exército do sistema (SystemArmyMsg): as masmorras e a pedreira levam o seu no conteúdo (``maps[mapa]["army"]``,
+# migração 0034, inglesa #924, #1524, #2513; o 2011 na 0084, só turco: peri_uyanis #89-90). Os demais ficam vazios
 
 
 @router.on(5038)
@@ -30,10 +26,11 @@ async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     """
     key = str(msg.paraInt1)
     data = next((c["maps"][key] for c in s.ctx.world.campaigns.values() if key in c["maps"]), None)
-    heroes, soldiers = SYSTEM_ARMY.get(msg.paraInt1, ([], []))
+    heroes: list[int] = []
+    soldiers: list[int] = []
     if data is not None:  # pedreira: sem ``army`` (inglesa #1821, 20 vazio)
         heroes, soldiers = data.get("army", {}).get("hero", []), data.get("army", {}).get("soldier", [])
-    elif msg.paraInt1 not in SYSTEM_ARMY:
+    else:
         # ponytail: mapa sem captura manda lista vazia; falta a lista de cada mapa (nós do .maps). Não muda estado
         s.log.info("5038 mapa sem captura (lista vazia)", mapa=msg.paraInt1)
     s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg(heroTemplated=heroes, soldierTemplated=soldiers))
