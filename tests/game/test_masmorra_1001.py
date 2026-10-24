@@ -35,7 +35,7 @@ WOLVES_1021 = (102102, 102103, 102105, 102106)  # o 102106 traz o param4 que lib
 # não passou pela saída do tutorial, onde a inglesa ganhou o leed 4 do dia (#521)
 END = [4382, 3, 137, 4151, 83, 135, 4165, 150, 150, 140, 4152, 83]
 END_COM_70 = [4382, 3, 137, 4151, 83, 135, 112, 4165, 150, 150, 140, 4152, 83]  # com a 70: o 112 entre o 135 e o 4165
-CARD = [115, 4476, 26, 83]  # resposta do 5122 (inglesa #1111-#1123, sem os 4484); o 134 vem no 5180
+CARD = [115, 4476, *[4484] * 9, 26, 83]  # resposta do 5122 (inglesa #1111-#1123); o 134 vem no 5180
 WORG_TOOTH, LUCK_STONE = 2100001, 2040101  # drops dos lobos do 1021
 
 
@@ -295,12 +295,12 @@ async def test_mapa_1011_fecha_e_a_carta_do_5122_fica_gravada(tmp_path: Path) ->
 
         got = await take(g, 2)
         assert codes(got) == CARD
-        take_msg = pb.CampaignTakeCardsMsg.FromString(got[2].body)
+        take_msg = pb.CampaignTakeCardsMsg.FromString(got[11].body)
         card = pb.ItemMovedListMsg.FromString(got[0].body).moved[0].item
         assert (take_msg.index, take_msg.templateId) == (2, card.templateId)
         assert card.templateId in drops.pool(g.server.services.templates, 1001)
         name = g.server.services.templates.get("ItemTempInfos", card.templateId)["TemplateName"]
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == f"Received: {name} x1"
+        assert pb.ChatChannelMsg.FromString(got[12].body).encodeMsg == f"Received: {name} x1"
         snap = await g.server.services.characters.snapshot(g.user_id)
         assert [i.template_id for i in snap.items].count(card.templateId) == 1  # lida do banco, não da sessão
 
@@ -433,8 +433,8 @@ async def test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim(tmp_path:
                 assert LUCK_STONE not in {m.item.templateId for m in moved if m.HasField("item")}
                 g.client.send(5129, pb.CampaignReqMsg(paraString1=report.signId))
                 chest = await g.idle()
-                assert codes(chest) == [115, 4476, 111, 83]  # inglesa #2924-#2939
-                assert pb.ChatChannelMsg.FromString(chest[3].body).encodeMsg == "Received: Lvl. 1 Luck Stone x1"
+                assert codes(chest) == [115, 4476, *[4484] * 9, 111, 83]  # inglesa #2924-#2939
+                assert pb.ChatChannelMsg.FromString(chest[12].body).encodeMsg == "Received: Lvl. 1 Luck Stone x1"
                 g.client.send(5129, pb.CampaignReqMsg(paraString1=report.signId))
                 assert await g.idle() == []  # já pego
         assert totals == [2, 4, 7, 10]
@@ -493,7 +493,7 @@ async def test_bau_da_luta_pega_um_item_ou_volta_com_a_mochila_cheia(tmp_path: P
         s.campaign.fallen["1"] = [(LUCK_STONE, 1), (1080011, 1)]
         g.client.send(5129, pb.CampaignReqMsg(paraString1="1", paraInt1=1080011))  # BattleFallGoodsView: um item
         got = await g.idle()
-        assert codes(got) == [115, 4476, 111, 83]
+        assert codes(got) == [115, 4476, *[4484] * 9, 111, 83]
         assert pb.ItemMovedListMsg.FromString(got[0].body).moved[0].item.templateId == 1080011
         assert s.campaign.fallen == {"1": [(LUCK_STONE, 1)]}
 

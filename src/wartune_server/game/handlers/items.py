@@ -131,7 +131,9 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     4 equipamento) e o equipamento do mascote (26). Na 26 o mascote vem no ``objectId`` (``PetBagCellClickMediator``
     manda ``endObjId`` 0; ``PetEquipBagCellDropMediator`` manda o id nos dois).
     Destino ocupado: empilha se for o mesmo item, senão troca (o outro precisa caber na origem). Juntar livre com
-    vinculado vincula a pilha, e equipar vincula o item (o cliente já pediu a confirmação)."""
+    vinculado vincula a pilha, e equipar vincula o item (o cliente já pediu a confirmação).
+    (visto) inglês: o equipamento que veio do herói para a bancada volta para o corpo dele quando sai da bancada
+    (``endBagType`` 1: 153200 #815, 231733 #294/#1399/#3357/#4804, oficial_encantar #234/#290, tutorial_en #3217)."""
     snap = s.snapshot
     assert snap is not None
     pet = msg.objectId
@@ -140,6 +142,9 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     if end_bag == BagType.PET_EQUIP and not end_obj:
         end_obj = pet
     item = bag.at(snap, *begin)
+    back = s.bench_from.get(item.id or 0) if item is not None and begin[0] == BagType.STORE else None
+    if back is not None and end_bag == BagType.BAG and bag.at(snap, *back) is None:
+        end_bag, end_obj, end_pos = back
     if begin[0] == BagType.STORE and end_bag == BagType.BAG and bag.at(snap, end_bag, 0, end_pos) is not None:
         # a bancada devolve sempre com endPos 0: o servidor escolhe o primeiro espaço livre
         free = bag.free_positions(snap, s.ctx.clock.now())
@@ -166,6 +171,7 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         return
 
     live_before = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live if snap.leader is not None else 0
+    hp_before = b.hero_hp(snap.leader, live_before) if snap.leader is not None else 0
     gone: tuple[Item, ...] = ()
     if stack and other is not None:
         use = min(item.count, bag.max_count(s.ctx.templates, item.template_id) - other.count)
@@ -191,11 +197,21 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         now = s.ctx.clock.now()
         # a vida máxima pode subir: a atual fica e a reserva completa (oficial_20261023-153200-1 #2182-#2185)
         healed = rules.heal_hero(snap, s.ctx.templates, now)
-        dropped = rules.leader_stats(snap, s.ctx.templates, now).live < live_before
+        live = rules.leader_stats(snap, s.ctx.templates, now).live
+        dropped = live < live_before
+        if hp_before > live:
+            # (visto) a vida que passa do máximo novo volta para a reserva: 231733 #233/#300 (hp 1104 -> 984, blood
+            # 95116 -> 95236), #4734/#4796 (-83 e +83)
+            snap.leader.blood += hp_before - live
+            snap.leader.hp = live
         trimmed = rules.trim_army(snap, s.ctx.templates, now)
     leader = snap.leader if healed or dropped else None
     kept = (i for i in (item, other, book, wearer, leader) if i is not None and i not in gone)
     await s.ctx.characters.save(*kept, *(snap.pawns if trimmed else ()), delete=gone)
+    if begin[0] == BagType.STORE:
+        s.bench_from.pop(item.id or 0, None)
+    if end_bag == BagType.STORE and begin[0] == BagType.HERO and not gone:
+        s.bench_from[item.id or 0] = begin
 
     # (visto) oficial_20261023-171155-1 #2310-#2316, tirar a arma: 113 com a vida no máximo novo, 100 com as tropas
     # que voltaram ao castelo, 3, 150, 115, 115
@@ -203,11 +219,17 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
         send_blood(s)
     if trimmed:
         s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
-    _player(s)
-    _army(s)
-    s.send(S_ITEMS, item_moved(*begin, first, s.player_id))
-    s.send(S_ITEMS, item_moved(*end, second, s.player_id))
-    hp_pack(s, healed)  # depois dos dois 115 (só turco: envanterden_item_kusanma #4-#6, #15-#17)
+    # (visto) mochila <-> bancada: só os dois 115 (oficial_encantar #215, 171155 #2319); com o herói, 3, o 83 do HP
+    # pack, 150 e os 115 (153200 #2182-#2187, 231733 #4804-#4809)
+    if not {begin[0], end[0]} <= {BagType.BAG, BagType.STORE}:
+        _player(s)
+        hp_pack(s, healed)
+        _army(s)
+    moved = [item_moved(*begin, first, s.player_id), item_moved(*end, second, s.player_id)]
+    if begin[0] == BagType.STORE and end[0] == BagType.HERO:
+        moved.reverse()  # (visto) a volta para o herói: o 115 do herói antes do da bancada (231733 #4808-#4809)
+    for m in moved:
+        s.send(S_ITEMS, m)
     if book is not None:
         send(s, fashion.S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
     if BagType.HERO in (begin[0], end[0]):

@@ -407,12 +407,15 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   grava. Cada troca grava tudo
   numa vez, antes dos pacotes do passo (o 4924 sai por último).
 - Dedução: tabuleiro novo sem combinação pronta e com ao menos uma jogada; cor de gema nova uniforme.
-- *ponytail*: sem subida de nível (a tabela não foi capturada: `curExp` passa de `maxExp`); `scoreOrder` 0
-  (sem ranking); `buyTimesLeft` 0.
+- Nível (`gm.gain_exp`): a sobra de EXP passa para o nível seguinte, até o 40 *(cliente: `GemMazeFrame` enche a barra
+  no 40)*. `maxExp` = 30 + 24 × nível **TODO(inventado)**: reta entre os dois pontos vistos (nível 0: 30, nível 5: 150).
+- Ranking semanal: `scoreOrder` = 1 + quantos têm mais pontos na semana *(dedução: personagem novo inglês saiu 133;
+  o turco ficou fixo em 1771 a sessão toda)*, lido no login e ao abrir. O `gemmaze.xml` (`rankings.gem_order`, raiz
+  `GemMazeScores` como o do espelho) lista quem pontuou, com `Score` semanal e `GemMazeGrades`.
+  `buyTimesLeft` 0 *(visto; o cliente guarda e não lê)*.
 
 **Precisa de captura (o que gravar e o que fazer no jogo):**
-- Subida de nível: jogar até subir e gravar os 4923 com `gemLevel` e `maxExp` novos. A captura (só turco) só tem o
-  nível 0 (30 de EXP) e o nível 5 (150).
+- Subida de nível: jogar até subir e gravar os 4923 com `gemLevel` e `maxExp` novos, para trocar a reta inventada.
 - Troca sem combinação: trocar duas gemas que não formam nada e gravar o que o oficial manda (só o 4924,
   um 4923 vazio, ou nada).
 - Prêmios: jogar uns 50 passos e gravar os `rewardInfo`, para ver se cor e tamanho decidem o prêmio, e
@@ -422,7 +425,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 - Renovação: abrir o labirinto antes e depois das 5h de uma segunda-feira e gravar os 4922, para ver se o semanal
   zera.
 - Ajuda de amigo (9510, 4925, 9515, 4924): convidar um amigo e gravar os dois lados.
-- Ranking semanal (`scoreOrder`, `weekScore`): gravar o 4922 de outra semana e de um jogador de topo.
+- Ranking semanal: baixar o `gemmaze.xml` do oficial com linhas, para conferir o tamanho e o `Index`.
 - Bolsa do labirinto cheia (48 itens): gravar o que o oficial manda ao trocar e ao receber tudo.
 
 **Captura que falta — fundo normal e árvore dourada:**

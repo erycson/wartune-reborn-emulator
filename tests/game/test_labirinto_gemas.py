@@ -198,7 +198,7 @@ async def test_login_pushes_the_board_only_when_the_account_has_one(tmp_path: Pa
 
 async def test_move_plays_the_cascade_pays_the_maze_bag_and_unlocks_the_client(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        _set_board(g, gm.Game(board=list(CAPTURED_BOARD), exp=61))
+        _set_board(g, gm.Game(board=list(CAPTURED_BOARD), level=5, exp=61, max_exp=150))  # o estado do av_askeri #1
         g.client.send(9509, pb.GemMoveMsg(beginMark=11, endMark=12))
         got = await g.idle()
         updates = [pb.GemInfoUpdateMsg.FromString(p.body) for p in got if p.code == 4923]
@@ -296,6 +296,17 @@ def test_refresh_renews_moves_score_and_boxes_on_a_new_day_and_keeps_the_level()
     game.times = 45  # helpContent: "Free and purchased attempts reset daily"
     gm.refresh(game, datetime(2026, 1, 12, 12, tzinfo=UTC))  # segunda: semana nova
     assert (game.times, game.week) == (20, 0)
+
+
+def test_exp_levels_up_keeping_the_rest_and_stops_at_level_40() -> None:
+    game = gm.Game(board=[1] * gm.CELLS)
+    gm.gain_exp(game, 35)
+    assert (game.level, game.exp, game.max_exp) == (1, 5, 54)
+    game.level, game.exp, game.max_exp = 5, 61, gm.max_exp(5)
+    assert game.max_exp == 150  # (visto) av_askeri #1: nível 5, 61/150
+    game.level, game.exp, game.max_exp = 39, 0, gm.max_exp(39)
+    gm.gain_exp(game, 100_000)
+    assert (game.level, game.exp) == (40, game.max_exp)
 
 
 def test_reward_counts_follow_the_capture() -> None:

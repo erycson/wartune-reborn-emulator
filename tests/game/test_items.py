@@ -34,12 +34,38 @@ async def test_bag_move_checks_the_hero_slot(tmp_path: Path) -> None:
         assert await g.idle() == []
 
         g.client.send(5005, pb.ItemReqMsg(beginBagType=1, beginPos=0, endBagType=0, endPos=0))  # para a bancada
-        assert codes(await g.until(115) + await g.until(115)) == [3, 150, 115, 115]
+        assert codes(await g.until(115) + await g.until(115)) == [115, 115]  # (visto) oficial_encantar #215
         assert (wand.bag_type, wand.pos) == (0, 0)
         g.client.send(5005, pb.ItemReqMsg(beginBagType=0, beginPos=0, endBagType=1, endPos=0))  # e de volta
         await g.until(115)
         await g.until(115)
         assert (wand.bag_type, wand.pos) == (1, 0)
+
+
+async def test_equipment_from_the_hero_goes_back_to_the_hero_when_it_leaves_the_bench(tmp_path: Path) -> None:
+    """(visto) tutorial_en #3202/#3217: o cajado do herói vai para a bancada (3, 150, 115 do herói, 115 da bancada) e o
+    ``endBagType`` 1 da volta o veste de novo, com o 115 do herói antes do da bancada."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        leader = snap.leader
+        assert leader is not None
+        wand = Item(g.user_id, WAND, bag_type=4, object_id=leader.id or 0, pos=0)
+        snap.items.append(wand)
+        await g.server.services.characters.save(wand)
+
+        g.client.send(5005, pb.ItemReqMsg(beginBagType=4, beginObjId=leader.id, beginPos=0, endBagType=0, endPos=0))
+        got = await g.until(115) + await g.until(115)
+        assert [c for c in codes(got) if c != 113] == [3, 150, 115, 115] and wand.bag_type == 0
+        g.client.send(5005, pb.ItemReqMsg(beginBagType=0, beginPos=0, endBagType=1, endPos=0))
+        got = await g.until(115) + await g.until(115)
+        assert (wand.bag_type, wand.object_id, wand.pos) == (4, leader.id, 0)
+        first, second = (pb.ItemMovedListMsg.FromString(p.body).moved[0] for p in got if p.code == 115)
+        assert (first.changeType, first.item.templateId, second.changeType, second.HasField("item")) == (
+            4,
+            WAND,
+            0,
+            False,
+        )
 
 
 async def test_using_resources_potions_and_gem_boxes(tmp_path: Path) -> None:
@@ -190,6 +216,7 @@ async def test_unequipping_lowers_hp_and_sends_extra_troops_home(tmp_path: Path)
         if pawn not in snap.pawns:
             snap.pawns.append(pawn)
         leader.hp = 0  # cheia
+        blood = leader.blood
         await g.server.services.characters.save(wand, *snap.pawns, leader)
 
         g.client.send(5005, pb.ItemReqMsg(beginBagType=4, beginObjId=leader.id, beginPos=0, endBagType=1, endPos=0))
@@ -197,6 +224,8 @@ async def test_unequipping_lowers_hp_and_sends_extra_troops_home(tmp_path: Path)
         assert codes(got) == [113, 100, 3, 150, 115, 115]
         live = rules.leader_stats(snap, g.server.services.templates, now).total["Live"]
         assert live == stats["Live"] - 120 and pb.SimpleHeroInfoMsg.FromString(got[0].body).hp == live
+        # (visto) 231733 #233/#300: os 120 que passaram do máximo voltam para a reserva
+        assert pb.SimpleHeroInfoMsg.FromString(got[0].body).blood == leader.blood == blood + 120
         assert (pawn.army_count, pawn.castle_count) == (stats["ConatArmy"] - 6, 106)
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert [(p.army_count, p.castle_count) for p in saved.pawns if p.template_id == LANCER] == [

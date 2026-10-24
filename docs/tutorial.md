@@ -32,7 +32,7 @@ Cada nó tem dois ids. O de execução (`nodeId`, 9544…) vai nos pacotes 127, 
 | 5032 (fim de diálogo) | depende de quantos 5032 aquele nó já recebeu | `callback` |
 | 5017 `noviceProcess` | (112 se uma missão cumpriu a condição), 3, 1; no 14000 o portal aparece | `novice` |
 | 5012 / 5014 | aceitar / entregar missão (ver Missões) | `handlers/player.py` |
-| 5005 | equipar ou trocar item: 3, 150, 115 (origem), 115 (destino) | `bag_move` |
+| 5005 | equipar ou trocar item: 3, (83 do HP pack,) 150, 115 (origem), 115 (destino); mochila↔bancada só os 115 | `bag_move` |
 | 5006 num pacote (SonType 298) | 115 (posição vazia), 150, (109), 115 com os itens novos, 111/83 "Received: …", 3. Troca o pacote pelo `GradeDrop` `DropId=Property1` numa transação; moedas negativas: -100 ouro, -300 Daru (`strategy`), -400 Balens (`point`), -500 Bound Balens (`gift_token`). Recusa se faltar nível (`NeedGrades`), espaço (42) ou se o drop tiver algo desconhecido | `use_item` |
 | 5035 `{state:4}` | 4382 com a EXP da última batalha | `client_state` |
 | 5015 / 20008 / 5167 | 109 / 4234 / 64 | `handlers/player.py` |

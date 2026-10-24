@@ -20,7 +20,7 @@ from ...domain.models import CashLedger, Item, MysteryShop, PlayerSnapshot, Purc
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import Row
-from .. import bag, rules
+from .. import bag, rules, titles
 from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
@@ -596,12 +596,13 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
 
 @router.on(8597)
 async def appell_exchange(s: GameSession, msg: pb.AppellExchangeMsg) -> None:
-    """``look``: lista de títulos (4484). Trocar o título exige tê-lo ganho, e quem dá títulos são as
-    conquistas (``AppellInfos.CondtionType``), que não existem aqui: a lista vai vazia e a troca é recusada."""
+    """``look``: lista de títulos (4484, a mesma do login: ``titles.appells_msg``). Trocar o título exige tê-lo
+    ganho; TODO(inventado): nenhuma condição de ``AppellInfos.CondtionType`` marca ``isGet`` ainda (o inglês não
+    mostrou nenhum título ganho), então a troca é recusada."""
     snap = s.snapshot
     assert snap is not None
     if msg.look:
-        send(s, S_APPELLS, pb.AppellsMsg())
+        send(s, S_APPELLS, titles.appells_msg(snap.character, s.ctx.templates))
         return
     if msg.appellId == 0 and snap.character.appell_id:
         snap.character.appell_id = 0

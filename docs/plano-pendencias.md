@@ -27,7 +27,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] Tesouro tipo 22 (battleType 3, guardas 6014)
 - [ ] Minas no mapa global (nomes "Autaric Plains(x,y)")
 - [ ] Alvo aleatório na batalha (oráculo KNOWN_EXTRA)
-- [ ] Títulos 4484 / 8597 (conquistas)
+- [x] Títulos 4484 / 8597 (lista; conquistas ganhas: TODO(inventado))
 
 ## 4. Itens e loja
 - [ ] Refino da forja: peso por nível
@@ -41,7 +41,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] Quiz 9501, estrada dourada 9520-9522, pesca/caça/minério 9507/9502/9645
 - [ ] Loteria, caça-níquel, cadeiras, caixa de ano novo, história, sorteio de grupo
 - [ ] Recuperar EXP 9503 (participação do dia por sistema)
-- [ ] Troca da sorte 9610; labirinto de gemas: nível, ajuda de amigo, ranking semanal
+- [ ] Troca da sorte 9610; labirinto de gemas: ajuda de amigo
 - [ ] 8518 contadores do painel; quadro 8291/8298/8729; SumActive tipos em status 3
 - [ ] Devoção: 13, 22, 23, 27, 28
 

@@ -162,6 +162,10 @@ class GameSession:
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
         self.serven_sent: bytes | None = None  # último 4638 mandado (handlers.events.refresh_serven)
+        # item -> de onde o herói o mandou para a bancada (5005): tirar da bancada devolve lá
+        # shortcut: só na memória da sessão (relogar ou reiniciar manda para a mochila); gravar se o oficial lembrar
+        self.bench_from: dict[int, tuple[int, int, int]] = {}
+        self.gem_order = 0  # scoreOrder do labirinto de gemas, calculado no login e ao abrir (handlers.gemmaze)
         self.signin_sent: bytes | None = None  # último 513 mandado (handlers.minigames.refresh_signin)
         self.packet = Packet(0)  # o pedido em curso: o 9645 serve o minério e a super assinatura (extend1 35 / 38)
         self.gone = asyncio.Event()  # on_disconnect terminou: a sessão não grava mais nada

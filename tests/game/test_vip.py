@@ -81,6 +81,7 @@ async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
         assert [p.code for p in got if p.code not in (3, 109)] == [
             115,
             4476,
+            *[4484] * 9,
             111,
             4410,
             4539,

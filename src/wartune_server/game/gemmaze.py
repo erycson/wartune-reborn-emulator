@@ -26,6 +26,8 @@ COLORS = 5  # cores 1..5; 0 = casa vazia
 TIMES_START = 20  # (visto) movimentos do personagem novo
 HELP_START = 5  # (visto) ajudas de amigos do personagem novo
 MAX_EXP_START = 30  # (visto) EXP para o próximo nível no nível 0
+MAX_EXP_STEP = 24  # TODO(inventado): reta entre os dois pontos vistos (nível 0: 30, nível 5: 150, av_askeri #1)
+MAX_LEVEL = 40  # (cliente) GemMazeFrame: do nível 40 a barra fica cheia e sem brilho
 # (visto) prêmios (item, quantidade) que saíram nos 10 passos da captura: 208014 vem sempre 2 por passo
 # (115 com count 2 e 4, "Soul Crystal x 2"), os outros 1. Nenhum template liga prêmio a cor ou tamanho
 # (a mesma cor 4 deu 208027 e 2060008), então o sorteio entre os três é dedução.
@@ -33,6 +35,23 @@ REWARDS = ((2060008, 1), (208027, 1), (208014, 2))
 # (cliente) GemMazeBoxView.SORT_INDEX_ARRAY do CDN res134 (era 500/1000/2000/3500/6000): pontos de cada caixa
 BOX_SCORES = (300, 700, 1600, 3500, 7000)
 BOX_BITS = (1, 2, 4, 8, 16)  # (cliente) GemMazeBoxView.BOX_INDEX_ARR: o boxId do 9513 e o bit do boxMark
+
+
+def max_exp(level: int) -> int:
+    return MAX_EXP_START + MAX_EXP_STEP * level
+
+
+def gain_exp(game: Game, exp: int) -> None:
+    """Soma EXP e sobe de nível enquanto passar do ``maxExp`` (a sobra fica); no 40 a EXP para no teto."""
+    game.exp += exp
+    while game.level < MAX_LEVEL and game.exp >= game.max_exp:
+        game.exp -= game.max_exp
+        game.level += 1
+        game.max_exp = max_exp(game.level)
+    if game.level >= MAX_LEVEL:
+        game.exp = min(game.exp, game.max_exp)
+
+
 LINES = [[r * SIZE + c for c in range(SIZE)] for r in range(SIZE)] + [
     [r * SIZE + c for r in range(SIZE)] for c in range(SIZE)
 ]  # linhas e colunas, na ordem em que a combinação é lida

@@ -1,7 +1,8 @@
 """Arquivos de ranking que o cliente baixa do site do jogo (``TEMPLATE_PATH``, o espelho do s134 no Apache).
 
 O ``challengeorder.xml`` do "Hero Rankings" do coliseu (``HeroRankFrame``) e o ``fight.xml`` do ranking de poder
-(``SortController``: aba 2 do ranking e os títulos do ``ColosseumSelfView``), os dois no loader tipo 5 (zlib). Sem
+(``SortController``: aba 2 do ranking e os títulos do ``ColosseumSelfView``) e o ``gemmaze.xml`` do ranking semanal do
+labirinto de gemas (``GemMazeControler.loadGemMazeOrderData``), todos no loader tipo 5 (zlib). Sem
 ``ranking_xml_dir`` o servidor não grava nada e o site fica com o que tiver (o espelho oficial não tem ``fight.xml``).
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import zlib
 from collections.abc import Callable, Mapping
+from datetime import datetime
 from pathlib import Path
 from xml.sax.saxutils import quoteattr
 
@@ -20,6 +22,7 @@ from ..domain.repositories import UnitOfWork
 from ..services.characters import CharacterService
 from ..services.clock import Clock
 from . import events as ev
+from . import gemmaze as gm
 from .guild import Guilds
 
 log = structlog.get_logger(__name__)
@@ -27,6 +30,9 @@ log = structlog.get_logger(__name__)
 HERO_TOP = 20  # o challengeorder.xml do espelho oficial tem 20 linhas
 FIGHT_TOP = 100  # ponytail: tamanho do fight.xml sem arquivo oficial para conferir; o SortModel pagina o que vier
 VIP_KEY, VIP_TYPE_KEY = "vip", "vip:type"  # event_states do VIP (handlers/vip.py)
+GEM_KEY = "gemmaze"  # event_state do tabuleiro (handlers/gemmaze.py)
+# shortcut: tamanho do gemmaze.xml sem arquivo oficial com linhas (o do espelho vem vazio); subir se o oficial mostrar
+GEM_TOP = 100
 
 
 async def challenge_order(characters: CharacterService, guilds: Guilds, server_id: int, clock: Clock) -> bytes:
@@ -102,6 +108,64 @@ async def fight_order(characters: CharacterService, guilds: Guilds, server_id: i
     return _xml("".join(rows))
 
 
+def gem_weeks(states: list[EventState], now: datetime) -> list[tuple[int, gm.Game]]:
+    """Os tabuleiros por pontos da semana, do maior ao menor (renovados para agora: semana nova zera)."""
+    out = []
+    for e in states:
+        if e.key == GEM_KEY and e.text:
+            game = gm.Game.load(e.text)
+            gm.refresh(game, now)
+            out.append((e.character_id, game))
+    out.sort(key=lambda x: (-x[1].week, x[0]))
+    return out
+
+
+def gem_position(states: list[EventState], character_id: int, now: datetime) -> int:
+    """``scoreOrder``: 1 + quantos têm mais pontos na semana (dedução: o personagem novo inglês, com 0, saiu 133 no
+    oficial_encantar; o turco ficou em 1771 a sessão toda, então a posição não muda a cada troca)."""
+    games = gem_weeks(states, now)
+    mine = next((g.week for c, g in games if c == character_id), 0)
+    return 1 + sum(g.week > mine for _, g in games)
+
+
+async def gem_order(characters: CharacterService, guilds: Guilds, server_id: int, clock: Clock) -> bytes:
+    """``<GemMazeScores><GemMazeScore UserId Job NickName Score ConsortiaName Grades GemMazeGrades Order Index
+    FightingCapacity IsVip VipType/></GemMazeScores>`` (raiz do espelho; os atributos são os que
+    ``GemMazeControler`` lê). ``Score`` são os pontos da semana (o ``GemMazeSortFrame`` mostra o ``weekScore`` do
+    jogador ao lado); só entra quem pontuou. ``Index`` vai igual a ``Order`` (dedução: o cliente não lê)."""
+
+    async def query(uow: UnitOfWork) -> tuple[list[tuple[int, gm.Game]], list[Character], list[EventState]]:
+        states = await uow.events.by_prefix(server_id, GEM_KEY)
+        games = [x for x in gem_weeks(states, clock.now()) if x[1].week > 0][:GEM_TOP]
+        chars = await uow.characters.by_ids([c for c, _ in games])
+        return games, chars, await uow.events.by_prefix(server_id, VIP_KEY)
+
+    games, chars, vips = await characters.read(query)
+    by_id = {c.id: c for c in chars}
+    vip_of = vips_of(vips, clock)
+    rows = []
+    for pos, (cid, game) in enumerate(games, 1):
+        if (c := by_id.get(cid)) is None:
+            continue
+        vip, kind = vip_of(cid)
+        attrs = {
+            "UserId": cid,
+            "Job": c.job,
+            "NickName": c.nickname or "",
+            "Score": game.week,
+            "ConsortiaName": _guild_name(guilds, cid),
+            "Grades": c.grades,
+            "GemMazeGrades": game.level,
+            "Order": pos,
+            "Index": pos,
+            "FightingCapacity": c.fighting_capacity,
+            "IsVip": str(vip).lower(),
+            "VipType": kind,
+        }
+        rows.append(_row("GemMazeScore", attrs))
+    return _xml("".join(rows), "GemMazeScores")
+
+
 def vips_of(vips: list[EventState], clock: Clock) -> Callable[[int], tuple[bool, int]]:
     """``(IsVip, VipType)`` por personagem: VIP vencido vai ``false`` e tipo 0."""
     now = clock.now()
@@ -125,8 +189,8 @@ def _row(tag: str, attrs: Mapping[str, object]) -> str:
     return f"  <{tag} " + " ".join(f"{k}={quoteattr(str(v))}" for k, v in attrs.items()) + "/>\n"
 
 
-def _xml(rows: str) -> bytes:
-    text = '<?xml version="1.0" encoding="UTF-8"?>\n\n<list>\n' + rows + "</list>\n"
+def _xml(rows: str, root: str = "list") -> bytes:
+    text = f'<?xml version="1.0" encoding="UTF-8"?>\n\n<{root}>\n' + rows + f"</{root}>\n"
     return zlib.compress(text.encode("utf-8"))
 
 
@@ -142,7 +206,7 @@ async def run(
 ) -> None:
     """Loop dos rankings (``app.py`` cancela ao desligar). A primeira rodada sai já; um arquivo que falha é
     registrado sem impedir o outro, e a próxima rodada tenta de novo."""
-    files = (("challengeorder.xml", challenge_order), ("fight.xml", fight_order))
+    files = (("challengeorder.xml", challenge_order), ("fight.xml", fight_order), ("gemmaze.xml", gem_order))
     while True:
         for name, build in files:
             try:

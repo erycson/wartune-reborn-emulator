@@ -88,7 +88,7 @@ async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
 
         g.client.send(5152, pb.StoreReqMsg(holePos=1, operate=False))  # tirar custa 200 (Property3)
         got = await g.until(83)
-        assert codes(got) == [109, 115, 115, 111, 83] and wand.join_1 == 0 and c.gold == 800
+        assert codes(got) == [109, 115, 115, 4476] + [4484] * 9 + [111, 83] and wand.join_1 == 0 and c.gold == 800
         assert (
             pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg
             == "Unsocketing successful! Received: Lvl. 1 Physical Attack Gem x1!"
@@ -110,15 +110,15 @@ async def test_compose_and_transform(tmp_path: Path) -> None:
 
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))
         got = await g.until(83)
-        assert codes(got) == [115, 109, 115, 4476, 111, 89, 83] and c.gold == 40000
-        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: Gartan Sword x1"
+        assert codes(got) == [115, 109, 115, 4476] + [4484] * 9 + [111, 89, 83] and c.gold == 40000
+        assert pb.ChatChannelMsg.FromString(got[13].body).encodeMsg == "Received: Gartan Sword x1"
         assert {(i.template_id, i.count) for i in me(g).items if i.bag_type == 1} >= {(2129001, 1), (1991011, 1)}
         g.client.send(5153, pb.StoreReqMsg(composeId=1, composeNum=1))  # falta material
         assert await g.idle() == []
 
         g.client.send(8538, pb.StoreReqMsg(srcItemid=ATTACK_1, desItemid=MAGIC_1, count=2))
         got = await g.until(83)
-        assert codes(got) == [115, 109, 115, 4476, 111, 83] and c.gold == 20000
+        assert codes(got) == [115, 109, 115, 4476] + [4484] * 9 + [111, 83] and c.gold == 20000
         assert {(i.template_id, i.count) for i in me(g).items} >= {(ATTACK_1, 1), (MAGIC_1, 2)}
         g.client.send(8538, pb.StoreReqMsg(srcItemid=ATTACK_1, desItemid=ATTACK_2, count=1))  # nível diferente
         assert await g.idle() == []

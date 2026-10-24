@@ -149,7 +149,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         assert codes.index(4238) < codes.index(4434)
         assert [c for c in codes if c not in (4247, 4238)] == [
             112, 4542, 4184, 4512, 4515, 4516, 4501, 4662, 4686,
-            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4461, 4612, 4497, 295, 363, 364, 190, 4590, 514, 414, 4598, 150, 6,
+            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4484, 4461, 4612, 4497, 295, 363, 364, 190, 4590, 514, 414, 4598, 150, 6,
         ]  # fmt: skip
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
         assert [p.code for p in await client.until(4151)] == [4151]  # tutorial_en #94: libera o mapa de campanhas

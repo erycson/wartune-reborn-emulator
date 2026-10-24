@@ -44,13 +44,13 @@ async def test_buy_with_gift_token_writes_the_ledger(tmp_path: Path) -> None:
 
         g.client.send(5154, buy(HORN, 2))
         got = await g.until(90)
-        assert codes(got) == [3, 115, 4476, 111, 83, 90]
+        assert codes(got) == [3, 115, 4476, *[4484] * 9, 111, 83, 90]
         assert codes(await g.until(83)) == [4152, 83]  # leed 15 (gasto de vinculado), depois da resposta
         assert pb.ShopMsg.FromString(got[-1].body).buyInfo.result == 1
         item = pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item
         assert (item.templateId, item.count) == (208002, 2)
         assert not item.HasField("attack")  # 115 sem complete(): o oficial omite os atributos do item
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg.endswith(" x2.")
+        assert pb.ChatChannelMsg.FromString(got[12].body).encodeMsg.endswith(" x2.")
         assert ledger(tmp_path) == [(0, -2 * unit, 0, 50, "shop", f"good:{HORN} x2")]
 
         g.client.send(5154, buy(HORN, 2))  # só sobram 50: falta dinheiro, nada muda

@@ -192,4 +192,4 @@ Horários da captura no relógio da máquina (UTC-3); o oficial segue o Pacífic
 | 4512 veículos | `matchState` true às 14:00:25 e false às 14:25:28 (10:00-10:25 no Pacífico) | já igual: `MatchOfVehicleTime` 10:00,10:25 no fuso do jogo (`WARTUNE_GAME_TIMEZONE`) |
 | 4501 tecnologia de tanque | `param1` 218 às 14:30:29, 5 min depois da janela, sem o jogador ter jogado | não se sabe de onde vem o 218; o servidor manda 0 |
 | 11 lista de espera do PvE | 124 empurrões (65 entradas, 58 saídas, `playerState` 7) de outros jogadores, o dia todo. O cliente põe em `PlayerManager.watingList`, lido pela lista de jogadores do `PVERoomListFrame` | a captura não mostra o critério de quem entra na lista (o cliente não manda nada ao abrir a tela) |
-| 5019 baú de tempo online | além de 115, 111, 4250, 4, 83 ×2, também 4476 (SumActive) e nove 4484 (títulos) | os dois são efeitos colaterais do item ganho; o servidor manda só os do baú |
+| 5019 baú de tempo online | além de 115, 111, 4250, 4, 83 ×2, também 4476 (SumActive) e nove 4484 (títulos) | feito: os dois saem de `events.items_gained` |

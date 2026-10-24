@@ -195,7 +195,8 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     castle_yield(s)
     send(s, S_ITEMS, bag.moved([*changed, *back], s.player_id, empty=gone))
     send(s, S_ITEMS, bag.moved([item], s.player_id))
-    # texto deduzido (sem fonte no cliente/captura); termo Socketing do language.txt
+    # texto deduzido (o turco "Başarıyla mozaik yapıldı!"; termo Socketing do language.txt); (só turco:
+    # atolye_item_basma_ve_mozaik #43-#47) 109, 115 da pedra, 115 do item, o 111 e o 83 com o mesmo texto (``alert``)
     alert(s, "Socketing successful!")
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
@@ -245,6 +246,7 @@ async def inlay_join(s: GameSession, msg: pb.StoreReqMsg) -> None:
     castle_yield(s)
     send(s, S_ITEMS, bag.moved([item], s.player_id))
     send(s, S_ITEMS, bag.moved(back, s.player_id))
+    _gained(s)  # (só turco: atolye_item_basma_ve_mozaik #25-#42) 109, 115, 115, 4476, 4484, 111, 83
     # texto deduzido (sem fonte no cliente/captura); termo Unsocketing do language.txt
     send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Unsocketing successful!"))
     text = f"Unsocketing successful! Received: {bag.name(templates, hole)} x1!"

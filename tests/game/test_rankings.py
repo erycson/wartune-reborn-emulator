@@ -1,3 +1,4 @@
+import random
 import xml.etree.ElementTree as ET
 import zlib
 from datetime import timedelta
@@ -6,6 +7,7 @@ from pathlib import Path
 from tests.game.harness import logged_in
 from wartune_server.domain.repositories import UnitOfWork
 from wartune_server.game import events as ev
+from wartune_server.game import gemmaze as gm
 from wartune_server.game import rankings
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
@@ -66,3 +68,34 @@ async def test_fight_xml_is_the_power_ranking_the_sort_controller_reads(tmp_path
         ]
         assert got == [(str(b.user_id), "1", "900", "2"), (str(a.user_id), "2", "500", "1")]
         assert root.find("PlayerFight").get("job") == str(sb.snapshot.character.job)  # type: ignore[union-attr]
+
+
+async def test_gemmaze_xml_ranks_the_week_score_and_the_board_shows_the_position(tmp_path: Path) -> None:
+    """``GemMazeControler``: ``..GemMazeScore`` com ``Score`` (semana), ``GemMazeGrades`` e ``Order``; quem não
+    pontuou fica fora do arquivo e o ``scoreOrder`` dele é 1 + os que têm mais pontos."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("outro")
+        services = a.server.services
+        now = services.clock.now()
+        for g, week, level in ((a, 20, 1), (b, 50, 3)):
+            sess = a.server.online.get(g.user_id)
+            assert sess is not None and sess.snapshot is not None
+            game = gm.new_game(random.Random(1))
+            gm.refresh(game, now)
+            game.week, game.level = week, level
+            st = ev.state(sess.snapshot, rankings.GEM_KEY, now)
+            st.text = game.dump()
+            await services.characters.save(st)
+        root = ET.fromstring(
+            zlib.decompress(await rankings.gem_order(services.characters, services.guilds, 1, services.clock))
+        )
+        assert root.tag == "GemMazeScores"
+        got = [
+            (r.get("UserId"), r.get("Score"), r.get("GemMazeGrades"), r.get("Order")) for r in root.iter("GemMazeScore")
+        ]
+        assert got == [(str(b.user_id), "50", "3", "1"), (str(a.user_id), "20", "1", "2")]
+
+        c = await a.join("novo")
+        c.client.send(9508)
+        info = pb.GemMazeInfoMsg.FromString((await c.until(4922))[-1].body)
+        assert info.scoreOrder == 3

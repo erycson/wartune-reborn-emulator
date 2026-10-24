@@ -35,21 +35,29 @@ async def test_maze_shop_sells_for_maze_coin_like_the_capture(tmp_path: Path, mo
 
         g.client.send(5154, buy(GOLD_BOX_GOOD, 1, pay_type=1))  # o pedido da captura vem com payType 1
         got = await g.until(90)
-        assert codes(got) == [115, 115, 4476, 111, 83, 90]  # a moeda, o item, o aviso e o chat, como o oficial
+        assert codes(got) == [
+            115,
+            115,
+            4476,
+            *[4484] * 9,
+            111,
+            83,
+            90,
+        ]  # a moeda, o item, o aviso e o chat, como o oficial
         assert (result(got), coins.count) == (1, 117)
         box = pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item
         assert (box.templateId, box.count) == (2030101, 1)
         box_name = template_name(g, 2030101)
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == f"Successfully purchased {box_name} x1."
+        assert pb.ChatChannelMsg.FromString(got[12].body).encodeMsg == f"Successfully purchased {box_name} x1."
 
         g.client.send(5154, buy(RING_GOOD, 1, pay_type=1))
         got = await g.until(90)
-        assert codes(got) == [115, 115, 4476, 111, 83, 90]
+        assert codes(got) == [115, 115, 4476, *[4484] * 9, 111, 83, 90]
         assert (result(got), coins.count) == (1, 92)
         ring = pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item
         assert (ring.templateId, ring.count) == (1991017, 1)
         ring_name = template_name(g, 1991017)
-        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == f"Successfully purchased {ring_name} x1."
+        assert pb.ChatChannelMsg.FromString(got[12].body).encodeMsg == f"Successfully purchased {ring_name} x1."
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert [(i.template_id, i.count) for i in saved.items if i.template_id == MAZE_COIN] == [(MAZE_COIN, 92)]

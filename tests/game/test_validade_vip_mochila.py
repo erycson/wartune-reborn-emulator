@@ -46,7 +46,7 @@ async def test_medalha_da_loja_de_honra_vence_e_some(tmp_path: Path) -> None:
 
         g.client.send(5154, buy(MEDAL_GOOD, 1))
         got = await g.until(90)
-        assert codes(got) == [115, 115, 4476, 111, 83, 90]
+        assert codes(got) == [115, 115, 4476, *[4484] * 9, 111, 83, 90]
         info = pb.ItemMovedListMsg.FromString(got[1].body).moved[0].item
         # (cliente) validDate em minutos e beginDate no formato do sysCurtime
         assert (info.templateId, info.validDate, info.beginDate) == (MEDAL, 43200, "2026-05-21 12:00:00")

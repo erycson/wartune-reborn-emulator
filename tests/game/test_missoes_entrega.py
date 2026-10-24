@@ -155,7 +155,7 @@ async def test_entrega_cabe_quando_a_pilha_libera_espaco(tmp_path: Path) -> None
         assert _quest(got, 9).isComplete
         # captura EN #489-#505 (45): o 115 dos itens ganhos depois do 3, o 4476, o 111 e o 52; depois os 83 (#506-#507).
         # Vários itens num texto só: oficial_20261023-171155-1 #4994 (missão 221)
-        assert _codes(got)[-5:] == [115, 4476, 111, 4152, 52]  # a 9 é diária: o 4152 antes do 52
+        assert _codes(got)[-14:] == [115, 4476, *[4484] * 9, 111, 4152, 52]  # a 9 é diária: o 4152 antes do 52
         names = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
         templates = g.server.services.templates
         assert names == [f"Received: {bag.name(templates, 2060013)} x1, {bag.name(templates, 208005)} x2"]

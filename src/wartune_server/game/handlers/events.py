@@ -12,17 +12,17 @@ from ...domain import gameday
 from ...domain.models import BagType, EventState, PlayerSnapshot, Quest, StarBag
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import Row
-from .. import bag, castle, guild, rewards, rules
+from .. import bag, castle, guild, rewards, rules, titles
 from .. import events as ev
 from ..builders import login as b
 from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
-from . import campaign, hero, minigames, offer, shop, stars, systems, tower, vip
+from . import campaign, gemmaze, hero, minigames, offer, shop, stars, systems, tower, vip
 from .login import army
 from .player import _player, alert, granted
 
-S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN = 4475, 4476, 4177, 4638
+S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN, S_TITLES = 4475, 4476, 4177, 4638, 4484
 S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE, S_ITEMS = 83, 4152, 4150, 4412, 4247, 115
 SERVEN_QUEST = 130  # a conclusão dela abre o guia de 7 dias (4638)
 # (visto) tutorial_en #60-#67: 4475 de 11961/11616/11762/3821 bytes; a página fecha antes de passar disso
@@ -96,7 +96,9 @@ async def login_push(s: GameSession) -> None:
     await dungeon.login_push(s)
     _send_leeds(s)
     _send_actives(s)
+    send_titles(s)  # (visto) tutorial_en #68-#71, 153200 #64-#66: 4476, 4484, 4497
     send_serven(s)
+    await gemmaze.load_order(s)
     minigames.login_push(s)  # o 4640 vem logo depois do 4638, como no login do oficial (só turco: login.json #93-94)
 
 
@@ -186,8 +188,16 @@ def _sum_data(s: GameSession, actives: list[ev.Active]) -> None:
 
 def items_gained(s: GameSession) -> None:
     """4476 de todas logo depois do 115 que dá item (tutorial_en: 26 dos 61 115, todos de ganho: missão #490, carta
-    #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam."""
+    #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam. Depois, os 4484 de
+    ``titles.item_checks`` (tutorial_en #2760-#2769: 4476 e 9 4484; o 4476 do 8586 e o "só desta" vão sem)."""
     _sum_data(s, s.ctx.events.listed(s.ctx.clock.now()))
+    for _ in range(titles.item_checks(s.ctx.templates)):
+        send_titles(s)
+
+
+def send_titles(s: GameSession) -> None:
+    assert s.snapshot is not None
+    s.send(S_TITLES, titles.appells_msg(s.snapshot.character, s.ctx.templates))
 
 
 def _online_seconds(s: GameSession, a: ev.Active, now: datetime) -> int:
@@ -460,7 +470,7 @@ async def relogin_reward(s: GameSession, msg: pb.TakeLoginReward) -> None:
     new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     # (visto) oficial_20261023-153200-1 #1701-#1747, dias 1 a 3: 3 (se mudou moeda do jogador, o Daru), 109, 115,
-    # 4476, (os 4484 de títulos, que não temos), 3 e o 83 sem o 111. Texto: ``Name xN`` também para moedas, na
+    # 4476, os 4484 de títulos, 3 e o 83 sem o 111. Texto: ``Name xN`` também para moedas, na
     # ordem do oficial = linhas do ReloginDrops invertidas de 3 em 3 (*dedução* que bate com os três dias: Worn
     # Armor, Daru, Gold, 1-Day VIP Card, The Empire Crusade, Bounty Scroll)
     shown = [d for i in range(0, len(drops), 3) for d in reversed(drops[i : i + 3])]

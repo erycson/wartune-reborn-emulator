@@ -47,7 +47,7 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         pkg = "B0000013-0000-0000-0000-000000000001"
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId=LOGIN, packageId=pkg, count=1))
         got = await g.idle()
-        assert [p.code for p in got] == [3, 109, 115, 4476, 111, 4476, 83]  # tutorial_en #2753-#2772
+        assert [p.code for p in got] == [3, 109, 115, 4476, *[4484] * 9, 111, 4476, 83]  # tutorial_en #2753-#2772
         assert _alerts(got) == ["Gift pack retrieval successful."]  # tutorial_en #2770
         assert _packs(got, LOGIN)[0] == (2, 0)
         assert s.snapshot.character.gold == gold + 10000  # type: ignore[union-attr]
@@ -85,10 +85,10 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         g.client.send(8496, pb.TakeLoginReward(index=1))
         got = await g.until(83)
         # (visto) oficial_20261023-153200-1 #1702-#1716: 109, 115, 4476, 3 e o 83 (sem 111), texto ``Name xN``
-        assert [p.code for p in got] == [109, 115, 4476, 3, 83]
-        player = pb.PlayerMsg.FromString(got[3].body)
+        assert [p.code for p in got] == [109, 115, 4476, *[4484] * 9, 3, 83]
+        player = pb.PlayerMsg.FromString(got[12].body)
         assert (player.reloginProcess, player.giftToken, player.reloginCount) == (1, 0, 1)
-        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: Worn Weapon x1, Gold x10000"
+        assert pb.ChatChannelMsg.FromString(got[13].body).encodeMsg == "Received: Worn Weapon x1, Gold x10000"
         g.client.send(8496, pb.TakeLoginReward(index=1))
         assert await g.idle() == []  # já resgatado: nada
 

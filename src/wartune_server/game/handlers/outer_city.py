@@ -894,7 +894,7 @@ async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) ->
     4103 (battleScene 0), 83 do HP, 150, 100, 140 ×2 do exército, 140 do baú (state 0 aberto; 1 perdendo), 83
     "Received: ... x1", 169 e o 4382 logo em seguida (no mapa do mundo ele não espera o 8747: #670, #1812, #3082).
     O primeiro a vencer leva (``treasure_cache_opens``); a vida que acabou no meio da luta não dá nada. Mochila
-    cheia: o baú se abre sem item (log). Desvio: os 4484 de título (×9 no oficial) não existem aqui."""
+    cheia: o baú se abre sem item (log)."""
     snap = s.snapshot
     assert snap is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()

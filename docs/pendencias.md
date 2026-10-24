@@ -48,7 +48,7 @@ Itens fora da loja:
 | ~~Garrafa~~ Árvore dourada | 8604 | **real** (0038, #72). **dedução**: início da edição, pesos (uniforme), dono do andar = quem bateu, raro = `isNewItems`, ordem das respostas, "once per day" do help não aplicado. **precisa de captura**: 8604 de cada op e 4825 ([eventos.md](eventos.md)) |
 | ~~Fundo normal~~ | 8703 | **real** (0038, #86). **dedução**: `activeType` 2/0 fora da compra, compra recusada fora da janela. **precisa de captura**: compra e resgate |
 | Quiz | 9501 | `HeartTempInfos` não tem resposta certa (são perguntas de personalidade); agenda do help (seg/qua/sex 19:30) diferente do template (1,3,5,6 às 14:35). **precisa de captura** de uma rodada |
-| Labirinto de gemas | 9508–9517 | **real** ([eventos.md](eventos.md)). **precisa de captura**: subida de nível (tabela de `maxExp`), pesos dos prêmios, o que o oficial faz com troca sem combinação, bolsa do prêmio das caixas (9513), período da renovação diária (dedução), ajuda de amigo (9510/9515/4925), ranking semanal, preço e teto da compra (dedução) |
+| Labirinto de gemas | 9508–9517 | **real** ([eventos.md](eventos.md)). nível e ranking semanal feitos; **precisa de captura**: tabela de `maxExp` (TODO(inventado): reta), pesos dos prêmios, o que o oficial faz com troca sem combinação, bolsa do prêmio das caixas (9513), período da renovação diária (dedução), ajuda de amigo (9510/9515/4925), preço e teto da compra (dedução) |
 | Estrada dourada | 9520–9522 | casas (4933 `cellInfo`) e custo dos dados: **precisa de captura** (abrir e jogar nos 3 modos) |
 | Pesca, caça ao tesouro, minério | 9507, 9502, 9645 | regras de aparecimento, nós e prêmios (**precisa de captura**: abrir e jogar uma vez cada); o 9645 separa minério (`extend1` 35) de super assinatura (38) pelo cabeçalho (`GameSession.packet`) |
 | Loteria, caça-níquel, cadeiras, caixa de ano novo, história, sorteio de grupo | 8748/8750, 9500, 9638, 8994, 8629/8630, 9523 | template e tabela de prêmios: a captura EN só os tem fechados. **precisa de captura** num dia em que o oficial abre |
@@ -96,7 +96,7 @@ Outros eventos:
 - Orc Plains 1005 e Tribal Plateau 1006 (migração 0075): feitas da captura `oficial_20261023-231733-1`, as duas
 - Reforços (72, migrações 0075 e 0077, `battle.Battle._reinforce`): *(visto)* quando o lado inimigo cai e a luta tem outra onda, sai o 72 com os soldados novos e a luta segue; as ondas vêm dos 72 das capturas (`tools/extract_dungeon.py`). *(dedução)* a ordem das ondas é fixa (a `oficial_encantar` teve a do 114203 invertida).
 - Login completo (migração 0078, `login.switches_msg`): *(visto)* tutorial_en e oficial_20261023-215937-1: 4438 (prosperidade 0), 4912/4373/4428 vazios, 4251 (os 9 avisos de atividade, `active_notices`), 4393 vazio, 4422 (as 67 chaves, `switches`; mina 3006 e estrada dourada 3031 fechadas por `closed_switches`), 4392, 4471 (honra do dia 0 / `honor_day_max` 6000: o geste não sobe aqui), 4900, 4725 (moedas zeradas) e, depois do 4182, 4451, 4637, 462, 4741, 4683 e 4685.
-- **Falta**: títulos (4484, `AppellInfos`, 33 tipos de condição): o oficial manda os 221 no login e de novo a cada progresso (ex.: título 30 com value 240 na 215937 #62); aqui a lista vai vazia (`shop.appell_exchange`).
+- Títulos (4484, `game/titles.py`): feitos byte a byte com o inglês no login, no 8597 e os 9 depois de item ganho; o `value` conta Honor (geste) e a contribuição da guilda. **TODO(inventado)**: as outras 31 condições vão 0 e nenhum título é ganho (`isGet`).
 - Presença online (11 `RoomPlayerListMsg`, `room.waiting_login`/`waiting_broadcast`): *(visto)* oficial_20261023-231733-1 #105 a lista no login e um 11 por entrada (state 1) ou saída (state 0) de outro. *(dedução)* a lista é a dos online do servidor inteiro.
 - 4476 + 4426: *(visto)* oficial_20261023-231733-1, com montaria todo 4476 traz o 4426 (`events._sum_data`); o 4476 agora sai também na loja (171155 #229-#230, texto "Successfully purchased {nome} x{n}."), na loja da guilda, na forja e na varredura (só turco). A varredura conta cada rodada como campanha (leed 4) e avisa "Received items: ..." (só turco: savasa_baskin #10-#31; o "Kazanılan Eşyalar" traduzido por dedução).
   etapas de cada. **TODO(inventado)**: a luta do "[Elite] Bloodthirsty Tauren" 115116 (o herói 1062 sozinho, como o
@@ -135,8 +135,7 @@ Outros eventos:
   elite e chefe é **dedução** sobre a wiki e relatos (nenhum morto na captura). Luta em equipe/entrar na luta
   não existe (**precisa de captura** do fluxo de grupo: o 11 antes do ataque ao chefe, #7417).
 - Treasure Cache (type 22): **feito** ([cidade-externa.md](cidade-externa.md#treasure-cache-4129-type-22-gamecachespy)).
-  **TODO(inventado)**: vagas por mapa e o prêmio (pedra do nível ou equipamento da classe). Falta: os 4484 de título
-  depois do item.
+  **TODO(inventado)**: vagas por mapa e o prêmio (pedra do nível ou equipamento da classe). Os 4484 de título saem com o item.
 - Subida de nível: o exército completa com as tropas do castelo até a nova liderança e vai 139 (castelo
   vazio), 100, 150 e 4640 (fundo de novato) como no replay #625-#628 e tutorial_en. **dedução**: o mesmo nas
   subidas por batalha, coliseu, fazenda, livro de EXP e prêmio 8287 (as capturas só têm a da missão).
@@ -297,8 +296,6 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/forge.py:266](../src/wartune_server/game/handlers/forge.py#L266) | o espaço é conferido antes de consumir (pode recusar quando os materiais liberariam lugar) |
 | [game/handlers/forge.py:571](../src/wartune_server/game/handlers/forge.py#L571) | a bênção zera no sucesso (o cliente não diz; a barra recomeça do 0 no próximo nível). |
 | [game/handlers/gemmaze.py:73](../src/wartune_server/game/handlers/gemmaze.py#L73) | o oficial manda 0 para personagem novo; o contador não foi capturado |
-| [game/handlers/gemmaze.py:79](../src/wartune_server/game/handlers/gemmaze.py#L79) | ranking semanal não existe aqui (o oficial manda 1771 para um jogador de topo) |
-| [game/handlers/gemmaze.py:137](../src/wartune_server/game/handlers/gemmaze.py#L137) | sem subida de nível (a tabela de EXP por nível não foi capturada): curExp passa de maxExp |
 | [game/handlers/gemmaze.py:150](../src/wartune_server/game/handlers/gemmaze.py#L150) | o semanal soma o mesmo que o do dia e zera na semana nova (``gm.refresh``, dedução) |
 | [game/handlers/gemmaze.py:209](../src/wartune_server/game/handlers/gemmaze.py#L209) | a caixa vai para a bolsa do labirinto (o ícone voa para ela, como o das gemas); a bolsa |
 | [game/handlers/gold_tree.py:48](../src/wartune_server/game/handlers/gold_tree.py#L48) | linhas da sorte guardadas em memória (o #71 mostra 3); perdem-se no restart |

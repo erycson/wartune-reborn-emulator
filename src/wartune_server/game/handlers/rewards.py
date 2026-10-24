@@ -84,7 +84,7 @@ async def player_time(s: GameSession, msg: pb.BoxBoxMsg) -> None:
 
     # ordem do oficial (tutorial_en #2097-#2115, #3343-#3361; oficial_encantar #2683-#2699): 109 (ouro) ou 3 (outras
     # moedas), 115, 4476 (atividades, depois de item), 111, 4250, 4, 83 com o texto e 83 de sucesso; o texto lista do
-    # fim para o começo, como o pacote da mochila. Os nove 4484 do oficial (títulos) não vão: não há títulos
+    # fim para o começo, como o pacote da mochila. Os nove 4484 (títulos) saem com o 4476 (``items_gained``)
     if any(f in ("gold", "crystals") for f, _ in currencies):
         cs.castle_yield(s)
     if any(f not in ("gold", "crystals") for f, _ in currencies):

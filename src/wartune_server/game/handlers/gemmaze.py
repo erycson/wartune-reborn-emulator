@@ -21,7 +21,7 @@ from ...domain.models import BagType, EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates
-from .. import bag, rewards
+from .. import bag, rankings, rewards
 from .. import events as ev
 from .. import gemmaze as gm
 from ..builders import login as b
@@ -64,19 +64,26 @@ def _save(snap: PlayerSnapshot, game: gm.Game, now: Any) -> EventState:
     return st
 
 
-def _info_msg(game: gm.Game) -> pb.GemMazeInfoMsg:
+async def load_order(s: GameSession) -> None:
+    """Posição semanal (``s.gem_order``): lida no login e a cada abertura, fixa entre uma e outra como no oficial."""
+    snap = _snap(s)
+    states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, KEY))
+    s.gem_order = rankings.gem_position(states, s.player_id, s.ctx.clock.now())
+
+
+def _info_msg(game: gm.Game, order: int) -> pb.GemMazeInfoMsg:
     return pb.GemMazeInfoMsg(
         allGems=[pb.GemInfoMsg(mark=m, color=c) for m, c in enumerate(game.board)],
         score=game.score,
         weekScore=game.week,
         timesLeft=game.times,
-        buyTimesLeft=0,  # ponytail: o oficial manda 0 para personagem novo; o contador não foi capturado
+        buyTimesLeft=0,  # (visto) 0 nas duas capturas; (cliente) GemMazeModel guarda e nenhuma tela lê
         helpTimesLeft=game.help,
         gemLevel=game.level,
         curExp=game.exp,
         maxExp=game.max_exp,
         boxMark=game.box,
-        scoreOrder=0,  # ponytail: ranking semanal não existe aqui (o oficial manda 1771 para um jogador de topo)
+        scoreOrder=order,
         boxesId=BOX_IDS,
     )
 
@@ -114,7 +121,8 @@ async def open_maze(s: GameSession, _: object) -> None:
     if ev.peek(snap, KEY) is None:
         st = _save(snap, game, now)
         await s.ctx.characters.save(st)
-    _send(s, S_INFO, _info_msg(game))
+    await load_order(s)
+    _send(s, S_INFO, _info_msg(game, s.gem_order))
 
 
 @router.on(9509)
@@ -134,14 +142,13 @@ async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
     out: list[tuple[int, Any]] = []
     changed: list[Item] = []
     for step in result.steps:
-        # ponytail: sem subida de nível (a tabela de EXP por nível não foi capturada): curExp passa de maxExp
-        game.exp += step.exp
+        gm.gain_exp(game, step.exp)
         items = _add_maze(snap, templates, step.reward, step.count)
         changed += [i for i in items if i not in changed]
         out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points {step.points}")))  # (só turco: "Puan")
         out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"EXP {step.exp}")))
         out.append((S_ITEMS, _items_msg(items, s.player_id)))  # montado agora: a pilha muda no passo seguinte
-        out.append((S_UPDATE, _update_msg(step, game)))
+        out.append((S_UPDATE, _update_msg(step, game, s.gem_order)))
         name = (templates.get("ItemTempInfos", step.reward) or {}).get("TemplateName", str(step.reward))
         # formato do oficial inglês (tutorial_en: "Received: Bound Balens x 10,Daru x 10000,...")
         out.append((S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Received: {name} x {step.count}")))
@@ -156,7 +163,7 @@ async def move_gem(s: GameSession, msg: pb.GemMoveMsg) -> None:
     _send(s, S_OP, pb.GemInviteOpMsg(playerId=OP_OK))
 
 
-def _update_msg(step: gm.Step, game: gm.Game) -> pb.GemInfoUpdateMsg:
+def _update_msg(step: gm.Step, game: gm.Game, order: int) -> pb.GemInfoUpdateMsg:
     """4923 de um passo: ``gemDel`` (cor 0), ``gemAdd`` (só as gemas novas: o cliente faz a gravidade)."""
     return pb.GemInfoUpdateMsg(
         gemDel=[pb.GemInfoMsg(mark=m, color=0) for m in step.dels],
@@ -165,7 +172,7 @@ def _update_msg(step: gm.Step, game: gm.Game) -> pb.GemInfoUpdateMsg:
         curExp=game.exp,
         maxExp=game.max_exp,
         gemLevel=game.level,
-        scoreOrder=0,
+        scoreOrder=order,
         rewardInfo=[pb.RewardInfoMsg(rewardId=step.reward)],
     )
 
@@ -273,4 +280,4 @@ def login_push(s: GameSession) -> None:
     (*dedução*). Não grava."""
     snap = _snap(s)
     if ev.peek(snap, KEY) is not None:
-        _send(s, S_INFO, _info_msg(_game(snap, s.ctx.clock.now())))
+        _send(s, S_INFO, _info_msg(_game(snap, s.ctx.clock.now()), s.gem_order))

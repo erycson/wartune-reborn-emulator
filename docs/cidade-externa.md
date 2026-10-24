@@ -410,7 +410,7 @@ Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, j
   `battleType` 3, `mapTempId` = o mapa, 3 guardas nas posições 4, 2 e 8 com a vida de um soldado (`Live` / 100: 840
   no 6011). Guardas vistos: nível 13 → 6011, 14 → 6013, 15 → 6014. *(dedução)* a regra é o 1º `PawnTempInfos` 60xx
   de nível = baú + 2 (bate nos três).
-- **Vitória** *(visto)* #645-#670: 150, 109, 3, 115 do item, 4476, 4484 ×9 (títulos: não existem aqui), 111
+- **Vitória** *(visto)* #645-#670: 150, 109, 3, 115 do item, 4476, 4484 ×9 (títulos, `events.items_gained`), 111
   "Received: Lvl. 3 Luck Stone x1", 4103 (`battleScene` 0, Daru = tropas perdidas), 150, 100, 140 ×2 do exército,
   140 do baú em state 0, 83 com o mesmo texto, 169 e o 4382 logo em seguida. Prêmios vistos: Lvl. 3 Luck Stone x1
   (baú 13, #661) e Elders Robe x1 (baú 13, mago, #1810).

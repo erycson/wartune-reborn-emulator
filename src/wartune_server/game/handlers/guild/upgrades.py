@@ -69,7 +69,7 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     vira contribuição), para a riqueza da guilda e para o jogador. Os Balens vinculados vão primeiro
     (cliente inglês ``useBindPoint``: "Use Bound Balens first"). (visto) oficial_20261023-171155-1 #4951-#4961,
     #4964-#4974, #5028-#5036: 109, 3, 111 "Contribution Submitted!", 4152 (a 1ª do dia), 150, 42, 164 e o 83 da
-    devoção por último; 10000 de ouro = 10, 5 Balens = 1. Os 4484 (títulos) não vão: não há títulos."""
+    devoção por último; 10000 de ouro = 10, 5 Balens = 1."""
     mine = _mine(s)
     c = _char(s)
     gold = max(msg.offerGold, 0) // GOLD_PER_OFFER * GOLD_PER_OFFER
