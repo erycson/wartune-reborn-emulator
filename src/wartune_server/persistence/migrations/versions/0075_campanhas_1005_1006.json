@@ -2022,6 +2022,108 @@
      "pos": 6
     },
     "map": 1071,
+    "reinforce": [
+     [
+      {
+       "livingId": 6,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 6,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 7,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 8,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 9,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 6,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 10,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 11,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      }
+     ]
+    ],
     "gpBonus": 560,
     "strategyBonus": 101,
     "battleScene": 3
@@ -3077,6 +3179,108 @@
      "pos": 6
     },
     "map": 1081,
+    "reinforce": [
+     [
+      {
+       "livingId": 6,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 6,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 7,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 8,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 9,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 6,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 10,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      },
+      {
+       "livingId": 11,
+       "tempId": 2051,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 892,
+       "hp": 892,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40083,
+        40083,
+        40084
+       ]
+      }
+     ]
+    ],
     "gpBonus": 525,
     "strategyBonus": 211,
     "battleScene": 3
@@ -5172,6 +5376,80 @@
      "pos": 6
     },
     "map": 1151,
+    "reinforce": [
+     [
+      {
+       "livingId": 6,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      },
+      {
+       "livingId": 7,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 8,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      },
+      {
+       "livingId": 9,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      }
+     ]
+    ],
     "gpBonus": 420,
     "strategyBonus": 106,
     "battleScene": 3
@@ -5264,6 +5542,72 @@
      "pos": 6
     },
     "map": 1151,
+    "reinforce": [
+     [
+      {
+       "livingId": 6,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      },
+      {
+       "livingId": 7,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 8,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      },
+      {
+       "livingId": 9,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      }
+     ]
+    ],
     "gpBonus": 501,
     "strategyBonus": 171,
     "battleScene": 3
@@ -5483,6 +5827,80 @@
      "pos": 6
     },
     "map": 1161,
+    "reinforce": [
+     [
+      {
+       "livingId": 6,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      },
+      {
+       "livingId": 7,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 8,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      },
+      {
+       "livingId": 9,
+       "tempId": 2061,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 997,
+       "hp": 997,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40093,
+        40093,
+        40097,
+        40093
+       ]
+      }
+     ]
+    ],
     "gpBonus": 420,
     "strategyBonus": 156,
     "battleScene": 3
@@ -5575,6 +5993,72 @@
      "pos": 6
     },
     "map": 1161,
+    "reinforce": [
+     [
+      {
+       "livingId": 6,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      },
+      {
+       "livingId": 7,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 8,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 2,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      },
+      {
+       "livingId": 9,
+       "tempId": 2063,
+       "type": 1,
+       "side": 2,
+       "pos": 8,
+       "initHp": 1102,
+       "hp": 1102,
+       "qteTime": 0,
+       "castTime": 6000,
+       "skillId": [
+        40091,
+        40099
+       ]
+      }
+     ]
+    ],
     "gpBonus": 501,
     "strategyBonus": 253,
     "battleScene": 3

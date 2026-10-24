@@ -268,8 +268,7 @@ a bolsa.
 
 **Não feito.** Ficaram de fora:
 
-- os reforços da caixa (72) e a fala no meio da luta (171);
-- as falas de NPC (4163, inclusive o "Welcome to the Resource Quarry!");
+- a fala no meio da luta (171);
 - os movimentos de câmera (142);
 - o `RejectType` da Karda (1023, "19,100,38,39"): só registrado.
 

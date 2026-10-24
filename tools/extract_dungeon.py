@@ -187,6 +187,8 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
                 "map": current,
             }
             battle_key, quarry_fight, fighting, stage_open, pending = key, False, 0, False, 0
+        elif code == 72 and battle is not None:  # reforço: uma onda nova quando o lado inimigo cai
+            battle.setdefault("reinforce", []).append([_dict(s) for s in msg.soldiers])
         elif code == 4103 and battle is not None:
             battle["gpBonus"] = msg.gpBonus
             battle["strategyBonus"] = msg.strategyBonus

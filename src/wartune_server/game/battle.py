@@ -41,6 +41,7 @@ from .builders.login import fmt_time
 log = structlog.get_logger(__name__)
 
 S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP, S_NOTICE = 157, 156, 153, 154, 75, 69, 4361
+S_REINFORCE = 72
 
 FRAME_SECONDS = 0.04
 FIRST_ACTION = 100
@@ -250,6 +251,7 @@ class Battle:
         self.buffs: list[Buff] = []
         self._buff_seq = 0  # bufferId: 1, 2... por batalha (visto #1466 e #1484)
         self.units = self._units(player)
+        self._waves = [list(w) for w in spec.get("reinforce", [])]  # ondas de reforço que faltam
         self.player = next((u for u in self.units if u.is_player), None)
         self.wound = self.hurt = 0  # dano causado e sofrido pelo lado do jogador (relatório 137 da masmorra)
         if player is not None and self.player is not None:
@@ -305,14 +307,7 @@ class Battle:
     def _units(self, player: PlayerHero | None) -> list[Unit]:
         """Soldados, heróis NPC e pets da spec, mais o herói do jogador. Atributos do template; ``stats`` e
         ``attack``/``defaultSkill`` na spec valem mais (cópia de jogador, robô, pet)."""
-        units = []
-        for s in self.spec["soldiers"]:
-            row = self.templates.get("PawnTempInfos", s["tempId"]) or {}
-            skills = list(s.get("skillId", [])) or [int(row.get("DefaultSkill", 0))]
-            hp = int(s["hp"])
-            units.append(
-                Unit(s["livingId"], s["side"], hp, skills, skills[0], _stats(row, s), int(s.get("initHp", hp)))
-            )
+        units = [self._soldier(s) for s in self.spec["soldiers"]]
         for kind, category in (("heroes", "GameHeroTemp"), ("pets", "PetTempInfos")):
             for h in self.spec.get(kind, []):
                 row = self.templates.get(category, h["tempId"]) or {}
@@ -332,6 +327,22 @@ class Battle:
                 )
             )
         return units
+
+    def _soldier(self, s: Mapping[str, Any]) -> Unit:
+        row = self.templates.get("PawnTempInfos", s["tempId"]) or {}
+        skills = list(s.get("skillId", [])) or [int(row.get("DefaultSkill", 0))]
+        hp = int(s["hp"])
+        return Unit(s["livingId"], s["side"], hp, skills, skills[0], _stats(row, s), int(s.get("initHp", hp)))
+
+    def _reinforce(self) -> bool:
+        """O lado inimigo caiu e a luta tem outra onda (``reinforce``, os 72 da captura): (visto) oficial_20261023-
+        231733-1 #4458-#4459, o 72 sai logo depois do golpe que mata o último e a luta segue com os novos."""
+        if not self._waves or not self._side_alive(True) or self._side_alive(False):
+            return False
+        wave = self._waves.pop(0)
+        self.units += [self._soldier(s) for s in wave]
+        self._send(S_REINFORCE, _parse({"side": wave[0]["side"], "soldiers": wave}, pb.ReinforceMsg()))
+        return True
 
     def _passives(self, unit: Unit, skills: Iterable[int]) -> None:
         """Skills passivas (``UseWay`` 2) viram buffers permanentes do herói no 157: (visto) tutorial_en #1466
@@ -472,7 +483,7 @@ class Battle:
                 self._sync()
                 if not unit.alive:
                     continue
-                if not (self._side_alive(True) and self._side_alive(False)):
+                if not (self._side_alive(True) and self._side_alive(False)) and not self._reinforce():
                     break
                 if self._has(unit, NO_ACTION):
                     # (dedução) atordoado perde a vez sem 153; o turno do controle conta, e o fim dele vai no
@@ -492,7 +503,7 @@ class Battle:
                 start, side, first = self.frame, unit.side, False
                 end = start + self._act(unit, skill)
             self._sync()
-            if not (self._side_alive(True) and self._side_alive(False)):
+            if not (self._side_alive(True) and self._side_alive(False)) and not self._reinforce():
                 await self._until(start + END_DELAY)
                 return self._side_alive(True)
 

@@ -1,0 +1,282 @@
+{
+ "1002": {
+  "113203": [
+   [
+    {
+     "livingId": 5,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 2,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 6,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 8,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    }
+   ],
+   [
+    {
+     "livingId": 7,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 2,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 8,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 8,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 9,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 3,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 10,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 9,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    }
+   ]
+  ],
+  "114203": [
+   [
+    {
+     "livingId": 5,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 2,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 6,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 8,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    }
+   ],
+   [
+    {
+     "livingId": 7,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 3,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 8,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 9,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 9,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 8,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    },
+    {
+     "livingId": 10,
+     "tempId": 2021,
+     "type": 1,
+     "side": 2,
+     "pos": 2,
+     "initHp": 4,
+     "hp": 4,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40081,
+      40082,
+      40081
+     ]
+    }
+   ]
+  ]
+ },
+ "1003": {
+  "103105": [
+   [
+    {
+     "livingId": 6,
+     "tempId": 2033,
+     "type": 1,
+     "side": 2,
+     "pos": 2,
+     "initHp": 300,
+     "hp": 300,
+     "qteTime": 0,
+     "castTime": 6000,
+     "skillId": [
+      40065,
+      40066,
+      40065
+     ]
+    },
+    {
+     "livingId": 7,
+     "tempId": 2033,
+     "type": 1,
+     "side": 2,
+     "pos": 8,
+     "initHp": 300,
+     "hp": 300,
+     "qteTime": 0,
+     "castTime": 6000,
+     "skillId": [
+      40065,
+      40066,
+      40065
+     ]
+    }
+   ],
+   [
+    {
+     "livingId": 8,
+     "tempId": 2032,
+     "type": 1,
+     "side": 2,
+     "pos": 2,
+     "initHp": 300,
+     "hp": 300,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40063,
+      40063,
+      40067,
+      40063
+     ]
+    },
+    {
+     "livingId": 9,
+     "tempId": 2032,
+     "type": 1,
+     "side": 2,
+     "pos": 8,
+     "initHp": 300,
+     "hp": 300,
+     "qteTime": 0,
+     "castTime": 5000,
+     "skillId": [
+      40063,
+      40063,
+      40067,
+      40063
+     ]
+    }
+   ]
+  ]
+ }
+}

@@ -89,6 +89,7 @@ Outros eventos:
 - Caixa Pandora (5033 com S>C 29, mapId 879/880, nodeId 101107/102107): feita na masmorra, com o buff 1301/1701 da captura. Falta a recompensa além do buff (a captura traz `itemTempId` 0). Exército na campanha (5121): falta captura da resposta. **depende de**: nada agora; o progresso de campanha ainda não é salvo.
 - Falas dos NPCs (4163, migração 0076, `campaign.talk_tick`): *(visto)* repertório por sonType e ritmo de 12-18 s das capturas inglesas; a chance por tique (0,7) e a do chase (0,2) são **dedução** das contagens; NPC sem fala vista fica calado.
 - Orc Plains 1005 e Tribal Plateau 1006 (migração 0075): feitas da captura `oficial_20261023-231733-1`, as duas
+- Reforços (72, migrações 0075 e 0077, `battle.Battle._reinforce`): *(visto)* quando o lado inimigo cai e a luta tem outra onda, sai o 72 com os soldados novos e a luta segue; as ondas vêm dos 72 das capturas (`tools/extract_dungeon.py`). *(dedução)* a ordem das ondas é fixa (a `oficial_encantar` teve a do 114203 invertida).
   etapas de cada. **TODO(inventado)**: a luta do "[Elite] Bloodthirsty Tauren" 115116 (o herói 1062 sozinho, como o
   Kronos); pesos das cartas por igual (dedução).
 - Temple of Ibalize (Inner) 1004 (migração 0069): feita da captura; pesos das cartas e o baú de prata/Mystery Box
