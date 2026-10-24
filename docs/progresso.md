@@ -24,7 +24,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 0 | 4 | 0 | 0 | 0 |
-| Castelo | 8 | 7 | 1 | 2 | 4 |
+| Castelo | 8 | 7 | 2 | 2 | 4 |
 | Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 11 | 7 | 4 | 4 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 2 | 1 | 1 | 2 | 1 |
-| **Total** | **87** | **93** | **32** | **52** | **42** |
+| **Total** | **87** | **93** | **33** | **52** | **42** |
 
 ## Validação e base
 
@@ -69,7 +69,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Fazenda: colheita, praga, acelerar, terras | ✅ | | |
 | Fazenda: roubo de amigo | 🟡 | | 4387/109/83 sem captura; 10% do roubo por dedução |
 | Fazenda: reviver e regar do amigo | ✅ | 🇹🇷 | rega e ouro (grau × 20) no inglês; reviver do turco |
-| Fazenda: subida de nível (111, 4386, 83) | 🟡 | | vista na rega do amigo; nos outros casos por dedução |
+| Fazenda: aviso ao dono online (145, rega e praga do amigo) | 🧪 | | rega e praga no inglês; textos do mato inventados (`farm.py`, `_tell_pest`) |
+| Fazenda: subida de nível (111, 4386, 83) | 🟡 | | vista na rega e na praga do amigo; nos outros casos por dedução |
 | Árvore: rega própria (15017) | ✅ |  | própria e do amigo no inglês (153200, 171155, 215937), igual ao turco |
 | Árvore: colheita do fruto (5178) | 🟡 | | nenhuma captura com fruto; Daru, Kyanite e textos da internet |
 | Caixa por tempo (5019) | ✅ | | reset diário de uma amostra só |
@@ -141,7 +142,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Vínculo de itens | ✅ | | |
 | Uso de recurso (203: ouro, Balens, EXP, Daru) | ✅ | | texto e ordem do inglês (231733) |
 | Caixas de pedra (206) e outras caixas | 🟡 | | caixa com conteúdo só na descrição é recusada |
-| Poção de HP e reserva de vida (209) | 🧪 | | contrato de cura (`rules.py:210`) |
+| Poção de HP e reserva de vida (209) | 🧪 | | "HP Pack has been exhausted." visto (171155); contrato de cura (`rules.py:210`) |
 | Pergaminhos de EXP, ouro e população | ✅ | 🇹🇷 | do turco |
 | Pergaminhos de outros efeitos | 🟡 | | ícone e tempo ligam; o efeito não existe |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
@@ -227,7 +228,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | 1002 Baylon Plains | ✅ | | caixa do caçador com uma amostra |
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
 | 1004 Temple of Ibalize (Inner) | ✅ | | |
-| 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | luta do elite 115116 inventada (0075) |
+| 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | escolta da Elise vista (231733); luta do elite 115116 inventada (0075) |
 | 1007 Camp Calorn | ❌ | 🇹🇷 | sem nós; só a varredura, com o ouro do turco |
 | 9001 Claristun (em grupo) | 🧪 | 🇹🇷 | só a etapa 2011; chefe 201106 inventado (0084) |
 | Masmorras solo 1101-1602 | ❌ | | só drops |
@@ -267,7 +268,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Fórmula de dano | ✅ | | |
 | Alvos, morte e reposição de tropas | ✅ | | |
 | Alvo aleatório | 🟡 | | ordem do oficial não decifrada |
-| Reforços (ondas novas) | ✅ | | |
+| Reforços (ondas novas) | ✅ | | ordem das ondas sorteada e um 4149 por onda (171155, 231733) |
 | Iniciativa (ordem das unidades) | 🟡 | | ordem fixa, sem dado |
 | Crítico e bloqueio | 🟡 | | ganhos por dedução; chances da internet |
 | Skills, buffs e controle | 🟡 | | atordoado sem captura |
@@ -368,7 +369,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Roda do destino | 🟡 | | tipos 2100/2200 nunca abrem |
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
-| Painel de recompensas e anel de tarefa | 🟡 | | 8729 recusado; passe depende de outros sistemas |
+| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); só a condição 5 (árvore de amigo) é contada, as outras e o 8729 dependem dos seus sistemas; texto do Daru inventado |
 | Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827); o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
 | Pesca, caça ao tesouro, estrada dourada, quiz, minério | ❌ | | fechados |

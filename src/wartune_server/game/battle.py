@@ -389,8 +389,9 @@ class Battle:
     def _preload_waves(self) -> None:
         """Um 4149 por onda logo depois do 156, para o cliente carregar os soldados: (visto) oficial_20261023-171155-1
         #2135-#2136 e 231733 #580-#581, ``soldierSkill`` = as skills de cada soldado em fila, ``reinforceCount`` 3 e
-        ``reinforceType`` 1 com duas ondas (dedução: as ondas mais a tropa inicial). TODO(inventado): o ``armyId``
-        (o oficial usa um número global, ~1300695008)."""
+        ``reinforceType`` 1 com duas ondas. (cliente) ``ReinfoResTransaction``: carrega as skills, o ``reinforceCount``
+        é o total de ondas do painel (``setReinforceWaveInfo``: as ondas mais a tropa inicial) e o ``armyId`` não é
+        lido (o oficial usa um número global, ~1300695008)."""
         for wave in self._waves:
             res = pb.ArmyResMsg(reinforceCount=len(self._waves) + 1, reinforceType=1)
             entry = res.loadRes.add(armyId=next(_WAVE_IDS))
