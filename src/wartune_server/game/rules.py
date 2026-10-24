@@ -238,7 +238,36 @@ def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime |
         bonuses.append({k: str(v) for k, v in mount.items()})
     skills = guild_skills(snap.character, templates)
     base = {attr: skills.get(kind, 0) for kind, attr in GUILD_SKILL_ATTRS.items()}
+    if hero := {HERO_TECH[k]: str(v) for k, v in tech_effects(snap, templates).items() if k in HERO_TECH}:
+        bonuses.append(hero)
     return HeroStats.of(leader, templates.hero(leader.template_id), bonuses, base)
+
+
+# tecnologias de atributo (BuildingTempInfos MasterType 14): EffectTempInfos.PropertyType1 -> coluna do template, com
+# Property1 x nível (cliente: o Activity do template, "MATK +228" no Hero MATK 19). As Adv. (2xxx) usam o tipo + 100.
+# Divergência (só turco: teknoloji_upgrade #3/#6 e o pawnLive do #5): o oficial turco aplica x1,5 (342 no nível 19)
+HERO_TECH = {141: "Attack", 142: "MagicAttack", 143: "Defence", 144: "MagicDefence", 145: "Live", 146: "Conat"}
+TROOP_TECH = {120: "Live", 121: "Attack", 122: "Defence", 123: "MagicAttack", 124: "MagicDefence"}
+TECH_ATTR, ADV_TECH = "14", 100
+
+
+def tech_effects(snap: PlayerSnapshot, templates: GameTemplates) -> dict[int, int]:
+    """Tipo (141, 120...) -> soma das tecnologias de atributo construídas, normal e Adv. juntas."""
+    out: dict[int, int] = {}
+    for building in snap.buildings:
+        row = templates.get("BuildingTempInfos", building.template_id)
+        if row is None or row["MasterType"] != TECH_ATTR:
+            continue
+        effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
+        kind = int(effect.get("PropertyType1", 0))
+        kind -= ADV_TECH if kind >= 2 * ADV_TECH else 0
+        out[kind] = out.get(kind, 0) + int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
+    return out
+
+
+def troop_tech(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, int]:
+    """Coluna do PawnTempInfos (Live, Attack...) -> bônus das tecnologias de tropa (o ``effect_Data`` do pawnLive)."""
+    return {TROOP_TECH[k]: v for k, v in tech_effects(snap, templates).items() if k in TROOP_TECH}
 
 
 # habilidades aprendidas na guilda (5147): ConsortiaLevelInfos.Types -> campo do personagem e atributo do herói

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from ...domain.models import Pawn, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, Row
@@ -12,7 +14,11 @@ from .login import complete
 PAWN_LIVE = ("Attack", "Defence", "MagicAttack", "MagicDefence", "Live", "ForceHit", "Parry")
 
 
-def pawn_msg(pawn: Pawn, tpl: Row, army_id: int, count: int) -> pb.ArmyPawnInfoMsg:
+def pawn_msg(
+    pawn: Pawn, tpl: Row, army_id: int, count: int, effects: Mapping[str, int] | None = None
+) -> pb.ArmyPawnInfoMsg:
+    """``effects``: bônus das tecnologias por coluna (``rules.troop_tech``), no ``effect_Data``; ``base_Join`` é a soma
+    (visto tutorial_en #2240, base_Join = tempData sem tecnologia; só turco: teknoloji_upgrade #5, 1871 + 81 = 1952)."""
     msg = pb.ArmyPawnInfoMsg(
         armyId=army_id,
         sites=0,
@@ -26,7 +32,8 @@ def pawn_msg(pawn: Pawn, tpl: Row, army_id: int, count: int) -> pb.ArmyPawnInfoM
     if pawn.comprehend:
         msg.comprehednTempIds = pawn.comprehend
     for column in PAWN_LIVE:
-        complete(msg.pawnLive.add(tempData=int(tpl.get(column, 0))))
+        base, extra = int(tpl.get(column, 0)), (effects or {}).get(column, 0)
+        complete(msg.pawnLive.add(tempData=base, effect_Data=extra, base_Join=base + extra))
     return msg
 
 
@@ -39,9 +46,10 @@ def castle_pawns(
     msg = pb.ArmyPawnUpdatedMsg()
     if pawns is None:
         pawns = [*snap.pawns, *unlocked_pawns(snap, templates)]
+    effects = rules.troop_tech(snap, templates)
     for pawn in pawns:
         if (tpl := templates.get("PawnTempInfos", pawn.template_id)) is not None:
-            msg.armyPawn.append(pawn_msg(pawn, tpl, 0, pawn.castle_count))
+            msg.armyPawn.append(pawn_msg(pawn, tpl, 0, pawn.castle_count, effects))
     return msg
 
 
@@ -63,4 +71,4 @@ def unlocked_pawns(snap: PlayerSnapshot, templates: GameTemplates) -> list[Pawn]
 def army_pawn_msg(snap: PlayerSnapshot, templates: GameTemplates, army_id: int) -> pb.ArmyPawnInfoMsg | None:
     pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
-    return pawn_msg(pawn, tpl, army_id, pawn.army_count) if pawn and tpl else None
+    return pawn_msg(pawn, tpl, army_id, pawn.army_count, rules.troop_tech(snap, templates)) if pawn and tpl else None

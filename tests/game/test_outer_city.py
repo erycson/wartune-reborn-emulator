@@ -962,7 +962,7 @@ def test_formacao_muda_as_posicoes_na_luta() -> None:
     templates = GameTemplates.parse(Path("data/templates/tempinfos.xml").read_bytes())
     assert (oc.hero_pos(1), oc.hero_pos(3), oc.hero_pos(0)) == (4, 6, 4)
     for fight_pos, want in ((3, [3, 9]), (1, [1, 7]), (0, [3, 9])):
-        snap = SimpleNamespace(pawns=[Pawn(1, 10101, army_count=150, fight_pos=fight_pos)])
+        snap = SimpleNamespace(pawns=[Pawn(1, 10101, army_count=150, fight_pos=fight_pos)], buildings=[])
         soldiers, _ = oc.army_soldiers(snap, templates)  # type: ignore[arg-type]
         assert [s["pos"] for s in soldiers] == want
 

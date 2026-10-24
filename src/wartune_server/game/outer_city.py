@@ -16,7 +16,8 @@ from xml.sax.saxutils import quoteattr
 
 from ..domain.models import Castle, Pawn, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
-from ..templates.repository import GameTemplates
+from ..templates.repository import GameTemplates, Row
+from . import rules
 from .arena import npc_hero
 
 TILE = 20  # o cliente manda pixels (PosMoveMsg.routes); curPosX * 20 é o pixel do cliente
@@ -121,7 +122,9 @@ def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[
     if pawn is not None and tpl is not None:
         # inglês #727: [DefaultSkill, HighSkill] repetido 5 vezes (10,11 do Lancer)
         skills = [int(s) for s in (tpl["DefaultSkill"], tpl.get("HighSkill", "")) if s] * 5
-        total = max(1, int(tpl["Live"]) * pawn.army_count // 100)
+        tech = rules.troop_tech(snap, templates)  # (dedução) as tecnologias de tropa valem na luta, como no pawnLive
+        stats = {k: int(tpl.get(col) or 0) + tech.get(col, 0) for k, col in TROOP_STATS.items()}
+        total = max(1, troop_live(snap, templates, tpl) * pawn.army_count // 100)
         first = (total + 1) // 2 if pawn.army_count > 1 else total
         row = column(pawn.fight_pos) or 3
         for living, pos, hp in ((1, row, first), (2, row + 6, total - first)):
@@ -130,9 +133,19 @@ def army_soldiers(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[list[
             soldiers.append(
                 {"livingId": living, "tempId": pawn.template_id, "type": 1, "side": 1, "pos": pos,
                  "initHp": hp, "hp": hp, "qteTime": 0, "castTime": 4000,
-                 "skillId": skills}
+                 "skillId": skills, "stats": stats}
             )  # fmt: skip
     return soldiers, pawn.template_id if soldiers and pawn else 0
+
+
+# atributos da spec de batalha (``battle.STATS``) -> coluna do PawnTempInfos
+TROOP_STATS = {"PhyAttack": "Attack", "PhyDefence": "Defence", "MagicAttack": "MagicAttack",
+               "MagicDefence": "MagicDefence", "ForceHit": "ForceHit", "Parry": "Parry"}  # fmt: skip
+
+
+def troop_live(snap: PlayerSnapshot, templates: GameTemplates, tpl: Row) -> int:
+    """Vida por 100 soldados com a tecnologia de tropa (Troop HP)."""
+    return int(tpl["Live"]) + rules.troop_tech(snap, templates).get("Live", 0)
 
 
 def lose_troops(
@@ -145,7 +158,7 @@ def lose_troops(
     tpl = templates.get("PawnTempInfos", pawn.template_id) if pawn else None
     if troops is None or pawn is None or tpl is None or troops[0] >= troops[1]:
         return None
-    alive = min(pawn.army_count, math.ceil(troops[0] * 100 / int(tpl["Live"])))
+    alive = min(pawn.army_count, math.ceil(troops[0] * 100 / troop_live(snap, templates, tpl)))
     lost = pawn.army_count - alive
     if lost <= 0:
         return None

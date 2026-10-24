@@ -126,7 +126,8 @@ async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     _army(s)
     tpl = pawn_template(templates, pawn.template_id)
     assert tpl is not None
-    s.send(S_ARMY_EDIT, pb.ArmyEditRspMsg(armyPawn=[pawn_msg(pawn, tpl, snap.character.id or 0, pawn.army_count)]))
+    edited = pawn_msg(pawn, tpl, snap.character.id or 0, pawn.army_count, rules.troop_tech(snap, templates))
+    s.send(S_ARMY_EDIT, pb.ArmyEditRspMsg(armyPawn=[edited]))
     s.send(S_CASTLE_PAWNS, castle_pawns(snap, templates, [pawn]))
 
 
@@ -148,8 +149,8 @@ async def dismiss(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
 def send_pawn(s: GameSession, pawn: Pawn) -> None:
     """116: o cliente atualiza todas as tropas daquele SonType (castelo e exército)."""
     tpl = pawn_template(s.ctx.templates, pawn.template_id)
-    assert tpl is not None
-    s.send(S_PAWN, pawn_msg(pawn, tpl, 0, pawn.castle_count))
+    assert tpl is not None and s.snapshot is not None
+    s.send(S_PAWN, pawn_msg(pawn, tpl, 0, pawn.castle_count, rules.troop_tech(s.snapshot, s.ctx.templates)))
 
 
 @router.on(5158)

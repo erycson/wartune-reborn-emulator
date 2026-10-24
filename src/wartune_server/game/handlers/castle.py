@@ -30,6 +30,7 @@ BUY_ORDER_PRICE = 395  # (cliente inglês) QueueBar.buyQueueItem: "mainBar.Queue
 IMPOSE_COOLDOWN = 3600  # só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
 S_EFFECT, S_POLITICS = 110, 152
+ATTR_EFFECT = 3  # 110.propertyType das tecnologias de atributo (só turco: teknoloji_upgrade #3)
 # (visto) tempinfos: 111-113 ("Accelerate Building Construction Cooldown 1/3/7 times") e 763 ("Collect Levy")
 ACCELERATE, LEVY = 12, 42  # QuestCondictionInfos.CondictionType
 
@@ -125,16 +126,27 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
     paid.goldTotalCount, paid.crystalsCount = before.goldTotalCount - gold, before.crystalsCount - crystals
     s.send(cs.S_CASTLE_YIELD, paid)
     after = cs.yield_msg(snap, templates, now)
+    grade, attr_tech = int(target["BuildingGrade"]), target["MasterType"] == rules.TECH_ATTR
+    # o efeito sai e volta: (dedução) o 1º 110 é o nível velho negativo (só turco: teknoloji_upgrade #3/#6, -324 e
+    # +342 no Hero MATK 18 -> 19; no 0 -> 1 do inglês é -0 = 0). Só o novo quando o prédio nasce (8202)
+    steps = ([(grade - 1, -1, paid)] if code == 8203 else []) + [(grade, 1, after)]
     if (tech := cs.gold_tech(templates, target)) is not None:
-        # (visto) oficial_20261023-231733-1 #3971-#3978, Gold Production 0 -> 1: o efeito do nível velho e o do novo,
-        # cada um com 110 (PropertyType1, ouro do nível), 109 e 152; depois o 109 de sempre. Só o novo quando o prédio
-        # nasce (o 5014 da missão 280 em #3938-#3941 manda 110 com 0)
-        grade = int(target["BuildingGrade"])
-        for g, msg in ([(grade - 1, paid)] if code == 8203 else []) + [(grade, after)]:
-            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=tech[1] * g))
+        # (visto) oficial_20261023-231733-1 #3971-#3978, Gold Production 0 -> 1: cada efeito com 110 (PropertyType1,
+        # ouro do nível), 109 e 152; depois o 109 de sempre
+        for g, sign, msg in steps:
+            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=sign * tech[1] * g))
             s.send(cs.S_CASTLE_YIELD, msg)
             s.send(S_POLITICS, cs.politics_msg(snap, templates))
-    if after != paid:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
+    elif attr_tech:
+        # (só turco: teknoloji_upgrade #2-#10) cada efeito com 110 tipo 3 e 150 (o 4902 das cartas de poder não existe
+        # aqui); o 109 final sai mesmo sem mudança. O cliente ignora o tipo 3 (PlayerEffectHelper)
+        from .player import _army  # player importa castle (game)
+
+        per = int((templates.get("EffectTempInfos", int(target["Property1"])) or {}).get("Property1", 0))
+        for g, sign, _ in steps:
+            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=ATTR_EFFECT, value=sign * per * g))
+            _army(s)
+    if after != paid or attr_tech:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
         s.send(cs.S_CASTLE_YIELD, after)
     # nível do quartel que libera um tipo de tropa (NeedBuilding = o template novo): 100 com todas as tropas do
     # castelo e o tipo novo com 0, antes do 151 (tutorial_en #2208-#2213, Barracks Lvl. 4: 109, 100, 151, 4130, 83);

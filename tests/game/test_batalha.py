@@ -178,7 +178,7 @@ def test_tropas_mortas_saem_e_a_reserva_repoe() -> None:
     from wartune_server.game import outer_city as oc
 
     pawn = Pawn(1, 10101, castle_count=738, army_count=162)
-    snap: Any = SimpleNamespace(pawns=[pawn])  # lose_troops só lê as tropas
+    snap: Any = SimpleNamespace(pawns=[pawn], buildings=[])  # lose_troops só lê as tropas e as tecnologias
     templates = _templates()
     assert oc.lose_troops(snap, templates, (523, 523)) is None  # sem dano, sem perda
     hit = oc.lose_troops(snap, templates, (238, 523))

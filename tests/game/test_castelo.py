@@ -588,3 +588,37 @@ async def test_reaching_grade_18_builds_the_academy_and_its_tech(tmp_path: Path)
         assert pb.BuildingInfoListMsg.FromString(got[5].body).building[0].templateId == 50101
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert {50101, 130400} <= {b.template_id for b in saved.buildings}
+
+
+async def test_attribute_tech_adds_to_the_hero_and_the_troops(tmp_path: Path) -> None:
+    """Hero MATK e Troop PATK (MasterType 14): Property1 x nível no herói e no ``effect_Data`` da tropa; o upgrade
+    manda 110 tipo 3 (velho negativo, novo) com um 150 cada e o 109 final (só turco: teknoloji_upgrade #2-#13)."""
+    from wartune_server.domain.models import Building
+    from wartune_server.game import rules
+
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _grow(g, 18)
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        templates, now = session.ctx.templates, session.ctx.clock.now()
+        before = rules.leader_stats(snap, templates, now).total["MagicAttack"]
+        snap.character.crystals = 10**6
+        hero, troop = Building(g.user_id, 144200), Building(g.user_id, 142102)  # Hero MATK 0 e Troop PATK 2
+        snap.buildings.extend([hero, troop])
+        await g.server.services.characters.save(snap.character, hero, troop)
+        assert rules.troop_tech(snap, templates) == {"Attack": 12}
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=hero.id or 0))
+        got = await g.until(83)
+        assert [p.code for p in got] == [109, 110, 150, 110, 150, 109, 151, 4130, 83]
+        effects = [pb.PropertyUpdatedMsg.FromString(p.body) for p in got if p.code == 110]
+        assert [(e.propertyType, e.value) for e in effects] == [(3, 0), (3, 12)]
+        assert rules.leader_stats(snap, templates, now).total["MagicAttack"] == before + 12
+        pawns = cs_pawns(snap, templates)
+        live = pawns.armyPawn[0].pawnLive[0]  # Attack
+        assert (live.effect_Data, live.base_Join) == (12, live.tempData + 12)
+
+
+def cs_pawns(snap: PlayerSnapshot, templates: object) -> pb.ArmyPawnUpdatedMsg:
+    from wartune_server.game.builders.army import castle_pawns
+
+    return castle_pawns(snap, templates)  # type: ignore[arg-type]
