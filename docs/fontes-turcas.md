@@ -8,13 +8,13 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | sistema | captura turca | o que dá | onde é citado | o que capturar no inglês |
 |---|---|---|---|---|
 | Ilha dos pets | peri_adasi_tp | sequência de entrada (`content/petisland.json`) | mundo-compartilhado.md, test_space | entrar no Sylph Atoll |
-| Mapa 2 e mudança de castelo | transfer_kampi_sistemi | chefes do mapa 2 (migração 0027), energia 500→300, monstro 210127, relógio dos chefes | cidade-externa.md, test_outer_city | mudar o castelo para o mapa 2, abrir 9525 nele |
+| Mapa 2 e mudança de castelo | transfer_kampi_sistemi (apagada) | chefes do mapa 2 (migração 0027), energia 500→300, monstro 210127, relógio dos chefes | cidade-externa.md, test_outer_city | mudar o castelo para o mapa 2, abrir 9525 nele |
 | Segunda conta das minas | cevre_altin_madeni_savasi (apagada), replay | outras instâncias, mina nível 8 (guarda 6504), createDate em UTC+3 | cidade-externa.md, multiplayer.md, test_outer_city | minas de uma segunda conta |
 | Fazenda e árvore | ciftlik (apagada) | ops 0/1/6, rega, 8231, grau de amizade (34 → 4) | castelo.md, social.md, test_castelo | fazenda própria e de amigo |
 | Guilda | birlik_katkisi (apagada), login | contribuição (5144), ranking, baú, mercado (goodId 19), cargos 4137/4138/4133 | guilda.md, test_guild | criar/entrar em guilda, contribuir, comprar |
 | Amizade | login | 4156 em 2 páginas | social.md, chat.md | uma lista de amigos com mais de uma página |
 | Coliseu | meydan_okuma | 4169, 157 tipo 16, 4176; drop da vitória Lvl. 3 Luck Stone (`arena_challenge_items`, 0072; o inglês viu VIP Token) | pvp.md, handlers/arena.py `_prize` | mais vitórias no coliseu (o que mais sai, se derrota dá, limite por dia) |
-| Torneio de fadas | peri_turnuvasi | 4611, 157 tipo 35, 4361, "Puan +5" | pvp.md, test_missoes_fazenda_pets_simbolos | uma luta no torneio |
+| Torneio de fadas | peri_turnuvasi (apagada) | 4611, 157 tipo 35, 4361, "Puan +5" | pvp.md, test_missoes_fazenda_pets_simbolos | uma luta no torneio |
 | Despertar de fada | peri_uyanis | 5038 2011: herói 3011 e dois soldados | test_salas_tipos | campanha 2011 |
 | Astral (kader) | kader_sistemi | leed 17, 8269/4180 (o anúncio da Profile 5 já é inglês: oficial_encantar #2753) | eventos.md, test_heroi_exercito | um sorteio de estrela |
 | Leeds 8/15/33 | birlik_katkisi (apagada), replay #1289, yeralti_labirenti, city_city_upgrade | onde sai o 4152 | eventos.md, test_castelo, test_devocao | gastar Balens, girar a roda da bênção |
@@ -56,3 +56,5 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 | çiftlik | fazenda (`handlers/farm.py`): 8231/4190, 15044 (plantar, reviver), rega própria e do amigo (4158, 109, 147, 165, 146, 83), compras na loja |
 | birlik katkısı ve birlik market alışverişi | contribuição (5144) na ordem inglesa (171155 #4964-#4974), listas 4134/4138/4466/4133, 4599 e a compra no mercado da guilda |
 | çevre altın madeni savaşı | mina do mundo e as outras instâncias; a ordem do fim da luta e o 4382 no 5035 seguem o inglês (tutorial_en #748-#754, 153200 #1634-#1636) |
+| transfer kampı sistemi | mudança de castelo 5176 (140, 152, 105), chefes do mapa 2 (9525/4938), a entrega da missão 390 com a EXP do mundo e a descansada (`rules.exp_bonus`) e o 4540, 4387 do guarda e 150 do mascote (`pets.send_gained`); o 83 da EXP fica depois do 52 como no inglês |
+| peri turnuvası | torneio de fadas (`handlers/arena.py`): 4540 da formação no 8725, 4176 tipo 1 e 4611 no 8256, a atividade contada na entrada (140, 4476, 157), 4361, 4176, 4103, o 4540/4387/150 do time, 112, 4413, 140, "Points  +5" no 83 e no 111; a missão 504 com a EXP do mundo e a descansada |

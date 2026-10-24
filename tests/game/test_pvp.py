@@ -268,14 +268,22 @@ async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: p
         pet_id = await give_pet(g, 104101, 60)
         snap = snap_of(g)
         snap.character.grades = 55
+        snap.pets[-1].is_fight = True  # como no turco: o guarda do 4387 é o mascote em batalha
         g.client.send(8725, pb.PlayerPetMsg(chaPos=f"{pet_id},-1,-1"))
-        await g.until(4540)
+        team = body(await g.until(4540), 4540, pb.PlayerPetMsg)  # (só turco: peri_turnuvasi #1)
+        assert (team.chaPos, [(p.petId, p.curGrade, p.chaSkillIndexs) for p in team.petInfo]) == (
+            f"{pet_id},-1,-1",
+            [(pet_id, 60, "-1,-1,-1")],
+        )
         g.client.send(8256, pb.ChallengeRequestMsg(type=1))
-        listed = body(await g.until(4611), 4611, pb.PetChallengeInfoMsg)
+        opened = await g.until(4611)
+        assert codes(opened) == [4176, 4611]  # (só turco: peri_turnuvasi #2-#3)
+        listed = body(opened, 4611, pb.PetChallengeInfoMsg)
         assert listed.playerInfo.order == 1
 
         g.client.send(8724, pb.PlayerChallengeMsg(tarUserId=listed.playerPets[0].userId))
         got = await g.until(157)
+        assert codes(got)[:2] == [140, 4476]  # (só turco: peri_turnuvasi #4-#7; sem montaria, sem o 4426)
         prepare = body(got, 157, pb.BattlePrepareMsg)
         assert prepare.battleType == 35 and not prepare.heros
         mine = [p for p in prepare.pets if p.side == 1]
@@ -292,6 +300,8 @@ async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: p
         assert snap.arena is not None and snap.arena.pet_count == 1
         assert snap.arena.pet_score == (1005 if report.battleResult == 1 else 1000)
         rest = got + await g.idle()
+        end = codes(rest)[codes(rest).index(4103) :]  # (só turco: peri_turnuvasi #47-#55)
+        assert [c for c in end if c in (4103, 4540, 4387, 150, 4413, 140)] == [4103, 4540, 4387, 150, 4413, 140]
         click = body(rest, 4413, pb.ClickDatasRspMsg).info  # (só turco: peri_turnuvasi #53)
         assert [(c.keys, c.keyData) for c in click] == [("pet", 1)]
         g.client.send(8518)

@@ -192,7 +192,8 @@ async def challenge_info(s: GameSession, msg: pb.ChallengeRequestMsg) -> None:
     if msg.type == A.COLOSSEUM:
         if _novice(s):
             await _colosseum_info(s)
-    elif msg.type == A.PETS:
+    elif msg.type == A.PETS:  # (só turco: peri_turnuvasi #2-#3 e #57-#58) 4176 tipo 1 e 4611
+        _cool(s, A.PETS)
         await _pet_info(s)
     else:
         await _pet_top(s)
@@ -472,6 +473,27 @@ def _pet_player(other: PlayerSnapshot, order: int) -> pb.PlayerPetMsg:
     return msg
 
 
+def _pet_team(s: GameSession) -> None:
+    """4540 só com o que o painel do torneio lê dos pets da formação, e o ``chaPos``: (só turco: peri_turnuvasi #1,
+    a resposta da formação por dedução: é o único 4540 com ``chaPos`` e não se repete no 8256 de #57)."""
+    from .pets import pet_star  # noqa: PLC0415  (pets importa shop, que importa este módulo)
+
+    snap, arena = s.snapshot, _arena(s)
+    assert snap is not None
+    team = {p.id for p in A.formation(arena, snap)}
+    if not team:
+        return
+    msg = pb.PlayerPetMsg(userId=s.player_id, chaPos=arena.pet_formation)
+    for p in snap.pets:
+        if p.id in team:
+            tpl = s.ctx.templates.get("PetTempInfos", p.template_id) or {}
+            msg.petInfo.add(
+                petId=p.id or 0, templateId=p.template_id, petName=p.name, curGrade=p.grade,
+                quality=pet_star(p, tpl), chaSkillIndexs=p.cha_skills,
+            )  # fmt: skip
+    s.send(S_PET_INFO, msg)
+
+
 async def _pet_info(s: GameSession) -> None:
     """4611: eu (pontos e posição; o cliente monta a própria linha), oponentes e histórico."""
     snap, arena, now = s.snapshot, _arena(s), s.ctx.clock.now()
@@ -566,14 +588,20 @@ async def challenge_pet(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     spec = A.pet_spec(units, theirs)
     arena.pet_count += 1  # o gasto só depois de montar a luta: um erro antes não come a tentativa
     arena.pet_cool_until = A.cool_until(now, A.PET_COOL)
+    # atividade "Sylph Arena" (tipo 110): participar conta, ganhando ou não; (só turco: peri_turnuvasi #4-#6) na
+    # entrada, com o 4476 e o 4426 entre o 140 e o 157
+    counted = ev.count(snap, s.ctx.events, ev.PET_CHALLENGE, now)
 
     async def finished(battle: Battle, won: bool) -> None:
         await _pet_over(s, won, target, name)
 
     s.battle = Battle(spec, None, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
-    await s.ctx.characters.save(arena)
+    await s.ctx.characters.save(arena, *counted)
     s.log.info("torneio de fadas", alvo=target, battle=s.battle.id)
     s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
+    from .events import progress  # noqa: PLC0415  (events importa login, que importa este módulo)
+
+    progress(s)
     s.battle.start()
 
 
@@ -589,20 +617,28 @@ async def _pet_over(s: GameSession, won: bool, target: int, name: str) -> None:
     if not A.is_robot(target):  # só o histórico do atacado muda; os pontos dele não (não observado)
         logs.append(ChallengeLog(target, A.PETS, now, me, c.nickname or "", False, not won, 0))
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_PET_TOURNAMENT, 0, 1)  # participar conta, ganhando ou não
-    counted = ev.count(snap, s.ctx.events, ev.PET_CHALLENGE, now)  # atividade "Sylph Arena" (tipo 110), idem
     clicked = ev.click(snap, "pet", now)
-    await s.ctx.characters.save(arena, *logs, *quests, *counted, clicked)
+    await s.ctx.characters.save(arena, *logs, *quests, clicked)
     _cool(s, A.PETS)
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=0)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 19, 0, 0, 0
     s.send(S_BATTLE_REPORT, report)
+    team = {p.id for p in A.formation(arena, snap)}
+    if team:  # (só turco: peri_turnuvasi #47-#51) 4540 do time (sem EXP: petGpBonus 0), 4387 e 150 depois do 4103
+        from .pets import send_gained  # noqa: PLC0415
+
+        send_gained(s, *(p for p in snap.pets if p.id in team))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     # (só turco: peri_turnuvasi #53) {keys "pet", keyData 1, changeTime} entre o 112 e o 140
     s.send(S_CLICK_ADD, pb.ClickDatasRspMsg(info=[click_info(clicked)]))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     if delta:
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points  {delta:+d}"))  # (só turco: "Puan")
+        text = f"Points  {delta:+d}"  # (só turco: "Puan  +5"; "Points" por dedução)
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+        # (só turco: peri_turnuvasi #70) o mesmo texto no 111; lá saiu depois, no meio da entrega da 504 (a ordem é
+        # dedução: o oficial parece segurar o aviso enquanto o resultado está na tela)
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
 
 
 @router.on(8725)
@@ -624,7 +660,10 @@ async def pet_formation(s: GameSession, msg: pb.PlayerPetMsg) -> None:
         return
     arena.pet_formation = ",".join(map(str, ids)) if used else ""
     await s.ctx.characters.save(arena)
-    s.send(S_PET_INFO, pb.PlayerPetMsg(userId=s.player_id, chaPos=",".join(map(str, ids))))
+    if used:
+        _pet_team(s)
+    else:
+        s.send(S_PET_INFO, pb.PlayerPetMsg(userId=s.player_id, chaPos=",".join(map(str, ids))))
 
 
 @router.on(8726)

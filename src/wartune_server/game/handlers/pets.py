@@ -154,12 +154,12 @@ def guard_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.FarmPetInfoM
     )  # fmt: skip
 
 
-def send_gained(s: GameSession, pet: Pet) -> None:
-    """Depois da EXP do mascote: 4540, 4387 com o guarda (``pos`` 0) e o 150, com o 4902 na frente (só turco:
-    transfer_kampi #21-#25, meydan_okuma #22-#25, peri_turnuvasi #48-#51 e #65-#68, peri_uyanis #73-#77)."""
+def send_gained(s: GameSession, *pets: Pet) -> None:
+    """Depois da luta ou da EXP do mascote: 4540, 4387 com o guarda (``pos`` 0) e o 150, com o 4902 na frente (só
+    turco: transfer_kampi #21-#25, meydan_okuma #22-#25, peri_turnuvasi #48-#51 e #65-#68, peri_uyanis #73-#77)."""
     snap = s.snapshot
     assert snap is not None
-    s.send(S_PETS, pets_msg(snap, s.ctx.templates, [pet]))
+    s.send(S_PETS, pets_msg(snap, s.ctx.templates, list(pets)))
     guard = guard_msg(snap, s.ctx.templates)
     if guard is not None:
         guard.pos = 0

@@ -186,6 +186,12 @@ def _sum_data(s: GameSession, actives: list[ev.Active]) -> None:
     send_mount(s)
 
 
+def progress(s: GameSession) -> None:
+    """4476 de todas (e o 4426) depois de contar uma atividade sem item: (só turco: peri_turnuvasi #4-#6) entrar
+    no torneio de fadas."""
+    _sum_data(s, s.ctx.events.listed(s.ctx.clock.now()))
+
+
 def items_gained(s: GameSession) -> None:
     """4476 de todas logo depois do 115 que dá item (tutorial_en: 26 dos 61 115, todos de ganho: missão #490, carta
     #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam. Depois, os 4484 de
