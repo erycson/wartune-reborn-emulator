@@ -13,7 +13,6 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Fazenda e árvore | ciftlik | ops 0/1/6, rega, 8231, grau de amizade (34 → 4) | castelo.md, social.md, test_castelo | fazenda própria e de amigo |
 | Guilda | birlik_katkisi, login | contribuição (5144), ranking, baú, mercado (goodId 19), cargos 4137/4138/4133 | guilda.md, test_guild | criar/entrar em guilda, contribuir, comprar |
 | Amizade | login | 4156 em 2 páginas | social.md, chat.md | uma lista de amigos com mais de uma página |
-| Labirinto de gemas | av_askeri_ve_odul_toplama | tabuleiro, cascata, pontos, prêmios (`CAPTURED_*`) | eventos.md, test_labirinto_gemas | jogar o labirinto (4922-4924) |
 | Coliseu | meydan_okuma | 4169, 157 tipo 16, 4176; drop da vitória Lvl. 3 Luck Stone (`arena_challenge_items`, 0072; o inglês viu VIP Token) | pvp.md, handlers/arena.py `_prize` | mais vitórias no coliseu (o que mais sai, se derrota dá, limite por dia) |
 | Torneio de fadas | peri_turnuvasi | 4611, 157 tipo 35, 4361, "Puan +5" | pvp.md, test_missoes_fazenda_pets_simbolos | uma luta no torneio |
 | Despertar de fada | peri_uyanis | 5038 2011: herói 3011 e dois soldados | test_salas_tipos | campanha 2011 |
@@ -26,7 +25,7 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Montaria, cartas, login com veículos | login.json | soulScore 400, cartas de poder (#76), 4512/4515/4516, 4696, eventos do login | heroi-exercito.md, diversos.md, eventos.md | login de conta antiga (nível alto) |
 | Login 20001 | relay | chave e corpo cifrado do 20001 (`test_cipher_and_packet`, `pcap_samples` c2s 20001) | tests/protocol | capturar desde o login (a inglesa começa no meio) |
 | Amostras do .proto | replay | c2s 5172, 8574, 10020; s2c 102, 4224, 4463, 4922 | test_messages_against_pcap | usar esses sistemas |
-| Textos de pontos | meydan_okuma, av_askeri | "Puan" do chat virou "Points" por dedução (`arena.py`, `gemmaze.py`) | pvp.md, eventos.md | uma luta no torneio e uma troca no labirinto |
+| Textos de pontos | meydan_okuma, av_askeri (apagada) | "Puan" do chat virou "Points" por dedução (`arena.py`, `gemmaze.py`) | pvp.md, eventos.md | uma luta no torneio e uma troca no labirinto |
 | Cartas das masmorras | replay #1241/#1355/#1744 | sem filtro de classe, 3 atributos no 1080013, Lvl. 1 Luck Stone 0,5 no 102102 (migração 0034) | drops-masmorras.md | rodar a 1001 mais vezes |
 | Forgotten Catacombs | login.json #55, yeralti_labirenti, labirent_sandik | 4205, campanha 8001 (`handlers/tower.py`; o maxIndex 60 é o recorde daquele personagem) | salas-campanha.md | abrir e entrar (8296 e a resposta: os andares não têm nós nos templates), resetar (8299) |
 | Sala em grupo | exp_kitabi_…_ek_sahne_mob #17-#23 | 12/17/32/120, playerState 2 do dono (`handlers/room.py`; 0/1 dos outros vêm do cliente) | salas-campanha.md | criar sala de campanha em grupo, entrar com outra conta, pronto, convite (5028), aba Hall (5027 → 4161) |
@@ -49,3 +48,4 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 | arkadaş isteği gönderme | pedido de amizade: oficial_encantar #1776-#1779 (`handlers/friends.py`, `test_social`) |
 | atölye item basma ve mozaik | forja: reforço (109, 109, 115, 86), engaste (109, 115, 115, 111, 83), desengaste com o 4476/4484 do item ganho; a bancada no formato inglês do 5005 (tutorial_en #3202/#3217, 231733 #4804) |
 | envanterden item kuşanma | equipar pela mochila: 3, 150, 115, 115 com o 83 do HP pack entre o 3 e o 150 como no inglês (153200 #2182-#2187) |
+| av askeri ve ödül toplama | labirinto de gemas (`game/gemmaze.py`, test_labirinto_gemas): tabuleiro, cascata, pontos e prêmios (`CAPTURED_*`, só turco); o 4903 dos buffs das cartas por tipo de campanha (`systems.send_camp_buffs`) |
