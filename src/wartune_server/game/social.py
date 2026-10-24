@@ -13,6 +13,7 @@ from google.protobuf.message import Message
 
 from ..domain.models import Character, Marriage, Relation, RelationType, SnsProfile
 from ..protocol.messages import wartune_pb2 as pb
+from ..templates.repository import GameTemplates
 from .builders import login as b
 from .session import GameContext, GameSession
 
@@ -239,6 +240,17 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
             marTime=b.fmt_time(m.married_at) if m.married_at else "",
             logoutDays=0 if online else days,  # divórcio grátis (op 15) com 5+ dias offline
         )
+    )
+
+
+def item_link(templates: GameTemplates, tid: int) -> str:
+    """Link de item no chat (``<a t="2" .../>``) como nos 83 oficiais (oficial_encantar #1749, 231733 #3250);
+    ``skill`` = ``DefaultSkill`` (8001 no 1128274 da árvore dourada, só turco #71), 0 sem ela."""
+    row = templates.get("ItemTempInfos", tid) or {}
+    skill = (row.get("DefaultSkill") or "0").split(",")[0] or "0"
+    return (
+        f'<a t="2" id="0" name="{row.get("TemplateName", tid)}" bind="true" join="-1,-1,-1,-1" '
+        f'skill="{skill},0,0,0,0" tempid="{tid}" grade="0" appSkill="0"/>'
     )
 
 

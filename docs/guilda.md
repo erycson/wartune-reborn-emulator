@@ -80,7 +80,7 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 5147 | aprender habilidade | 3 (contribuição já debitada, nível antigo), 110 `{propertyType 3, value bônus}`, 150, 3, 111 "Successfully learned skill!" | *(visto)* oficial_20261023-171155-1 #5045–#5051 |
 | 8215 | info do altar | 4141 (bênçãos usadas hoje), 4142 prêmio pendente | *(cliente)* m2 `__refreshAltarInfo` |
 | 8217 | casas da roleta | 4144 `site[]` (`DropViewInfos.Site`), embaralhadas a cada abertura; o 5145 usa a mesma ordem | *(cliente)* m2 `ConsortiaDropTemplateCate`; *(visto)* oficial_20261023-171155-1 #5151 (2,1,4,5,8,7,9,6,3,10); *(dedução)* ordem nova a cada 8217 |
-| 5145 | bênção | 45 `{blessLeftTime, blessSite, blessTempId, blessCount}`; `blessSite` = posição no 4144, -1 = nada; o prêmio fica no membro até o 8216 | *(cliente)* m2 `__getAltarBlessInfo`, m6 `ConsortiaAltarFrame` |
+| 5145 | bênção | 45 `{blessLeftTime, blessSite, blessTempId, blessCount}`; `blessSite` = posição no 4144, -1 = nada; o prêmio fica no membro até o 8216; 83 canal 2 para todos: "Congratulations to <jogador> for obtaining <item> x1 from Guild Blessing!" | *(cliente)* m2 `__getAltarBlessInfo`, m6 `ConsortiaAltarFrame`; *(visto)* o 83 de outros jogadores em oficial_encantar #1723/#1749/#2377/#2383 e 231733 #3250 (o turco buyuk_hp_iksiri #2 é o mesmo); *(dedução)* todo prêmio é anunciado |
 | 8216 | pegar o prêmio da bênção (sem espaço livre: 4143 `result` falso e o prêmio fica) | 115, 4143 `{result}` | *(cliente)* m2 `__addFreshItem` |
 | 8577 | baú | 4466, sempre com a linha do 2060044 (count 0 se não há) | *(visto)* `birlik_katkisi...json` #4; oficial_20261023-171155-1 #4947, #5005 |
 | 8579 | membros para distribuir | 4465 | *(cliente)* m6 |

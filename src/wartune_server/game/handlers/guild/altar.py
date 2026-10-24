@@ -9,7 +9,7 @@ from ....domain.models import (
     ConsortiaMember,
 )
 from ....protocol.messages import wartune_pb2 as pb
-from ... import bag, rules
+from ... import bag, rules, social
 from ... import guild as gd
 from ...builders import login as b
 from ...builders.player import quest_update
@@ -31,6 +31,8 @@ from .common import (
     _player,
     _refuse,
 )
+
+S_CHAT, WORLD = 83, 2  # ChatChannelMsg.channel dos anúncios para o servidor
 
 # ---- bênção do altar -------------------------------------------------------------------------
 
@@ -119,6 +121,12 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     )
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    # (visto) oficial_encantar #1723/#1749/#2377/#2383, 231733 #3250/#3332: o prêmio de outros jogadores no 83 canal 2
+    # (gema, chave, chicote, pedra da sorte); (dedução) todo prêmio, já que o prêmio daqui é um item do mercado
+    text = f"Congratulations to {social.player_link(s.ctx, c)} for obtaining {social.item_link(s.ctx.templates, prize)}"
+    shout = pb.ChatChannelMsg(channel=WORLD, encodeMsg=f"{text} x1 from Guild Blessing!")
+    for other in s.ctx.online.sessions():
+        other.send(S_CHAT, shout)
     from .. import events  # handlers.events importa login, que importa a guilda
 
     await events.leed_done(s, events.BLESS_LEED)  # LeedTemp 12 "Perform a guild blessing" (PassCount 2)

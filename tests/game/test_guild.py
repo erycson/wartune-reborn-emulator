@@ -354,8 +354,14 @@ async def test_altar_bless_and_take(tmp_path: Path) -> None:
         sites = _one(await a.idle(), 4144, pb.ConsortiaInfoMsg).site
         assert sorted(sites) == list(range(1, 11))  # oficial #5151: as 10 casas embaralhadas
         a.client.send(5145, pb.SimplePropertyMsg(param1=1))
-        bless = _one(await a.idle(), 45, pb.ConsortiaMsg)
+        got = await a.idle()
+        bless = _one(got, 45, pb.ConsortiaMsg)
         assert sites[bless.blessSite] == 1 and bless.blessLeftTime == 1 and c.consortia_offer == 80
+        shout = _one(got, 83, pb.ChatChannelMsg)  # (visto) oficial_encantar #1749: o prêmio para o servidor
+        assert shout.channel == 2 and shout.encodeMsg.startswith(f'Congratulations to <a t="1" id="{c.id}"')
+        assert f'tempid="{bless.blessTempId}"' in shout.encodeMsg and shout.encodeMsg.endswith(
+            " x1 from Guild Blessing!"
+        )
 
         a.client.send(8216)
         got = await a.idle()

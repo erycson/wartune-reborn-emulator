@@ -28,7 +28,7 @@ from ...domain import gameday
 from ...domain.models import BagType, EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
-from .. import bag, rewards
+from .. import bag, rewards, social
 from .. import events as ev
 from ..builders import login as b
 from ..castle import castle_yield
@@ -167,12 +167,9 @@ def _line(snap: PlayerSnapshot, s: GameSession, tid: int, n: int) -> str:
     """Linha da sorte no formato do #71 (links de jogador e de item do chat). ``consortiaId`` 1 e ``grades`` 0 como
     vieram nas 3 linhas do #71 (dedução: não é a guilda); ``skill`` = ``DefaultSkill`` (8001 no 1128274)."""
     c = snap.character
-    row = s.ctx.templates.get("ItemTempInfos", tid) or {}
-    skill = (row.get("DefaultSkill") or "0").split(",")[0] or "0"
     return (
         f'Congratulations to <a t="1" id="{c.id}" name="{c.nickname}" consortiaId="1" serverName="" grades="0" /> '
-        f'for receiving: <a t="2" id="0" name="{row.get("TemplateName", tid)}" bind="true" join="-1,-1,-1,-1" '
-        f'skill="{skill},0,0,0,0" tempid="{tid}" grade="0" appSkill="0"/> x {n}'
+        f"for receiving: {social.item_link(s.ctx.templates, tid)} x {n}"
     )
 
 
