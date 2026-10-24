@@ -354,6 +354,8 @@ def _world_land(s: GameSession, mine: Mine, now: datetime, holder: Holder | None
 def _world_sync(s: GameSession, mine: Mine, state: int, holder: Holder | None) -> None:
     """140 da mina do mundo a quem vê a grade dela (e ao próprio jogador, que pode não ter monstros na vista)."""
     land = _world_land(s, mine, s.ctx.clock.now(), holder, state)
+    if state == mines.MINE_FIGHTING:
+        land.curArmyId.append(s.player_id)  # (visto) 153200 #1574: o exército de quem ataca
     targets = {
         id(o): o for o in viewers(s, mine.map_id) if o.outer_view and oc.grid_of(mine.x, mine.y) in o.outer_view[1]
     }
@@ -501,6 +503,8 @@ def _mine_sync(s: GameSession, mine: Mine, state: int) -> None:
     snap = s.snapshot
     assert snap is not None
     land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, state, _capacity(s))
+    if state == mines.MINE_FIGHTING:
+        land.curArmyId.append(s.player_id)  # (visto) tutorial_en #726: o exército de quem ataca
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))
 
 
@@ -597,7 +601,8 @@ async def _casualties(
 
 async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> None:
     """Fim da luta da mina, na ordem do oficial (tutorial_en #741-#752): 150, 4103, 150, 100, 140 ×2; vencendo,
-    a mina fica do jogador: 112 da missão 60, 4152, 109, 152 com o rendimento e 140 da mina ocupada."""
+    a mina fica do jogador: 112 da missão 60, 4152, 109, 152 com o rendimento, 140 da mina ocupada e o 83 da
+    devoção antes do 169 (#748-#754)."""
     snap = s.snapshot
     assert snap is not None
     templates = s.ctx.templates
@@ -605,7 +610,7 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     await _casualties(s, battle, won, 4)
     _army_sync(s, ARMY_IDLE)
     await refresh(s)  # a luta pode ter cruzado o refresh: a ocupação é do ciclo novo
-    now = s.ctx.clock.now()
+    now, devotion = s.ctx.clock.now(), events.devotion(s)
     if not won or mines.occupied(snap, mine) is not None:
         _mine_sync(s, mine, mines.MINE_FREE)
         return
@@ -616,10 +621,12 @@ async def _mine_over(s: GameSession, battle: Battle, mine: Mine, won: bool) -> N
     await s.ctx.characters.save(snap.character, snap.castle, land, *quests)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    await events.leed_done(s, LEED_MINE)
+    await events.leed_done(s, LEED_MINE, say=False)
     castle_yield(s)
     s.send(S_POLITICS, politics_msg(snap, templates))
     _mine_sync(s, mine, mines.MINE_FREE)
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
     map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))  # tutorial_en #754
 
@@ -671,7 +678,8 @@ async def _world_mine_over(
     s: GameSession, battle: Battle, mine: Mine, cycle: datetime, won: bool, taken_from: int
 ) -> None:
     """Fim da luta pela mina do mundo, na ordem do oficial (#3069-#3082): 150, 109, 3, 4103, 150, 100, 140 ×2 do
-    exército; vencendo, 109, 152 com a mina, 140 da mina ocupada; depois 169. O 4382 (com o Daru) só sai no 5035 da
+    exército; vencendo, 109, 152 com a mina, 140 da mina ocupada e o 83 da devoção (como na mina da cidade
+    externa, tutorial_en #748-#754); depois 169. O 4382 (com o Daru) só sai no 5035 da
     volta ao mapa (#3081-#3082; 153200 #1634-#1636, #2016-#2017), como na mina da cidade externa. Ganha a mina
     se o ciclo é o mesmo e ela ainda está como no começo (livre, ou com quem foi atacado); a de outro jogador sai
     dele (``_evict``). Uma ocupação por mina e ciclo no banco: quem chega depois perde (IntegrityError, log)."""
@@ -683,7 +691,7 @@ async def _world_mine_over(
     await _casualties(s, battle, won, 4)
     _army_sync(s, ARMY_IDLE)
     await refresh(s)
-    now = s.ctx.clock.now()
+    now, devotion = s.ctx.clock.now(), events.devotion(s)
     holder = (await _holders(s, mine.map_id, now)).get(mine.id)
     same = mines.world_cycle_start(world, now) == cycle and (holder[0].character_id if holder else 0) == taken_from
     room = len(mines.held(snap)) < int(mines.world_settings(world)["max_held"])
@@ -705,13 +713,15 @@ async def _world_mine_over(
         else:
             if quests:
                 s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-            await events.leed_done(s, LEED_MINE)
+            await events.leed_done(s, LEED_MINE, say=False)
             castle_yield(s)
             s.send(S_POLITICS, politics_msg(snap, templates))
     if land is not None:
         _world_sync(s, mine, mines.MINE_FREE, (land, snap.character.nickname or "", _guild_name(s)))
     else:
         _world_sync(s, mine, mines.MINE_FREE, (await _holders(s, mine.map_id, now)).get(mine.id))
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
     map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))
 

@@ -215,7 +215,8 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=16, posY=34))
         got = await g.until(157)
         assert [p.code for p in got] == [140, 140, 140, 157]
-        assert pb.MapUpdatedMsg.FromString(got[2].body).wildLand.state == mines.MINE_FIGHTING
+        fighting = pb.MapUpdatedMsg.FromString(got[2].body).wildLand
+        assert (fighting.state, list(fighting.curArmyId)) == (mines.MINE_FIGHTING, [g.user_id])
         # inglesa #721: exército compacto com heroTempId e job (o cliente grava heroTempId no herói; com 0 a luta
         # trava em ResourceModel.loadBattleJobUI e o boneco perde o corpo)
         army_msg = pb.MapUpdatedMsg.FromString(got[0].body).army
@@ -238,7 +239,7 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
         # o 83 da devoção (leed 9) logo depois do 4152; o oficial manda depois do 140 (tutorial_en #748-#753).
         # Com soldados perdidos, 109 e 3 antes do 4103 e o Daru = os perdidos (oficial_20261023-153200-1 #1620-#1623)
-        assert after == [150, 109, 3, 4103, 150, 100, 140, 140, 112, 4152, 83, 109, 152, 140, 169]
+        assert after == [150, 109, 3, 4103, 150, 100, 140, 140, 112, 4152, 109, 152, 140, 83, 169]
         assert report.strategyBonus > 0 and snap.character.strategy == strategy + report.strategyBonus
         g.client.send(5035, pb.LoginStateMsg(state=3))  # de volta ao mapa: o 4382 mostra o Daru (#1636)
         movie = pb.FightOverMoiveMsg.FromString((await g.until(4382))[-1].body)

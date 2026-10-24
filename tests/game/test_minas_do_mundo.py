@@ -101,7 +101,7 @@ async def test_ocupa_e_desiste_da_mina_do_mundo(tmp_path: Path, monkeypatch: pyt
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=FIRST[1], posY=FIRST[2]))
         got = await g.until(157)
         assert [p.code for p in got] == [140, 140, 140, 157]
-        assert [(w.id, w.state) for w in _synced(got)] == [(FIRST[0], 4)]
+        assert [(w.id, w.state, list(w.curArmyId)) for w in _synced(got)] == [(FIRST[0], 4, [g.user_id])]
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
         assert (prepare.battleType, prepare.mapTempId) == (1, 1)
         got = await g.fight(prepare) + await g.idle()
