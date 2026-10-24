@@ -6,19 +6,24 @@ from __future__ import annotations
 
 import json
 import random
+from collections.abc import Sequence
 from datetime import datetime
 
 from ...domain.models import EventState, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
+from ...templates.repository import Row
 from .. import events as ev
-from .. import rewards
+from .. import rewards, rules
 from ..builders import login as b
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from .player import S_ITEMS, alert, granted
+from .player import S_ITEMS, _player, alert, granted
 
 S_REWARD, S_FRESH, S_COUNT = 4198, 4197, 4360
+S_CHAT, S_CLICK_ADD, S_OFFER_DONE = 83, 4413, 4196  # 4196 (0x1064) sem corpo: (visto) 121659 #505, na entrega
+TREE_FRIEND = 5  # RewardCondictionInfos.CondictionType "Energize the Tree of Ancients (Friends)"
 S_RING, S_RING_SUM = 4614, 4616
 SLOTS, OPEN_GRADE, BASE_COUNT = 4, 14, 20  # OfferRewardModel: MAX_OFFER_TASK_NUM, OPEN_REWARD_GRADE, BASE_REWARD_COUNT
 AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 10  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
@@ -34,20 +39,75 @@ def _json(st: EventState) -> dict:  # type: ignore[type-arg]
     return json.loads(st.text) if st.text else {}
 
 
-def _reward_info(tid: int, quality: int, *, complete: bool = False, accept: bool = True) -> pb.RewardInfo:
+def _reward_info(
+    tid: int,
+    quality: int,
+    *,
+    complete: bool = False,
+    accept: bool = True,
+    repeat: int = 0,
+    progress: Sequence[int] = (),
+    done_at: datetime | None = None,
+) -> pb.RewardInfo:
+    n = [*progress, 0, 0, 0, 0]
     return pb.RewardInfo(
         templateId=tid,
         isComplete=complete,
-        condition_1=0,
-        condition_2=0,
-        condition_3=0,
-        condition_4=0,
-        completedDate=b.fmt_time(datetime(2000, 1, 1)),
-        repeatFinish=0,
+        condition_1=n[0],
+        condition_2=n[1],
+        condition_3=n[2],
+        condition_4=n[3],
+        completedDate=b.fmt_time(done_at or datetime(2000, 1, 1)),
+        repeatFinish=repeat,
         isAccept=accept,
         isSelect=True,
         quality=quality,
     )
+
+
+def _task_info(task: EventState, *, done_at: datetime | None = None) -> pb.RewardInfo:
+    """A tarefa do painel como o oficial manda: (visto) oficial_20261023-231733-1 #1465 e 121659 #230/#241/#502,
+    ``repeatFinish`` 1, ``isAccept`` falso em andamento e verdadeiro só na entrega, ``condition_N`` = andamento."""
+    info = _json(task)
+    done = done_at is not None
+    return _reward_info(task.value, int(info.get("q", 1)), complete=done, accept=done, repeat=1,
+                        progress=info.get("n", []), done_at=done_at)  # fmt: skip
+
+
+def _conditions(s: GameSession, tid: int) -> list[Row]:
+    """As condições da tarefa (RewardCondictionInfos, na ordem de condition_1..4); ``Para2`` = quantas vezes."""
+    return [r for r in s.ctx.templates.rows("RewardCondictionInfos") if int(r["TemplateId"]) == tid][:4]
+
+
+async def progress(s: GameSession, condition: int) -> None:
+    """A ação do tipo ``condition`` aconteceu: +1 nas condições desse tipo da tarefa aceita (até o ``Para2``) e o
+    4198 com o andamento. (visto) oficial_20261024-121659-1 #229-#230 e #240-#241: tipo 5 "Energize the Tree of
+    Ancients (Friends)" a cada rega de árvore de amigo, logo depois do 112. Só o tipo 5 tem quem avise; os outros
+    tipos dependem dos seus sistemas (docs/eventos.md)."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    task = _task(snap, now)
+    if not task.value:
+        return
+    conds = _conditions(s, task.value)
+    info = _json(task)
+    n = [*info.get("n", []), *[0] * len(conds)][: len(conds)]
+    hits = [i for i, r in enumerate(conds) if int(r["CondictionType"]) == condition and n[i] < int(r["Para2"])]
+    if not hits:
+        return
+    for i in hits:
+        n[i] += 1
+    info["n"] = n
+    task.text, task.updated_at = json.dumps(info), now
+    await s.ctx.characters.save(task)
+    s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_task_info(task)]))
+
+
+def _met(s: GameSession, task: EventState) -> bool:
+    conds = _conditions(s, task.value)
+    n = _json(task).get("n", [])
+    return bool(conds) and all(i < len(n) and n[i] >= int(r["Para2"]) for i, r in enumerate(conds))
 
 
 # ---------------------------------------------------------------- painel de recompensas
@@ -150,7 +210,7 @@ async def offer_accept(s: GameSession, msg: pb.RewardAddedMsg) -> None:
     board.text = json.dumps(data)
     task.value, task.text, task.updated_at = data["ids"][pos], json.dumps({"q": data["q"][pos], "pos": pos}), now
     await s.ctx.characters.save(board, task)
-    s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_reward_info(task.value, data["q"][pos])]))
+    s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_task_info(task)]))  # (visto) 231733 #1465-#1466: 4198, 4197
     _send_board(s, snap, now)
 
 
@@ -183,10 +243,11 @@ async def offer_remove(s: GameSession, msg: pb.RewardRemovedMsg) -> None:
 
 @router.on(8291)
 async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
-    """Entrega a tarefa. ``isPass`` (contrato 2 ativo) termina sem cumprir as condições; sem ele as
-    condições teriam de estar feitas (ver dependências em docs/eventos.md).
+    """Entrega a tarefa com as condições cumpridas (``progress``) ou com ``isPass`` (contrato 2 ativo).
 
-    Prêmio como o OfferTaskItem mostra: RewardPlayGP/RewardGold x qualidade x nível (qualidade 5 = x6)."""
+    Prêmio como o OfferTaskItem mostra: RewardPlayGP/RewardGold x qualidade x nível (qualidade 5 = x6): (visto)
+    oficial_20261024-121659-1 #498-#506, tarefa 24 qualidade 5 no nível 19: 18.240 de EXP e 2.280 de ouro. Pacotes:
+    109, 3, 4197, 4198 (``isAccept`` e a data), 4152 (leed 24), 4413 e 4196 vazios e o 83 só com a EXP."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -199,24 +260,31 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
         for t, k in ((rewards.EXP, "RewardPlayGP"), (-100, "RewardGold"), (-300, "RewardStrategy"))
         if row and int(row[k])
     ]
-    if row is None or not msg.isPass or not ev.has_contract(snap, PASS_CONTRACT, now):
-        # ponytail: as condições (RewardCondictionInfos: capturar NPC, missões, etc.) dependem de
-        # outros sistemas que ainda não avisam; sem o contrato não há como terminar
+    passed = msg.isPass and ev.has_contract(snap, PASS_CONTRACT, now)
+    if row is None or not (passed or _met(s, task)):
         s.log.info("8291 recusado", tarefa=msg.templateId, passe=msg.isPass)
         return
     if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         return
-    board, task, tid, _ = _clear(snap, now, COMPLETED)
+    shown = _task_info(task, done_at=now)
+    board, task, _, _ = _clear(snap, now, COMPLETED)
     count = ev.daily(snap, "offer:count", now)
     count.value, count.updated_at = count.value + 1, now
-    new, text = rewards.grant(snap, s.ctx.templates, drops)
+    new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), board, task, count, *new)
-    s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_reward_info(tid, quality, complete=True)]))
-    _send_board(s, snap, now)
-    granted(s, drops, new, text)
     from . import events  # handlers.events importa este módulo
 
-    await events.leed_done(s, events.BOUNTY_LEED)  # (dedução) "Complete Bounty Quest" (PassCount 5) na entrega
+    if any(t == -100 for t, _ in drops):
+        castle_yield(s)
+    _player(s)
+    _send_board(s, snap, now)
+    s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[shown]))
+    await events.leed_done(s, events.BOUNTY_LEED)  # "Complete Bounty Quest" (PassCount 5)
+    s.send(S_CLICK_ADD, pb.ClickDatasRspMsg())
+    s.send(S_OFFER_DONE)
+    gp = sum(n for t, n in drops if t == rewards.EXP)
+    # TODO(inventado): o texto do Daru (RewardStrategy) sem captura; o oficial não fala do ouro
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(gp)))
 
 
 @router.on(8298)
@@ -347,5 +415,5 @@ def login_push(s: GameSession) -> None:
     task = _task(snap, now)
     msg = pb.RewardUpdatedRspMsg()
     if task.value:
-        msg.reward.append(_reward_info(task.value, int(_json(task).get("q", 1))))
+        msg.reward.append(_task_info(task))
     s.send(S_REWARD, msg)

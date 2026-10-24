@@ -118,7 +118,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   | 15 | Consume Balens/Bound Balens | `GameSession.on_packet`: depois de **qualquer** pedido em que diamante ou vinculado caiu (pega todos os `ledger.pay/spend`, a guilda inclusive) | *(visto)* só turco: a aceleração paga 5172 chama antes do 111/102 (replay #1289-#1294: o 83 "Your devotion level has increased to 25." é este); yeralti_labirenti #7-#8 (giftToken 6 → 5 e o 4152); sem contraexemplo: a aceleração paga da savasa_baskin (gift 5 → 0, sem 4152 do 15) já está com total 37, depois do labirinto (22); a inglesa não gasta diamante |
   | 17 | Capture an Astral | sorteio de estrela 8269, antes do 4180 | *(visto)* só turco: kader_sistemi #4-#7 |
   | 18 | Fight a World BOSS | `worldboss.boss_attack`, já no ataque (como o 10) | *(dedução)* pelo título |
-  | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(dedução)* pelo título (PassCount 5) |
+  | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(visto)* oficial_20261024-121659-1 #503 |
   | 25 | Harvest from your own farm | colheita 15044 op 4 (só a própria fazenda existe) | *(dedução)* pelo título |
   | 33 | Spin the Blessing Wheel | **bênção do seminário** 8489, antes do 4391 | *(visto)* só turco: city_city_upgrade #139-#140; a "Blessing Wheel Percentage" das notícias (internet) é essa % |
   | 13 | Participate in a group arena fight | **depende de** arena em grupo (não existe) | — |
@@ -274,9 +274,10 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 |---|---|---|
 | login | 4360 `rewardCount 0`, 4198 da tarefa aceita, 4616 + 4614 do anel | (visto) tutorial_en #46 (4360), #53 (4616), #54 (4198 vazio); 4198 com tarefa e 4614 só turco: login.json #56-58 |
 | 8290 | `isButton` falso: sorteia se não há lista ou passou 30 min; verdadeiro: 2 grátis por dia, depois 10 Balens (`REFRESH_REWARD_NEEDPAY`; `payType` 0 aceita vinculado); 4197 | (cliente) OfferRewardModel/OfferTimeView |
-| 8288 | aceita a vaga `rewardId` (uma por vez, 20 por dia, nível 14+); 4198 + 4197 | (cliente) OfferTaskItem |
+| 8288 | aceita a vaga `rewardId` (uma por vez, 20 por dia, nível 14+); 4198 (`isAccept` falso, `repeatFinish` 1) + 4197 | (visto) oficial_20261023-231733-1 #1461-#1466 |
+| progresso | cada ação do tipo da condição soma 1 (até o `Para2`) e manda 4198 com `condition_N`; só o tipo 5 "Energize the Tree of Ancients (Friends)" tem quem avise (rega de árvore de amigo, entre o 112 e o 147) | (visto) oficial_20261024-121659-1 #226-#241 |
 | 8289 | desiste: 4198 com `isComplete` (é como o cliente tira da lista) e a vaga volta a 1 | (dedução) |
-| 8291 | `isPass` com o contrato 2 ativo termina: EXP/ouro = `RewardPlayGP`/`RewardGold` x qualidade x nível (5 = x6); 4198, 4197, 3, 150, 109, 83 | (cliente) OfferTaskItem |
+| 8291 | condições cumpridas, ou `isPass` com o contrato 2 ativo: EXP/ouro = `RewardPlayGP`/`RewardGold` x qualidade x nível (5 = x6); 109, 3, 4197, 4198 (`isAccept`, data), 4152 (leed 24), 4413 e 4196 vazios, 83 "Received N EXP " (sem o ouro; o texto do Daru é TODO(inventado)) | (visto) oficial_20261024-121659-1 #498-#506 |
 | 8298 | só registro | (cliente) |
 | 8731 | 4616 (anéis hoje) + 4614 (anel atual) | (cliente) RingTaskManager |
 | 8732 | sorteia anel `RewardTemps` tipo 1 do nível (35+, até 200 por dia) | (cliente) |
@@ -285,8 +286,8 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 
 - Vagas: 4, sorteio por `Rands` entre `RewardTemps` tipo 0 do nível.
 - ponytail: pesos da qualidade (40/30/15/10/5) e o prêmio do anel sem multiplicador são escolha nossa.
-- **Dependência (8291 sem passe, 8298, 8729):** as condições (`RewardCondictionInfos`: capturar
-  NPC = batalha, missões, enviar mensagem...) precisam que os outros sistemas avisem o progresso.
+- **Dependência (8291 sem passe, 8298, 8729):** as outras condições (`RewardCondictionInfos`: capturar
+  NPC = batalha, missões, enviar mensagem...) precisam que os seus sistemas chamem `offer.progress`.
 
 ## Minigames (`handlers/minigames.py`)
 

@@ -20,6 +20,7 @@ from ..builders import login as b
 from ..builders.player import item_moved, quest_update
 from ..router import router
 from ..session import GameSession
+from . import offer
 from .login import player_info
 from .player import CURRENCIES, push_level
 
@@ -510,6 +511,7 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     cs.castle_yield(s)
     if quests:  # (visto) oficial_20261023-171155-1 #7769-#7774: o 112 antes do 111/4386/83 da subida
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    await offer.progress(s, offer.TREE_FRIEND)  # (visto) 121659 #229-#231: o 4198 entre o 112 e o 147
     up = _farm_up(s, snap, before)  # (visto) oficial_20261023-215937-1 #1277-#1281: 4158, 109, 111, 4386, 83, 147
     trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in trees]))
