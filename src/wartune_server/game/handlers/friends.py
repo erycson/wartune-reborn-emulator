@@ -1,7 +1,7 @@
 """Amigos, lista negra, grupos, perfil SNS, busca e dados de outros jogadores; troca de nome.
 
 Formatos e textos conferidos no cliente (``FriendManager``, ``FriendSocketOutManager``,
-``SNSManager``, ``RenameView``) e (só turco) em ``arkadas_istegi_gonderme.json``; ver docs/social.md.
+``SNSManager``, ``RenameView``) e (visto) em ``oficial_encantar`` #1776-#1779; ver docs/social.md.
 """
 
 from __future__ import annotations
@@ -123,7 +123,7 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
     else:
         mine.relation, mine.group_id = RelationType.PENDING, social.NO_GROUP
     # pedido pendente ou aceito conta: (cliente) FriendManager.as __addFriend dispara ADD_FRIEND;
-    # (visto, só turco: arkadas_istegi_gonderme #1) 78 com relation 3, pendente
+    # (visto) oficial_encantar #1777: 78 com relation 3, pendente
     quests: list[Quest] = []
     if relation == RelationType.FRIEND:
         quests = rules.quest_event(snap, s.ctx.templates, rules.FRIEND_CONDITION, 0, len(snap.relations))
