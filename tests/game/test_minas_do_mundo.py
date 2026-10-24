@@ -106,7 +106,9 @@ async def test_ocupa_e_desiste_da_mina_do_mundo(tmp_path: Path, monkeypatch: pyt
         assert (prepare.battleType, prepare.mapTempId) == (1, 1)
         got = await g.fight(prepare) + await g.idle()
         codes = [p.code for p in got if p.code not in NOISE]
-        assert codes[-2:] == [169, 4382]
+        assert codes[-1] == 169  # o 4382 só no 5035 da volta (171155 #3081-#3082)
+        g.client.send(5035, pb.LoginStateMsg(state=3))
+        assert [p.code for p in await g.idle()] == [4382]
         politics = pb.CastleYieldMsg.FromString(next(p.body for p in got if p.code == 152))
         assert [(y.wildPoxName, y.mapId) for y in politics.wildYield] == [("Autaric Plains(2487,2632)", 1)]
         assert [(w.id, w.occupyPlayerId) for w in _synced(got)][-1] == (FIRST[0], g.user_id)

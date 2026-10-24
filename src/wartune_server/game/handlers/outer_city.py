@@ -671,7 +671,8 @@ async def _world_mine_over(
     s: GameSession, battle: Battle, mine: Mine, cycle: datetime, won: bool, taken_from: int
 ) -> None:
     """Fim da luta pela mina do mundo, na ordem do oficial (#3069-#3082): 150, 109, 3, 4103, 150, 100, 140 ×2 do
-    exército; vencendo, 109, 152 com a mina, 140 da mina ocupada; depois 169 e o 4382 logo em seguida. Ganha a mina
+    exército; vencendo, 109, 152 com a mina, 140 da mina ocupada; depois 169. O 4382 (com o Daru) só sai no 5035 da
+    volta ao mapa (#3081-#3082; 153200 #1634-#1636, #2016-#2017), como na mina da cidade externa. Ganha a mina
     se o ciclo é o mesmo e ela ainda está como no começo (livre, ou com quem foi atacado); a de outro jogador sai
     dele (``_evict``). Uma ocupação por mina e ciclo no banco: quem chega depois perde (IntegrityError, log)."""
     snap = s.snapshot
@@ -679,8 +680,7 @@ async def _world_mine_over(
     world, templates = s.ctx.world, s.ctx.templates
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
     s.ctx.wilds.fighting.pop((mine.map_id, mine.id, cycle), None)
-    daru = await _casualties(s, battle, won, 4)
-    s.battle_strategy = 0  # (visto) #3082: o 4382 sai aqui mesmo
+    await _casualties(s, battle, won, 4)
     _army_sync(s, ARMY_IDLE)
     await refresh(s)
     now = s.ctx.clock.now()
@@ -714,7 +714,6 @@ async def _world_mine_over(
         _world_sync(s, mine, mines.MINE_FREE, (await _holders(s, mine.map_id, now)).get(mine.id))
     map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))
-    s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
 
 
 def _guild_name(s: GameSession) -> str:
@@ -939,6 +938,7 @@ async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) ->
     map_id, x, y = oc.position(snap.castle, s.outer_army)
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
+    s.outer_fight_over = False  # já saiu: o 5035 e o 8747 não repetem
 
 
 @dataclass(frozen=True, slots=True)
@@ -1058,6 +1058,7 @@ async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: boo
     _army_sync(s, ARMY_IDLE)
     _target_sync(s, target, CASTLE_IDLE)
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
+    s.outer_fight_over = False  # já saiu: o 5035 e o 8747 não repetem
 
 
 def _castle_report(
