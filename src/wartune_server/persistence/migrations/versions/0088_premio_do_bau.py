@@ -23,7 +23,13 @@ depends_on = None
 
 KEY = "treasure_caches"
 settings = sa.table("game_settings", sa.column("key"), sa.column("value"))
-NEW: dict[str, object] = {"stone_weight": 1, "gear_weight": 3, "gear_profiles": [1, 2], "gear_below": 5, "gear_above": 2}
+NEW: dict[str, object] = {
+    "stone_weight": 1,
+    "gear_weight": 3,
+    "gear_profiles": [1, 2],
+    "gear_below": 5,
+    "gear_above": 2,
+}
 OLD: dict[str, object] = {"stone_weight": 1, "gear_weight": 1, "gear_profile": 2, "gear_below": 5, "gear_above": 2}
 
 

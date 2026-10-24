@@ -114,22 +114,27 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     assert snap is not None
     quests = rules.quest_event(snap, s.ctx.templates, rules.BLESS_CONDITION, 0, 1)  # missão 30
     await s.ctx.characters.save(c, member, *quests)
+    from .. import events  # handlers.events importa login, que importa a guilda
+
+    # (visto) oficial_20261024-121659-1 #549-#553 e #576-#580: 3, 4152 do leed, 45 e o 83 da devoção depois do 45
     _player(s)
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.BLESS_LEED, say=False)  # LeedTemp 12 "Perform a guild blessing" (PassCount 2)
     s.send(
         S_BLESS,
         b.complete(pb.ConsortiaMsg(blessLeftTime=used + 1, blessSite=sites.index(1), blessTempId=prize, blessCount=1)),
     )
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
     # (visto) oficial_encantar #1723/#1749/#2377/#2383, 231733 #3250/#3332: o prêmio de outros jogadores no 83 canal 2
-    # (gema, chave, chicote, pedra da sorte); (dedução) todo prêmio, já que o prêmio daqui é um item do mercado
+    # (gema, chave, chicote, pedra da sorte); 121659 #549-#553: o Enhanced Bounty Scroll (casa Shop Item) sem 83.
+    # TODO(inventado): quais prêmios são anunciados; aqui todos
     text = f"Congratulations to {social.player_link(s.ctx, c)} for obtaining {social.item_link(s.ctx.templates, prize)}"
     shout = pb.ChatChannelMsg(channel=WORLD, encodeMsg=f"{text} x1 from Guild Blessing!")
     for other in s.ctx.online.sessions():
         other.send(S_CHAT, shout)
-    from .. import events  # handlers.events importa login, que importa a guilda
-
-    await events.leed_done(s, events.BLESS_LEED)  # LeedTemp 12 "Perform a guild blessing" (PassCount 2)
 
 
 @router.on(8216)

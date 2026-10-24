@@ -182,7 +182,7 @@ PvE de `game/battle.py` com esses nós; sem eles o cliente carregaria um mapa va
 - **Guerra (4501)**: no dia de `Guild_WarDay` (1, 3 e 5) entre 20:00 e 21:00, duas guildas: grupos
   (8546 e 4441), desafios e lista (8472/8477 com 4377/4379), entrar (8471, 125 do 4501), montar time
   (8473), buff (8547) e os pacotes de dentro do mapa.
-- **Bênção**: pelo menos 30 bênçãos no altar de nível 10, gravando o 45 e o 4143 de cada uma, para
+- **Bênção**: pelo menos 30 bênçãos (2 vistas na 121659, altar nível 6), gravando o 45 e o 4143 de cada uma, para
   ver as 10 casas e a tabela de prêmios. Mais uma rápida (x10) com VIP 6: custo em contribuição antes
   e depois, o 45 e o 4143. Sem isso, a tabela e a forma da resposta do x10 não saem de lugar nenhum.
 - **Guerra entre servidores (4601)**: só se o evento reabrir (inscrição 8779 e a resposta 4682 com
@@ -202,11 +202,22 @@ A descrição está em chinês; a ligação com o opcode é *(dedução)*:
 - `Fam_Buffer_Price` 200 e `FamTree_WaterMax` 50: buff da terra secreta e carga diária da árvore.
 - `Guild_WarDay` 1,3,5 e `GuildWar_Time` 20:00,21:00: dias e horas da guerra de guildas.
 
-**Prêmio da bênção (5145/8216)**: a tabela do oficial não está nos templates nem nas capturas.
-`DropViewInfos` tem só nome e ícone das 10 casas (`pray_001` a `pray_010`); `LeedDrop` (sites 1 a 5) e
-`VipDrop` (sites 1 a 9) têm outras casas, não as 10 da bênção; `DistrictDrop` (distritos 101 a 107) não é chamado pelo
-cliente; e nenhuma captura tem o 45 ou o 4143. Continua valendo o *ponytail*: o prêmio é sempre um
-item do mercado liberado pelo nível do altar, na casa 1.
+**Prêmio da bênção (5145/8216)**: a tabela do oficial não está nos templates. `DropViewInfos` tem só
+nome e ícone das 10 casas (`pray_001` a `pray_010`: 1 Shop Item, 2 Strength, 3 Booster Items, 4 Seeds, 5 Gems,
+6 Gold, 7 EXP, 8 Treasure, 9 Bound Balens, 10 Daru); `LeedDrop` (sites 1 a 5) e `VipDrop` (sites 1 a 9) têm
+outras casas, não as 10 da bênção; `DistrictDrop` (distritos 101 a 107) não é chamado pelo cliente.
+
+*(visto)* oficial_20261024-121659-1, 2 bênçãos no altar nível 6:
+- #549-#553: 3, 4152 (leed 12), 45 `blessSite` 1, `blessTempId` 2130005 (Enhanced Bounty Scroll) x1, 4247. Na
+  ordem do 4144 de #547 (2,1,4,5,8,7,9,6,3,10), a posição 1 contada do zero é a casa 1 "Shop Item". Sem 83 para o
+  servidor.
+- #576-#580: 3, 4152, 45 `blessSite` 8, `blessTempId` -500 x4, 83 da devoção. No 4144 de #555
+  (2,1,5,3,4,7,6,10,9,8), a posição 8 é a casa 9 "Bound Balens". O 8216 (#583-#588) deu 3, 150, 4434, 111
+  "Received:  4 Bound Balens" (com dois espaços) e 4143. A moeda vai como `blessTempId` negativo (-500 = vinculado).
+
+O servidor segue a ordem 3, 4152, 45, 83 da devoção. Continua valendo o *ponytail*: o prêmio é sempre um item do
+mercado liberado pelo nível do altar, na casa 1. TODO(inventado): o conteúdo das outras casas, as chances e quais
+prêmios são anunciados (o servidor anuncia todos; o Bounty Scroll não foi anunciado).
 
 **Bênção rápida (x10, VIP 6)**: recusada. O m6 (`ConsortiaAltarFrame`) mostra o VIP 6
 (`QUICK_BLESS_VIP_GRADE`) e as 10 bênçãos (`QUICK_BLESS_COUNT`, `consortiaAltarBless(10)`). O

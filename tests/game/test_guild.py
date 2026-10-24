@@ -365,6 +365,8 @@ async def test_altar_bless_and_take(tmp_path: Path) -> None:
         a.client.send(5145, pb.SimplePropertyMsg(param1=1))
         got = await a.idle()
         bless = _one(got, 45, pb.ConsortiaMsg)
+        codes = [p.code for p in got]
+        assert codes.index(4152) < codes.index(45)  # oficial_20261024-121659-1 #549-#552: 3, 4152, 45
         assert sites[bless.blessSite] == 1 and bless.blessLeftTime == 1 and c.consortia_offer == 80
         shout = _one(got, 83, pb.ChatChannelMsg)  # (visto) oficial_encantar #1749: o prêmio para o servidor
         assert shout.channel == 2 and shout.encodeMsg.startswith(f'Congratulations to <a t="1" id="{c.id}"')

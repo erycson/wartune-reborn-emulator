@@ -207,7 +207,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mercado da guilda | ✅ | 🇹🇷 | ordem da compra do turco |
 | Baú da guilda (distribuir) | ✅ | | correio de mochila cheia por dedução |
 | Baú de prêmios | 🟡 | | nada enche o baú |
-| Altar: bênção | 🟡 | | prêmio sem tabela; ×10 recusada |
+| Altar: bênção | 🟡 | | ordem e posição conferidas (121659); prêmio sem tabela (2 amostras); ×10 recusada |
 | Altar do demônio (boss de guilda) | 🟡 | | entrada 8542 recusada |
 | Terra secreta: entrada e saída | ✅ | | |
 | Terra secreta: invasores | 🧪 | | só em memória; contribuição inventada (0073) |
