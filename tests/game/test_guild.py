@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, Character, Consortia, Item
-from wartune_server.game import bag
+from wartune_server.game import bag, rules
 from wartune_server.game import events as ev
 from wartune_server.game import guild as gd
 from wartune_server.game.handlers import guild as handlers
@@ -60,6 +60,62 @@ async def _member(a: Game, username: str) -> Game:
     assert _one(await other.idle(), 117, pb.ConsortiaMsg).consortiaId == _guild(a).id
     await a.idle()
     return other
+
+
+async def test_joining_matches_the_official_sequence(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #4561-#4567: 3, 150, 117, 111, 4266 a quem entrou; 83 do canal 5 a todos."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        other = await a.join("bruxa")
+        _rich(other)
+        other.client.send(5135, pb.ConsortiaMsg(consortiaId=_guild(a).id))
+        apply_id = _one(await other.idle(), 35, pb.ConsortiaMsg).applyId
+        a.client.send(5134, pb.ConsortiaMsg(applyId=apply_id, result=True))
+        got = await other.idle()
+        assert [p.code for p in got if p.code in (3, 150, 117, 111, 4266, 83, 164)] == [3, 150, 117, 111, 4266, 83, 164]
+        alert = _one(got, 111, pb.ChatChannelMsg).encodeMsg
+        assert alert == "Congratulations! You have joined Guild  [Lobos]."
+        chat = _one(got, 83, pb.ChatChannelMsg)
+        assert (chat.channel, chat.type, chat.otherId) == (5, 5, -1)
+        assert chat.encodeMsg.endswith(
+            'name="Bruxa" consortiaId="1" serverName="" grades="0" /> has just become the guilds newest member!'
+        )
+        assert _one(await a.idle(), 83, pb.ChatChannelMsg).encodeMsg == chat.encodeMsg
+
+
+async def test_recruit_notice_five_per_day(tmp_path: Path) -> None:
+    """8335: 5 anúncios por dia (visto ``speakTimes`` 5 no oficial), só com o direito de recrutar; 83 tipo 2 no mundo."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        got = await _create(a)
+        info = _one(got, 164, pb.ConsortiaInfoMsg)
+        assert info.speakTimes == 5 and info.fightPower == _char(a).fighting_capacity
+        assert info.orderInfo.fightPowerOrder == 1
+        b = await _member(a, "bruxa")
+        b.client.send(8335, pb.ConditionSpeakMsg(speak="nao pode"))  # membro comum: sem o direito 9
+        assert not [p for p in await b.idle() if p.code == 83]
+        for left in (4, 3, 2, 1, 0):
+            a.client.send(8335, pb.ConditionSpeakMsg(speak="Venham!"))
+            got = await a.idle()
+            chat = _one(got, 83, pb.ChatChannelMsg)
+            assert (chat.channel, chat.type, chat.encodeMsg, chat.consortiaName) == (10, 2, "Venham!", "Lobos")
+            assert _one(got, 164, pb.ConsortiaInfoMsg).speakTimes == left
+            assert _one(await b.idle(), 83, pb.ChatChannelMsg).encodeMsg == "Venham!"
+        a.client.send(8335, pb.ConditionSpeakMsg(speak="sexto"))
+        assert not [p for p in await a.idle() if p.code == 83]
+        tomorrow = _session(a).ctx.clock.now() + timedelta(days=1)
+        assert gd.speak_left(_session(a).ctx.templates, _guild(a), tomorrow) == 5
+
+
+async def test_guild_war_groups_list_the_guilds_by_power(tmp_path: Path) -> None:
+    """8546 -> 4441 e 4458 (visto #5135-#5136), com as guildas pelo poder (a guerra em si não roda)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        a.client.send(8546)
+        got = await a.idle()
+        assert [p.code for p in got if p.code in (4441, 4458)] == [4441, 4458]
+        teams, order = _one(got, 4441, pb.GuildGroupListMsg), _one(got, 4458, pb.GuildGroupListMsg)
+        assert [(x.consortiaName, x.fightPower) for x in teams.group] == [("Lobos", _char(a).fighting_capacity)]
+        assert not teams.isGuildSize and [x.order for x in order.group] == [1] and order.orderTime
 
 
 async def test_create_needs_level_and_gold_and_tells_the_client(tmp_path: Path) -> None:
@@ -149,10 +205,11 @@ async def test_contribution_matches_the_capture(tmp_path: Path) -> None:
         got = await a.idle()
         leed = _one(got, 4152, pb.LeedUpdatedRspMsg)  # leed 8 "Contribute to your Guild" (só turco: birlik_katkisi #11)
         assert [(x.templateId, x.isComplete) for x in leed.leed] == [(8, True)]
-        assert [p.code for p in got if p.code in (111, 4152, 42)] == [111, 4152, 42]
+        # (visto) oficial_20261023-171155-1 #4951-#4961: o 83 da devoção vai por último
+        assert [p.code for p in got if p.code in (111, 4152, 150, 42, 164, 83)] == [111, 4152, 150, 42, 164, 83]
         a.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=55999))
         got = await a.idle()
-        assert [p.code for p in got if p.code in (109, 3, 111, 42, 164)] == [109, 3, 111, 42, 164]
+        assert [p.code for p in got if p.code in (109, 3, 111, 150, 42, 164, 83)] == [109, 3, 111, 150, 42, 164]
         assert _one(got, 42, pb.ConsortiaMsg).result
         assert _one(got, 164, pb.ConsortiaInfoMsg).offer == 56
         assert (c.gold, c.consortia_offer, c.consortia_total_offer) == (gold - 56000, 56, 56)
@@ -198,8 +255,17 @@ async def test_upgrade_cooldown_quick_and_learning(tmp_path: Path) -> None:
         assert c.skill_attack == 0 and not [p for p in await a.idle() if p.code == 150]
         guild.attack_level = 1
         a.client.send(5147, pb.ConsortiaMsg(studySkill=6))
+        before = rules.leader_stats(_session(a).snapshot, _session(a).ctx.templates, None)
         got = await a.idle()
-        assert _one(got, 3, pb.PlayerMsg).consortiaAttack == 1 and [p for p in got if p.code == 150]
+        # (visto) oficial_20261023-171155-1 #5045-#5051
+        assert [p.code for p in got if p.code in (3, 110, 150, 111)] == [3, 110, 150, 3, 111]
+        old, new = (pb.PlayerMsg.FromString(p.body) for p in got if p.code == 3)
+        assert (old.consortiaAttack, old.consortiaOffer, new.consortiaAttack) == (0, 800, 1)
+        bonus = pb.PropertyUpdatedMsg.FromString(next(p.body for p in got if p.code == 110))
+        assert (bonus.propertyType, bonus.value) == (3, 40)
+        after = rules.leader_stats(_session(a).snapshot, _session(a).ctx.templates, None)
+        gain = {k: after.total[k] - before.total[k] for k in ("Power", "PhyAttack", "PhyDefence")}
+        assert gain == {"Power": 40, "PhyAttack": 160, "PhyDefence": 40}  # "Strength +40 (Hero)"
         assert c.consortia_offer == 800
 
 
@@ -404,7 +470,8 @@ async def test_box_item_goes_by_mail_when_the_bag_is_full(tmp_path: Path) -> Non
             ),
         )
         got = await a.idle()
-        assert not _one(got, 4466, pb.ConsortiaStorageInfoMsg).storageInfo  # 3 distribuídos: baú zerado
+        box = _one(got, 4466, pb.ConsortiaStorageInfoMsg).storageInfo  # 3 distribuídos: baú zerado
+        assert [(i.templateId, i.count) for i in box] == [(2060044, 0)]  # a linha fixa do oficial
         mine = s.snapshot
         assert mine is not None
         assert [i.count for i in mine.items if i.template_id == 2060044] == [1]

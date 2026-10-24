@@ -78,9 +78,11 @@ def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
         elif row["MasterType"] in GOLD_TECH:
             effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
             total += int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
-    # sem bônus de guilda/efeitos; a captura inglesa bate exato com prefeitura + minas (#579 120, #591 280,
-    # #772 1040, #2744 2280)
-    return total + mines.mine_gold(snap, templates)
+    # a captura inglesa bate exato com prefeitura + minas (#579 120, #591 280, #772 1040, #2744 2280), sem guilda;
+    # TODO(inventado): a habilidade "Gold Boost" da guilda ("Gold Production +N%") sobre o total (nenhuma captura)
+    total += mines.mine_gold(snap, templates)
+    boost = rules.guild_skills(snap.character, templates).get(rules.GUILD_GOLD, 0)
+    return total * (100 + boost) // 100
 
 
 def gold_max(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> int:

@@ -129,8 +129,9 @@ async def apply_delete(s: GameSession, msg: pb.ConsortiaMsg) -> None:
 
 @router.on(8214)
 async def recruit_list(s: GameSession, msg: pb.SearchConditionMsg) -> None:
-    """Candidatos à guilda; ``parameter1`` é o id da candidatura que o 5134 devolve."""
-    mine = _mine(s)
+    """Candidatos à guilda; ``parameter1`` é o id da candidatura que o 5134 devolve. Sem o direito de recrutar a lista
+    vem vazia (visto oficial_20261023-171155-1 #5132: membro comum de guilda com 99, ``totalRows`` 0)."""
+    mine = _can(s, gd.R_RECRUIT)
     apps = s.ctx.guilds.applications(mine[0].id or 0) if mine else []
     page = max(msg.pageIndex, 1)
     out = pb.SimplePlayerListRspMsg(totalRows=len(apps), uuid=gd.new_uuid())

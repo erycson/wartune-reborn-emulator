@@ -6,7 +6,7 @@ Valores fixos vêm do que o servidor oficial manda para um personagem novo, conf
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -80,19 +80,26 @@ class HeroStats:
         return (20 * flat + 21 * t["MagicAttack"] + 4 * t["Live"]) // 20  # = flat + 1,05 MAtk + Live/5, em inteiros
 
     @classmethod
-    def of(cls, hero: Hero, tpl: HeroTemplate, bonuses: Sequence[Row] = ()) -> HeroStats:
-        """``bonuses``: linhas de template dos equipamentos e dos atributos sorteados deles.
+    def of(
+        cls, hero: Hero, tpl: HeroTemplate, bonuses: Sequence[Row] = (), base: Mapping[str, int] | None = None
+    ) -> HeroStats:
+        """``bonuses``: linhas de template dos equipamentos e dos atributos sorteados deles. ``base``: o que soma no
+        próprio herói (as habilidades da guilda: visto oficial_20261023-171155-1 #5033/#5048, Strength +40 levou
+        ``basePower`` e ``totalPower`` de 1 a 41).
 
         Fórmulas conferidas na captura inglesa (maga níveis 1 a 10, com e sem equipamento); o cliente não calcula
-        nada disso, o servidor manda pronto.
+        nada disso, o servidor manda pronto. ``PhyDefence`` soma ``Power`` - 1 como o ``MagicDefence`` soma
+        ``Intellect`` - 1 (visto #5048: +40 de Strength = +40 de defesa física; com Power 1 da maga fica igual).
         """
+        extra = base or {}
         own = {"Power": hero.power, "Agility": hero.agility, "Intellect": hero.intellect}
         own |= {"Captain": hero.captain, "Physique": hero.physique}
+        own = {k: v + extra.get(k, 0) for k, v in own.items()}
         attrs = {k: own[k] + sum(int(r.get(k, 0)) for r in bonuses) for k in ATTRS}
         level = 3 * (hero.grades - 1)
         derived = {
             "PhyAttack": 4 * attrs["Power"],
-            "PhyDefence": attrs["Physique"] + level,
+            "PhyDefence": attrs["Power"] + attrs["Physique"] + level - 1,
             "MagicAttack": 4 * attrs["Intellect"],
             "MagicDefence": attrs["Intellect"] + attrs["Physique"] + level - 1,
             "ForceHit": tpl.force_hit,

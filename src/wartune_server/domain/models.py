@@ -799,6 +799,8 @@ class Consortia:
     voting_state: int = 0
     voting_id: int = 0
     voting_at: datetime | None = None
+    speak_day: str = ""  # YYYY-MM-DD do dia do jogo de ``speak_count`` (anúncios de recrutamento, 8335)
+    speak_count: int = 0
 
 
 @dataclass(eq=False)

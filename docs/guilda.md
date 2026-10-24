@@ -56,39 +56,39 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8212 | informações | 4138 | *(visto)* `login.json` (só turco: `login`) |
 | 8343 | link de guilda do chat | 4267 `ConsortiaLinkRspMsg` | *(cliente)* m2 |
 | 8211 | cargos | 4137 com os bitmaps | *(visto)* `login.json #116` (só turco: `login`) |
-| 8207 | membros (`isVip`/`vipType` de quem está online, *ponytail* para offline) | 4133 em pedaços | *(visto)* `login.json` (só turco: `login`) |
+| 8207 | membros: `strategy` (Daru), `gpOrder` (posição por EXP), `headId`, `isVip`/`vipType` (também offline, pelos `event_states`), `isTeamPlayer` true; `matchWin`/`matchFailed` 0 (**TODO(inventado)**: o coliseu não conta) | 4133 em pedaços | *(visto)* `login.json` (só turco); oficial_20261023-171155-1 #4572 |
 | 8210 | eventos | 4136 | `remark` em partes separadas por `|`, montadas pelo tipo do `ConsortiaEventItem` (m6): 3 entrou/saiu/fundou, 1 expulsou, 7 chefia, 9 altar, 11 melhoria; o texto de cada parte é *dedução*; os antigos sem `|` viram tipo 0 (migração 0046) |
 | 8209 | candidaturas e convites do jogador, a mais nova primeiro; `createDate` e `inviteDate` = dia da candidatura às 00:00:00 | 4135 | *(cliente)* m2; *(visto)* oficial_20261023-171155-1 #4253, #4259 |
 | 5135 | candidatar-se | 35 `{applyId}`; 4266 para quem pode aceitar | *(cliente)* m2 `__joinConsortiaHandler` |
 | 5141 | apagar candidatura | 36 | *(cliente)* m2 |
-| 8214 | candidatos da guilda | 4140, `parameter1` = id da candidatura | *(cliente)* m6 |
-| 5134 | aceitar/recusar candidatura (direito 9/33) | 40; 117+3 para o candidato; 164 | *(cliente)* m2 |
+| 8214 | candidatos da guilda | 4140, `parameter1` = id da candidatura; sem o direito 9 (recrutar), `totalRows` 0 | *(cliente)* m6; *(visto)* oficial_20261023-171155-1 #5132 |
+| 5134 | aceitar/recusar candidatura (direito 9/33) | 40; 3, 150, 117, 111 "Congratulations! You have joined Guild  [nome]." e 4266 para quem entrou; 83 canal 5 type 5 "… has just become the guilds newest member!" aos membros; 164 | *(visto)* oficial_20261023-171155-1 #4561–#4567 |
 | 5149 | abrir/fechar candidaturas | 164 | *(cliente)* m6 |
 | 5142 | convidar (direito 9) | 41 para o alvo online sem guilda e de nível 12+; alvo com "recusar convites" (8286) ligado: nada, sem aviso ao convidante (só log) | *(cliente inglês)* m6 `ConsortiaRecruitFrame` (`grades >= 12`, sem guilda, `getRightsByIndex(9)`); o bloqueio pelo 8286 é *(dedução)*: no cliente o `refuseInvite` (SettingFrame, C_ROOM_REFUSE) é dos convites de pesca, estrada e caça-níquel |
 | 8197 | convite automático no nível 15 | 41 | *(cliente)* m2; ponytail: o oficial tinha guildas-robô, aqui é a guilda aberta com mais membros |
-| 5143 | responder convite | 37 `{result, applyId}` antes de apagar; 117+3; 164 | *(cliente)* m2 |
+| 5143 | responder convite | 37 `{result, applyId}` antes de apagar; 3, 150, 117, 111 "Congratulations! You have joined Guild  [nome]." e 4266 para quem entrou; 83 canal 5 type 5 "… has just become the guilds newest member!" aos membros; 164 | *(visto)* #4561–#4567 (entrada por candidatura; o convite segue igual, dedução) |
 | 5146 | sair | 117 com id 0, 3; 115 se gastou o cartão | *(cliente)* m6 `ConsortiaStaffPage` |
 | 5132 | expulsar (direito 5, cargo menor) | 117 id 0 para o expulso; 164 | *(cliente)* m6 |
 | 5131 | passar a chefia | 164 (o antigo vira 5) | *(cliente)* m2 `refreshChairman` |
 | 5137 | mudar cargo (direito 19) | 50 `{otherId, positionId}` para os membros | *(cliente)* m2 |
 | 5139, 5140, 8544 | aviso, descrição, aviso do grupo (o 8544 pelo direito 3: `ConsortiaGroupChatFrame` mostra o "Update" com `getRightsByIndex(3)`) | 164 | *(cliente)* m6 |
 | 5148 | renomear (direito 18, 1000 diamantes, `cash_ledger` `guild_rename`) | 49, 3, 164; 3 para os membros | *(cliente)* m6 `ConsortiaRenameFrame` |
-| 5144 | contribuir | 109, 3, 111, 42, 164 | *(visto)* `birlik_katkisi...json` #15–17, #38–39 (só turco: `birlik_katkisi`) |
-| 8208 | ranking de contribuição | 4134 | *(visto)* `birlik_katkisi...json` #5 (só turco: `birlik_katkisi`) |
+| 5144 | contribuir | 109, 3, 111 "Contribution Submitted!", 4152 (1ª do dia), 150, 42, 164, 83 (devoção) | *(visto)* oficial_20261023-171155-1 #4951–#4974, #5028–#5036 |
+| 8208 | ranking de contribuição | 4134 (`selfOrder` 0 sem contribuição no período) | *(visto)* `birlik_katkisi...json` #5; oficial_20261023-171155-1 #4949 |
 | 5133 | melhorar prédio (1–5) / pesquisar habilidade (6–12) | 164 | *(cliente)* m6 `ConsortiaUpgradeFrame`; templates `ConsortiaLevelInfos` |
 | 8545 | acabar a espera da melhoria | 3, 164 | *(cliente)* m6 |
-| 5147 | aprender habilidade | 3, 150 | *(cliente)* m2 `consortiaStudy` |
+| 5147 | aprender habilidade | 3 (contribuição já debitada, nível antigo), 110 `{propertyType 3, value bônus}`, 150, 3, 111 "Successfully learned skill!" | *(visto)* oficial_20261023-171155-1 #5045–#5051 |
 | 8215 | info do altar | 4141 (bênçãos usadas hoje), 4142 prêmio pendente | *(cliente)* m2 `__refreshAltarInfo` |
 | 8217 | casas da roleta | 4144 `site[]` (`DropViewInfos.Site`) | *(cliente)* m2 `ConsortiaDropTemplateCate` |
 | 5145 | bênção | 45 `{blessLeftTime, blessSite, blessTempId, blessCount}`; `blessSite` = posição no 4144, -1 = nada; o prêmio fica no membro até o 8216 | *(cliente)* m2 `__getAltarBlessInfo`, m6 `ConsortiaAltarFrame` |
 | 8216 | pegar o prêmio da bênção (sem espaço livre: 4143 `result` falso e o prêmio fica) | 115, 4143 `{result}` | *(cliente)* m2 `__addFreshItem` |
-| 8577 | baú | 4466 | *(visto)* `birlik_katkisi...json` #4 (só turco: `birlik_katkisi`) |
+| 8577 | baú | 4466, sempre com a linha do 2060044 (count 0 se não há) | *(visto)* `birlik_katkisi...json` #4; oficial_20261023-171155-1 #4947, #5005 |
 | 8579 | membros para distribuir | 4465 | *(cliente)* m6 |
 | 8578 | distribuir (chefe) | 115 para quem está online e tem espaço; 148 quando vai pelo correio (*dedução*); 4466 | *(cliente)* m6 |
 | 8241 | eleição: candidatos | 4389 | *(cliente)* m2 `__setVotingUsers` |
 | 8481 | votar (contribuição total 100+) | 4390 `{result}` | *(cliente)* m2; o 100 é do `chairmanElection.help` inglês |
 | 8205 `sendType` 2 | correio de guilda (chefe, para membros) | 148 para cada um, 3 | *(cliente inglês)* m6 `ConsortiaEmailGroupSendView`: 175 Balens, `payType` 0 gasta os vinculados primeiro; `cash_ledger` `guild_mail` |
-| 8335 | anúncio de recrutamento | nada (o cliente só deixa com `speakTimes > 0`, sempre 0) | *(cliente)* m6 |
+| 8335 | anúncio de recrutamento (direito 9; 5 por dia, volta às 5h; até 54 caracteres) | 83 no canal mundo, `type` 2 com `consortiaId`/`consortiaName` ("[guilda]，Recruit Members" clicável + texto) a todos; 164 com `speakTimes` | *(cliente)* m6 `RecruitMemberFrame`, `ChatFormat`; *(visto)* `speakTimes` 5 (#4944); canal e remetente **TODO(inventado)** |
 | 8257 | buscar jogador por apelido | 4170, sem `info` = não achou; fica no sistema social (`handlers/friends.py`), que o correio também usa | *(cliente)* m6 (chefia, recrutar), m2 (correio) |
 | 15005 canal 5 | chat da guilda | 83 para os membros online | [chat.md](chat.md) |
 | 8541 | abrir o altar do demônio | 4436 `{result: 1, pop}` para os membros, 164 | *(cliente)* m6 `sendOpenDemon`, m2 `ConsortiaManager.__demonSwitchHandler` |
@@ -96,7 +96,7 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8549, 8550, 8593 | dentro do altar: chegar no nó, buff, habilidade | nada | *(cliente)* m2 |
 | 8537 | entrar na terra secreta | nada (ver pendências) | *(cliente)* m2 |
 | 8565, 8566, 8743 | dentro da terra secreta: árvore, buff, nó do senhor | nada | *(cliente)* m2 |
-| 8546 | grupos da guerra de guildas | 4441 vazio (abre a janela com a entrada desligada) | *(cliente)* m2 `GvgReadyController` |
+| 8546 | grupos da guerra de guildas | 4441 (guildas, `fightPower`, `isGuildSize`) e 4458 (ordem da semana) | *(visto)* oficial_20261023-171155-1 #5135–#5136; **TODO(inventado)**: as 8 de maior poder agora, sem grupos/resultados, e a "semana passada" = agora (a guerra não roda) |
 | 8472, 8477 | desafios e lista da guerra | 4377, 4379 vazios | *(cliente)* m2; o cliente não chama |
 | 8471, 8473, 8547 | entrar, montar time, buff da guerra | nada | *(cliente)* m2 |
 | 8782 | grupos da guerra entre servidores | 4682 sem `info` (não inscrita) | *(cliente)* m2 `__crossguild_group_ownerHandler` |
@@ -135,7 +135,10 @@ primeiro.
 - O nível sobe na hora; `CodeTime` (só prédios) trava a próxima melhoria. O cliente calcula
   `codeNeedDate - (currentDate - codeBeginDate)`. Acabar já custa 1 diamante a cada 10 min.
 - Aprender (5147) custa a contribuição pessoal `NeedOffer` do nível seguinte e não passa do nível
-  pesquisado pela guilda.
+  pesquisado pela guilda. O bônus é o número do `Description` do nível ("Strength +40 (Hero)"), somado no
+  próprio herói (`rules.guild_skills` → `HeroStats.of(base=...)`): Strength +40 levou `basePower` de 1 a 41,
+  `PhyAttack` +160 e `PhyDefence` +40 *(visto #5048)*. "Gold Production +N%" (tipo 11) multiplica a produção
+  de ouro por hora — **TODO(inventado)**: sem captura com esse nível.
 
 ## Pendências
 
@@ -213,8 +216,10 @@ nem forma de resposta do x10 aparece no cliente. Captura: a seção do altar aci
 [itens.md](itens.md). **Baú de prêmios**: no máximo 10 por membro (`ConsortiaPrizeAllotItem`); o `isReceived`
 vai falso (*ponytail*: quando ele zera não está no cliente) e nada enche o baú (prêmio da guerra de guildas).
 **Posição (`orderInfo.gradeOrder`)**: nível e depois riqueza total entre as guildas do servidor (*dedução*).
+`fightPower` é a soma do poder dos membros e `fightPowerOrder` a posição por ele (*dedução*; o oficial #4944 tinha
+884460 com 99 membros e 1 nas duas posições).
 
-**Sem dado**: 8335 recrutamento (o cliente só deixa com `speakTimes` > 0, e aqui é sempre 0); guildas-robô
+**Sem dado**: guildas-robô
 (o oficial tinha, aqui é a guilda aberta com mais membros). Renomear grátis (`same`) vale para o chefe de
 uma guilda com "!" no nome (servidores juntados, `ConsortiaFrame.resetConsortiaName`); hoje nenhum nome tem "!".
 

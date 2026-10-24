@@ -58,6 +58,8 @@ S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
 S_ITEMS, S_UNOCCUPY, S_CASTLE_TIME, S_CASTLE_DEFENSE = 115, 108, 4452, 118
+S_TELEPORT, S_TELEPORT_FAIL = 4237, 4263
+TELEPORT_ENERGY, TELEPORT_POINT = 100, 100  # TransmitHandler
 VIP_PLUNDER_CRYSTALS = 7  # VipPrerogativeTempInfos "Bonus Kyanite from Plunder" (500 do VIP 4 em diante)
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
 # tutorial_en #773-#777: 18 tiles em 2,34 s (do 140 andando ao 140 parado). ponytail: velocidade fixa, sem
@@ -206,12 +208,8 @@ def _cache_sync(s: GameSession, c: tc.Cache, state: int) -> None:
 
 @router.on(9525)
 async def map_boss(s: GameSession, msg: pb.MapBossQuestMsg) -> None:
-    """Painel dos chefes; o cliente pede ao entrar no mapa, então vão junto os baús fechados dele (só se houver:
-    a captura do tutorial não tem 4940 depois do 9525)."""
+    """Painel dos chefes (4938). Os baús fechados vão no 8201 (visto: oficial_20261023-171155-1 #6961-#6970)."""
     await _boss_info(s, msg.mapId)
-    assert s.snapshot is not None
-    if any(box.map_id == msg.mapId for box in s.snapshot.wild_boxes):
-        send_boxes(s, msg.mapId)
 
 
 def viewers(s: GameSession, map_id: int) -> list[GameSession]:
@@ -220,8 +218,9 @@ def viewers(s: GameSession, map_id: int) -> list[GameSession]:
 
 
 def _monster_sync(s: GameSession, m: monsters.Monster, state: int) -> None:
-    """140 do monstro (state 4 em luta, 0 abatido, 1 de volta) a quem vê a grade dele."""
-    land = monsters.monster_msg(s.ctx.world, s.ctx.templates, m, state)
+    """140 do monstro (state 4 em luta com o ``curArmyId`` de quem ataca, 0 abatido, 1 de volta) a quem vê a grade."""
+    assert s.snapshot is not None
+    land = monsters.monster_msg(s.ctx.world, s.ctx.templates, m, state, s.snapshot.character.id or 0)
     for other in viewers(s, m.map_id):
         assert other.outer_view is not None
         if oc.grid_of(m.x, m.y) in other.outer_view[1]:
@@ -311,6 +310,10 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     for castle, name in await _rivals(s, grids, msg.mapId):
         reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
     s.send(S_PHYSICS, reply)
+    # (visto) oficial_20261023-171155-1 #6969-#6971 e #7379: o 4940 com os baús fechados do mapa entre o 4129 e o
+    # 169, quando a grade pedida tem um deles
+    if any(box.map_id == msg.mapId and oc.grid_of(box.pos_x, box.pos_y) in grids for box in snap.wild_boxes):
+        send_boxes(s, msg.mapId)
     s.send(S_GRID_ARMY, _grid_msg(s, grids, msg.mapId))
 
 
@@ -441,6 +444,39 @@ def _stop_walk(s: GameSession) -> None:
     if s.outer_walk is not None:
         s.outer_walk.cancel()
         s.outer_walk = None
+
+
+@router.on(8326)
+async def teleport(s: GameSession, msg: pb.ArmyPositionMsg) -> None:
+    """Teleporte do exército no mapa externo: 100 de energia do castelo, ou 100 diamantes sem energia (payType 1
+    diamante, 2 vinculado); recusa 4263 (fora do mapa ou sem como pagar). (visto) oficial_20261023-171155-1 #7307-#7310,
+    #7469, #7541: 140 do exército parado onde está, 4237 (posição e energia, sem ``mapId``: 200 -> 100 -> 0) e 111
+    "Teleportation Complete"; o exército fica no tile novo (#7312). Pagando com energia não vai 3."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    castle, c = snap.castle, snap.character
+    map_id, *_ = oc.position(castle, s.outer_army)
+    if not oc.inside(s.ctx.templates, map_id, msg.posX, msg.posY):
+        s.log.info("8326 fora do mapa", mapa=map_id, x=msg.posX, y=msg.posY)
+        s.send(S_TELEPORT_FAIL)
+        return
+    spent = None
+    if castle.energy >= TELEPORT_ENERGY:
+        castle.energy -= TELEPORT_ENERGY
+    elif (
+        spent := pay(c, TELEPORT_POINT, bind=msg.payType == 2, reason="teleport", ref="", now=s.ctx.clock.now())
+    ) is None:
+        s.log.info("8326 sem energia nem diamantes", energia=castle.energy)
+        s.send(S_TELEPORT_FAIL)
+        return
+    await s.ctx.characters.save(c, castle, *([spent] if spent else []))
+    _stop_walk(s)
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))  # um só (#7308)
+    s.outer_army = (map_id, msg.posX, msg.posY)
+    s.send(S_TELEPORT, pb.ArmyPositionMsg(posX=msg.posX, posY=msg.posY, leftEnergy=castle.energy))
+    alert(s, "Teleportation Complete")
+    if spent is not None:
+        _send_player(s)
 
 
 @router.on(5161)
@@ -765,20 +801,23 @@ async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
     s.log.info("batalha com monstro", monstro=m.id, template=m.template_id, battle=s.battle.id)
     s.ctx.wilds.fighting[(m.map_id, m.id, m.born)] = s.battle
     _monster_sync(s, m, monsters.MONSTER_FIGHTING)  # como a mina: o 140 em luta antes da 157
+    if m.boss_type == monsters.CHIEF:  # (visto) #7421: o 4938 com o chefe em luta (type 4) antes da 157
+        await _boss_info(s, m.map_id)
     s.battle.start()
 
 
 async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won: bool) -> None:
-    """Fim da luta com monstro, na ordem da luta da mina: 150, 4103, 150, 100 e 140 do exército. Vencendo,
-    o abate vai para o banco (o primeiro a terminar leva; a chave repete em quem chega depois) e conta no
-    limite do dia (``monsters.count_kill``), e então cai o baú (4940, ``wild_boxes``); o monstro sai do mapa
-    para quem vê (140 state 0) e o 4938 vem com os contadores novos. Perdendo, ele volta a state 1."""
+    """Fim da luta com monstro (visto: oficial_20261023-171155-1 #6943-#6960 e #7227-#7238): 150, 4103 (battleScene
+    5, sem Daru: não há tropa), 150, 100 e 140 ×2 do exército. Vencendo, o abate vai para o banco (o primeiro a
+    terminar leva; a chave repete em quem chega depois) e conta no limite do dia (``monsters.count_kill``), e então
+    cai o baú (gravado; o 4940 vem no 8201 seguinte); o monstro sai do mapa para quem vê (140 state 0) e o 4938 vem
+    com os contadores novos. Perdendo, ele volta a state 1 e o exército volta para casa (140 no castelo, #7234)."""
     snap = s.snapshot
     assert snap is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
     s.ctx.wilds.fighting.pop((m.map_id, m.id, m.born), None)
-    await _casualties(s, battle, won, 4)
+    await _casualties(s, battle, won, monsters.SCENE)
     _army_sync(s, ARMY_IDLE)
     same = monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: o monstro já sumiu
     gone = won and same
@@ -794,7 +833,12 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
                 await drop_box(s, m)
     if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
         _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
-    await _boss_info(s, m.map_id)
+    if won:
+        await _boss_info(s, m.map_id)
+    else:
+        _stop_walk(s)
+        s.outer_army = None
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
 
 
 async def _attack_cache(s: GameSession, c: tc.Cache) -> None:

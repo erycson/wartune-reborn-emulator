@@ -18,10 +18,11 @@ from .. import mail as mailbox
 from .. import monsters, rewards
 from ..router import router
 from ..session import GameSession
-from .player import alert, granted
+from .player import S_CHAT, alert, granted
 
 S_MAP_BOX = 4940
 MAIL_TITLE, MAIL_TEXT = "Wilds Chest", "Your bag was full, so the chest's contents were sent by mail."
+SLAYER = "Wilds Slayer Rewards"  # (visto) #6987, colado no texto, sem ":"
 BAG_FULL_MAIL = "Inventory full, check your mail!"  # (cliente) language.txt inglês, VipBoxFrame.command03
 _rng = random.Random()
 
@@ -45,7 +46,6 @@ async def drop_box(s: GameSession, m: monsters.Monster) -> None:
                   s.ctx.clock.now())  # fmt: skip
     snap.wild_boxes.append(box)
     await s.ctx.characters.save(box)
-    send_boxes(s, m.map_id)
 
 
 async def _by_mail(s: GameSession, box: WildBox, drops: list[tuple[int, int]]) -> None:
@@ -82,9 +82,14 @@ async def pick(s: GameSession, msg: pb.ArmyBoxMsg) -> None:
     if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         await _by_mail(s, box, drops)
         return
-    new, text = rewards.grant(snap, s.ctx.templates, drops)
+    new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), *new, delete=(box,))
     s.log.info("9526 baú aberto", box=msg.boxId, drops=drops)
-    send_boxes(s, box.map_id)
     if drops:
-        granted(s, drops, new, text)
+        # (visto) oficial_20261023-171155-1 #6974-#6988: 3, 109, 115, 4476, 111 e 83 com "Wilds Slayer RewardsMystery
+        # Stone x1, 10,000 Daru, 10,000 Gold" (itens primeiro, as moedas do fim da tabela para o começo); sem 4940
+        shown = [d for d in drops if d[0] > 0] + [d for d in reversed(drops) if d[0] < 0]
+        text = SLAYER + rewards.text(s.ctx.templates, shown).removeprefix("Received: ")
+        granted(s, drops, new, "", chat=False)
+        alert(s, text)
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

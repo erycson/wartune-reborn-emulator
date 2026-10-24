@@ -44,7 +44,7 @@ async def challenge_order(characters: CharacterService, guilds: Guilds, server_i
 
     ranks, chars, vips, orders = await characters.read(query)
     by_id = {c.id: (c, o) for c, o in zip(chars, orders, strict=True)}
-    vip_of = _vips(vips, clock)
+    vip_of = vips_of(vips, clock)
     rows = []
     for r in ranks:
         if (found := by_id.get(r.character_id)) is None:
@@ -80,7 +80,7 @@ async def fight_order(characters: CharacterService, guilds: Guilds, server_id: i
         return chars, vips, [await uow.characters.gp_order(server_id, c.total_gp) for c in chars]
 
     chars, vips, orders = await characters.read(query)
-    vip_of = _vips(vips, clock)
+    vip_of = vips_of(vips, clock)
     rows = [_row("info", {"createDate": clock.now().strftime("%Y-%m-%d %H:%M:%S")})]
     for pos, (c, order) in enumerate(zip(chars, orders, strict=True), 1):
         vip, kind = vip_of(c.id or 0)
@@ -102,7 +102,7 @@ async def fight_order(characters: CharacterService, guilds: Guilds, server_id: i
     return _xml("".join(rows))
 
 
-def _vips(vips: list[EventState], clock: Clock) -> Callable[[int], tuple[bool, int]]:
+def vips_of(vips: list[EventState], clock: Clock) -> Callable[[int], tuple[bool, int]]:
     """``(IsVip, VipType)`` por personagem: VIP vencido vai ``false`` e tipo 0."""
     now = clock.now()
     ends = {e.character_id: e.text for e in vips if e.key == VIP_KEY}

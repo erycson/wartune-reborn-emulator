@@ -65,12 +65,12 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 
 ## 10. Guilda
 - [ ] altar 7601, terra secreta 7501, guerra 4501, entre servidores 4601; rankings/add_to_box
-- [ ] bênção: tabela e x10; eleição com relógio; 8335 recrutamento; prêmio da bênção ao sair
+- [ ] bênção: tabela e x10; eleição com relógio; prêmio da bênção ao sair
 
 ## 11. Herói, pets, montaria
 - [ ] fusão de pets 117-119; crescimento/skills/treino/resistência
 - [ ] montaria: estrelas, rei, loja, refino, voo (8529, 8843); vocação 8643; destino 2100/2200
-- [ ] cartas de poder na batalha; dragão; posição em salas e teleporte 8277/8278/8326
+- [ ] cartas de poder na batalha; dragão; posição em salas 8277/8278 (feito: teleporte 8326)
 
 ## 12. Castelo e fazenda
 - [ ] pets da fazenda 15044 ops 10-16; offline x1,5/x2 8287; 8255, 8562 trégua; bônus de guilda no rendimento

@@ -589,7 +589,7 @@ async def test_catalogo_do_mundo_vem_do_banco(tmp_path: Path) -> None:
         assert [(r.id, r.x, r.y, r.grade) for r in world.robots] == [(765958, 44, 22, 8), (765957, 59, 56, 8)]
         assert [str(n) for n in world.robot_names] == ["Aillendre", "Addyn"]
         assert dict(world.monster_counts[2]) == {1: 40, 2: 20, 3: 5} and 100 not in world.monster_counts
-        assert world.monsters[210127].fight_capacity == 746796 and world.monsters[210101].fight_capacity == 0
+        assert world.monsters[210127].fight_capacity == 746796 and world.monsters[210101].fight_capacity == 1033
 
 
 async def test_unidade_de_cada_monstro_bate_com_o_tempinfos(tmp_path: Path) -> None:
@@ -666,8 +666,9 @@ async def test_chefes_do_mapa_e_relogio_de_2_horas(tmp_path: Path) -> None:
 
 
 async def test_monstros_dos_wilds_no_4129_como_na_captura(tmp_path: Path) -> None:
-    """8201 numa grade do mapa 2 com monstro: type 21 como o 210127 da transfer #14 (só turco) (sem armyPawn, refreshTime
-    0, size = Property2, createDate = começo do ciclo). O ciclo novo sorteia outros pontos."""
+    """8201 numa grade do mapa 2 com monstro: type 21 como no oficial (oficial_20261023-171155-1 #6919: um armyPawn
+    por pilha do normal, nenhum na elite e no chefe, refreshTime 0, size = Property2, createDate = começo do ciclo).
+    O ciclo novo sorteia outros pontos."""
     clock = FakeClock(datetime(2026, 5, 21, 20, 39, 31, tzinfo=UTC))  # 20:39: ciclo das 20:00
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         templates, world = g.server.services.templates, g.server.services.world
@@ -681,7 +682,8 @@ async def test_monstros_dos_wilds_no_4129_como_na_captura(tmp_path: Path) -> Non
         row = templates.get("MapPhysicsTempInfos", m.template_id)
         assert (land.type, land.templateId, land.posX, land.posY, land.state) == (21, m.template_id, m.x, m.y, 1)
         assert (land.level, land.bossType, land.size) == (int(row["Grades"]), m.boss_type, int(row["Property2"]))
-        assert (land.refreshTime, len(land.armyPawn), land.createDate) == (0, 0, "2026-05-21 20:00:00")
+        assert (land.refreshTime, land.createDate) == (0, "2026-05-21 20:00:00")
+        assert len(land.armyPawn) == monsters.stacks(templates, m)
         later = monsters.on_map(world, templates, 2, clock.now() + timedelta(hours=2))
         assert [(n.x, n.y) for n in later] != [(n.x, n.y) for n in found]
 
@@ -715,9 +717,19 @@ async def test_divine_light_tira_a_nevoa_por_20_segundos(tmp_path: Path) -> None
 
 
 async def test_luta_com_monstro_normal_abate_e_conta_no_dia(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """5160 num monstro normal do mapa 2: 140 em luta (state 4), 157 battleType 2 com o pawn dele; a vitória
-    grava o abate do ciclo, tira o monstro (140 state 0), conta no dia (4938 count1) e o próximo 5160 recusa."""
+    """5160 num monstro normal do mapa 2 (visto: oficial_20261023-171155-1 #6916-#6988): 140 em luta (state 4, com o
+    curArmyId), 157 battleType 3841 com 2 pilhas de 350 nas pos 2 e 8 e só o herói do jogador (livingId 3); a vitória
+    não tira tropa nem dá Daru, grava o abate do ciclo, tira o monstro (140 state 0), conta no dia (4938 count1); o
+    baú vem no 8201 seguinte (4940) e abre com "Wilds Slayer Rewards..."; o próximo 5160 recusa."""
+
+    async def win(battle: battle_mod.Battle) -> bool:
+        for unit in battle.units:
+            if unit.side == 2:
+                unit.hp = 0
+        return True
+
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    monkeypatch.setattr(battle_mod.Battle, "_fight", win)
     clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
         snap = _snap(g)
@@ -728,36 +740,48 @@ async def test_luta_com_monstro_normal_abate_e_conta_no_dia(tmp_path: Path, monk
         assert monsters.level(templates, m) == 10
         snap.character.grades = 20  # 10 abaixo: ainda conta (help: 15 abaixo não conta)
         assert snap.leader is not None
-        snap.leader.intellect = 200  # a batalha usa os atributos reais: a maga do 22500 não vence um nível 10
         g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
         await g.until(169)
 
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=m.x, posY=m.y))
         got = await g.until(157)
         assert [p.code for p in got] == [140, 140, 140, 157]
-        assert pb.MapUpdatedMsg.FromString(got[2].body).wildLand.state == monsters.MONSTER_FIGHTING
+        fighting = pb.MapUpdatedMsg.FromString(got[2].body).wildLand
+        assert (fighting.state, list(fighting.curArmyId)) == (monsters.MONSTER_FIGHTING, [g.user_id])
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
-        enemy = prepare.soldiers[-1]
-        assert prepare.battleType == 2 and (enemy.tempId, enemy.side, enemy.hp) == (6992, 2, 350)
+        assert prepare.battleType == 3841
+        assert [(x.livingId, x.tempId, x.side, x.pos, x.hp) for x in prepare.soldiers] == [
+            (1, 6992, 2, 2, 350), (2, 6992, 2, 8, 350)
+        ]  # fmt: skip
+        assert [(h.livingId, h.side) for h in prepare.heros] == [(3, 1)]
+        strategy = snap.character.strategy
 
         got = await g.fight(prepare)
         got += await g.idle()
-        assert pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body).battleResult == 1
+        report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
+        assert (report.battleResult, report.battleScene, report.strategyBonus) == (1, 5, 0)
+        assert snap.character.strategy == strategy and snap.pawns[-1].army_count == 150
+        assert 4940 not in [p.code for p in got]
         gone = [pb.MapUpdatedMsg.FromString(p.body).wildLand for p in got if p.code == 140]
         assert (gone[-1].id, gone[-1].state) == (m.id, monsters.MONSTER_GONE)
         info = pb.MapBossMsg.FromString(next(p for p in got if p.code == 4938).body)
         assert (info.count1, info.count2, info.count3) == (1, 0, 0)
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.character.kills_normal == 1
-        box = pb.MapBoxMsg.FromString(next(p for p in got if p.code == 4940).body).boxlist  # baú no tile, gravado
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(m.x, m.y)))
+        got = await g.until(169)
+        assert [p.code for p in got][-3:] == [4129, 4940, 169]
+        box = pb.MapBoxMsg.FromString(got[-2].body).boxlist  # baú no tile, gravado
         assert [(x.mapId, x.x, x.y, x.type, x.grade, x.userId) for x in box] == [(2, m.x, m.y, 1, 10, g.user_id)]
         assert [b.id for b in saved.wild_boxes] == [int(box[0].boxId)]
 
-        monkeypatch.setattr(monsters, "loot", lambda *_: [(-100, 500), (2131057, 2)])  # ouro + Mystery Stone
+        monkeypatch.setattr(monsters, "loot", lambda *_: [(-100, 500), (-300, 700), (2131057, 2)])
         gold = snap.character.gold
         g.client.send(9526, box[0])
         got = await g.idle()
-        assert pb.MapBoxMsg.FromString(next(p for p in got if p.code == 4940).body).boxlist == []
+        assert 4940 not in [p.code for p in got]
+        text = "Wilds Slayer RewardsMystery Stone x2, 700 Daru, 500 Gold"
+        assert [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code in (111, 83)] == [text, text]
         assert snap.character.gold == gold + 500 and any(i.template_id == 2131057 for i in snap.items)
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.wild_boxes == [] and saved.character.gold == gold + 500
@@ -891,8 +915,8 @@ async def test_luta_de_sessao_que_caiu_nao_prende_o_monstro(tmp_path: Path) -> N
 
 
 async def test_derrota_para_monstro_nao_abate_nem_conta(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """A luta com monstro pode ser perdida (internet: vídeo Cn6cQpeImEM; o lado do jogador morre): 4103 com
-    derrota, o monstro volta a state 1, sem abate nem contador ("attempts are not used if you fail")."""
+    """A luta com monstro pode ser perdida (visto: oficial_20261023-171155-1 #7227-#7238): 4103 com derrota, o
+    monstro volta a state 1, o exército volta para casa (140 no castelo), sem abate nem contador e sem 4938."""
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
     async with logged_in(tmp_path, novice=22500, clock=clock) as g:
@@ -907,10 +931,13 @@ async def test_derrota_para_monstro_nao_abate_nem_conta(tmp_path: Path, monkeypa
         got = await g.fight(prepare)
         got += await g.idle()
         assert pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body).battleResult == 2
-        back = [pb.MapUpdatedMsg.FromString(p.body).wildLand for p in got if p.code == 140]
-        assert (back[-1].id, back[-1].state) == (m.id, monsters.MONSTER_ALIVE)
-        info = pb.MapBossMsg.FromString(next(p for p in got if p.code == 4938).body)
-        assert (info.count1, info.count2, info.count3) == (0, 0, 0)
+        back = [pb.MapUpdatedMsg.FromString(p.body) for p in got if p.code == 140]
+        assert (back[-2].wildLand.id, back[-2].wildLand.state) == (m.id, monsters.MONSTER_ALIVE)
+        snap = _snap(g)
+        assert snap.castle is not None
+        home = (snap.castle.pos_x - oc.HOME_OFFSET, snap.castle.pos_y - oc.HOME_OFFSET)
+        assert (back[-1].army.curPosX, back[-1].army.curPosY, back[-1].army.state) == (*home, 0)
+        assert 4938 not in [p.code for p in got]
         cycle = monsters.cycle_start(templates, clock.now())
         assert await g.server.services.characters.read(lambda uow: uow.wild_kills.in_cycle(2, cycle)) == set()
 
@@ -938,3 +965,25 @@ def test_formacao_muda_as_posicoes_na_luta() -> None:
         snap = SimpleNamespace(pawns=[Pawn(1, 10101, army_count=150, fight_pos=fight_pos)])
         soldiers, _ = oc.army_soldiers(snap, templates)  # type: ignore[arg-type]
         assert [s["pos"] for s in soldiers] == want
+
+
+async def test_teleporte_do_exercito_como_no_oficial(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #7307-#7310: 8326 para um tile além de 1000 (696, 3793): 140 do exército
+    parado, 4237 sem mapId com a energia que sobrou (100 por teleporte) e 111 "Teleportation Complete"; o exército
+    fica lá. Fora do mapa: 4263."""
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = _snap(g)
+        assert snap.castle is not None
+        snap.castle.energy = 200
+        size = oc.map_size(g.server.services.templates, snap.castle.map_id)
+        assert size is not None
+        x, y = size[0] - 5, size[1] - 5
+        g.client.send(8326, pb.ArmyPositionMsg(posX=x, posY=y, payType=2))
+        got = await g.until(111)
+        assert [p.code for p in got] == [140, 4237, 111]
+        moved = pb.ArmyPositionMsg.FromString(got[1].body)
+        assert (moved.posX, moved.posY, moved.mapId, moved.leftEnergy) == (x, y, 0, 100)
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Teleportation Complete"
+        assert g.server.online.get(g.user_id).outer_army == (snap.castle.map_id, x, y)  # type: ignore[union-attr]
+        g.client.send(8326, pb.ArmyPositionMsg(posX=size[0], posY=1, payType=2))
+        assert [p.code for p in await g.idle()] == [4263]

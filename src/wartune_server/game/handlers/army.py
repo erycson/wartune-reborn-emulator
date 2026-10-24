@@ -24,13 +24,12 @@ from ..session import GameSession
 from .player import _army, _player
 
 S_CASTLE_PAWNS, S_ARMY_EDIT, S_PAWN, S_QUESTS, S_ALERT, S_CHAT = 100, 93, 116, 112, 111, 83
-S_TELEPORT, S_TELEPORT_FAIL, S_ARMY_POS, S_TEAM_POS = 4237, 4263, 4241, 4186
+S_ARMY_POS, S_TEAM_POS = 4241, 4186
 RECRUIT, PAWN_LEVEL, FORMATION, COMPREHEND = 3, 10, 34, 52  # QuestCondictionInfos.CondictionType
 PAWN_UPGRADE = "1"  # UpGradeTempInfo.Types: TemplateId = próximo nível, Data = custo em Daru
 SPECIAL_BLESS = "16"  # UpGradeTempInfo.Types: Data = bênção máxima no grau da especialidade
 COMPREHEND_COST = 1_000_000  # Daru (PawnSpecialAbilityFrame)
 CHANGE_POINT, CHANGE_SOUL, CHANGE_LEVEL = 200, 2_000_000, 10  # PawnAbilityConvertFrame
-TELEPORT_ENERGY, TELEPORT_POINT = 100, 100  # TransmitHandler
 
 
 def pawn_template(templates: GameTemplates, template_id: int) -> Row | None:
@@ -334,30 +333,6 @@ async def campaign_pos_edit(s: GameSession, msg: pb.ArmyFightPosEditListMsg) -> 
 @router.on(8278)
 async def campaign_pos_request(s: GameSession, _: object) -> None:
     s.send(S_TEAM_POS, team_pos(s))
-
-
-@router.on(8326)
-async def teleport(s: GameSession, msg: pb.ArmyPositionMsg) -> None:
-    """Teleporte no mapa externo: 100 de energia do castelo, ou 100 diamantes sem energia (payType 1
-    diamante, 2 vinculado). Resposta 4237 (posição + energia restante); recusa 4263.
-    ponytail: a posição do exército no mapa externo não é gravada (sistema do mapa externo)."""
-    snap = s.snapshot
-    assert snap is not None and snap.castle is not None
-    castle, c = snap.castle, snap.character
-    if not (0 <= msg.posX < 1000 and 0 <= msg.posY < 1000):
-        s.send(S_TELEPORT_FAIL)
-        return
-    spent = None
-    if castle.energy >= TELEPORT_ENERGY:
-        castle.energy -= TELEPORT_ENERGY
-    elif (
-        spent := ledger.pay(c, TELEPORT_POINT, bind=msg.payType == 2, reason="teleport", ref="", now=s.ctx.clock.now())
-    ) is None:
-        s.send(S_TELEPORT_FAIL)
-        return
-    await s.ctx.characters.save(c, castle, *([spent] if spent else []))
-    s.send(S_TELEPORT, pb.ArmyPositionMsg(posX=msg.posX, posY=msg.posY, mapId=castle.map_id, leftEnergy=castle.energy))
-    _player(s)
 
 
 @router.on(8328)

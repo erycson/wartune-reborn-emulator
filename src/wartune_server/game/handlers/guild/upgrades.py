@@ -54,6 +54,8 @@ from .common import (
     _refuse,
 )
 
+S_EFFECT, GUILD_SKILL_EFFECT = 110, 3  # (visto) #5047; o cliente não usa o tipo 3
+
 # ---- contribuição e melhorias ----------------------------------------------------------------
 
 
@@ -65,8 +67,9 @@ def _today(m: ConsortiaMember, now: datetime) -> int:
 async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     """Doação: 1000 ouro ou 5 Balens = 1 de contribuição (arredondados para baixo; só se gasta o que
     vira contribuição), para a riqueza da guilda e para o jogador. Os Balens vinculados vão primeiro
-    (cliente inglês ``useBindPoint``: "Use Bound Balens first"). Ordem do oficial: 109, 3, 111, 42, 164
-    (só turco: birlik_katkisi_ve_birlik_market_alisverisi #7-#18)."""
+    (cliente inglês ``useBindPoint``: "Use Bound Balens first"). (visto) oficial_20261023-171155-1 #4951-#4961,
+    #4964-#4974, #5028-#5036: 109, 3, 111 "Contribution Submitted!", 4152 (a 1ª do dia), 150, 42, 164 e o 83 da
+    devoção por último; 10000 de ouro = 10, 5 Balens = 1. Os 4484 (títulos) não vão: não há títulos."""
     mine = _mine(s)
     c = _char(s)
     gold = max(msg.offerGold, 0) // GOLD_PER_OFFER * GOLD_PER_OFFER
@@ -93,16 +96,18 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     if gold:
         castle_yield(s)
     _player(s)
-    # texto deduzido (sem fonte no cliente/captura)
-    _alert(s, "Contribution successful!")
+    _alert(s, "Contribution Submitted!")
     from .. import events  # handlers.events importa login, que importa a guilda
 
-    # 111 e então o 4152 (só turco: birlik_katkisi_ve_birlik_market_alisverisi #10-#11)
-    await events.leed_done(s, events.GUILD_OFFER_LEED)
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.GUILD_OFFER_LEED, say=False)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    s.send(S_ARMY, b.complete(army(s, snap)[0]))
     s.send(S_OFFER, b.complete(pb.ConsortiaMsg(result=True)))
     _push_info(s, guild)
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
 
 
 @router.on(8208)
@@ -126,7 +131,8 @@ async def offer_list(s: GameSession, msg: pb.ConsortiaOfferReqMsg) -> None:
         out.selfInfo.CopyFrom(
             pb.ConsortiaContributeMsg(nickName=rows[me][0], totalOffer=rows[me][1], todayOffer=rows[me][2])
         )
-        out.selfOrder = me + 1
+        # (visto) oficial_20261023-171155-1 #4949: sem contribuição (hoje) a posição vem 0
+        out.selfOrder = me + 1 if (rows[me][1] if msg.isHistory else rows[me][2]) else 0
     s.send(S_OFFERS, b.complete(out))
 
 
@@ -200,7 +206,9 @@ async def quick(s: GameSession, msg: pb.PayTypeMsg) -> None:
 @router.on(5147)
 async def learn(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     """Aprende um nível de habilidade: gasta a contribuição pessoal (``NeedOffer`` do nível) e
-    não passa da pesquisa da guilda daquele tipo."""
+    não passa da pesquisa da guilda daquele tipo. (visto) oficial_20261023-171155-1 #5045-#5051: 3 já sem a
+    contribuição e com o nível antigo, 110 ``{propertyType 3, value}`` (o bônus do nível, 40), 150 com os
+    atributos novos (``rules.guild_skills``), 3 com o nível novo e 111 "Successfully learned skill!"."""
     attr = gd.SKILLS.get(msg.studySkill)
     mine = _mine(s)
     c = _char(s)
@@ -213,12 +221,16 @@ async def learn(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     if row is None or level > gd.MAX_LEVEL or researched < level or c.consortia_offer < int(row["NeedOffer"]):
         _refuse(s, 5147, "nível, pesquisa ou contribuição", tipo=msg.studySkill, nivel=level)
         return
-    setattr(c, attr, level)
     c.consortia_offer -= int(row["NeedOffer"])
-    await s.ctx.characters.save(c)
     _player(s)
+    setattr(c, attr, level)
+    await s.ctx.characters.save(c)
     assert s.snapshot is not None
+    value = rules.guild_skills(c, s.ctx.templates).get(msg.studySkill, 0)
+    s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=GUILD_SKILL_EFFECT, value=value))
     s.send(S_ARMY, b.complete(army(s, s.snapshot)[0]))
+    _player(s)
+    _alert(s, "Successfully learned skill!")
 
 
 def _buy_result(s: GameSession, buy: pb.BuyInfo, result: int) -> None:

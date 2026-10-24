@@ -18,6 +18,7 @@ from ..session import GameSession
 from .guild.common import _can, _char, _mine, _now, _push_info, _refuse
 
 S_ALTAR_OPEN, S_GVG_TEAM, S_GVG_CHALLENGE, S_GVG_LIST, S_CROSS_GROUP = 4436, 4441, 4377, 4379, 4682
+S_GVG_ORDER = 4458
 ALTAR_MIN_LEVEL = 5  # ConsortiaDemonFrame: guilda nível 5
 ALTAR_COST = {0: ("Consortia_OpenAltar1_Offer", 50000), 1: ("Consortia_OpenAltar2_Offer", 200000)}
 
@@ -105,11 +106,27 @@ async def fam_action(s: GameSession, _: object) -> None:
 # ---- guerra de guildas -----------------------------------------------------------------------
 
 
+GVG_GUILDS = 8  # (visto) oficial_20261023-171155-1 #5135-#5136: 8 guildas no 4441 e no 4458
+
+
 @router.on(8546)
 async def gvg_groups(s: GameSession, _: object) -> None:
-    """Grupos da guerra: vazio abre a janela com a entrada desligada (a guerra nunca abre:
-    login manda ``GuildMsg.param5`` falso)."""
-    s.send(S_GVG_TEAM, b.complete(pb.GuildGroupListMsg()))
+    """Grupos da guerra. (visto) oficial_20261023-171155-1 #5135-#5136: 4441 com as guildas (nome, grupos, resultados e
+    ``fightPower``) e ``isGuildSize``, depois o 4458 com a ordem da semana passada (``order``, ``fightPower`` e
+    ``orderTime``). A guerra não roda aqui (login manda ``GuildMsg.param5`` falso; o mapa 4501 precisa de captura):
+    TODO(inventado): as 8 guildas de maior ``fightPower`` agora, sem grupos nem resultados, ``isGuildSize`` com 8
+    guildas no servidor, e a "semana passada" é a mesma ordem de agora com ``orderTime`` = agora.
+    """
+    g = s.ctx.guilds
+    top = sorted(g.guilds.values(), key=lambda x: -g.fight_power(x.id or 0))[:GVG_GUILDS]
+    teams = pb.GuildGroupListMsg(isGuildSize=len(g.guilds) >= GVG_GUILDS)
+    order = pb.GuildGroupListMsg(orderTime=b.fmt_time(_now(s)))
+    for i, x in enumerate(top, 1):
+        power = g.fight_power(x.id or 0)
+        teams.group.add(consortiaId=x.id or 0, consortiaName=x.name, fightPower=power)
+        order.group.add(consortiaId=x.id or 0, consortiaName=x.name, order=i, fightPower=power)
+    s.send(S_GVG_TEAM, b.complete(teams))
+    s.send(S_GVG_ORDER, b.complete(order))
 
 
 @router.on(8472)

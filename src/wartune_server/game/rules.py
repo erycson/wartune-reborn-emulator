@@ -4,6 +4,7 @@ herói, equipamentos, missões. Quem chama grava as entidades alteradas (``Chara
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 
@@ -235,7 +236,28 @@ def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime |
     bonuses = equipment(snap, templates) + star_bonuses(snap, templates) + potions
     if mount := mount_stats(snap, templates):
         bonuses.append({k: str(v) for k, v in mount.items()})
-    return HeroStats.of(leader, templates.hero(leader.template_id), bonuses)
+    skills = guild_skills(snap.character, templates)
+    base = {attr: skills.get(kind, 0) for kind, attr in GUILD_SKILL_ATTRS.items()}
+    return HeroStats.of(leader, templates.hero(leader.template_id), bonuses, base)
+
+
+# habilidades aprendidas na guilda (5147): ConsortiaLevelInfos.Types -> campo do personagem e atributo do herói
+GUILD_SKILL_FIELDS = {6: "skill_attack", 8: "skill_agility", 9: "skill_ability", 10: "skill_captain",
+                      11: "skill_gold", 12: "skill_physique"}  # fmt: skip
+GUILD_SKILL_ATTRS = {6: "Power", 8: "Agility", 9: "Intellect", 10: "Captain", 12: "Physique"}
+GUILD_GOLD = 11  # "Gold Production +N%"
+
+
+def guild_skills(c: Character, templates: GameTemplates) -> dict[int, int]:
+    """Tipo -> bônus do nível aprendido, o número do ``Description`` ("Strength +40 (Hero)", "Charisma +20",
+    "Gold Production +1%"; o template não tem outra coluna com ele: ``Property2`` = ``NeedOffer``)."""
+    out = {}
+    for kind, name in GUILD_SKILL_FIELDS.items():
+        level = getattr(c, name)
+        row = next(templates.find("ConsortiaLevelInfos", Types=kind, Levels=level), None) if level else None
+        if row is not None and (found := re.search(r"\+(\d+)", str(row.get("Description") or ""))):
+            out[kind] = int(found.group(1))
+    return out
 
 
 HOUSE, BARRACKS = "1201", "402"  # BuildingTempInfo.SonType

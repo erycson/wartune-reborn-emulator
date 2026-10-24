@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from ....domain import gameday
 from ....protocol.messages import wartune_pb2 as pb
 from ... import guild as gd
+from ... import social
 from ...builders import login as b
 from ...router import router
 from ...session import GameSession
-from .common import S_VOTED, S_VOTERS, _char, _mine, _profile, _refuse
+from .. import chat
+from .common import S_CHAT, S_VOTED, S_VOTERS, _can, _char, _mine, _profile, _push_info, _refuse, _text
 
 VOTE_OFFER = 100  # chairmanElection.help: "Players with a contribution of at least 100"
 VOTING = (3, 4)  # ConsortiaActivityPage: o "Impeach" só aparece com votingState 3 ou 4 (qual é "votando" é dedução)
@@ -69,7 +72,34 @@ async def vote(s: GameSession, msg: pb.ConsortiaVotingReqMsg) -> None:
 # ---- recrutamento ----------------------------------------------------------------------------
 
 
+SPEAK_MAX = 54  # RecruitMemberFrame corta em 54 caracteres
+
+
 @router.on(8335)
 async def speak(s: GameSession, msg: pb.ConditionSpeakMsg) -> None:
-    """Anúncio de recrutamento: o cliente só deixa com ``speakTimes > 0``, e aqui é sempre 0."""
-    _refuse(s, 8335, "sem anúncios de recrutamento", texto=msg.speak[:40])
+    """Anúncio de recrutamento ("Recruit Link", ``RecruitMemberFrame``): quem pode recrutar (direito 9, o mesmo do
+    botão no chat), ``speakTimes`` por dia da guilda. Sai no canal mundo como o 83 de ``type`` 2 com
+    ``consortiaId``/``consortiaName``: o cliente desenha "[guilda]，Recruit Members" clicável (``ChatFormat
+    .createConsortiaCellData``, o clique pede para entrar) e depois o texto. Depois, o 164 com o ``speakTimes`` novo.
+    TODO(inventado): o canal (mundo) e quem fala (o próprio jogador); sem captura do oficial."""
+    mine = _can(s, gd.R_RECRUIT)
+    now = s.ctx.clock.now()
+    if mine is None or gd.speak_left(s.ctx.templates, mine[0], now) <= 0:
+        _refuse(s, 8335, "sem direito ou sem anúncios hoje", texto=msg.speak[:40])
+        return
+    guild = mine[0]
+    day = gameday.today(now)
+    guild.speak_count = (guild.speak_count if guild.speak_day == day else 0) + 1
+    guild.speak_day = day
+    await s.ctx.characters.save(guild)
+    c = _char(s)
+    out = pb.ChatChannelMsg(channel=chat.WORLD, type=RECRUIT_LINK, encodeMsg=_text(msg.speak)[:SPEAK_MAX])
+    out.otherId, out.name, out.consortiaId, out.consortiaName = c.id or 0, c.nickname or "", guild.id or 0, guild.name
+    done = b.complete(out)
+    for other in s.ctx.online.sessions():
+        if not social.blocks(other, s.player_id):
+            other.send(S_CHAT, done)
+    _push_info(s, guild)
+
+
+RECRUIT_LINK = 2  # ChatData.type do link da guilda (ChatFormat.getContentCellData)

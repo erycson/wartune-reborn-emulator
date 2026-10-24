@@ -112,12 +112,12 @@ Outros eventos:
   numa derrota contra a mina (nas vitórias nenhum morre), o refresh com o jogador online e um login mais de
   12 h depois do último (para saber quando o ciclo abre).
 - Monstros dos Wilds: **parcial**. Aparecem no 4129 dos mapas 1 a 5 (sorteio por mapa e ciclo de
-  `WorldMapFreshTime`), dá para lutar e abater (5160, battleType 2), os contadores do dia e a regra dos 15
-  níveis valem, os chefes vão no painel 4938 e a Divine Light tira a névoa do mapa. Quantidades por mapa,
-  `fightCapaity` fora do 210127 e o formato da 157 são **dedução**. **precisa de captura**: uma luta com
-  monstro do mapa (157) e o baú (4940/9526). O baú existe, com a tabela de queda `world_monster_drops`: chances
-  e faixas de nível são **dedução** sobre a wiki e relatos ([cidade-externa.md](cidade-externa.md)). Luta em
-  equipe/entrar na luta não existe.
+  `WorldMapFreshTime`), dá para lutar e abater (5160, battleType 3841 só com o herói, como no oficial), os
+  contadores do dia e a regra dos 15 níveis valem, os chefes vão no painel 4938 e a Divine Light tira a névoa do
+  mapa. Luta e baú do normal nível 10 *(visto)*. Quantidades por mapa (40/20/5) e quais chefes cada mapa sorteia
+  são **dedução** (o oficial mostrou 1 chefe de nível 10 + 4 de 50-80 nos dois ciclos do mapa 1); a queda de
+  elite e chefe é **dedução** sobre a wiki e relatos (nenhum morto na captura). Luta em equipe/entrar na luta
+  não existe (**precisa de captura** do fluxo de grupo: o 11 antes do ataque ao chefe, #7417).
 - Treasure Cache (type 22): **feito** ([cidade-externa.md](cidade-externa.md#treasure-cache-4129-type-22-gamecachespy)).
   **TODO(inventado)**: vagas por mapa e o prêmio (pedra do nível ou equipamento da classe). Falta: os 4484 de título
   depois do item.
@@ -152,8 +152,12 @@ Outros eventos:
   oficial e a bênção rápida (x10) **precisam de captura**. O prêmio pendente agora fica na linha do membro.
 - Eleição (8241/8481): nada inicia a eleição (só editando o banco). A regra está no `chairmanElection.help`
   inglês (ver [guilda.md](guilda.md)); falta o relógio que abre e fecha.
-- 8335 só registra (`speakTimes` sempre 0). **sem dado**: anúncio de recrutamento.
+- 8335 recrutamento: **feito** (5 por dia, migração 0068). **TODO(inventado)**: o canal (mundo) e o remetente do 83.
 - Sair da guilda antes de pegar o prêmio da bênção perde o prêmio (*ponytail*).
+- Habilidades (5147): bônus no herói e sequência **feitos** *(visto)*. **TODO(inventado)**: o "Gold Production +N%"
+  (tipo 11) sobre a produção de ouro por hora (`castle.gold_yield`), sem captura com esse nível.
+- Terra secreta 7501: a captura oficial_20261023-171155-1 #5056-#5163 já tem a entrada (8537); falta implementar
+  o mapa a partir dela.
 
 ## Herói, exército e pets ([heroi-exercito.md](heroi-exercito.md))
 
@@ -161,7 +165,7 @@ Outros eventos:
 - Montaria: estrelas/bênção, rei das montarias, loja, refino, voo (8529 outras ops, 8843). **sem dado** (tela fora do decompilado).
 - Vocação depois do tipo 102 (8643). **sem dado**.
 - Cartas de poder (9505): cartas e EXP vêm da batalha (4902). ~~Bônus de coleção falta~~: feito no 4905 (powcard_suite_slots); os graus dos degraus 2 e 3 são **dedução** (**precisa de captura**, ver heroi-exercito.md) e o bônus não entra na batalha.
-- Posição do herói em salas (8277/8278) e teleporte (8326): **depende de** salas/cidade externa.
+- Posição do herói em salas (8277/8278): **depende de** salas. Teleporte (8326): **feito** (cidade-externa.md).
 - Ganhar montaria, pet ou carta: **depende de** uso de item, missão ou batalha.
 - ~~`battle.py` ainda não lê a tropa (`rules.battle_pawn`) nem os buffs (talento, runas, destino, dragão, cartas).~~ Lê atributos, tropa, talento, runas e destino ([batalha.md](batalha.md)). Dragão e cartas: **precisa de captura**.
 - Destino tipos 2100/2200 nunca abrem. **sem dado**.

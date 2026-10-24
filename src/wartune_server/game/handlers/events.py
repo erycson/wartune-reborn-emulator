@@ -515,10 +515,11 @@ def say_devotion(s: GameSession) -> None:
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=DEVOTION_UP.format(_leeds(s, s.ctx.clock.now())[1])))
 
 
-def leed_gain(s: GameSession, template_id: int) -> list[EventState | Quest]:
+def leed_gain(s: GameSession, template_id: int, say: bool = True) -> list[EventState | Quest]:
     """A ação do ``LeedTemp`` aconteceu: +1 até o PassCount e manda, na ordem do oficial (tutorial_en #521-#522,
-    #1649-#1652), o 4152 só com esse leed, o 83 quando o total sobe e o 112 das missões de devoção. Sem await:
-    devolve as linhas para quem chama gravar (o ataque ao castelo grava depois de criar a luta)."""
+    #1649-#1652), o 4152 só com esse leed, o 83 quando o total sobe (``say=False``: quem chama manda depois, com
+    ``say_devotion``, se ``devotion`` subiu) e o 112 das missões de devoção. Sem await: devolve as linhas para quem
+    chama gravar (o ataque ao castelo grava depois de criar a luta)."""
     snap = s.snapshot
     assert snap is not None
     row = s.ctx.templates.get("LeedTemp", template_id)
@@ -532,17 +533,22 @@ def leed_gain(s: GameSession, template_id: int) -> list[EventState | Quest]:
     msg = pb.LeedUpdatedRspMsg(leedProcess=ev.daily(snap, "leedbox", now).value, totalNum=total)
     msg.leed.extend(x for x in leeds if x.templateId == template_id)
     s.send(S_LEED_UPDATE, msg)
-    if total > before:  # (dedução) com PassCount > 1 os passos do meio não dão devoção, então sem 83
+    if total > before and say:  # (dedução) com PassCount > 1 os passos do meio não dão devoção, então sem 83
         say_devotion(s)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     return [st, *quests]
 
 
-async def leed_done(s: GameSession, template_id: int) -> None:
+async def leed_done(s: GameSession, template_id: int, say: bool = True) -> None:
     """``leed_gain`` e grava."""
-    if rows := leed_gain(s, template_id):
+    if rows := leed_gain(s, template_id, say):
         await s.ctx.characters.save(*rows)
+
+
+def devotion(s: GameSession) -> int:
+    """A devoção de hoje (``totalNum`` do 4152)."""
+    return _leeds(s, s.ctx.clock.now())[1]
 
 
 @router.on(8234, 8322)

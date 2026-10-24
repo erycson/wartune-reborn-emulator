@@ -28,9 +28,16 @@ from .common import S_BOX, S_BOX_ALLOT, S_ITEMS, _mine, _now, _profile, _refuse
 PER_MEMBER = 10  # ConsortiaPrizeAllotItem.changeReceviedCount: no máximo 10 por membro
 
 
+# (visto) oficial_20261023-171155-1 #4947, #5005...: o baú vazio ainda traz o 2060044 com count 0
+ALWAYS = 2060044
+
+
 def _box_msg(s: GameSession, guild_id: int) -> pb.ConsortiaStorageInfoMsg:
     out = pb.ConsortiaStorageInfoMsg()
-    for i in s.ctx.guilds.box.get(guild_id, []):
+    stored = s.ctx.guilds.box.get(guild_id, [])
+    if all(i.template_id != ALWAYS for i in stored):
+        out.storageInfo.add(templateId=ALWAYS, consortiaId=guild_id, count=0)
+    for i in stored:
         out.storageInfo.add(templateId=i.template_id, consortiaId=guild_id, count=i.count)
     return out
 

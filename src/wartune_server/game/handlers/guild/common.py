@@ -14,9 +14,10 @@ from ....domain.models import (
 from ....protocol.messages import wartune_pb2 as pb
 from ....services import ledger
 from ... import guild as gd
+from ... import social
 from ...builders import login as b
 from ...session import GameSession
-from ..login import player_info
+from ..login import army, player_info
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_ARMY = 3, 83, 111, 115, 150
 S_JOINED, S_APPLY_DEL, S_INVITE_RESULT, S_PASS, S_INVITED, S_OFFER, S_BLESS = 35, 36, 37, 40, 41, 42, 45
@@ -83,7 +84,7 @@ def _alert(s: GameSession, text: str) -> None:
 
 def _push_info(s: GameSession, guild: Consortia) -> None:
     """164 para os membros online (o cliente recarrega a lista quando ``currentCount`` muda)."""
-    msg = gd.info_msg(s.ctx.guilds, guild, _now(s))
+    msg = gd.info_msg(s.ctx.guilds, guild, _now(s), s.ctx.templates)
     for o in gd.online_members(s.ctx, guild.id or 0):
         o.send(S_INFO_PUSH, msg)
 
@@ -111,12 +112,26 @@ def _join(
     return member, gone
 
 
-def _joined(s: GameSession, guild: Consortia, player_id: int) -> None:
-    """Avisa quem entrou (117 + 3; o cliente pede 8211/8207/8212) e os membros (164)."""
+def _joined(s: GameSession, guild: Consortia, player_id: int, welcome: bool = True) -> None:
+    """Avisa quem entrou e os membros. (visto) oficial_20261023-171155-1 #4561-#4567: a quem entrou 3, 150, 117,
+    111 "Congratulations! You have joined Guild  [nome]." (dois espaços) e 4266 vazio; a todos os membros online o
+    83 do canal 5 (type 5) "<link> has just become the guilds newest member!"; e o 164. O cliente pede 8211/8207/8212.
+    ``welcome=False`` (quem criou a guilda): só 3, 150, 117 e 164 (dedução: sem captura da criação em inglês).
+    """
     other = s.ctx.online.get(player_id)
+    joiner = other.snapshot.character if other is not None and other.snapshot is not None else _profile(s, player_id)
     if other is not None and other.snapshot is not None:
-        other.send(S_STATE, b.complete(pb.ConsortiaMsg(consortiaId=guild.id)))
         _player(other)
+        other.send(S_ARMY, b.complete(army(other, other.snapshot)[0]))
+        other.send(S_STATE, b.complete(pb.ConsortiaMsg(consortiaId=guild.id)))
+        if welcome:
+            _alert(other, f"Congratulations! You have joined Guild  [{guild.name}].")
+            other.send(S_NEW_APPLY)
+    if joiner is not None and welcome:
+        text = f"{social.player_link(s.ctx, joiner)} has just become the guilds newest member!"
+        msg = b.complete(pb.ChatChannelMsg(channel=5, type=5, encodeMsg=text, otherId=-1, userType=1))
+        for o in gd.online_members(s.ctx, guild.id or 0):
+            o.send(S_CHAT, msg)
     _push_info(s, guild)
 
 

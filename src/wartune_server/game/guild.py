@@ -19,6 +19,7 @@ from ..domain.models import Character, Consortia, ConsortiaEvent, ConsortiaInvit
 from ..protocol.messages import wartune_pb2 as pb
 from ..services.characters import CharacterService
 from ..templates.repository import GameTemplates, Row
+from . import rules
 from .builders import login as b
 
 if TYPE_CHECKING:
@@ -52,8 +53,7 @@ LEVEL_TYPES = {
     12: "physique_level",
 }
 # tipo -> coluna do personagem (ConsortiaSkillHelper.getLevelByType; o 7 não tem habilidade)
-SKILLS = {6: "skill_attack", 8: "skill_agility", 9: "skill_ability", 10: "skill_captain", 11: "skill_gold"}
-SKILLS[12] = "skill_physique"
+SKILLS = rules.GUILD_SKILL_FIELDS
 MAX_LEVEL = 10
 PAGE = 8  # linhas por página em 4134, 4139 e 4140
 ONLINE = 7  # SimplePlayerInfoMsg.state
@@ -83,6 +83,16 @@ def config(templates: GameTemplates, name: str, default: int) -> int:
 
 ALTAR_CLOSED, ALTAR_OPEN, ALTAR_ENDED = 0, 1, 2
 ALTAR_SECONDS = 1260  # duração do altar do demônio (21 min)
+
+
+def speak_left(templates: GameTemplates, guild: Consortia, now: datetime) -> int:
+    """Anúncios de recrutamento que restam hoje (``speakTimes``). (visto) oficial_20261023-171155-1 #4944: 5 por dia;
+    o cliente inglês: "You have {0} more notices available today. (Resets daily at 5A.M.)"."""
+    used = guild.speak_count if guild.speak_day == gameday.today(now) else 0
+    return max(config(templates, "Consortia_SpeakTimes", SPEAK_PER_DAY) - used, 0)
+
+
+SPEAK_PER_DAY = 5
 
 
 def altar_state(guild: Consortia, now: datetime) -> int:
@@ -158,6 +168,16 @@ class Guilds:
         key = (guild.levels, guild.total_offer)
         return 1 + sum(1 for x in self.guilds.values() if (x.levels, x.total_offer) > key)
 
+    def fight_power(self, guild_id: int) -> int:
+        """``fightPower``: soma do poder dos membros (dedução: 884460 para 99 membros no oficial #4944)."""
+        found = (self.profiles.get(m.character_id) for m in self.members_of(guild_id))
+        return sum(c.fighting_capacity for c in found if c is not None)
+
+    def fight_order(self, guild: Consortia) -> int:
+        """``orderInfo.fightPowerOrder``: posição pelo ``fightPower`` (a 1ª do oficial tinha 1 nos dois)."""
+        mine = self.fight_power(guild.id or 0)
+        return 1 + sum(1 for x in self.guilds.values() if self.fight_power(x.id or 0) > mine)
+
     def drop_guild(self, guild_id: int) -> list[object]:
         """Tira a guilda e tudo dela da memória; devolve as entidades para apagar."""
         gone: list[object] = [self.guilds.pop(guild_id)]
@@ -178,7 +198,7 @@ def _date(value: datetime | None) -> str:
     return b.fmt_time(value) if value is not None else b.NEVER
 
 
-def info_msg(g: Guilds, guild: Consortia, now: datetime) -> pb.ConsortiaInfoMsg:
+def info_msg(g: Guilds, guild: Consortia, now: datetime, templates: GameTemplates) -> pb.ConsortiaInfoMsg:
     chairman = g.profiles.get(guild.chairman_id)
     msg = pb.ConsortiaInfoMsg(
         consortiaId=guild.id,
@@ -224,8 +244,11 @@ def info_msg(g: Guilds, guild: Consortia, now: datetime) -> pb.ConsortiaInfoMsg:
         altarDate=_date(guild.altar_at),
         altarState=altar_state(guild, now),
         maxMave=guild.max_wave,
+        fightPower=g.fight_power(guild.id or 0),
+        speakTimes=speak_left(templates, guild, now),
     )
     msg.orderInfo.consortiaId, msg.orderInfo.gradeOrder = guild.id or 0, g.grade_order(guild)
+    msg.orderInfo.fightPowerOrder = g.fight_order(guild)
     return b.complete(msg)
 
 

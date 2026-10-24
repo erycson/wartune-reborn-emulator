@@ -941,6 +941,8 @@ consortias = Table(
     _int("voting_state"),
     _int("voting_id"),
     Column("voting_at", UTCDateTime),
+    _str("speak_day", 10),
+    _int("speak_count"),
     UniqueConstraint("server_id", "name"),
 )
 

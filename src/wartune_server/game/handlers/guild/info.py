@@ -6,13 +6,14 @@ from ....domain.models import (
     Consortia,
     ConsortiaEvent,
     ConsortiaMember,
+    EventState,
 )
 from ....domain.repositories import UnitOfWork
 from ....protocol.messages import wartune_pb2 as pb
 from ....services import ledger
 from ....services.characters import normalize_nickname
 from ... import guild as gd
-from ... import rules
+from ... import rankings, rules
 from ...builders import login as b
 from ...builders.player import quest_update
 from ...castle import castle_yield
@@ -112,7 +113,7 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     g.events[gid].append(event)
     g.profiles[s.player_id] = c
     castle_yield(s)
-    _joined(s, guild, s.player_id)
+    _joined(s, guild, s.player_id, welcome=False)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
@@ -133,7 +134,7 @@ async def search(s: GameSession, msg: pb.SearchConditionMsg) -> None:
     now = _now(s)
     out = pb.ConsortiaSearchRspMsg(totalRows=len(found), isReset=reset)
     for x in found[(page - 1) * gd.PAGE : page * gd.PAGE]:
-        out.consortiaInfo.append(gd.info_msg(g, x, now))
+        out.consortiaInfo.append(gd.info_msg(g, x, now, s.ctx.templates))
     s.send(S_SEARCH, b.complete(out))
 
 
@@ -144,7 +145,7 @@ async def info(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     if guild is None:
         _refuse(s, 8212, "guilda não existe", guilda=msg.consortiaId)
         return
-    s.send(S_INFO, b.complete(gd.info_msg(s.ctx.guilds, guild, _now(s))))
+    s.send(S_INFO, b.complete(gd.info_msg(s.ctx.guilds, guild, _now(s), s.ctx.templates)))
 
 
 @router.on(8343)
@@ -183,21 +184,36 @@ async def member_list(s: GameSession, _: object) -> None:
         s.send(S_MEMBERS, b.complete(pb.SimplePlayerListRspMsg(totalRows=0, uuid=gd.new_uuid())))
         return
     guild = mine[0]
-    rows = []
+    found = []
     for m in s.ctx.guilds.members_of(guild.id or 0):
         c = _profile(s, m.character_id)
-        if c is None or not c.nickname:
-            continue  # o cliente descarta quem vem sem apelido
+        if c is not None and c.nickname:  # o cliente descarta quem vem sem apelido
+            found.append((m, c))
+
+    async def extra(uow: UnitOfWork) -> tuple[list[int], list[int], list[EventState]]:
+        orders = [await uow.characters.gp_order(guild.server_id, c.total_gp) for _, c in found]
+        heads = [p.head_id if (p := await uow.sns.by_character(c.id or 0)) else 0 for _, c in found]
+        return orders, heads, await uow.events.by_prefix(guild.server_id, rankings.VIP_KEY)
+
+    orders, heads, vips = await s.ctx.characters.read(extra)
+    vip_of = rankings.vips_of(vips, s.ctx.clock)
+    rows = []
+    for (m, c), order, head in zip(found, orders, heads, strict=True):
         other = s.ctx.online.get(m.character_id)
         if other is not None and other.snapshot is not None and other.snapshot.leader is not None:
             c.fighting_capacity = rules.leader_stats(
                 other.snapshot, s.ctx.templates, s.ctx.clock.now()
             ).fighting_capacity
         row = gd.member_msg(s.ctx.guilds, c, m, other is not None, guild)
-        # ConsortiaMemberItem: nome VIP e ícone (vipType 1 ou outro).
-        # ponytail: só de quem está online; o VIP de quem está offline está nos event_states, fora da memória
-        if other is not None and other.snapshot is not None and is_vip(other.snapshot, s.ctx.clock.now()):
-            row.isVip, row.vipType = True, vip_type(other.snapshot)
+        # (visto) oficial_20261023-171155-1 #4572: Daru em ``strategy``, posição por EXP, VIP e retrato também de
+        # quem está offline; ``isTeamPlayer`` veio true em todas as linhas. TODO(inventado): ``matchWin``/
+        # ``matchFailed`` vão 0 (o coliseu daqui não conta vitórias e derrotas)
+        row.strategy, row.gpOrder, row.headId, row.isTeamPlayer = c.strategy, order, head, True
+        if other is not None and other.snapshot is not None:
+            vip, kind = is_vip(other.snapshot, s.ctx.clock.now()), vip_type(other.snapshot)
+        else:
+            vip, kind = vip_of(m.character_id)
+        row.isVip, row.vipType = vip, kind if vip else 0
         rows.append(row)
     key = gd.new_uuid()
     for i in range(0, max(len(rows), 1), MEMBER_CHUNK):

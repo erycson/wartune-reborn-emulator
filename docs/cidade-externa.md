@@ -237,17 +237,25 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   Elites e chefes: `GameHeroTemp` 2978-2999, na ordem dos templates, com `AddName` "Elite" ou "BOSS· ...". O
   nome sozinho é ambíguo ("Red Claw" nível 20 tem 4 pawns), então o vínculo está em `world_monsters` (0029),
   com um teste que confere nome e nível de cada linha.
-- **Luta** (5160 no tile do monstro; `_attack_monster`): battleType 2 (`NPC_WILDLAND_BATTLE`, cliente), as
-  tropas e o herói do jogador como na mina, o normal como uma pilha do pawn (vida de um soldado, como o guarda)
-  e a elite e o chefe como herói NPC com o `Live` do template. *(dedução)* posições, `mapTempId` = o mapa e a
-  vida do normal. 140 do monstro em state 4 a quem vê a grade; recusa (140 parado) se já há luta, se ele já
-  foi abatido no ciclo ou sem unidade no catálogo. Fim na ordem da mina (150, 4103, 150, 100, 140); vencendo,
+- **Luta** (5160 no tile do monstro; `_attack_monster`) *(visto: oficial_20261023-171155-1 #6916-#6960, #7227-#7238,
+  #7416-#7422, 13 lutas)*: battleType 3841 (`WORLD_MAP_NPC`) no mapa, **só o herói do jogador** (sem tropa: nada
+  de baixa nem Daru; pos 3 com `fightPos` 3) com o livingId seguinte ao dos inimigos; o normal em pilhas de um
+  soldado com `Live` / 100 de vida (2 nas pos 2 e 8 até o nível 49, 4 nas 3, 9, 2 e 8 do 50 em diante; a fronteira
+  entre o 40 e o 50 vistos é *dedução*), a elite e o chefe como herói NPC na pos 5 com o `Live` do `GameHeroTemp`
+  e `fightCapacity` 0. 140 do monstro em state 4 com `curArmyId` a quem vê a grade (no chefe, o 4938 com ele em
+  luta antes da 157); recusa (140 parado) se já há luta, se ele já foi abatido no ciclo ou sem unidade no
+  catálogo. No 4129 o normal traz um `armyPawn` por pilha; `fightCapaity` dos 15 vistos (migração 0067). Fim:
+  150, 4103 (`battleScene` 5), 150, 100, 140 ×2; vencendo,
   o abate vai para `wild_monster_kills` (chave mapa, monstro, começo do ciclo: o id se repete a cada ciclo;
   quem termina depois de outro bate na chave e não conta), o 140 dele vai em state 0 a quem vê e o 4938 sai
   com os contadores. Luta que cruza o refresh não abate: o monstro já é outro (e o 140 dele não sai, para
   não trazer de volta o que o `roll_monsters` tirou). "Em luta" fica em `monsters.Wilds` com o ciclo e só vale
   enquanto a batalha roda: a de uma sessão que caiu se desfaz sozinha. O `countDown` do 156 não limita a luta
-  (é o relógio do aumento de dano, `HurtUpMode`).
+  (é o relógio do aumento de dano, `HurtUpMode`). Derrota *(visto #7234)*: o monstro volta a state 1 e o
+  exército volta para casa (140 no castelo), sem 4938.
+- **Teleporte** (8326) *(visto #7307-#7310, #7469, #7541)*: até a borda do mapa (o oficial foi a 696,3793): 140 do
+  exército parado, 4237 sem `mapId` com a energia que sobrou (100 por teleporte; sem energia, 100 diamantes e o
+  3) e 111 "Teleportation Complete"; o exército fica no tile novo.
 - **Limite e 15 níveis** (help `map.outercity.view.helpFrame.helpContent`): o limite do dia é de prêmio ("kill
   a certain number of monsters every day for rich rewards", reset às 5h), não de ataque; monstro 15 níveis
   abaixo do jogador não dá prêmio nem gasta o limite (`monsters.count_kill`). Elite e BOSS "são para equipe".
@@ -267,19 +275,24 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   não 15 níveis abaixo) deixa um baú no tile do monstro, gravado em `wild_boxes` (sobrevive a restart), e manda
   o 4940. O cliente (m3 `OuterCityManager.onMapBossBox`, `OuterCityMap.onUpdateBox`, `OuterCityBossBoxView`)
   troca a lista inteira, desenha um `BossBoxMc<type>` por `boxId` novo, sem filtrar por mapa nem tirar os que
-  saíram da lista, e o clique manda o 9526 e apaga o baú da tela. Então o 4940 leva só os baús do mapa, e o
-  9525 (o cliente pede ao entrar no mapa) só o manda se houver baú: a captura do tutorial não tem 4940 depois
-  do 9525. "you need to click the chest yourself, the reward won't auto send to your inventory" (internet,
+  saíram da lista, e o clique manda o 9526 e apaga o baú da tela. Então o 4940 leva só os baús do mapa, e vai
+  *(visto: oficial_20261023-171155-1 #6969-#6971 e #7379)* na resposta do 8201 entre o 4129 e o 169, quando a
+  grade pedida tem um baú (não no abate nem no 9525). "you need to click the chest yourself, the reward won't auto send to your inventory" (internet,
   fórum R2, abaixo). *(dedução)* `type` = `bossType` e o baú não expira.
 - **Abrir** (9526): sorteia pela `world_monster_drops` (`monsters.loot`): cada linha do tipo e da faixa de
   nível do monstro sorteada sozinha pela `chance`, quantidade entre `min_count` e `max_count`. Dá os itens e
-  moedas (o Kyanite, -600, soma nos cristais), apaga o baú e manda o 4940 de novo. Mochila cheia: o conteúdo
+  moedas (o Kyanite, -600, soma nos cristais) e apaga o baú, sem 4940 *(visto #6974-#6988: 3, 109, 115, 4476,
+  111 e 83 com "Wilds Slayer RewardsMystery Stone x1, 10,000 Daru, 10,000 Gold": itens primeiro, moedas do fim da
+  tabela para o começo)*. Mochila cheia: o conteúdo
   vai como anexo no correio do jogo (5 por carta, na mesma transação que apaga o baú) e o aviso "Inventory full,
   check your mail!" *(cliente: `VipBoxFrame.command03` do language.txt inglês)*.
 - **Tabela de queda** (semente na 0030, coluna `source` em cada linha). Nenhuma fonte publica chance nem
   tabela por nível; as chances são *(dedução)* a partir de "usually"/"can drop"/"very rarely" e dos relatos,
   as quantidades de nível 70-80 vêm dos relatos e as outras faixas (10-29, 30-49, 50-69, 70-80) são
   proporcionais *(dedução)*. Cada membro de um grupo sorteia o seu ("each player gets different rewards").
+  *(visto, 0067)* o normal de nível 10 deu duas vezes Mystery Stone x1, 10.000 de Daru e 10.000 de ouro: a faixa
+  normal 10-29 é essa (sem Kyanite) e a Mystery x2 a 50% vale do 30 em diante. Elite e chefe: nenhum foi morto
+  na captura (só derrotas), seguem a 0030.
 
   | Tipo | O que cai (chance, quantidade em 70-80) | Fonte |
   |---|---|---|
