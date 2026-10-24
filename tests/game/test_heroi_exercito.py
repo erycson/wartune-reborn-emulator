@@ -538,7 +538,7 @@ async def test_star_compose_says_exp_and_level(tmp_path: Path) -> None:
         snap = snap_of(g)
         uid = snap.character.id or 0
         made = [Star(uid, 1503, bag_type=0, pos=0)] + [Star(uid, 303, bag_type=0, pos=p) for p in (1, 2, 3)]
-        made.append(Star(uid, 1, bag_type=0, pos=4))  # lixo: vendido
+        made += [Star(uid, 1, bag_type=0, pos=p) for p in range(4, 16)]  # lixo: vendido; a temporária estava cheia
         snap.stars.extend(made)
         await g.server.services.characters.save(*made)
         g.client.send(8331, pb.StarComposeReqMsg(bagType=0, pos=0))

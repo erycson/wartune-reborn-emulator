@@ -129,14 +129,15 @@ def say_gain(s: GameSession, star: Star, gp: int, levels: list[str]) -> None:
 
 
 def say_levels(s: GameSession, levels: list[str]) -> None:
-    """(só turco: kader_sistemi #116-#117, #121) o 83 canal 3 de cada nível e o 4484: o título "Astral Master"
-    (AppellInfos 7, CondtionType 6) depende do nível das estrelas."""
+    """(só turco: kader_sistemi #116, #121) o 83 canal 3 de cada nível."""
     for text in levels:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
-    if levels:
-        from .events import send_titles  # handlers.events importa login, que importa player
 
-        send_titles(s)
+
+def temp_full(snap: PlayerSnapshot) -> bool:
+    """(dedução) o 4484 sai quando a temporária enche (kader_sistemi #110-#111) ou deixa de estar cheia (#115-#117);
+    a composição na mochila (#120-#121) e a devoração (#126) não o mandam."""
+    return free_pos(snap, StarBag.TEMP, TEMP_MAX) is None
 
 
 def sites(snap: PlayerSnapshot) -> list[int]:
@@ -182,7 +183,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     """Sorteia no cristal ``site`` (ouro SITE_COST, ou um sorteio grátis do dia); -1 = rápido (repete
     no melhor cristal aberto até encher ou acabar o ouro). Resposta (só turco: kader_sistemi #9-#11): 109, 3, 4180;
     no 1º do dia (#1-#8) 109, 3, 4152 do leed, 3, 4180 e o 83 da devoção; o que enche a temporária (#110-#111) leva o
-    4484 depois (dedução do gatilho: é o único dos 16 que o tem)."""
+    4484 depois (``temp_full``)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
@@ -232,7 +233,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
     if up:
         events.say_devotion(s)
-    if free_pos(snap, StarBag.TEMP, TEMP_MAX) is None:
+    if temp_full(snap):
         events.send_titles(s)
     rare = tuple(settings.get("star_rare_profiles") or RARE_PROFILES)
     for star in new:
@@ -302,7 +303,7 @@ async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
     """Move entre mochila (1) e equipadas (2). Destino ocupado: com ``eat`` a estrela do destino
     devora a movida, senão trocam. Equipadas: até min(8, nível/10), sem repetir MasterType, sem lixo nem fonte de
     energia. Resposta: 4178 (+4902 e 150 se mexeu nas equipadas). Devorando (só turco: kader_sistemi #122-#126): 111 da
-    EXP, 4902 e 150, um 4178 com a origem vazia e outro com a que comeu."""
+    EXP, 4902 e 150, um 4178 com a origem vazia e outro com a que comeu, 83 de cada nível."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     src = at(snap, msg.beginStarType, msg.beginPos)
@@ -366,8 +367,8 @@ def equip_ok(snap: PlayerSnapshot, templates: GameTemplates, star: Star, kind: i
 async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
     """Composição rápida: a estrela em ``pos`` devora todas as outras não travadas da mesma sacola
     (0 temporária, 1 mochila); o lixo da temporária é vendido. Resposta (só turco: kader_sistemi #64-#65, #112-#121):
-    111 de cada nível, 111 da EXP, 109 (só se vendeu lixo), 4479 com as que sobraram (temporária) ou 4178 (mochila),
-    83 de cada nível e o 4484."""
+    111 de cada nível, 111 da EXP, 109 (dedução: só se vendeu lixo; #64 sem lixo não tem), 4479 com as que sobraram
+    (temporária) ou 4178 (mochila), 83 de cada nível e, se a temporária estava cheia, o 4484 (``temp_full``)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     c = snap.character
@@ -379,7 +380,7 @@ async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
     ):
         s.log.info("8331 recusado", pedido=str(msg))
         return
-    eaten, gp, junk = [], 0, False
+    eaten, gp, junk, full = [], 0, False, temp_full(snap)
     for star in bag(snap, msg.bagType):
         profile = star_tpl(templates, star).get("Profile")
         if star is target or star.locked or star.grade >= MAX_GRADE:  # o Energine também é devorado (HoroscopeFrame)
@@ -403,6 +404,10 @@ async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
         changes = [(StarBag.BAG, st.pos, None) for st in eaten] + [(StarBag.BAG, target.pos, target)]
         s.send(S_MOVE, move_msg(changes, s.player_id))  # type: ignore[arg-type]
     say_levels(s, levels)
+    if msg.bagType == StarBag.TEMP and full and not temp_full(snap):
+        from .events import send_titles  # handlers.events importa login, que importa player
+
+        send_titles(s)
 
 
 @router.on(8330)
