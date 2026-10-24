@@ -59,7 +59,7 @@ from .campaign import (
     _start_battle,
     map_sync,
 )
-from .guild.common import _mine, _push_info, _refuse
+from .guild.common import _mine, _push_info, _refuse, guild_chat
 from .login import army
 from .player import hero_after_fight, hp_pack, push_level
 from .shop import send_blood
@@ -77,17 +77,10 @@ UNDER_ATTACK = "The Guild Chamber is under attack! Grab your weapons and drive t
 BUSY = "Target is in battle, please wait…"  # (cliente) playermenu.command01; (dedução) o aviso de quem chega depois
 
 
-def _guild_chat(s: GameSession, guild: Consortia, text: str) -> None:
-    """(visto) 83 canal 5 type 5, otherId -1, a todos os membros online."""
-    msg = b.complete(pb.ChatChannelMsg(channel=5, type=5, encodeMsg=text, otherId=-1, userType=1))
-    for o in gd.online_members(s.ctx, guild.id or 0):
-        o.send(S_CHAT, msg)
-
-
 def _invasion(s: GameSession, guild: Consortia) -> fam.Invasion:
     inv, new = fam.invasion(s.ctx.guilds.invasions, guild.id or 0, s.ctx.clock.now())
     if new:
-        _guild_chat(s, guild, UNDER_ATTACK)
+        guild_chat(s, guild, UNDER_ATTACK)
         s.log.info("terra secreta: Invasores chegaram", guilda=guild.id)
     return inv
 
@@ -390,7 +383,7 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
     await s.ctx.characters.save(*rows)
     if won and mine is not None and inv is not None:
         link = social.player_link(s.ctx, snap.character)
-        _guild_chat(s, mine[0], f"{link} has defeated an invader and earned {offer} guild contribution!")
+        guild_chat(s, mine[0], f"{link} has defeated an invader and earned {offer} guild contribution!")
         _push_info(s, mine[0])
         for o in _here(s, mine[0].id or 0):
             if o is not s and o.campaign is not None and o.campaign.node(camp) is not None:

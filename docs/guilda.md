@@ -68,7 +68,7 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8197 | convite automático no nível 15 | 41 | *(cliente)* m2; ponytail: o oficial tinha guildas-robô, aqui é a guilda aberta com mais membros |
 | 5143 | responder convite | 37 `{result, applyId}` antes de apagar; 3, 150, 117, 111 "Congratulations! You have joined Guild  [nome]." e 4266 para quem entrou; 83 canal 5 type 5 "… has just become the guilds newest member!" aos membros; 164 | *(visto)* #4561–#4567 (entrada por candidatura; o convite segue igual, dedução) |
 | 5146 | sair | 117 com id 0, 3; 115 se gastou o cartão | *(cliente)* m6 `ConsortiaStaffPage` |
-| 5132 | expulsar (direito 5, cargo menor) | 117 id 0 para o expulso; 164 | *(cliente)* m6 |
+| 5132 | expulsar (direito 5, cargo menor) | 117 id 0 para o expulso; 164 e o 83 canal 5 "<link> kicked <link>" aos que ficaram | *(cliente)* m6; *(visto)* oficial_20261023-231733-1 #4448-#4449 |
 | 5131 | passar a chefia | 164 (o antigo vira 5) | *(cliente)* m2 `refreshChairman` |
 | 5137 | mudar cargo (direito 19) | 50 `{otherId, positionId}` para os membros | *(cliente)* m2 |
 | 5139, 5140, 8544 | aviso, descrição, aviso do grupo (o 8544 pelo direito 3: `ConsortiaGroupChatFrame` mostra o "Update" com `getRightsByIndex(3)`) | 164 | *(cliente)* m6 |

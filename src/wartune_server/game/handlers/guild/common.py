@@ -82,6 +82,13 @@ def _alert(s: GameSession, text: str) -> None:
     s.send(S_ALERT, b.complete(pb.ChatChannelMsg(channel=7, encodeMsg=text)))
 
 
+def guild_chat(s: GameSession, guild: Consortia, text: str) -> None:
+    """Aviso do sistema no chat da guilda: (visto) 83 canal 5 type 5, otherId -1, a todos os membros online."""
+    msg = b.complete(pb.ChatChannelMsg(channel=5, type=5, encodeMsg=text, otherId=-1, userType=1))
+    for o in gd.online_members(s.ctx, guild.id or 0):
+        o.send(S_CHAT, msg)
+
+
 def _push_info(s: GameSession, guild: Consortia) -> None:
     """164 para os membros online (o cliente recarrega a lista quando ``currentCount`` muda)."""
     msg = gd.info_msg(s.ctx.guilds, guild, _now(s), s.ctx.templates)
@@ -128,10 +135,7 @@ def _joined(s: GameSession, guild: Consortia, player_id: int, welcome: bool = Tr
             _alert(other, f"Congratulations! You have joined Guild  [{guild.name}].")
             other.send(S_NEW_APPLY)
     if joiner is not None and welcome:
-        text = f"{social.player_link(s.ctx, joiner)} has just become the guilds newest member!"
-        msg = b.complete(pb.ChatChannelMsg(channel=5, type=5, encodeMsg=text, otherId=-1, userType=1))
-        for o in gd.online_members(s.ctx, guild.id or 0):
-            o.send(S_CHAT, msg)
+        guild_chat(s, guild, f"{social.player_link(s.ctx, joiner)} has just become the guilds newest member!")
     _push_info(s, guild)
 
 

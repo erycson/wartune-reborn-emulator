@@ -11,6 +11,7 @@ from ....domain.models import (
 from ....protocol.messages import wartune_pb2 as pb
 from ....services import ledger
 from ... import guild as gd
+from ... import social
 from ...builders import login as b
 from ...builders.player import item_moved
 from ...router import router
@@ -42,6 +43,7 @@ from .common import (
     _profile,
     _push_info,
     _refuse,
+    guild_chat,
 )
 
 # ---- candidaturas e convites -----------------------------------------------------------------
@@ -314,15 +316,19 @@ async def kick(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         _refuse(s, 5132, "sem direito ou cargo maior", alvo=msg.otherId)
         return
     guild = mine[0]
+    who = _profile(s, msg.otherId)
+    # (visto) 231733 #4449: o link de quem saiu ainda leva o consortiaId da guilda
+    kicked = f"{social.player_link(s.ctx, _char(s))} kicked {social.player_link(s.ctx, who)}" if who else None
     del g.members[msg.otherId]
     guild.kick_count += 1
     guild.kick_at = _now(s)
-    who = _profile(s, msg.otherId)
     # texto deduzido (sem fonte no cliente/captura)
     name = (who.nickname if who else None) or str(msg.otherId)
     event = _event(s, guild, gd.EV_KICK, _char(s).nickname or "", "expelled", name, "from the guild.")
     await s.ctx.characters.save(guild, event, delete=(target,))
     _left(s, msg.otherId, guild)
+    if kicked is not None:  # (visto) 231733 #4448-#4449: o 164 e depois o aviso aos que ficaram
+        guild_chat(s, guild, kicked)
 
 
 @router.on(5131)

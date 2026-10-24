@@ -192,6 +192,12 @@ async def test_invite_answer_quit_cooldown_and_kick(tmp_path: Path) -> None:
         assert _one(await b.idle(), 50, pb.ConsortiaMsg).positionId == 3
         a.client.send(5132, pb.ConsortiaMsg(otherId=b.user_id))
         assert _one(await b.idle(), 117, pb.ConsortiaMsg).consortiaId == 0
+        got = await a.idle()  # (visto) 231733 #4448-#4449: 164 e o aviso no chat da guilda
+        assert [p.code for p in got if p.code in (164, 83)] == [164, 83]
+        assert _one(got, 83, pb.ChatChannelMsg).encodeMsg.endswith(
+            f'name="Bruxa" consortiaId="{_guild(a).id}" serverName="" grades="0" />'
+        )
+        assert " kicked " in _one(got, 83, pb.ChatChannelMsg).encodeMsg
         assert _session(a).ctx.guilds.of(b.user_id) is None
 
 
