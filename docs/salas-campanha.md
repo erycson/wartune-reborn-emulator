@@ -230,7 +230,8 @@ não acabam o mapa. O fim só sai no último mapa da etapa e vai junto do 4382: 
 135, 112 (missões do fim), 4165, 150, 150, 140 (#1096-#1107, #2703-#2714). O 20 no meio é a resposta do 5038.
 
 **Carta (5122).** O 5122 responde 115, 26 e 83 "Received: Banshee Plume x1". O 5180 responde 134 e tira o jogador
-do mapa (#1124-#1126).
+do mapa (#1124-#1126). Depois do tutorial (noviceProcess > 30000) vem também o 4595 da cidade do céu *(visto,
+oficial_20261023-171155-1 #2936-#2937, oficial_20261023-215937-1 #728-#729; até 28500 só o 134)*.
 
 **Relatório 137.** O cálculo está em `game/campaign.py` (`report`, `grades`, `total_gp`):
 

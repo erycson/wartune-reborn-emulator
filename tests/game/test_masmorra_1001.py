@@ -261,6 +261,16 @@ async def test_vip_1_ganha_50_por_cento_da_exp_da_masmorra(tmp_path: Path) -> No
         assert "Received 945 EXP " in [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in end if p.code == 83]
 
 
+async def test_5180_depois_do_tutorial_recria_a_cidade_do_ceu(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #2936-#2937 e oficial_20261023-215937-1 #728-#729 (noviceProcess 33000 e
+    35000): 134 e 4595; no tutorial (até 28500) só o 134, como em ``leave``."""
+    async with logged_in(tmp_path, novice=33000) as g:
+        await play_1011(g)
+        await take(g, 2)
+        g.client.send(5180, pb.CampaignReqMsg(paraInt1=1))
+        assert codes(await g.idle()) == [134, 4595]
+
+
 async def test_5122_so_vira_carta_depois_do_fim(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         await enter(g)

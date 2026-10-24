@@ -18,6 +18,7 @@ from .session import GameSession
 
 SPACE = 10000
 S_CREATE, S_RETURN, S_PRESENT, S_MOVE, S_REMOVE, S_LOOK = 4595, 4606, 4597, 4594, 4607, 149
+TUTORIAL_END = 30000  # noviceProcess do fim do tutorial (o coliseu abre acima disso, gotoColosseumFrame)
 POST_TUTORIAL = 19000  # noviceProcess da cena do castelo; antes disso o 4595 atrapalharia o tutorial
 
 
@@ -78,14 +79,16 @@ def others(s: GameSession) -> list[GameSession]:
 
 
 def enter(s: GameSession, code: int = S_CREATE) -> None:
-    """Login: cria a cena (4595), apresenta quem já está lá e avisa os outros.
+    """Login: cria a cena (4595), apresenta quem já está lá e avisa os outros (só se ainda não estava lá).
 
-    O 4594 só desenha quem o cliente já conhece por um 4597, por isso vai sempre depois dele.
+    O 4594 só desenha quem o cliente já conhece por um 4597, por isso vai sempre depois dele. Também no fim da
+    masmorra depois do tutorial (5180, ``TUTORIAL_END``).
     """
     assert s.snapshot is not None
     if s.snapshot.character.novice_process < POST_TUTORIAL:
         return
     c = s.snapshot.character
+    known = s.space_pos is not None  # os outros já o têm na tela
     s.space_pos = s.space_pos or (c.space_x, c.space_y)  # onde saiu da última vez
     me = member(s)
     s.send(code, pb.RoomEnterMsg(result=1, player=[me]))  # 4595 no login, 4606 voltando de um mapa
@@ -93,7 +96,7 @@ def enter(s: GameSession, code: int = S_CREATE) -> None:
     if present:
         s.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[member(o) for o in present]))
         s.send(S_MOVE, _positions(present))
-    for o in present:
+    for o in [] if known else present:
         o.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[me]))
         o.send(S_MOVE, _positions([s]))
 
