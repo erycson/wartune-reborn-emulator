@@ -143,13 +143,13 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         got = await client.until(6)
         # 4247 só dentro de um exp_rate_events (data); 4638 só depois da missão 130; 4640 só a partir do nível 6;
         # 4612 (fundo normal) e 4497/295 (árvore dourada) com as linhas da 0038, como o tutorial_en #71-#86;
-        # 4616 antes do 4198 (tutorial_en #53-#54)
+        # 4616 antes do 4198 (tutorial_en #53-#54); 4696 6/1 antes do 4598 (oficial_encantar #95)
         codes = [p.code for p in got]
         # 4238: uma parte por 50 ofertas na janela (relógio real: o número muda com a data), antes do 4434
         assert codes.index(4238) < codes.index(4434)
         assert [c for c in codes if c not in (4247, 4238)] == [
             112, 4542, 4184, 4512, 4515, 4516, 4501, 4662, 4686,
-            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4484, 4461, 4612, 4497, 295, 363, 364, 190, 4590, 514, 414, 4598, 150, 6,
+            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4484, 4461, 4612, 4497, 295, 363, 364, 190, 4590, 514, 414, 4696, 4598, 150, 6,
         ]  # fmt: skip
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
         assert [p.code for p in await client.until(4151)] == [4151]  # tutorial_en #94: libera o mapa de campanhas

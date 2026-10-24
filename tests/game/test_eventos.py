@@ -107,7 +107,7 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         got = await g.until(83)
         box = pb.LeedFinishedRspMsg.FromString(next(p for p in got if p.code == 4150).body)
         assert (box.result, box.leedProcess) == (True, 2)
-        assert _alerts(got) == ["Received: 50,000 Gold"]  # LeedDrop site 1 (50000 de ouro no inglês), como o oficial
+        assert _alerts(got) == ["Received: 50,000 Gold"]  # LeedDrop site 1 (tutorial_en #1563)
 
         g.client.send(8749, pb.GetRewardMsg(day=1))  # guia de 7 dias: tarefas do dia 1 não feitas
         assert await g.idle() == []

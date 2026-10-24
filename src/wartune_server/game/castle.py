@@ -78,14 +78,19 @@ def gold_tech(templates: GameTemplates, row: Row) -> tuple[int, int] | None:
     return int(effect.get("PropertyType1", 0)), int(effect.get("Property1", 0))
 
 
-def tech_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
-    """Ouro das tecnologias com a bênção (``rules.boosted``; só turco: city_city_upgrade #133-#136, 300 -> 330, 450)."""
-    total = 0
+def tech_effects(snap: PlayerSnapshot, templates: GameTemplates) -> list[tuple[int, int]]:
+    """(``propertyType`` do 110, ouro) de cada tecnologia de ouro com nível, com a bênção (``rules.boosted``; só
+    turco: city_city_upgrade #133-#136, 300 -> 330, 450)."""
+    out = []
     for building in snap.buildings:
         row = template(templates, building.template_id)
-        if row is not None and (tech := gold_tech(templates, row)) is not None:
-            total += rules.boosted(tech[1] * int(row["BuildingGrade"]), snap.character.seminary_effect)
-    return total
+        if row is not None and (tech := gold_tech(templates, row)) is not None and int(row["BuildingGrade"]):
+            out.append((tech[0], rules.boosted(tech[1] * int(row["BuildingGrade"]), snap.character.seminary_effect)))
+    return out
+
+
+def tech_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
+    return sum(gold for _, gold in tech_effects(snap, templates))
 
 
 def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:

@@ -30,7 +30,7 @@ async def test_vehicle_garage_activate_and_choose(tmp_path: Path, monkeypatch: p
         ch.point, ch.gift_token = 1500, 300
         c.send(8619, pb.SimplePropertyMsg(param1=PAID, param2=0))  # tecnologia de tanque 0 < NeedGrades 365
         assert await g.idle() == []
-        monkeypatch.setattr(vehicle, "VEHICLE_TECH", 365)
+        monkeypatch.setattr(vehicle, "tech", lambda _: 365)  # game_settings.vehicle_tech
         ch.point = 699
         c.send(8619, pb.SimplePropertyMsg(param1=PAID, param2=0))  # 300 vinculados + 699: falta 1
         assert await g.idle() == []

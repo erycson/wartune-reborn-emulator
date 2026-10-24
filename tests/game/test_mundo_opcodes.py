@@ -56,7 +56,9 @@ async def test_mapa_do_tesouro_responde_o_estado(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         g.client.send(8744, pb.PlayerTreasureMsg(opType=6))
         state = pb.PlayerTreasureMsg.FromString((await g.until(4633))[-1].body)
-        assert (state.userId, state.joinCount, state.rewardCount, list(state.templateIds)) == (g.user_id, 0, 0, [])
+        assert (state.userId, state.joinCount, state.rewardCount, list(state.templateIds)) == (
+            g.user_id, 0, 0, [2190001, 2190002, 2190003, 2190004]
+        )  # fmt: skip
         g.client.send(8745, pb.GuildMsg(param1=1))  # reforço de mapa de guilda: não há mapa, só registra
         assert await g.idle() == []
 

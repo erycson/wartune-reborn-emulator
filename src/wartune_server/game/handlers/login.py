@@ -40,6 +40,7 @@ S_CASTLE_TIME = 4452
 S_BUILDINGS = 4154
 S_BUILD_ORDERS = 4155
 S_POLITICS = 152
+S_EFFECT = 110
 S_FRIENDS = 4156
 S_FARM = 4157
 S_SYS_PROPERTY = 4160
@@ -193,6 +194,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         )
         _send(s, S_BUILD_ORDERS, castle.order_list(snap, now))
         _send(s, S_POLITICS, castle.politics_msg(snap, s.ctx.templates))
+        for kind, gold in castle.tech_effects(snap, s.ctx.templates):  # (só turco: login.json #20) 110 tipo 104 = 330
+            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=kind, value=gold))
     if msg.castle:
         _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))
         s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))  # oficial manda só este campo
@@ -201,16 +204,24 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         # tropas do castelo: o oficial manda o 100 aqui, depois do 150, mesmo vazio para personagem sem tropas nem
         # quartel (tutorial_en #37-#39)
         s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
+        if snap.pets:  # só turco: login.json #30, entre o 100 e o 4438; sem pet o oficial não manda (tutorial_en)
+            from .pets import S_PETS, pets_msg
+
+            s.send(S_PETS, pets_msg(snap, s.ctx.templates))
         # (visto) 215937 #35 entre o 100 e o 4544; 0 = sem o buff de prosperidade no TopToolsBar (o servidor não tem)
         s.send(S_PROSPERITY, pb.SimplePropertyMsg(param1=0))
         from .systems import S_FATE, fate_list  # systems -> player -> login
 
         # destino: vazio no nível 1 (tutorial_en #42, depois do 150/100); com os tipos abertos só turco (login.json #34)
         s.send(S_FATE, fate_list(snap, s.ctx.templates))
-        if snap.pets:  # só turco: login.json #30; sem pet o oficial não manda (tutorial_en #24-#136: nenhum 4540)
-            from .pets import S_PETS, pets_msg
+        from . import tower, treasure  # tower importa campaign, que importa este módulo
+        from .systems import S_DRAGON, dragon_list, open_dragon
 
-            s.send(S_PETS, pets_msg(snap, s.ctx.templates))
+        # (só turco: login.json #35-#37) guarda, mapa do tesouro e dragão depois do 4544
+        tower.login_guard(s)
+        treasure.login(s)
+        if (dragon := dragon_list(open_dragon(snap))).fateInfo:  # o cliente nunca pede (sendDragonSoulRequest)
+            s.send(S_DRAGON, dragon)
     # (visto) a ordem do oficial, que não segue a dos campos: 171155 #18-#63, 215937 #19-#64, 231733 #20-#67
     if msg.tree:
         from .pets import guard_msg  # (só turco: login #49) o guarda, sem ``pos``
@@ -287,12 +298,16 @@ async def _login_state(s: GameSession) -> None:
         vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
     s.send(S_WEDDING_ROOMS, pb.EngageMsg())  # salas de casamento: vazio, como o oficial (tutorial_en #43)
     pet_defend.login(s)  # 4686: invasão da ilha dos pets (tutorial_en #44, oficial_encantar #43)
+    from .hero import login_rune  # hero importa player, que importa este módulo
+
+    login_rune(s)  # (só turco: login.json #40) 4495 depois do 4686
     from . import events
 
     events.send_rate(s)  # 4247 logo depois do 4686 (tutorial_en #44-#45)
     if on := buffs.active(snap, s.ctx.clock.now()):  # (dedução) sem captura de login com pergaminho ativo
         _send(s, S_ITEM_BUFFER, buffs.buffer_list(on, s.ctx.clock.now()))
     await events.login_push(s)
+    account.login_first(s)  # 4696 opType 6 logo antes do 4598
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))

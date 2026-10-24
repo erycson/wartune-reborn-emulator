@@ -222,6 +222,16 @@ def rune_reply(s: GameSession, hero: Hero, op: int, ok: bool) -> None:
     s.send(S_RUNE, msg)
 
 
+def login_rune(s: GameSession) -> None:
+    """4495 {opType 0, opResult false, count} sem ``runeInfo`` (só turco: login.json #40, nível 56); (dedução) só
+    com as runas abertas (``OpenRuneGrade`` 35): o inglês até o 16 não manda."""
+    snap = s.snapshot
+    assert snap is not None
+    if snap.character.grades >= int(rules.config(s.ctx.templates, "OpenRuneGrade", "35")):
+        count = rune_point_times(snap, s.ctx.clock.now())
+        s.send(S_RUNE, b.complete(pb.HeroRuneOpMsg(opType=0, opResult=False, count=count)))
+
+
 @router.on(8605)
 async def rune_op(s: GameSession, msg: pb.HeroRuneOpMsg) -> None:
     """opType 1 aprende (gasta o livro SonType 302 com Property1 = RuneType em learnRunePos), 2 sobe

@@ -618,9 +618,13 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
     box.value, box.updated_at = box.value | bit, now
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), box, *new)
+    # (visto) tutorial_en #1561-#1565, oficial_encantar #1586-#1590 (50.000 de ouro): 109, 111 "Received: 50,000
+    # Gold", 4150 e o 83, sem o 3; (só turco: login.json #134-#150, um item) 115, 4476 e os 4484 antes do 111
+    coins = any(t < 0 and t != -100 for t, _ in drops)  # (dedução) moeda além do ouro manda o 3
+    granted(s, drops, new, text, chat=False, player=True if coins else None)
     alert(s, text)
     s.send(S_LEED_RECEIVE, pb.LeedFinishedRspMsg(result=True, site=msg.site, leedProcess=box.value))
-    granted(s, drops, new, text)
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 @router.on(8518)

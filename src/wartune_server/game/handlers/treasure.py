@@ -21,6 +21,7 @@ from .player import granted
 
 S_TREASURE = 4633
 OP_GET, OP_INFO = 1, 6
+MAP_SON_TYPE = "219"  # os quatro mapas (Uncommon, Rare, Epic, Legendary), NeedGrades 55
 # ponytail: o oficial sorteia a qualidade do mapa; sem essa tabela, dá sempre o de bronze (2190001)
 GET_ITEM = 2190001
 
@@ -42,10 +43,29 @@ def _book(s: GameSession, now: datetime) -> TreasureMap:
     return book
 
 
-def _state(s: GameSession, book: TreasureMap, op: int) -> pb.PlayerTreasureMsg:
+def _maps(s: GameSession) -> list[int]:
+    return sorted(int(r["TemplateId"]) for r in s.ctx.templates.find("ItemTempInfos", SonType=MAP_SON_TYPE))
+
+
+def _state(s: GameSession, book: TreasureMap, op: int = 0) -> pb.PlayerTreasureMsg:
+    """(só turco: login.json #36) ``templateIds`` com os quatro mapas e ``index`` o da vez: o
+    ``TreasureMapGetFrame`` lê ``templateIds[index]``. ``index`` 0: sempre o primeiro (``GET_ITEM``)."""
     return b.complete(
-        pb.PlayerTreasureMsg(userId=s.player_id, joinCount=book.join_count, rewardCount=book.reward_count, opType=op)
-    )
+        pb.PlayerTreasureMsg(
+            userId=s.player_id, joinCount=book.join_count, rewardCount=book.reward_count, opType=op,
+            templateIds=_maps(s),
+        )
+    )  # fmt: skip
+
+
+def login(s: GameSession) -> None:
+    """4633 do login (só turco: login.json #36, nível 56); (dedução) só a partir do nível dos mapas (55), como o
+    inglês (nível 1 a 16) que não manda."""
+    snap = s.snapshot
+    assert snap is not None
+    need = int((s.ctx.templates.get("ItemTempInfos", GET_ITEM) or {}).get("NeedGrades", 0))
+    if snap.character.grades >= need:
+        s.send(S_TREASURE, _state(s, _book(s, s.ctx.clock.now())))
 
 
 async def _receive(s: GameSession, book: TreasureMap) -> None:

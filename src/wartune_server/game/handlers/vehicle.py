@@ -32,8 +32,10 @@ ROOM_MATCHING, ROOM_PLAYING = 2, 3  # RoomStateRspMsg.roomState (VehicleRoomFram
 GARAGE = "1"  # VehicleObjectTempInfo.Type dos veículos da garagem (DaimonModel)
 EXIT_NODE = 0  # WorldBossPlayerStateMsg.state fora de 6/7/8 = desceu do veículo/torre (CampaignArmy.exitNode)
 # 4501 param1 = PlayerModel.vehicleTech, comparado com NeedGrades (DaimonRightView inglês, "Requires {0} Tank Tech
-# Level."); ponytail: a tecnologia de tanque não tem tela nem regra de evolução no cliente, fica 0 para todos
-VEHICLE_TECH = 0
+# Level."). A tecnologia de tanque não tem tela nem regra de evolução no cliente; (visto) 218 no inglês fora do login
+# (oficial_encantar #2605, 171155 #6386) e (só turco: login.json #112) 18218 no login, sem relação com força ou
+# perfil. ``game_settings.vehicle_tech``; sem ele, o 218 do inglês (abaixo dos 365 do Nightwolf e dos 915 do 4)
+TECH_SETTING = "vehicle_tech"
 NOT_OPEN = "Tanks are not open yet!"  # language EN vehicle.noOpen
 LOW_LEVEL = f"Requires level {vh.MIN_LEVEL}."
 BUSY = "Finish your current battle or map first."
@@ -48,6 +50,10 @@ def _alert(s: GameSession, text: str) -> None:
     from .player import alert  # player importa login, que importa este módulo
 
     alert(s, text)
+
+
+def tech(s: GameSession) -> int:
+    return int(s.ctx.world.settings.get(TECH_SETTING) or 218)
 
 
 def owned(c: Character) -> list[int]:
@@ -86,7 +92,7 @@ def login(s: GameSession) -> None:
     s.send(S_STATE, pb.MatchStateMsg(matchState=s.vehicle_open))
     s.send(S_PROFILE, _profile(s, c))
     s.send(S_LIST, _garage(c))
-    s.send(S_TECH, pb.SimplePropertyMsg(param1=VEHICLE_TECH))
+    s.send(S_TECH, pb.SimplePropertyMsg(param1=tech(s)))
 
 
 def push_state(s: GameSession) -> None:
@@ -372,7 +378,7 @@ async def activate_vehicle(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     c = snap.character
     row = s.ctx.templates.get("VehicleObjectTempInfos", msg.param1)
     price, need = (int(row.get("NeedDiamond", 0)), int(row.get("NeedGrades", 0))) if row else (0, 0)
-    bad = row is None or row.get("Type") != GARAGE or msg.param1 in owned(c) or need > VEHICLE_TECH
+    bad = row is None or row.get("Type") != GARAGE or msg.param1 in owned(c) or need > tech(s)
     entry = None
     if not bad and price:
         now = s.ctx.clock.now()

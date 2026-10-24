@@ -7,7 +7,8 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 
 
 def _vp(got: list[Packet], op: int) -> int:
-    [reply] = [pb.VicePasswordMsg.FromString(p.body) for p in got if p.code == 4696]
+    replies = [pb.VicePasswordMsg.FromString(p.body) for p in got if p.code == 4696]
+    [reply] = [r for r in replies if r.opType != 6]  # o 6 é o aviso da recompensa da primeira senha
     assert reply.opType == op
     return reply.result
 

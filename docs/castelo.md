@@ -82,8 +82,8 @@ cliente fica nulo e a fazenda quebra); o 4195 não sai (nenhuma captura o tem): 
 
 - **População ocupada** (`curPopulation`) = soldados do exército: 0 até o sistema de tropas existir
   (5155/5156/5158 são de outro agente).
-- **Rendimento**: o oficial soma +30/h que não sabemos de onde vem (só turco, login.json: 8550 = 8220 dos
-  prédios + 300 de tecnologia + 30); sem terras selvagens, guilda e efeitos.
+- **Rendimento**: 8550 = 8220 dos prédios + 330 da Gold Production 5 (300 com a bênção 10%: `castle.tech_effects`,
+  o 110 tipo 104 do login; só turco, login.json #19-#21, #133); sem terras selvagens, guilda e efeitos.
 - ~~**Fazenda de amigo**~~: feita (tabela acima). Quem pode: só amigo (`relation` 1, que já é dos dois lados).
   Contadores do dia no castelo de quem age (`farm_day`, `farm_friend_gp`, `farm_steals`, `tree_water_today`,
   `tree_friend_today`, migração 0037); `todayFromFriendGp`/`todayStolenCount` vão no 4386 da própria fazenda.

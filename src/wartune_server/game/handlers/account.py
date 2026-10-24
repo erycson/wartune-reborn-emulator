@@ -10,13 +10,18 @@ import re
 import time
 from datetime import datetime, timedelta
 
-from ...domain.models import Character
+from ...domain.models import Character, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
+from .. import events as gev
+from .. import rewards, rules, space
 from ..router import router
 from ..session import GameSession
 
 S_AAS_CHANGE, S_VICE_PASSWORD, S_CHECK_SEND, S_NODE_STAND = 4172, 4696, 4420, 4208
+S_CHAT, S_ALERT, S_ITEMS = 83, 111, 115
 VP_CHECK, VP_SET, VP_CHANGE, VP_RESET = 1, 2, 3, 4  # VicePasswordMsg.opType (VicePasswordUtil.as)
+VP_FIRST = 6  # opType 6: result 1 = a recompensa da primeira senha ainda está lá (PlayerInfo.needShowReward)
+FIRST_KEY = "vice_reward"  # event_states: a recompensa da primeira senha já saiu
 VP_RESET_DAYS = 3  # ponytail: prazo do reset não está no cliente nem nas capturas; ajustar se aparecer
 ACCELERATOR_PERIOD = 60  # s: o cliente manda 20010 a cada 60 ticks do relógio local
 ACCELERATOR_SLACK = 0.8  # abaixo de 80% do período conta como relógio acelerado
@@ -108,9 +113,71 @@ async def vice_password(s: GameSession, msg: pb.VicePasswordMsg) -> None:
         return
     if ok and msg.opType != VP_CHECK:
         s.vice_confirmed = msg.opType != VP_RESET
-    if ok or changed:
+    first = _first_reward(s) if ok and msg.opType == VP_SET else []
+    text = ""
+    if first:
+        await _grant_first(s, first)
+        # (visto) oficial_encantar #270-#273: itens antes das moedas, "Congrats! You earned: Lvl. 1-3 Gem Pack x1,
+        # Mount Training Whip x20, 5,000 Gold, 2,000 Daru" no 111, o 4696 6/0, o 2/1 e o mesmo texto no 83
+        order = [d for d in first if d[0] > 0] + [d for d in first if d[0] < 0]
+        text = "Congrats! You earned: " + rewards.text(s.ctx.templates, order).removeprefix("Received: ")
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+        s.send(S_VICE_PASSWORD, pb.VicePasswordMsg(opType=VP_FIRST, result=0))
+    elif ok or changed:
         await s.ctx.characters.save(c)
     s.send(S_VICE_PASSWORD, pb.VicePasswordMsg(opType=msg.opType, result=int(ok)))
+    if text:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+async def _grant_first(s: GameSession, drops: list[rewards.Drop]) -> None:
+    """(visto) oficial_encantar #257-#269: 109, 3, 115, 4476 e os 4484 de item ganho."""
+    from ..castle import castle_yield
+    from . import events
+    from .player import _player  # player importa login, que importa este módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    new, _ = rewards.grant(snap, s.ctx.templates, drops)
+    st = gev.state(snap, FIRST_KEY, now)
+    st.text, st.updated_at = "1", now
+    await s.ctx.characters.save(*rewards.owners(snap), *new, st)
+    castle_yield(s)
+    _player(s)
+    if new:
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+        events.items_gained(s)
+
+
+def first_reward_pending(snap: PlayerSnapshot) -> bool:
+    return gev.peek(snap, FIRST_KEY) is None
+
+
+def login_first(s: GameSession) -> None:
+    """(visto) oficial_encantar #95: 4696 opType 6 result 1 logo antes do 4598 enquanto a recompensa da primeira
+    senha não saiu; o mesmo personagem, depois de criar a senha (#256), não recebe mais (153200, 171155, 215937,
+    231733); só turco: login.json #99. O tutorial_en (personagem novo) não tem: (dedução) só depois do tutorial."""
+    snap = s.snapshot
+    assert snap is not None
+    c = snap.character  # com senha já feita (sem a recompensa: mochila cheia) não há como resgatar
+    if c.novice_process >= space.POST_TUTORIAL and not c.vice_password and first_reward_pending(snap):
+        s.send(S_VICE_PASSWORD, pb.VicePasswordMsg(opType=VP_FIRST, result=1))
+
+
+def _first_reward(s: GameSession) -> list[rewards.Drop]:
+    """``vice_password_reward`` (ConfigInfos: "首次添加二级密码时获得的奖励"); o cliente mostra o mesmo em
+    ``SetVPView``. Vazio se já saiu ou a mochila não cabe."""
+    snap = s.snapshot
+    assert snap is not None
+    if not first_reward_pending(snap):
+        return []
+    raw = rules.config(s.ctx.templates, "vice_password_reward", "")
+    drops = [(int(t), int(n)) for t, n in (p.split(",") for p in raw.split("|") if p)]
+    if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
+        s.log.info("recompensa da senha secundária: mochila cheia")  # (dedução) fica para a próxima senha
+        return []
+    return drops
 
 
 # -- verificações -----------------------------------------------------------------------------

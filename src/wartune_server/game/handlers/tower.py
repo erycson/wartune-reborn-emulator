@@ -223,6 +223,21 @@ async def tower_live(s: GameSession, msg: pb.PayTypeMsg) -> None:
     hp_pack(s, healed)
 
 
+def guard_open(s: GameSession) -> bool:
+    """A guarda abre no menor ``Grades`` do UpGradeTempInfos tipo 28 (55; ``BattleGuardView.activeItem``)."""
+    snap = s.snapshot
+    assert snap is not None
+    rows = [r for r in s.ctx.templates.rows("UpGradeTempInfos") if str(r.get("Types")) == "28"]
+    return bool(rows) and snap.character.grades >= min(int(r["Grades"]) for r in rows)
+
+
+def login_guard(s: GameSession) -> None:
+    """4631 do login (só turco: login.json #35, nível 56, com uma gema; o inglês até o 16 não manda).
+    shortcut: sem gemas modeladas vai vazio; preencher quando o 8742 existir."""
+    if guard_open(s):
+        s.send(S_BATTLEGUARD, pb.HeroWatchMsg(userId=s.player_id))
+
+
 @router.on(8742)
 async def battleguard_op(s: GameSession, msg: pb.HeroWatchOpMsg) -> None:
     """Gemas da guarda de batalha (4631). Sem inventário de gemas, a operação é recusada e volta o estado vazio."""

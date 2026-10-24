@@ -26,7 +26,7 @@ Fila, partidas e quem já ganhou o prêmio de cada janela ficam só em memória 
 
 | C>S | O que o servidor faz | Fonte |
 |---|---|---|
-| login (depois do tutorial) | 4512 `matchState` = janela aberta agora, 4515 perfil, 4516 garagem, 4501 `param1=0` (tecnologia). A conta nova da captura inglesa não recebe esses pacotes (nenhum na captura inteira). | *(visto)* `login.json` #83, #110-112 (só turco: `login`); *(cliente)* `BaseManager.__vehicleStartHandler` |
+| login (depois do tutorial) | 4512 `matchState` = janela aberta agora, 4515 perfil, 4516 garagem, 4501 `param1` = `game_settings.vehicle_tech` (tecnologia). A conta nova da captura inglesa não recebe esses pacotes (nenhum na captura inteira). | *(visto)* `login.json` #83, #110-112 (só turco: `login`); *(cliente)* `BaseManager.__vehicleStartHandler` |
 | 20008 relógio | 4512 de novo quando a janela abre ou fecha | *(dedução)*: o botão da barra e a fila dependem do 4512 (`TopToolsBar.as`) |
 | 8608 entrada solo | Recusa com alerta: janela fechada ("Tanks are not open yet!"), menos de 5 min para o fim ("Tank Trial is about to close, cannot enter."), nível < 35, em luta/mapa/fila/sala. Senão 4525 `param1` 1 (o relógio "procurando" do `DaimonTrialBottomView`) e a fila. | *(cliente)* `RoomListSocketOutManager.as:80`, `VehicleRoomFrame.checkCanEnter`, `CampaignInfo` 3001 `MinLevel` |
 | 8609 cancelar | Tira o jogador sozinho da fila; o cliente não espera resposta | *(cliente)* `RoomListSocketOutManager.as:86` |
@@ -79,8 +79,9 @@ velocidade (não é conferida).
 **Dependências e limites:**
 - **Mapas de guerra com veículos e torres (25111/25112).** São os `CampaignInfo` de Types 9, GvG e cross.
   Dependem do sistema de guerra de guilda (dono: [pvp.md](pvp.md) / guilda).
-- **Tecnologia de tanque** fica 0 para todos *(dedução)*: o cliente só a lê do 4501 e não tem tela nem regra
-  para evoluí-la. Com 0, Nightwolf (365) e o 4 (915) ficam bloqueados no próprio cliente.
+- **Tecnologia de tanque**: `game_settings.vehicle_tech`, padrão 218 *(visto: inglês, fora do login; o turco manda
+  18218 no login)*. O cliente só a lê do 4501 e não tem tela nem regra para evoluí-la. Com 218, Nightwolf (365) e o 4
+  (915) ficam bloqueados no próprio cliente.
 - **Veículos sem `NeedDiamond`** não mandam 8619: o cliente só compara `autoOpenGrade`, que os templates não têm.
 - **Um processo só**: fila e partidas não passam entre servidores (a batalha entre servidores não existe aqui).
 
@@ -117,11 +118,19 @@ No login, o 4173 vai com `isCloseAAS=true` e `sysSwitch=false`. Isso desliga o s
 - O reset apaga a senha `VP_RESET_DAYS` (3) dias depois do pedido. Isso é conferido no login e no 8806.
   *(dedução)*: o prazo real não está no cliente nem nas capturas.
 
-**Fontes.** *(cliente)* `mainBar/vicePassword/VicePasswordUtil.as:28`, `PlayerManager.as:211-286`; *(visto)* `login.json` #99 (só turco: `login`; a captura inglesa não tem 4696).
+**Recompensa da primeira senha** (`ConfigInfos.vice_password_reward`: 5000 de ouro, Lvl. 1-3 Gem Pack, 2000 de Daru,
+20 Mount Training Whip; o `SetVPView` mostra o mesmo):
+- Login: 4696 `opType=6 result=1` logo antes do 4598 enquanto a recompensa não saiu (`event_states` `vice_reward`), só
+  depois do tutorial. *(visto)* oficial_encantar #95; o mesmo personagem, depois de criar a senha, não recebe mais
+  (153200, 171155, 215937, 231733); o tutorial_en (personagem novo) não tem *(dedução: só depois do tutorial)*.
+- Quem já tem senha não recebe o aviso (sem como resgatar). O primeiro opType 2 aceito dá a recompensa: 109, 3, 115, 4476, os 4484, 111 "Congrats! You earned: Lvl. 1-3 Gem Pack
+  x1, Mount Training Whip x20, 5,000 Gold, 2,000 Daru", 4696 6/0, 4696 2/1 e o mesmo texto no 83 *(visto)*
+  oficial_encantar #256-#273. Uma senha nova depois do reset não dá de novo.
+
+**Fontes.** *(cliente)* `mainBar/vicePassword/VicePasswordUtil.as:28`, `PlayerManager.as:211-292`, `SetVPView.as:93-131`;
+*(visto)* oficial_encantar #95, #256-#273; só turco: `login.json` #99.
 
 **Fica para depois.**
-- 4696 `opType=6` no login (*(visto)* `login.json` #99, `result=1`; só turco: `login`) mostra o bloco de recompensa por definir a senha.
-  Não mandamos, porque essa recompensa não existe aqui.
 - Trancar e destrancar item (8809) é do dono da mochila e deve exigir `s.vice_confirmed`.
 
 ## Verificações, anti-trapaça e outros
@@ -155,32 +164,17 @@ O conjunto comparado são os pacotes que `socket_login`, `login_load`, `_login_s
 - as respostas a pedidos do cliente (por exemplo 109 do 5015);
 - o tutorial (inglesa #116–#122: 125, 140, 21, 127, 130, 143; o 1 vem depois, #165), que vem dos handlers da campanha.
 
-Os pacotes abaixo continuam faltando. O cliente aguenta sem eles: cada um preenche o próprio painel quando chega.
+Todos os pacotes de `login.json` saem hoje (conferido pacote a pacote; a captura foi apagada depois). Os últimos:
+110 tipo 104 da tecnologia de ouro com a bênção (#20, 330), 4631/4633/4555 depois do 4544 (#35-#37; guarda e mapas
+a partir do nível 55, dragão do 40), 4495 depois do 4686 (#40; runas do `OpenRuneGrade` 35), 4696 `opType=6` antes do
+4598 (#99) e a ordem do baú de atividade 8235 (#134-#150, a mesma do inglês tutorial_en #1561-#1565). Diferenças que ficam:
 
-| Pacotes | Sistema | Dono provável |
+| Pacote | Diferença | Por quê |
 |---|---|---|
-| 4426, 4427 | montaria | montaria |
-| 4540, 4555, 4544 | pets, dragão, destino | pets / destino |
-| 4902, 4903, 4905 | cartas de poder | cartas |
-| 4631, 4495, 4178, 4180 | guarda de batalha, runas, estrelas | herói |
-| 4542, 4484 | moda e títulos | moda / títulos |
-| 4224, 4372, 4360, 4912, 4247 | sorte, refino de alma, recompensas, recuperação, taxa | castelo / atividades |
-| 4152, 4150 | guia de tarefas (leed) | missões |
-| 4614, 4616, 4198, 4393, 4638, 4640 | recompensas repetidas, ações diárias, 7 dias, primeiro depósito | atividades |
-| 4461, 4463, 4475, 4476, 4251, 363, 364, 4901, 4428 | atividades e promoções | atividades ([boss-eventos.md](boss-eventos.md)) |
-| 4238, 4145, 4184 | loja e ferreiro | loja |
-| 4410, 4392, 4725 | VIP, atendimento, tokens | VIP |
-| 4133, 4135, 4137, 4138, 4451, 4683, 4685, 4741 | guilda, guerra de guilda | guilda |
-| 4182, 4248, 4776, 4201, 190, 414, 4590 | estado de boss, war field, PvP, mina, cadeiras, barra do topo | [boss-eventos.md](boss-eventos.md) / [pvp.md](pvp.md) |
-| 4151, 4244, 4481, 4373, 4900, 4633, 4922 | ranking, torre, rei, mapa do tesouro, labirinto | ranking / masmorras |
-| 85, 4232, 4497 | recomendação de amigos, estado do chat, garrafa | amigos / [chat.md](chat.md) |
-| 152, 110, 4438, 4434, 4529, 4662 | segurança do castelo, efeito, prosperidade, contrato, lordes, casamento | castelo / eventos |
-| 11 | lista de espera da campanha | [mundo-compartilhado.md](mundo-compartilhado.md) C |
-| 100 | `ArmyPawnUpdatedMsg` das tropas, sem pedido (inglesa #13, #39, vazio na conta nova) | exército / tropas |
-| 109 | `CastleYieldMsg` empurrado no fim (#133 da captura turca; só turco: `login`); hoje só vai em resposta ao 5015, como na inglesa (#123→#124) | castelo |
-| 83, 111 | mensagens de sistema (83 de devoção, inglesa #16) e o alerta de recompensa do guia de tarefas (111: #2, #148, #150 da captura turca; só turco: `login`) | [chat.md](chat.md) / missões (leed) |
-| 4696 `opType=6` | bloco de recompensa da senha secundária (ver acima) | senha secundária (esta fatia), quando houver a recompensa |
-| 462 | sem nome no `opcodes.json` (corpo `3800`) | desconhecido |
+| 4631 | vai sem `watchInfo` (o turco tinha uma gema, 3120101) | shortcut: as gemas da guarda (8742) não são modeladas |
+| 4501 | `param1` de `game_settings.vehicle_tech` (218, o do inglês); o turco manda 18218 | a regra da tecnologia de tanque não está no cliente |
+| 109 do fim (#133) | resposta ao 5015 do cliente, como no inglês (#123→#124) | o pedido não aparece (a captura turca só tem S>C) |
+| 462 | corpo `3800`, igual ao oficial | sem nome no `opcodes.json` |
 
 ## Visto no oficial e ainda sem regra (oficial_encantar #1833-#2892)
 
@@ -190,6 +184,6 @@ Horários da captura no relógio da máquina (UTC-3); o oficial segue o Pacífic
 |---|---|---|
 | 4686 ilha dos pets | login 11:39 com invasão aberta (`mapId` 20002, `bossId` 5102, `leftTime` 1242307 ms: fim 12:00); 12:00:16 tudo zerado; 14:00:16 abre `mapId` 20004, `bossId` 5104, `leftTime` 3584000 (1 h). Janelas de 1 h, mapa e chefe mudando | **feito**: janela pelo `ConfigInfos` e 4686 no login e no 20008 ([eventos.md](eventos.md#defend-sylph-atoll-a-janela-gamepet_defendpy-handlerspet_defendpy)) |
 | 4512 veículos | `matchState` true às 14:00:25 e false às 14:25:28 (10:00-10:25 no Pacífico) | já igual: `MatchOfVehicleTime` 10:00,10:25 no fuso do jogo (`WARTUNE_GAME_TIMEZONE`) |
-| 4501 tecnologia de tanque | `param1` 218 às 14:30:29, 5 min depois da janela, sem o jogador ter jogado | não se sabe de onde vem o 218; o servidor manda 0 |
+| 4501 tecnologia de tanque | `param1` 218 às 14:30:29, 5 min depois da janela, sem o jogador ter jogado | não se sabe de onde vem o 218 (o turco manda 18218); o servidor manda `game_settings.vehicle_tech`, padrão 218 |
 | 11 lista de espera do PvE | 124 empurrões (65 entradas, 58 saídas, `playerState` 7) de outros jogadores, o dia todo. O cliente põe em `PlayerManager.watingList`, lido pela lista de jogadores do `PVERoomListFrame` | a captura não mostra o critério de quem entra na lista (o cliente não manda nada ao abrir a tela) |
 | 5019 baú de tempo online | além de 115, 111, 4250, 4, 83 ×2, também 4476 (SumActive) e nove 4484 (títulos) | feito: os dois saem de `events.items_gained` |
