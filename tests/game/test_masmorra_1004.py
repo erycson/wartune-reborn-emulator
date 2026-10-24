@@ -13,8 +13,9 @@ from tests.game.harness import logged_in
 from tests.game.test_masmorra_1001 import codes, enter, fast_battles, won  # noqa: F401  (fixture)
 from tests.game.test_masmorra_1002_pedreira import confirm, text
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.game import rules
+from wartune_server.game import events, rules
 from wartune_server.game.campaign import DONE
+from wartune_server.game.handlers.campaign import STAGE_KEY
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -31,6 +32,19 @@ async def test_1004_entra_na_sala_1051(tmp_path: Path) -> None:
         assert session.campaign.map_id == 1051
         # (visto) #5828: a carta deu Skeleton Key, fora do Campaigns.Item
         assert 208005 in [t for t, _ in session.ctx.world.campaign_cards[1004]]
+
+
+async def test_segunda_vez_entra_na_sala_1061(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-215937-1 #218-#219: a 1004 depois de vencida abre a 1061 (migração 0071)."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        now = session.ctx.clock.now()
+        events.state(session.snapshot, STAGE_KEY.format(1004), now).value = 1  # a 1051 já foi vencida
+        got = await enter(g, 1004)
+        room = pb.RoomCreatedMsg.FromString(next(p.body for p in got if p.code == 125))
+        assert room.room.campaignId == 1061 and session.campaign is not None
+        assert session.campaign.node(106110) is not None  # baú de prata
 
 
 async def test_bau_de_prata_cobra_1000_de_ouro(tmp_path: Path) -> None:

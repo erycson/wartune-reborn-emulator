@@ -144,7 +144,7 @@ com o desfecho, as moedas das caixas, os drops com chance, os avisos, os portais
 tudo uma vez (`world.campaigns` e `world.campaign_cards`). As fontes são as linhas `#N` de `captures/tutorial_en.txt`.
 
 **Etapas.** As etapas são: 1001 = [1011], [1021]; 1002 = [1131 → 1132], [1141 → 1142]; 1003 = [1031 → 1032] (migração
-0058, `oficial_20261023-153200-1`); 1004 = [1051] (migração 0069, `oficial_20261023-171155-1`); 6001 = [6001].
+0058, `oficial_20261023-153200-1`); 1004 = [1051], [1061] (migrações 0069 e 0071, `oficial_20261023-171155-1` e `oficial_20261023-215937-1`); 6001 = [6001].
 
 **Entrada (5039).** O 5039 manda `CampaignReqMsg {paraInt1: 1, paraInt2: <campanha>}` (o corpo `08 01 10 e9 07` é
 a 1001). A etapa sai do estado do personagem: o `EventState` `campaign_stage:<id>` avança no fim de cada etapa. A
