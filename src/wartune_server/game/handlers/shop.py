@@ -597,15 +597,19 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
 @router.on(8597)
 async def appell_exchange(s: GameSession, msg: pb.AppellExchangeMsg) -> None:
     """``look``: lista de títulos (4484, a mesma do login: ``titles.appells_msg``). Trocar o título exige tê-lo
-    ganho; TODO(inventado): nenhuma condição de ``AppellInfos.CondtionType`` marca ``isGet`` ainda (o inglês não
-    mostrou nenhum título ganho), então a troca é recusada."""
+    ganho (``isGet``: Honor, contribuição e itens; as outras condições ainda não contam, ver ``titles``)."""
     snap = s.snapshot
     assert snap is not None
+    listed = titles.appells_msg(snap.character, s.ctx.templates, {i.template_id for i in snap.items})
     if msg.look:
-        send(s, S_APPELLS, titles.appells_msg(snap.character, s.ctx.templates))
+        send(s, S_APPELLS, listed)
         return
-    if msg.appellId == 0 and snap.character.appell_id:
-        snap.character.appell_id = 0
+    earned = {a.appellId for a in listed.appells if a.isGet}
+    # (dedução) trocar responde como tirar: 3 e 150 com o appellId novo
+    if (msg.appellId == 0 and snap.character.appell_id) or (
+        msg.appellId in earned and msg.appellId != snap.character.appell_id
+    ):
+        snap.character.appell_id = msg.appellId
         await s.ctx.characters.save(snap.character)
         _player(s)
         _army(s)

@@ -27,7 +27,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] Tesouro tipo 22 (battleType 3, guardas 6014)
 - [ ] Minas no mapa global (nomes "Autaric Plains(x,y)")
 - [ ] Alvo aleatório na batalha (oráculo KNOWN_EXTRA)
-- [x] Títulos 4484 / 8597 (lista; conquistas ganhas: TODO(inventado))
+- [x] Títulos 4484 / 8597 (Honor, contribuição e itens ganham; as outras conquistas: TODO(inventado))
 
 ## 4. Itens e loja
 - [ ] Refino da forja: peso por nível

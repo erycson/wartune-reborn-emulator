@@ -197,7 +197,8 @@ def items_gained(s: GameSession) -> None:
 
 def send_titles(s: GameSession) -> None:
     assert s.snapshot is not None
-    s.send(S_TITLES, titles.appells_msg(s.snapshot.character, s.ctx.templates))
+    owned = {i.template_id for i in s.snapshot.items}
+    s.send(S_TITLES, titles.appells_msg(s.snapshot.character, s.ctx.templates, owned))
 
 
 def _online_seconds(s: GameSession, a: ev.Active, now: datetime) -> int:

@@ -9,6 +9,8 @@ a contribuição da guilda); o turco mostra 384 nos de Honor (CondtionType 7, o 
 
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from ..domain.models import Character
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
@@ -29,13 +31,29 @@ def _progress(c: Character, row: Row) -> int:
     return 0
 
 
-def appells_msg(c: Character, templates: GameTemplates) -> pb.AppellsMsg:
+def _got(row: Row, progress: int, owned: Collection[int]) -> bool:
+    """(dedução do template) ``Para`` é o limiar das condições contadas ("Have at least 2000 Honor", "Guild Contribution
+    of more than 100,000") e, no 22, os itens que é preciso ter ("Has both Lover's Hat and Lover's Gown")."""
+    para = row.get("Para") or ""
+    if row["CondtionType"] in (HONOR, GUILD_OFFER):
+        return progress >= int(para)
+    if row["CondtionType"] == OWN_ITEM:
+        return all(int(t) in owned for t in para.split(",") if t)
+    return False
+
+
+def appells_msg(c: Character, templates: GameTemplates, owned: Collection[int] = ()) -> pb.AppellsMsg:
+    """``owned``: os templates dos itens do jogador (condição 22)."""
     job = rules.job_type(c.job)
     rows = [r for r in templates.rows("AppellInfos") if int(r.get("Job") or 0) in (0, job)]
     rows.sort(key=lambda r: (int(r["TemplateId"]) % HASH_BUCKETS, int(r["TemplateId"])))
     msg = pb.AppellsMsg()
     for r in rows:
-        msg.appells.add(appellId=int(r["TemplateId"]), isGet=False, value=str(_progress(c, r)), validDate=NO_DATE)
+        progress = _progress(c, r)
+        # TODO(inventado): validDate de título ganho com ``Time`` (o inglês só mostrou títulos não ganhos)
+        msg.appells.add(
+            appellId=int(r["TemplateId"]), isGet=_got(r, progress, owned), value=str(progress), validDate=NO_DATE
+        )
     return msg
 
 

@@ -176,7 +176,7 @@ correio, 12).
 | 5154 ShopMsg `isDiscount` | compra de oferta (`goodId` = id da oferta): `price` em Balens por unidade (nunca vinculado), dentro de `beginDate`..`endDate`, até `oneDayCount` por dia (result 6); entrega `templateId`×`counts` e `templateIdN`×`countN` do pacote, livres | 3, 115, 111/83, 90 | *(cliente)* `MainShopInfo.price`/`canOneCount`, `ShopManager.__shoppingHandler` |
 | 8483 ShopFreshReqMsg | loja misteriosa (ShopType 5): lista; `isButton` atualiza pagando `ShopFresh_NeedDiamond` (45 no inglês). Os itens trocam sozinhos 14400 s depois do `freshLastdate` (`MysteryShopModel.remainTime`, que pede a lista de novo ao zerar); as compras do dia zeram na virada das 5h | 3, 4384 `{itemId[], freshLastdate, isCanBuy[], buyCount, maxBuyCount}` | *(cliente)* |
 | 8482 ShopItemBuyMsg | compra o item `index` da misteriosa (uma vez cada, até `ShopBuy_MaxCount` 20 por dia) | 3/109, 115, 111, 83, 4383 `{result, buyCount}`, 4384 | *(cliente)* |
-| 8597 AppellExchangeMsg | `look`: os 221 títulos (`titles.appells_msg`, igual ao do login); trocar exige ter o título (TODO(inventado): nenhuma condição marca `isGet` ainda); `appellId` 0 tira o título | 4484 AppellsMsg | *(cliente)* |
+| 8597 AppellExchangeMsg | `look`: os 221 títulos (`titles.appells_msg`, igual ao do login); trocar exige ter o título (`isGet` pelo `Para`: Honor, contribuição, itens; responde 3 e 150); `appellId` 0 tira o título | 4484 AppellsMsg | *(cliente)* |
 
 Misteriosa (tela inglesa em `m7/scripts/auction/view/mysteryshop`): 6 itens (`MysteryShopModel.MAX_GOODS_NUM`;
 o `MAX_RARE_GOODS_NUM` 8 é a vitrine de raros, outra lista) sorteados pelo peso `Rands` entre os do nível do jogador;
