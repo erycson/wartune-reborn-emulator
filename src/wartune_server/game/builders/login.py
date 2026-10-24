@@ -190,6 +190,7 @@ def player_msg(
         grades=c.grades,
         gp=c.gp,
         totalGp=c.total_gp,
+        leaveGp=c.leave_gp,
         repute=c.repute,
         geste=c.geste,
         charm=c.charm,

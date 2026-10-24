@@ -675,17 +675,13 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
     before = snap.character.grades
+    gp, world, rested = rules.exp_bonus(snap.character, s.ctx.world.settings, gp)
     if gp:
         rules.add_gp(snap, s.ctx.templates, gp)
-    # (só turco: peri_uyanis #73, #78) o mascote em batalha ganha a mesma EXP (petGpBonus = gpBonus) e o 4540 sai
-    # logo depois do 3
-    # shortcut: o oficial manda depois do 4540 o 4387 com guardPetInfo (#74), do mascote guarda da fazenda; sem as
-    # terras de mascote (farm.py, opType 12-16) não há guarda. Mandar quando existirem
-    pet = next((p for p in snap.pets if p.is_fight), None) if gp and battle.pet_id else None
-    if pet is not None:
-        from . import pets as P  # noqa: PLC0415  (pets importa shop, que importa este módulo)
+    from . import pets as P  # noqa: PLC0415  (pets importa shop, que importa este módulo)
 
-        P.add_pet_gp(pet, s.ctx.templates, gp, snap.character.grades)
+    # (só turco: peri_uyanis #73, #78) o mascote que lutou ganha a mesma EXP e o 4540 sai logo depois do 3
+    pet = P.share_gp(s, gp) if battle.pet_id else None
     loot = _Loot()
     dungeon = s.campaign is not None and s.campaign.dungeon
     # tropas mortas saem e a reserva repõe (visto #1466 -> #1511: a reserva 738 -> 650); a luta roteirizada não perde
@@ -737,7 +733,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if not dungeon or not won:
         hp_pack(s, healed)  # (visto) oficial_20261023-153200-1 #1449-#1450
     if not dungeon and gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
-        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(gp, world, rested)))
     if snap.character.grades > before:
         from .player import push_level  # player importa login, que importa este módulo
 
@@ -780,7 +776,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     else:
         _node_update(s, camp, DONE, fresh=True)
     if dungeon and gp:
-        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(gp, world, rested)))
     for text in [*loot.texts, *([loot.win] if loot.win else [])]:
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     if dungeon:

@@ -128,6 +128,20 @@ def full_exp(pet: Pet, templates: GameTemplates, hero_grade: int) -> bool:
     )
 
 
+def share_gp(s: GameSession, gp: int) -> Pet | None:
+    """O mascote em batalha ganha a mesma EXP do herói nas lutas e missões (só turco: peri_uyanis #78 e meydan_okuma
+    #26, petGpBonus = gpBonus; a missão manda o 4540 depois do 3, transfer_kampi #21, peri_turnuvasi #65, e o quanto
+    é dedução). Devolve o mascote para quem chama gravar e mandar o 4540. shortcut: o oficial manda depois do 4540 o
+    4387 com guardPetInfo, do mascote guarda da fazenda; sem as terras de mascote (farm.py, opType 12-16) não há
+    guarda. Mandar quando existirem."""
+    snap = s.snapshot
+    assert snap is not None
+    pet = next((p for p in snap.pets if p.is_fight), None) if gp > 0 else None
+    if pet is not None:
+        add_pet_gp(pet, s.ctx.templates, gp, snap.character.grades)
+    return pet
+
+
 def add_pet_gp(pet: Pet, templates: GameTemplates, gp: int, hero_grade: int) -> None:
     """Soma EXP total; o nível não passa do herói ("A Sylph cannot exceed player's level") nem do último da tabela,
     e no teto a EXP para no que falta para o próximo nível (como o ``getAfterSwallowGrade``)."""

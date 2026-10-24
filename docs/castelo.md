@@ -76,8 +76,7 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 
 No login: 4154 deriva `propterty1/2` do conselho (cobranças usadas/5) e da casa (população); 4155
 com as filas; 152 com o rendimento; 4157 com a fazenda **e** `treeInfo` (sem ela o `myFarm` do
-cliente fica nulo e a fazenda quebra); 4195 só se houver EXP offline (a conta nova do oficial não
-recebe); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
+cliente fica nulo e a fazenda quebra); o 4195 não sai (nenhuma captura o tem): o tempo offline vira leaveGp, a EXP descansada (ver missoes.md); PlayerMsg com `timeProcess`/`timeGet`/`timeRun`.
 
 ## Pendências e dependências
 

@@ -228,6 +228,7 @@ characters = Table(
     Column("box_counted_at", UTCDateTime),
     Column("offline_at", UTCDateTime),
     _int("offline_seconds"),
+    _int("leave_gp"),
     _int("multi_copy_count"),
     _int("multi_copy_max"),
     _str("multi_copy_day", 10),

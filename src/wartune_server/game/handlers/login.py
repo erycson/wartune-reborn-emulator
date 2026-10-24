@@ -46,7 +46,6 @@ S_SYS_PROPERTY = 4160
 S_AAS = 4173
 S_VERSION = 4233
 S_SNS = 4245
-S_OFFLINE = 4195
 S_QUESTS = 112
 S_ITEMS = 115
 S_WEDDING_ROOMS = 4662
@@ -141,6 +140,7 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     timebox.on_login(
         snap.character, now, timebox.rule(s.ctx.world.settings)
     )  # antes do PlayerMsg: timeRun e tempo offline
+    rules.rest(snap.character, s.ctx.world.settings, timebox.offline_gp(snap.character))  # leaveGp do PlayerMsg
     changed = castle.ensure(snap, s.ctx.templates, now)
     # o dia vira antes do PlayerMsg (stamina, energia e attackLeftCount já do dia) e grava junto: senão o 8224
     # recarrega o arena do banco com o dia de ontem
@@ -232,8 +232,9 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         _send(s, S_SNS, social.sns_info(snap.character, snap.sns))
     if msg.aas:
         _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
-    if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
-        _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
+    # msg.offline: o oficial não manda o 4195 em captura nenhuma (inglesas com horas offline entre as sessões, login
+    # turco com 13 milhões de leaveGp): com a chave 9 (LEAVE_GP) aberta o tempo offline vira EXP descansada
+    # (``rules.rest``) e o 8287 fica sem uso
     if msg.active:  # (visto) 215937 #88-#89: os avisos do painel de atividades e o 4393 vazio
         notices = s.ctx.world.settings.get("active_notices") or []
         _send(s, S_NOTICES, ParseDict({"activeRspInfo": notices}, pb.ActiveRspMsg()))

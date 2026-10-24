@@ -13,7 +13,7 @@ from tests.game.harness import Game, logged_in
 from tests.game.test_missoes_social import _create_guild, _guild
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain import gameday
-from wartune_server.domain.models import BagType, Item, PlayerSnapshot, Quest
+from wartune_server.domain.models import BagType, Character, Item, PlayerSnapshot, Quest
 from wartune_server.game import bag, rules
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -335,18 +335,18 @@ async def test_recompensas_estrategia_cristal_oferta_e_bonus_diario(tmp_path: Pa
         templates, snap = g.server.services.templates, _snap(g)
         c = snap.character
         strategy = c.strategy
-        gp, guild = rules.pay_quest_rewards(snap, templates, _row(g, 90))
+        gp, guild, *_ = rules.pay_quest_rewards(snap, templates, _row(g, 90))
         assert (gp, guild) == (3000, 0)  # TemplateType 0: sem bônus diário
         assert c.strategy == strategy + 1000  # RewardStrategy (ruh)
 
         c.grades = 28
         crystals = c.crystals
-        gp, _ = rules.pay_quest_rewards(snap, templates, _row(g, 241))
+        gp, *_ = rules.pay_quest_rewards(snap, templates, _row(g, 241))
         assert gp == 12000 + (28 - 20) * 500  # TemplateType 1: 500 por nível acima do mínimo da missão (20)
         assert c.crystals == crystals + 1000  # RewardCrystal
 
         player_offer, total = c.consortia_offer, c.consortia_total_offer
-        _, guild = rules.pay_quest_rewards(snap, templates, _row(g, 765))
+        _, guild, *_ = rules.pay_quest_rewards(snap, templates, _row(g, 765))
         assert guild == 40  # RewardConsortiaOffer: quem chama credita na guilda
         assert (c.consortia_offer, c.consortia_total_offer) == (player_offer + 40, total + 40)  # RewardPlayerOffer
 
@@ -406,3 +406,23 @@ async def test_5017_salto_acima_do_teto_nao_avanca(tmp_path: Path) -> None:
         g.client.send(5017, pb.NoviceReqMsgMsg(noviceProcess=11300))
         await g.idle()
         assert _snap(g).character.novice_process == 11300
+
+
+def _char(**kw: int) -> Character:
+    return Character(account_id=1, server_id=1, created_at=datetime.now(UTC), **kw)  # type: ignore[arg-type]
+
+
+def test_exp_do_mundo_e_descansada_como_o_turco() -> None:
+    """(só turco: transfer_kampi #17-#23) 20.000 de base no nível 80: 200.000 do mundo e 220.000 descansada, que saem
+    do leaveGp; abaixo de ``min_grade`` (o inglês até o 19) nada muda."""
+    c = _char(grades=80, leave_gp=13_091_008)
+    assert rules.exp_bonus(c, {}, 20_000) == (440_000, 200_000, 220_000) and c.leave_gp == 12_871_008
+    assert rules.exp_text(440_000, 200_000, 220_000).startswith("Received 440,000 EXP (Including 200,000 World EXP")
+    poor = _char(grades=80, leave_gp=100)
+    assert rules.exp_bonus(poor, {}, 6) == (6 + 60 + 66, 60, 66) and poor.leave_gp == 34
+    low = _char(grades=19, leave_gp=500)
+    assert rules.exp_bonus(low, {}, 35) == (35, 0, 0) and rules.exp_text(35) == "Received 35 EXP "
+    rules.rest(low, {}, 1000)
+    assert low.leave_gp == 500  # só do min_grade em diante
+    rules.rest(c, {"exp_bonus": {"min_grade": 70}}, 1000)
+    assert (c.leave_gp, c.offline_seconds) == (12_872_008, 0)

@@ -34,9 +34,7 @@ CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token",
 BAG_FULL = "Inventory Full"
 
 
-def exp_text(gp: int) -> str:
-    """(visto) captura EN #218, #506: "Received 3,000 EXP ", com vírgula de milhar e o espaço no fim."""
-    return f"Received {gp:,} EXP "
+exp_text = rules.exp_text
 
 
 def _player(s: GameSession) -> None:
@@ -288,7 +286,10 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     q.completed, q.completed_at = True, now
     before = b.complete(player_info(s, snap))  # o 3 antes da recompensa
     grades, strategy = snap.character.grades, snap.character.strategy
-    gp, guild_offer = rules.pay_quest_rewards(snap, templates, row)
+    gp, guild_offer, world, rested = rules.pay_quest_rewards(snap, templates, row, s.ctx.world.settings)
+    from .pets import share_gp  # noqa: PLC0415  (pets importa shop, que importa este módulo)
+
+    pet = share_gp(s, gp)  # (só turco: transfer_kampi #21, peri_turnuvasi #65) o 4540 do mascote depois do 3
     new = _unique(i for template_id, count in goods for i in bag.add(snap, templates, template_id, count, now))
     guilds_changed: list[Consortia] = []
     if guild_offer and guild is not None:  # RewardConsortiaOffer: a riqueza da guilda (sem guilda, não há onde pôr)
@@ -297,8 +298,9 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         guilds_changed.append(guild)
     items = _unique([*taken, *new])  # uma pilha pode ser gasta e completada
     await s.ctx.characters.save(
-        snap.character, snap.leader, *snap.pawns, *items, *refresh, *guilds_changed, delete=tuple(gone)
-    )
+        snap.character, snap.leader, *snap.pawns, *items, *refresh, *guilds_changed, *([pet] if pet else []),
+        delete=tuple(gone),
+    )  # fmt: skip
 
     if taken or gone:
         s.send(S_ITEMS, bag.moved(_unique(taken), s.player_id, empty=gone))
@@ -318,6 +320,10 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     if q.template_id == events.SERVEN_QUEST:  # tutorial_en #3192-#3194: o 4638 entre o 150 e o 3
         events.send_serven(s)
     _player(s)
+    if pet is not None:
+        from .pets import S_PETS, pets_msg  # noqa: PLC0415
+
+        s.send(S_PETS, pets_msg(snap, templates, [pet]))
     if new:
         s.send(S_ITEMS, bag.moved(new, s.player_id))
         events.items_gained(s)  # (visto) tutorial_en #490, oficial_20261023-153200-1 #205-#206
@@ -331,6 +337,6 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         await events.leed_done(s, events.DAILY_QUEST_LEED)
     s.send(S_QUEST_DONE, pb.QuestFinishedRspMsg(templateId=q.template_id))
     if gp:
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(gp)))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(gp, world, rested)))
     for text in texts:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

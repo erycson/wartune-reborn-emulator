@@ -247,3 +247,12 @@ Para as masmorras 1002+ destravarem uma missão, precisam de nós e lutas (`cont
 - **Mudança de comportamento (5014)**: `RewardStrategy` agora é paga na entrega, antes ignorada. São 20 missões com valor (a 90 dá 1000 de Daru; o total no template é 875000). Conferido na inglesa para a 90 (PlayerMsg 3, #1571 → #1573).
 - **Mudança de comportamento (aceite)**: `Para1` em lista (17 missões, tipos 14 e 26) não derruba mais o aceite (`rules.para1_ids`).
 - **Mudança de comportamento (missões 70, 80, 90)**: as três fecham jogando a 1001 do começo ao fim (teste `test_missoes_70_80_90_fecham_jogando_a_1001_do_comeco_ao_fim`). A 70 vira concluída, e o guia 24007 (c12(70)) libera o guia de habilidade 24000. Verificado até o 5017 (teste do guia); o 8235 (leed) não tem teste.
+
+## EXP do mundo e EXP descansada
+
+(só turco: transfer_kampi #17-#23, meydan_okuma, peri_turnuvasi) Toda EXP de luta (campanha, coliseu) e de missão passa por
+`rules.exp_bonus`: a EXP do mundo é a base × `world_percent`/100 (o turco: 10×) e a descansada é a base + a do mundo, limitada ao
+`leaveGp` e descontada dele. O texto vira "Received N EXP (Including W World EXP, R Offline EXP)". O mascote em batalha recebe o
+total (`petGpBonus` = `gpBonus`) e o 4540 sai logo depois do 3. O `leaveGp` cresce no login com a EXP offline do `timebox`
+(`rules.rest`). Abaixo de `min_grade` nada muda: o inglês (níveis 1-19) tem `leaveGp` 0 e nenhum bônus; o 40 é
+`TODO(inventado)`. Configurável em `game_settings.exp_bonus` `{"min_grade", "world_percent"}`.

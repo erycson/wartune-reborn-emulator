@@ -5,8 +5,9 @@ herói, equipamentos, missões. Quem chama grava as entidades alteradas (``Chara
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
+from typing import Any
 
 from ..domain import gameday
 from ..domain.models import (
@@ -491,6 +492,42 @@ def grade_steps(templates: GameTemplates, types: str = PLAYER_GRADE) -> list[tup
     return steps
 
 
+EXP_BONUS = {"min_grade": 40, "world_percent": 1000}  # ``game_settings.exp_bonus`` (migração 0081)
+
+
+def exp_bonus(c: Character, settings: Mapping[str, Any], base: int) -> tuple[int, int, int]:
+    """EXP de luta e de missão com os bônus do oficial: ``(total, mundo, descansada)``. (só turco: transfer_kampi #23,
+    peri_uyanis #82, meydan_okuma #27, peri_turnuvasi #71, yeralti_labirenti #22/#78) a EXP do mundo é 10x a base em
+    todos e a descansada dobra base + mundo, gasta do ``leave_gp`` (o leaveGp cai exatamente isso: transfer_kampi
+    #17 -> #20 -220.000, yeralti #7 -> #13 -4.400). O inglês (níveis 1 a 19) não tem nenhum dos dois e o leaveGp fica
+    0. TODO(inventado): o nível ``min_grade`` em que os dois começam (entre 20 e 80)."""
+    rule = EXP_BONUS | dict(settings.get("exp_bonus") or {})
+    if base <= 0 or c.grades < int(rule["min_grade"]):
+        return max(base, 0), 0, 0
+    world = base * int(rule["world_percent"]) // 100
+    rested = min(c.leave_gp, base + world)
+    c.leave_gp -= rested
+    return base + world + rested, world, rested
+
+
+def exp_text(gp: int, world: int = 0, rested: int = 0) -> str:
+    """(visto) captura EN #218, #506, #909: "Received 3,000 EXP ", com vírgula de milhar e o espaço no fim. Com bônus,
+    (só turco: "220,000 EXP kazanıldı(Dahil100,000 Dünya EXP,110,000 çevrimdışı EXP)", peri_turnuvasi #71)
+    TODO(inventado): a tradução inglesa, que nenhuma captura inglesa mostra."""
+    if world or rested:
+        return f"Received {gp:,} EXP (Including {world:,} World EXP, {rested:,} Offline EXP)"
+    return f"Received {gp:,} EXP "
+
+
+def rest(c: Character, settings: Mapping[str, Any], gp: int) -> None:
+    """O tempo offline vira EXP descansada do nível ``min_grade`` em diante. TODO(inventado): quanto acumula
+    (usa ``gp``, a conta do ``timebox.offline_gp``)."""
+    rule = EXP_BONUS | dict(settings.get("exp_bonus") or {})
+    if gp > 0 and c.grades >= int(rule["min_grade"]):
+        c.leave_gp += gp
+        c.offline_seconds = 0
+
+
 def add_gp(snap: PlayerSnapshot, templates: GameTemplates, gp: int) -> int:
     """Soma EXP ao jogador; sobe o nível dele e do líder. Devolve quantos níveis subiu."""
     c, leader = snap.character, snap.leader
@@ -778,16 +815,20 @@ def goods_to_take(snap: PlayerSnapshot, templates: GameTemplates, template_id: i
     return take
 
 
-def pay_quest_rewards(snap: PlayerSnapshot, templates: GameTemplates, row: Row) -> tuple[int, int]:
+def pay_quest_rewards(
+    snap: PlayerSnapshot, templates: GameTemplates, row: Row, settings: Mapping[str, Any] | None = None
+) -> tuple[int, int, int, int]:
     """Paga EXP (com o bônus diário), ouro, RewardStrategy (Daru), RewardCrystal e RewardPlayerOffer, como a tela do
     cliente (TaskRewardViewII._rewardList). Os itens (QuestGoods) são de quem chama, que confere a mochila. Devolve
-    ``(EXP, RewardConsortiaOffer)``: quem chama credita a oferta da guilda se o jogador tiver guilda. RewardMoney,
+    ``(EXP, RewardConsortiaOffer, EXP do mundo, EXP descansada)`` (``exp_bonus``; a EXP já com os dois): quem chama
+    credita a oferta da guilda se o jogador tiver guilda. RewardMoney,
     RewardHeroGP e RewardDower não são pagos: a tela não mostra o primeiro (só a missão 1, expirada) e os outros dois
     são 0 em todas as linhas."""
     c = snap.character
     gp = int(row.get("RewardPlayGP", 0))
     if gp > 0 and row.get("TemplateType") == "1":  # bônus diário que a tela soma (TaskRewardViewII.as:207-209)
         gp += (c.grades - int(row["NeedMinLevel"])) * 500
+    gp, world, rested = exp_bonus(c, settings or {}, gp)
     add_gp(snap, templates, gp)
     c.gold += int(row.get("RewardGold", 0))
     c.strategy += int(row.get("RewardStrategy", 0))
@@ -795,7 +836,7 @@ def pay_quest_rewards(snap: PlayerSnapshot, templates: GameTemplates, row: Row) 
     offer = int(row.get("RewardPlayerOffer", 0))
     c.consortia_offer += offer
     c.consortia_total_offer += offer
-    return gp, int(row.get("RewardConsortiaOffer", 0))
+    return gp, int(row.get("RewardConsortiaOffer", 0)), world, rested
 
 
 def novice_step_ok(current: int, new: int) -> bool:

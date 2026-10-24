@@ -152,6 +152,7 @@ class Character:
     box_counted_at: datetime | None = None
     offline_at: datetime | None = None  # saída do jogo (recompensa offline)
     offline_seconds: int = 0  # tempo offline ainda não resgatado (8287)
+    leave_gp: int = 0  # EXP descansada (PlayerMsg.leaveGp, "Rested EXP" da barra): o ganho de luta e missão gasta dela
     # campanha em grupo (4240): entradas que sobram e o máximo de ``multi_copy_day``; outro dia = o base
     multi_copy_count: int = 0  # PlayerMsg.campaignCount
     multi_copy_max: int = 0  # PlayerMsg.campaignMaxcount (base + The Empire Crusade usados no dia)

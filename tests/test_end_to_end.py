@@ -134,7 +134,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
 
         flags = {f: True for f in ("castle", "army", "build", "tree", "aas", "friend", "sys", "snsReq")}
         client.send(8224, pb.PlayerDataMsg(**flags))
-        got = await client.until(4544)  # o bloco army: 150, 100 e o 4544 vazio (tutorial_en #37-#42)
+        got = await client.until(4173)  # o AAS fecha o 8224 na ordem do oficial (171155 #18-#63)
         assert {p.code for p in got} >= INIT_CODES | {100, 4544}  # 4544 vazio no nível 1 (tutorial_en #42)
         built = pb.BuildingInfoListMsg.FromString(next(p for p in got if p.code == 4154).body)
         assert {(b.templateId, b.sonType) for b in built.building} >= {(90101, 901), (40201, 402)}

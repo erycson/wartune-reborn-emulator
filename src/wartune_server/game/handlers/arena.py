@@ -288,8 +288,13 @@ async def _colosseum_over(
         arena.win_streak = arena.win_streak + 1 if won else 0
         # a espera conta do fim (só turco: meydan_okuma #29, 600)
         arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)
-        gp = A.battle_gp(snap.character.grades, won)
+        gp, world, rested = rules.exp_bonus(
+            snap.character, s.ctx.world.settings, A.battle_gp(snap.character.grades, won)
+        )
         rules.add_gp(snap, s.ctx.templates, gp)
+        from .pets import share_gp  # noqa: PLC0415  (pets importa shop, que importa este módulo)
+
+        pet = share_gp(s, gp)  # (só turco: meydan_okuma #22, #26) petGpBonus = gpBonus e o 4540 depois do 3
         prize = _prize(s, snap, won, now)
         logs = [
             ChallengeLog(me, A.COLOSSEUM, now, target, name, True, won, new_mine, _forward(mine, new_mine), grade, job)
@@ -305,18 +310,23 @@ async def _colosseum_over(
             )
         changed = [*prize[0], prize[2]] if prize else []
         await s.ctx.characters.save(
-            snap.character, snap.leader, *snap.pawns, arena, *logs, *changed, ranks=tuple(ranks)
-        )
+            snap.character, snap.leader, *snap.pawns, arena, *logs, *changed, *([pet] if pet else []),
+            ranks=tuple(ranks),
+        )  # fmt: skip
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if pet is not None:
+        from .pets import S_PETS, pets_msg  # noqa: PLC0415
+
+        s.send(S_PETS, pets_msg(snap, s.ctx.templates, [pet]))
     if snap.character.grades > before:
         await push_level(s, before)  # (dedução) como na entrega de missão
     # (visto) oficial_20261023-215937-1 #1163-#1167: sem o 150 entre o 3 e o 4103
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
-    report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, 0
+    report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, gp if pet else 0
     s.send(S_BATTLE_REPORT, report)
     if gp:
         # texto do oficial inglês (83, tutorial_en: "Received 3,000 EXP ", com o espaço)
-        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Received {gp:,} EXP "))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(gp, world, rested)))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _cool(s, A.COLOSSEUM)
     if prize:
