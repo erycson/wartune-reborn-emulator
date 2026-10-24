@@ -346,6 +346,7 @@ async def test_altar_bless_and_take(tmp_path: Path) -> None:
         _guild(a).altar_level = 1
         a.client.send(8217)
         sites = _one(await a.idle(), 4144, pb.ConsortiaInfoMsg).site
+        assert sorted(sites) == list(range(1, 11))  # oficial #5151: as 10 casas embaralhadas
         a.client.send(5145, pb.SimplePropertyMsg(param1=1))
         bless = _one(await a.idle(), 45, pb.ConsortiaMsg)
         assert sites[bless.blessSite] == 1 and bless.blessLeftTime == 1 and c.consortia_offer == 80

@@ -129,6 +129,7 @@ class GameSession:
         # derrotas em campanha: (visto) oficial_20261023-153200-1 #778, #1324, #1449 dão failCount 1, 2, 3 e as
         # lutas da cidade externa repetem o valor sem somar (#1623, #1899 perdida, #2007). (dedução) conta na sessão
         self.fail_count = 0
+        self.altar_sites: list[int] = []  # ordem da roleta do altar mandada no último 4144 (8217)
         self.space_pos: tuple[int, int] | None = None  # tile na cidade do céu; None = fora dela
         self.chat_at: dict[int, datetime] = {}  # canal -> último envio (intervalo mínimo)
         self.vice_confirmed = False  # senha secundária digitada nesta sessão (8806 op 1)

@@ -40,8 +40,11 @@ def _bless_used(m: ConsortiaMember, now: datetime) -> int:
 
 
 def _sites(s: GameSession) -> list[int]:
-    # DropViewInfos: as 10 casas da roleta (o cliente indexa os templates pelo Site)
-    return [int(r["Site"]) for r in s.ctx.templates.rows("DropViewInfos")][:10]
+    """DropViewInfos: as 10 casas da roleta (o cliente indexa os templates pelo Site), na ordem do último 4144: o
+    ``blessSite`` do 5145 é a posição nessa lista."""
+    if not s.altar_sites:
+        s.altar_sites = [int(r["Site"]) for r in s.ctx.templates.rows("DropViewInfos")][:10]
+    return s.altar_sites
 
 
 @router.on(8215)
@@ -56,7 +59,11 @@ async def altar_info(s: GameSession, _: object) -> None:
 
 @router.on(8217)
 async def altar_site(s: GameSession, _: object) -> None:
-    s.send(S_SITE, b.complete(pb.ConsortiaInfoMsg(site=_sites(s))))
+    """(visto) oficial_20261023-171155-1 #5151: as casas embaralhadas (2, 1, 4, 5, 8, 7, 9, 6, 3, 10). (dedução) a cada
+    abertura do altar uma ordem nova; uma captura só não diz se o oficial guarda a ordem por dia."""
+    s.altar_sites = []
+    random.shuffle(sites := _sites(s))
+    s.send(S_SITE, b.complete(pb.ConsortiaInfoMsg(site=sites)))
 
 
 @router.on(5145)
