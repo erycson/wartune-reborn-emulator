@@ -389,10 +389,10 @@ async def buy_discount_count(s: GameSession, msg: pb.ShopMsg) -> None:
     """Quantos daquele item já comprei hoje (4599); o cliente abre a janela de compra com isso."""
     snap = s.snapshot
     assert snap is not None
-    out = pb.ShopMsg()
-    out.buyInfo.CopyFrom(msg.buyInfo)
     good = offer_key(msg.buyInfo.goodId) if msg.buyInfo.isDiscount else msg.buyInfo.goodId
-    out.buyInfo.count = today_count(snap, good, s.ctx.clock.now())
+    # (visto) 153200 #1663-#1664: a resposta só leva goodId e count (sem o isDiscount do pedido)
+    out = pb.ShopMsg()
+    out.buyInfo.goodId, out.buyInfo.count = msg.buyInfo.goodId, today_count(snap, good, s.ctx.clock.now())
     send(s, S_BUY_COUNT, out)
 
 

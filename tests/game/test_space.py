@@ -22,6 +22,8 @@ async def test_players_see_each_other_in_the_sky_city(tmp_path: Path) -> None:
         assert [p.code for p in got_b if p.code in (4597, 4594)] == [4597, 4594]  # 4594 só depois do 4597
         got_a = await a.idle()
         assert [pb.RoomEnterMsg.FromString(x).player[0].playerId for x in _of(got_a, 4597)] == [b.user_id]
+        assert [p.code for p in got_a if p.code in (4597, 4594, 149)] == [4597, 4594, 149]  # 215937 #826-#830
+        assert pb.HeroEquUpdatedMsg.FromString(_of(got_a, 149)[0]).playerId == b.user_id
 
         walk = pb.SpacePlayerMoveMsg()
         walk.players.add(playerId=999).path.extend([pb.PosMsg(x=73, y=74), pb.PosMsg(x=80, y=74)])

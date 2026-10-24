@@ -24,6 +24,7 @@ from ..router import router
 from ..session import GameContext, GameSession
 
 S_PLAYER, S_STATE, S_PROFILE, S_LIST, S_TECH = 3, 4512, 4515, 4516, 4501
+OPEN_GRADE = 35  # OpenGradesII.VEHICLE
 S_DIE_STATE, S_ATTACK = 4175, 4520
 S_ROOM_CREATED, S_SEARCHING, S_ROOM_STATE = 125, 4525, 25
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType: com a tela de carregamento (3 = sem)
@@ -84,11 +85,15 @@ def _open(s: GameSession) -> bool:
 
 
 def login(s: GameSession) -> None:
-    """Estado de veículos no login (só turco: login.json #83, #110-#112; o tutorial_en, nível 1-15, não manda
-    nenhum dos quatro). O 4512 diz se a janela está aberta (``BaseManager.__vehicleStartHandler``)."""
+    """Estado de veículos no login a partir do ``OpenGradesII.VEHICLE`` (35): o turco de nível 56 (login.json #83,
+    #110-#112) manda os quatro; os ingleses de nível 1 a 16 (tutorial_en, 171155, oficial_encantar) nenhum. A troca
+    da janela (``push_state``) chega em qualquer nível (171155 #4761, nível 12). O 4512 diz se a janela está aberta
+    (``BaseManager.__vehicleStartHandler``)."""
     assert s.snapshot is not None
     c = s.snapshot.character
     s.vehicle_open = _open(s)
+    if c.grades < OPEN_GRADE:
+        return
     s.send(S_STATE, pb.MatchStateMsg(matchState=s.vehicle_open))
     s.send(S_PROFILE, _profile(s, c))
     s.send(S_LIST, _garage(c))

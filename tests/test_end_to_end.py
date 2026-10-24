@@ -148,7 +148,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         # 4238: uma parte por 50 ofertas na janela (relógio real: o número muda com a data), antes do 4434
         assert codes.index(4238) < codes.index(4434)
         assert [c for c in codes if c not in (4247, 4238)] == [
-            112, 4542, 4184, 4512, 4515, 4516, 4501, 4662, 4686,
+            112, 4542, 4184, 4662, 4686,  # veículos só do nível 35 (tutorial_en não tem)
             4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4484, 4461, 4612, 4497, 295, 363, 364, 190, 4590, 514, 414, 4696, 4598, 150, 6,
         ]  # fmt: skip
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id

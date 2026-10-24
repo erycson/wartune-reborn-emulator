@@ -66,7 +66,7 @@ def mount_gps(sy: PlayerSystems) -> list[int]:
 
 
 def mount_info(snap: PlayerSnapshot, templates: GameTemplates) -> pb.MountInfoMsg | None:
-    """4426 (só turco: login.json #12): atributos já com o grau, EXP de cada um e o total."""
+    """4426 (visto: 231733 #14; turco login.json #12): atributos já com o grau, EXP de cada um e o total."""
     sy = rules.systems(snap)
     tpl = templates.get("MountTempInfos", sy.mount_template) if sy.mount_template else None
     if tpl is None:
@@ -193,7 +193,7 @@ def send_mount(s: GameSession) -> None:
 
 @router.on(8530)
 async def mount_avatar_list(s: GameSession, _: object) -> None:
-    """Login: 4427 (tutorial_en #19-#20) e, com montaria, 4426 (só turco: login.json #12)."""
+    """Login: 4427 (tutorial_en #19-#20) e, com montaria, 4426 (visto: 231733 #13-#14, como o turco)."""
     await expire_mount(s)
     send_avatars(s)
     send_mount(s)

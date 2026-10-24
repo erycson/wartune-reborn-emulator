@@ -192,14 +192,14 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
     quests = rules.quest_event(snap, templates, GEM_INLAY, MOSAIC_PARA1, 1) if gem == GEM else []
     await s.ctx.characters.save(c, item, *changed, *back, *quests, delete=tuple(gone))
 
-    castle_yield(s)
+    if cost:  # o 109 só quando a troca cobra ouro (o turco trocou; as 4 inglesas, furo vazio, não têm 109)
+        castle_yield(s)
     send(s, S_ITEMS, bag.moved([*changed, *back], s.player_id, empty=gone))
     send(s, S_ITEMS, bag.moved([item], s.player_id))
-    # texto deduzido (o turco "Başarıyla mozaik yapıldı!"; termo Socketing do language.txt); (só turco:
-    # atolye_item_basma_ve_mozaik #43-#47) 109, 115 da pedra, 115 do item, o 111 e o 83 com o mesmo texto (``alert``)
-    alert(s, "Socketing successful!")
+    # (visto) 231733 #1392-#1397: 115 da pedra, 115 do item, 112 da missão, o 111 e o 83 com o mesmo texto
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    alert(s, "Successfully Socketed Gem!")
 
 
 @router.on(5152)

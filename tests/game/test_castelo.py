@@ -327,7 +327,8 @@ async def test_land_upgrade_open_lands_and_the_tree_fruit(tmp_path: Path) -> Non
 
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=8, bagPos=0, templateId=SEED))
         land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
-        assert (land.pos, land.rewardCount, land.matureTime) == (8, 2472, "2026-01-01 00:57:48")  # +3%, -2%
+        # +3%, -2% (58,8 min -> 58 - 1)
+        assert (land.pos, land.rewardCount, land.matureTime) == (8, 2472, "2026-01-01 00:57:00")
 
         g.client.send(5178, pb.BuildingReqMsg(index=0))  # ainda sem fruto
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))

@@ -86,14 +86,15 @@ def seed(templates: GameTemplates, template_id: int) -> Row | None:
 
 def plant(snap: PlayerSnapshot, row: Row, pos: int, now: datetime, faster: int = 0, more: int = 0) -> FarmLand:
     """``faster``/``more``: % a menos de tempo e a mais de produção da terra melhorada (LandUpTip)."""
-    minutes = int(row["Property1"]) * (100 - faster) / 100  # (dedução) arredondamento sem fonte
+    # (visto) minutos inteiros para baixo: 60 min com 18% a menos amadurece em 48:00 (215937 #1257, landGrades 10)
+    minutes = int(row["Property1"]) * (100 - faster) // 100
     pests = int(row.get("Property4") or 0) != 0
     land = FarmLand(
         snap.character.id or 0,
         pos,
         int(row["TemplateId"]),
         now,
-        # (só turco: ciftlik.json) amadurece 1 minuto antes do Property1 (60 -> 59 min, 720 -> 719 min)
+        # (visto) amadurece 1 minuto antes do Property1 (60 -> 59 min, 720 -> 719 min: 171155 e 153200, como o turco)
         now + timedelta(minutes=max(minutes - 1, 0)),
         int(row["Property3"]) * (REWARD_PERCENT if int(row["Property2"]) < 0 else 100) * (100 + more) // 10000,
         random.choice((1, 2)) if pests else 0,

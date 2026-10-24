@@ -108,9 +108,11 @@ def present(s: GameSession, announce: bool = True) -> None:
     if here:
         s.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[member(o) for o in here]))
         s.send(S_MOVE, _positions(here))
+    look = _look(s) if announce and here else None
     for o in here if announce else []:
         o.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[me]))
         o.send(S_MOVE, _positions([s]))
+        o.send(S_LOOK, look)  # (visto) 215937 #826-#830, #958-#963: o 149 de quem chegou depois do 4597
 
 
 def back(s: GameSession) -> None:
@@ -140,9 +142,15 @@ def refresh_look(s: GameSession) -> None:
     """149: o jogador trocou equipamento; os outros redesenham arma e armadura dele."""
     if s.space_pos is None:
         return
+    msg = _look(s)
+    for o in others(s):
+        o.send(S_LOOK, msg)
+
+
+def _look(s: GameSession) -> pb.HeroEquUpdatedMsg:
     assert s.snapshot is not None
     snap, templates = s.snapshot, s.ctx.templates
-    msg = b.complete(
+    return b.complete(
         pb.HeroEquUpdatedMsg(
             playerId=s.player_id,
             armStr=rules.arm_avatar(snap, templates),
@@ -151,8 +159,6 @@ def refresh_look(s: GameSession) -> None:
             appellId=0,
         )
     )
-    for o in others(s):
-        o.send(S_LOOK, msg)
 
 
 def leave(s: GameSession) -> None:

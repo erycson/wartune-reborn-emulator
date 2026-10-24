@@ -31,7 +31,7 @@ VIP_MYSTERY = 14  # type "Add Mystery Shop Attempts": compras a mais por dia, +1
 VIP_AUTO_SIGN = 3  # VipPrerogativeType.AUTO_SIGN_IN: assina o dia no login (para1 1 do VIP 2 em diante)
 VIP_EXP = 6  # type "Bonus EXP": "Bonus 50% Dungeon EXP" no VIP 1 até 150% no 9 (language VipPrivilegeFrame)
 VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2) e o 50 fixo de vipFriendPrivilege
-ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (só turco: login.json #9; o tutorial_en não manda o 4224)
+ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (visto: oficial_encantar #7, igual ao turco login.json #9)
 ALCHEMY_GRADE = 14  # MainToolBar: o cliente pede o 8320 de novo ao chegar no nível 14
 MAX_COST = 200  # AlchemyFrame/SoulMakeFrame: o 1º uso do dia é grátis, depois 40 + 10 x usos, no máximo 200
 KING_BUFF, KING_BUFF_FROM = rules.BOOST_CONTRACT, 6  # o 6 dá o buff 7 (30 min) 1x por dia (KingContractFrame)
@@ -437,7 +437,9 @@ async def alchemy_info(s: GameSession, _: object) -> None:
 
 @router.on(8321)
 async def alchemy(s: GameSession, _: object) -> None:
-    """Troca Balens (não vinculados) por ouro: o custo é ``_cost`` (o cliente só olha ``point``)."""
+    """Troca Balens (não vinculados) por ouro: o custo é ``_cost``, a mesma conta que o cliente faz com o ``luckyCount``
+    (``AlchemyFrame``: 40 + 10 x usos); o ``AlchemyManager`` não lê o ``point``. O inglês manda ``point`` 2 com 0 usos e
+    4 com 1 (oficial_encantar #7, 215937 #12), regra desconhecida: aqui vai o custo."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()

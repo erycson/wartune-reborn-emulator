@@ -81,7 +81,8 @@ async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
 
         g.client.send(5151, pb.StoreReqMsg(mountPos=1, bagType=1, bagPos=1))
         got = await g.until(83)
-        assert codes(got) == [109, 115, 115, 111, 83] and wand.join_1 == ATTACK_1
+        # (visto) 231733 #1392: furo vazio, sem 109
+        assert codes(got) == [115, 115, 111, 83] and wand.join_1 == ATTACK_1
         assert wand.is_binds  # helpContent02: "Socketing will cause unbound items to become bound"
         g.client.send(5151, pb.StoreReqMsg(mountPos=2, bagType=1, bagPos=2))  # mesmo atributo (Physical Attack)
         assert await g.idle() == []
