@@ -19,7 +19,7 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Despertar de fada | peri_uyanis | 5038 2011: herói 3011 e dois soldados | test_salas_tipos | campanha 2011 |
 | Astral (kader) | kader_sistemi | leed 17, 8269/4180 (o anúncio da Profile 5 já é inglês: oficial_encantar #2753) | eventos.md, test_heroi_exercito | um sorteio de estrela |
 | Leeds 8/15/33 | birlik_katkisi, replay #1289, yeralti_labirenti, city_city_upgrade | onde sai o 4152 | eventos.md, test_castelo, test_devocao | gastar Balens, girar a roda da bênção |
-| Academia e tecnologia | city_city_upgrade_academy_upgrade, teknoloji_upgrade | tecnologia de atributo (110 tipo 3, 150, ×1,5); a de ouro e o nascimento da academia já têm fonte inglesa (oficial_20261023-231733-1 #3939-#3981) | castelo.md, pendencias.md | subir uma tecnologia de atributo (Hero/Troop) |
+| Academia e tecnologia | city_city_upgrade_academy_upgrade | tecnologia de atributo (110 tipo 3, 150, ×1,5); a de ouro e o nascimento da academia já têm fonte inglesa (oficial_20261023-231733-1 #3939-#3981) | castelo.md, pendencias.md | subir uma tecnologia de atributo (Hero/Troop) |
 | Aceleração paga | savasa_baskin_ve_elmas_ile_hizlandirma | texto 111 do cooldown | castelo.md | acelerar com Balens |
 | Pergaminho de EXP | exp_kitabi_kullanim | 115, 110, 4188, 3 (2013002) | itens.md, test_pergaminhos | usar o Lvl. 2 Bonus EXP Scroll (a inglesa tem e não usou) |
 | Campanha em grupo | buyuk_sefer_kullanimi | The Empire Crusade +1 entrada | test_copias_campanha | usar o item |
@@ -42,4 +42,5 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 
 | captura | coberta por |
 |---|---|
+| teknoloji upgrade | tecnologia de atributo (110 tipo 3, 150, 109; a divergência ×1,5 fica anotada em pendencias.md com os valores 342/81), 4902 das cartas (`systems.fight_add_msg`, 608/768/1521), chefe externo no 83 canal 2 (`outer_city._boss_killed`), 151/4130 e o 83 canal 3 no formato inglês ("Gold Production has been upgraded to Lvl. 1", oficial_20261023-231733-1 #3981). As partes só turcas ficam citadas no código como "teknoloji_upgrade #N" |
 | arkadaş isteği gönderme | pedido de amizade: oficial_encantar #1776-#1779 (`handlers/friends.py`, `test_social`) |

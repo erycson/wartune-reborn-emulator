@@ -138,8 +138,8 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
             s.send(cs.S_CASTLE_YIELD, msg)
             s.send(S_POLITICS, cs.politics_msg(snap, templates))
     elif attr_tech:
-        # (só turco: teknoloji_upgrade #2-#10) cada efeito com 110 tipo 3 e 150 (o 4902 das cartas de poder não existe
-        # aqui); o 109 final sai mesmo sem mudança. O cliente ignora o tipo 3 (PlayerEffectHelper)
+        # (só turco: teknoloji_upgrade #2-#10) cada efeito com 110 tipo 3 e 150 (o 4902 antes do 150 sai no
+        # GameSession.send); o 109 final sai mesmo sem mudança. O cliente ignora o tipo 3 (PlayerEffectHelper)
         from .player import _army  # player importa castle (game)
 
         per = int((templates.get("EffectTempInfos", int(target["Property1"])) or {}).get("Property1", 0))

@@ -367,6 +367,14 @@ async def test_dragon_feed_and_powcard(tmp_path: Path) -> None:
         g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))
         card = pb.PowCardSuiteListMsg.FromString((await g.until(4905))[-1].body).suites[0].cardInfos[0]
         assert (card.grade, card.gp, card.buf.bufId) == (2, 2, 3041)  # só turco: login #76
+        add = pb.PowcardFightAddMsg.FromString((await g.until(4902))[-1].body).singlefightadd
+        assert [(a.campType, a.add) for a in add] == [(800, 120)]  # 3041: Vida 600 / 5
+        from wartune_server.game.handlers.login import army
+
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        session.send(150, army(session, snap)[0])  # todo 150 do próprio exército vem depois do 4902
+        assert [p.code for p in await g.until(150)][-2:] == [4902, 150]
         g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))  # faltam 30
         assert await g.idle() == []
 
@@ -436,6 +444,22 @@ def test_bonus_da_colecao_reproduz_o_login_76() -> None:
     assert suites(seen) == {1000: [], 1001: [], 1002: [(1004, 40001, 0, 0)], 1003: [], 1004: []}
     # 4 cartas no grau 3 acendem o degrau 1 (Property4)
     assert suites({10015: 3, 10016: 3, 10017: 3, 10018: 3})[1002] == [(1004, 40001, 0, 0), (1004, 40002, 0, 0)]
+
+    # 4902 (só turco: login #3): o poder das cartas por tipo de luta, na ordem das coleções
+    from types import SimpleNamespace
+
+    from wartune_server.game.handlers.systems import fight_add_msg
+
+    snap = PlayerSnapshot.__new__(PlayerSnapshot)
+    object.__setattr__(snap, "systems", PlayerSystems(1, powcards=",".join(f"{t}:{g}:0:0" for t, g in seen.items())))
+    object.__setattr__(snap, "character", SimpleNamespace(id=7))
+    add = fight_add_msg(snap, templates)
+    assert add is not None
+    assert [(a.op, a.userid, a.campType, a.add) for a in add.singlefightadd] == [
+        (0, 7, 800, 608), (0, 7, 802, 608), (0, 7, 806, 1521), (0, 7, 807, 768), (0, 7, 801, 768)
+    ]  # fmt: skip
+    object.__setattr__(snap, "systems", PlayerSystems(1))
+    assert fight_add_msg(snap, templates) is None
 
 
 async def test_formation_rows_and_comprehend_blessing(tmp_path: Path) -> None:

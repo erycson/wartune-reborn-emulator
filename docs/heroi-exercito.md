@@ -114,7 +114,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8642 dragão | 4555 | visto (só turco: login.json #37) | abre no 40 |
 | 8641 alimentar | 115, 4555 | cliente | item SonType 319, 1 EXP; Types 101 por grau; grau máx. pelo nível (40→1 … 80→5) |
 | 8643 transferência | 4556, 4557 | cliente | grau 5 → tipo 102; **vocação: parcial** |
-| 9505 cartas | 4905 | visto (só turco: login.json #76) | op 1 sobe (Types 29+Profile), 2 ativa todas, 3 reenvia; buf = BufId + grau − 1. **Cartas/EXP vêm das batalhas (4902): parcial** |
+| 9505 cartas | 4905 | visto (só turco: login.json #76) | op 1 sobe (Types 29+Profile), 2 ativa todas, 3 reenvia; buf = BufId + grau − 1; depois do 4905 vai o 4902. **Cartas/EXP vêm das batalhas: parcial** |
 | 4905 `bufInfos` (bônus da coleção) | — | visto + cliente + dedução | 3 degraus por coleção (`MagicCardSlotView`); o degrau k usa `Template{3+k}s` (sonType) e `Property{3+k}` (bufId) da `PowCardSuiteTemInfos`, com `fixvalue`/`percent` da linha. Aceso quando há [cartas, grau mínimo] = `powcard_suite_slots` (game_settings, 0037; padrão 4/1, 4/3, 4/8). Fontes: login.json #76 (só turco; só a 1002, com 4 cartas, tem 40001; as de 3 cartas nada) e o language EN `card.CardSlotView.Notactive0..2` ("4 cards", "3 level 4 cards", "8 level 4 cards"). A leitura dos graus 3 e 8 é **dedução**. O bônus ainda não entra na batalha (`battle.py`) |
 | 8224 `powcardInfo` | 4905 | visto | |
 
@@ -154,7 +154,7 @@ próximo (`PetData.isFullExp`).
 
 Enviados: 100 (tropas, no `user`), 150 com `mountTempId` e o pet em batalha (`petTempId`, `petQuqlity`, `petName`, como no login.json #5, só turco), 4540 (flag `army`, só com pet), 4178 + 4180 (`star`), 4905 (`powcardInfo`); 4427/4426, 4544 e 4555 respondem aos pedidos 8530, 8628 e 8642 que o cliente faz sozinho. O sorteio grátis das estrelas vira às 5h e é recalculado em toda leitura (`rules.refresh_star_day`), então quem estava offline no 8325 não perde.
 
-Não enviados: 4495 do login (só turco: login.json #40 é `{opType 0, opResult false, count 0}`; o `ArmyManager.__runeOperateHandler` não faz nada com isso) e 4902 (bônus das cartas por campType na batalha; o `MagicCardManager` só guarda — depende da batalha).
+Não enviados: 4495 do login (só turco: login.json #40 é `{opType 0, opResult false, count 0}`; o `ArmyManager.__runeOperateHandler` não faz nada com isso). O 4902 (`systems.fight_add_msg`) sai antes de todo 150 do próprio exército de quem tem cartas (`GameSession.send`; só turco: login #3, teknoloji_upgrade #4, envanterden_item_kusanma #2): por campType (CampaignBufferTemps.Types 800-807), a soma dos buffs das cartas e das coleções com a fórmula do `fighting_capacity`; 608/768/1521 batem exatos. O cliente só mostra na dica do botão das cartas (EquipView, `getFightText`).
 
 ## Dependências
 

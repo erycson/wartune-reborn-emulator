@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 log = structlog.get_logger(__name__)
 
 LOGIN_CODE = 20001
+S_ARMY = 150  # ArmyArmyMsg
 KICK_TIMEOUT = 5  # segundos para a sessão derrubada terminar o handler em andamento
 
 
@@ -172,7 +173,22 @@ class GameSession:
         return self.snapshot.character.id
 
     def send(self, code: int, message: Message | None = None, *, extend2: int = 0) -> None:
+        if code == S_ARMY and self._own_army(message):
+            # (só turco: teknoloji_upgrade, envanterden_item_kusanma, login...) todo 150 do próprio exército vem
+            # logo depois do 4902 das cartas; aqui pega os ~40 lugares que mandam o 150
+            from .handlers.systems import S_FIGHT_ADD, fight_add_msg  # os handlers importam a sessão
+
+            assert self.snapshot is not None
+            slots = self.ctx.world.settings.get("powcard_suite_slots")
+            if (add := fight_add_msg(self.snapshot, self.ctx.templates, slots)) is not None:
+                self.connection.send_message(S_FIGHT_ADD, add)
         self.connection.send_message(code, message, extend2=extend2)
+
+    def _own_army(self, message: Message | None) -> bool:
+        snap = self.snapshot
+        if snap is None or snap.systems is None or not snap.systems.powcards:
+            return False
+        return getattr(message, "playerId", None) == snap.character.id
 
     async def on_packet(self, packet: Packet) -> None:
         if self.snapshot is None and packet.code != LOGIN_CODE:

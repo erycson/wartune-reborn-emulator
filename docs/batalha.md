@@ -114,7 +114,7 @@ linhas de `SkillBufferTempInfos`. `BufferMsg` no 153 de quem age e dos alvos.
 
 - Uma luta com atordoamento num inimigo (skill com "Stunned", ex. buffer 41): ver se a vez perdida
   manda 153 e como desce o `curTurn`.
-- Batalha com cartas de poder equipadas e com dragão: 157 (buffers do herói) e 4902.
+- Batalha com cartas de poder equipadas e com dragão: 157 (buffers do herói). O 4902 não é da batalha (ver heroi-exercito.md).
 - Golpes críticos e bloqueados em quantidade (multiplicadores e chances); um guerreiro ou caçador no
   150 (o ×1,05 do `MagicAttack` no poder de combate só foi visto na maga).
 - Skills com chance de buffer (quantas vezes entra); Selo sagrado; pets numa luta normal.

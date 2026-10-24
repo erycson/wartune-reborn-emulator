@@ -223,10 +223,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
 
         login_stars(s)
     if msg.powcardInfo:  # só turco: login.json #76 (nível 56); o inglês (nível 1, sem cartas, #24-#136) não manda 4905
-        from .systems import S_POWCARD, cards, powcard_msg
+        from .systems import cards, send_cards
 
         if cards(rules.systems(snap)):
-            s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots")))
+            send_cards(s)
     if msg.tower:  # (visto) 215937 #48-#49, tutorial_en: 4912 e 4373 vazios (nada para recuperar, torre sem registro)
         s.send(S_RECOVER, pb.RecoverInfosMsg())
         s.send(S_TOWER_LIST, pb.TowerListMsg())

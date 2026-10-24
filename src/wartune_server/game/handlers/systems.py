@@ -678,6 +678,45 @@ def powcard_msg(
     return msg
 
 
+S_FIGHT_ADD = 4902
+BUFF_FLAT = ("Attack", "Defence", "MagicDefence", "Crit", "Block", "Leadpawn")  # CampaignBufferTemps
+
+
+def fight_add_msg(
+    snap: PlayerSnapshot, templates: GameTemplates, slots: list[list[int]] | None = None
+) -> pb.PowcardFightAddMsg | None:
+    """4902: o poder que as cartas somam em cada tipo de luta (CampaignBufferTemps.Types, 800-807; o cliente só
+    mostra na dica do botão das cartas, MagicCardModel.getFightText). Os buffs das cartas e das coleções (os mesmos
+    bufIds do 4905) somados por Types, com a fórmula do ``HeroStats.fighting_capacity`` (flat + 1,05 MAtk +
+    Vida/5). (só turco: login #3, teknoloji_upgrade #4) 608/768/608/1521/768 batem exatos com as cartas do
+    login #76, todas com isActive 0: conta toda carta que o jogador tem. (dedução) Crit/Block/Leadpawn no flat
+    como ForceHit/Parry/ConatArmy; nenhum buff das cartas tem esses três. Sem cartas, None (o inglês não manda)."""
+    if not cards(rules.systems(snap)):
+        return None
+    totals: dict[int, dict[str, int]] = {}
+    for suite in powcard_msg(snap, templates, slots).suites:
+        for buf in [*(c.buf for c in suite.cardInfos), *suite.bufInfos]:
+            row = templates.get("CampaignBufferTemps", buf.bufId) or {}
+            got = totals.setdefault(int(row.get("Types") or 0), {})
+            for key in (*BUFF_FLAT, "MagicAttack", "Live"):
+                got[key] = got.get(key, 0) + int(row.get(key) or 0)
+    msg = pb.PowcardFightAddMsg()
+    for camp, t in totals.items():
+        if camp:
+            power = (20 * sum(t[k] for k in BUFF_FLAT) + 21 * t["MagicAttack"] + 4 * t["Live"]) // 20
+            msg.singlefightadd.add(op=0, userid=snap.character.id, campType=camp, add=power)
+    return msg
+
+
+def send_cards(s: GameSession) -> None:
+    """4905 e o 4902 logo depois (só turco: login #76-#77)."""
+    assert s.snapshot is not None
+    slots = s.ctx.world.settings.get("powcard_suite_slots")
+    s.send(S_POWCARD, powcard_msg(s.snapshot, s.ctx.templates, slots))
+    if (add := fight_add_msg(s.snapshot, s.ctx.templates, slots)) is not None:
+        s.send(S_FIGHT_ADD, add)
+
+
 @router.on(9505)
 async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
     """op 1 sobe a carta ``cardId`` (gasta a EXP do próximo grau), 2 ativa todas, 3 organiza (só
@@ -703,4 +742,4 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
     if msg.op != CARD_TIDY:
         store_cards(sy, found)
         await s.ctx.characters.save(sy)
-    s.send(S_POWCARD, powcard_msg(snap, templates, s.ctx.world.settings.get("powcard_suite_slots")))
+    send_cards(s)
