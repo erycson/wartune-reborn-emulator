@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, Character, FarmLand, Item, PlayerSnapshot, Relation
+from wartune_server.game import castle as cs
 from wartune_server.game import farm, timebox
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -24,6 +25,15 @@ def _snap(g: Game) -> PlayerSnapshot:
 
 def _building(snap: PlayerSnapshot, template_id: int) -> int:
     return next(b.id for b in snap.buildings if b.template_id == template_id and b.id)
+
+
+async def _grow(g: Game, grades: int) -> PlayerSnapshot:
+    """Nível ``grades`` com os prédios que ele libera (UpGradeTempInfos tipo 3), como o login faria."""
+    snap = await _set(g, grades=grades)
+    session = g.server.online.get(g.user_id)
+    assert session is not None
+    await g.server.services.characters.save(*cs.ensure(snap, session.ctx.templates, session.ctx.clock.now()))
+    return snap
 
 
 async def _set(g: Game, **fields: int) -> PlayerSnapshot:
@@ -43,7 +53,8 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         got = await g.until(83)
         assert [p.code for p in got] == [109, 109, 151, 4130, 83]
         assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 800  # 1000 - 200
-        assert pb.CastleYieldMsg.FromString(got[1].body).goldYield == 280 + 140  # conselho 2 + mina 1
+        # conselho 2: (visto) tutorial_en #591; a Gold Refinery só nasce no 24
+        assert pb.CastleYieldMsg.FromString(got[1].body).goldYield == 280
         order = pb.OrderInfoMsg.FromString(got[2].body)
         assert (order.orderId, order.orderType, order.remainTime) == (1, 1, 10)
         built = pb.BuildingInfoListMsg.FromString(got[3].body).building[0]
@@ -53,7 +64,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Town Hall has been upgraded to Lvl. 2"
         await g.idle()
 
-        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 10101)))  # fila ocupada
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 120101)))  # fila ocupada
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))  # sem diamante
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=0))  # grátis só com VIP (vip.free_cool)
         assert await g.idle() == []
@@ -71,7 +82,7 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
             ledger = (await db.execute(select(CashLedger))).scalars().all()
         assert [(e.delta_point, e.balance_point, e.reason) for e in ledger] == [(-5, 4, "order_quick")]
 
-        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 10101)))  # fila livre de novo
+        g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 120101)))  # fila livre de novo
         assert 4130 in [p.code for p in await g.until(83)]
 
 
@@ -126,13 +137,19 @@ async def test_cottage_waits_for_the_town_hall_of_the_same_grade(tmp_path: Path)
 
 async def test_tech_upgrade_spends_crystals_on_the_tech_order(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=READY) as g:
-        snap = _snap(g)  # a academia 1 já liberou a tecnologia 1304 no nível 0 (NextTemplateId)
+        snap = await _grow(g, 18)  # a academia do 18 libera a tecnologia 1304 no nível 0 (NextTemplateId)
         g.client.send(8203, pb.BuildingOptionReqMsg(buildingId=_building(snap, 130400)))
         got = await g.until(83)
-        assert [p.code for p in got] == [109, 109, 151, 4130, 83]  # 1304 é de ouro: o rendimento muda
+        # (visto) oficial_20261023-231733-1 #3971-#3981: efeito velho e novo (110, 109, 152) entre os dois 109
+        assert [p.code for p in got] == [109, 110, 109, 152, 110, 109, 152, 109, 151, 4130, 83]
         assert pb.CastleYieldMsg.FromString(got[0].body).crystalsCount == 950
-        assert pb.CastleYieldMsg.FromString(got[1].body).goldYield > 260
-        assert pb.OrderInfoMsg.FromString(got[2].body).orderType == 2
+        effects = [pb.PropertyUpdatedMsg.FromString(p.body) for p in got if p.code == 110]
+        assert [(e.propertyType, e.value) for e in effects] == [(104, 0), (104, 60)]
+        y0, y1 = (pb.CastleYieldMsg.FromString(got[i].body).goldYield for i in (0, 7))
+        assert y1 == y0 + 60 and pb.CastleYieldMsg.FromString(got[5].body).goldYield == y1
+        politics = [pb.CastleYieldMsg.FromString(p.body).goldYield for p in got if p.code == 152]
+        assert politics[0] == politics[1]  # o 152 não conta a tecnologia
+        assert pb.OrderInfoMsg.FromString(got[8].body).orderType == 2
         g.client.send(8202, pb.BuildingOptionReqMsg(sonType=1304))  # já existe
         g.client.send(8202, pb.BuildingOptionReqMsg(sonType=901))  # não é tecnologia
         assert await g.idle() == []
@@ -146,7 +163,7 @@ async def test_gold_impose_and_buying_a_second_build_order(tmp_path: Path) -> No
         g.client.send(8327, pb.PayTypeMsg())
         got = await g.until(83)
         assert [p.code for p in got] == [109, 111, 151, 4242, 83]
-        assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 120 * 6 + 140 * 3
+        assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 120 * 6
         assert pb.GoldImposeMsg.FromString(got[3].body) == pb.GoldImposeMsg(leftImpose=1, maxImpose=5)
         g.client.send(8327, pb.PayTypeMsg())  # fila de cobrança ocupada por 1 hora
         assert await g.idle() == []
@@ -160,20 +177,21 @@ async def test_gold_impose_and_buying_a_second_build_order(tmp_path: Path) -> No
         assert await g.idle() == []
         g.client.send(8279, pb.PayTypeMsg())
         orders = pb.BuildOrderList.FromString((await g.until(4187))[-1].body).buildOrder
-        assert sorted((o.orderId, o.orderType) for o in orders) == [(1, 1), (2, 3), (3, 2), (4, 1)]
+        assert sorted((o.orderId, o.orderType) for o in orders) == [(1, 1), (2, 3), (3, 1)]  # sem academia no 14
 
 
 async def test_gold_is_produced_per_hour_up_to_the_depot(tmp_path: Path) -> None:
     clock = FakeClock()
     async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        await _grow(g, 9)  # o depósito nasce no 9
         await _set(g, gold=0)
-        clock.advance(3600 + 13)  # 260/h: 13 s ainda não dão 1 de ouro
+        clock.advance(3600 + 29)  # 120/h: 29 s ainda não dão 1 de ouro
         g.client.send(5015, pb.PayTypeMsg())
         msg = pb.CastleYieldMsg.FromString((await g.until(109))[-1].body)
-        assert (msg.goldYield, msg.goldTotalCount, msg.goldMax) == (260, 260, 450000)
-        clock.advance(1)  # 14 s acumulados = 1,01 de ouro: a fração não se perde
+        assert (msg.goldYield, msg.goldTotalCount, msg.goldMax) == (120, 120, 450000)
+        clock.advance(1)  # 30 s acumulados = 1 de ouro: a fração não se perde
         g.client.send(5015, pb.PayTypeMsg())
-        assert pb.CastleYieldMsg.FromString((await g.until(109))[-1].body).goldTotalCount == 261
+        assert pb.CastleYieldMsg.FromString((await g.until(109))[-1].body).goldTotalCount == 121
 
         await _set(g, gold=449990)
         clock.advance(3600)
@@ -229,12 +247,12 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=1))
         got = await g.until(109)
         assert [p.code for p in got] == [4152, 83, 4387, 109]  # leed 25 "Harvest from your own farm"
-        assert pb.CastleYieldMsg.FromString(got[3].body).goldTotalCount == 2400 + 260 * 30 // 60
+        assert pb.CastleYieldMsg.FromString(got[3].body).goldTotalCount == 2400 + 120 * 30 // 60
 
         clock.advance(29 * 60)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=0))
         gold = pb.CastleYieldMsg.FromString((await g.until(109))[-1].body).goldTotalCount
-        assert gold == 2400 + 2400 + 260 * 59 // 60  # as duas colheitas e a produção do castelo
+        assert gold == 2400 + 2400 + 120 * 59 // 60  # as duas colheitas e a produção do castelo
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.lands == [] and saved.character.gold == gold and saved.items == []
@@ -542,9 +560,31 @@ async def test_reaching_grade_14_opens_the_impose_order(tmp_path: Path) -> None:
         session = g.server.online.get(g.user_id)
         assert session is not None
         snap.character.grades = 14
-        push_level(session, 13)
+        await push_level(session, 13)
         got = await g.until(150)
         assert got[0].code == 104
         assert pb.OrderInfoMsg.FromString(got[0].body) == pb.OrderInfoMsg(orderId=2, orderType=3, remainTime=0)
-        push_level(session, 14)  # já tem a fila: sem outro 104
+        await push_level(session, 14)  # já tem a fila: sem outro 104
         assert 104 not in [p.code for p in await g.until(150)]
+
+
+async def test_reaching_grade_18_builds_the_academy_and_its_tech(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-231733-1 #3939-#3946: 110/109/152 da tecnologia, 4130 dela, 104 da fila de
+    tecnologia e 4130 da academia, antes do 150; o 9 só manda o 4130 do depósito (tutorial_en #2246)."""
+    from wartune_server.game.handlers.player import push_level
+
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _grow(g, 17)
+        assert {b.template_id // 100 for b in snap.buildings} == {901, 402, 1201, 301}
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        snap.character.grades = 18
+        await push_level(session, 17)
+        got = await g.until(150)
+        assert [p.code for p in got][:6] == [110, 109, 152, 4130, 104, 4130]
+        assert pb.PropertyUpdatedMsg.FromString(got[0].body) == pb.PropertyUpdatedMsg(propertyType=104, value=0)
+        assert pb.BuildingInfoListMsg.FromString(got[3].body).building[0].templateId == 130400
+        assert pb.OrderInfoMsg.FromString(got[4].body) == pb.OrderInfoMsg(orderId=3, orderType=2, remainTime=0)
+        assert pb.BuildingInfoListMsg.FromString(got[5].body).building[0].templateId == 50101
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert {50101, 130400} <= {b.template_id for b in saved.buildings}

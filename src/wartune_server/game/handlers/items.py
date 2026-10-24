@@ -340,7 +340,7 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     if field == "gp":
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
         if gained:
-            push_level(s, c.grades - gained)  # (dedução) a ordem da entrega de missão (5014)
+            await push_level(s, c.grades - gained)  # (dedução) a ordem da entrega de missão (5014)
     return True
 
 

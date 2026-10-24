@@ -118,7 +118,7 @@ async def take_offline_reward(s: GameSession, msg: pb.OfflineRewardMsg) -> None:
     await s.ctx.characters.save(c, snap.leader, *snap.pawns)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if gained:
-        push_level(s, c.grades - gained)  # (dedução) como na entrega de missão
+        await push_level(s, c.grades - gained)  # (dedução) como na entrega de missão
 
 
 @router.on(8255)

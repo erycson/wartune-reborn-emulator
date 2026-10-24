@@ -236,7 +236,7 @@ async def push_state(s: GameSession) -> None:
     await _push_player(s)
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))  # (dedução) o texto da EXP das lutas
     if snap.character.grades > grade:
-        push_level(s, grade)
+        await push_level(s, grade)
     s.log.info("terra secreta: EXP da árvore", tiques=n, exp=gp, rate=rate)
 
 

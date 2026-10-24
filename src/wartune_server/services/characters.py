@@ -102,15 +102,12 @@ class GridCastlePlacement:
         return self._map_id, self._origin[0] + (slot % self._cols) * 4, self._origin[1] + (slot // self._cols) * 4
 
 
-# Nível 1 dos prédios centrais. O cliente não tem como construí-los (só tecnologias),
-# e vários pontos da HUD buscam um deles por sonType sem checar null (901, 402, 501, 1201...).
+# Nível 1 dos prédios com que o oficial começa: (visto) tutorial_en #582, 4130 com 120101, 40201 e 90101. O depósito,
+# a academia e a Gold Refinery nascem pelo nível (``castle.level_buildings``, UpGradeTempInfos tipo 3).
 # Os prédios 1501-1511 (templates 150101...) são criados pelo próprio cliente: não enviar.
 STARTING_BUILDINGS = (
     90101,  # 901 conselho (prédio principal)
-    10101,  # 101 mina de ouro
-    30101,  # 301 depósito
     40201,  # 402 quartel
-    50101,  # 501 academia
     120101,  # 1201 casa
 )
 

@@ -77,9 +77,10 @@ de `GridCastlePlacement`, que hoje é uma grade simples no mapa 100000313.
 ### buildings
 `character_id`, `template_id`, `property1`, `property2`. O `template_id` muda a cada nível
 (`NextGradeTemplateId`). Posição, nome e arte vêm do `BuildingTempInfos`. Na criação do personagem
-são gravados os prédios centrais de nível 1: 90101 (conselho, 901), 10101 (mina de ouro), 30101
-(depósito), 40201 (quartel), 50101 (academia) e 120101 (casa). O cliente não consegue construí-los
-e busca vários deles por `sonType` sem checar null. Os prédios 1501–1511 são do próprio cliente e
+são gravados os prédios com que o oficial começa (tutorial_en #582): 90101 (conselho, 901), 40201 (quartel) e
+120101 (casa). Os outros nascem pelo nível do jogador (`UpGradeTempInfos` tipo 3, `castle.level_buildings`): 30101
+(depósito) no 9, 50101 (academia, com a tecnologia 1304 e a fila de tecnologia) no 18 e 10101 (Gold Refinery) no
+24. O cliente não consegue construí-los. Os prédios 1501–1511 são do próprio cliente e
 não ficam no banco.
 
 ### quests

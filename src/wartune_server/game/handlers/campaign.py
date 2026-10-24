@@ -679,7 +679,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if snap.character.grades > before:
         from .player import push_level  # player importa login, que importa este módulo
 
-        push_level(s, before)  # (dedução) 139, 100, 150 e 4640 como na entrega de missão
+        await push_level(s, before)  # (dedução) 139, 100, 150 e 4640 como na entrega de missão
     else:
         _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
         _send(s, S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
@@ -1378,7 +1378,7 @@ async def _dungeon_end(s: GameSession) -> None:
     if snap.character.grades > before:
         from .player import push_level  # player importa login, que importa este módulo
 
-        push_level(s, before)  # (dedução) 139, 100, 150 e 4640 como na entrega de missão
+        await push_level(s, before)  # (dedução) 139, 100, 150 e 4640 como na entrega de missão
     else:
         _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))

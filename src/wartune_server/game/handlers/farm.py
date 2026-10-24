@@ -225,7 +225,7 @@ def _payout(
     return changed, item, gained
 
 
-def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: Item | None, gained: int) -> None:
+async def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: Item | None, gained: int) -> None:
     if item is not None:
         s.send(S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
     if CURRENCIES.get(reward) in ("gold", "crystals"):
@@ -233,7 +233,7 @@ def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: Item |
     else:
         s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if gained:
-        push_level(s, snap.character.grades - gained)  # (dedução) como na entrega de missão
+        await push_level(s, snap.character.grades - gained)  # (dedução) como na entrega de missão
 
 
 async def _pick(
@@ -258,7 +258,7 @@ async def _pick(
     _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    _payout_sent(s, snap, reward, item, gained)
+    await _payout_sent(s, snap, reward, item, gained)
     return True
 
 
@@ -292,7 +292,7 @@ async def _steal(
     _land_reply(s, target.character.id or 0, msg.pos, land, STEAL, OK)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    _payout_sent(s, snap, reward, item, gained)
+    await _payout_sent(s, snap, reward, item, gained)
     return True
 
 

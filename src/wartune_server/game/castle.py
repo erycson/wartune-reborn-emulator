@@ -70,17 +70,29 @@ def missing_requirements(snap: PlayerSnapshot, templates: GameTemplates, target:
     return missing
 
 
-def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
+def gold_tech(templates: GameTemplates, row: Row) -> tuple[int, int] | None:
+    """(PropertyType1, ouro por nível) do efeito de uma tecnologia de ouro; o tipo é o ``propertyType`` do 110."""
+    if row["MasterType"] not in GOLD_TECH:
+        return None
+    effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
+    return int(effect.get("PropertyType1", 0)), int(effect.get("Property1", 0))
+
+
+def tech_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
     total = 0
     for building in snap.buildings:
         row = template(templates, building.template_id)
-        if row is None:
-            continue
-        if int(row["SonType"]) in (COUNCIL, MINE):
+        if row is not None and (tech := gold_tech(templates, row)) is not None:
+            total += tech[1] * int(row["BuildingGrade"])
+    return total
+
+
+def gold_yield(snap: PlayerSnapshot, templates: GameTemplates) -> int:
+    total = tech_gold(snap, templates)
+    for building in snap.buildings:
+        row = template(templates, building.template_id)
+        if row is not None and int(row["SonType"]) in (COUNCIL, MINE):
             total += int(row["Property1"])
-        elif row["MasterType"] in GOLD_TECH:
-            effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
-            total += int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
     # a captura inglesa bate exato com prefeitura + minas (#579 120, #591 280, #772 1040, #2744 2280), sem guilda;
     # TODO(inventado): a habilidade "Gold Boost" da guilda ("Gold Production +N%") sobre o total (nenhuma captura)
     total += mines.mine_gold(snap, templates)
@@ -155,8 +167,9 @@ def castle_yield(s: GameSession) -> None:
 
 def politics_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.CastleYieldMsg:
     """152 (conselho): o rendimento dos prédios e uma linha por mina ocupada. Como no inglês (#751,
-    #804), ``goldYield`` e ``goldTotalCount`` ficam só com os prédios e ``goldWildLandYield`` em 0."""
-    total = gold_yield(snap, templates) - mines.mine_gold(snap, templates)
+    #804), ``goldYield`` e ``goldTotalCount`` ficam só com os prédios e ``goldWildLandYield`` em 0. A tecnologia de
+    ouro também fica fora: (visto) oficial_20261023-231733-1 #3974/#3977, 2200 antes e depois do Gold Production 1."""
+    total = gold_yield(snap, templates) - mines.mine_gold(snap, templates) - tech_gold(snap, templates)
     msg = pb.CastleYieldMsg(goldYield=total, goldWildLandYield=0, goldTechnology=0, goldWonder=0)
     msg.goldTotalCount = total
     msg.wildYield.extend(mines.mine_yield(snap, templates))
@@ -249,24 +262,52 @@ def unlock(snap: PlayerSnapshot, templates: GameTemplates, building: Building) -
     return new
 
 
+LEVEL_BUILDING = 3  # UpGradeTempInfos.Types: o nível do jogador (Grades) faz nascer o prédio ActiveObject
+CLIENT_BUILDINGS = range(1501, 1512)  # sonTypes que o próprio cliente cria (o 150501 do nível 35)
+
+
+def level_buildings(snap: PlayerSnapshot, templates: GameTemplates) -> list[Building]:
+    """Os prédios que o nível do jogador já liberou e ainda não existem: (template) ``UpGradeTempInfos`` tipo 3
+    (depósito no 9, academia no 18, Gold Refinery no 24); (visto) tutorial_en #2246, o 30101 na subida para o 9, e
+    oficial_20261023-231733-1 #3944, o 50101 na subida para o 18."""
+    new = []
+    for row in templates.find("UpGradeTempInfos", Types=LEVEL_BUILDING):
+        target = template(templates, int(row["ActiveObject"]))
+        if target is None or int(row["Grades"]) > snap.character.grades:
+            continue
+        son = int(target["SonType"])
+        if son not in CLIENT_BUILDINGS and by_son_type(snap, templates, son) is None:
+            new.append(Building(snap.character.id or 0, int(target["TemplateId"])))
+            snap.buildings.append(new[-1])
+    return new
+
+
+def tech_order(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> BuildOrder | None:
+    """A fila de tecnologia nasce com a academia: (visto) oficial_20261023-231733-1 #3943, 104 {orderId 3,
+    orderType 2} entre o 4130 da tecnologia e o da academia."""
+    if by_son_type(snap, templates, ACADEMY) is None or next(orders_of(snap, TECH_ORDER), None) is not None:
+        return None
+    return new_order(snap, TECH_ORDER, now, None if any(o.order_id == 3 for o in snap.orders) else 3)
+
+
 def ensure(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[object]:
-    """No login: filas de tecnologia e de cobrança, e o que já devia ter sido liberado.
+    """No login: filas, os prédios do nível e o que já devia ter sido liberado.
 
     A fila de prédios (1) e a produção nascem no 8281 do tutorial; quem já passou dele (ou
     pulou o tutorial) recebe aqui. Os números seguem o oficial: 1 prédio, 2 cobrança, 3 tecnologia. A de cobrança
-    só do ``IMPOSE_GRADE`` em diante (``impose_order`` na subida de nível). (dedução) a de tecnologia nasce no login:
-    nenhuma captura mostra quando o oficial a cria.
+    só do ``IMPOSE_GRADE`` em diante e a de tecnologia com a academia (as duas também na subida de nível).
     """
     changed: list[object] = []
     ready = snap.character.novice_process >= CASTLE_READY
     if (order := impose_order(snap, now)) is not None:
         changed.append(order)
-    for order_type, number in ((TECH_ORDER, 3),) + (((BUILD, 1),) if ready else ()):
-        if next(orders_of(snap, order_type), None) is None:
-            taken = any(o.order_id == number for o in snap.orders)
-            changed.append(new_order(snap, order_type, now, None if taken else number))
+    if ready and next(orders_of(snap, BUILD), None) is None:
+        changed.append(new_order(snap, BUILD, now, None if any(o.order_id == 1 for o in snap.orders) else 1))
+    changed += level_buildings(snap, templates)
     for building in list(snap.buildings):
         changed += unlock(snap, templates, building)
+    if (order := tech_order(snap, templates, now)) is not None:
+        changed.append(order)
     if ready and snap.castle is not None and snap.castle.produced_at is None:
         start_production(snap, now)
         changed.append(snap.castle)

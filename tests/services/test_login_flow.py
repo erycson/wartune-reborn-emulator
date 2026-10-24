@@ -88,7 +88,7 @@ async def test_full_login_and_registration(env, keys) -> None:  # type: ignore[n
 
     snap = await chars.snapshot(result.user_id)
     assert snap.leader is not None and snap.leader.intellect == 5 and snap.castle is not None
-    assert sorted(b.template_id for b in snap.buildings) == [10101, 30101, 40201, 50101, 90101, 120101]
+    assert sorted(b.template_id for b in snap.buildings) == [40201, 90101, 120101]  # (visto) tutorial_en #582
 
     claimed = await login.claim_socket(result.session_key)
     assert claimed.id == result.user_id

@@ -59,7 +59,7 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
         alert(s, text)
         s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
     if snap.character.grades > before:
-        push_level(s, before)
+        await push_level(s, before)
 
 
 @router.on(8528)

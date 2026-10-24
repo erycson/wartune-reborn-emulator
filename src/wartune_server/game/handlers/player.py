@@ -9,6 +9,7 @@ from ...domain.models import Consortia, Item
 from ...domain.world import Announcement
 from ...protocol.messages import wartune_pb2 as pb
 from .. import bag, daily, rewards, rules
+from .. import castle as cs
 from ..arena import data_reset
 from ..builders import login as b
 from ..builders.army import castle_pawns, unlocked_pawns
@@ -20,6 +21,7 @@ from .login import army, player_info
 from .space import talk
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
+S_EFFECT, S_POLITICS, S_BUILDINGS = 110, 152, 4130
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
 S_SHORT, S_CASTLE_PAWNS, S_ORDER_ADD = (
     139,
@@ -66,7 +68,7 @@ def hp_pack(s: GameSession, used: int) -> None:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=HP_PACK))
 
 
-def push_level(s: GameSession, before: int) -> None:
+async def push_level(s: GameSession, before: int) -> None:
     """Subiu do nível ``before`` (o exército já foi completado em ``rules.add_gp``). Ordem do oficial (tutorial_en
     #636-#639, #1132-#1133, #1587-#1588, #3191-#3192): 139 se ainda falta soldado no exército (o cliente mostra
     "Insufficient Troops!", ``BaseManager.__addPawnHandler``; #636 com o castelo vazio), 100 com o castelo (só
@@ -81,6 +83,7 @@ def push_level(s: GameSession, before: int) -> None:
     # grava o personagem, e a fila se grava na primeira cobrança (no login ``castle.ensure`` a recria igual)
     if (order := impose_order(snap, s.ctx.clock.now())) is not None:
         s.send(S_ORDER_ADD, order_info(order, s.ctx.clock.now()))
+    await _level_buildings(s)
     pawns = castle_pawns(snap, templates)
     # os prédios do oficial nascem no 8281 (EN #578, antes o 4154 do login vem vazio); aqui nascem com o personagem,
     # então "castelo aberto" é a produção já iniciada pelo 8281
@@ -92,6 +95,32 @@ def push_level(s: GameSession, before: int) -> None:
         s.send(S_CASTLE_PAWNS, pawns)
     _army(s)
     fund_opened(s, before)
+
+
+async def _level_buildings(s: GameSession) -> None:
+    """Os prédios do nível novo (``castle.level_buildings``). (visto) oficial_20261023-231733-1 #3939-#3944, academia
+    no 18: 110/109/152 da tecnologia de ouro que ela libera, 4130 da tecnologia, 104 da fila de tecnologia e 4130 da
+    academia, antes do 100/150; tutorial_en #2246, depósito no 9: só o 4130."""
+    snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
+    assert snap is not None
+    born = cs.level_buildings(snap, templates)
+    if not born or snap.castle is None:
+        return
+    unlocked = [u for x in born for u in cs.unlock(snap, templates, x)]
+    order = cs.tech_order(snap, templates, now)
+    await s.ctx.characters.save(*born, *unlocked, *([order] if order else []))
+    used = cs.impose_used(snap.castle, now)
+    for u in unlocked:
+        row = cs.template(templates, u.template_id)
+        if row is not None and (tech := cs.gold_tech(templates, row)) is not None:
+            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=tech[1] * int(row["BuildingGrade"])))
+            castle_yield(s)
+            s.send(S_POLITICS, cs.politics_msg(snap, templates))
+    if unlocked:
+        s.send(S_BUILDINGS, b.buildings_msg(snap, templates, unlocked, used))
+    if order is not None:
+        s.send(S_ORDER_ADD, order_info(order, now))
+    s.send(S_BUILDINGS, b.buildings_msg(snap, templates, born, used))
 
 
 def granted(
@@ -280,7 +309,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     if int(row.get("RewardGold", 0)) or int(row.get("RewardCrystal", 0)):  # o 109 leva ouro e cristais
         castle_yield(s)
     if snap.character.grades > grades:
-        push_level(s, grades)
+        await push_level(s, grades)
     from . import events  # events importa este módulo
 
     if q.template_id == events.SERVEN_QUEST:  # tutorial_en #3192-#3194: o 4638 entre o 150 e o 3

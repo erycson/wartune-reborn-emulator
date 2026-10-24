@@ -307,7 +307,7 @@ async def _colosseum_over(
         )
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if snap.character.grades > before:
-        push_level(s, before)  # (dedução) como na entrega de missão
+        await push_level(s, before)  # (dedução) como na entrega de missão
     # (visto) oficial_20261023-215937-1 #1163-#1167: sem o 150 entre o 3 e o 4103
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, 0

@@ -29,6 +29,7 @@ S_IMPOSE, S_TRANSFER, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 4452, 100
 BUY_ORDER_PRICE = 395  # (cliente inglês) QueueBar.buyQueueItem: "mainBar.QueueBar.content" com 395
 IMPOSE_COOLDOWN = 3600  # só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
+S_EFFECT, S_POLITICS = 110, 152
 # (visto) tempinfos: 111-113 ("Accelerate Building Construction Cooldown 1/3/7 times") e 763 ("Collect Levy")
 ACCELERATE, LEVY = 12, 42  # QuestCondictionInfos.CondictionType
 
@@ -124,6 +125,15 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
     paid.goldTotalCount, paid.crystalsCount = before.goldTotalCount - gold, before.crystalsCount - crystals
     s.send(cs.S_CASTLE_YIELD, paid)
     after = cs.yield_msg(snap, templates, now)
+    if (tech := cs.gold_tech(templates, target)) is not None:
+        # (visto) oficial_20261023-231733-1 #3971-#3978, Gold Production 0 -> 1: o efeito do nível velho e o do novo,
+        # cada um com 110 (PropertyType1, ouro do nível), 109 e 152; depois o 109 de sempre. Só o novo quando o prédio
+        # nasce (o 5014 da missão 280 em #3938-#3941 manda 110 com 0)
+        grade = int(target["BuildingGrade"])
+        for g, msg in ([(grade - 1, paid)] if code == 8203 else []) + [(grade, after)]:
+            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=tech[1] * g))
+            s.send(cs.S_CASTLE_YIELD, msg)
+            s.send(S_POLITICS, cs.politics_msg(snap, templates))
     if after != paid:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
         s.send(cs.S_CASTLE_YIELD, after)
     # nível do quartel que libera um tipo de tropa (NeedBuilding = o template novo): 100 com todas as tropas do
