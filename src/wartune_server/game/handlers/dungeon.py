@@ -9,9 +9,10 @@ from __future__ import annotations
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
-from .. import rewards
+from .. import rewards, rules, titles
 from .. import sweep as sw
 from ..builders import login as b
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .player import _player, alert, push_level
@@ -24,7 +25,10 @@ def _send(s: GameSession, msg: pb.CampaignSweepRsp) -> None:
 
 
 async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> None:
-    """Acerta as rodadas vencidas, grava e manda 3 (estamina, ouro), 115 (cartas, chave gasta) e a subida de nível."""
+    """Acerta as rodadas vencidas e grava. (só turco: savasa_baskin_ve_elmas_ile_hizlandirma #5-#33) 109, 3, 115 da
+    chave gasta, 4152 do leed 4 por rodada, 112 das missões de campanha (313 "Gain passage through any dungeon"), 140
+    do exército parado quando acabou, 109, 115 dos itens, 4476/4426, 83 da devoção, os 4484, 111 e 83 dos itens,
+    4476/4426 de novo; depois a subida de nível. O 4902/150/4434 do #7-#9 é o periódico de 5 min."""
     from .vip import VIP_EXP, vip_right  # vip importa player, que importa login, que importa campaign
 
     snap = s.snapshot
@@ -38,26 +42,44 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     await s.ctx.characters.save(*rewards.owners(snap), st, *changed, delete=tuple(gone))
     if sweep.done == done and not changed:
         return
+    castle_yield(s)
     _player(s)
     moved: list[Item] = [i for i in changed if i not in gone]
-    if moved:
-        s.send(S_ITEMS, rewards.items_msg(moved, s.player_id))
     for item in gone:
         s.send(S_ITEMS, rewards.taken_msg(item, True, s.player_id))
     from . import events  # events importa este módulo (login_push)
+    from .army import send_quests
+    from .campaign import ARMY_IDLE, S_MAP_SYNC, map_sync  # campaign importa login, que importa este módulo
 
-    # (só turco: savasa_baskin_ve_elmas_ile_hizlandirma #10-#31) cada rodada conta como campanha (4152 leed 4 e a
-    # devoção), o 4476/4426 depois do 115 e o aviso dos itens no 111 e no 83
     new = sweep.rounds[first:]
+    devotion = events.devotion(s)
+    quests = []
     for _ in new:
-        await events.leed_done(s, events.CAMPAIGN_LEED)
+        await events.leed_done(s, events.CAMPAIGN_LEED, say=False)
+        # (dedução) a rodada fecha a masmorra como a luta do fim (``campaign._loot``)
+        solo = int((s.ctx.templates.get("Campaigns", sweep.campaign_id, key="CampaignId") or {}).get("Capacity") or 0)
+        for kind, para1 in ((rules.CAMPAIGN_CONDITION, sweep.campaign_id), (rules.SOLO_CONDITION, solo)):
+            quests += [q for q in rules.quest_event(snap, s.ctx.templates, kind, para1, 1) if q not in quests]
+    if quests:
+        await s.ctx.characters.save(*quests)
+        send_quests(s, quests)
+    if sweep.end:
+        s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+        castle_yield(s)
     if moved:
-        events.items_gained(s)
+        s.send(S_ITEMS, rewards.items_msg(moved, s.player_id))
+        events.progress(s)
+    if events.devotion(s) != devotion:
+        events.say_devotion(s)
+    if moved:
+        for _ in range(titles.item_checks(s.ctx.templates)):
+            events.send_titles(s)
     if got := [t for r in new for t in r.items]:
         # (dedução) "Kazanılan Eşyalar:" no turco; no inglês, como os outros "Kazanılan:" ("Received: Worg Tooth x2")
         text = rewards.received(s.ctx.templates, got)
         alert(s, text)
         s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
+        events.progress(s)
     if snap.character.grades > before:
         await push_level(s, before)
 
@@ -67,7 +89,8 @@ async def sweep(s: GameSession, msg: pb.CampaignSweepReq) -> None:
     """op 1 começa, 2 acelera (``ceil(segundos/60)`` Balens; grátis com o contrato 5), 3 pergunta (o cliente a cada
     rodada), 4 fecha ou cancela (sem resposta: ``uninit`` zera o quadro e uma resposta tardia vazaria para a
     próxima varredura). Status vistos (só turco, savasa_baskin_ve_elmas_ile_hizlandirma, em salas-campanha.md):
-    1 no início, 5 nas perguntas e 11 no fim."""
+    1 no início (com 109, 3 e o 140 do exército ocupado antes, #1-#4), 5 nas perguntas e 11 no fim; a pergunta depois
+    do fim leva 5 sem rodadas e ``sweepType`` 0 (#35)."""
     snap = s.snapshot
     assert snap is not None
     now, templates = s.ctx.clock.now(), s.ctx.templates
@@ -84,6 +107,11 @@ async def sweep(s: GameSession, msg: pb.CampaignSweepReq) -> None:
         out = sw.response(new, templates, now, sw.OK)
         await s.ctx.characters.save(sw.store(snap, new, now))
         s.log.info("varredura começou", campanha=msg.campaignId, rodadas=msg.count)
+        from .campaign import ARMY_FIGHTING, S_MAP_SYNC, map_sync  # campaign importa login, que importa este módulo
+
+        castle_yield(s)
+        _player(s)
+        s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
         _send(s, out)
         return
     current = sw.load(snap)
@@ -94,6 +122,9 @@ async def sweep(s: GameSession, msg: pb.CampaignSweepReq) -> None:
         await _settle(s, current)
         await s.ctx.characters.save(sw.store(snap, None, now))
         s.log.info("varredura fechada", feitas=current.done, de=current.count)
+        return
+    if msg.opType == sw.POLL and current.end:
+        _send(s, pb.CampaignSweepRsp(status=sw.POLLED, sweepType=0))
         return
     if msg.opType == sw.SPEED_UP and current.end == 0:
         cost = 0 if sw.free(snap, now) else sw.speed_up_cost(current, templates, now)

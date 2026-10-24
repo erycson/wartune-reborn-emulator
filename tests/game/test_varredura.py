@@ -60,7 +60,9 @@ async def test_rodadas_no_tempo_aceleracao_e_fechar(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=clock) as g:
         snap = _ready(g, clock)
         g.client.send(8528, _start(3))
-        start = _rsp(await g.until(4425))
+        got = await g.until(4425)
+        assert [p.code for p in got] == [109, 3, 140, 4425]  # (só turco: savasa_baskin #1-#4)
+        start = _rsp(got)
         assert start.status == sw.OK and [(r.type, r.time) for r in start.result] == [(sw.RUNNING, 900)]
         g.client.send(8528, pb.CampaignSweepReq(sweepType=1, opType=1, campaignId=WORG, count=1))
         assert _rsp(await g.until(4425)).status == sw.BUSY
@@ -73,17 +75,25 @@ async def test_rodadas_no_tempo_aceleracao_e_fechar(tmp_path: Path) -> None:
         assert [(r.type, r.finishCount, r.gp) for r in poll.result] == [(1, 1, 630), (sw.RUNNING, 1, 0)]
         assert len(poll.result[0].items) == 1  # a carta da rodada
         assert 115 in [p.code for p in got] and (snap.character.weary, snap.character.gold) == (80, 95_000)
-        # (só turco: savasa_baskin #10-#31) a rodada conta como campanha (leed 4), 4476 e o aviso dos itens
+        # (só turco: savasa_baskin #5-#33) a rodada conta como campanha (leed 4), 115, 4476 e o aviso dos itens
         codes = [p.code for p in got]
-        assert codes.index(115) < codes.index(4152) and 4476 in codes
+        assert codes[:3] == [109, 3, 4152]  # sem missão aceita, sem o 112
+        assert codes.index(4152) < codes.index(115) < codes.index(4476)
+        assert codes.index(111) < codes.index(4425) and 140 not in codes  # ainda varrendo
         [text] = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
         assert text.startswith("Received: ") and text.endswith(" x1")
 
         g.client.send(8528, pb.CampaignSweepReq(sweepType=1, opType=2, campaignId=WORG, payType=1))
-        done = _rsp(await g.until(4425))  # faltam 601 s: ceil(601/60) = 11 Balens
+        got = await g.until(4425)  # faltam 601 s: ceil(601/60) = 11 Balens
+        codes = [p.code for p in got]
+        assert codes.index(140) < codes.index(115)  # o exército para antes dos itens (o leed 4 já contou)
+        done = _rsp(got)
         assert done.status == sw.DONE and [r.finishCount for r in done.result] == [2, 3]
         assert (snap.character.point, snap.character.weary, snap.character.gold) == (39, 40, 85_000)
 
+        g.client.send(8528, pb.CampaignSweepReq(sweepType=1, opType=3, campaignId=WORG))  # (só turco: savasa #35)
+        late = _rsp(await g.until(4425))
+        assert (late.status, late.sweepType, len(late.result)) == (sw.POLLED, 0, 0)
         g.client.send(8528, pb.CampaignSweepReq(sweepType=1, opType=4, campaignId=WORG))
         assert 4425 not in [p.code for p in await g.idle()]
         assert sw.load(snap) is None
