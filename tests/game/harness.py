@@ -109,9 +109,8 @@ async def logged_in(
         client.rekey(ekeys)
         await client.until(150)
         client.send(8224, pb.PlayerDataMsg(user=True))
-        await client.until(4151)  # o 6 e o 4151 logo depois (tutorial_en #93-#94)
-        if novice >= 19000:
-            await client.until(4595)  # cidade do céu, logo depois do 6
+        # o 6, a cidade do céu (4595, depois do tutorial) e o 4151 (tutorial_en #93-#94, oficial_20261023-171155-1 #92-#94)
+        await client.until(4151)
         return Game(client, server, user_id, join, lambda: socket_login(user_id, key), http, key)
 
     try:

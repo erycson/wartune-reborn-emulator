@@ -12,7 +12,7 @@ def _of(got: list[Packet], code: int) -> list[bytes]:
 
 
 async def test_players_see_each_other_in_the_sky_city(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as a:
+    async with logged_in(tmp_path, novice=33000) as a:
         b = await a.join("bruxa")
 
         got_b = await b.idle()
@@ -55,9 +55,17 @@ async def test_tutorial_players_are_not_in_the_sky_city(tmp_path: Path) -> None:
         assert _of(await b.idle(), 4595) == [] and _of(await a.idle(), 4597) == []
 
 
+async def test_login_before_the_end_of_the_tutorial_has_no_sky_city(tmp_path: Path) -> None:
+    """(visto) oficial_encantar #98-#99: noviceProcess 28500, do 6 direto ao 4151, sem 4595."""
+    async with logged_in(tmp_path, novice=28500) as a:
+        assert _of(await a.idle(), 4595) == []
+        session = a.server.online.get(a.user_id)
+        assert session is not None and session.space_pos is None
+
+
 async def test_two_logins_at_once_only_one_loads_the_character(tmp_path: Path) -> None:
     """Os dois 20001 passam pelo kick juntos; o segundo não pode virar sessão com snapshot velho."""
-    async with logged_in(tmp_path, novice=19000) as a:
+    async with logged_in(tmp_path, novice=33000) as a:
         online = a.server.online
         bound: list[int] = []
         bind = online.bind
@@ -76,7 +84,7 @@ async def test_two_logins_at_once_only_one_loads_the_character(tmp_path: Path) -
 
 
 async def test_sky_city_remembers_position_and_shows_new_equipment(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as a:
+    async with logged_in(tmp_path, novice=33000) as a:
         b = await a.join("bruxa")
         await a.idle()
         session_a = a.server.online.get(a.user_id)
@@ -111,7 +119,7 @@ def _walk(x: int, y: int) -> pb.SpacePlayerMoveMsg:
 
 
 async def test_space_nodes_and_pet_island(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=19000) as a:
+    async with logged_in(tmp_path, novice=33000) as a:
         b = await a.join("bruxa")
         await a.idle()
         c = a.client

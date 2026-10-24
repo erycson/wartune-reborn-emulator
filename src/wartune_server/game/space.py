@@ -18,7 +18,9 @@ from .session import GameSession
 
 SPACE = 10000
 S_CREATE, S_RETURN, S_PRESENT, S_MOVE, S_REMOVE, S_LOOK = 4595, 4606, 4597, 4594, 4607, 149
-TUTORIAL_END = 30000  # noviceProcess do fim do tutorial (o coliseu abre acima disso, gotoColosseumFrame)
+# noviceProcess do fim do tutorial (o coliseu abre acima disso, gotoColosseumFrame): daqui em diante o login e o fim
+# da masmorra criam a cidade do céu (4595); antes, só a saída da pedreira (5025, tutorial_en #2123)
+TUTORIAL_END = 30000
 POST_TUTORIAL = 19000  # noviceProcess da cena do castelo; antes disso o 4595 atrapalharia o tutorial
 
 
@@ -78,11 +80,10 @@ def others(s: GameSession) -> list[GameSession]:
     return [o for o in s.ctx.online.sessions() if o is not s and o.space_pos is not None]
 
 
-def enter(s: GameSession, code: int = S_CREATE) -> None:
-    """Login: cria a cena (4595), apresenta quem já está lá e avisa os outros (só se ainda não estava lá).
-
-    O 4594 só desenha quem o cliente já conhece por um 4597, por isso vai sempre depois dele. Também no fim da
-    masmorra depois do tutorial (5180, ``TUTORIAL_END``).
+def enter(s: GameSession, code: int = S_CREATE, show: bool = True) -> None:
+    """Cria a cena (4595), apresenta quem já está lá e avisa os outros (só se ainda não estava lá). Também no fim
+    da masmorra depois do tutorial (5180, ``TUTORIAL_END``). ``show`` False deixa a apresentação para ``present``: no
+    login o 4595 vai entre o 6 e o 4151 (oficial_20261023-171155-1 #92-#94), sem 4597 no meio.
     """
     assert s.snapshot is not None
     if s.snapshot.character.novice_process < POST_TUTORIAL:
@@ -90,13 +91,24 @@ def enter(s: GameSession, code: int = S_CREATE) -> None:
     c = s.snapshot.character
     known = s.space_pos is not None  # os outros já o têm na tela
     s.space_pos = s.space_pos or (c.space_x, c.space_y)  # onde saiu da última vez
+    s.send(code, pb.RoomEnterMsg(result=1, player=[member(s)]))  # 4595 no login, 4606 voltando de um mapa
+    if show:
+        present(s, announce=not known)
+
+
+def present(s: GameSession, announce: bool = True) -> None:
+    """Quem já está na cidade do céu (4597 e 4594) e, com ``announce``, avisa os outros da chegada.
+
+    O 4594 só desenha quem o cliente já conhece por um 4597, por isso vai sempre depois dele.
+    """
+    if s.space_pos is None:
+        return
     me = member(s)
-    s.send(code, pb.RoomEnterMsg(result=1, player=[me]))  # 4595 no login, 4606 voltando de um mapa
-    present = others(s)
-    if present:
-        s.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[member(o) for o in present]))
-        s.send(S_MOVE, _positions(present))
-    for o in [] if known else present:
+    here = others(s)
+    if here:
+        s.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[member(o) for o in here]))
+        s.send(S_MOVE, _positions(here))
+    for o in here if announce else []:
         o.send(S_PRESENT, pb.RoomEnterMsg(result=1, player=[me]))
         o.send(S_MOVE, _positions([s]))
 

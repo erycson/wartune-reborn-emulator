@@ -1016,7 +1016,8 @@ async def campaign_finish(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     _send(s, S_CAMPAIGN_FINISH)
     # (visto) recria a cidade do céu (4595, e o 4597 de quem está lá) só depois do tutorial: oficial_20261023-171155-1
     # #2936-#2937 e #4180-#4181 (noviceProcess 33000), oficial_20261023-215937-1 #728-#732 (35000); sem 4595 na
-    # tutorial_en #1124-#3183 (24000-28000) e na oficial_encantar #726, #1581 (28500)
+    # tutorial_en #1124-#3183 (24000-28000) e na oficial_encantar #726, #1581 (28500). (dedução) o corte em 30000
+    # (fim do tutorial, o mesmo do login): os dados só dizem que fica entre 28500 e 33000
     if (s.snapshot.character.novice_process if s.snapshot else 0) > space.TUTORIAL_END:
         space.enter(s)
 

@@ -256,6 +256,11 @@ async def _login_state(s: GameSession) -> None:
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
+    # (visto) a cidade do céu logo depois do 6, antes do 4151, só depois do tutorial: oficial_20261023-171155-1
+    # #92-#94 (noviceProcess 33000, exército no mapa 1); oficial_encantar #98-#99 (28500, exército na instância do
+    # castelo) vai do 6 direto ao 4151, sem 4595 na sessão inteira
+    if snap.character.novice_process > space.TUTORIAL_END:
+        space.enter(s, show=False)
     from . import campaign, marriage  # os dois importam este módulo
 
     _send(s, campaign.S_RANK, campaign.ranks(s))  # tutorial_en #94; sem ele o mapa de campanhas quebra (AreaView)
@@ -263,5 +268,5 @@ async def _login_state(s: GameSession) -> None:
     await marriage.expire(s)  # noivado de mais de 20 dias cai antes do 4657
     if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)
         _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
-    space.enter(s)  # o oficial cria a cidade do céu logo depois do 6
+    space.present(s)  # (dedução) os outros depois do 4151; o oficial não manda 4597 no login (215937 #100-#106)
     guild.on_login(s)
