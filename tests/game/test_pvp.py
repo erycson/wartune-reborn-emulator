@@ -448,7 +448,7 @@ async def test_login_sends_challenge_state(tmp_path: Path) -> None:
         got = await g.until(4244)
         cools = [pb.ChallengeCoolTimeMsg.FromString(p.body) for p in got if p.code == 4176]
         assert [(c.type, c.challengeCount) for c in cools] == [(0, 0), (1, 10)] and 90 < cools[0].leftTime <= 100
-        assert {4776, 4248} <= set(codes(got)) and 4535 not in codes(got)  # tutorial_en #104-#106: sem 4535
+        assert 4535 not in codes(got)  # tutorial_en #104-#106: sem 4535 (o 4248 e o 4776 saem no fim do login)
         assert body(got, 4244, pb.ChallengeRankRewardMsg).isTake is False  # fora do ranking
 
 

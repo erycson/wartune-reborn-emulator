@@ -179,11 +179,9 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.sys:
         _send(s, S_VERSION, pb.VersionMsg())
         _send(s, S_SYS_PROPERTY, b.system_property(now, snap.server.opened_at))
-        from . import arena, lords, warfield  # arena importa este módulo
+        from . import arena  # arena importa este módulo
 
         arena.login(s, msg)  # 4176 do coliseu (um passo da carga) e do torneio
-        lords.login(s)  # 4776: Senhores fechados
-        warfield.login(s)  # 4248: estado de cada campo pela agenda, nunca aberto
     if msg.build:
         _send(
             s,
@@ -195,14 +193,6 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.castle:
         _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))
         s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))  # oficial manda só este campo
-    if msg.tree:
-        _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, own=True)))
-    if msg.friend:
-        _send(s, S_FRIENDS, await social.friend_list(s))
-    if msg.snsReq:
-        _send(s, S_SNS, social.sns_info(snap.character, snap.sns))
-    if msg.aas:
-        _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
         # tropas do castelo: o oficial manda o 100 aqui, depois do 150, mesmo vazio para personagem sem tropas nem
@@ -218,6 +208,9 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
             from .pets import S_PETS, pets_msg
 
             s.send(S_PETS, pets_msg(snap, s.ctx.templates))
+    # (visto) a ordem do oficial, que não segue a dos campos: 171155 #18-#63, 215937 #19-#64, 231733 #20-#67
+    if msg.tree:
+        _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, own=True)))
     if msg.star:
         from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
 
@@ -233,6 +226,12 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         s.send(S_TOWER_LIST, pb.TowerListMsg())
     if msg.questionnarie:  # (visto) 215937 #54: nenhum questionário
         s.send(S_QUESTIONNAIRE, pb.QuestionnarieInfoMsg())
+    if msg.friend:
+        _send(s, S_FRIENDS, await social.friend_list(s))
+    if msg.snsReq:
+        _send(s, S_SNS, social.sns_info(snap.character, snap.sns))
+    if msg.aas:
+        _send(s, S_AAS, pb.PlayerAASRefreshMsg(aasOnlineTime=0, isCloseAAS=True, sysSwitch=False))
     if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
         _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
     if msg.active:  # (visto) 215937 #88-#89: os avisos do painel de atividades e o 4393 vazio
@@ -306,6 +305,11 @@ async def _login_state(s: GameSession) -> None:
     s.send(S_KING_TOWER, pb.KingTowerInfoMsg(enterCount=0, maxIndex=0))
     tokens = [pb.TokenInfoMsg(masterType=t, amount=0, expiredDate=b.NEVER) for t in TOKEN_TYPES]
     s.send(S_TOKENS, pb.PlayerTokenInfoMsg(tokenInfos=tokens))
+    from . import lords, warfield  # os dois importam este módulo
+
+    # (visto) depois do 4725, não com o sys do 8224: tutorial_en #101-#106, 171155 #103-#108
+    warfield.login(s)  # 4248: estado de cada campo pela agenda, nunca aberto
+    lords.login(s)  # 4776: Senhores fechados
 
     await marriage.expire(s)  # noivado de mais de 20 dias cai antes do 4657
     if snap.marriage is not None:  # solteiro não recebe nada (tutorial_en #24-#136: nenhum 4657)

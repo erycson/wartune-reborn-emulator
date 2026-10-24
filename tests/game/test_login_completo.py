@@ -21,8 +21,15 @@ def _codes(got: list) -> list[int]:  # type: ignore[type-arg]
 async def test_pacotes_do_login(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=33000) as g:
         g.client.send(8224, pb.PlayerDataMsg(user=True))
-        tail = await g.until(4725)  # o fim do 8224 user, depois do 4151 (215937 #104-#110)
-        assert [c for c in _codes(tail) if c in (4392, 4471, 4900, 4725)] == [4392, 4471, 4900, 4725]
+        tail = await g.until(4776)  # o fim do 8224 user, depois do 4151 (215937 #104-#110, tutorial_en #101-#106)
+        assert [c for c in _codes(tail) if c in (4392, 4471, 4900, 4725, 4248, 4776)] == [
+            4392,
+            4471,
+            4900,
+            4725,
+            4248,
+            4776,
+        ]
         honor = pb.SimplePropertyMsg.FromString(next(p.body for p in tail if p.code == 4471))
         assert (honor.param1, honor.param2, honor.HasField("param3")) == (0, 6000, False)
 
@@ -30,6 +37,12 @@ async def test_pacotes_do_login(tmp_path: Path) -> None:
         got = _codes(await g.idle())
         assert got.index(100) < got.index(4438) < got.index(4544)
         assert [c for c in got if c in (4912, 4373, 4428)] == [4912, 4373, 4428]
+
+        # (visto) a ordem do oficial no primeiro 8224, que não segue a dos campos (171155 #18-#63)
+        g.client.send(8224, pb.PlayerDataMsg(sys=True, build=True, castle=True, army=True, tree=True, star=True,
+                                             tower=True, questionnarie=True, friend=True, snsReq=True, aas=True))  # fmt: skip
+        got = [c for c in _codes(await g.idle()) if c in (4233, 4154, 4153, 100, 4157, 4180, 4428, 4156, 4245, 4173)]
+        assert got == [4233, 4154, 4153, 100, 4157, 4180, 4428, 4156, 4245, 4173]
 
         g.client.send(8224, pb.PlayerDataMsg(active=True, switches=True))
         got = await g.idle()
