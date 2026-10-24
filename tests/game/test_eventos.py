@@ -75,7 +75,9 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         snap = s.snapshot
         assert snap is not None
         g.client.send(8266)
-        sign = pb.PlayerSignRspMsg.FromString((await g.until(4177))[-1].body)
+        got = await g.until(4177)
+        assert [p.code for p in got] == [111, 4177]  # oficial_20261024-121659-1 #700-#701
+        sign = pb.PlayerSignRspMsg.FromString(got[-1].body)
         assert sign.signTimes == 1 and sign.signSite.bit_count() == 1
         g.client.send(8266)  # já assinou hoje: só repete o estado, sem prêmio
         assert [p.code for p in await g.idle()] == [4177]

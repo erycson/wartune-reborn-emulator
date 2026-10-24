@@ -122,7 +122,8 @@ async def test_ocupa_e_desiste_da_mina_do_mundo(tmp_path: Path, monkeypatch: pyt
         assert await g.idle() == []
 
         g.client.send(5179, pb.BuildingReqMsg(position="2487,2632"))
-        got = await g.until(152)
+        got = await g.until(108)
+        assert [p.code for p in got][-2:] == [152, 108]  # oficial_20261023-231733-1 #1781-#1782
         assert pb.GiveupWildLandMsg.FromString(next(p.body for p in got if p.code == 108)).wildLandPos == "2487,2632"
         assert [w.wild_id for w in mines.held(snap)] == [SECOND[0]]
 

@@ -455,6 +455,8 @@ async def _sign(s: GameSession, auto: bool) -> None:
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
 
+    if not auto:  # (visto) oficial_20261024-121659-1 #699-#701 (dia sem pacote): 111 e depois o 4177
+        alert(s, "Check-In Successful!")
     s.send(S_SIGN, pb.PlayerSignRspMsg(signDate=b.fmt_time(now), signTimes=times, signSite=st.value))
     if drops:
         alert(s, text)

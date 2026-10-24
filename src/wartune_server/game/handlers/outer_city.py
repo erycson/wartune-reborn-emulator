@@ -764,8 +764,8 @@ async def _evict(s: GameSession, holder: Holder, mine: Mine) -> None:
 async def unoccupy_wild_land(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     """Desistir da mina ("Give Up" no mapa ou no conselho: ``FieldItem``, "No gold will be obtained if you abandon
     this quarry"). ``position`` = "x,y" (o ``wildPox`` do 152). O ouro até agora sai com ela (``settle``); responde
-    108 com a posição (o cliente zera o dono e mostra o aviso), 109 e 152; a mina do mundo volta livre (140) para
-    quem vê. Sem mina ocupada no tile: 108 com posição vazia (o cliente não faz nada). (dedução) sem captura."""
+    152 e 108 com a posição (o cliente zera o dono e mostra o aviso); a mina do mundo volta livre (140) para quem
+    vê. Sem mina ocupada no tile: 108 com posição vazia (o cliente não faz nada)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     await refresh(s)
@@ -784,9 +784,9 @@ async def unoccupy_wild_land(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     mines.give_up(snap, land)
     await s.ctx.characters.save(snap.character, snap.castle, delete=(land,))
     s.log.info("5179 mina abandonada", mina=land.wild_id, mapa=land.map_id)
-    s.send(S_UNOCCUPY, pb.GiveupWildLandMsg(wildLandPos=msg.position))
-    castle_yield(s)
+    # (visto) oficial_20261023-231733-1 #1780-#1785: 152 e depois 108, sem 109
     s.send(S_POLITICS, politics_msg(snap, s.ctx.templates))
+    s.send(S_UNOCCUPY, pb.GiveupWildLandMsg(wildLandPos=msg.position))
     mine = mines.world_mine(s.ctx.world, s.ctx.templates, land.map_id, land.wild_id)
     if mine is not None and mines.is_world(s.ctx.world, land.map_id):
         _world_sync(s, mine, mines.MINE_FREE, None)
