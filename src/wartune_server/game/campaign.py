@@ -82,6 +82,7 @@ class CampaignMap:
     callbacks: Counter[int] = field(default_factory=Counter)  # 5032 recebidos por nó
     fighting: int = 0  # campDataId em combate
     talked: set[int] = field(default_factory=set)  # nós cujo diálogo de chegada já saiu
+    chased: set[int] = field(default_factory=set)  # nós que já perseguiram (a fala do chase só na 1ª vez)
     dungeon: bool = False  # masmorra (``campaign_contents``): sem Tina, com 130 da captura
     fog_data: dict[str, Any] | None = None  # 130 da captura (só masmorra)
     card: int | None = None  # index do 5122 já virado (uma carta por mapa, depois do 135)

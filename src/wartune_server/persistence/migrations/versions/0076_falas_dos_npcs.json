@@ -1,0 +1,103 @@
+{
+ "2104": {
+  "idle": [
+   "Without the Heart of the Undead, the Undead race would cease to exist!",
+   "Am I alive or dead?!",
+   "The Temple of Ibalize is already Undead territory.",
+   "Don't be afraid - you will soon be one of us!"
+  ],
+  "chase": [
+   "We've never been afraid of battle nor death.",
+   "So you're looking for the Heart of the Undead, eh? Pehaps I may be of some assistance...",
+   "Abuse me... kill me... let me dissapear!"
+  ]
+ },
+ "2105": {
+  "idle": [
+   "Life is full of trouble and pain. Becoming Undead is a great relief from all that suffering.",
+   "How long have you lived for? 300... 400 years?",
+   "For some reason I get really scared whenever I see a dog.",
+   "The Temple of Ibalize is already Undead territory.",
+   "For some reason, I get really scared when I see a dog.",
+   "Without the Heart of the Undead, the Undead race would cease to exist!",
+   "Be sure to tell the undertaker to order you a casket about 6 inches shorter, to account for the loss of your head!",
+   "Am I alive or dead?!",
+   "Without the Heart of the Undead, the Undead race would cease to exist.",
+   "So you're looking for the Heart of the Undead, eh? Pehaps I may be of some assistance...",
+   "Death itself is not scary, the scary part is you don't want to die.",
+   "How long have you lived for? 300....400 years?"
+  ],
+  "chase": [
+   "So you're looking for the Heart of the Undead, eh? Pehaps I may be of some assistance...",
+   "Don't be afraid - you will soon be one of us!",
+   "Abuse me... kill me... let me dissapear!",
+   "We've never been afraid of battle nor death.",
+   "I haven't seen a live human in a long time. What a strange day this is.",
+   "We are not afraid of battle nor death."
+  ]
+ },
+ "2106": {
+  "idle": [
+   "I am not afraid of death, I am just not ready to give in just yet!",
+   "Am I alive or dead?!",
+   "Damn this cursed positive life force!"
+  ],
+  "chase": [
+   "So you're looking for the Heart of the Undead, eh? Pehaps I may be of some assistance...",
+   "Join ranks with the Undead!"
+  ]
+ },
+ "2107": {
+  "idle": [
+   "Humans always say 'looks determine everything.' No wonder I got the short end of the stick!",
+   "Why do humans have so many fingers? So hideous...",
+   "Enslaving the human race is such a rewarding career.",
+   "My girlfriend was stolen by Mongar! That guy is dead!"
+  ],
+  "chase": [
+   "More humans? Get them!"
+  ]
+ },
+ "2108": {
+  "idle": [
+   "Humans always say 'looks determine everything.' No wonder I got the short end of the stick!",
+   "I heard one of my brothers got into serious trouble for slacking off. I'd better shape up!",
+   "My girlfriend was stolen by Mongar! That guy is dead!",
+   "You have the gall to challenge me, eh? You will regret this!",
+   "Karnatog is the father of the Tauran race. Thanks to him we are the powerful being we are today!",
+   "We will conquer all of Balenor... but we will start with the Orc Plains!",
+   "Why do humans have so many fingers? So hideous..."
+  ],
+  "chase": [
+   "For Tauran honor! For the almighty Karnatog!",
+   " Don't run… be a good little human and submit yourself to the Tauran Empire!",
+   "More humans? Get them!",
+   "You have the gall to challenge me, eh? You will regret this!"
+  ]
+ },
+ "2109": {
+  "idle": [],
+  "chase": [
+   "You have the gall to challenge me, eh? You will regret this!"
+  ]
+ },
+ "2122": {
+  "idle": [
+   "Welcome to the Resource Quarry! To begin harvesting, click on any of the various resources."
+  ],
+  "chase": []
+ },
+ "2137": {
+  "idle": [
+   "Why do humans have so many fingers? So hideous..."
+  ],
+  "chase": []
+ },
+ "2401": {
+  "idle": [
+   "The Autaric Plains will prosper under Tauran control!",
+   "The glory of Karnatog and all of earth's bounty shall forever belond to the Tauran race!"
+  ],
+  "chase": []
+ }
+}

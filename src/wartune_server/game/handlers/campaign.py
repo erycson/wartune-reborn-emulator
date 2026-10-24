@@ -6,6 +6,7 @@ Sequências reproduzidas da captura oficial (``docs/tutorial.md``). O roteiro de
 
 from __future__ import annotations
 
+import asyncio
 import random
 import uuid
 from collections import Counter
@@ -101,6 +102,52 @@ def _send(s: GameSession, code: int, msg: Message | None = None, extend2: int = 
 
 def _uuid() -> str:
     return str(uuid.uuid4())
+
+
+# -- falas dos NPCs (4163) ----------------------------------------------------------------------------------------
+# (visto) o repertório por sonType das capturas inglesas e o ritmo: cada nó fala a cada 12-18 s ou num múltiplo disso,
+# também durante a luta; a fala do chase sai logo depois do 1º 4105 do nó. Na terra secreta ninguém fala
+# (oficial_20261023-171155-1 #5057-#5172). ``game_settings.npc_chat`` (0076).
+S_NPC_CHAT = 4163
+
+
+def _talk_cfg(s: GameSession) -> Mapping[str, Any]:
+    cfg: Mapping[str, Any] = s.ctx.world.settings.get("npc_chat") or {}
+    return cfg
+
+
+def _say(s: GameSession, node: Mapping[str, Any], kind: str, rnd: Any = None) -> bool:
+    pool = _talk_cfg(s).get("lines", {}).get(str(node["sonType"]), {}).get(kind)
+    if not pool:
+        return False
+    _send(s, S_NPC_CHAT, pb.NPCChatMsg(id=node["nodeId"], content=(rnd or random).choice(pool)))
+    return True
+
+
+def talk_tick(s: GameSession, rnd: Any = None) -> None:
+    """Um tique: cada NPC vivo (à vista ou lutando) com repertório fala com ``chance``."""
+    c, r = s.campaign, rnd or random
+    if c is None or c.fam:
+        return
+    chance = float(_talk_cfg(s).get("chance", 0.7))
+    for node in c.nodes.values():
+        if node["state"] in (NORMAL, FIGHTING) and r.random() < chance:
+            _say(s, node, "idle", r)
+
+
+async def _talk_loop(s: GameSession) -> None:
+    try:
+        while s.campaign is not None and not s.campaign.fam:
+            lo, hi = _talk_cfg(s).get("tick", (12, 18))
+            await asyncio.sleep(random.uniform(float(lo), float(hi)))
+            talk_tick(s)
+    finally:
+        s.npc_talk = None
+
+
+def start_talk(s: GameSession) -> None:
+    if s.npc_talk is None and s.campaign is not None and not s.campaign.fam and _talk_cfg(s).get("lines"):
+        s.npc_talk = asyncio.create_task(_talk_loop(s), name=f"npc-talk-{s.player_id}")
 
 
 def _map(s: GameSession) -> CampaignMap:
@@ -233,8 +280,13 @@ async def sync_pos(s: GameSession, msg: pb.PosMoveMsg) -> None:
 async def node_lock(s: GameSession, msg: pb.NodeLockReqMsg) -> None:
     node = s.campaign.node(msg.nodeId) if s.campaign else None
     if node is not None and msg.lock and node["attackTypes"] == AGGRESSIVE and node["state"] == NORMAL:
-        x, y = _map(s).pos
+        c = _map(s)
+        x, y = c.pos
         _send(s, S_NPC_CHASE, pb.NPCChaseMsg(nodeId=node["nodeId"], armyId=s.player_id, curPosX=x, curPosY=y))
+        if node["campDataId"] not in c.chased:
+            c.chased.add(node["campDataId"])
+            if random.random() < float(_talk_cfg(s).get("chase_chance", 0.2)):
+                _say(s, node, "chase")
 
 
 @router.on(5125)
@@ -682,6 +734,8 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0
     c = s.campaign
+    if msg.state == BACK_TO_MAP:
+        start_talk(s)
     if msg.state == BACK_TO_MAP and c is not None and c.fam and not c.ready:
         from . import fam  # fam importa este módulo
 
