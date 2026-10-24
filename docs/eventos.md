@@ -352,7 +352,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 8750 | 4637 `isOpen` falso | (cliente) LotteryManager |
 | 8866 | 4745 zerado | (cliente) ExchargeRankManager |
 | 9602 | 345 zerado | (cliente) CrossCostController |
-| 8994 | 4811 lista vazia | (cliente) StoreSocketOutManager |
+| 8994 | sem resposta fora do evento (o 4811 seria a lista de nós) | *(visto)* oficial_20261023-215937-1 #751, #973, #1189, #1300; (cliente) StoreSocketOutManager |
 | 9500 | 4901 `open` falso | (visto) tutorial_en #87 |
 | 9501 | 4908 `sysState` 0 | (cliente) AnswerManager |
 | 9502 | 4914 `op` 1, `seekCount` 0, `seekNodeList` presente e vazio | (cliente) TreasureHuntControler |

@@ -28,7 +28,7 @@ from .player import alert, granted
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
 S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
-S_BUGLE_REQ, S_BUGLE_REWARD, S_NEW_YEAR, S_SLOT = 4553, 4554, 4811, 4901
+S_BUGLE_REQ, S_BUGLE_REWARD, S_SLOT = 4553, 4554, 4901
 S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
@@ -610,9 +610,10 @@ async def cross_cost(s: GameSession, _: object) -> None:
 
 
 @router.on(8994)
-async def new_year_box(s: GameSession, _: object) -> None:
-    """Caixa de ano novo: lista de nós coletados vazia (4811). Sem nós de campanha para ela."""
-    _send(s, S_NEW_YEAR, pb.QueryCollectCampaignNodeRspMsg())
+async def new_year_box(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
+    """Caixa de ano novo fora do evento: (visto) oficial_20261023-215937-1 #751, #973, #1189, #1300 (``param1`` 3,
+    ao entrar e sair do castelo) sem resposta nenhuma; o 4811 (nós coletados) fica para quando houver o evento."""
+    s.log.info("8994 sem evento de ano novo", param1=msg.param1)
 
 
 @router.on(9500)
