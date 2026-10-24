@@ -34,9 +34,12 @@ async def test_system_mail_with_annex_is_listed_and_picked_up_once(tmp_path: Pat
         assert 'ReadDate="2999' in xml and int(re.search(r'Annex1="(-?\d+)"', xml).group(1)) < 0  # type: ignore[union-attr]
 
         a.client.send(5022, pb.MailMsg(mailsIdArray=[mail.id or 0], position=[0]))
-        rsp = pb.MailPickupRspMsg.FromString((await a.until(114))[-1].body)
+        got = await a.until(4131)
+        codes = [p.code for p in got]
+        assert codes[0] == 115 and codes[-4:] == [111, 83, 114, 4131]  # oficial_20261024-121659-1 #508-#535
+        assert pb.ChatChannelMsg.FromString(got[-3].body).encodeMsg == "Successfully retrieved Bullhorn (Small) x3"
+        rsp = pb.MailPickupRspMsg.FromString(got[-2].body)
         assert [r.result for r in rsp.pickupResult] == [True]
-        await a.until(115)
         assert sum(i.count for i in s.snapshot.items if i.template_id == SMALL_BUGLE) == 3  # type: ignore[union-attr]
 
         a.client.send(5022, pb.MailMsg(mailsIdArray=[mail.id or 0], position=[0]))

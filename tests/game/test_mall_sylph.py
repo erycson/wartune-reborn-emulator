@@ -117,12 +117,12 @@ async def test_buy_now_mails_the_sylph_and_the_buyer_takes_it_into_the_roster(tm
 
         mail = await _mail_id(b, "Purchased Item")
         b.client.send(5022, pb.MailMsg(mailsIdArray=[mail], position=[0]))
-        got = await b.until(4540)
+        got = await b.until(4131)
         assert [
             r.result for r in pb.MailPickupRspMsg.FromString(next(x for x in got if x.code == 114).body).pickupResult
         ] == [True]
         assert 115 not in [p.code for p in got]  # nada entra na mochila
-        (info,) = pb.PlayerPetMsg.FromString(got[-1].body).petInfo
+        (info,) = pb.PlayerPetMsg.FromString(next(x for x in got if x.code == 4540).body).petInfo
         assert (info.petId, info.isDel, info.curGrade) == (pet.id, False, 7)
         mine = await _held(b, pet.id or 0)
         assert mine is not None and (mine.character_id, mine.held) == (b.user_id, False)

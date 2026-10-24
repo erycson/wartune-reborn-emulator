@@ -19,6 +19,7 @@ from ..castle import castle_yield
 from ..mall import SYLPH
 from ..router import router
 from ..session import GameSession
+from . import events, shop
 from .login import player_info
 from .pets import BASE_SLOTS, S_PETS, pets_msg, take_back
 
@@ -200,20 +201,24 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
         await s.ctx.characters.save(
             c, *new_items, *new_pets, *taken, *ledgers, *(m for m in mails if m.read_at == now), delete=tuple(unwrapped)
         )
-    s.send(S_PICKUP, result)
     if not taken:
+        s.send(S_PICKUP, result)
         return
+    # (visto) oficial_20261024-121659-1 #507-#535: um 115 por item e o 4476/4426/4484 de cada; 111 e 83 com a lista,
+    # depois o 114 e o 4131
+    for item in new_items:
+        s.send(S_ITEMS, item_moved(item.bag_type, 0, item.pos, item, s.player_id))
+        events.items_gained(s)
+    if new_pets:
+        s.send(S_PETS, pets_msg(snap, s.ctx.templates, new_pets))
+    # TODO(inventado): o texto de moeda (ouro, Balens) no correio; só há captura de itens ("Soul Crystal x200")
+    names = [f"{bag.name(s.ctx.templates, a.template_id)} x{a.count}" for a in taken]
+    shop.alert(s, "Successfully retrieved " + ", ".join(names))
+    s.send(S_PICKUP, result)
     update = pb.ReceiveMailMsg()
     for mail in mails:
         update.mailInfos.append(mailbox.info_msg(mail, annexes, c.nickname or ""))
     s.send(S_MAIL_UPDATE, update)
-    if new_items:
-        moved = pb.ItemMovedListMsg()
-        for item in new_items:
-            moved.moved.extend(item_moved(item.bag_type, 0, item.pos, item, s.player_id).moved)
-        s.send(S_ITEMS, moved)
-    if new_pets:
-        s.send(S_PETS, pets_msg(snap, s.ctx.templates, new_pets))
     if c.gold != before[0]:
         castle_yield(s)
     if (c.point, c.gift_token, c.strategy) != before[1:]:
