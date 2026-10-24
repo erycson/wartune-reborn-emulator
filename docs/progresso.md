@@ -7,7 +7,11 @@ O oficial de referência é o **inglês**. Cada sistema tem duas colunas de font
 - **Turco**: 🇹🇷 só quando o turco cobriu o que falta no inglês. Vazio quando não precisou (ou quando não há nem turco).
 
 Um ❌ sem 🇹🇷 é sistema sem dado nenhum: quando for feito, já nasce do inglês. Cada 🇹🇷, 🧪 e ❌ é uma captura inglesa a
-gravar (ver [roteiro-captura.md](roteiro-captura.md)). Atualizar esta tabela no mesmo commit que mudar o status.
+gravar (como capturar: [captura-oficial-en.md](captura-oficial-en.md)).
+
+**Este é o único arquivo de progresso.** Não criar outro: sistema novo vira linha aqui, no mesmo commit que mudar o
+status. Detalhe (pacotes, ordem, fontes) vai no MD da categoria ou no código, nunca aqui. Totais:
+`python tools/progresso_totais.py`.
 
 Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`, `(cliente)`, `só turco`,
 `TODO(inventado)`, `shortcut:`/`ponytail:`); detalhes de cada linha nas docs de cada sistema.
@@ -16,26 +20,36 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
-| Castelo | 4 | 10 | 1 | 2 | 7 |
-| Herói e exército | 10 | 12 | 1 | 5 | 6 |
+| Validação e base | 0 | 4 | 0 | 0 | 0 |
+| Castelo | 4 | 11 | 1 | 2 | 7 |
+| Herói e exército | 10 | 13 | 1 | 5 | 6 |
 | Pets | 3 | 5 | 0 | 3 | 2 |
-| Itens | 7 | 8 | 3 | 5 | 4 |
-| Lojas e mercado | 5 | 4 | 0 | 2 | 1 |
+| Itens | 7 | 9 | 4 | 6 | 4 |
+| Lojas e mercado | 4 | 5 | 0 | 3 | 1 |
 | Chat e social | 4 | 6 | 0 | 2 | 1 |
 | Clã / Guilda | 7 | 6 | 5 | 3 | 2 |
-| Campanhas e masmorras | 5 | 5 | 4 | 7 | 5 |
+| Campanhas e masmorras | 5 | 7 | 4 | 7 | 6 |
 | Labirinto (Forgotten Catacombs) | 0 | 0 | 4 | 4 | 5 |
-| Batalha | 5 | 5 | 1 | 2 | 1 |
+| Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 3 | 5 | 0 | 6 | 0 |
-| Tutorial | 1 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 3 | 5 | 6 | 3 | 3 |
-| Mundo compartilhado | 3 | 2 | 0 | 1 | 2 |
+| Tutorial | 1 | 1 | 1 | 0 | 0 |
+| Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 3 |
+| Mundo compartilhado | 2 | 3 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 1 | 5 | 2 |
-| Atividades e eventos | 7 | 6 | 1 | 4 | 4 |
+| Atividades e eventos | 5 | 9 | 1 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 2 | 1 | 0 | 2 | 1 |
-| Conta e segurança | 2 | 0 | 1 | 2 | 1 |
-| **Total** | **73** | **85** | **30** | **60** | **47** |
+| Conta e segurança | 2 | 1 | 1 | 2 | 1 |
+| **Total** | **68** | **102** | **32** | **62** | **49** |
+
+## Validação e base
+
+| Sistema | Inglês | Turco | O que falta / inventado |
+|---|---|---|---|
+| Conta nova até o castelo no Flash Player projector | 🟡 | | pelo portal, acompanhando `logs/packets.log`; ainda não validado |
+| Tutorial no cliente real | 🟡 | | o oráculo bate com a captura (diferenças em [tutorial.md](tutorial.md)); falta jogar no cliente |
+| Cobertura de opcodes (`scan_opcodes.py`, C>S, classes novas) | 🟡 | | varredura final sem nada faltando |
+| `shortcut:`/`ponytail:` do código | 🟡 | | classificar: comportamento faltando (implementar), dado inventado (`TODO(inventado)`), atalho (fica) |
 
 ## Castelo
 
@@ -46,16 +60,17 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Filas de construção (8279, 5175, 8281) | ✅ | | |
 | Aceleração de filas (5172) | 🟡 | | preço do cliente; resposta e ×5/×1 por dedução |
 | Cobrança de ouro (8327) | ✅ | | |
-| Produção de ouro e teto (5015) | 🟡 | 🇹🇷 | bônus da tecnologia de ouro (110 tipo 104, 330) só no login turco |
+| Produção de ouro e teto (5015) | 🟡 | 🇹🇷 | bônus da tecnologia de ouro (110 tipo 104, 330) só no login turco; bônus de guilda não entra |
 | Roda da bênção do seminário (8489) | 🧪 | 🇹🇷 | subida de 10 a 70 inventada (`handlers/castle.py:38`); o 1º giro (10→50) só turco |
 | Fazenda: plantio e crescimento | 🟡 | 🇹🇷 | visto só no turco (ciftlik); bônus pelo cliente |
 | Fazenda: colheita, praga, acelerar, terras | ✅ | | |
 | Fazenda: roubo de amigo | 🟡 | | 4387/109/83 sem captura; 10% do roubo por dedução |
 | Fazenda: reviver e regar do amigo | 🟡 | 🇹🇷 | só turco; ouro da rega por dedução |
+| Fazenda: subida de nível (111, 4386, 83) | 🟡 | | vista na rega do amigo; nos outros casos por dedução |
 | Árvore: rega própria (15017) | 🟡 | 🇹🇷 | grau 1 visto; carga cheia e outros graus só turco |
 | Árvore: colheita do fruto (5178) | 🟡 | | nenhuma captura com fruto; Daru, Kyanite e textos da internet |
 | Caixa por tempo (5019) | ✅ | | reset diário de uma amostra só |
-| Recompensa offline (8287) | 🟡 | | só ×1; ×1,5 e ×2 recusados (preço desconhecido) |
+| Recompensa offline (8287) | 🟡 | | só ×1; ×1,5 e ×2 recusados (preço desconhecido); EXP = nível × minutos por dedução |
 | Trégua (8562) | ❌ | | só zera e confirma |
 | Reforço em batalha (8255) | ❌ | | depende de batalha em grupo |
 
@@ -71,6 +86,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Herói: aprender skills e talento (5185/5187) | ✅ | | custo do talento por dedução |
 | Herói: resetar skills e 2º conjunto | ✅ | | |
 | Herói: redistribuir atributos (5170) | ❌ | | sem efeito (pontos automáticos) |
+| Subida de nível (139, 100, 150, 4640) | 🟡 | | vista na missão; por batalha, coliseu, fazenda e livro de EXP por dedução |
 | Runas (8605) | 🟡 | 🇹🇷 | reforço sem o bônus 2x-20x; o 4495 do login só no turco |
 | Montaria: lista (8530) | 🟡 | 🇹🇷 | o 4426 junto do 4427 só no turco |
 | Montaria: treinar, montar, ativar, voo | ✅ | | |
@@ -106,7 +122,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Crescimento, treino e resistência (ops 8 e afins) | ❌ | | o cliente não diz o ganho |
 | Fusão de dois pets (op 15) | ❌ | | sem template |
 | Mascote em batalha (EXP, despertar 4600) | 🟡 | 🇹🇷 | só turco; +250 por golpe e gasto 150 por dedução |
-| Guarda da fazenda é o mascote | ❌ | 🇹🇷 | só turco |
+| Guarda da fazenda é o mascote | ❌ | 🇹🇷 | só turco; ops 10-16 da fazenda recusadas |
 
 ## Itens
 
@@ -116,6 +132,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mochila: vender | ✅ | | |
 | Mochila: expandir e aluguel | ✅ | | |
 | Mochila: travar e remover vencido | ✅ | | |
+| Itens com validade (medalhas) | 🟡 | | apagar sem aviso por dedução; falta captura de uma vencendo |
+| randomSkill dos itens novos | 🧪 | | tipo 701 e peso dentro da faixa inventados |
+| Teto diário de Beden e EXP vindos de itens | ❌ | | sem teto |
 | Vínculo de itens | ✅ | | |
 | Uso de recurso (203: ouro, Balens, EXP, Daru) | ✅ | | texto e ordem do inglês (231733) |
 | Caixas de pedra (206) e outras caixas | 🟡 | | caixa com conteúdo só na descrição é recusada |
@@ -145,11 +164,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loja misteriosa (8483/8482) | ✅ | | |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
 | Compra coletiva (8645) | ❌ | | nenhuma oferta tipo 3 |
+| Presente a outro jogador e mochila cheia pelo correio | ❌ | | `receiveId`, VIP 8513, contrato 8540: exige gravar outro personagem; mochila cheia recusa (oficial: correio, resultado 12) |
 | Lojas de honra, glória, ametista | ✅ | | |
 | Loja do labirinto (ShopType 4) | 🟡 | 🇹🇷 | compra vista só no turco; Necropolis recusada |
-| Leilão: anunciar, lance, comprar, cancelar, buscar | ✅ | | sem captura de mercado (cliente) |
+| Leilão: anunciar, lance, comprar, cancelar, buscar | 🟡 | | regras do cliente, sem captura; ordenação (8450/8457) ignorada, cancelar parte não reempilha |
 | Leilão: venda de pet | 🟡 | | pet livre sem fonte |
-| Correio: envio, retirada, lista | ✅ | | |
+| Correio: envio, retirada, lista | ✅ | | carta não vence |
 | Correio: verificação de e-mail (9591) | ❌ | | sem SMTP |
 
 ## Chat e social
@@ -200,7 +220,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Entrada (5039) e estamina | ✅ | | |
-| 1001 Worg Lair | 🟡 | 🇹🇷 | Pandora só dá o buff; cartas 1080013/1080002 só turco |
+| 1001 Worg Lair | 🟡 | 🇹🇷 | Pandora só dá o buff; cartas 1080013/1080002 só turco; 5180, cartas pagas e progresso salvo faltam |
 | 1002 Baylon Plains | ✅ | | caixa do caçador com uma amostra |
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
 | 1004 Temple of Ibalize (Inner) | ✅ | | |
@@ -211,10 +231,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Masmorras em grupo 9000-9112 | ❌ | | só drops |
 | Torres 8200-8204 (Tower of Kings, Spire) | ❌ | | só drops |
 | Pedreira 6001 | ✅ | | |
+| Exército do sistema (5038) | 🟡 | 🇹🇷 | lista só de 1011, 1021 e 2011 (a 2011 só turca) |
+| Patrulha dos monstros (4122) | 🟡 | | nós sem captura ficam parados |
 | Varredura / Blitz (8528) | 🧪 | 🇹🇷 | baú de prata e caixa misteriosa inventados (`sweep.py:40`); ouro só da 1007 turca |
 | Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga tratada como grátis |
 | Relatório da etapa (137) | 🟡 | | curva por nível falta |
-| Salas de campanha (criar, entrar, senha, convite...) | 🟡 | 🇹🇷 | playerState do dono e Start da sala só turco |
+| Salas de campanha (criar, entrar, senha, convite...) | 🟡 | 🇹🇷 | playerState do dono e Start da sala só turco; 5027 só registra |
 | Times (convite, capitão, sair) | 🟡 | | não persistem |
 | Link de sala no chat (9504) | ✅ | | |
 | Salas PvP (5023) | ❌ | | |
@@ -241,6 +263,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Fluxo, relógio e quadros | ✅ | | |
 | Fórmula de dano | ✅ | | |
 | Alvos, morte e reposição de tropas | ✅ | | |
+| Alvo aleatório | 🟡 | | ordem do oficial não decifrada |
 | Reforços (ondas novas) | ✅ | | |
 | Iniciativa (ordem das unidades) | 🟡 | | ordem fixa, sem dado |
 | Crítico e bloqueio | 🟡 | | ganhos por dedução; chances da internet |
@@ -276,7 +299,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Campanha de treino (10001/10002), retomada, missões e guia | ✅ | | oráculo com tutorial_en |
-| Nível e atributos de guerreiro e caçador | 🧪 | | crescimento espelhado do mago (palpite) |
+| Nível e atributos de guerreiro e caçador | 🧪 | | crescimento espelhado do mago (palpite); o ×1,05 do 150 fora da maga |
+| Oráculo: diferenças conhecidas | 🟡 | | 150 ×2, opcode 2, 112 da missão 50 ([tutorial.md](tutorial.md)) |
 
 ## Mapa do mundo (cidade externa)
 
@@ -284,16 +308,16 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Grade, andar e exércitos | 🟡 | | exércitos alheios não aparecem |
 | Mudar o castelo de lugar (5176) | 🟡 | 🇹🇷 | ponto de chegada só turco |
-| Minas de ouro (missão 60) | ✅ | | |
+| Minas de ouro (missão 60) | 🟡 | | perda de soldados na derrota e refresh com o jogador online sem captura |
 | Minas do mundo (mapas 1-5) | 🧪 | | grades não vistas inventadas (`mines.py:22`) |
 | Atacar mina de outro jogador | 🧪 | | cópia do herói inventada |
 | Castelos NPC do mundo | 🧪 | | grades, saque e nomes inventados (`npc_castles.py`) |
 | Castelos-robô (missões 100, 411, 765) | 🧪 | | saque acima do grau 30 inventado |
 | Monstros dos Wilds e patrulha | 🟡 | | luta em grupo não existe |
-| Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista só turco |
+| Chefes do mapa (9525, 4938) | 🧪 | 🇹🇷 | relógio e lista só turco; texto inglês do aviso de abate inventado |
 | Baús dos Wilds (9526) | ✅ | | |
 | Treasure Cache | 🧪 | | vagas e prêmio inventados (`caches.py:48,188`) |
-| Mapa do tesouro (8744) | 🟡 | 🇹🇷 | só o bronze; ops 2-5 recusadas; login só turco |
+| Mapa do tesouro (8744) | 🟡 | 🇹🇷 | só o bronze; ops 2-5 recusadas; login só turco; 8745 e 8535 dependem dos mapas de guilda e do chefe |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
 | PK no campo de animais (8525) | ❌ | | |
 | Passe de progresso (8636/8637) | ❌ | | |
@@ -304,7 +328,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Presença (11) e falas dos NPCs | ✅ | | |
+| Presença (11) e falas dos NPCs (4163) | 🟡 | | chance das falas e corte do 4595 em 30000 por dedução |
 | Cidade do céu: presença e visual (4606/4607, 149) | 🟡 | 🇹🇷 | só turco |
 | Cidade do céu: nós e NPCs | ✅ | | |
 | Ilha dos pets (127, patrulha) | 🟡 | 🇹🇷 | sequência só turca |
@@ -322,7 +346,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha | ❌ | | |
 | Ataque a castelo/exército de jogador | ❌ | | |
-| Boss mundial: agenda e luta | 🟡 | | números da internet e dedução |
+| Boss mundial: agenda e luta | 🟡 | | números da internet e dedução; a vida não segue o nível; 4435 não vai |
 | Boss mundial: buff e dublê | ❌ | | |
 
 ## Atividades e eventos
@@ -334,8 +358,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Devoção (leeds) | 🟡 | 🇹🇷 | leeds 13, 27, 28 sem gancho; 8, 17, 33 só turco |
 | Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 nunca; login só turco |
 | Atividades por contador (SumActive) | 🟡 | | vários tipos sem contador |
-| Fundo de novato e fundo normal | ✅ | | |
-| Árvore dourada (8604) | ✅ | | |
+| Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | só o torneio de fadas conta (turco); 5001-5003, match, reward, vehicle e minefield sem captura |
+| Fundo de novato e fundo normal | 🟡 | | janelas por dedução; compra e resgate do fundo normal sem captura |
+| Árvore dourada (8604) | 🟡 | | pesos, início da edição e "uma vez por dia" por dedução |
 | Labirinto de gemas (9508-9517) | 🧪 | 🇹🇷 | maxExp inventado (`gemmaze.py:29`); ajuda de amigo recusada |
 | Roda do destino | 🟡 | | tipos 2100/2200 nunca abrem |
 | Super assinatura | ✅ | | |
@@ -357,7 +382,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Presente semanal, cartão de teste, roleta | ✅ | | |
 | Contrato do rei: compra | 🟡 | | presente a amigo recusado |
 | Contrato do rei: efeitos | 🧪 | | cura e varredura (`rules.py:210`, `sweep.py:40`) |
-| Privilégios extras (montaria, missões, cornetas) | ❌ | | |
+| Privilégios extras (montaria, missões, cornetas) | ❌ | | lista em [eventos.md](eventos.md) |
 | Loja do teste (8582) | ❌ | | |
 
 ## Veículos (Tank Trials)
@@ -379,3 +404,4 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anti-vício (AAS) | ❌ | | desligado |
 | Captcha, SMS, celular | ❌ | | |
 | Login: ordem dos pacotes | ✅ | 🇹🇷 | conta nova pelo inglês; conta de nível alto pelo turco |
+| Login: 363/364, 4156, 4544, 4248 | 🟡 | | diferenças contra a inglesa ([tutorial.md](tutorial.md)) |

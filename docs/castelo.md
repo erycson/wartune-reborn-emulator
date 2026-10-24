@@ -106,3 +106,8 @@ cliente fica nulo e a fazenda quebra); o 4195 não sai (nenhuma captura o tem): 
 - **Árvore da guilda** (8565, resposta 4432) e **reforço** (8255): sistemas de guilda e batalha em grupo.
 - **Bênção do seminário**: o quanto a roda sobe é inventado (`seminary_bless_gain`). `Blessing_ItemId` (208026) não
   é usado pelo servidor.
+
+### Captura que falta (revisão do m7 inglês)
+
+Cultivo e guarda de mascote na fazenda (15044 ops 10-16), pontos ganhos na loja misteriosa, texto do registro da
+rega (145), compradores da sorte (4470) e a árvore do casal (chance de praga, valor do cultivo).

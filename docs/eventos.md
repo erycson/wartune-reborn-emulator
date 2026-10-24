@@ -203,6 +203,20 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 - ponytail: preço de "atualizar" a roleta e probabilidades dos prêmios não estão na captura (os pesos são do dono:
   [configuracao.md](configuracao.md#chances-dos-sorteios)).
 
+Privilégios VIP (`VipPrerogativeTempInfo`) ainda abertos, pelo cliente:
+- 1 CASTLE_VIEW: `BaseCastleMsg.vipCastleView` (16) = para1 (1, VIP9 2) no 4153 e nos castelos do mapa; 17 = vipType.
+- 7 kyanite no saque de castelo: +para1 cristais ao atacante na vitória (só servidor).
+- 11 astro 1 clique: 8269 `StarRandReqMsg.site` -1 → VIP 4+, repete captura (ouro) até 16 na lista temporária ou
+  acabar o ouro, vende as brancas; responde 4180.
+- 12 missões VIP: `QuestTempInfo.TemplateType` 3 (21, 22, 863); o cliente pede pelo 5012 até sem VIP: o servidor
+  recusa sem VIP.
+- 15 honra no campo de batalha: perda × (100 - para1)% (4269 `WarMovieMsg.geste`), depende do campo de batalha.
+- 17 bênção em 1 clique (guilda 5145 `param1`): VIP 6+; o valor de "todas" não está no decompilado.
+- 19 montaria VIP: `MountTempInfo` MountType 3 = 1116 "Panda Guardian"; VIP + nível 40 → avatar no 4427 e 4610
+  `param7` true; VIP vencido → 4610 false e tira a montaria.
+- 20 baú VIP na masmorra: nenhum campo no cliente (inferência: carta a mais no 135 para VIP).
+- O VIP que vence sozinho não avisa a guilda (não há relógio de vencimento).
+
 ## Anúncios agendados (`game/announcements.py`)
 
 Tabela **`scheduled_announcements`** (migração 0035): uma linha por mensagem, `times` (`HH:MM,HH:MM`, hora do jogo,

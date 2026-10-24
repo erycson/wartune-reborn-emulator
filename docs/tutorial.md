@@ -130,6 +130,23 @@ Não depende do servidor (o oficial dá o mesmo erro) e não há pacote que evit
   sistemas que não existem aqui (atividades, títulos, moda, patrulha dos monstros) e duas
   respostas deixadas de lado de propósito.
 
+### Diferenças conhecidas (`KNOWN_GAPS` do oráculo)
+
+Além das de ritmo e de outros jogadores (11, 4248, chegada do exército 140 ×2):
+- 150 ×2 idênticos na saída do mapa do tutorial (inglesa #518-#519, 5125 1000206): aqui sai um.
+- Opcode 2 (`U_C_PLAYER_GRADE`, corpo `32023332`, sem mensagem no `.proto`) depois do Lvl. 5 Starter Pack
+  (#690): não existe aqui. **sem dado**: significado do campo 6 = "32".
+- A missão 50 avança no 5017 20000 (#584): o oficial não manda o 112 (aqui sobra um).
+- Alvo aleatório na batalha (`KNOWN_EXTRA`): a ordem dos alvos do oficial não foi decifrada.
+
+Outras diferenças contra a captura inglesa ainda abertas:
+- Luta com o castelo-robô (#1657): `battleType` 4, `mapTempId` 993, herói 11008 com o nome do robô, 2 pilhas
+  10102 (posições 1 e 7). Aqui usa a luta do guarda da mina (`outer_city.guard_battle`, `shortcut:`).
+- 363/364 vão vazios no login; a inglesa (#88/#102) tem as edições.
+- 4156 sem amigos: `maxPage` 0 na inglesa (#61); aqui 1. 4544 vazio na resposta ao 8224 (#42): aqui não sai.
+- 4248 com `state: 2` (#104); `warfield.py` manda 1.
+- `ENEMY_CAST_MS` 3500: a inglesa tem 3500/4500/4900 por skill (#1662/#1675/#1689).
+
 ## Para testar no cliente
 
 ```

@@ -233,3 +233,6 @@ uma guilda com "!" no nome (servidores juntados, `ConsortiaFrame.resetConsortiaN
 
 **Pendente, sem fonte**: sair da guilda antes de pegar o prêmio da bênção perde o prêmio (fica na
 linha do membro). O oficial não mostrou esse caso.
+
+**Precisa de captura** (revisão do m6 inglês): manutenção semanal sem riqueza, acelerar (`ceil(t/600)` × 4 no
+cliente), o anúncio de recrutamento (canal e remetente do 83 são `TODO(inventado)`), o `isReceived` do baú.

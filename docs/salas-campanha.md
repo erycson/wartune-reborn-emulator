@@ -344,3 +344,11 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 - `tests/game/test_convites_times_bencao.py`: os 10 opcodes sem corpo do lote (registro e corpo vazio);
   sair de vez com dois e três jogadores; sair por ora; recusa de convite de time e de guilda; recusas e
   bênção voltam no login; bênção do seminário; gancho, PvP e transporte.
+
+## Captura que falta (revisão do m9 inglês)
+
+Recusa do 8465 (sala inexistente) e do 5039 (sem estamina), campanha em grupo com 2 jogadores, mapa do gancho,
+PvP em equipe, formato oficial do convite rápido 8353 e a sala de casamento. Na 1001: a resposta do 5180 (1 sair,
+2 de novo), as cartas pagas (`isPay`, `payCardCount`), a recusa sem Beden, as missões (112, 4476/4484), o progresso
+salvo (sair recomeça no 1011), a recompensa da Pandora além do buff, o 5121 e a chance de cada carta. O exército do
+sistema (5038) só tem lista para 1011, 1021 e 2011.

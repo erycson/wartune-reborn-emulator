@@ -36,7 +36,7 @@ NOT_IMPLEMENTED = {
     4542,  # livro de moda (8625)
     4122,  # patrulha dos monstros no mapa 10002
 }
-# diferenças conhecidas (docs/pendencias.md, "Oráculo do tutorial"); #N = tools/dump_capture.py da inglesa.
+# diferenças conhecidas (docs/tutorial.md, "Diferenças conhecidas"); #N = tools/dump_capture.py da inglesa.
 # A última é do servidor, dentro do tutorial; as outras, ritmo ou outros jogadores:
 # - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793) e 4248 (#133, estado da guerra 4008): do
 #   servidor, não respostas;

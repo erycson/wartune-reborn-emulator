@@ -127,6 +127,10 @@ em `marriages`.
 
 ## Depende de outros sistemas
 
+**Precisa de captura** (revisão do m12 inglês): 4246 (convites da barra) × 84, pedido de amizade com o alvo
+offline, presente de rosa (SonType 217) e a resposta automática do IM.
+
+
 - Guilda: correio de guilda (8205 sendType 2), canal 5.
 - Time/sala: canal 6, convite de amigo para time.
 - Sala de casamento: cerimônia (8760, op 6/7/13, 4662/4673/4674/4672).
