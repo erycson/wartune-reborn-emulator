@@ -198,7 +198,8 @@ async def test_lobo_comeca_a_luta_na_chegada_e_o_4382_espera_a_volta(tmp_path: P
 
 
 async def test_mascote_em_batalha_ganha_a_exp_da_luta(tmp_path: Path) -> None:
-    """(só turco: peri_uyanis #72-#78) petGpBonus = gpBonus e o 4540 do mascote logo depois do 3."""
+    """(só turco: peri_uyanis #72-#78) petGpBonus = gpBonus; depois do 3, o 4540, o 4387 com o guarda (o mascote em
+    batalha) e o 150."""
     async with logged_in(tmp_path, novice=25500) as g:
         snap = g.server.online.get(g.user_id).snapshot  # type: ignore[union-attr]
         pet = Pet(g.user_id, 101103, "Amazon", is_fight=True, pos=0)
@@ -210,6 +211,10 @@ async def test_mascote_em_batalha_ganha_a_exp_da_luta(tmp_path: Path) -> None:
         assert (report.gpBonus, report.petGpBonus) == (35, 35)
         after = codes(got)
         assert after.index(3) < after.index(4540) < after.index(4103)
+        i = after.index(4540)
+        assert after[i + 1 : i + 3] == [4387, 150]
+        guard = pb.FarmInfoRspMsg.FromString(got[i + 1].body).guardPetInfo
+        assert (guard.petTemplateId, guard.petName, guard.HasField("pos")) == (101103, "Amazon", True)
         assert pet.gp == 35
 
 

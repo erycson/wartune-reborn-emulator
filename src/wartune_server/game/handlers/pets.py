@@ -25,7 +25,7 @@ from .player import _army, _player
 from .shop import send
 from .vip import vip_right
 
-S_PETS, S_OTHER_PETS, S_ITEMS = 4540, 4608, 115
+S_PETS, S_OTHER_PETS, S_ITEMS, S_FARM_LAND = 4540, 4608, 115, 4387
 ADD_POINTS, RESET_POINTS, FIGHT, REST, FAST_KEY, MORE_SLOTS, TO_TOP = 2, 3, 9, 10, 11, 12, 14
 COMPOSE = 13  # composePet: receita de um pet só (PetComponseInfos com Pet2Types 0)
 SWALLOW, SACRIFICE = 1, 6  # PetSocketOut.swallowPet (value = o secundário) e sacrifice
@@ -131,15 +131,40 @@ def full_exp(pet: Pet, templates: GameTemplates, hero_grade: int) -> bool:
 def share_gp(s: GameSession, gp: int) -> Pet | None:
     """O mascote em batalha ganha a mesma EXP do herói nas lutas e missões (só turco: peri_uyanis #78 e meydan_okuma
     #26, petGpBonus = gpBonus; a missão manda o 4540 depois do 3, transfer_kampi #21, peri_turnuvasi #65, e o quanto
-    é dedução). Devolve o mascote para quem chama gravar e mandar o 4540. shortcut: o oficial manda depois do 4540 o
-    4387 com guardPetInfo, do mascote guarda da fazenda; sem as terras de mascote (farm.py, opType 12-16) não há
-    guarda. Mandar quando existirem."""
+    é dedução). Devolve o mascote para quem chama gravar e mandar com ``send_gained``."""
     snap = s.snapshot
     assert snap is not None
     pet = next((p for p in snap.pets if p.is_fight), None) if gp > 0 else None
     if pet is not None:
         add_pet_gp(pet, s.ctx.templates, gp, snap.character.grades)
     return pet
+
+
+def guard_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.FarmPetInfoMsg | None:
+    """O guarda da fazenda (``FarmInfo.defender``) é o mascote em batalha: (dedução) o cliente não tem tela para o
+    PET_DEFENSE (FarmOperateType 16, nenhum ``sendFarmOper`` com ele) e em todas as turcas o guarda é o mascote em
+    batalha (login #49 e os 4387 depois do 4540); o inglês, sem mascote em batalha, não manda guarda."""
+    pet = next((p for p in snap.pets if p.is_fight), None)
+    if pet is None:
+        return None
+    tpl = templates.get("PetTempInfos", pet.template_id) or {}
+    return pb.FarmPetInfoMsg(
+        userId=snap.character.id or 0, petId=pet.id or 0, petTemplateId=pet.template_id, petName=pet.name,
+        quality=pet_star(pet, tpl),
+    )  # fmt: skip
+
+
+def send_gained(s: GameSession, pet: Pet) -> None:
+    """Depois da EXP do mascote: 4540, 4387 com o guarda (``pos`` 0) e o 150, com o 4902 na frente (só turco:
+    transfer_kampi #21-#25, meydan_okuma #22-#25, peri_turnuvasi #48-#51 e #65-#68, peri_uyanis #73-#77)."""
+    snap = s.snapshot
+    assert snap is not None
+    s.send(S_PETS, pets_msg(snap, s.ctx.templates, [pet]))
+    guard = guard_msg(snap, s.ctx.templates)
+    if guard is not None:
+        guard.pos = 0
+        s.send(S_FARM_LAND, pb.FarmInfoRspMsg(userId=s.player_id, guardPetInfo=guard))
+    _army(s)
 
 
 def add_pet_gp(pet: Pet, templates: GameTemplates, gp: int, hero_grade: int) -> None:

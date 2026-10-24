@@ -321,9 +321,9 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         events.send_serven(s)
     _player(s)
     if pet is not None:
-        from .pets import S_PETS, pets_msg  # noqa: PLC0415
+        from .pets import send_gained  # noqa: PLC0415
 
-        s.send(S_PETS, pets_msg(snap, templates, [pet]))
+        send_gained(s, pet)
     if new:
         s.send(S_ITEMS, bag.moved(new, s.player_id))
         events.items_gained(s)  # (visto) tutorial_en #490, oficial_20261023-153200-1 #205-#206

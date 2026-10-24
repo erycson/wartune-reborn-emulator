@@ -227,13 +227,16 @@ def tree_msg(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.TreeInfoMs
     return msg
 
 
-def farm_info(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.FarmInfoRspMsg:
+def farm_info(
+    snap: PlayerSnapshot, now: datetime, *, own: bool, guard: pb.FarmPetInfoMsg | None = None
+) -> pb.FarmInfoRspMsg:
+    """``guard``: o mascote guarda (``FarmInfo.defender``), ``handlers.pets.guard_msg``."""
     c, castle = snap.character, snap.castle
     assert castle is not None
     by_pos = {land.pos: land for land in snap.lands}
     # os contadores do dia só valem na própria fazenda (o cliente lê do myFarm); a amiga vem 0 (só turco: ciftlik #80)
     today = own and castle.farm_day == gameday.today(now)
-    return pb.FarmInfoRspMsg(
+    msg = pb.FarmInfoRspMsg(
         userId=c.id or 0,
         nickName=c.nickname or "",
         grades=castle.farm_grade,
@@ -245,6 +248,9 @@ def farm_info(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.FarmInfoR
         treeInfo=tree_msg(snap, now, own=own),
         todayStolenCount=castle.farm_steals if today else 0,
     )
+    if guard is not None:
+        msg.guardPetInfo.CopyFrom(guard)
+    return msg
 
 
 def waters_today(castle: Castle, now: datetime) -> tuple[int, int]:

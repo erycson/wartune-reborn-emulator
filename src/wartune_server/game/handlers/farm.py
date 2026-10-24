@@ -7,7 +7,7 @@ online (mexe-se no snapshot da sessão dele, como ``social.row_of``) ou offline 
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from ...domain import gameday
 from ...domain.errors import NotFoundError
@@ -56,6 +56,12 @@ async def _other(s: GameSession, user_id: int) -> PlayerSnapshot | None:
     return snap if snap.castle is not None and snap.character.active else None
 
 
+def _info(s: GameSession, target: PlayerSnapshot, now: datetime) -> pb.FarmInfoRspMsg:
+    from .pets import guard_msg  # noqa: PLC0415  (pets -> player -> ... -> farm)
+
+    return farm.farm_info(target, now, own=target is s.snapshot, guard=guard_msg(target, s.ctx.templates))
+
+
 async def _friend(s: GameSession, user_id: int) -> tuple[PlayerSnapshot, Relation] | None:
     """Amigo (``FRIEND`` já é a amizade dos dois lados, docs/social.md) com castelo."""
     r = social.relation_to(s, user_id)
@@ -80,7 +86,7 @@ async def farm_operate(s: GameSession, msg: pb.FarmOperReqMsg) -> None:
     if msg.opType == REQ:
         target = snap if msg.friendId in (0, s.player_id) else await _other(s, msg.friendId)
         if target is not None:
-            s.send(S_FARM_INFO, b.complete(farm.farm_info(target, now, own=target is snap)))
+            s.send(S_FARM_INFO, b.complete(_info(s, target, now)))
         return
     own = msg.friendId in (0, s.player_id)
     if msg.opType > LAND_UP:  # 12-16 terras de mascote e guarda: o 4387 de falha cairia num canteiro (pos -1 no guarda)
@@ -164,7 +170,7 @@ def _farm_up(s: GameSession, snap: PlayerSnapshot, before: int) -> bool:
         return False
     text = f"Your farm has been upgraded to level {snap.castle.farm_grade}!"
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
-    s.send(S_FARM_INFO, b.complete(farm.farm_info(snap, s.ctx.clock.now(), own=True)))
+    s.send(S_FARM_INFO, b.complete(_info(s, snap, s.ctx.clock.now())))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     return True
 
@@ -351,7 +357,7 @@ async def _land_up(s: GameSession, snap: PlayerSnapshot, msg: pb.FarmOperReqMsg)
     castle.land_grade += 1
     await s.ctx.characters.save(c, castle, entry)
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
-    s.send(S_FARM_INFO, b.complete(farm.farm_info(snap, now, own=True)))
+    s.send(S_FARM_INFO, b.complete(_info(s, snap, now)))
     return True
 
 

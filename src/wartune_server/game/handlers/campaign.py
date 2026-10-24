@@ -715,7 +715,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         castle_yield(s)
     await _push_player(s)
     if pet is not None:
-        _send(s, P.S_PETS, P.pets_msg(snap, s.ctx.templates, [pet]))
+        P.send_gained(s, pet)
     if dungeon and won:
         hp_pack(s, healed)
         if gp:

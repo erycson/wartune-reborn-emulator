@@ -315,12 +315,12 @@ async def _colosseum_over(
         )  # fmt: skip
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if pet is not None:
-        from .pets import S_PETS, pets_msg  # noqa: PLC0415
+        from .pets import send_gained  # noqa: PLC0415
 
-        s.send(S_PETS, pets_msg(snap, s.ctx.templates, [pet]))
+        send_gained(s, pet)
     if snap.character.grades > before:
         await push_level(s, before)  # (dedução) como na entrega de missão
-    # (visto) oficial_20261023-215937-1 #1163-#1167: sem o 150 entre o 3 e o 4103
+    # (visto) oficial_20261023-215937-1 #1163-#1167: sem o 150 entre o 3 e o 4103 (sem mascote; com ele, o do 4540)
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, gp if pet else 0
     s.send(S_BATTLE_REPORT, report)
