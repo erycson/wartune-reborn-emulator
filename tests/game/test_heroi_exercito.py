@@ -490,3 +490,26 @@ async def test_pawn_upgrade_closing_the_seven_day_task_sends_4638_before_the_arm
         assert codes(got) == [3, 116, 4638, 150, 83]
         day1 = pb.ServenDayLeadMsg.FromString(got[2].body).singleDay[0]
         assert day1.simpleTask[0].isComplete == 1
+
+
+async def test_rare_astral_is_shouted_to_the_whole_server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) oficial_encantar #2753: a Profile 5 sorteada vai no 83 canal 2 para todos os online."""
+    from wartune_server.game.handlers import stars
+
+    monkeypatch.setattr(stars, "roll", lambda t, g, s, w: t.get("starTempInfos", 1405))
+    async with logged_in(tmp_path, novice=19000) as g:
+        other = await g.join("outro")
+        await g.idle()
+        await other.idle()
+        snap = snap_of(g)
+        snap.character.gold, snap.character.grades = 8000, 40
+        g.client.send(8269, pb.StarRandReqMsg(site=0))
+        await g.until(4180)
+        got = await g.until(83)
+        assert codes(got) == [83]
+        text = pb.ChatChannelMsg.FromString(got[-1].body)
+        heard = pb.ChatChannelMsg.FromString([p for p in await other.until(83) if p.code == 83][-1].body)
+        assert text == heard and text.channel == 2
+        assert text.encodeMsg.endswith(
+            ' just received the extremely rare [<a t="3" id="1405" name="Enhanced Guardian Angel" grades="1"/>] Astral!'
+        )

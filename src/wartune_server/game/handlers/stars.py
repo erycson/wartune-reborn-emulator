@@ -14,7 +14,7 @@ from ...domain.models import PlayerSnapshot, Star, StarBag
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates, Row
-from .. import rules
+from .. import rules, social
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
@@ -41,6 +41,10 @@ RAND_QUEST, RAND_PARA1 = 36, 1
 WEIGHTS = {"1": (40,) * 5, "2": (35, 33, 30, 27, 24), "3": (18, 21, 24, 27, 30), "4": (5, 8, 11, 14, 17)}
 WEIGHTS |= {"5": (0, 2, 4, 6, 8), "7": (0, 0, 0, 0, 1), "6": (2,) * 5}
 OPEN_NEXT = 0.3
+# (visto) oficial_encantar #2753/#2824: o sorteio de uma Profile 5 sai para o servidor inteiro no 83 canal 2. (dedução)
+# a Profile 7, mais rara, também; ``game_settings.star_rare_profiles`` troca a lista
+RARE_PROFILES, S_CHAT, WORLD = ("5", "7"), 83, 2
+RARE_TEXT = '{} just received the extremely rare [<a t="3" id="{}" name="{}" grades="{}"/>] Astral!'
 _rng = random.Random()  # abrir o próximo cristal (os testes trocam)
 
 
@@ -191,6 +195,15 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
 
     await events.leed_done(s, events.ASTRAL_LEED)  # só turco: kader_sistemi #4-#7: 3, 4152, 3, 4180
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
+    rare = tuple(settings.get("star_rare_profiles") or RARE_PROFILES)
+    for star in new:
+        if (tpl := star_tpl(templates, star)).get("Profile") in rare:
+            link = social.player_link(s.ctx, c)
+            shout = pb.ChatChannelMsg(
+                channel=WORLD, encodeMsg=RARE_TEXT.format(link, star.template_id, tpl["TemplateName"], star.grade)
+            )
+            for other in s.ctx.online.sessions():
+                other.send(S_CHAT, shout)
     if quests:
         from .army import send_quests
 
