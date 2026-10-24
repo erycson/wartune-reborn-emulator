@@ -14,7 +14,7 @@ from ...domain.errors import NotFoundError
 from ...domain.models import BagType, FarmLand, Item, PlayerSnapshot, Relation, RelationType
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay, record_cash
-from .. import bag, farm, rules, social
+from .. import bag, farm, rewards, rules, social
 from .. import castle as cs
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -239,7 +239,8 @@ async def _payout_sent(s: GameSession, snap: PlayerSnapshot, reward: int, item: 
 async def _pick(
     s: GameSession, snap: PlayerSnapshot, _: PlayerSnapshot, msg: pb.FarmOperReqMsg, land: FarmLand | None
 ) -> bool:
-    """Colhe: moeda (ouro, alma, cristal, diamante vinculado), EXP (-700) ou item, e libera a terra."""
+    """Colhe: moeda (ouro, alma, cristal, diamante vinculado), EXP (-700) ou item, e libera a terra. (visto)
+    oficial_20261023-171155-1 #183-#189: 109, 111 e 83 "Received: 2,400 Gold", 4387, 4152 e o 83 da devoção."""
     templates, now = s.ctx.templates, s.ctx.clock.now()
     row = farm.seed(templates, land.item_template_id) if land is not None else None
     if land is None or row is None or not farm.is_alive_mature(land, row, now):
@@ -254,11 +255,14 @@ async def _pick(
     await s.ctx.characters.save(*changed, *quests, delete=(land,))
     from . import events  # handlers.events importa login
 
-    await events.leed_done(s, events.FARM_LEED)  # (dedução) "Harvest from your own farm"; ordem sem captura
-    _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     await _payout_sent(s, snap, reward, item, gained)
+    text = rewards.received(templates, [(reward, land.reward_count)])
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    _land_reply(s, s.player_id, msg.pos, None, PICK, OK)
+    if quests:  # (dedução) sem captura; junto da terra
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    await events.leed_done(s, events.FARM_LEED)  # leed 25 "Harvest from your own farm"
     return True
 
 
@@ -450,9 +454,9 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     await s.ctx.characters.save(*rows, *quests)
     s.send(S_WATER_LOG, pb.FarmLogRsp(playerId=s.player_id, operUserId=user_id))
     cs.castle_yield(s)
-    up = _farm_up(s, snap, before)  # (visto) oficial_20261023-215937-1 #1277-#1281: 4158, 109, 111, 4386, 83, 147
-    if quests:
+    if quests:  # (visto) oficial_20261023-171155-1 #7769-#7774: o 112 antes do 111/4386/83 da subida
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    up = _farm_up(s, snap, before)  # (visto) oficial_20261023-215937-1 #1277-#1281: 4158, 109, 111, 4386, 83, 147
     trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in trees]))
     s.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, user_id, mine))

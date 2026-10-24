@@ -245,9 +245,11 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1
         clock.advance(30 * 60)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=1))
-        got = await g.until(109)
-        assert [p.code for p in got] == [4152, 83, 4387, 109]  # leed 25 "Harvest from your own farm"
-        assert pb.CastleYieldMsg.FromString(got[3].body).goldTotalCount == 2400 + 120 * 30 // 60
+        got = await g.until(4152) + await g.until(83)
+        # (visto) oficial_20261023-171155-1 #184-#189; leed 25 "Harvest from your own farm"
+        assert [p.code for p in got] == [109, 111, 83, 4387, 4152, 83]
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg.startswith("Received: ")
+        assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 2400 + 120 * 30 // 60
 
         clock.advance(29 * 60)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=4, pos=0))
