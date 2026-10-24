@@ -274,7 +274,9 @@ async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -
         assert saved.castle is not None and (saved.castle.tree_water, saved.castle.farm_gp) == (2, 2)
         clock.advance(600)
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
-        await g.until(147)
+        third = await g.until(147)  # oficial_20261023-171155-1 #4933-#4937: a 3ª abre com o 4158
+        assert [p.code for p in third] == [4158, 109, 146, 83, 147]
+        assert pb.FarmLogRsp.FromString(third[0].body) == pb.FarmLogRsp(playerId=g.user_id, operUserId=g.user_id)
         clock.advance(600)
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))  # 3 por dia (help do cliente)
         assert await g.idle() == []

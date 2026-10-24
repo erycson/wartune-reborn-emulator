@@ -376,6 +376,11 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     farm.tree_charge(castle, templates)
     quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, OWN_TREE, 1)
     await s.ctx.characters.save(c, castle, *quests)
+    # (visto) oficial_20261023-171155-1 #4933: 4158 da própria árvore antes do 109 na 3ª rega (waterCount 3); sem ele
+    # na 1ª e 2ª (oficial_20261023-153200-1 #2227, 171155 #203). (cliente) WaterManager.__waterStateHandler só desliga o
+    # ``canGivePower``; (dedução) por isso sai quando acaba a cota do dia
+    if castle.tree_water_today >= farm.OWN_TREE_DAILY:
+        s.send(S_WATER_LOG, pb.FarmLogRsp(playerId=s.player_id, operUserId=s.player_id))
     cs.castle_yield(s)
     # (visto) oficial_20261023-153200-1 #2228-#2229: os textos ingleses (a vírgula de milhar é dedução)
     s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=["Energy +1", f"Gold +{gold:,}", "Tree of the Ancients EXP +1"]))
