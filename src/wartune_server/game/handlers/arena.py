@@ -8,6 +8,7 @@ sessão dele) ou um robô gerado do id. Fluxo, capturas e fontes em ``docs/pvp.m
 from __future__ import annotations
 
 import random
+from datetime import datetime
 from typing import Any
 
 from ...domain.errors import NotFoundError
@@ -15,7 +16,7 @@ from ...domain.models import ArenaRank, BagType, ChallengeLog, Item, PlayerSnaps
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import arena as A
-from .. import bag, rules
+from .. import bag, rewards, rules
 from .. import events as ev
 from ..battle import Battle
 from ..builders import login as b
@@ -24,7 +25,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .campaign import map_sync, player_hero
-from .login import army, player_info
+from .login import player_info
 from .player import push_level
 from .vip import free_cool, is_vip, vip_grade
 
@@ -32,6 +33,7 @@ S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 1
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
 S_PET_LIST, S_PET_TOP, S_PET_REWARD, S_PET_INFO, S_BATTLE_REPORT = 4611, 4619, 4613, 4540, 4103
 S_QUESTS = 112  # QuestUpdatedRspMsg
+QUEST_CHALLENGE = 35  # QuestCondictionInfos 2/4/188 "Challenge" (Para1 1): cada desafio do coliseu conta
 QUEST_PET_TOURNAMENT = 87  # QuestCondictionInfos: participar do torneio de fadas (Para2 1)
 S_MATCH = 4201  # MatchStateMsg: liga o botão de PvP (playerInfo.isPVPStart)
 ARMY_IDLE, ARMY_FIGHTING = 0, 2
@@ -245,15 +247,19 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
     # gasta antes da luta: cair não devolve; a atividade "Solo Arena" (tipo 26) conta a participação, como o leed 19
     counted = ev.count(snap, s.ctx.events, ev.CHALLENGE, s.ctx.clock.now())
-    await s.ctx.characters.save(snap.character, arena, *counted, *([spent] if spent else []))
-    s.log.info("coliseu", alvo=target, battle=s.battle.id)
+    quests = rules.quest_event(snap, s.ctx.templates, QUEST_CHALLENGE, 1, 1)
+    await s.ctx.characters.save(snap.character, arena, *counted, *quests, *([spent] if spent else []))
+    s.log.info("coliseu", alvo=target, battle=s.battle.id, missoes=[q.template_id for q in quests])
+    # (visto) oficial_20261023-215937-1 #1129-#1133: 140, 112 (missão 188), 4152 (leed 19) e só então 157
     s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
-    s.battle.start()
-    if bought:
-        s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     from . import events  # handlers.events importa login, que importa este módulo
 
     await events.leed_done(s, events.CHALLENGE_LEED)  # LeedTemp 19 "Challenge another player" (PassCount 10)
+    s.battle.start()
+    if bought:
+        s.send(S_PLAYER, b.complete(player_info(s, snap)))
 
 
 async def _colosseum_over(
@@ -281,6 +287,7 @@ async def _colosseum_over(
         arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)
         gp = A.battle_gp(snap.character.grades, won)
         rules.add_gp(snap, s.ctx.templates, gp)
+        prize = _prize(s, snap, now)
         logs = [
             ChallengeLog(me, A.COLOSSEUM, now, target, name, True, won, new_mine, _forward(mine, new_mine), grade, job)
         ]
@@ -293,12 +300,14 @@ async def _colosseum_over(
                     target, A.COLOSSEUM, now, me, c.nickname or "", False, not won, new_theirs, forward, c.grades, jt
                 )
             )
-        await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, arena, *logs, ranks=tuple(ranks))
+        changed = prize[0] if prize else []
+        await s.ctx.characters.save(
+            snap.character, snap.leader, *snap.pawns, arena, *logs, *changed, ranks=tuple(ranks)
+        )
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if snap.character.grades > before:
         push_level(s, before)  # (dedução) como na entrega de missão
-    else:
-        s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    # (visto) oficial_20261023-215937-1 #1163-#1167: sem o 150 entre o 3 e o 4103
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=gp)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 7, 0, 0, 0
     s.send(S_BATTLE_REPORT, report)
@@ -307,6 +316,28 @@ async def _colosseum_over(
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Received {gp:,} EXP "))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     _cool(s, A.COLOSSEUM)
+    if prize:
+        s.send(S_ITEMS, bag.moved(prize[0], s.player_id))
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=prize[1]))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=prize[1]))
+
+
+def _prize(s: GameSession, snap: PlayerSnapshot, now: datetime) -> tuple[list[Item], str] | None:
+    """``game_settings.arena_challenge_items`` ([[templateId, quantidade], ...], migração 0072) na mochila ao fim
+    de cada luta do coliseu. (visto) oficial_20261023-215937-1 #1168-#1181: depois do 4176, 115 (VIP Token 208015
+    empilhado), 111 e 83 "Received: VIP Token x1"; o jogador não era VIP (4410 #103 isVip false).
+    TODO(inventado): uma luta só (vitória): não se sabe se perder também dá, se é sorte ou se tem limite por dia.
+    Sem espaço na mochila não dá nada."""
+    goods = [(int(t), int(n)) for t, n in s.ctx.world.settings.get("arena_challenge_items", [])]
+    if not goods or not bag.fits(snap, s.ctx.templates, goods, now):
+        if goods:
+            s.log.info("coliseu sem espaço para o prêmio", premio=goods)
+        return None
+    changed: list[Item] = []
+    for tid, n in goods:
+        changed += [i for i in bag.add(snap, s.ctx.templates, tid, n, now) if i not in changed]
+    s.log.info("coliseu prêmio", premio=goods)
+    return changed, rewards.received(s.ctx.templates, goods)
 
 
 def _forward(before: int, after: int) -> int:

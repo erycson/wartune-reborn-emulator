@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import Arena, ArenaRank, BagType, CashLedger, Item, PlayerSnapshot
+from wartune_server.domain.models import Arena, ArenaRank, BagType, CashLedger, Item, PlayerSnapshot, Quest
 from wartune_server.domain.models import Pet as OwnedPet
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
@@ -38,6 +38,10 @@ def snap_of(g: Game) -> PlayerSnapshot:
 
 def body(packets: list[Any], code: int, cls: type[Any]) -> Any:
     return cls.FromString(next(p for p in packets if p.code == code).body)
+
+
+def bag_count(snap: PlayerSnapshot, template_id: int) -> int:
+    return sum(i.count for i in snap.items if i.template_id == template_id)
 
 
 async def info(g: Game) -> pb.ChallengeInfoMsg:
@@ -82,6 +86,19 @@ async def test_colosseum_against_a_robot_enters_the_ranking(tmp_path: Path, monk
         cool = body(got, 4176, pb.ChallengeCoolTimeMsg)
         assert (cool.type, cool.challengeCount, cool.leftTime) == (0, 1, 600)
         assert 75 in codes(got)  # o herói inimigo anuncia a skill
+        # (visto) oficial_20261023-215937-1 #1163-#1181: sem 150 no fim; o VIP Token (0072) depois do 4176
+        tail = codes(got)[codes(got).index(4103) - 1 :]
+        assert [c for c in tail if c in (3, 150, 4103, 83, 140, 4176, 115, 111)] == [
+            3,
+            4103,
+            83,
+            140,
+            4176,
+            115,
+            111,
+            83,
+        ]
+        assert bag_count(snap_of(g), 208015) == 1
 
         after = await info(g)
         assert (after.curRank, after.lastWinCount, after.challengeCount) == (1, 1, 1)
@@ -117,6 +134,17 @@ async def test_colosseum_against_a_robot_enters_the_ranking(tmp_path: Path, monk
         g.client.send(8329)
         again = body(await g.until(4243), 4243, pb.ChallengeRankRewardMsg)
         assert (again.param1, again.param2) == (1, 0)
+
+
+async def test_colosseum_start_counts_quest_35_before_the_battle(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-215937-1 #1129-#1133: 140, 112 (missão 188 "Challenge", tipo 35), 4152 e 157."""
+    async with logged_in(tmp_path, novice=30001) as g:
+        robots = [p.userId for p in (await info(g)).simplePlayer]
+        quest = Quest(g.user_id, 188, datetime.now(UTC))
+        snap_of(g).quests.append(quest)
+        g.client.send(8253, pb.PlayerChallengeMsg(tarUserId=robots[0], payType=0))
+        assert [c for c in codes(await g.until(157)) if c in (140, 112, 4152, 157)] == [140, 112, 4152, 157]
+        assert quest.progress == 1
 
 
 async def test_colosseum_copy_of_a_player_can_beat_you_and_wins_swap_places(
