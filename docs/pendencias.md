@@ -182,12 +182,19 @@ Outros eventos:
 - 8255 (batalha em grupo), 8562 (trégua): respondem vazio. **depende de** esses sistemas. 5179 (desistir da mina):
   feito.
 - Rendimento: prefeitura + minas bate exato com a captura inglesa (#579, #591, #772, #2744); bônus de guilda e efeitos ainda não entram.
+- Subida de nível da fazenda (111, 4386, 83 "Your farm has been upgraded to level N!", `isUpGrade`): **feita**, visto na rega do amigo (oficial_20261023-215937-1 #1277-#1285). **dedução**: a mesma sequência na rega da própria árvore, na colheita da árvore e na ajuda nas terras, e a posição dela nesses casos.
 - **dedução**: EXP offline = nível × minutos (até 8 h), arredondamento do bônus da terra melhorada, caixa por tempo vira à meia-noite UTC. Ouro de regar: visto, grau da fazenda do dono × 20 (`oficial_20261023-153200-1` #2228 e #2242; textos ingleses "Tree of the Ancients EXP +1", "Friendliness  +1").
 
 ## PvP ([pvp.md](pvp.md))
 
 - Lordes (8710–8721), lordes casados (8975–8981), campo de guerra (8332/8334/8337/8338), campo de minas (8633), 8635: parciais. **sem dado**.
 - Torneio de fadas: usa os pets salvos; a posição dos pets do oponente (`pos` = índice + 3) é **dedução**.
+- Coliseu, drop da vitória (`game_settings.arena_challenge_items`, 0072): **feito** com os dois vistos (VIP Token no inglês, oficial_20261023-215937-1 #1168; Lvl. 3 Luck Stone no turco, meydan_okuma #30). **TODO(inventado)**: o resto do conjunto, pesos iguais, só na vitória e 1 por dia (as duas vistas eram a 1ª vitória do dia).
+- Coliseu, início: 140, 112 (condição 35), 4152, 157 e o fim sem 150 **feitos** (oficial_20261023-215937-1 #1129-#1167).
+
+## Cidade do céu ([mundo-compartilhado.md](mundo-compartilhado.md))
+
+- 4595 no login (entre o 6 e o 4151) e no 5180 só depois do tutorial: **feito** (oficial_encantar 28500 sem; 171155/215937 33000+ com). **dedução**: o corte em 30000 (os dados só dizem entre 28500 e 33000) e os 4597/4594 dos outros depois do 4151 no login (o oficial não os manda ali).
 
 ## Social, chat e VIP ([social.md](social.md), [chat.md](chat.md))
 
