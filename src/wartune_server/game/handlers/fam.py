@@ -26,7 +26,7 @@ from typing import Any
 
 from ...domain.models import Consortia, ConsortiaMember, Quest
 from ...protocol.messages import wartune_pb2 as pb
-from .. import fam, outer_city, rules, space
+from .. import fam, outer_city, rules, social, space
 from .. import guild as gd
 from ..battle import Battle
 from ..builders import login as b
@@ -59,7 +59,7 @@ from .campaign import (
     _start_battle,
     map_sync,
 )
-from .guild.common import _mine, _refuse
+from .guild.common import _mine, _push_info, _refuse
 from .login import army
 from .player import hero_after_fight, hp_pack, push_level
 from .shop import send_blood
@@ -70,9 +70,32 @@ TREE = PANDORA  # masterType 61 do nó "Guild Tree of Ancients" (sonType 2392)
 SUMMONED = 2  # FamInfoMsg.opreate: o cliente avisa quem está fora da sala (``__consortiaTreeUpdateHandler``)
 NO_DATE = "2000-01-01 00:00:00"  # data vazia do oficial (kickDate, quitDate do 4138)
 LORDS_LEFT = 180000  # (visto) 4632 #5065 leftTime: o cliente mostra em segundos (remainMonsterTime)
-# TODO(inventado): contribuição por Invasor vencido (a ajuda só diz "additional guild contribution points");
-# ``game_settings.fam_invader_offer``, 0073
+# (visto) "<link> has defeated an invader and earned 10 guild contribution!" (171155 #5497, 215937 #148, 231733
+# #4104) e o 164 seguinte com a riqueza +10 (405703 -> 405713); ``game_settings.fam_invader_offer``, 0073
 INVADER_OFFER = 10
+UNDER_ATTACK = "The Guild Chamber is under attack! Grab your weapons and drive the invaders away!"
+BUSY = "Target is in battle, please wait…"  # (cliente) playermenu.command01; (dedução) o aviso de quem chega depois
+
+
+def _guild_chat(s: GameSession, guild: Consortia, text: str) -> None:
+    """(visto) 83 canal 5 type 5, otherId -1, a todos os membros online."""
+    msg = b.complete(pb.ChatChannelMsg(channel=5, type=5, encodeMsg=text, otherId=-1, userType=1))
+    for o in gd.online_members(s.ctx, guild.id or 0):
+        o.send(S_CHAT, msg)
+
+
+def _invasion(s: GameSession, guild: Consortia) -> fam.Invasion:
+    inv, new = fam.invasion(s.ctx.guilds.invasions, guild.id or 0, s.ctx.clock.now())
+    if new:
+        _guild_chat(s, guild, UNDER_ATTACK)
+        s.log.info("terra secreta: Invasores chegaram", guilda=guild.id)
+    return inv
+
+
+def _start_state(c: CampaignMap, camp: int) -> int:
+    """Estado do nó no conteúdo (o que o 127 da entrada traz)."""
+    nodes = (c.content or {}).get("maps", {}).get(str(FAM_MAP), {}).get("nodes", [])
+    return next((int(n["state"]) for n in nodes if n["campDataId"] == camp), DONE)
 
 
 def _here(s: GameSession, guild_id: int) -> list[GameSession]:
@@ -117,11 +140,14 @@ def _sync_nodes(s: GameSession, guild: Consortia, *, send: bool = True) -> None:
     batch = fam.collect_batch(guild, now)
     new_batch = batch is not None and batch != s.fam_batch
     s.fam_batch = batch
+    inv = _invasion(s, guild)
     for camp, node in c.nodes.items():
         if node["masterType"] == TREE:
             want = NORMAL if batch is not None else DONE
         elif node["masterType"] == COLLECT:
             want = NORMAL if new_batch else DONE if batch is None else node["state"]
+        elif node["masterType"] == INVADER and c.fighting != camp:
+            want = DONE if camp in inv.dead else _start_state(c, camp)
         else:
             continue
         if want != node["state"]:
@@ -190,8 +216,11 @@ def show_room(s: GameSession) -> None:
 
 
 async def push_state(s: GameSession) -> None:
-    """No relógio (20008), dentro da sala: paga os tiques de EXP vencidos e acerta a árvore e as coletas."""
+    """No relógio (20008): a onda de Invasores da guilda (o aviso sai a todos, dentro ou fora da sala) e, dentro da
+    sala, os tiques de EXP vencidos, a árvore, as coletas e os Invasores."""
     c, mine, snap = s.campaign, _mine(s), s.snapshot
+    if mine is not None:
+        _invasion(s, mine[0])
     if c is None or not c.fam or not c.ready or mine is None or snap is None:
         return
     guild, member = mine
@@ -278,9 +307,18 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
     if node["masterType"] == COLLECT and node["state"] == NORMAL and mine is not None:
         await _collect(s, camp, mine[0])
         return
-    if node["masterType"] != INVADER or c.battle_like(camp) is None or s.battle is not None:
+    if node["masterType"] != INVADER or c.battle_like(camp) is None or s.battle is not None or mine is None:
         s.log.info("terra secreta: 5125 sem luta", nó=camp, tipo=node["masterType"])
         return
+    inv = _invasion(s, mine[0])
+    holder = inv.fighting.get(camp, s.player_id)
+    other = s.ctx.online.get(holder)
+    if camp in inv.dead or (holder != s.player_id and other is not None and other.battle is not None):
+        s.send(S_ALERT, b.complete(pb.ChatChannelMsg(channel=7, encodeMsg=BUSY)))
+        _node_update(s, camp, DONE if camp in inv.dead else node["state"])
+        s.log.info("terra secreta: Invasor ocupado ou vencido", nó=camp, lutando=holder)
+        return
+    inv.fighting[camp] = s.player_id
 
     async def over(battle: Battle, won: bool) -> None:
         await _over(s, battle, camp, won)
@@ -323,11 +361,17 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
     4122 (o Invasor volta ao lugar), 140, 4104 e 131 (o exército volta à entrada), 128 state 1 com uuId e o 83 da
     poção de novo; o 4382 (tudo 0) no 5035 state 4 seguinte. A tropa morre e se repõe como nas outras lutas.
 
-    TODO(inventado) a vitória: a mesma ordem, o Invasor some (128 state 8, como na ilha dos pets), o exército fica
-    onde está e a contribuição (``fam_invader_offer``) vem com 111 e 83 "Received: N Contribution".
+    A vitória: (visto, de quem estava fora da sala) o 83 do canal 5 "<link> has defeated an invader and earned 10
+    guild contribution!" a toda a guilda e o 164 com a riqueza +10; o Invasor some para todos na sala (o usuário).
+    TODO(inventado) o que o vencedor vê: a mesma ordem, o Invasor some (128 state 8, como na ilha dos pets), o
+    exército fica onde está e a contribuição vem com 111 e 83 "Received: N Contribution".
     """
     snap, c = s.snapshot, s.campaign
     assert snap is not None and snap.leader is not None
+    mine = _mine(s)
+    inv = _invasion(s, mine[0]) if mine is not None else None
+    if inv is not None and inv.fighting.get(camp) == s.player_id:
+        del inv.fighting[camp]
     s.battle, s.hero_sp = None, battle.player_sp
     rows: list[object] = [snap.leader]
     if (hit := outer_city.lose_troops(snap, s.ctx.templates, battle.troops())) is not None:
@@ -338,7 +382,19 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
     quests = _add_offer(s, offer) if offer else []
     if offer:
         rows += [snap.character, *quests]
+    if won and mine is not None and inv is not None:
+        inv.dead.add(camp)
+        mine[0].offer += offer
+        mine[0].total_offer += offer
+        rows.append(mine[0])
     await s.ctx.characters.save(*rows)
+    if won and mine is not None and inv is not None:
+        link = social.player_link(s.ctx, snap.character)
+        _guild_chat(s, mine[0], f"{link} has defeated an invader and earned {offer} guild contribution!")
+        _push_info(s, mine[0])
+        for o in _here(s, mine[0].id or 0):
+            if o is not s and o.campaign is not None and o.campaign.node(camp) is not None:
+                _node_update(o, camp, DONE, fresh=True)
     if healed:
         send_blood(s)
         await _push_player(s)

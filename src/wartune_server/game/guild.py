@@ -12,7 +12,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..domain import gameday
 from ..domain.models import Character, Consortia, ConsortiaEvent, ConsortiaInvite, ConsortiaItem, ConsortiaMember
@@ -116,6 +116,7 @@ class Guilds:
     profiles: dict[int, Character] = field(default_factory=dict)
     logout_at: dict[int, datetime] = field(default_factory=dict)
     reserved: set[str] = field(default_factory=set)  # nomes sendo criados (entre a checagem e o save)
+    invasions: dict[int, Any] = field(default_factory=dict)  # guilda -> ``fam.Invasion`` (Invasores do 7501)
 
     @classmethod
     async def load(cls, characters: CharacterService, server_id: int) -> Guilds:

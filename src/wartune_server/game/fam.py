@@ -15,6 +15,7 @@ invocação das 11:53, veio com ``treeState`` 3 às 16:16.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -33,6 +34,36 @@ BUFF_RATE = 0.2  # "an extra 20% EXP in the Guild Chamber" (getBuff)
 # (a ajuda só diz que sobe "once the tree has been energized to a certain amount") e a contribuição de cada coleta
 # ("receive guild contribution points"); ``game_settings.fam_tree`` (0074)
 DEFAULTS: dict[str, Any] = {"exp_per_grade": 2, "power_step": 10, "power_rate": 0.1, "collect_offer": 5}
+# (visto) "The Guild Chamber is under attack!" às 16:00 (171155 #4756), 18:00 (215937 #65) e 20:00 (231733 #4093)
+INVADER_HOURS = 2
+
+
+@dataclass
+class Invasion:
+    """Onda de Invasores de uma guilda, a mesma para todos os membros (o usuário: o Invasor vencido some e só um
+    luta com ele por vez; os 3 do 7501 voltam a cada onda)."""
+
+    wave: datetime  # início da onda (hora cheia, no fuso do jogo)
+    dead: set[int] = field(default_factory=set)  # campDataId vencidos nesta onda
+    fighting: dict[int, int] = field(default_factory=dict)  # campDataId -> quem está lutando
+
+
+def wave_start(now: datetime) -> datetime:
+    at = gameday.local(now)
+    return at.replace(hour=at.hour - at.hour % INVADER_HOURS, minute=0, second=0, microsecond=0)
+
+
+def invasion(store: dict[int, Invasion], guild_id: int, now: datetime) -> tuple[Invasion, bool]:
+    """A onda em curso; ``True`` quando ela acabou de trocar (o aviso no chat da guilda).
+
+    shortcut: em memória; ao reiniciar o servidor os Invasores voltam e o 1º aviso da guilda não sai, guardar no
+    banco se isso importar."""
+    wave = wave_start(now)
+    inv = store.get(guild_id)
+    if inv is not None and inv.wave == wave:
+        return inv, False
+    store[guild_id] = new = Invasion(wave)
+    return new, inv is not None
 
 
 def _cfg(settings: Mapping[str, Any]) -> dict[str, Any]:

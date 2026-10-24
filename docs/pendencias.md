@@ -161,10 +161,11 @@ Outros eventos:
 - Terra secreta 7501: **feita** (`handlers/fam.py`, 0073 e 0074). *(visto)* entrada, sala, derrota contra o
   Invasor e saída (oficial_20261023-171155-1 #5056-#5172). **dedução** do cliente: a árvore (invocar 1 por dia, só
   o líder; nível pelo `UpGradeTempInfos` tipo 20 com a EXP zerando, que fecha com a guilda de 36 dias da captura),
-  energizar, o buff 8566 e as coletas a cada 3 min. **TODO(inventado)**: a vitória contra o Invasor e a
-  contribuição dela (`fam_invader_offer` 10), a EXP de cada tique, o bônus da energia e a contribuição da coleta
-  (`fam_tree`), o texto "Received: N Contribution". Cada jogador tem a sua cópia dos nós (Invasor vencido e coletas
-  não somem para os outros) e os outros membros não aparecem no mapa (só o número no 4453). O 8743 (Master
+  energizar, o buff 8566 e as coletas a cada 3 min. *(visto)* as ondas de Invasores a cada 2 h com o aviso no chat
+  da guilda e o aviso de cada vitória (10 de contribuição e +10 de riqueza); o Invasor vencido some para todos e só
+  um luta com ele por vez (`fam.Invasion`). **TODO(inventado)**: o que o vencedor vê, a EXP de cada tique, o bônus da
+  energia e a contribuição da coleta (`fam_tree`), o texto "Received: N Contribution". As coletas ainda são uma
+  cópia por jogador e os outros membros não aparecem no mapa (só o número no 4453). O 8743 (Master
   Treasure Thief) fica recusado: depende da Class Wars entre servidores.
 
 ## Herói, exército e pets ([heroi-exercito.md](heroi-exercito.md))

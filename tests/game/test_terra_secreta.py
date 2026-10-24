@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -90,12 +91,49 @@ async def test_vencer_o_invasor_da_contribuicao(tmp_path: Path, monkeypatch: pyt
         await _enter(g)
         await back_to_map(g)
         before = _session(g).snapshot.character.consortia_offer  # type: ignore[union-attr]
+        wealth = _session(g).ctx.guilds.of(_session(g).player_id)[0].offer  # type: ignore[index]
         got = await _fight(g)
         assert pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103)).battleResult == 1
         assert _node(got).nodeState == DONE and 4122 not in codes(got)
         texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 83]
-        assert "Received: 10 Contribution" in texts  # TODO(inventado) fam_invader_offer (0073)
+        assert "Received: 10 Contribution" in texts  # TODO(inventado) o texto de quem venceu
         assert _session(g).snapshot.character.consortia_offer == before + 10  # type: ignore[union-attr]
+        # (visto) 231733 #4104-#4105: o aviso a toda a guilda e o 164 com a riqueza +10
+        assert any(t.endswith("has defeated an invader and earned 10 guild contribution!") for t in texts)
+        info = pb.ConsortiaInfoMsg.FromString(next(p.body for p in got if p.code == 164))
+        assert info.offer == wealth + 10
+
+        # o vencido some para todos (a onda é da guilda; quem está na sala recebe o 128 state 8)
+        (inv,) = _session(g).ctx.guilds.invasions.values()
+        assert INVADER in inv.dead and not inv.fighting
+
+
+async def test_um_por_vez_no_invasor(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=33000) as g:
+        await _enter(g)
+        await back_to_map(g)
+        s = _session(g)
+        mine = s.ctx.guilds.of(s.player_id)
+        assert mine is not None
+        inv, _ = fam.invasion(s.ctx.guilds.invasions, mine[0].id or 0, s.ctx.clock.now())
+        inv.fighting[INVADER] = 999  # outro membro lutando com ele
+        s.ctx.online._by_id[999] = SimpleNamespace(battle=object())  # type: ignore[assignment]
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=INVADER, paraBool1=True))
+        got = await g.idle()
+        assert codes(got) == [111, 128] and s.battle is None
+        assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg == "Target is in battle, please wait…"
+        del s.ctx.online._by_id[999]
+
+
+def test_ondas_de_invasores_a_cada_2_horas() -> None:
+    """(visto) os avisos às 16:00, 18:00 e 20:00; o 1º olhar depois de subir o servidor não avisa."""
+    store: dict[int, fam.Invasion] = {}
+    inv, new = fam.invasion(store, 1, DAY + timedelta(minutes=30))
+    assert not new and inv.wave == DAY
+    inv.dead.add(INVADER)
+    assert fam.invasion(store, 1, DAY + timedelta(hours=1, minutes=59)) == (inv, False)
+    inv2, new = fam.invasion(store, 1, DAY + timedelta(hours=2))
+    assert new and inv2.wave == DAY + timedelta(hours=2) and not inv2.dead
 
 
 async def test_sem_guilda_nao_entra(tmp_path: Path) -> None:
