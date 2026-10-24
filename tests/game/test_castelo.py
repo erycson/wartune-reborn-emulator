@@ -505,3 +505,21 @@ async def test_novice_set_over_http_survives_the_logout_save(tmp_path: Path) -> 
         await session.gone.wait()
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.character.novice_process == READY + 500 and saved.character.offline_at is not None
+
+
+async def test_reaching_grade_14_opens_the_impose_order(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #5840: a subida ao 14 manda o 104 {orderId 2, orderType 3} antes do 150."""
+    from wartune_server.game.handlers.player import push_level
+
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _set(g, grades=13)
+        assert [o.order_type for o in snap.orders].count(3) == 0
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        snap.character.grades = 14
+        push_level(session, 13)
+        got = await g.until(150)
+        assert got[0].code == 104
+        assert pb.OrderInfoMsg.FromString(got[0].body) == pb.OrderInfoMsg(orderId=2, orderType=3, remainTime=0)
+        push_level(session, 14)  # já tem a fila: sem outro 104
+        assert 104 not in [p.code for p in await g.until(150)]

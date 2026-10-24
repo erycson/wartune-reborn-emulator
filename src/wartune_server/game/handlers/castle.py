@@ -27,7 +27,7 @@ S_PLAYER, S_CHAT, S_ALERT, S_QUESTS = 3, 83, 111, 112
 S_BUILDINGS, S_ORDER_USE, S_ORDER_ADD, S_ORDER_QUICK, S_ORDER_LIST = 4130, 151, 104, 102, 4187
 S_IMPOSE, S_TRANSFER, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 4452, 100
 BUY_ORDER_PRICE = 395  # (cliente inglês) QueueBar.buyQueueItem: "mainBar.QueueBar.content" com 395
-IMPOSE_GRADE, IMPOSE_COOLDOWN = 14, 3600  # LevyView: nível mínimo; só turco: city_city_upgrade #3, 151 remainTime 3600
+IMPOSE_COOLDOWN = 3600  # só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
 # (visto) tempinfos: 111-113 ("Accelerate Building Construction Cooldown 1/3/7 times") e 763 ("Collect Levy")
 ACCELERATE, LEVY = 12, 42  # QuestCondictionInfos.CondictionType
@@ -249,8 +249,9 @@ async def gold_impose(s: GameSession, _: object) -> None:
     assert snap is not None and snap.castle is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
     council, mine = cs.by_son_type(snap, templates, cs.COUNCIL), cs.by_son_type(snap, templates, cs.MINE)
+    cs.impose_order(snap, now)  # chegou ao 14 sem ``push_level`` (EXP de pacote, ``player.granted``): a fila nasce aqui
     order, used = cs.free_order(snap, cs.IMPOSE, now), cs.impose_used(snap.castle, s.ctx.clock.now())
-    if council is None or order is None or used >= b.MAX_IMPOSE or c.grades < IMPOSE_GRADE:
+    if council is None or order is None or used >= b.MAX_IMPOSE or c.grades < cs.IMPOSE_GRADE:
         _refuse(s, 8327, "sem conselho, fila ocupada, sem cobranças ou nível", used=used)
         return
     p1 = int((cs.template(templates, council.template_id) or {}).get("Property1", 0))

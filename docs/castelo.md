@@ -14,7 +14,10 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 - **Filas** (`build_orders`) *(visto)*: tipo 1 prédio, 2 tecnologia (MasterType 13/14), 3 cobrança
   de ouro. Números do oficial: 1 = prédio (nasce no 8281), 2 = cobrança, 3 = tecnologia; fila
   comprada = maior + 1. Limite de 2 filas de prédio (`BuildingModel.buildOrderLimit`) *(cliente)*.
-  O login completa as que faltam (`castle.ensure`).
+  O login completa as que faltam (`castle.ensure`). A de cobrança só nasce no nível 14 *(visto,
+  oficial_20261023-171155-1 #5840: 104 {orderId 2, orderType 3} na subida; o 4187 antes do 14 só tem a fila 1)*:
+  `push_level` manda o 104, e o 8327 cria a que faltar (subida sem `push_level`). A de tecnologia nasce no login
+  *(dedução: nenhuma captura mostra quando)*.
 - **Produção** *(visto, login.json, só turco; a inglesa #590-#591 só mostra prédios, sem tecnologia)*: ouro/hora = Property1 do conselho (901) + mina (101) +
   Σ tecnologias de ouro (MasterType 13) `EffectTempInfos[Property1].Property1 × nível`. Teto =
   Property2 do depósito (301), 10000 sem depósito. Acumulada sob demanda (`settle`), guardando a

@@ -27,6 +27,9 @@ GOLD_TECH = ("13",)  # MasterType das tecnologias de ouro (1304, 2304): EffectTe
 TECH = ("13", "14")  # MasterType das tecnologias: usam a fila de tecnologia
 BASE_GOLD_MAX = 10000  # teto sem armazém (inglês #124, antes de existir o 301)
 BUILD, TECH_ORDER, IMPOSE = 1, 2, 3  # OrderInfoMsg.orderType
+# (cliente) LevyView: cobrança a partir do 14. (visto) oficial_20261023-171155-1: o 4187 antes do 14 só tem a fila 1, e
+# a missão 230 que levou ao 14 mandou o 104 {orderId 2, orderType 3} (#5840)
+IMPOSE_GRADE = 14
 BUILD_ORDER_LIMIT = 2  # BuildingModel.buildOrderLimit
 TRANSFER = 1511
 CASTLE_READY = 20000  # noviceProcess logo depois do 8281 (prédios e fila iniciais)
@@ -212,6 +215,14 @@ def order_full(order: BuildOrder, now: datetime) -> pb.OrderInfoMsg:
     return msg
 
 
+def impose_order(snap: PlayerSnapshot, now: datetime) -> BuildOrder | None:
+    """Cria a fila de cobrança (número 2) quem chegou ao ``IMPOSE_GRADE`` e ainda não tem; ``None`` se não criou."""
+    if snap.character.grades < IMPOSE_GRADE or next(orders_of(snap, IMPOSE), None) is not None:
+        return None
+    taken = any(o.order_id == 2 for o in snap.orders)
+    return new_order(snap, IMPOSE, now, None if taken else 2)
+
+
 def order_list(snap: PlayerSnapshot, now: datetime) -> pb.BuildOrderList:
     return pb.BuildOrderList(buildOrder=[order_full(o, now) for o in snap.orders])
 
@@ -242,11 +253,15 @@ def ensure(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> lis
     """No login: filas de tecnologia e de cobrança, e o que já devia ter sido liberado.
 
     A fila de prédios (1) e a produção nascem no 8281 do tutorial; quem já passou dele (ou
-    pulou o tutorial) recebe aqui. Os números seguem o oficial: 1 prédio, 2 cobrança, 3 tecnologia.
+    pulou o tutorial) recebe aqui. Os números seguem o oficial: 1 prédio, 2 cobrança, 3 tecnologia. A de cobrança
+    só do ``IMPOSE_GRADE`` em diante (``impose_order`` na subida de nível). (dedução) a de tecnologia nasce no login:
+    nenhuma captura mostra quando o oficial a cria.
     """
     changed: list[object] = []
     ready = snap.character.novice_process >= CASTLE_READY
-    for order_type, number in ((IMPOSE, 2), (TECH_ORDER, 3)) + (((BUILD, 1),) if ready else ()):
+    if (order := impose_order(snap, now)) is not None:
+        changed.append(order)
+    for order_type, number in ((TECH_ORDER, 3),) + (((BUILD, 1),) if ready else ()):
         if next(orders_of(snap, order_type), None) is None:
             taken = any(o.order_id == number for o in snap.orders)
             changed.append(new_order(snap, order_type, now, None if taken else number))

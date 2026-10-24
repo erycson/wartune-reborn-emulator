@@ -13,7 +13,7 @@ from ..arena import data_reset
 from ..builders import login as b
 from ..builders.army import castle_pawns, unlocked_pawns
 from ..builders.player import quest_update
-from ..castle import castle_yield
+from ..castle import castle_yield, impose_order, order_info
 from ..router import router
 from ..session import GameSession
 from .login import army, player_info
@@ -21,7 +21,11 @@ from .space import talk
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
-S_SHORT, S_CASTLE_PAWNS = 139, 100  # U_C_ARMY_SUPPROT (vazio): faltou soldado para completar o exército
+S_SHORT, S_CASTLE_PAWNS, S_ORDER_ADD = (
+    139,
+    100,
+    104,
+)  # U_C_ARMY_SUPPROT (vazio): faltou soldado para completar o exército
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}  # TemplateId < 0
 # (dedução) a captura EN não tem a mochila cheia na entrega: o texto é o do language.txt inglês
 # (ConsortiaCaseCellClickMediator.command01)
@@ -73,6 +77,10 @@ def push_level(s: GameSession, before: int) -> None:
     snap = s.snapshot
     assert snap is not None
     templates = s.ctx.templates
+    # (visto) oficial_20261023-171155-1 #5840: no 14 a fila de cobrança nasce com o 104, antes do 100/150; quem chama
+    # grava o personagem, e a fila se grava na primeira cobrança (no login ``castle.ensure`` a recria igual)
+    if (order := impose_order(snap, s.ctx.clock.now())) is not None:
+        s.send(S_ORDER_ADD, order_info(order, s.ctx.clock.now()))
     pawns = castle_pawns(snap, templates)
     # os prédios do oficial nascem no 8281 (EN #578, antes o 4154 do login vem vazio); aqui nascem com o personagem,
     # então "castelo aberto" é a produção já iniciada pelo 8281
