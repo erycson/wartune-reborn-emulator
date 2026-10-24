@@ -57,6 +57,9 @@ def daily(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
 
 
 CLICK = "click:"  # contadores do painel de atividades (4412/4413)
+# ``gradeProcess`` do PlayerMsg: bit N = pacote de nível N aberto (GradeDrop.Grade; BoxManager.isRecviedByGrade).
+# (visto) tutorial_en #690 "32" (o de 5), #3256 "1056" (5 e 10); oficial_20261023-231733-1 #276 "33824" (5, 10, 15)
+GRADE_BOXES = "grade_boxes"
 
 
 def click(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:

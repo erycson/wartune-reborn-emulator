@@ -151,7 +151,8 @@ linhas de `SkillBufferTempInfos`. `BufferMsg` no 153 de quem age e dos alvos.
 
 - O lado do jogador morre de verdade; o dano é a mesma fórmula, mais `damageImprove` % depois do 4361.
 - Herói NPC do lado 2: antes do golpe vai um 75 com `heroIndexId` dele, skill e alvos (o cliente
-  só põe o ícone da skill sobre ele; `castTime` não é usado).
+  só põe o ícone da skill sobre ele; `castTime` não é usado). O `castTime` vai como o oficial, fixo por skill
+  (`ENEMY_CAST_MS`: 3500 no 10711, 4500 no 10000, 4900 no 10811...; fora da tabela, 3500).
 - Herói do jogador em modo manual: espera a ordem até 112 quadros (4,5 s) e então dá o golpe básico
   (#1667, quadro 111).
 - A spec aceita `stats`, `attack` e `defaultSkill` nos heróis e pets (cópia de jogador, robô, pet), fora do

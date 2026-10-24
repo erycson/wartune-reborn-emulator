@@ -16,6 +16,7 @@ from google.protobuf.message import Message
 from ...domain.models import Building, Castle, Character, Consortia, Hero, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
+from .. import events as ev
 
 NEVER = "2000-01-01 00:00:00"
 MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2: tutorial_en)
@@ -199,7 +200,7 @@ def player_msg(
         attackLeftCount=snap.arena.attack_left if snap.arena is not None else 5,
         noviceProcess=c.novice_process,
         fightingCapacity=fighting_capacity,
-        gradeProcess="0",
+        gradeProcess=st.text if (st := ev.peek(snap, ev.GRADE_BOXES)) is not None and st.text else "0",
         right=1,
         job=c.job,
         signDate=fmt_time(now),

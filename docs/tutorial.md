@@ -126,26 +126,23 @@ Não depende do servidor (o oficial dá o mesmo erro) e não há pacote que evit
 - `tests/game/test_tutorial.py`: cliente falso nos trechos principais (primeira batalha, missão
   com subida de nível, portal, baú e equipar, mapa 10002 até o castelo, retomada).
 - `tests/game/test_tutorial_oracle.py`: reenvia ao servidor todos os pacotes do cliente da
-  captura (98 a 822) e compara quantas respostas de cada opcode saem. Fora: golpes da batalha,
-  sistemas que não existem aqui (atividades, títulos, moda, patrulha dos monstros) e duas
-  respostas deixadas de lado de propósito.
+  captura (98 a 822) e compara quantas respostas de cada opcode saem. Fora só o que depende do
+  relógio real: golpes da batalha e a patrulha sorteada dos monstros (4122). Atividades (4476),
+  títulos (4484), moda (4542) e contrato do rei (4434) já entram na conta.
 
 ### Diferenças conhecidas (`KNOWN_GAPS` do oráculo)
 
-Além das de ritmo e de outros jogadores (11, 4248, chegada do exército 140 ×2):
-- 150 ×2 idênticos na saída do mapa do tutorial (inglesa #518-#519, 5125 1000206): aqui sai um.
-- Opcode 2 (`U_C_PLAYER_GRADE`, corpo `32023332`, sem mensagem no `.proto`) depois do Lvl. 5 Starter Pack
-  (#690): não existe aqui. **sem dado**: significado do campo 6 = "32".
-- A missão 50 avança no 5017 20000 (#584): o oficial não manda o 112 (aqui sobra um).
-- Alvo aleatório na batalha (`KNOWN_EXTRA`): a ordem dos alvos do oficial não foi decifrada.
+Todas de ritmo ou de outros jogadores, nenhuma do servidor:
+- 11 ×5 (salas de outros jogadores), 4248 (#133, a virada do campo 4008) e o 83 do chat do mundo (#664).
+- Chegada do exército 140 ×2 (#776-#777): o timer é de 2,4 s reais e o próximo pacote chega antes.
+- Alvo aleatório na batalha (`KNOWN_EXTRA`, 109 e 3 ×2): o oficial sorteia o alvo entre os vivos.
 
-Outras diferenças contra a captura inglesa ainda abertas:
-- Luta com o castelo-robô (#1657): `battleType` 4, `mapTempId` 993, herói 11008 com o nome do robô, 2 pilhas
-  10102 (posições 1 e 7). Aqui usa a luta do guarda da mina (`outer_city.guard_battle`, `shortcut:`).
-- 363/364 vão vazios no login; a inglesa (#88/#102) tem as edições.
-- 4156 sem amigos: `maxPage` 0 na inglesa (#61); aqui 1. 4544 vazio na resposta ao 8224 (#42): aqui não sai.
-- 4248 com `state: 2` (#104); `warfield.py` manda 1.
-- `ENEMY_CAST_MS` 3500: a inglesa tem 3500/4500/4900 por skill (#1662/#1675/#1689).
+Fechadas com esta captura: o opcode 2 (`gradeProcess`, bits dos `GradeDrop.Grade` abertos: "32" no pacote de 5,
+#690), o 150/4434 e o 4476/4484 da abertura de caixa (#673-#688), o 4542 do 8625, o `castTime` do herói inimigo
+por skill (`battle.ENEMY_CAST_MS`, #1662/#1675/#1689), o castelo-robô (993), 4156 `maxPage` 0, 4544 e o 4248.
+
+Ainda aberto: a troca da sorte (363/364) vai vazia no login; a inglesa (#88/#102) tem as edições, mas o sistema
+não existe aqui (linha própria em [progresso.md](progresso.md)).
 
 ## Para testar no cliente
 

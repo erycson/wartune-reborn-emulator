@@ -78,9 +78,11 @@ MAGIC = "2"  # SkillTempInfo.CountWay: 2 mágico (maga 30000/30711/30811), 1 e 3
 PLAYER_SIDE = 1
 AUTO = 1  # AttackModeMsg.mode / BattlePrepareMsg.attackModel
 ORDER_TIMEOUT = 112  # PvP: espera a ordem até 4,5 s (castTime do herói) antes de agir sozinho
-# HeroOrderMsg.castTime do herói inimigo: 3500 no 10711 (inglês #1662, castelo-robô; o coliseu turco também);
-# o inglês tem 4500 no 10000 e 4900 no 10811 (#1675, #1689): ponytail: a regra por skill não foi decifrada
-ENEMY_CAST_MS = 3500
+# HeroOrderMsg.castTime do herói inimigo, fixo por skill (visto: tutorial_en #1662, #1675, #1689 e os coliseus
+# turcos 171155/215937/231733). Não sai dos frames do ActionTempInfos (33 frames -> 3500, 23 -> 4500, 27 -> 4900)
+# shortcut: skill fora da tabela usa 3500, o valor mais visto; acrescentar a cada captura nova
+ENEMY_CAST_MS = {10711: 3500, 10000: 4500, 10811: 4900, 20721: 3500, 20811: 3900, 30721: 3900, 30821: 4500, 31211: 3900}
+DEFAULT_CAST_MS = 3500
 
 # Fórmula de dano (visto tutorial_en, 153 contra os atributos do 150 e dos templates; docs/batalha.md):
 # base = max((A - D) × defence_factor, A × floor); golpe = base × Parameter1/100 + Parameter2, ±spread,
@@ -587,7 +589,7 @@ class Battle:
     def _announce(self, unit: Unit, skill: int) -> None:
         """75 do herói inimigo: o cliente mostra a skill que ele vai usar (inglês #1662)."""
         msg = pb.HeroOrderMsg(battleId=self.id, heroIndexId=unit.living_id, skillId=skill, result=0)
-        msg.castTime, msg.qteTime = ENEMY_CAST_MS, 0
+        msg.castTime, msg.qteTime = ENEMY_CAST_MS.get(skill, DEFAULT_CAST_MS), 0
         msg.targetIndexs.extend(t.living_id for t in self._targets(unit, skill))
         self._send(S_ORDER, msg)
 

@@ -23,7 +23,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
-| Validação e base | 0 | 4 | 0 | 0 | 0 |
+| Validação e base | 1 | 3 | 0 | 0 | 0 |
 | Castelo | 9 | 6 | 2 | 2 | 4 |
 | Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
@@ -35,7 +35,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Labirinto (Forgotten Catacombs) | 1 | 1 | 4 | 2 | 5 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 3 | 5 | 0 | 6 | 0 |
-| Tutorial | 1 | 1 | 1 | 0 | 0 |
+| Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 3 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 1 | 5 | 2 |
@@ -43,15 +43,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 2 | 1 | 1 | 2 | 1 |
-| **Total** | **88** | **92** | **33** | **52** | **42** |
+| **Total** | **90** | **90** | **33** | **52** | **42** |
 
 ## Validação e base
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Conta nova até o castelo no Flash Player projector | 🟡 | | pelo portal, acompanhando `logs/packets.log`; ainda não validado |
-| Tutorial no cliente real | 🟡 | | o oráculo bate com a captura (diferenças em [tutorial.md](tutorial.md)); falta jogar no cliente |
-| Cobertura de opcodes (`scan_opcodes.py`, C>S, classes novas) | 🟡 | | varredura final sem nada faltando |
+| Tutorial no cliente real | 🟡 | | o oráculo bate com a tutorial_en sem exclusões (só ritmo, [tutorial.md](tutorial.md)); falta jogar no cliente |
+| Cobertura de opcodes (`scan_opcodes.py`, C>S, classes novas) | ✅ | | os 438 C→S do cliente têm handler (o 20001 é o login da sessão) |
 | `shortcut:`/`ponytail:` do código | 🟡 | | classificar: comportamento faltando (implementar), dado inventado (`TODO(inventado)`), atalho (fica) |
 
 ## Castelo
@@ -304,7 +304,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Campanha de treino (10001/10002), retomada, missões e guia | ✅ | | oráculo com tutorial_en |
 | Nível e atributos de guerreiro e caçador | 🧪 | | crescimento espelhado do mago (palpite); o ×1,05 do 150 fora da maga |
-| Oráculo: diferenças conhecidas | 🟡 | | 150 ×2, opcode 2, 112 da missão 50 ([tutorial.md](tutorial.md)) |
+| Oráculo: diferenças conhecidas | ✅ | | só ritmo e outros jogadores ([tutorial.md](tutorial.md)) |
 
 ## Mapa do mundo (cidade externa)
 
@@ -408,4 +408,4 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anti-vício (AAS) | ❌ | | desligado |
 | Captcha, SMS, celular | ❌ | | |
 | Login: ordem dos pacotes | ✅ | 🇹🇷 | conta até o nível 16 conferida no inglês; nível alto (4631/4633/4555/4495) só no turco |
-| Login: 363/364, 4156, 4544, 4248 | 🟡 | | diferenças contra a inglesa ([tutorial.md](tutorial.md)) |
+| Login: 363/364 (troca da sorte) | 🟡 | | diferenças contra a inglesa ([tutorial.md](tutorial.md)) |

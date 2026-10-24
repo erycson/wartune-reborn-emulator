@@ -3,7 +3,7 @@
 Reenvia cada pacote do cliente (com os ids trocados pelos nossos) e compara quantas respostas de
 cada opcode saem, contra o servidor oficial. A ordem fina (que oscila com o ritmo da batalha e do
 cliente) fica com ``test_tutorial.py``; aqui o que importa é não faltar nem sobrar resposta.
-Ignora os golpes da batalha e o que ainda não existe aqui (``NOT_IMPLEMENTED``). Precisa da
+Ignora os golpes da batalha e a patrulha sorteada (``TIMING``). Precisa da
 captura inglesa (``captures/tutorial_en.json`` do checkout principal, fora do git).
 """
 
@@ -28,30 +28,24 @@ from wartune_server.services.clock import FakeClock
 CAPTURE = Path("D:/wartune/servidor/captures/tutorial_en.json")
 FIRST, LAST = 98, 822  # 5127 (entra no tutorial) .. 169 depois do 4129 com as duas minas ocupadas (missão 60)
 LOGIN_TAIL = range(99, 116)  # fim do login do oficial (4471 .. 4685): chega depois do 5127, não é resposta dele
-TIMING = {153, 75, 156, 69}  # golpes e confirmações saem no ritmo da batalha
-NOT_IMPLEMENTED = {
-    4476,  # SumActiveDataMsg (atividades)
-    4484,  # AppellsMsg (títulos)
-    4434,  # contrato do rei
-    4542,  # livro de moda (8625)
-    4122,  # patrulha dos monstros no mapa 10002
-}
+# golpes e confirmações saem no ritmo da batalha; a patrulha dos monstros (4122, mapa 10002) é sorteada a cada ~6 s
+# reais (handlers.campaign._patrol_loop), e o oráculo anda 0,1 s por pacote
+TIMING = {153, 75, 156, 69, 4122}
 # diferenças conhecidas (docs/tutorial.md, "Diferenças conhecidas"); #N = tools/dump_capture.py da inglesa.
 # A última é do servidor, dentro do tutorial; as outras, ritmo ou outros jogadores:
 # - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793) e 4248 (#133, estado da guerra 4008): do
 #   servidor, não respostas;
 # - 140 ×2 da chegada do exército (#776-#777): o timer é de 2,4 s reais e o próximo pacote chega antes;
-# - 2 (U_C_PLAYER_GRADE, corpo 32023332, sem mensagem conhecida) depois do Lvl. 5 Starter Pack (#690): não existe aqui.
 # O 8586 do #678 (login de 7 dias, dia 1) vai com o GUID do nosso pacote do mesmo tipo e ordem (_official_packages).
 # 83: #664, chat do mundo de outro jogador (canal 10, "~" de Moondust); antes casava por acaso com o anúncio
 # deduzido das 01:30 UTC, desativado na 0057
-KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 2: 1, 83: 1})
+KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 83: 1})
 # Sobrando: 109 e 3 nas duas minas (#742, #796). O guarda do oficial bateu no herói (#736) e ninguém morreu; o nosso
 # mira o menor livingId (a tropa) e mata soldados, e a perda manda 109 e 3 (o Daru). O oficial escolhe o alvo ao
 # acaso entre os vivos (tropas e herói, nas duas capturas inglesas)
 KNOWN_EXTRA = Counter({109: 2, 3: 2})
 BATTLE_CLIENT = {10007, 10008, 10010, 10020, 10022, 20008, 5015, 5035}  # podem vir no meio da luta
-SKIPPED_CLIENT = {8625, 15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
+SKIPPED_CLIENT = {15013, 20010, 8516, 5008}  # sem resposta relevante para o tutorial
 
 pytestmark = [
     pytest.mark.skipif(not CAPTURE.exists(), reason="precisa de captures/tutorial_en.json"),
@@ -76,7 +70,7 @@ def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _filtered(codes: list[int]) -> list[int]:
-    return [c for c in codes if c not in TIMING | NOT_IMPLEMENTED]
+    return [c for c in codes if c not in TIMING]
 
 
 def _capture() -> list[dict]:  # type: ignore[type-arg]

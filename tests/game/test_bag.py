@@ -19,11 +19,17 @@ async def test_opening_the_newbie_box_swaps_it_for_its_drop(tmp_path: Path) -> N
 
         g.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))
         got = await g.until(3)
-        assert [p.code for p in got] == [115, 150, 109, 115, 111, 83, 3]
+        got += await g.until(83)
+        # (visto) tutorial_en #673-#692: 150 e 4434 (os Balens), 4476 e 9 4484, 111, 2 com o gradeProcess "32", 3 e 83
+        codes = [p.code for p in got]
+        assert codes == [115, 150, 4434, 109, 115, 4476, *[4484] * 9, 111, 2, 3, 83]
+        got = [p for p in got if p.code not in (4434, 4476, 4484)]
+        assert pb.NoviceReqMsgMsg.FromString(got[5].body).gradeProcess == "32"
+        assert pb.PlayerMsg.FromString(got[6].body).gradeProcess == "32"
         assert pb.ItemMovedListMsg.FromString(got[0].body).moved[0].HasField("item") is False
         added = pb.ItemMovedListMsg.FromString(got[3].body).moved
         assert [(m.item.templateId, m.changePos) for m in added] == [(2060102, 0), (1080002, 1), (1070002, 2)]
-        text = pb.ChatChannelMsg.FromString(got[4].body).encodeMsg
+        text = pb.ChatChannelMsg.FromString(got[7].body).encodeMsg
         assert (
             text
             == "Received:  10 Bound Balens, 3,000 Gold, Amethyst Ring x1, Coruscan Crest x1, Lvl. 10 Starter Pack x1"

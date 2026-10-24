@@ -17,6 +17,7 @@ from ...services import cash
 from ...services.ledger import item_entry
 from ...templates.repository import Row
 from .. import bag, buffs, daily, monsters, rewards, rules, space
+from .. import events as ev
 from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import fashion_book, item_info, item_moved
@@ -39,6 +40,7 @@ from .player import (
 from .shop import send, send_blood
 
 S_DETAIL, S_RENTAL, S_DROP_FAIL, S_FOG = 4125, 4709, 4268, 4939
+S_GRADE_BOXES = 2  # U_C_PLAYER_GRADE (NoviceReqMsgMsg): só o gradeProcess; o cliente não lê, o 3 seguinte leva igual
 S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (The Empire Crusade)
 S_EFFECT, S_ITEM_BUFFER = 110, 4188  # PropertyUpdatedMsg e ItemBufferRspMsg dos pergaminhos de efeito
 BOX, USE, GEM_BOX, BLOOD, EFFECT = "298", "203", "206", "209", "201"  # ItemTempInfo.SonType usáveis
@@ -299,13 +301,28 @@ async def _open_box(s: GameSession, box: Item, row: Row, _: int) -> bool:
     ledger = cash.change(c, point, gift, "item", ref, s.ctx.clock.now()) if point or gift else None
     logs = [item_entry(c.id or 0, box.template_id, -1, "use", ref)]
     logs += [item_entry(c.id or 0, i.template_id, i.count, "drop", ref) for i in new]
-    await s.ctx.characters.save(c, *new, *logs, *([ledger] if ledger else []), delete=(box,))
+    grade = int(drops[0].get("Grade") or 0)
+    boxes = ev.state(snap, ev.GRADE_BOXES, s.ctx.clock.now()) if grade else None
+    if boxes is not None:
+        # no ``text``: o bit 35/40 não cabe na coluna Integer. shortcut: o cliente faz int(gradeProcess) (32 bits) e
+        # perde os bits acima do 31; sem captura do pacote de 35/40 não se sabe o que o oficial manda
+        boxes.text = str(int(boxes.text or "0") | 1 << grade)
+    await s.ctx.characters.save(
+        c, *new, *logs, *([ledger] if ledger else []), *([boxes] if boxes else []), delete=(box,)
+    )
+
+    from . import events, vip  # events importa login, que importa este módulo
 
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
-    _army(s)
+    if ledger:
+        # (dedução) 150 e 4434 só com Balens: o pacote de 5 (10 Bound Balens, tutorial_en #674-#675) manda, o de 10
+        # (Daru, ouro e itens, #3241-#3245) não
+        _army(s)
+        vip.send_king(s)
     if -100 in ids:
         castle_yield(s)
     s.send(S_ITEMS, bag.moved(new, s.player_id))
+    events.items_gained(s)  # (visto) 4476 e os 4484 depois do 115 dos itens: #677-#688, #3244-#3254
 
     def label(d: Row) -> str:
         name = (templates.get("ItemTempInfos", int(d["TemplateId"])) or {}).get("TemplateName", d["TemplateId"])
@@ -315,6 +332,13 @@ async def _open_box(s: GameSession, box: Item, row: Row, _: int) -> bool:
 
     text = "Received: " + ", ".join(label(d) for d in reversed(drops))  # o oficial lista do fim para o começo
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    if boxes is not None:
+        # (visto) 111, 2 com o gradeProcess, 3 e 83: tutorial_en #3255-#3258, 231733 #275-#278 (no #689-#692 o 83 veio
+        # antes do 3)
+        s.send(S_GRADE_BOXES, pb.NoviceReqMsgMsg(gradeProcess=boxes.text))
+        _player(s)
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+        return True
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     _player(s)
     return True
