@@ -347,7 +347,7 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     assert snap is not None
     a = next((x for x in s.ctx.events.running(now) if x.active_id == msg.activeId), None)
     if a is not None and a.active_type == EXCHANGE:
-        await _exchange(s, a, msg, listed)
+        await _exchange(s, a, msg)
         return
     found = [(p, st) for p, st, _ in _status(s, a, now) if p.package_id == msg.packageId] if a else []
     if (
@@ -385,10 +385,11 @@ def _coins(drops: Sequence[tuple[int, int]]) -> bool | None:
     return True if any(t < 0 and t not in (-100, -600) for t, _ in drops) else None
 
 
-async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg, listed: list[ev.Active]) -> None:
+async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg) -> None:
     """Troca (tipo 10, ``getway`` 2): ``count`` vezes ``conditionValue`` do item ``conditionBak`` pelos itens do
-    pacote (o FunnyMutiFrame escolhe o ``count``). *Dedução*, sem captura de troca: a resposta é a do resgate (3,
-    109, 115 do que entrou, 4476, 111, 4476 desta, 83), com o 115 do que saiu antes."""
+    pacote (o FunnyMutiFrame escolhe o ``count``). (visto) oficial_20261024-191924-1 #393-#399, troca por ouro: 115 do
+    que saiu, 109, 111, 4476 só desta (e o 4426), 83 "Received: Gold x 10000"; com item no pacote, o 115/4476 do que
+    entrou por *dedução* (como no resgate)."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -413,8 +414,6 @@ async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg
 
     s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     granted(s, drops, new, text, chat=False, player=_coins(drops))  # (só turco: online_odul #64-#82) 115, 115, 4476
-    if not new:
-        _sum_data(s, listed)
     alert(s, GIFT_OK)
     _sum_data(s, [a])
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

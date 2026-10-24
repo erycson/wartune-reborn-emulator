@@ -89,8 +89,9 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 - Troca (tipo 10, `getway` 2, condição 11): vale (1) com `conditionValue` do item `conditionBak` na mochila e
   limite sobrando; 8586 tipo 2 com `count` (o `FunnyMutiFrame` escolhe; `count` × custo, `count` × itens); o
   `getCount` do 4476 = trocas que ainda cabem (0 = sem limite), e com o limite usado o pacote vai 2 (pego); estado `sum:<active>:<pacote>` =
-  trocas feitas no período. Resposta: 115 do que saiu, depois a do resgate (3, 109, 115, 4476, 111, 4476 desta, 83).
-  **Dedução**: a inglesa não troca nada; o significado do `getCount` vem do cliente (`FunnyBagItem`, `mutiMaxNum`).
+  trocas feitas no período. Resposta *(visto: oficial_20261024-191924-1 #393-#399, troca por ouro)*: 115 do que
+  saiu, 109, 111, 4476 só desta (e o 4426), 83 "Received: Gold x 10000"; com item no pacote, o 115/4476 do que entrou
+  é **dedução** (como no resgate). O significado do `getCount` vem do cliente (`FunnyBagItem`, `mutiMaxNum`).
 - Gasto (tipo 1 "Spending Bonus", condição 9): soma os **Balens** (não os vinculados) que caíram em qualquer
   pedido, no mesmo ponto do leed 15 (`GameSession.on_packet`); conta o período (cada uma dura um dia na inglesa).
   **Dedução**: sem captura de gasto em inglês; "Spend" no texto.

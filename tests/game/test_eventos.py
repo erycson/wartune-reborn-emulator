@@ -69,6 +69,25 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         assert ev.peek(saved, f"sum:{LOGIN}:{pkg}") is not None and saved.character.gold == gold + 20000
 
 
+async def test_exchange_item_for_gold(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) oficial_20261024-191924-1 #393-#399: 115 do que saiu, 109, 111, 4476 só desta e o 83."""
+    pack = ev.Package("P1", 1, (hev.HAS_ITEM, 1, 2130004), ((2130004, 1, ev.COST), (-100, 10000, 0)))
+    day = datetime(2026, 1, 1, tzinfo=UTC)
+    active = ev.Active("X1", hev.EXCHANGE, "Troca", "-", "-", 2, 1, day, day + timedelta(days=9999), (pack,))
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        assert s.snapshot is not None
+        monkeypatch.setattr(type(s.ctx.events), "running", lambda self, now: [active])
+        scroll = Item(g.user_id, 2130004, count=1, pos=rules.free_bag_pos(s.snapshot))
+        s.snapshot.items.append(scroll)
+        await g.server.services.characters.save(scroll)
+        g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId="X1", packageId="P1", count=1))
+        got = await g.until(83)
+        assert [p.code for p in got] == [115, 109, 111, 4476, 83]
+        assert [d.activeId for d in pb.SumActiveDataMsg.FromString(got[3].body).datas] == ["X1"]
+        assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: Gold x 10000"
+
+
 async def test_relogin_day_4_with_daru(tmp_path: Path) -> None:
     """(visto) oficial_20261024-191924-1 #174-#190: Daru no prêmio põe um 3 antes do 109; texto na ordem do oficial."""
     async with logged_in(tmp_path, novice=19000) as g:
