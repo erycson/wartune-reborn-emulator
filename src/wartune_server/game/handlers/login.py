@@ -11,6 +11,7 @@ Sequência (ver ``docs/startup-sequence.md``):
 
 from __future__ import annotations
 
+from google.protobuf.json_format import ParseDict
 from google.protobuf.message import Message
 
 from ...domain.errors import DomainError
@@ -51,6 +52,12 @@ S_ITEMS = 115
 S_WEDDING_ROOMS = 4662
 S_ITEM_BUFFER = 4188  # pergaminhos de efeito ativos (game/buffs.py)
 S_CASTLE_PAWNS = 100
+# (visto) tutorial_en e oficial_20261023-215937-1: pacotes do login que só dizem "nada aqui" para sistemas que o
+# servidor não tem (prosperidade do mundo, recuperar EXP, torre, questionário, eventos do dia, torre do rei, moedas)
+S_PROSPERITY, S_RECOVER, S_TOWER_LIST, S_QUESTIONNAIRE = 4438, 4912, 4373, 4428
+S_NOTICES, S_DAY_ACTION, S_SWITCH = 4251, 4393, 4422
+S_CUSTOMER, S_HONOR_DAY, S_KING_TOWER, S_TOKENS = 4392, 4471, 4900, 4725
+TOKEN_TYPES = (1, 2, 3, 4, 5, 12, 9, 22)  # (visto) 215937 #110, nessa ordem (PlayerCurrencyManager: cristal de pet...)
 
 
 def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
@@ -201,6 +208,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         # tropas do castelo: o oficial manda o 100 aqui, depois do 150, mesmo vazio para personagem sem tropas nem
         # quartel (tutorial_en #37-#39)
         s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
+        # (visto) 215937 #35 entre o 100 e o 4544; 0 = sem o buff de prosperidade no TopToolsBar (o servidor não tem)
+        s.send(S_PROSPERITY, pb.SimplePropertyMsg(param1=0))
         from .systems import S_FATE, fate_list  # systems -> player -> login
 
         # destino: vazio no nível 1 (tutorial_en #42, depois do 150/100); com os tipos abertos só turco (login.json #34)
@@ -218,12 +227,34 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
 
         if cards(rules.systems(snap)):
             s.send(S_POWCARD, powcard_msg(snap, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots")))
+    if msg.tower:  # (visto) 215937 #48-#49, tutorial_en: 4912 e 4373 vazios (nada para recuperar, torre sem registro)
+        s.send(S_RECOVER, pb.RecoverInfosMsg())
+        s.send(S_TOWER_LIST, pb.TowerListMsg())
+    if msg.questionnarie:  # (visto) 215937 #54: nenhum questionário
+        s.send(S_QUESTIONNAIRE, pb.QuestionnarieInfoMsg())
     if msg.offline and (gp := timebox.offline_gp(snap.character)) > 0:  # conta nova: o oficial não manda
         _send(s, S_OFFLINE, pb.OfflineRewardMsg(offlineTime=snap.character.offline_seconds, gpCount=gp))
+    if msg.active:  # (visto) 215937 #88-#89: os avisos do painel de atividades e o 4393 vazio
+        notices = s.ctx.world.settings.get("active_notices") or []
+        _send(s, S_NOTICES, ParseDict({"activeRspInfo": notices}, pb.ActiveRspMsg()))
+        s.send(S_DAY_ACTION, pb.DayActiveRspMsg())
+    if msg.switches:
+        _send(s, S_SWITCH, switches_msg(s))
     if msg.challReward or msg.petChallengeReward or msg.crossScoreReward:
         from . import arena
 
         await arena.login_rewards(s, msg)
+
+
+def switches_msg(s: GameSession) -> pb.SwitchInfoListMsg:
+    """4422: as chaves do cliente (``BaseManager``, ``ConfigManager.info``) como o oficial (``game_settings.switches``,
+    da 0078), menos as de ``closed_switches``: sistemas que o servidor não tem ficam fechados."""
+    closed = set(s.ctx.world.settings.get("closed_switches") or ())
+    rows = [
+        dict(r, isOpen=bool(r["isOpen"]) and r["switchType"] not in closed)
+        for r in s.ctx.world.settings.get("switches") or ()
+    ]
+    return ParseDict({"switches": rows}, pb.SwitchInfoListMsg())
 
 
 async def _login_state(s: GameSession) -> None:
@@ -270,3 +301,10 @@ async def _login_state(s: GameSession) -> None:
         _send(s, social.S_MARRIAGE, await social.marriage_msg(s.ctx, snap.marriage))
     space.present(s)  # (dedução) os outros depois do 4151; o oficial não manda 4597 no login (215937 #100-#106)
     guild.on_login(s)
+    # (visto) 215937 #104-#105, #109-#110: canOpen 1 (sem leitor no cliente); honra do dia / teto (o geste não sobe
+    # aqui); torre do rei sem entradas; as moedas de pet, cristal eterno, selo do rei e inspiração zeradas
+    s.send(S_CUSTOMER, pb.FastOpenCustomerMsg(canOpen=1))
+    s.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=0, param2=int(s.ctx.world.settings.get("honor_day_max", 0))))
+    s.send(S_KING_TOWER, pb.KingTowerInfoMsg(enterCount=0, maxIndex=0))
+    tokens = [pb.TokenInfoMsg(masterType=t, amount=0, expiredDate=b.NEVER) for t in TOKEN_TYPES]
+    s.send(S_TOKENS, pb.PlayerTokenInfoMsg(tokenInfos=tokens))

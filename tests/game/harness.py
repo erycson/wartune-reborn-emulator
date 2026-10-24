@@ -109,8 +109,9 @@ async def logged_in(
         client.rekey(ekeys)
         await client.until(150)
         client.send(8224, pb.PlayerDataMsg(user=True))
-        # o 6, a cidade do céu (4595, depois do tutorial) e o 4151 (tutorial_en #93-#94, oficial_20261023-171155-1 #92-#94)
-        await client.until(4151)
+        # o 6, a cidade do céu (4595, depois do tutorial), o 4151 (tutorial_en #93-#94, oficial_20261023-171155-1 #92-#94)
+        # e o fim do login, que termina no 4725 (oficial_20261023-215937-1 #104-#110)
+        await client.until(4725)
         return Game(client, server, user_id, join, lambda: socket_login(user_id, key), http, key)
 
     try:

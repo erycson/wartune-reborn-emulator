@@ -55,6 +55,7 @@ CLOSE_EVERY = timedelta(seconds=60)
 log = structlog.get_logger(__name__)
 UNAVAILABLE = "This action is not available now."  # reviver e buff: o cliente só pede dentro do mapa do chefe
 S_QUESTS = 112
+S_GUILDWAR, S_LOTTERY, S_UNKNOWN_462, S_CROSS_ICON, S_CROSS_STATE, S_CROSS_FIRST = 4451, 4637, 462, 4741, 4683, 4685
 QUEST_JOIN, QUEST_INSTANT = 40, 66  # QuestCondictionInfos: lutar no chefe, luta imediata paga (8264)
 
 
@@ -73,6 +74,15 @@ async def boss_state(s: GameSession, _: object) -> None:
     defeated = s.ctx.bosses.defeated(templates, now)
     s.boss_states = worldboss.states(templates, now, defeated)
     s.send(S_BOSS_STATE, worldboss.states_msg(templates, now, defeated))
+    # (visto) 215937 #118-#128 e tutorial_en, logo depois do 4182: guerra de guilda (4451) fechada, loteria (4637)
+    # fechada, o 462 que o cliente não escuta (corpo 38 00, igual em todas as capturas) e a guilda entre servidores
+    # (4741 ícone 0, 4683 fechada, 4685 vazio): nenhum desses sistemas existe aqui
+    s.send(S_GUILDWAR, pb.GuildMsg(param5=False))
+    s.send(S_LOTTERY, pb.LotteryMsg(isOpen=False))
+    s.send(S_UNKNOWN_462, pb.SimplePropertyMsg(param7=False))
+    s.send(S_CROSS_ICON, pb.SimplePropertyMsg(param1=0))
+    s.send(S_CROSS_STATE, pb.GuildMsg(param5=False))
+    s.send(S_CROSS_FIRST)
 
 
 def push_states(s: GameSession) -> None:

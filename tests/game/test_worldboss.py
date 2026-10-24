@@ -226,7 +226,7 @@ async def test_corpo_vazio_nao_derruba_a_sessao(tmp_path: Path) -> None:
         for code in (8258, 8259, 8264, 8470):
             c.send(code)  # corpo vazio: 8258 recusa (id 0), 8259 não tem resposta
         c.send(8271)
-        assert [p.code for p in await g.idle()] == [ALERT, ALERT, ALERT, 4182]
+        assert [p.code for p in await g.idle()] == [ALERT, ALERT, ALERT, 4182, 4451, 4637, 462, 4741, 4683, 4685]
 
 
 async def test_relogio_manda_4182_quando_o_chefe_abre(tmp_path: Path) -> None:

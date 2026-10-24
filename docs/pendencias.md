@@ -90,6 +90,9 @@ Outros eventos:
 - Falas dos NPCs (4163, migração 0076, `campaign.talk_tick`): *(visto)* repertório por sonType e ritmo de 12-18 s das capturas inglesas; a chance por tique (0,7) e a do chase (0,2) são **dedução** das contagens; NPC sem fala vista fica calado.
 - Orc Plains 1005 e Tribal Plateau 1006 (migração 0075): feitas da captura `oficial_20261023-231733-1`, as duas
 - Reforços (72, migrações 0075 e 0077, `battle.Battle._reinforce`): *(visto)* quando o lado inimigo cai e a luta tem outra onda, sai o 72 com os soldados novos e a luta segue; as ondas vêm dos 72 das capturas (`tools/extract_dungeon.py`). *(dedução)* a ordem das ondas é fixa (a `oficial_encantar` teve a do 114203 invertida).
+- Login completo (migração 0078, `login.switches_msg`): *(visto)* tutorial_en e oficial_20261023-215937-1: 4438 (prosperidade 0), 4912/4373/4428 vazios, 4251 (os 9 avisos de atividade, `active_notices`), 4393 vazio, 4422 (as 67 chaves, `switches`; mina 3006 e estrada dourada 3031 fechadas por `closed_switches`), 4392, 4471 (honra do dia 0 / `honor_day_max` 6000: o geste não sobe aqui), 4900, 4725 (moedas zeradas) e, depois do 4182, 4451, 4637, 462, 4741, 4683 e 4685.
+- **Falta**: títulos (4484, `AppellInfos`, 33 tipos de condição): o oficial manda os 221 no login e de novo a cada progresso (ex.: título 30 com value 240 na 215937 #62); aqui a lista vai vazia (`shop.appell_exchange`).
+- **Falta**: lista de jogadores esperando (11 `RoomPlayerListMsg`, state 1 no login e state 0 quando um sai): é a presença dos outros online, oficial_20261023-215937-1 #102 e #141.
   etapas de cada. **TODO(inventado)**: a luta do "[Elite] Bloodthirsty Tauren" 115116 (o herói 1062 sozinho, como o
   Kronos); pesos das cartas por igual (dedução).
 - Temple of Ibalize (Inner) 1004 (migração 0069): feita da captura; pesos das cartas e o baú de prata/Mystery Box

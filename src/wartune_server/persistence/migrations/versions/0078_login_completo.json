@@ -1,0 +1,592 @@
+{
+ "active_notices": [
+  {
+   "activeId": "7E85AF92-04F7-B1DE-0325-5505A0F536D5",
+   "title": "Level up and get rewards (Three)",
+   "contents": "The 1st to 14th days after the server opening, the players who reach Lvl. 32 will receive a special Pack.",
+   "awardContent": "Bound Balens x 300, Classic Chests x 10.",
+   "description": "The 1st to 14th days after the server opening, the players who reach Lvl. 32 will receive a special Pack.",
+   "actionTimeContent": "The 1st to 14th days after the server opening, the players who reach Lvl. 32 will receive a special Pack.",
+   "consortia": 0,
+   "grades": 32,
+   "sort": 100,
+   "endDate": "2026-09-30 23:59:59",
+   "startDate": "2026-09-17 00:00:00"
+  },
+  {
+   "activeId": "D8527EDC-53CD-BB2C-7425-CD7C2ECCEB0A",
+   "title": "Maint Compensation",
+   "contents": "Compensation for server downtime maintenance",
+   "awardContent": "Compensation for server downtime maintenance",
+   "description": "Compensation for server downtime maintenance",
+   "actionTimeContent": "Compensation for server downtime maintenance",
+   "consortia": 0,
+   "grades": 0,
+   "sort": 0,
+   "endDate": "2026-09-25 23:59:59",
+   "startDate": "2026-09-23 00:00:00"
+  },
+  {
+   "activeId": "0A2879BD-4220-B5A2-630C-24F07D82D452",
+   "title": "Maint Compensation",
+   "contents": "Compensation for server downtime maintenance",
+   "awardContent": "Compensation for server downtime maintenance",
+   "description": "Compensation for server downtime maintenance",
+   "actionTimeContent": "Compensation for server downtime maintenance",
+   "consortia": 0,
+   "grades": 0,
+   "sort": 0,
+   "endDate": "2026-10-12 23:59:59",
+   "startDate": "2026-10-10 00:00:00"
+  },
+  {
+   "activeId": "B8939DC6-C093-4703-51C4-5506FD2F0EB7",
+   "title": "Level up and get rewards (Five)",
+   "contents": "The 1st to 35th days after the server opening, the players who reach Lvl. 50 will receive a special Pack.",
+   "awardContent": "Bound Balens x 500, Soul Chests x 20.",
+   "description": "The 1st to 35th days after the server opening, the players who reach Lvl. 50 will receive a special Pack.",
+   "actionTimeContent": "The 1st to 35th days after the server opening, the players who reach Lvl. 50 will receive a special Pack.",
+   "consortia": 0,
+   "grades": 50,
+   "sort": 100,
+   "endDate": "2026-10-21 23:59:59",
+   "startDate": "2026-09-17 00:00:00"
+  },
+  {
+   "activeId": "80349BFF-1C99-70C9-FD09-550678F73E72",
+   "title": "Level up and get rewards (Four)",
+   "contents": "The 1st to 21th days after the server opening, the players who reach Lvl. 40 will receive a special Pack.",
+   "awardContent": "Bound Balens x 400, Classic Chests x 15.",
+   "description": "The 1st to 21th days after the server opening, the players who reach Lvl. 40 will receive a special Pack.",
+   "actionTimeContent": "The 1st to 21th days after the server opening, the players who reach Lvl. 40 will receive a special Pack.",
+   "consortia": 0,
+   "grades": 40,
+   "sort": 100,
+   "endDate": "2026-10-07 23:59:59",
+   "startDate": "2026-09-17 00:00:00"
+  },
+  {
+   "activeId": "3E9B7DD5-0573-5213-F111-39BF041A4611",
+   "title": "Maint Compensation",
+   "contents": "Compensation for server downtime maintenance",
+   "awardContent": "Compensation for server downtime maintenance",
+   "description": "Compensation for server downtime maintenance",
+   "actionTimeContent": "Compensation for server downtime maintenance",
+   "consortia": 0,
+   "grades": 0,
+   "sort": 0,
+   "endDate": "2026-10-16 23:59:59",
+   "startDate": "2026-10-14 00:00:00"
+  },
+  {
+   "activeId": "F81FD7F3-F1F1-452C-41F1-E71B02BA34AE",
+   "title": "Maint Compensation",
+   "contents": "Compensation for server downtime maintenance",
+   "awardContent": "Compensation for server downtime maintenance",
+   "description": "Compensation for server downtime maintenance",
+   "actionTimeContent": "Compensation for server downtime maintenance",
+   "consortia": 0,
+   "grades": 0,
+   "sort": 0,
+   "endDate": "2026-09-30 23:59:59",
+   "startDate": "2026-09-28 00:00:00"
+  },
+  {
+   "activeId": "42E224E1-60A3-425D-0A02-550480F91120",
+   "title": "Level up and get rewards (One)",
+   "contents": "The 1st to 14th days after the server opening, the players who reach Lvl. 16 will receive a special Pack.",
+   "awardContent": "Bound Balens x 100, VIP Trial Card x 1, Classic Chests x 2.",
+   "description": "The 1st to 14th days after the server opening, the players who reach Lvl. 16 will receive a special Pack.",
+   "actionTimeContent": "The 1st to 14th days after the server opening, the players who reach Lvl. 16 will receive a special Pack.",
+   "consortia": 0,
+   "grades": 16,
+   "sort": 100,
+   "endDate": "2026-09-30 23:59:59",
+   "startDate": "2026-09-17 00:00:00"
+  },
+  {
+   "activeId": "18452416-5F6C-293B-387C-5504F8F88160",
+   "title": "Level up and get rewards (Two)",
+   "contents": "The 1st to 14th days after the server opening, the players who reach Lvl. 25 will receive a special Pack.",
+   "awardContent": "Bound Balens x 200, Classic Chests x 5.",
+   "description": "The 1st to 14th days after the server opening, the players who reach Lvl. 25 will receive a special Pack.",
+   "actionTimeContent": "The 1st to 14th days after the server opening, the players who reach Lvl. 25 will receive a special Pack.",
+   "consortia": 0,
+   "grades": 25,
+   "sort": 100,
+   "endDate": "2026-09-30 23:59:59",
+   "startDate": "2026-09-17 00:00:00"
+  }
+ ],
+ "switches": [
+  {
+   "switchId": 1028,
+   "switchType": 3031,
+   "isOpen": true,
+   "beginDate": "2026-10-26 00:00:00",
+   "endDate": "2026-11-01 23:59:59"
+  },
+  {
+   "switchId": 1027,
+   "switchType": 3030,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1024,
+   "switchType": 3029,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1023,
+   "switchType": 3028,
+   "isOpen": true,
+   "beginDate": "2018-08-20 00:00:00",
+   "endDate": "2018-08-20 23:59:59"
+  },
+  {
+   "switchId": 1020,
+   "switchType": 3027,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1019,
+   "switchType": 3026,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1018,
+   "switchType": 3025,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1017,
+   "switchType": 3024,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1016,
+   "switchType": 3023,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1015,
+   "switchType": 3022,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1014,
+   "switchType": 3021,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1013,
+   "switchType": 3020,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1012,
+   "switchType": 3019,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1011,
+   "switchType": 3018,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1010,
+   "switchType": 3017,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1009,
+   "switchType": 3016,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1008,
+   "switchType": 3015,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1007,
+   "switchType": 3014,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1006,
+   "switchType": 3013,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1005,
+   "switchType": 3012,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1021,
+   "switchType": 3011,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1022,
+   "switchType": 3010,
+   "isOpen": false,
+   "beginDate": "2026-04-17 00:00:00",
+   "endDate": "2026-04-17 23:59:59"
+  },
+  {
+   "switchId": 138,
+   "switchType": 3009,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1003,
+   "switchType": 3008,
+   "isOpen": false,
+   "beginDate": "2026-04-17 00:00:00",
+   "endDate": "2026-04-17 23:59:59"
+  },
+  {
+   "switchId": 44,
+   "switchType": 3007,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 43,
+   "switchType": 3006,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 42,
+   "switchType": 3005,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 34,
+   "switchType": 3004,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 38,
+   "switchType": 3003,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 35,
+   "switchType": 3002,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 36,
+   "switchType": 3001,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 27,
+   "switchType": 3000,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 28,
+   "switchType": 1001,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 33,
+   "switchType": 139,
+   "isOpen": true,
+   "beginDate": "2026-10-08 12:00:00",
+   "endDate": "2026-10-11 23:59:59"
+  },
+  {
+   "switchId": 31,
+   "switchType": 132,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 29,
+   "switchType": 127,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 30,
+   "switchType": 126,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1081,
+   "switchType": 3066,
+   "isOpen": true,
+   "beginDate": "2021-01-05 00:00:00",
+   "endDate": "2021-01-05 23:59:59"
+  },
+  {
+   "switchId": 25,
+   "switchType": 25,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 24,
+   "switchType": 24,
+   "isOpen": true,
+   "beginDate": "2019-02-14 00:00:00",
+   "endDate": "2019-02-16 23:59:59"
+  },
+  {
+   "switchId": 23,
+   "switchType": 23,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 22,
+   "switchType": 22,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 21,
+   "switchType": 21,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 20,
+   "switchType": 20,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 19,
+   "switchType": 19,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 18,
+   "switchType": 18,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 17,
+   "switchType": 17,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 16,
+   "switchType": 16,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 15,
+   "switchType": 15,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 14,
+   "switchType": 14,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 13,
+   "switchType": 13,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 12,
+   "switchType": 12,
+   "isOpen": false,
+   "beginDate": "2018-04-19 00:00:00",
+   "endDate": "2018-04-19 23:59:59"
+  },
+  {
+   "switchId": 11,
+   "switchType": 11,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 10,
+   "switchType": 10,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1026,
+   "switchType": 2004,
+   "isOpen": true,
+   "beginDate": "2000-01-01 00:00:00",
+   "endDate": "2100-01-01 00:00:00"
+  },
+  {
+   "switchId": 9,
+   "switchType": 9,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1025,
+   "switchType": 2003,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 8,
+   "switchType": 8,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1029,
+   "switchType": 3047,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 7,
+   "switchType": 7,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 32,
+   "switchType": 2001,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 6,
+   "switchType": 6,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 5,
+   "switchType": 5,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 4,
+   "switchType": 4,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 3,
+   "switchType": 3,
+   "isOpen": true,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 2,
+   "switchType": 2,
+   "isOpen": false,
+   "beginDate": "2019-10-01 00:00:00",
+   "endDate": "2026-12-31 23:59:59"
+  },
+  {
+   "switchId": 1,
+   "switchType": 1,
+   "isOpen": true,
+   "beginDate": "2020-10-04 00:00:00",
+   "endDate": "2036-10-31 23:59:59"
+  }
+ ]
+}
