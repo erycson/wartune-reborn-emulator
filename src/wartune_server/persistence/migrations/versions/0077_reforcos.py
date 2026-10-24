@@ -7,7 +7,8 @@ já gravadas (``0077_reforcos.json``, ao lado): 1002 da ``tutorial_en`` (113203 
 ``oficial_20261023-153200-1`` (103105). As 1005 e 1006 já vêm com elas na 0075.
 
 (visto) a ``oficial_encantar`` teve as ondas do 114203 na ordem inversa (4 soldados, depois 2): aqui fica a ordem da
-``tutorial_en``. (dedução) a ordem é sempre a mesma.
+``tutorial_en``. A ordem não é fixa (171155 e 153200 também trocam no 103105): a luta sorteia
+(``battle._shuffled_waves``).
 
 Revision ID: 0077
 Revises: 0076

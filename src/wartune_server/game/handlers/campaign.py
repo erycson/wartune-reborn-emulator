@@ -40,6 +40,7 @@ from ..campaign import (
     FIGHTING,
     FIRST_MAP,
     FLICKER_DELAY,
+    FOLLOWING,
     HIDDEN,
     MONSTER,
     NORMAL,
@@ -1091,6 +1092,13 @@ async def _dungeon_callback(s: GameSession, camp: int) -> None:
     if not c.quarry:
         if node["state"] == NORMAL and not c.fighting and c.part("plots", camp) and c.battle(camp):
             _start_battle(s, camp)
+        elif node["state"] == NORMAL and int(node.get("heroTempId", 0)) > 0 and not c.battle(camp):
+            # NPC que passa a seguir o jogador (a Elise da 1005, herói 1051): (visto) oficial_20261023-231733-1
+            # #1121-#1123, 128 state 2 e um 4124 só, na posição do exército
+            _node_update(s, camp, FOLLOWING)
+            c.escort = node["nodeId"]
+            x, y = c.pos
+            _send(s, S_ESCORT, pb.NPCFollowMsg(escortId=c.escort, followId=s.player_id, curPosX=x, curPosY=y))
         return
     collect = c.part("collect", node["sonType"])
     if node["masterType"] != COLLECT or collect is None:

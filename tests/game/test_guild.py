@@ -198,6 +198,7 @@ async def test_invite_answer_quit_cooldown_and_kick(tmp_path: Path) -> None:
             f'name="Bruxa" consortiaId="{_guild(a).id}" serverName="" grades="0" />'
         )
         assert " kicked " in _one(got, 83, pb.ChatChannelMsg).encodeMsg
+        assert _one(got, 164, pb.ConsortiaInfoMsg).kickCount == 0  # (visto) 231733 #4448
         assert _session(a).ctx.guilds.of(b.user_id) is None
 
 

@@ -21,6 +21,7 @@ herói (talento, destino, skills ``UseWay`` 2) entram no 157; os das skills, no 
 from __future__ import annotations
 
 import asyncio
+import itertools
 import random
 import re
 import time
@@ -41,7 +42,24 @@ from .builders.login import fmt_time
 log = structlog.get_logger(__name__)
 
 S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP, S_NOTICE = 157, 156, 153, 154, 75, 69, 4361
-S_REINFORCE = 72
+S_REINFORCE, S_LOAD_RES = 72, 4149
+_WAVE_IDS = itertools.count(1)  # armyId do 4149
+
+
+def _shuffled_waves(waves: Iterable[Iterable[Mapping[str, Any]]]) -> list[list[dict[str, Any]]]:
+    """As ondas em ordem sorteada; os livingIds seguem a ordem nova (a primeira onda pega os menores). (visto) nó
+    103105 da 1003: 171155 #2135/#3445 com 2032 e depois 2033, 153200 #444 com 2033 e depois 2032; nos três a
+    primeira onda vem com livingId 6."""
+    out = [[dict(s) for s in w] for w in waves]
+    ids = sorted(s["livingId"] for w in out for s in w)
+    random.shuffle(out)
+    it = iter(ids)
+    for w in out:
+        for s in w:
+            s["livingId"] = next(it)
+    return out
+
+
 S_AWAKE = 4600  # AwakeMsg: despertar do herói com mascote
 MORPH, UNMORPH = 700001, 700002  # (cliente SelfAwakenView) transformar no mascote e desfazer
 
@@ -266,7 +284,7 @@ class Battle:
         self.buffs: list[Buff] = []
         self._buff_seq = 0  # bufferId: 1, 2... por batalha (visto #1466 e #1484)
         self.units = self._units(player)
-        self._waves = [list(w) for w in spec.get("reinforce", [])]  # ondas de reforço que faltam
+        self._waves = _shuffled_waves(spec.get("reinforce", []))  # ondas de reforço que faltam
         self.player = next((u for u in self.units if u.is_player), None)
         self.wound = self.hurt = 0  # dano causado e sofrido pelo lado do jogador (relatório 137 da masmorra)
         if player is not None and self.player is not None:
@@ -367,6 +385,18 @@ class Battle:
         skills = list(s.get("skillId", [])) or [int(row.get("DefaultSkill", 0))]
         hp = int(s["hp"])
         return Unit(s["livingId"], s["side"], hp, skills, skills[0], _stats(row, s), int(s.get("initHp", hp)))
+
+    def _preload_waves(self) -> None:
+        """Um 4149 por onda logo depois do 156, para o cliente carregar os soldados: (visto) oficial_20261023-171155-1
+        #2135-#2136 e 231733 #580-#581, ``soldierSkill`` = as skills de cada soldado em fila, ``reinforceCount`` 3 e
+        ``reinforceType`` 1 com duas ondas (dedução: as ondas mais a tropa inicial). TODO(inventado): o ``armyId``
+        (o oficial usa um número global, ~1300695008)."""
+        for wave in self._waves:
+            res = pb.ArmyResMsg(reinforceCount=len(self._waves) + 1, reinforceType=1)
+            entry = res.loadRes.add(armyId=next(_WAVE_IDS))
+            entry.soldierTempId.extend(int(s["tempId"]) for s in wave)
+            entry.soldierSkill.extend(int(k) for s in wave for k in s.get("skillId", []))
+            self._send(S_LOAD_RES, res)
 
     def _reinforce(self) -> bool:
         """O lado inimigo caiu e a luta tem outra onda (``reinforce``, os 72 da captura): (visto) oficial_20261023-
@@ -490,6 +520,7 @@ class Battle:
                 await asyncio.sleep(FRAME_SECONDS)
             self._t0 = time.monotonic()
             self._send(S_START, pb.BattleStartMsg(frame=0, mainType=self.spec["battleType"], countDown=COUNTDOWN_MS))
+            self._preload_waves()
             won = await self._fight()
             winners = [u for u in self.units if u.alive and (u.side == PLAYER_SIDE) == won]
             over = pb.PrepareOverMsg(frame=self.frame)

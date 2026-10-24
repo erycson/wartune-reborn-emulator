@@ -32,6 +32,7 @@ FOG_ROWS, FOG_COLS = 18, 19
 
 NORMAL, FIGHTING, DONE = 1, 4, 8  # CampaignNodeMsg.state (2 = NPC parado, 16 = escondido)
 HIDDEN = 16
+FOLLOWING = 2  # o NPC que passou a seguir o jogador (Tina, Elise)
 MONSTER, TRIGGER, PANDORA = 42, 53, 61  # masterType (61 também é o baú de ouro, sem buff em param3)
 BOSS, COLLECT = 41, 91  # masterType: chefe (a vitória fecha o mapa) e pilha da pedreira (6001)
 GATE = 62  # masterType do portal que o grupo caído mostra (1002: 113106 -> 1132; 9001: 201107)

@@ -320,7 +320,7 @@ async def kick(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     # (visto) 231733 #4449: o link de quem saiu ainda leva o consortiaId da guilda
     kicked = f"{social.player_link(s.ctx, _char(s))} kicked {social.player_link(s.ctx, who)}" if who else None
     del g.members[msg.otherId]
-    guild.kick_count += 1
+    # o kickCount não sobe: (visto) 231733 #4448 e 121659 #541, 0 depois da expulsão (o cliente só guarda o campo)
     guild.kick_at = _now(s)
     # texto deduzido (sem fonte no cliente/captura)
     name = (who.nickname if who else None) or str(msg.otherId)

@@ -440,7 +440,8 @@ async def test_ataque_ao_castelo_robo_conta_a_missao_8_e_gasta_o_ataque(
         snap = _snap(g)
         castle = snap.castle
         assert castle is not None and snap.arena is not None
-        snap.character.grades = 10  # |10 - 8| < 10: o cliente deixa atacar
+        # |9 - 8| < 10: o cliente deixa atacar; abaixo do 10 a vida volta de graça, sem o 83 do HP pack (tutorial_en)
+        snap.character.grades = 9
         snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
         snap.quests.append(Quest(g.user_id, 100, datetime.now(UTC)))
         snap.arena.day, snap.arena.attack_left = A.today(clock.now()), 5
