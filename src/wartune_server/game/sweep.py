@@ -38,6 +38,7 @@ SKELETON_KEY = 208005  # "Used to open Mystery Boxes"
 # frases "Spend Gold to open Silver Treasure Chests." e "Use Skeleton Keys to open Mystery Boxes.")
 SILVER_GOLD = 2000
 EARLY = 2  # s: o cliente pergunta no fim do tempo; um pedido um pouco antes ainda acerta a rodada
+SETTING = "campaign_sweep"  # game_settings: ``round_gold`` = {campanha: ouro por rodada} (migração 0085)
 
 
 @dataclass
@@ -144,9 +145,12 @@ def settle(
     table: Any = (),
     rng: random.Random | None = None,
     all_now: bool = False,
+    round_gold: int = 0,
 ) -> tuple[list[Item], list[Item]]:
     """Faz as rodadas vencidas (todas com ``all_now``, a aceleração). Cobra estamina e ouro por rodada; sem eles a
-    varredura para (``BROKEN``). ``vip_exp``: % do VIP na EXP da masmorra. Devolve itens mudados e apagados."""
+    varredura para (``BROKEN``). ``vip_exp``: % do VIP na EXP da masmorra; ``round_gold``: ouro que a rodada dá
+    (item -100 na lista). Acima do ``MaxLevel`` da campanha a rodada não dá EXP (só turco: savasa_baskin, a 1007,
+    MaxLevel 21, no nível 56 deu gp 0). Devolve itens mudados e apagados."""
     rng = rng or random.Random()
     due = (
         sweep.count
@@ -165,10 +169,14 @@ def settle(
             break
         c.weary -= WEARY
         c.gold -= cost
-        gp = campaign.total_gp(int(row.get("BaseGp") or 0))
+        top = int(row.get("MaxLevel") or 0)
+        gp = 0 if top and c.grades > top else campaign.total_gp(int(row.get("BaseGp") or 0))
         gp += gp * vip_exp // 100
         rules.add_gp(snap, templates, gp)
+        c.gold += round_gold
         got, more, out = _round_drops(snap, templates, sweep, table, now, rng)
+        if round_gold:
+            got.insert(0, (campaign.GOLD, round_gold))
         changed += more
         gone += out
         sweep.rounds.append(Round(gp, got))

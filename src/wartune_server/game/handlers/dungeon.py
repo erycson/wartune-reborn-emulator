@@ -37,7 +37,10 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     first = len(sweep.rounds)
     table = s.ctx.world.campaign_cards.get(sweep.campaign_id, ())
     exp = vip_right(s, snap, VIP_EXP)
-    changed, gone = sw.settle(snap, s.ctx.templates, sweep, now, vip_exp=exp, table=table, all_now=all_now)
+    gold = int(((s.ctx.world.settings.get(sw.SETTING) or {}).get("round_gold") or {}).get(str(sweep.campaign_id), 0))
+    changed, gone = sw.settle(
+        snap, s.ctx.templates, sweep, now, vip_exp=exp, table=table, all_now=all_now, round_gold=gold
+    )
     st = sw.store(snap, sweep, now)
     await s.ctx.characters.save(*rewards.owners(snap), st, *changed, delete=tuple(gone))
     if sweep.done == done and not changed:
