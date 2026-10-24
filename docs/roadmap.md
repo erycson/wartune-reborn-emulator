@@ -24,7 +24,7 @@
 - [x] Cidade externa: grade, andar, voltar, ataque extra, mudar o castelo, gancho, passe e mapa do tesouro ([cidade-externa.md](cidade-externa.md))
 - Cidade externa de verdade: terras selvagens, castelos vizinhos, outros jogadores (o que falta está em [cidade-externa.md](cidade-externa.md))
 - [x] Mochila, uso de itens, lojas (comum, moda, poção, misteriosa), forja e moda, com registro de elmas no `cash_ledger` ([itens.md](itens.md))
-- Títulos (4484: lista vazia até haver conquistas), patrulha dos monstros (4122)
+- Títulos (4484: lista vazia até haver conquistas)
 
 ## Multiplayer
 

@@ -150,6 +150,46 @@ def start_talk(s: GameSession) -> None:
         s.npc_talk = asyncio.create_task(_talk_loop(s), name=f"npc-talk-{s.player_id}")
 
 
+# -- patrulha dos monstros (4122) ---------------------------------------------------------------------------------
+# (visto) os nós com pontos em ``game_settings.npc_patrol`` (0079) andam para outro ponto a cada tique com ``chance``;
+# o 1º tique ~6,5 s depois da entrada. O nó vencido ou lutando fica parado.
+
+
+def _patrol_cfg(s: GameSession) -> Mapping[str, Any]:
+    cfg: Mapping[str, Any] = s.ctx.world.settings.get("npc_patrol") or {}
+    return cfg
+
+
+def patrol_tick(s: GameSession, rnd: Any = None) -> None:
+    c, r, cfg = s.campaign, rnd or random, _patrol_cfg(s)
+    if c is None or c.fam:
+        return
+    chance = float(cfg.get("quarry_chance" if c.quarry else "chance", 0.62))
+    for node in c.nodes.values():
+        pts = [tuple(p) for p in cfg.get("points", {}).get(str(node["campDataId"]), ())]
+        if not pts or node["state"] != NORMAL or r.random() >= chance:
+            continue
+        if len(pts) == 1:  # (dedução) visto um passo só (o nó morreu antes): volta para a origem
+            pts.append((node["posX"], node["posY"]))
+        here = (node["curX"], node["curY"])
+        node["curX"], node["curY"] = r.choice([p for p in pts if p != here] or pts)
+        _send(s, S_NPC_MOVE, pb.NPCMoveMsg(id=node["nodeId"], curPosX=node["curX"], curPosY=node["curY"]))
+
+
+async def _patrol_loop(s: GameSession) -> None:
+    try:
+        while (c := s.campaign) is not None and not c.fam:
+            await asyncio.sleep(float(_patrol_cfg(s).get("quarry_tick" if c.quarry else "tick", 6)))
+            patrol_tick(s)
+    finally:
+        s.npc_patrol = None
+
+
+def start_patrol(s: GameSession) -> None:
+    if s.npc_patrol is None and s.campaign is not None and not s.campaign.fam and _patrol_cfg(s).get("points"):
+        s.npc_patrol = asyncio.create_task(_patrol_loop(s), name=f"npc-patrol-{s.player_id}")
+
+
 def _map(s: GameSession) -> CampaignMap:
     assert s.campaign is not None
     return s.campaign
@@ -736,6 +776,7 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
     c = s.campaign
     if msg.state == BACK_TO_MAP:
         start_talk(s)
+        start_patrol(s)
     if msg.state == BACK_TO_MAP and c is not None and c.fam and not c.ready:
         from . import fam  # fam importa este módulo
 
