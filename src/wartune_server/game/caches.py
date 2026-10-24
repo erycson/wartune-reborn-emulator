@@ -46,7 +46,8 @@ GUARD_FIRST, GUARD_LAST = 6001, 6099  # PawnTempInfos dos guardas vistos (6011, 
 LUCK_STONE, LUCK_STONE_TOP = 2040100, 9  # 2040100 + n = "Lvl. n Luck Stone" (n até 9 no tempinfos)
 GEAR = "1"  # ItemTempInfos.MasterType dos equipamentos
 # TODO(inventado): quantos baús por mapa (a captura só mostra a vizinhança do castelo: 7 baús em ~300 × 250 tiles do
-# mapa 1, ~1 a cada 10 000 tiles; aqui 1 a cada 25 000) e o prêmio (duas amostras: Lvl. 3 Luck Stone e Elders Robe)
+# mapa 1, ~1 a cada 10 000 tiles; aqui 1 a cada 25 000). Prêmio: 4 amostras em oficial_20261023-171155-1 (1 pedra,
+# 3 equipamentos: #661, #1803, #8047, #8586); os pesos são a proporção delas
 DEFAULT: dict[str, Any] = {
     "maps": {
         "1": {"count": 1000, "levels": [11, 20]},
@@ -55,7 +56,7 @@ DEFAULT: dict[str, Any] = {
         "4": {"count": 160, "levels": [41, 50]},
         "5": {"count": 90, "levels": [51, 60]},
     },
-    "loot": {"stone_weight": 1, "gear_weight": 1, "gear_profile": 2, "gear_below": 5, "gear_above": 2},
+    "loot": {"stone_weight": 1, "gear_weight": 3, "gear_profiles": [1, 2], "gear_below": 5, "gear_above": 2},
 }
 EPOCH = datetime(2026, 1, 1, tzinfo=UTC)  # origem das vidas; o deslocamento de cada vaga é sorteado
 
@@ -185,16 +186,20 @@ def battle(snap: PlayerSnapshot, templates: GameTemplates, c: Cache) -> dict[str
 def loot(
     world: World, templates: GameTemplates, snap: PlayerSnapshot, c: Cache, rng: random.Random
 ) -> list[tuple[int, int]]:
-    """Um item. TODO(inventado): pedra da sorte ``Lvl. ceil(nível / 5)`` (13 -> Lvl. 3, #661) ou um equipamento da
-    classe do jogador (Elders Robe, Job 3, ``NeedGrades`` 15, ``Profile`` 2, a um mago num baú 13: #1792), com
-    ``NeedGrades`` de nível - ``gear_below`` a nível + ``gear_above``; pesos em ``settings``."""
+    """Um item: pedra da sorte ``Lvl. ceil(nível / 5)`` (13 -> Lvl. 3, #661) ou um equipamento da classe do jogador
+    ou de qualquer classe (Job 0), ``Profile`` em ``gear_profiles``, com ``NeedGrades`` de nível - ``gear_below`` a
+    nível + ``gear_above``. As 3 amostras de equipamento a um mago (oficial_20261023-171155-1) cabem: Elders Robe (baú
+    13, Job 3, Profile 2, NeedGrades 15, #1803), Lunalurite Staff (baú 12, Job 3, Profile 2, 10, #8047) e Pagaentro
+    Necklace (baú 15, Job 0, Profile 1, 17, #8586). (dedução) a regra; pesos em ``settings``."""
     conf = settings(world)["loot"]
     stone = LUCK_STONE + min(LUCK_STONE_TOP, max(1, math.ceil(c.level / 5)))
-    job = str(job_type(snap.character.job))
+    jobs, profiles = {"0", str(job_type(snap.character.job))}, {str(p) for p in conf["gear_profiles"]}
     gear = [
         int(r["TemplateId"])
-        for r in templates.find("ItemTempInfos", MasterType=GEAR, Job=job, Profile=str(conf["gear_profile"]))
-        if c.level - int(conf["gear_below"]) <= int(r.get("NeedGrades") or 0) <= c.level + int(conf["gear_above"])
+        for r in templates.find("ItemTempInfos", MasterType=GEAR)
+        if r.get("Job") in jobs
+        and r.get("Profile") in profiles
+        and c.level - int(conf["gear_below"]) <= int(r.get("NeedGrades") or 0) <= c.level + int(conf["gear_above"])
     ]
     if gear and rng.random() * (conf["stone_weight"] + conf["gear_weight"]) >= conf["stone_weight"]:
         return [(rng.choice(gear), 1)]

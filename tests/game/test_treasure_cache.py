@@ -170,4 +170,9 @@ def test_premio_pedra_do_nivel_ou_equipamento_da_classe() -> None:
     assert (2040103, 1) in got  # Lvl. 3 Luck Stone (#661)
     assert (1043102, 1) in got  # Elders Robe (#1792)
     gear = {t for t, _ in got if t != 2040103}
-    assert all((templates.get("ItemTempInfos", t) or {}).get("Job") == "3" for t in gear)
+    assert all((templates.get("ItemTempInfos", t) or {}).get("Job") in ("0", "3") for t in gear)
+    # as outras duas amostras (oficial_20261023-171155-1 #8047 e #8586)
+    for tid, level, item in ((220112, 12, 1013102), (220115, 15, 1060101)):
+        c = tc.Cache(1, 1, tid, level, 0, 0, born, born + timedelta(days=1))
+        rolls = [tc.loot(World(), templates, snap, c, random.Random(i)) for i in range(400)]  # type: ignore[arg-type]
+        assert [(item, 1)] in rolls

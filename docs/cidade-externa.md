@@ -412,8 +412,13 @@ Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, j
   de nível = baú + 2 (bate nos três).
 - **Vitória** *(visto)* #645-#670: 150, 109, 3, 115 do item, 4476, 4484 ×9 (títulos, `events.items_gained`), 111
   "Received: Lvl. 3 Luck Stone x1", 4103 (`battleScene` 0, Daru = tropas perdidas), 150, 100, 140 ×2 do exército,
-  140 do baú em state 0, 83 com o mesmo texto, 169 e o 4382 logo em seguida. Prêmios vistos: Lvl. 3 Luck Stone x1
-  (baú 13, #661) e Elders Robe x1 (baú 13, mago, #1810).
+  140 do baú em state 0, 83 com o mesmo texto, 169 e o 4382 logo em seguida. Prêmios vistos (todos de um mago, 4
+  vitórias): Lvl. 3 Luck Stone x1 (baú 13, #661), Elders Robe x1 (baú 13, #1810; Job 3, Profile 2, NeedGrades 15),
+  Lunalurite Staff x1 (baú 12, #8047; Job 3, Profile 2, 10) e Pagaentro Necklace x1 (baú 15, #8586; Job 0, Profile
+  1, 17).
+- **Prêmio** *(dedução, as 4 amostras cabem; migração 0088)*: Lvl. `ceil(nível/5)` Luck Stone (peso 1) ou um
+  equipamento da classe do jogador ou de qualquer classe (Job 0), `Profile` 1 ou 2, `NeedGrades` de nível - 5 a
+  nível + 2 (peso 3, a proporção vista). Todos configuráveis em `game_settings.treasure_caches.loot`.
 - **Derrota** *(visto)* #370-#385: 4103 result 2 e o baú volta a state 1.
 - **4382 no mapa do mundo** *(visto)*: sai logo no fim de toda luta no mapa 1 (baú #670, #1812; mina #3082, #3162;
   robô #833), sem esperar o 8747. No baú o servidor faz assim; mina e robô seguem como antes (ver *Minas de ouro*).
@@ -426,8 +431,7 @@ Fonte: oficial_20261023-153200-1 e oficial_20261023-171155-1 (inglês, mapa 1, j
 - **Na vista**: o 20008 tira os baús cuja vida acabou (140 state 0) e mostra os que nasceram nas grades do último
   8201 *(dedução: a captura só mostra o 140 do recém-nascido, #1938)*.
 - **TODO(inventado)**: quantas vagas por mapa (1000, 640, 250, 160, 90: uma a cada 25 000 tiles; a captura mostra 7
-  baús em ~300 × 250 tiles perto do castelo) e o prêmio: Lvl. `ceil(nível/5)` Luck Stone ou um equipamento da
-  classe do jogador (`Profile` 2, `NeedGrades` de nível - 5 a nível + 2), por igual.
+  baús em ~300 × 250 tiles perto do castelo).
 
 ## Coleta (Resource Harvesting, missões 55, 102, 140, 170, 171, 172): o que as fontes permitem
 

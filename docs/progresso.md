@@ -319,7 +319,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Monstros dos Wilds e patrulha | 🟡 | | luta em grupo não existe |
 | Chefes do mapa (9525, 4938) | 🧪 | 🇹🇷 | relógio e lista conferidos no inglês (153200 #191); mapa 2 do turco; texto inglês do aviso de abate inventado |
 | Baús dos Wilds (9526) | ✅ | | |
-| Treasure Cache | 🧪 | | vagas e prêmio inventados (`caches.py:48,188`) |
+| Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
 | Mapa do tesouro (8744) | 🟡 | 🇹🇷 | só o bronze; ops 2-5 recusadas; login só turco; 8745 e 8535 dependem dos mapas de guilda e do chefe |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
 | PK no campo de animais (8525) | ❌ | | |
