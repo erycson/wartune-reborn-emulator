@@ -138,13 +138,16 @@ async def test_space_nodes_and_pet_island(tmp_path: Path) -> None:
         await b.idle()
         c.send(8692, pb.SimplePropertyMsg(param1=5))
         got = await a.idle()
-        assert [p.code for p in got] == [140, 125, 21, 127]
+        assert [p.code for p in got] == [140, 125, 21]
         assert pb.RoomCreatedMsg.FromString(got[1].body).room.campaignId == 20001
-        assert len(pb.CampaignNodeListMsg.FromString(got[3].body).node) == 121
         assert _of(await b.idle(), 4607) != []  # sumiu da cidade do céu dos outros
 
-        c.send(5035, pb.LoginStateMsg(state=4))  # cena carregada: o oficial repete o 21
-        assert [p.code for p in await a.idle()] == [21]
+        c.send(5035, pb.LoginStateMsg(state=4))  # cena carregada: o oficial repete o 21, o 127 e a patrulha
+        got = await a.idle()
+        assert [p.code for p in got][:2] == [21, 127] and set([p.code for p in got][2:]) <= {4122}
+        assert len(pb.CampaignNodeListMsg.FromString(got[1].body).node) == 121
+        walkers = {pb.NPCMoveMsg.FromString(p.body).id for p in got if p.code == 4122}
+        assert walkers and walkers <= {n.nodeId for n in pb.CampaignNodeListMsg.FromString(got[1].body).node}
         c.send(5125, pb.CampaignReqMsg(paraInt1=2000101, paraBool1=True))  # pisar no nó de chegada não sai
         assert _of(await a.idle(), 4606) == []
 

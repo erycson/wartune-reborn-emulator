@@ -828,9 +828,13 @@ async def attack_mode(s: GameSession, msg: pb.AttackModeMsg) -> None:
 
 @router.on(5035)
 async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
-    if msg.state == BACK_TO_MAP and s.campaign is not None and s.campaign.map_id in PET_ISLANDS:
-        # o oficial repete o 21 quando a cena termina (só turco: peri_adasi_tp #7)
+    island = msg.state == BACK_TO_MAP and s.campaign is not None and s.campaign.map_id in PET_ISLANDS
+    if island:
+        # (só turco: peri_adasi_tp #7-#27) o oficial repete o 21 quando a cena termina, manda o 127 e logo os 4122
+        # da patrulha (19 nós de uma vez: o primeiro tique sem esperar, dedução)
         _send(s, S_ROOM_ENTER, _room_enter(s))
+        _send(s, S_NODES, _map(s).node_list())
+        patrol_tick(s)
     if msg.state == BACK_TO_MAP and s.battle_gp:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0

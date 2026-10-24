@@ -99,10 +99,9 @@ async def _transfer(s: GameSession, node: Row) -> None:
 
 
 def enter_pet_island(s: GameSession, map_id: int) -> None:
-    """Ilha dos pets como no oficial (só turco: peri_adasi_tp #3-#8): 140, 125, 21, 127.
-
-    ponytail: mapa por sessão com os nós da captura (só turco: #8); pets selvagens, coleta e o chefe (4686)
-    dependem do sistema de pets/campanha. Sai pelo botão de sair (5025) ou indo ao space (8688).
+    """Ilha dos pets como no oficial (só turco: peri_adasi_tp #3-#8): 140, 125, 21; o 127 e a patrulha dos pets
+    selvagens (4122) saem no 5035 da cena carregada (``campaign.client_state``). Mapa por sessão com os nós da
+    captura (#8). Sai pelo botão de sair (5025) ou indo ao space (8688).
     """
     data = pet_island()["maps"][str(map_id)]
     s.campaign = CampaignMap(map_id, {n["campDataId"]: dict(n) for n in data["nodes"]}, tuple(data["start"]))
@@ -118,7 +117,6 @@ def enter_pet_island(s: GameSession, map_id: int) -> None:
 
     s.pet_defend_nodes = None
     sync_nodes(s, send=False)  # monstros da invasão já no 127, se a janela deste andar estiver aberta
-    s.send(S_NODES, s.campaign.node_list())
 
 
 @router.on(8694)

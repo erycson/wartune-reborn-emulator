@@ -7,7 +7,7 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 
 | sistema | captura turca | o que dá | onde é citado | o que capturar no inglês |
 |---|---|---|---|---|
-| Ilha dos pets | peri_adasi_tp | sequência de entrada (`content/petisland.json`) | mundo-compartilhado.md, test_space | entrar no Sylph Atoll |
+| Ilha dos pets | peri_adasi_tp (apagada) | sequência de entrada (`content/petisland.json`) | mundo-compartilhado.md, test_space | entrar no Sylph Atoll |
 | Mapa 2 e mudança de castelo | transfer_kampi_sistemi (apagada) | chefes do mapa 2 (migração 0027), energia 500→300, monstro 210127, relógio dos chefes | cidade-externa.md, test_outer_city | mudar o castelo para o mapa 2, abrir 9525 nele |
 | Segunda conta das minas | cevre_altin_madeni_savasi (apagada), replay | outras instâncias, mina nível 8 (guarda 6504), createDate em UTC+3 | cidade-externa.md, multiplayer.md, test_outer_city | minas de uma segunda conta |
 | Fazenda e árvore | ciftlik (apagada) | ops 0/1/6, rega, 8231, grau de amizade (34 → 4) | castelo.md, social.md, test_castelo | fazenda própria e de amigo |
@@ -59,3 +59,4 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 | transfer kampı sistemi | mudança de castelo 5176 (140, 152, 105), chefes do mapa 2 (9525/4938), a entrega da missão 390 com a EXP do mundo e a descansada (`rules.exp_bonus`) e o 4540, 4387 do guarda e 150 do mascote (`pets.send_gained`); o 83 da EXP fica depois do 52 como no inglês |
 | peri turnuvası | torneio de fadas (`handlers/arena.py`): 4540 da formação no 8725, 4176 tipo 1 e 4611 no 8256, a atividade contada na entrada (140, 4476, 157), 4361, 4176, 4103, o 4540/4387/150 do time, 112, 4413, 140, "Points  +5" no 83 e no 111; a missão 504 com a EXP do mundo e a descansada |
 | meydan okuma | coliseu: EXP 180 por nível na vitória e 120 na derrota (`data/colosseum_rewards.json`, como as inglesas), com a EXP do mundo e a descansada; 4540/4387/150 do mascote; prêmio com 115, 4476, 4426, 4484, 111, 83 (o inglês igual); o 4902/150/4434 do meio da luta é o periódico de 5 min (`player._army_refresh`) |
+| peri adası tp | entrada no Sylph Atoll (`space.enter_pet_island`): 140, 125, 21; no 5035 o 21 de novo, o 127 e a patrulha dos pets selvagens (4122, pontos na `game_settings.npc_patrol`, migração 0082) |
