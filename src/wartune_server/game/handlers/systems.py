@@ -708,6 +708,64 @@ def fight_add_msg(
     return msg
 
 
+S_CAMP_BUFFS = 4903
+# CampaignBufferTemps.Types dos lugares (cliente MagicCardModel.cardType): masmorra de vários (MultiCampaign, 多人副本),
+# torre de provação, labirinto (TowerCampaign), arena e campo de batalha
+CAMP_MULTI, CAMP_TRIAL, CAMP_TOWER, CAMP_ARENA, CAMP_WARFIELD = 800, 801, 802, 806, 807
+CARD_STATS = {"Attack": "PhyAttack", "Defence": "PhyDefence", "MagicAttack": "MagicAttack"}
+CARD_STATS |= {"MagicDefence": "MagicDefence", "Crit": "ForceHit", "Block": "Parry", "Live": "Live"}
+
+
+def camp_type(row: Row) -> int:
+    """Tipo de lugar das cartas para a campanha (linha de ``Campaigns``). (dedução) Types 4 (Catacombs, Necropolis)
+    é o labirinto; a Tower of Kings (82xx) é a torre de provação; as masmorras (Types 0), a masmorra de vários."""
+    if row.get("Types") == "4":
+        return CAMP_TOWER
+    if 8200 <= int(row.get("CampaignId") or 0) < 8300:
+        return CAMP_TRIAL
+    return CAMP_MULTI if row.get("Types") == "0" else 0
+
+
+def camp_buffs_msg(
+    snap: PlayerSnapshot, templates: GameTemplates, camp: int, slots: list[list[int]] | None = None
+) -> pb.PowCardBufListMsg:
+    """4903 (só turco: exp_kitabi #31 numa masmorra, 3041/3020/3000; yeralti #36 no labirinto, 4061/4020/4000; vazio
+    ao sair, no login e no 4595): os buffs das cartas e coleções do 4905 cujo ``CampaignBufferTemps.Types`` é o do lugar
+    (cada coleção é de um tipo: a 1000 dá 3041/3020/3000 no 800, a 1001 dá 4061/4020/4000 no 802)."""
+    msg = pb.PowCardBufListMsg()
+    for suite in powcard_msg(snap, templates, slots).suites if camp else ():
+        for buf in [*(c.buf for c in suite.cardInfos), *suite.bufInfos]:
+            if int((templates.get("CampaignBufferTemps", buf.bufId) or {}).get("Types") or 0) == camp:
+                msg.bufInfos.add().CopyFrom(buf)
+    return msg
+
+
+def camp_stats(
+    snap: PlayerSnapshot, templates: GameTemplates, camp: int, slots: list[list[int]] | None = None
+) -> dict[str, int]:
+    """O que os buffs do 4903 somam nos atributos do herói na luta (dedução: as colunas de ``CampaignBufferTemps``
+    com os nomes do ``HeroStats``; Crit e Block como ForceHit e Parry, Leadpawn fica fora)."""
+    total: dict[str, int] = {}
+    for buf in camp_buffs_msg(snap, templates, camp, slots).bufInfos:
+        row = templates.get("CampaignBufferTemps", buf.bufId) or {}
+        for col, key in CARD_STATS.items():
+            total[key] = total.get(key, 0) + int(row.get(col) or 0)
+    return total
+
+
+def send_camp_buffs(s: GameSession, camp: int) -> None:
+    """Com cartas: o 150 (com o 4902 na frente, ``GameSession.send``) e o 4903 do lugar (só turco: exp_kitabi
+    #29-#31, av_askeri #63-#65, online_odul #3-#5)."""
+    from .player import _army  # player importa este módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    if not cards(rules.systems(snap)):
+        return
+    _army(s)
+    s.send(S_CAMP_BUFFS, camp_buffs_msg(snap, s.ctx.templates, camp, s.ctx.world.settings.get("powcard_suite_slots")))
+
+
 def send_cards(s: GameSession) -> None:
     """4905 e o 4902 logo depois (só turco: login #76-#77)."""
     assert s.snapshot is not None

@@ -460,6 +460,17 @@ def test_bonus_da_colecao_reproduz_o_login_76() -> None:
     assert [(a.op, a.userid, a.campType, a.add) for a in add.singlefightadd] == [
         (0, 7, 800, 608), (0, 7, 802, 608), (0, 7, 806, 1521), (0, 7, 807, 768), (0, 7, 801, 768)
     ]  # fmt: skip
+    # 4903 (só turco: exp_kitabi #31 na masmorra, yeralti #36 no labirinto): os buffs do tipo do lugar
+    from wartune_server.game.handlers.systems import camp_buffs_msg, camp_stats
+
+    def bufs(camp: int) -> list[int]:
+        return [b.bufId for b in camp_buffs_msg(snap, templates, camp).bufInfos]
+
+    assert (bufs(800), bufs(802), bufs(0)) == ([3041, 3020, 3000], [4061, 4020, 4000], [])
+    assert camp_stats(snap, templates, 800) == {
+        "PhyAttack": 160, "PhyDefence": 80, "MagicAttack": 160, "MagicDefence": 80, "ForceHit": 0, "Parry": 0,
+        "Live": 600,
+    }  # fmt: skip
     object.__setattr__(snap, "systems", PlayerSystems(1))
     assert fight_add_msg(snap, templates) is None
 

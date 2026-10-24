@@ -137,6 +137,23 @@ async def test_entrada_manda_o_mapa_1011(tmp_path: Path) -> None:
         assert (fog.row, fog.col) == (24, 19)  # névoa da captura, não a de 'tudo visível'
 
 
+async def test_entrada_com_cartas_manda_os_buffs_do_tipo_800(tmp_path: Path) -> None:
+    """(só turco: exp_kitabi #28-#31) com cartas, depois do 3: 4902, 150 e o 4903 com os buffs da masmorra de vários;
+    na saída o 4903 vai vazio antes do 4165 (online_odul #3-#6)."""
+    async with logged_in(tmp_path, novice=25500) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None and session.snapshot.systems is not None
+        session.snapshot.systems.powcards = "10001:2:0:0,10002:1:0:0,10003:1:0:0"
+        got = await enter(g)
+        assert codes(got) == [125, 140, 21, 127, 130, 143, 138, 3, 4902, 150, 4903, 83]
+        bufs = pb.PowCardBufListMsg.FromString(got[10].body).bufInfos
+        assert [b.bufId for b in bufs] == [3041, 3020, 3000]
+        await handlers._leave_campaign(session)
+        out = await g.idle()
+        assert codes(out)[:4] == [4902, 150, 4903, 4165]
+        assert not pb.PowCardBufListMsg.FromString(out[2].body).bufInfos
+
+
 async def test_campanha_que_nao_existe_nao_entra(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         assert codes(await enter(g, 4242)) == []

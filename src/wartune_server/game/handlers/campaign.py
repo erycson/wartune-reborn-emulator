@@ -432,6 +432,9 @@ async def _open_chest(s: GameSession, node: dict[str, object]) -> None:
 
 async def _leave_campaign(s: GameSession) -> None:
     assert s.snapshot is not None
+    from . import systems  # systems importa este módulo
+
+    systems.send_camp_buffs(s, 0)  # com cartas, o 4903 vazio
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     # (visto) tutorial_en #517-#520: 4165, 150, 150, 140; sem 4902 (só turco: online_odul #6-#8, exp_kitabi #33-#35)
     s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]), cards=False)
@@ -472,6 +475,13 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
     stats = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now())
     total, live = dict(stats.total), stats.live
     hp = b.hero_hp(leader, live)
+    from . import systems  # systems importa este módulo
+
+    c = s.campaign
+    if c is not None and c.run is not None:  # buffs das cartas do lugar (o 4903 da entrada)
+        cards = systems.camp_stats(snap, s.ctx.templates, systems.camp_type(_campaign_row(s, c.run.campaign_id)))
+        total.update({k: int(total.get(k, 0)) + v for k, v in cards.items() if k != "Live"})
+        live, hp = live + cards.get("Live", 0), hp + cards.get("Live", 0)
     if boost:
         total.update({k: _boost(int(total.get(k, 0))) for k in STATS})
         live, hp = _boost(live), hp + _boost(live) - live
@@ -883,6 +893,9 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     snap.character.weary -= WEARY  # antes do await: um 5039 repetido já vê o mapa novo
     _enter_dungeon(s, content, maps[0], StageRun(msg.paraInt2, stage, maps, now), ENTER)
     await _push_player(s)
+    from . import systems  # systems importa este módulo
+
+    systems.send_camp_buffs(s, systems.camp_type(_campaign_row(s, msg.paraInt2)))
     name = _campaign_row(s, msg.paraInt2).get("CampaignName", "")
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Entered [{name}] and deducted {WEARY} stamina."))
     await s.ctx.characters.save(snap.character)

@@ -89,8 +89,11 @@ cidade externa vai o 150 sem as mortas, o 4103 e o 150 e o 100 já repostos. A p
   destino: a linha de `SkillTempInfos` com `SonType` = tipo e `Grades` = grau (**dedução**).
 - Runas: `RuneTempInfos.SkillTemplateId` é uma skill ativa, entra no `skillId` e só se usa uma vez
   por batalha (**dedução**).
-- Dragão e cartas: **precisa de captura** (o buffer das cartas, 3040/3041, não está nos templates; o
-  dragão não tem tabela de skill).
+- Cartas: os buffs do 4903 do lugar (`systems.camp_buffs_msg`: as cartas e coleções cujo
+  `CampaignBufferTemps.Types` é o tipo, 800 masmorra, 801 torre, 802 labirinto; **visto** só turco
+  exp_kitabi #31, yeralti #36) somam nos atributos do herói na campanha (`camp_stats`; **dedução**:
+  Attack/Defence/Magic*, Crit e Block como ForceHit e Parry, Live na vida; Leadpawn fora).
+  Dragão: **precisa de captura** (não tem tabela de skill).
 
 ## Mascote e despertar (4600)
 
