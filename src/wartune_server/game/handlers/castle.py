@@ -7,6 +7,8 @@ dono do prédio, nível do jogador, pré-requisitos, fila livre e custo.
 
 from __future__ import annotations
 
+import random
+
 from ...domain import gameday
 from ...domain.models import Building, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
@@ -29,8 +31,14 @@ S_IMPOSE, S_TRANSFER, S_CASTLE_TIME, S_ARMY_PAWN = 4242, 103, 4452, 100
 BUY_ORDER_PRICE = 395  # (cliente inglês) QueueBar.buyQueueItem: "mainBar.QueueBar.content" com 395
 IMPOSE_COOLDOWN = 3600  # só turco: city_city_upgrade #3, 151 remainTime 3600
 S_BLESSING = 4391  # BlessingMsg: bênção do seminário (8489)
-S_EFFECT, S_POLITICS = 110, 152
+S_EFFECT, S_POLITICS, S_HERO_BLOOD = 110, 152, 113
 ATTR_EFFECT = 3  # 110.propertyType das tecnologias de atributo (só turco: teknoloji_upgrade #3)
+# (cliente) SeminaryBlessFrame: o giro mostra um número de 0 a 200 e a bênção só sobe se ele passar da atual; o
+# wiki (Blessing Wheel) só diz "a spinner (showing boosts)". (só turco: city_city_upgrade #140) o 1º giro do dia deu
+# 10 -> 50. TODO(inventado): o quanto sobe, sorteado entre os dois números (média 40, o visto);
+# ``game_settings.seminary_bless_gain`` troca
+BLESS_GAIN = (10, 70)
+_bless_rng = random.Random()  # os testes trocam
 # (visto) tempinfos: 111-113 ("Accelerate Building Construction Cooldown 1/3/7 times") e 763 ("Collect Levy")
 ACCELERATE, LEVY = 12, 42  # QuestCondictionInfos.CondictionType
 
@@ -130,24 +138,24 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
     # o efeito sai e volta: (dedução) o 1º 110 é o nível velho negativo (só turco: teknoloji_upgrade #3/#6, -324 e
     # +342 no Hero MATK 18 -> 19; no 0 -> 1 do inglês é -0 = 0). Só o novo quando o prédio nasce (8202)
     steps = ([(grade - 1, -1, paid)] if code == 8203 else []) + [(grade, 1, after)]
+    bless = c.seminary_effect
     if (tech := cs.gold_tech(templates, target)) is not None:
         # (visto) oficial_20261023-231733-1 #3971-#3978, Gold Production 0 -> 1: cada efeito com 110 (PropertyType1,
-        # ouro do nível), 109 e 152; depois o 109 de sempre
+        # ouro do nível), 109 e 152; depois o 109 de sempre. (dedução) o 110 do nível velho vai 0, como na bênção
+        # (só turco: city_city_upgrade #132)
         for g, sign, msg in steps:
-            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=sign * tech[1] * g))
+            value = rules.boosted(tech[1] * g, bless) if sign > 0 else 0
+            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=value))
             s.send(cs.S_CASTLE_YIELD, msg)
             s.send(S_POLITICS, cs.politics_msg(snap, templates))
     elif attr_tech:
         # (só turco: teknoloji_upgrade #2-#10) cada efeito com 110 tipo 3 e 150 (o 4902 antes do 150 sai no
         # GameSession.send); o 109 final sai mesmo sem mudança. O cliente ignora o tipo 3 (PlayerEffectHelper)
-        from .player import _army  # player importa castle (game)
-
         effect = templates.get("EffectTempInfos", int(target["Property1"])) or {}
         per, kind = int(effect.get("Property1", 0)), int(effect.get("PropertyType1", 0))
         troop = kind - (rules.ADV_TECH if kind >= 2 * rules.ADV_TECH else 0) in rules.TROOP_TECH
         for g, sign, _ in steps:
-            s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=ATTR_EFFECT, value=sign * per * g))
-            _army(s, cards=not troop)  # tropa: sem o 4902 (só turco: city_city_upgrade_academy_upgrade #52-#58)
+            _attr_step(s, sign * rules.boosted(per * g, bless), troop)
     if after != paid or attr_tech:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
         s.send(cs.S_CASTLE_YIELD, after)
     # nível do quartel que libera um tipo de tropa (NeedBuilding = o template novo): 100 com todas as tropas do
@@ -331,33 +339,122 @@ async def castle_time_cancel(s: GameSession, _: object) -> None:
     s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))
 
 
+def _attr_step(s: GameSession, value: int, troop: bool) -> None:
+    """Um 110 tipo 3 de tecnologia de atributo e o exército. Herói: 110 e 150 (com o 4902). Tropa (só turco:
+    city_city_upgrade #52-#59): o 110 repetido, 150 sem o 4902 e o 100 das tropas do castelo; (dedução) o 110 vai uma
+    vez por tropa do 100 e mais uma (5 no 100, 6 no turco)."""
+    from .player import _army  # player importa castle (game)
+
+    snap = s.snapshot
+    assert snap is not None
+    pawns = castle_pawns(snap, s.ctx.templates) if troop else None
+    for _ in range(len(pawns.armyPawn) + 1 if pawns is not None else 1):
+        s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=ATTR_EFFECT, value=value))
+    _army(s, cards=not troop)
+    if pawns is not None:
+        s.send(S_ARMY_PAWN, pawns)
+
+
+HERO_HP = 145  # rules.HERO_TECH: "Live"
+
+
+def _hp_drop(s: GameSession, old: int, building: Building) -> None:
+    """(só turco: city_city_upgrade #37-#41) sem a tecnologia de HP a vida passa do máximo: o excesso volta à reserva
+    (hp 23362 -> 22808, blood +554) e sai no 113 antes do 110 negativo."""
+    snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
+    assert snap is not None and snap.leader is not None
+    c, leader = snap.character, snap.leader
+    new, c.seminary_effect = c.seminary_effect, old
+    before = b.hero_hp(leader, rules.leader_stats(snap, templates, now).live)
+    at = snap.buildings.index(building)
+    snap.buildings.pop(at)
+    after = b.hero_hp(leader, rules.leader_stats(snap, templates, now).live)
+    snap.buildings.insert(at, building)
+    c.seminary_effect = new
+    if before > after:
+        leader.blood += before - after
+        leader.hp = after
+        hero = pb.SimpleHeroInfoMsg(heroId=leader.id or 0, hp=after, blood=leader.blood, bloodId=leader.blood_id)
+        s.send(S_HERO_BLOOD, hero)
+
+
+def _rebless(s: GameSession, old: int) -> None:
+    """(só turco: city_city_upgrade #14-#137) cada tecnologia já subida sai de novo com a bênção velha (negativa) e a
+    nova: herói (141-146), tropa (120-124), na ordem do tipo, e o ouro com 110 (0), 109 sem ele, 152, 110, 109, 152."""
+    from .player import hp_pack  # player importa castle (game)
+
+    snap, templates = s.snapshot, s.ctx.templates
+    assert snap is not None
+    new = snap.character.seminary_effect
+    techs = sorted(
+        (t for t in rules.attr_techs(snap, templates) if t[2]), key=lambda t: (t[0] in rules.TROOP_TECH, t[0])
+    )
+    pack = 0
+    for kind, _, base, building in techs:
+        troop = kind in rules.TROOP_TECH
+        hp = kind == HERO_HP and snap.leader is not None
+        if hp:
+            _hp_drop(s, old, building)
+        _attr_step(s, -rules.boosted(base, old), troop)
+        hp_pack(s, pack)  # (só turco: #48) o 83 da cura sai depois do passo seguinte
+        pack = rules.heal_hero(snap, templates, s.ctx.clock.now()) if hp else 0  # o 150 do +600 já vem cheio (#44)
+        _attr_step(s, rules.boosted(base, new), troop)
+    hp_pack(s, pack)
+    for building in snap.buildings:
+        row = cs.template(templates, building.template_id)
+        if row is None or (tech := cs.gold_tech(templates, row)) is None or not int(row["BuildingGrade"]):
+            continue
+        value = rules.boosted(tech[1] * int(row["BuildingGrade"]), new)
+        now = s.ctx.clock.now()
+        without = cs.yield_msg(snap, templates, now)
+        without.goldYield -= value
+        s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=0))
+        s.send(cs.S_CASTLE_YIELD, without)
+        s.send(S_POLITICS, cs.politics_msg(snap, templates))
+        s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=tech[0], value=value))
+        s.send(cs.S_CASTLE_YIELD, cs.yield_msg(snap, templates, now))
+        s.send(S_POLITICS, cs.politics_msg(snap, templates))
+
+
 @router.on(8489)
 async def seminary_bless(s: GameSession, _: object) -> None:
-    """Bênção do seminário (``SeminaryBlessFrame``): gasta cristais e soma ``Blessing_Buffer`` até ``Blessing_Max``.
+    """Bênção do seminário (``SeminaryBlessFrame``): gasta cristais e sobe a bênção (``BLESS_GAIN``) até
+    ``Blessing_Max``; ``Blessing_Buffer`` (10, "默认祝福效果") é a de todo dia às 5h (``daily.BLESS_BASE``).
 
     Sempre responde 4391, também na recusa, com o valor atual: sem ele o cliente não reabre fechar e confirmar.
-    O custo (``Blessing_Cast``) é do ConfigInfos; o ``Blessing_ItemId`` não entra, o botão só confere cristais."""
+    O custo (``Blessing_Cast``) é do ConfigInfos; o ``Blessing_ItemId`` não entra, o botão só confere cristais.
+    Resposta (só turco: city_city_upgrade #13-#142): 109 dos cristais, as tecnologias de novo (``_rebless``), 3,
+    4152 do leed 33, 4391 e 83 da devoção; o 3 seguinte (#142) é do 5158 (o inglês também abre com ele: tutorial_en
+    #2089), e o 109 do fim (#148, igual ao #136) é a resposta do 5015."""
     assert s.snapshot is not None
     c, now = s.snapshot.character, s.ctx.clock.now()
     cost = _config(s, "Blessing_Cast", 2000)
-    step = _config(s, "Blessing_Buffer", 10)
     top = _config(s, "Blessing_Max", 200)
     count = c.bless_count_today(now)
     if c.seminary_effect >= top or c.crystals < cost:
         s.log.info("8489 recusado", bencao=c.seminary_effect, cristais=c.crystals)
         s.send(S_BLESSING, pb.BlessingMsg(increase=c.seminary_effect, usedCount=count))
         return
+    from . import events  # handlers.events importa login, que importa este módulo
+    from .player import _player  # player importa castle (game)
+
     c.crystals -= cost
-    c.seminary_effect = min(top, c.seminary_effect + step)
+    castle_yield(s)  # ainda com a bênção velha (#13)
+    old = c.seminary_effect
+    lo, hi = s.ctx.world.settings.get("seminary_bless_gain") or BLESS_GAIN
+    c.seminary_effect = min(top, old + _bless_rng.randint(int(lo), int(hi)))
     c.seminary_count, c.seminary_day = count + 1, gameday.today(now)
     quests = rules.quest_event(s.snapshot, s.ctx.templates, rules.SEMINARY_CONDITION, 0, 1)  # missão 57 (8489)
     await s.ctx.characters.save(c, *quests)
-    from . import events  # handlers.events importa login, que importa este módulo
-
-    # LeedTemp 33 "Spin the Blessing Wheel" é esta bênção: (visto, só turco: city_city_upgrade #139-#140) 4152 antes
-    # do 4391
-    await events.leed_done(s, events.WHEEL_LEED)
+    _rebless(s, old)
+    if s.snapshot.leader is not None:
+        await s.ctx.characters.save(s.snapshot.leader)
+    _player(s)
+    devotion = events.devotion(s)
+    # LeedTemp 33 "Spin the Blessing Wheel" é esta bênção
+    await events.leed_done(s, events.WHEEL_LEED, say=False)
     s.send(S_BLESSING, b.complete(pb.BlessingMsg(increase=c.seminary_effect, usedCount=c.seminary_count)))
-    castle_yield(s)  # 109: o contador de cristais do cliente
+    if events.devotion(s) != devotion:
+        events.say_devotion(s)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(s.snapshot)))

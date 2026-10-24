@@ -192,6 +192,10 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
 
     refresh_serven(s)
     _army(s)
+    from .systems import S_FIGHT_ADD, fight_add_msg  # systems importa player
+
+    if (add := fight_add_msg(snap, templates)) is not None:  # (só turco: city_city_upgrade #144-#146) o 4902 de novo
+        s.send(S_FIGHT_ADD, add)
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{nxt['PawnName']} successfully upgraded to Lvl. {level}"))
 
 

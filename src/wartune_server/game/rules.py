@@ -12,6 +12,7 @@ from typing import Any
 from ..domain import gameday
 from ..domain.models import (
     BagType,
+    Building,
     Character,
     Consortia,
     Hero,
@@ -246,23 +247,38 @@ def leader_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime |
 
 # tecnologias de atributo (BuildingTempInfos MasterType 14): EffectTempInfos.PropertyType1 -> coluna do template, com
 # Property1 x nível (cliente: o Activity do template, "MATK +228" no Hero MATK 19). As Adv. (2xxx) usam o tipo + 100.
-# Divergência (só turco: teknoloji_upgrade #3/#6 e o pawnLive do #5): o oficial turco aplica x1,5 (342 no nível 19)
+# A roda da bênção (``seminary_effect``) multiplica cada tecnologia por (100 + bênção)/100, com floor: (só turco:
+# city_city_upgrade #14-#137) 444 -> 488 com 10% e 666 com 50%, 35 -> 38 e 52; teknoloji_upgrade 342 = 12 x 19 x 1,5.
+# Cliente: "Technology boosts strengthen the effects of any technology" (blessHelpContent)
 HERO_TECH = {141: "Attack", 142: "MagicAttack", 143: "Defence", 144: "MagicDefence", 145: "Live", 146: "Conat"}
 TROOP_TECH = {120: "Live", 121: "Attack", 122: "Defence", 123: "MagicAttack", 124: "MagicDefence"}
 TECH_ATTR, ADV_TECH = "14", 100
 
 
-def tech_effects(snap: PlayerSnapshot, templates: GameTemplates) -> dict[int, int]:
-    """Tipo (141, 120...) -> soma das tecnologias de atributo construídas, normal e Adv. juntas."""
-    out: dict[int, int] = {}
+def boosted(value: int, bless: int) -> int:
+    """Efeito de uma tecnologia com a bênção ``bless`` (%)."""
+    return value * (100 + bless) // 100
+
+
+def attr_techs(snap: PlayerSnapshot, templates: GameTemplates) -> list[tuple[int, int, int, Building]]:
+    """(tipo sem o Adv., tipo do efeito, Property1 x nível sem a bênção, prédio) de cada tecnologia de atributo."""
+    out = []
     for building in snap.buildings:
         row = templates.get("BuildingTempInfos", building.template_id)
         if row is None or row["MasterType"] != TECH_ATTR:
             continue
         effect = templates.get("EffectTempInfos", int(row["Property1"])) or {}
-        kind = int(effect.get("PropertyType1", 0))
-        kind -= ADV_TECH if kind >= 2 * ADV_TECH else 0
-        out[kind] = out.get(kind, 0) + int(effect.get("Property1", 0)) * int(row["BuildingGrade"])
+        raw = int(effect.get("PropertyType1", 0))
+        kind = raw - (ADV_TECH if raw >= 2 * ADV_TECH else 0)
+        out.append((kind, raw, int(effect.get("Property1", 0)) * int(row["BuildingGrade"]), building))
+    return out
+
+
+def tech_effects(snap: PlayerSnapshot, templates: GameTemplates) -> dict[int, int]:
+    """Tipo (141, 120...) -> soma das tecnologias de atributo construídas, normal e Adv. juntas, com a bênção."""
+    out: dict[int, int] = {}
+    for kind, _, base, _ in attr_techs(snap, templates):
+        out[kind] = out.get(kind, 0) + boosted(base, snap.character.seminary_effect)
     return out
 
 

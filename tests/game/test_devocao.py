@@ -156,12 +156,12 @@ async def test_gasto_de_diamante_conta_o_leed_15(tmp_path: Path) -> None:
 
 
 async def test_bencao_do_seminario_conta_o_leed_33(tmp_path: Path) -> None:
-    """(visto, só turco) city_city_upgrade #139-#140: 4152 do leed 33 "Spin the Blessing Wheel" logo antes do 4391."""
+    """(visto, só turco) city_city_upgrade #139-#140: 4152 do leed 33 "Spin the Blessing Wheel" logo antes do 4391; o 83 da devoção vem depois."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _session(g).snapshot
         assert snap is not None
         snap.character.crystals = 10_000
         g.client.send(8489)
         got = await g.until(4391)
-        assert [p.code for p in got][-3:] == [4152, 83, 4391]
+        assert [p.code for p in got][-3:] == [3, 4152, 4391]
         assert [x.templateId for x in _leed(got).leed] == [33]

@@ -178,7 +178,7 @@ async def test_recusas_e_bencao_voltam_no_login(tmp_path: Path) -> None:
         await a.idle()
         again_a = await a.connect()  # e a bênção e a contagem do dia voltam no login
         player_a = player_info(_session(again_a), _session(again_a).snapshot)  # type: ignore[arg-type]
-        assert (player_a.blessingBuff, player_a.blessingCount) == (10, 1)
+        assert player_a.blessingBuff > 10 and player_a.blessingCount == 1  # o giro só sobe
 
 
 async def test_bencao_do_seminario(tmp_path: Path) -> None:

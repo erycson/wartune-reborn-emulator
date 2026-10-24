@@ -4,6 +4,7 @@ caixa por tempo e recompensa offline (docs/castelo.md)."""
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from sqlalchemy import select
 
@@ -628,6 +629,69 @@ async def test_attribute_tech_adds_to_the_hero_and_the_troops(tmp_path: Path) ->
         pawns = cs_pawns(snap, templates)
         live = pawns.armyPawn[0].pawnLive[0]  # Attack
         assert (live.effect_Data, live.base_Join) == (12, live.tempData + 12)
+
+
+async def test_blessing_boosts_the_techs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cada tecnologia vale ``Property1 x nível x (100 + bênção) / 100`` (só turco: city_city_upgrade #13-#142,
+    Hero PATK 444 -> 488 -> 666); o giro manda 109, os 110 da troca (velho negativo, novo), 3, 4152 e 4391."""
+    from wartune_server.domain.models import Building
+    from wartune_server.game import rules
+    from wartune_server.game.handlers import castle
+
+    monkeypatch.setattr(castle._bless_rng, "randint", lambda lo, hi: 40)
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _grow(g, 18)
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        templates = session.ctx.templates
+        snap.character.crystals, snap.character.seminary_effect = 10**6, 10
+        troop = Building(g.user_id, 142102)  # Troop PATK 2: 12 sem a bênção
+        snap.buildings.append(troop)
+        await g.server.services.characters.save(snap.character, troop)
+        assert rules.troop_tech(snap, templates) == {"Attack": 13}
+        g.client.send(8489)
+        got = await g.until(4391)
+        codes = [p.code for p in got]
+        assert codes[0] == 109 and codes[-3:] == [3, 4152, 4391]
+        effects = [pb.PropertyUpdatedMsg.FromString(p.body) for p in got if p.code == 110]
+        assert (effects[0].value, effects[-1].value) == (-13, 18)
+        assert snap.character.seminary_effect == 50
+        assert rules.troop_tech(snap, templates) == {"Attack": 18}
+
+
+async def test_blessing_moves_the_hero_hp_through_the_reserve(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(só turco: city_city_upgrade #37-#48) sem a Hero HP a vida cheia passa do máximo e o excesso volta à reserva
+    (113 antes do 110 negativo); com a bênção nova a reserva enche de novo e o 83 da poção sai um passo depois."""
+    from wartune_server.domain.models import Building
+    from wartune_server.game import rules
+    from wartune_server.game.handlers import castle
+    from wartune_server.game.handlers.player import HP_PACK
+
+    monkeypatch.setattr(castle._bless_rng, "randint", lambda lo, hi: 40)
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _grow(g, 18)
+        session = g.server.online.get(g.user_id)
+        assert session is not None and snap.leader is not None
+        templates, now = session.ctx.templates, session.ctx.clock.now()
+        row = next(
+            r
+            for r in templates.find("BuildingTempInfos", MasterType="14", BuildingGrade="5")
+            if (templates.get("EffectTempInfos", int(r["Property1"])) or {}).get("PropertyType1") == "145"
+        )
+        hp_tech = Building(g.user_id, int(row["TemplateId"]))
+        snap.buildings.append(hp_tech)
+        snap.character.crystals, snap.character.seminary_effect = 10**6, 10
+        snap.leader.hp, snap.leader.blood = 0, 100_000
+        await g.server.services.characters.save(snap.character, snap.leader, hp_tech)
+        full = rules.leader_stats(snap, templates, now).live
+        g.client.send(8489)
+        got = await g.until(4391)
+        codes = [p.code for p in got]
+        assert codes.index(113) < codes.index(110)
+        assert any(p.code == 83 and pb.ChatChannelMsg.FromString(p.body).encodeMsg == HP_PACK for p in got)
+        live = rules.leader_stats(snap, templates, now).live
+        assert live > full and snap.leader.hp == live
+        assert snap.leader.blood == 100_000 - (live - full)
 
 
 def cs_pawns(snap: PlayerSnapshot, templates: object) -> pb.ArmyPawnUpdatedMsg:
