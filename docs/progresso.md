@@ -24,7 +24,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 0 | 4 | 0 | 0 | 0 |
-| Castelo | 8 | 7 | 2 | 2 | 4 |
+| Castelo | 9 | 6 | 2 | 2 | 4 |
 | Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 11 | 7 | 4 | 4 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 2 | 1 | 1 | 2 | 1 |
-| **Total** | **87** | **93** | **33** | **52** | **42** |
+| **Total** | **88** | **92** | **33** | **52** | **42** |
 
 ## Validação e base
 
@@ -67,7 +67,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Roda da bênção do seminário (8489) | 🧪 | 🇹🇷 | subida de 10 a 70 inventada (`handlers/castle.py:38`); o 1º giro (10→50) só turco |
 | Fazenda: plantio e crescimento | ✅ |  | inglês: minutos inteiros e 1 min antes (215937 #1257, 171155); bate com o turco |
 | Fazenda: colheita, praga, acelerar, terras | ✅ | | |
-| Fazenda: roubo de amigo | 🟡 | | 4387/109/83 sem captura; 10% do roubo por dedução |
+| Fazenda: roubo de amigo | ✅ | | ordem, textos e 10% no inglês (191924 #244-#263) |
 | Fazenda: reviver e regar do amigo | ✅ | 🇹🇷 | rega e ouro (grau × 20) no inglês; reviver do turco |
 | Fazenda: aviso ao dono online (145, rega e praga do amigo) | 🧪 | | rega e praga no inglês; textos do mato inventados (`farm.py`, `_tell_pest`) |
 | Fazenda: subida de nível (111, 4386, 83) | 🟡 | | vista na rega e na praga do amigo; nos outros casos por dedução |

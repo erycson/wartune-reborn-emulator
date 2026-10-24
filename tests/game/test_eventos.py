@@ -69,6 +69,21 @@ async def test_login_and_online_gift_activities(tmp_path: Path) -> None:
         assert ev.peek(saved, f"sum:{LOGIN}:{pkg}") is not None and saved.character.gold == gold + 20000
 
 
+async def test_relogin_day_4_with_daru(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #174-#190: Daru no prêmio põe um 3 antes do 109; texto na ordem do oficial."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = _session(g)
+        assert s.snapshot is not None
+        ev.state(s.snapshot, "login", s.ctx.clock.now()).value = 4
+        g.client.send(8496, pb.TakeLoginReward(index=4))
+        got = await g.until(83)
+        assert [p.code for p in got][:2] == [3, 109] and [p.code for p in got][-2:] == [3, 83]
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == (
+            "Received: Worn Necklace x1, Daru x150000, Gold x80000, Lvl. 2 Bonus EXP Scroll x2, Lvl. 5 Luck Stone x5, "
+            "Bounty Scroll x8"
+        )
+
+
 async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         s = _session(g)

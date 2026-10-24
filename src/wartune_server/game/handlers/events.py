@@ -47,6 +47,7 @@ DEVOTION_QUEST, S_QUESTS = 63, 112  # QuestCondictionInfos.CondictionType "Devot
 # (visto) tutorial_en #16 (login), #522, #753, #1652: canal 3, quando o total (totalNum do 4152) sobe
 DEVOTION_UP = "Your devotion level has increased to {}."
 RELOGIN_DAYS = 7  # ReloginDrops.Times 1..7
+WORN_SON = "212"  # Worn Weapon/Armor/Helmet/Necklace do login acumulado: vêm primeiro no texto
 # ServenDayLeadMsg: tarefas (SimpleTasks.TaskId) de cada dia, como o oficial agrupa (tutorial_en #3193)
 SERVEN: dict[int, tuple[int, ...]] = {1: (1, 2, 3, 4), 2: (5, 6, 7, 8), 3: (9, 10, 11, 12), 4: (13, 14, 15, 16)}
 SERVEN |= {5: (17, 18, 19, 20), 6: (21, 23, 27), 7: (26, 28, 29)}
@@ -489,10 +490,11 @@ async def relogin_reward(s: GameSession, msg: pb.TakeLoginReward) -> None:
     new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     # (visto) oficial_20261023-153200-1 #1701-#1747, dias 1 a 3: 3 (se mudou moeda do jogador, o Daru), 109, 115,
-    # 4476, os 4484 de títulos, 3 e o 83 sem o 111. Texto: ``Name xN`` também para moedas, na
-    # ordem do oficial = linhas do ReloginDrops invertidas de 3 em 3 (*dedução* que bate com os três dias: Worn
-    # Armor, Daru, Gold, 1-Day VIP Card, The Empire Crusade, Bounty Scroll)
-    shown = [d for i in range(0, len(drops), 3) for d in reversed(drops[i : i + 3])]
+    # 4476, os 4484 de títulos, 3 e o 83 sem o 111; dia 4 em oficial_20261024-191924-1 #174-#190. Texto: ``Name xN``
+    # também para moedas, na ordem do oficial = o Worn (SonType 212) primeiro e o resto por TemplateId crescente
+    # (*dedução* que bate com os quatro dias: Worn Necklace, Daru, Gold, Lvl. 2 Bonus EXP Scroll, Luck Stone, Bounty)
+    son = {t: (s.ctx.templates.get("ItemTempInfos", t) or {}).get("SonType") for t, _ in drops}
+    shown = sorted(drops, key=lambda d: (son[d[0]] != WORN_SON, d[0]))
     if any(t in rewards.CURRENCIES and t not in (-100, -600) for t, _ in drops):
         _player(s)
     granted(s, drops, new, rewards.text(s.ctx.templates, shown, "plain"), player=False)

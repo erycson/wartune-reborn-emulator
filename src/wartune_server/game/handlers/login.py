@@ -227,7 +227,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         from .pets import guard_msg  # (só turco: login #49) o guarda, sem ``pos``
 
         guard = guard_msg(snap, s.ctx.templates)
-        _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, own=True, guard=guard)))
+        _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, s.ctx.templates, own=True, guard=guard)))
     if msg.star:
         from .stars import login_stars  # stars -> player -> login: import aqui evita o ciclo
 

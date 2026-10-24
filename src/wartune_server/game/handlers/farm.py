@@ -14,6 +14,7 @@ from ...domain.errors import NotFoundError
 from ...domain.models import BagType, FarmLand, Item, PlayerSnapshot, Relation, RelationType
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay, record_cash
+from ...templates.repository import GameTemplates
 from .. import bag, farm, rewards, rules, social
 from .. import castle as cs
 from ..builders import login as b
@@ -63,7 +64,8 @@ async def _other(s: GameSession, user_id: int) -> PlayerSnapshot | None:
 def _info(s: GameSession, target: PlayerSnapshot, now: datetime) -> pb.FarmInfoRspMsg:
     from .pets import guard_msg  # noqa: PLC0415  (pets -> player -> ... -> farm)
 
-    return farm.farm_info(target, now, own=target is s.snapshot, guard=guard_msg(target, s.ctx.templates))
+    templates = s.ctx.templates
+    return farm.farm_info(target, now, templates, own=target is s.snapshot, guard=guard_msg(target, templates))
 
 
 async def _friend(s: GameSession, user_id: int) -> tuple[PlayerSnapshot, Relation] | None:
@@ -192,6 +194,7 @@ async def _pest(
         land.worm = 0
     else:
         land.grass = 0
+    land.reward_count += farm.pest_cut(farm.seed(s.ctx.templates, land.item_template_id))
     before = _helper_gp(s, snap, target, _config(s, "FarmCrop_Operate_GP", 1))
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_BUG, BUG_PARA1, 1) if worm else []  # o mato não conta
     await s.ctx.characters.save(land, snap.castle, *quests)
@@ -292,7 +295,7 @@ async def _pick(
     from . import events  # handlers.events importa login
 
     await _payout_sent(s, snap, reward, item, gained)
-    text = rewards.received(templates, [(reward, land.reward_count)])
+    text = _reward_text(templates, reward, land.reward_count)  # (dedução) a EXP como no roubo
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     # (visto) o 83 do ouro vem logo depois do 111 (171155 #185-#186); o do Daru, depois do 4387 e do 4152 e antes do
     # 83 da devoção (oficial_20261024-121659-1 #155-#160, #162-#165)
@@ -316,7 +319,8 @@ async def _steal(
 ) -> bool:
     """Rouba da terra madura do amigo (FarmLandInfo.canBeStolen): uma vez por terra, até 3 ladrões, produção
     de 10 ou mais; até ``Farm_TodayStolen_Count`` roubos no dia. Leva ``farm_steal_percent`` % do que resta
-    (internet: 10%), que sai do ``rewardCount`` do dono. Sem EXP (``expByOper`` não tem o caso 5)."""
+    (visto 10%: oficial_20261024-191924-1 #248, 4000 -> 3600; #253, 28000 -> 25200), que sai do ``rewardCount`` do
+    dono. Sem EXP da fazenda (``expByOper`` não tem o caso 5; 191924: o todayFromFriendGp não sobe nos roubos)."""
     assert snap.castle is not None
     templates, now, me = s.ctx.templates, s.ctx.clock.now(), s.player_id
     row = farm.seed(templates, land.item_template_id) if land is not None else None
@@ -338,11 +342,24 @@ async def _steal(
     quests = rules.quest_event(snap, templates, QUEST_HARVEST, FRIEND_FARM, 1)
     # ponytail: dono offline vem do banco; dois ladrões ao mesmo tempo em cópias diferentes podem se sobrepor
     await s.ctx.characters.save(*changed, land, snap.castle, *quests)
-    _land_reply(s, target.character.id or 0, msg.pos, land, STEAL, OK)
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    # (visto) oficial_20261024-191924-1 #244-#263: 109, 111 e 83 "Received: 400 Kyanite", 4387; da EXP, 111, 3, 83
+    # "Received 2,800 EXP " e o 4387
+    text = _reward_text(templates, reward, amount)
+    if reward == EXP:
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     await _payout_sent(s, snap, reward, item, gained)
+    if reward != EXP:
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    _land_reply(s, target.character.id or 0, msg.pos, land, STEAL, OK)
+    if quests:  # (dedução) sem captura; junto da terra, como na colheita
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     return True
+
+
+def _reward_text(templates: GameTemplates, reward: int, count: int) -> str:
+    """EXP sai como "Received 2,800 EXP " (oficial_20261024-191924-1 #250); o resto, ``rewards.received``."""
+    return rules.exp_text(count) if reward == EXP else rewards.received(templates, [(reward, count)])
 
 
 async def _revive(

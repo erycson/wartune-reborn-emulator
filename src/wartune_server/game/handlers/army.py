@@ -21,7 +21,7 @@ from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from .player import _army, _player
+from .player import _army, _player, hp_pack
 
 S_CASTLE_PAWNS, S_ARMY_EDIT, S_PAWN, S_QUESTS, S_ALERT, S_CHAT = 100, 93, 116, 112, 111, 83
 S_ARMY_POS, S_TEAM_POS = 4241, 4186
@@ -184,7 +184,10 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     pawn.template_id = int(nxt["TemplateId"])
     keep(snap, pawn)
     quests = rules.quest_event(snap, templates, PAWN_LEVEL, int(tpl["MasterType"]), level)
-    await s.ctx.characters.save(snap.character, pawn, *quests)
+    # (visto) oficial_20261023-171155-1 #1676-#1683 e #5899-#5904, 231733 #2110-#2116: com o herói ferido a reserva
+    # cura, o 150 já sai com a vida cheia e o 83 "Used HP pack to restore HP." vem depois do da tropa
+    healed = rules.heal_hero(snap, templates, s.ctx.clock.now())
+    await s.ctx.characters.save(snap.character, snap.leader, pawn, *quests)
 
     _player(s)
     send_pawn(s, pawn)
@@ -197,6 +200,8 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     if (add := fight_add_msg(snap, templates)) is not None:  # (só turco: city_city_upgrade #144-#146) o 4902 de novo
         s.send(S_FIGHT_ADD, add)
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{nxt['PawnName']} successfully upgraded to Lvl. {level}"))
+    if healed:
+        hp_pack(s, healed)
 
 
 @router.on(8580)

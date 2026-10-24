@@ -9,9 +9,9 @@ from aiohttp.test_utils import TestClient, TestServer
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import CashLedger, Character, FarmLand, Item, PlayerSnapshot, Relation
+from wartune_server.domain.models import CashLedger, Castle, Character, FarmLand, Item, PlayerSnapshot, Relation
 from wartune_server.game import castle as cs
-from wartune_server.game import farm, timebox
+from wartune_server.game import farm, rules, timebox
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
@@ -202,6 +202,7 @@ async def test_gold_is_produced_per_hour_up_to_the_depot(tmp_path: Path) -> None
 
 
 DARU_SEED = 2160028  # [L1] Ultimate Daru Seed (Property2 -300: Daru)
+EXP_SEED = 2160024  # semente de EXP (Property2 -700) da fazenda roubada em oficial_20261024-191924-1 #235
 SEED = 2160001  # [L1] Gold Seed: 3000 de ouro em 60 min (rende 2400, amadurece em 59; só turco: ciftlik.json)
 
 
@@ -346,8 +347,8 @@ async def test_land_upgrade_open_lands_and_the_tree_fruit(tmp_path: Path) -> Non
 
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=8, bagPos=0, templateId=SEED))
         land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
-        # +3%, -2% (58,8 min -> 58 - 1)
-        assert (land.pos, land.rewardCount, land.matureTime) == (8, 2472, "2026-01-01 00:57:00")
+        # +3%, -2% (58,8 min -> 58 - 1); pragas tiram 2 x 300 do Property3 puro (oficial_20261024-191924-1 #266)
+        assert (land.pos, land.rewardCount, land.matureTime) == (8, 3090 - 600, "2026-01-01 00:57:00")
 
         g.client.send(5178, pb.BuildingReqMsg(index=0))  # ainda sem fruto
         g.client.send(15017, pb.BuildingReqMsg(userId=g.user_id))
@@ -380,6 +381,26 @@ async def _friends(g: Game, other: Game, gp: int = 0) -> None:
     await g.server.services.characters.save(mine, theirs)
 
 
+async def test_friend_farm_steal_exp(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #249-#253: 111, 3, 83 "Received 2,800 EXP " e o 4387."""
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        other = await g.join("outro")
+        await g.idle()
+        now = clock.now()
+        steps = dict(rules.grade_steps(g.server.services.templates))
+        await _set(g, grades=40, total_gp=steps[40])  # sem subir de nível com os 2.800
+        owner = await _set(other, grades=40)
+        await _friends(g, other, gp=33)
+        land = FarmLand(other.user_id, 0, EXP_SEED, now - timedelta(hours=2), now - timedelta(minutes=30), 28000)
+        owner.lands.append(land)
+        await g.server.services.characters.save(land)
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=5, pos=0))
+        got = await g.until(4387)
+        assert [p.code for p in got] == [111, 3, 83, 4387]
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Received 2,800 EXP "
+
+
 async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
     clock = FakeClock()
     async with logged_in(tmp_path, novice=READY, clock=clock) as g:
@@ -408,11 +429,13 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         assert (states[2].userId, states[2].isReap, states[2].isChargeEnergy) == (g.user_id + 99, False, False)
 
         g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=5, pos=0))  # rouba 10%
-        got = await g.until(109)
-        land = pb.FarmInfoRspMsg.FromString(got[0].body).farmLandInfo[0]
+        got = await g.until(4387)
+        assert [p.code for p in got] == [109, 111, 83, 4387]  # oficial_20261024-191924-1 #244-#248
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Received: 240 Gold"
+        land = pb.FarmInfoRspMsg.FromString(got[3].body).farmLandInfo[0]
         assert (land.userId, land.result, land.stolenCount, list(land.stolenUsers), land.rewardCount) == (
             other.user_id, 0, 1, [g.user_id], 2160)  # fmt: skip
-        assert pb.CastleYieldMsg.FromString(got[1].body).goldTotalCount == 240
+        assert pb.CastleYieldMsg.FromString(got[0].body).goldTotalCount == 240
         g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=5, pos=0))  # já roubou esta
         assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1
 
@@ -420,7 +443,8 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
         assert (land.result, land.matureTime) == (0, "2025-12-31 23:59:00")  # 1 min antes de agora
         g.client.send(15044, pb.FarmOperReqMsg(friendId=other.user_id, opType=2, pos=2))  # tirar o inseto
-        assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 0
+        land = pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0]
+        assert (land.result, land.rewardCount) == (0, 2400 + 300)  # devolve 10% do Property3 (191924 #280)
         seen = [p for p in await other.idle() if p.code in (145, 4387, 83)]  # (visto) 215937 #1033-#1035
         assert [p.code for p in seen] == [145, 4387, 83]
         assert pb.FarmLogRsp.FromString(seen[0].body).type == 2
@@ -459,7 +483,23 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         assert theirs.castle.tree_water == 1 and theirs.lands[0].stolen_by == str(g.user_id)
         assert [r.friend_gp for r in theirs.relations] == [1]
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=0))
-        assert pb.FarmInfoRspMsg.FromString((await g.until(4386))[-1].body).todayFromFriendGp == 6
+        own = pb.FarmInfoRspMsg.FromString((await g.until(4386))[-1].body)
+        assert (own.todayFromFriendGp, own.todayStolenCount) == (6, 1)
+        assert own.totalGp == farm.total_gp(mine.castle, g.server.services.templates)
+
+
+def test_farm_total_gp_is_the_exp_since_level_1() -> None:
+    """(visto) oficial_20261024-191924-1 #216: grau 4 com 8 = 38; #235: grau 6 com 19 = 94."""
+    rows = [{"Types": "17", "Grades": str(g), "Data": str(5 * (g - 1))} for g in range(1, 10)]
+
+    class _T:
+        def find(self, table: str, **kw: object) -> list[dict[str, str]]:
+            return rows
+
+    castle = Castle(1, "", 1, 0, 0, farm_grade=4, farm_gp=8)
+    assert farm.total_gp(castle, _T()) == 38  # type: ignore[arg-type]
+    castle.farm_grade, castle.farm_gp = 6, 19
+    assert farm.total_gp(castle, _T()) == 94  # type: ignore[arg-type]
 
 
 async def test_watering_a_friend_tree_can_level_up_the_farm(tmp_path: Path) -> None:

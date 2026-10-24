@@ -23,7 +23,10 @@ DEFAULT_LANDS, MAX_LANDS = 3, 9  # FarmModel.DEFAULT_OPEN_LAND / MAX_OPEN_LAND
 LANDUP_GRADE, MAX_LAND_GRADE = 30, 10  # FarmBuildLayer.__onLandUpClick: fazenda 30, terra até o nível 10
 FARM_GRADE, TREE_GRADE = 17, 7  # UpGradeTempInfos.Types da fazenda e da carga da árvore (WaterExpItem)
 TREE_COOLDOWN = 600  # TreeInfo.remainWaerTime: lastWaterTime + 10 min
-REWARD_PERCENT = 80  # (só turco: ciftlik) rewardCount de moeda = 80% do Property3 (2400/3000, 20000/25000, 8000/10000)
+# (visto) oficial_20261024-191924-1: cada inseto e cada mato marcado no plantio tira 10% do Property3 do rewardCount
+# (#353: Gold Seed 3000 -> 2400 com os dois) e tirá-lo devolve (#278-#297: 12000 -> 13500 -> 15000); com a terra
+# melhorada o corte é do Property3 puro (#266, terra 10: 50000 x 1,27 - 2 x 5000 = 53500). Explica os 80% do turco
+PEST_CUT = 10
 WORM_AT, GRASS_AT = (0.4, 0.6), (0.3, 0.5)  # FarmLandInfo.isWormNow / isGrassNow
 MAX_STOLEN, MIN_STEAL_OUTPUT = 3, 10  # FarmModel.MAX_STOLEN_COUNT; FarmLandInfo.canBeStolen (outputCount < 10)
 # (cliente) language EN farm.view.FarmResourcesView.helpContent: "energize your Tree of Ancients 3 times a day",
@@ -96,12 +99,18 @@ def plant(snap: PlayerSnapshot, row: Row, pos: int, now: datetime, faster: int =
         now,
         # (visto) amadurece 1 minuto antes do Property1 (60 -> 59 min, 720 -> 719 min: 171155 e 153200, como o turco)
         now + timedelta(minutes=max(minutes - 1, 0)),
-        int(row["Property3"]) * (REWARD_PERCENT if int(row["Property2"]) < 0 else 100) * (100 + more) // 10000,
+        int(row["Property3"]) * (100 + more) // 100 - (2 * pest_cut(row) if pests else 0),
+        # (visto) 191924 #353-#362: toda semente com praga leva um inseto e um mato, cada um na fase 1 ou 2
         random.choice((1, 2)) if pests else 0,
         random.choice((1, 2)) if pests else 0,
     )
     snap.lands.append(land)
     return land
+
+
+def pest_cut(row: Row | None) -> int:
+    """O que um inseto ou um mato tira do ``rewardCount`` (e devolve ao ser tirado)."""
+    return int(row["Property3"]) * PEST_CUT // 100 if row is not None else 0
 
 
 def is_mature(land: FarmLand, now: datetime) -> bool:
@@ -228,22 +237,39 @@ def tree_msg(snap: PlayerSnapshot, now: datetime, *, own: bool) -> pb.TreeInfoMs
     return msg
 
 
+def total_gp(castle: Castle, templates: GameTemplates) -> int:
+    """EXP da fazenda desde o nível 1: (visto) oficial_20261024-191924-1 #216, grau 4 com 8 = 5 + 10 + 15 + 8 = 38;
+    #235, grau 6 com 19 = 94."""
+    done = sum(
+        int(r["Data"])
+        for r in templates.find("UpGradeTempInfos", Types=FARM_GRADE)
+        if int(r["Grades"]) <= castle.farm_grade
+    )
+    return done + castle.farm_gp
+
+
 def farm_info(
-    snap: PlayerSnapshot, now: datetime, *, own: bool, guard: pb.FarmPetInfoMsg | None = None
+    snap: PlayerSnapshot,
+    now: datetime,
+    templates: GameTemplates,
+    *,
+    own: bool,
+    guard: pb.FarmPetInfoMsg | None = None,
 ) -> pb.FarmInfoRspMsg:
     """``guard``: o mascote guarda (``FarmInfo.defender``), ``handlers.pets.guard_msg``."""
     c, castle = snap.character, snap.castle
     assert castle is not None
     by_pos = {land.pos: land for land in snap.lands}
-    # os contadores do dia só valem na própria fazenda (o cliente lê do myFarm); a amiga vem 0 (só turco: ciftlik #80)
-    today = own and castle.farm_day == gameday.today(now)
+    # (visto) oficial_20261024-191924-1 #235/#266/#278: a fazenda do amigo traz os contadores do dia dele (o turco
+    # mandava 0, ciftlik #80)
+    today = castle.farm_day == gameday.today(now)
     msg = pb.FarmInfoRspMsg(
         userId=c.id or 0,
         nickName=c.nickname or "",
         grades=castle.farm_grade,
         landGrades=castle.land_grade,
         gp=castle.farm_gp,
-        totalGp=castle.farm_gp,
+        totalGp=total_gp(castle, templates),
         todayFromFriendGp=castle.farm_friend_gp if today else 0,
         farmLandInfo=[land_msg(c.id or 0, pos, by_pos.get(pos)) for pos in range(open_lands(castle.farm_grade))],
         treeInfo=tree_msg(snap, now, own=own),

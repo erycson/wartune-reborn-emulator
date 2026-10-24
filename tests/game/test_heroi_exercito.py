@@ -102,6 +102,17 @@ async def test_pawn_upgrade_costs_soul_and_needs_barracks(tmp_path: Path) -> Non
         assert pb.PlayerMsg.FromString(got[0].body).strategy == 84  # 16 de Daru (UpGrade Types 1)
         assert pb.ArmyPawnInfoMsg.FromString(got[1].body).tempateId == 10102
         assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Lancer successfully upgraded to Lvl. 2"
+        await g.idle()
+
+        # (visto) oficial_20261023-231733-1 #2110-#2116: herói ferido, a reserva cura e o 83 do HP pack vem por último
+        assert snap.leader is not None
+        barracks.template_id, snap.character.strategy, snap.leader.hp, snap.leader.blood = 40203, 10**6, 1, 10**6
+        g.client.send(5158, pb.ArmyPawnInfoMsg(tempateId=10102))
+        got = await g.until(83)
+        got += await g.idle()
+        assert codes(got) == [3, 116, 150, 83, 83]
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Used HP pack to restore HP."
+        assert snap.leader.blood < 10**6
 
 
 async def test_skills_second_set_and_reset(tmp_path: Path) -> None:
