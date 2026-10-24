@@ -29,7 +29,7 @@ def main() -> None:
     out.append("| **Total** | " + " | ".join(f"**{x}**" for x in tot) + " |")
     new, count = re.subn(r"## Resumo\n.*?\| \*\*Total\*\*[^\n]*", "\n".join(out), text, count=1, flags=re.S)
     assert count == 1, "seção Resumo não encontrada"
-    DOC.write_text(new, encoding="utf-8")
+    DOC.write_text(new, encoding="utf-8", newline="\r\n" if b"\r\n" in DOC.read_bytes() else "\n")  # mantém o EOL
     print(len(rows), "sistemas; ok/parcial/inventado/sem/turco =", tot)
 
 
