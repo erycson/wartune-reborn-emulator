@@ -44,9 +44,9 @@ def _player(s: GameSession) -> None:
     s.send(S_PLAYER, b.complete(player_info(s, s.snapshot)))
 
 
-def _army(s: GameSession) -> None:
+def _army(s: GameSession, cards: bool = True) -> None:
     assert s.snapshot is not None
-    s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
+    s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]), cards=cards)
 
 
 HP_PACK = "Used HP pack to restore HP."  # (visto) oficial_20261023-153200-1 #807, #1332, #1450, #1901, #2184

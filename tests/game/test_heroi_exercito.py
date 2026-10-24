@@ -375,6 +375,8 @@ async def test_dragon_feed_and_powcard(tmp_path: Path) -> None:
         assert session is not None
         session.send(150, army(session, snap)[0])  # todo 150 do próprio exército vem depois do 4902
         assert [p.code for p in await g.until(150)][-2:] == [4902, 150]
+        session.send(150, army(session, snap)[0], cards=False)  # o do 154, da saída da campanha, da poção
+        assert [p.code for p in await g.until(150)] == [150]
         g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))  # faltam 30
         assert await g.idle() == []
 

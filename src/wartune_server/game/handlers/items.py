@@ -413,7 +413,7 @@ async def _use_blood(s: GameSession, item: Item, row: Row, n: int) -> bool:
     # (visto) oficial_20261023-171155-1 #7589-#7593: 115, 113, 150, 3 e o 83 "Used HP pack to restore HP." no fim
     _send_items(s, changed, gone)
     send_blood(s)
-    _army(s)
+    _army(s, cards=False)  # (só turco: buyuk_hp_iksiri_kullanim #3-#6) 113, 150, 3 sem o 4902
     _player(s)
     hp_pack(s, healed)
     return True

@@ -172,10 +172,11 @@ class GameSession:
         assert self.snapshot is not None and self.snapshot.character.id is not None
         return self.snapshot.character.id
 
-    def send(self, code: int, message: Message | None = None, *, extend2: int = 0) -> None:
-        if code == S_ARMY and self._own_army(message):
-            # (só turco: teknoloji_upgrade, envanterden_item_kusanma, login...) todo 150 do próprio exército vem
-            # logo depois do 4902 das cartas; aqui pega os ~40 lugares que mandam o 150
+    def send(self, code: int, message: Message | None = None, *, extend2: int = 0, cards: bool = True) -> None:
+        if code == S_ARMY and cards and self._own_army(message):
+            # (só turco: teknoloji_upgrade, envanterden_item_kusanma, login...: 61 de 83) o 150 do próprio exército
+            # vem logo depois do 4902 das cartas. ``cards=False`` nos que o turco manda sem: o 150 logo depois do
+            # 154 da luta, os dois da saída da campanha (4165), o da poção de HP (113) e o da tecnologia de tropa
             from .handlers.systems import S_FIGHT_ADD, fight_add_msg  # os handlers importam a sessão
 
             assert self.snapshot is not None

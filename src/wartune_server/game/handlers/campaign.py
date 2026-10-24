@@ -433,8 +433,9 @@ async def _open_chest(s: GameSession, node: dict[str, object]) -> None:
 async def _leave_campaign(s: GameSession) -> None:
     assert s.snapshot is not None
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
-    _send(s, S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))  # (visto) tutorial_en #517-#520: 4165, 150, 150, 140
-    _send(s, S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]))
+    # (visto) tutorial_en #517-#520: 4165, 150, 150, 140; sem 4902 (só turco: online_odul #6-#8, exp_kitabi #33-#35)
+    s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]), cards=False)
+    s.send(S_FULL_ARMY, b.complete(army(s, s.snapshot)[0]), cards=False)
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     from . import events as hev  # handlers.events importa login, que importa este módulo
 

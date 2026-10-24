@@ -575,7 +575,8 @@ async def _casualties(
     healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
     report = pb.BattleReportMsg(battleResult=1 if won else 2, strategyBonus=daru, gpBonus=0, battleScene=scene)
     report.failCount, report.goldBonus, report.petGpBonus = s.fail_count, 0, 0
-    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)))
+    # o do 154 sai sem o 4902; o depois do 4103 com (só turco: exp_kitabi_kullanim #91-#103)
+    s.send(S_FULL_ARMY, b.complete(_army_now(s, ARMY_FIGHTING)), cards=False)
     if hit is not None:
         snap.character.strategy += daru
         castle_yield(s)

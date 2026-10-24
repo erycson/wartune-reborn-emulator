@@ -392,7 +392,7 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
         send_blood(s)
         await _push_player(s)
         hp_pack(s, healed)
-    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)  # como na cidade externa: o do 154 sem o 4902
     s.send(S_BATTLE_REPORT, _report(battle, won, 0))
     await _push_player(s)
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))

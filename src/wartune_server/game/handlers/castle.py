@@ -142,10 +142,12 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
         # GameSession.send); o 109 final sai mesmo sem mudança. O cliente ignora o tipo 3 (PlayerEffectHelper)
         from .player import _army  # player importa castle (game)
 
-        per = int((templates.get("EffectTempInfos", int(target["Property1"])) or {}).get("Property1", 0))
+        effect = templates.get("EffectTempInfos", int(target["Property1"])) or {}
+        per, kind = int(effect.get("Property1", 0)), int(effect.get("PropertyType1", 0))
+        troop = kind - (rules.ADV_TECH if kind >= 2 * rules.ADV_TECH else 0) in rules.TROOP_TECH
         for g, sign, _ in steps:
             s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=ATTR_EFFECT, value=sign * per * g))
-            _army(s)
+            _army(s, cards=not troop)  # tropa: sem o 4902 (só turco: city_city_upgrade_academy_upgrade #52-#58)
     if after != paid or attr_tech:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
         s.send(cs.S_CASTLE_YIELD, after)
     # nível do quartel que libera um tipo de tropa (NeedBuilding = o template novo): 100 com todas as tropas do
