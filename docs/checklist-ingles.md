@@ -34,7 +34,7 @@ Preenchido com os achados da revisão de cada sistema.
 - [x] 5036 `U_C_PLAYER_READY_STATE` (pronto)
 - [x] 5037 `U_C_ROOM_STATE` (estado da sala)
 - [x] 8344 `C_ROOM_PWDCHANGE` (senha da sala, `RoomEditMsg`)
-- [x] 8296 `C_ENTER_TOWER` (`EnterTowerInfoMsg`): só registra, os andares não têm dados (ponytail)
+- [x] 8296 `C_ENTER_TOWER` (`EnterTowerInfoMsg`): entra no andar (`game/maze.py`, `handlers/tower.py`)
 - [x] 8299 `C_TOWER_RESET` (`TowerInfoReqMsg`)
 - [x] 8599 `C_CHECK_WARFIELD_COUNT` (`CampaignReqMsg`): fechado com o campo de batalha (`pvp.md`)
 - [x] 8610 `C_VEHICLE_LEAVE_CAMPAIGN`

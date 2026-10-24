@@ -123,7 +123,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   | 33 | Spin the Blessing Wheel | **bênção do seminário** 8489, antes do 4391 | *(visto)* só turco: city_city_upgrade #139-#140; a "Blessing Wheel Percentage" das notícias (internet) é essa % |
   | 13 | Participate in a group arena fight | **depende de** arena em grupo (não existe) | — |
   | 22 | Enter the Altar of Ennoblement | **depende de** um sistema que não se sabe qual é (o tooltip `tipData22` está no language, que não temos); talvez o altar da guilda 7601, recusado | — |
-  | 23 | Enter Forgotten Catacombs | **depende de** entrar no labirinto (Crypt, 8001/8101; hoje só o 4205 de informação) | (internet) https://wartune.fandom.com/wiki/Glossary |
+  | 23 | Enter Forgotten Catacombs | o Start do 8296 (`handlers/tower.py`): o 4152 depois da entrada | (internet) https://wartune.fandom.com/wiki/Glossary |
   | 27 | Enter Battleground | **depende de** campo de batalha (`warfield.py`, fechado) | — |
   | 28 | Enter the Spire | **depende de** Spire do Hall of Heroes (mapa de torre não existe) | (internet) https://wartune.fandom.com/wiki/Hall_of_Heroes |
 
@@ -150,7 +150,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   | 5 USE_STAR | 5 | IP1 estrelas equipadas com `Profile` >= IP2 (3 = rara) | (dedução) Detail |
   | 6 USE_EQUIPMENT | 6 | IP1 peças vestidas com `NeedGrades` >= IP3 | (dedução) Detail |
   | 7 STRENGTHEN_EQU | 7, 13 | item encantado a IP3, `NeedGrades` >= IP1 e `Profile` >= IP2 (5 = [Legendary]) | (dedução) Detail |
-  | 8 PASS_TOWER | 8 | recorde do Forgotten Catacombs (`maxIndex`) >= IP1: **nunca**, o labirinto não guarda progresso | — |
+  | 8 PASS_TOWER | 8 | recorde do Forgotten Catacombs (`maxIndex`, `game/maze.py`) >= IP1 | (cliente) |
   | 9 STAR_LEVEL | 9 | estrela equipada no grau IP1 | (dedução) Detail |
   | 10 INLAY_STONE | 10, 15 | IP1 pedras (SonType 205) de nível IP2+ engastadas; nível = `TemplateId % 100` | (visto) tempinfos: as 96 |
   | 11, 17 | 11, 21 | runa aprendida; runa com `RuneGrade` >= IP2 | (dedução) Detail |

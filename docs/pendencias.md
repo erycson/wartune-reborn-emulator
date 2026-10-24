@@ -22,7 +22,7 @@ Varredura da `ShopTempInfos` (4292 produtos) contra o que o 5154 valida:
 | Limite diário `VIP0Count` (o cliente chama de `OneDayCount`; não existe limite "uma vez na vida" na tabela) | 22 | ok na loja comum; **corrigido** no mercado da guilda (antes comprava sem limite) |
 | `NeedMinVip`, `VIP1Count`..`VIP6Count` | todos 0 / -1 | nada a fazer hoje |
 | Loja de honra (ShopType 3): medalhas com `ValidDate` (7, 15 e 30 dias) | 10 | ~~falta item com validade~~ **feito**: `items.valid_date`/`begin_date` (0036), no 115 e apagado no 8346, no login e no relógio (20008). **dedução**: apagar sem aviso e a varredura do servidor. **falta captura**: deixar uma medalha de 7 dias vencer no oficial e capturar o login e o 8346 (ver itens.md) |
-| Loja do labirinto (ShopType 4): moeda e preço (Labirent Parası, `MazeCoin`) conferidos na captura (105 e 110). Andar: o cliente esconde o botão com `MazeLayers` > `maxIndex` (o recorde: 0 sem progresso) ou `MazeLayers2` > 0, e o servidor recusa o mesmo | 119 | **dedução** no código. **falta**: o progresso do labirinto (andar e recorde). O progresso real do labirinto não existe aqui |
+| Loja do labirinto (ShopType 4): moeda e preço (Labirent Parası, `MazeCoin`) conferidos na captura (105 e 110). Andar: o cliente esconde o botão com `MazeLayers` > `maxIndex` (o recorde) ou `MazeLayers2` > 0, e o servidor recusa o mesmo | 119 | **dedução** no código; o recorde vem de `game/maze.py`. O segundo labirinto (Necropolis) não tem progresso, então `MazeLayers2` > 0 é recusado |
 | Loja misteriosa (ShopType 5): peso `Rands` | 110 | ok: 6 itens (`MysteryShopModel.MAX_GOODS_NUM`) pelo peso `Rands`, a partir do nível 26 |
 | Presente para outro jogador (`receiveId`) | — | recusado. **depende de**: entrega pelo correio na compra |
 | Mochila cheia | — | recusa (o oficial manda pelo correio, resultado 12) |
@@ -105,8 +105,8 @@ Outros eventos:
   são **dedução** de uma volta só.
 - Temple of Ibalize (Outer) 1003 (migração 0062): Perene Bone **TODO(inventado)** x1 nos Undead Crusader/Gladiator (103104, 103106, 103202, 103203, 103206), que não lutaram com a missão 190 aberta; Mystery Box 103108 sorteia 5.000 Gold ou Lvl. 2 Luck Stone x2 por igual (dedução, três amostras).
 - Exército do sistema (5038): lista só para 1011, 1021 e 2011 (captura). Os demais mapas precisam de captura do 5038.
-- Torre (8297/8300): limites vistos na captura; totalGp e itens **dependem de** progresso da torre.
-- Varredura (8528): campanha feita (`game/sweep.py`); a do labirinto **depende de** progresso da torre.
+- Labirinto (8296/8297/8299/8300, `game/maze.py`): feito; o Necropolis (8101) segue sem andares.
+- Varredura (8528): campanha e labirinto feitos (`game/sweep.py`).
 - Guarda de batalha (8742): o login oficial manda 4631 com `watchInfo` e o servidor não manda. **depende de** modelar gemas.
 - Pedágio (8752–8755): fechado, sem agenda. Configuração e tabelas de recompensa existem no template, mas o parser descarta as tabelas aninhadas.
 - Link de sala no chat (9504): feito (4913). Sala inexistente: sem resposta (dedução).
@@ -344,8 +344,8 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/systems.py:424](../src/wartune_server/game/handlers/systems.py#L424) | pesos da roda tirados do tamanho das fatias (FateRotaryModel.rndDic, em graus) |
 | [game/handlers/systems.py:492](../src/wartune_server/game/handlers/systems.py#L492) | 1 de EXP por pedra (sem captura do treino) |
 | [game/handlers/systems.py:609](../src/wartune_server/game/handlers/systems.py#L609) | a vocação (vocationGrades/Gp) que vem depois não tem tabela nem captura; começa no 1 |
-| [game/handlers/tower.py:32](../src/wartune_server/game/handlers/tower.py#L32) | sem progresso salvo da torre; andar e recorde reais precisam do progresso |
-| [game/handlers/tower.py:59](../src/wartune_server/game/handlers/tower.py#L59) | 8296 não entra no labirinto: os nós e monstros dos MapInfo 8001+ não estão nos templates (o .maps só tem o desenho) e não há captura do 8296 nem da resposta |
+| [game/handlers/tower.py:170](../src/wartune_server/game/handlers/tower.py#L170) | a EXP do andar em dobro com a Crypt Key (o cliente só diz "lucro dobrado") |
+| [game/handlers/tower.py:207](../src/wartune_server/game/handlers/tower.py#L207) | a resposta do 8300 (sem captura): a vida enche (3 e o 83) |
 | [game/handlers/treasure.py:24](../src/wartune_server/game/handlers/treasure.py#L24) | o oficial sorteia a qualidade do mapa; sem essa tabela, dá sempre o de bronze (2190001) |
 | [game/handlers/vehicle.py:34](../src/wartune_server/game/handlers/vehicle.py#L34) | a tecnologia de tanque não tem tela nem regra de evolução no cliente, fica 0 para todos |
 | [game/handlers/vehicle.py:69](../src/wartune_server/game/handlers/vehicle.py#L69) | id = templateId (o oficial manda um id de banco; o cliente só usa templateId) |
@@ -358,7 +358,14 @@ Lista gerada de todo `ponytail:` em `src/` (atualize com `grep -rn "ponytail:" s
 | [game/handlers/vip.py:279](../src/wartune_server/game/handlers/vip.py#L279) | se o oficial cobra a atualização, o preço não está na evidência.""" |
 | [game/handlers/vip.py:399](../src/wartune_server/game/handlers/vip.py#L399) | presente para amigo (friendId de outro) igual ao VIP: precisa gravar outro personagem |
 | [game/handlers/vip.py:518](../src/wartune_server/game/handlers/vip.py#L518) | o mapa do teste (andar, buffs na batalha) não existe no servidor; sem ele não há onde |
+| [game/maze.py:169](../src/wartune_server/game/maze.py#L169) | o chefe como o 201106 da 0084 |
+| [game/maze.py:193](../src/wartune_server/game/maze.py#L193) | dois pawns do andar anterior com o chefe |
+| [game/maze.py:211](../src/wartune_server/game/maze.py#L211) | o nó do baú (só o 128 dele foi visto) |
+| [game/maze.py:214](../src/wartune_server/game/maze.py#L214) | o desenho do lobo e a força +71 por andar nos outros andares |
+| [game/maze.py:48](../src/wartune_server/game/maze.py#L48) | o Minor HP Pack x2 do 8002 em todos os andares |
+| [game/maze.py:50](../src/wartune_server/game/maze.py#L50) | o mesmo baú depois de cada chefe |
 | [game/rankings.py:28](../src/wartune_server/game/rankings.py#L28) | tamanho do fight.xml sem arquivo oficial para conferir; o SortModel pagina o que vier |
+| [game/sweep.py:155](../src/wartune_server/game/sweep.py#L155) | o dobrado na varredura do labirinto, como na luta |
 | [game/vehicles.py:62](../src/wartune_server/game/vehicles.py#L62) | regras da partida de veículos que o cliente não tem (tamanho mínimo, caixas, pontos, chefe, armadilha, prêmio e EXP); trocar com captura de uma partida |
 | [game/vehicles.py:397](../src/wartune_server/game/vehicles.py#L397) | andar de veículo sem conferir a velocidade, só se os tiles são andáveis |
 | [game/vehicles.py:506](../src/wartune_server/game/vehicles.py#L506) | skill de caixa sem Maximum (-1) vale um uso |

@@ -190,10 +190,10 @@ Authority, 25 moedas, andar 15) tirou 25 (117 → 92). A resposta é a da loja c
 (o 4476, 4426 e 4484 da mesma captura são de outros sistemas, não da compra). O andar (`MazeLayers`, `MazeLayers2`): o
 cliente esconde o botão quando o andar passa de `towerInfo1.maxIndex` (`GoodsItem.as:380`) ou de `towerInfo2.maxIndex`
 (`:384`). O `maxIndex` é o recorde (maior andar: "My Record" do `MazeFrame`, e a missão tipo 38 compara `maxIndex >=
-Para2`, `TaskTemplate.checkMazeRecord`). Sem progresso salvo, o servidor manda 0 no 4205 (`MAZE_MAX_INDEX`) e nunca
-manda o segundo labirinto; por isso recusa (`FAIL`, *(dedução)*) os produtos com `MazeLayers` > 0 e os com
+Para2`, `TaskTemplate.checkMazeRecord`). O recorde vem de `game/maze.py` (`handlers/tower.py` `record`); o segundo
+labirinto (Necropolis) não tem progresso, por isso recusa (`FAIL`, *(dedução)*) os produtos com
 `MazeLayers2` > 0. Os 4205 turcos têm `maxIndex` 60: o recorde daquele personagem (com `towerIndex` 1, 2, 3 e 5), que
-comprou o andar 15. Falta: o progresso do labirinto (andar e recorde).
+comprou o andar 15.
 
 ## Forja — `forge.py`
 

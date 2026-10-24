@@ -35,7 +35,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [x] randomSkill (RandomSkillCount) em itens novos e recompensas
 - [ ] Teto diário de Beden/EXP de itens
 - [ ] Lojas pagas com pontuação (lordes, guerra de guildas, cristal de fada, volta de jogador)
-- [ ] Progresso do labirinto (andar e recorde) para a loja 4 e o tower
+- [x] Progresso do labirinto (andar e recorde) para a loja 4 e o tower
 
 ## 5. Minigames e eventos
 - [ ] Quiz 9501, estrada dourada 9520-9522, pesca/caça/minério 9507/9502/9645
@@ -52,7 +52,8 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] persistência de times; gasto da entrada multi
 - [ ] 1001: 5180, cartas pagas, recusa sem Beden, missões, progresso salvo, chance da carta
 - [ ] Pandora: recompensa; 5121; 5038 de todos os mapas
-- [ ] Torre 8297/8300/8296 com progresso; guarda de batalha 8742 (gemas); pedágio 8752-8755
+- [x] Torre 8297/8300/8296 com progresso
+- [ ] Guarda de batalha 8742 (gemas); pedágio 8752-8755
 - [ ] 5027, 8740
 
 ## 8. Cidade externa
