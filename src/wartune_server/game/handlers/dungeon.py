@@ -9,6 +9,8 @@ from __future__ import annotations
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
+from .. import events as gev
+from .. import maze as mz
 from .. import rewards, rules, titles
 from .. import sweep as sw
 from ..builders import login as b
@@ -24,11 +26,42 @@ def _send(s: GameSession, msg: pb.CampaignSweepRsp) -> None:
     s.send(S_SWEEP, msg)
 
 
-async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> None:
+async def _settle_maze(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> list[str]:
+    """Andares vencidos da varredura do labirinto. (só turco: yeralti #7-#22) 3, 4540/4387 do mascote, 4476/4426;
+    o 4425 e o 83 da EXP de cada andar ficam com quem chama (devolve os textos)."""
+    from . import pets as P  # pets importa shop, que importa este módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    now, before = s.ctx.clock.now(), snap.character.grades
+    tower = mz.load(snap, now)
+    got = sw.settle_maze(
+        snap, s.ctx.templates, sweep, tower, mz.settings(s.ctx.world.settings), s.ctx.world.settings, now,
+        all_now=all_now,
+    )  # fmt: skip
+    pet = P.share_gp(s, sum(gp for gp, _, _ in got))
+    rows = [*rewards.owners(snap), mz.store(snap, tower, now), sw.store(snap, sweep, now)]
+    await s.ctx.characters.save(*rows, *([pet] if pet is not None else []))
+    if not got:
+        return []
+    from . import events
+
+    _player(s)
+    if pet is not None:
+        P.send_gained(s, pet)
+    events.progress(s)
+    if snap.character.grades > before:
+        await push_level(s, before)
+    return [rules.exp_text(*g) for g in got]
+
+
+async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> list[str]:
     """Acerta as rodadas vencidas e grava. (só turco: savasa_baskin_ve_elmas_ile_hizlandirma #5-#33) 109, 3, 115 da
     chave gasta, 4152 do leed 4 por rodada, 112 das missões de campanha (313 "Gain passage through any dungeon"), 140
     do exército parado quando acabou, 109, 115 dos itens, 4476/4426, 83 da devoção, os 4484, 111 e 83 dos itens,
     4476/4426 de novo; depois a subida de nível. O 4902/150/4434 do #7-#9 é o periódico de 5 min."""
+    if sweep.kind == sw.MAZE:
+        return await _settle_maze(s, sweep, all_now=all_now)
     from .vip import VIP_EXP, vip_right  # vip importa player, que importa login, que importa campaign
 
     snap = s.snapshot
@@ -44,7 +77,7 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     st = sw.store(snap, sweep, now)
     await s.ctx.characters.save(*rewards.owners(snap), st, *changed, delete=tuple(gone))
     if sweep.done == done and not changed:
-        return
+        return []
     castle_yield(s)
     _player(s)
     moved: list[Item] = [i for i in changed if i not in gone]
@@ -85,6 +118,31 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
         events.progress(s)
     if snap.character.grades > before:
         await push_level(s, before)
+    return []
+
+
+async def _maze_start(s: GameSession, msg: pb.CampaignSweepReq) -> None:
+    """Varredura do labirinto (``MazeMopupPrepareFrame``: ``eIndex`` = o último andar). (só turco: yeralti #2-#4)
+    109, 140 do exército ocupado e o 4425 status 1 (sem ``campaignId``)."""
+    from .campaign import ARMY_FIGHTING, S_MAP_SYNC, map_sync  # campaign importa login, que importa este módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    now, templates = s.ctx.clock.now(), s.ctx.templates
+    tower = mz.load(snap, now)
+    if why := sw.maze_refusal(snap, templates, tower, mz.settings(s.ctx.world.settings), msg.eIndex):
+        s.log.info("8528 do labirinto recusado", status=why, até=msg.eIndex, andar=tower.index)
+        _send(s, pb.CampaignSweepRsp(status=why, sweepType=sw.MAZE))
+        return
+    first = max(tower.index, 1)
+    new = sw.Sweep(mz.CAMPAIGN, msg.eIndex - first + 1, b.fmt_time(now), kind=sw.MAZE, first=first)
+    out = sw.response(new, templates, now, sw.OK)
+    out.ClearField("result")  # (só turco: #4) o 4425 do começo vai só com o status
+    await s.ctx.characters.save(sw.store(snap, new, now))
+    s.log.info("varredura do labirinto começou", de=first, até=msg.eIndex)
+    castle_yield(s)
+    s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
+    _send(s, out)
 
 
 @router.on(8528)
@@ -97,9 +155,8 @@ async def sweep(s: GameSession, msg: pb.CampaignSweepReq) -> None:
     snap = s.snapshot
     assert snap is not None
     now, templates = s.ctx.clock.now(), s.ctx.templates
-    if msg.sweepType != sw.CAMPAIGN:
-        # labirinto (sweepType 2): depende do progresso da torre (docs/plano-pendencias.md, seção 4)
-        s.log.info("8528 do labirinto sem progresso da torre", op=msg.opType, andar=msg.eIndex)
+    if msg.sweepType == sw.MAZE and msg.opType == sw.START:
+        await _maze_start(s, msg)
         return
     if msg.opType == sw.START:
         if why := sw.refusal(snap, templates, msg, now):
@@ -129,21 +186,25 @@ async def sweep(s: GameSession, msg: pb.CampaignSweepReq) -> None:
     if msg.opType == sw.POLL and current.end:
         _send(s, pb.CampaignSweepRsp(status=sw.POLLED, sweepType=0))
         return
+    texts: list[str] = []
     if msg.opType == sw.SPEED_UP and current.end == 0:
-        cost = 0 if sw.free(snap, now) else sw.speed_up_cost(current, templates, now)
+        free = gev.has_contract(snap, sw.MAZE_KING, now) if current.kind == sw.MAZE else sw.free(snap, now)
+        cost = 0 if free else sw.speed_up_cost(current, templates, now)
         paid = cash.pay(snap.character, cost, msg.payType, "sweep", str(current.campaign_id), now) if cost else None
         if cost and paid is None:
             s.log.info("8528 aceleração sem Balens", custo=cost)
-            _send(s, pb.CampaignSweepRsp(status=sw.NO_POINT, sweepType=sw.CAMPAIGN, campaignId=current.campaign_id))
+            _send(s, pb.CampaignSweepRsp(status=sw.NO_POINT, sweepType=current.kind, campaignId=current.campaign_id))
             return
         if paid is not None:
             await s.ctx.characters.save(snap.character, paid)
-        await _settle(s, current, all_now=True)
+        texts = await _settle(s, current, all_now=True)
     else:
-        await _settle(s, current)
+        texts = await _settle(s, current)
     out = sw.response(current, templates, now, current.end or sw.POLLED)
     await s.ctx.characters.save(sw.store(snap, current, now))
     _send(s, out)
+    for text in texts:  # (só turco: yeralti #22) "8,800 EXP kazanıldı(Dahil4,000 Dünya EXP,4,400 çevrimdışı EXP)"
+        s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
 
 
 async def login_push(s: GameSession) -> None:

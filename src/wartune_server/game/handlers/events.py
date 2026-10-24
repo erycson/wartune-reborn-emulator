@@ -687,7 +687,7 @@ def _task_done(s: GameSession, task_id: int) -> bool:
             if (r := tpl("ItemTempInfos", i.template_id))
         )
     if kind == 8:  # PASS_TOWER: recorde do Forgotten Catacombs (maxIndex do 4205)
-        return p1 <= tower.MAZE_MAX_INDEX
+        return p1 <= tower.record(s)
     if kind == 9:  # STAR_LEVEL: estrela equipada no grau
         return any(x.grade >= p1 for x in worn_stars)
     if kind == 10:  # INLAY_STONE: p1 pedras de nível p2+ engastadas (a Divinity Soul do mascote não conta)

@@ -23,11 +23,14 @@ from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import campaign, drops, rewards, rules
 from . import events as ev
+from . import maze as mz
 
 KEY = "sweep"
-CAMPAIGN = 1  # sweepType: 1 campanha, 2 labirinto
+CAMPAIGN, MAZE = 1, 2  # sweepType: 1 campanha, 2 labirinto
 START, SPEED_UP, POLL, CLOSE = 1, 2, 3, 4  # opType (CampaignMopupIngFrame)
 OK, BUSY, NO_GOLD, NO_POINT, NO_WEARY, POLLED, RESUME, DONE, BROKEN = 1, 2, 3, 4, 6, 5, 10, 11, 15  # status do 4425
+BAD_LAYER = 14  # (cliente) layerTipData2 "Streak level must be higher than current level!"
+MAZE_KING = 4  # KingContracts 4: a aceleração da varredura do labirinto sem Balens (MazeMopupIngFrame)
 ROUND, RUNNING = 1, 2  # SweepResult.type: rodada feita / ainda varrendo
 WEARY = 20  # CampaignMopupPrepareFrame.WEARY
 MAX_COUNT = 99  # o campo do quadro aceita 1..99
@@ -45,6 +48,7 @@ SETTING = "campaign_sweep"  # game_settings: ``round_gold`` = {campanha: ouro po
 class Round:
     gp: int
     items: list[tuple[int, int]]
+    floor: int = 0  # labirinto: o andar (``cIndex``)
 
 
 @dataclass
@@ -57,17 +61,23 @@ class Sweep:
     rounds: list[Round] = field(default_factory=list)
     sent: int = 0  # rodadas já mandadas ao cliente
     end: int = 0  # 0 varrendo, DONE ou BROKEN
+    kind: int = CAMPAIGN  # sweepType
+    first: int = 0  # labirinto: o primeiro andar (o ``towerIndex`` do começo)
 
     @property
     def done(self) -> int:
         return len(self.rounds)
 
 
-def period(templates: GameTemplates) -> int:
+def period(templates: GameTemplates, kind: int = CAMPAIGN) -> int:
+    if kind == MAZE:  # (cliente) MazeMopupPrepareFrame: Tower_Sweep_Time (30 s) por andar
+        return int(rules.config(templates, "Tower_Sweep_Time", "30"))
     return int(rules.config(templates, "Campaign_Sweep_Time", "300"))
 
 
-def gold_cost(templates: GameTemplates) -> int:
+def gold_cost(templates: GameTemplates, kind: int = CAMPAIGN) -> int:
+    if kind == MAZE:  # Tower_Sweep_Gold (1000) por andar
+        return int(rules.config(templates, "Tower_Sweep_Gold", "1000"))
     return int(rules.config(templates, "Campaign_Sweep_Gold", "5000"))
 
 
@@ -76,7 +86,7 @@ def load(snap: PlayerSnapshot) -> Sweep | None:
     if st is None or not st.text:
         return None
     data: dict[str, Any] = json.loads(st.text)
-    data["rounds"] = [Round(r["gp"], [tuple(i) for i in r["items"]]) for r in data.get("rounds", [])]
+    data["rounds"] = [Round(r["gp"], [tuple(i) for i in r["items"]], r.get("floor", 0)) for r in data.get("rounds", [])]
     return Sweep(**data)
 
 
@@ -106,8 +116,56 @@ def refusal(snap: PlayerSnapshot, templates: GameTemplates, msg: pb.CampaignSwee
     return 0
 
 
+def maze_refusal(snap: PlayerSnapshot, templates: GameTemplates, tower: mz.Tower, cfg: dict[str, Any],
+                 last: int) -> int:  # fmt: skip
+    """Status que recusa a varredura do labirinto (0 = pode). (cliente) MazeMopupPrepareFrame: do ``towerIndex``
+    (1 sem corrida) até ``eIndex``, que fica abaixo do recorde; só depois do andar 10; 1000 de ouro por andar."""
+    first = max(tower.index, 1)
+    if load(snap) is not None:
+        return BUSY
+    if tower.record < int(cfg["sweep_from"]) or not first <= last <= tower.record - 1:
+        return BAD_LAYER
+    if snap.character.gold < (last - first + 1) * gold_cost(templates, MAZE):
+        return NO_GOLD
+    return 0
+
+
+def settle_maze(
+    snap: PlayerSnapshot, templates: GameTemplates, sweep: Sweep, tower: mz.Tower, cfg: dict[str, Any],
+    world_settings: Any, now: datetime, *, all_now: bool = False,
+) -> list[tuple[int, int, int]]:  # fmt: skip
+    """Andares vencidos da varredura do labirinto. Cada um cobra 1000 de ouro e dá a EXP do andar com os bônus
+    (só turco: yeralti #20-#22, andar 1: 8.800 = 400 + 4.000 do mundo + 4.400 descansada); o totalGp do 4205 sobe só a
+    base (só turco: #26, 400) e o ``towerIndex`` vai ao andar seguinte. Sem ouro, para (``BROKEN``). Devolve
+    ``(total, mundo, descansada)`` de cada andar novo."""
+    due = (
+        sweep.count
+        if all_now
+        else int((now - ev.parse_time(sweep.started)).total_seconds() + EARLY) // period(templates, MAZE)
+    )
+    due = min(due, sweep.count)
+    out = []
+    c = snap.character
+    while sweep.end == 0 and sweep.done < due:
+        if c.gold < gold_cost(templates, MAZE):
+            sweep.end = BROKEN
+            break
+        c.gold -= gold_cost(templates, MAZE)
+        floor = sweep.first + sweep.done
+        base = mz.floor_gp(cfg, floor) * (2 if tower.double else 1)  # TODO(inventado): o dobrado, como na luta
+        gp, world, rested = rules.exp_bonus(c, world_settings or {}, base)
+        rules.add_gp(snap, templates, gp)
+        tower.gp += base
+        tower.index = floor + 1
+        sweep.rounds.append(Round(gp, [], floor))
+        out.append((gp, world, rested))
+    if sweep.end == 0 and sweep.done >= sweep.count:
+        sweep.end = DONE
+    return out
+
+
 def remaining(sweep: Sweep, templates: GameTemplates, now: datetime) -> int:
-    end = ev.parse_time(sweep.started) + timedelta(seconds=sweep.count * period(templates))
+    end = ev.parse_time(sweep.started) + timedelta(seconds=sweep.count * period(templates, sweep.kind))
     return max(0, math.ceil((end - now).total_seconds()))
 
 
@@ -187,6 +245,8 @@ def settle(
 
 def _result(sweep: Sweep, index: int, time: int) -> pb.SweepResult:
     r = sweep.rounds[index]
+    if sweep.kind == MAZE:  # (só turco: yeralti #20) type 1, gp, time, cIndex e eIndex (o último andar)
+        return pb.SweepResult(type=ROUND, gp=r.gp, time=time, cIndex=r.floor, eIndex=sweep.first + sweep.count - 1)
     out = pb.SweepResult(
         type=ROUND, gp=r.gp, campaignId=sweep.campaign_id, time=time, finishCount=index + 1, count=sweep.count
     )
@@ -201,11 +261,17 @@ def response(
     """4425 com as rodadas novas (todas no ``RESUME``: o quadro do login começa vazio; o cliente soma linhas a cada
     resposta). Varrendo, a última entrada é ``RUNNING`` com o tempo que falta."""
     left = remaining(sweep, templates, now) if sweep.end == 0 else 0
-    out = pb.CampaignSweepRsp(status=status, sweepType=CAMPAIGN, campaignId=sweep.campaign_id)
+    maze = sweep.kind == MAZE
+    out = pb.CampaignSweepRsp(status=status, sweepType=sweep.kind)
+    if not maze:  # (só turco: yeralti #4, #20) o do labirinto vai sem campaignId
+        out.campaignId = sweep.campaign_id
     first = 0 if all_rounds else sweep.sent
     for i in range(first, sweep.done):
         out.result.append(_result(sweep, i, left))
-    if sweep.end == 0:
+    if sweep.end == 0 and maze:  # (dedução) o andar em curso, como o RUNNING da campanha
+        out.result.add(type=RUNNING, time=max(1, left), cIndex=sweep.first + sweep.done,
+                       eIndex=sweep.first + sweep.count - 1)  # fmt: skip
+    elif sweep.end == 0:
         out.result.add(type=RUNNING, campaignId=sweep.campaign_id, time=max(1, left), finishCount=sweep.done,
                        count=sweep.count)  # fmt: skip
     if status == RESUME:
@@ -221,5 +287,5 @@ def response(
 
 
 def speed_up_cost(sweep: Sweep, templates: GameTemplates, now: datetime) -> int:
-    """CampaignMopupIngFrame: ``ceil(segundos que faltam / 60)`` Balens."""
-    return math.ceil(remaining(sweep, templates, now) / 60)
+    """CampaignMopupIngFrame: ``ceil(segundos que faltam / 60)`` Balens; MazeMopupIngFrame: 5 vezes isso."""
+    return math.ceil(remaining(sweep, templates, now) / 60) * (5 if sweep.kind == MAZE else 1)

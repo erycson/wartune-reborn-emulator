@@ -27,7 +27,7 @@ from ..router import router
 from ..session import GameSession
 from .guild import shop_buy as guild_shop_buy
 from .player import _army, _player, hp_pack
-from .tower import MAZE_MAX_INDEX
+from .tower import record as maze_record
 
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
 S_SHOP_BUY, S_HAS_BUY, S_FASHION_BUY, S_BLOOD = 90, 4145, 4486, 170
@@ -109,7 +109,7 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
     if int(row.get("NeedMinVip") or 0) > 0:  # ponytail: nenhuma loja tem NeedMinVip hoje; regra não conferida
         return VIP
     maze = row.get("ShopType") == MAZE
-    if maze and (int(row.get("MazeLayers") or 0) > MAZE_MAX_INDEX or int(row.get("MazeLayers2") or 0) > 0):
+    if maze and (int(row.get("MazeLayers") or 0) > maze_record(s) or int(row.get("MazeLayers2") or 0) > 0):
         # ponytail: o cliente esconde o botão se o andar passa do maxIndex (GoodsItem.as:380; o 4205 manda 0)
         # ou se é do segundo labirinto (towerInfo2 nunca chega). Progresso real do labirinto não existe. Código: dedução
         return FAIL

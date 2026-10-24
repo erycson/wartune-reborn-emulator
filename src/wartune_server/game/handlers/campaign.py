@@ -25,6 +25,7 @@ from ...protocol.registry import Direction
 from ...templates.repository import GameTemplates
 from .. import bag, buffs, drops, events, outer_city, rewards, rules, space
 from .. import campaign as cm
+from .. import maze as mz
 from ..battle import STATS, Battle, PlayerHero
 from ..builders import login as b
 from ..builders.army import castle_pawns
@@ -679,6 +680,11 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     gp = int(battle.spec.get("gpBonus", 0)) if won and _rewarded(s) else 0
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
+    maze = s.campaign is not None and mz.is_floor(s.campaign.map_id)
+    if maze:
+        from . import tower  # tower importa este módulo nas funções
+
+        gp = tower.doubled(s, gp)
     before = snap.character.grades
     gp, world, rested = rules.exp_bonus(snap.character, s.ctx.world.settings, gp)
     if gp:
@@ -770,6 +776,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     if loot.quests:
         _send(s, S_QUESTS, quest_update(loot.quests, rules.quest_bitmap(snap)))
+    if maze:
+        await s.ctx.characters.save(tower.floor_won(s, c.map_id, gp))
     if dungeon:  # (visto) tutorial_en #1264-#1279: 140, 115, 111, 131, 128
         _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     if loot.win:  # caixa do caçador: (visto) inglesa #2630-#2644: 3, 126, os nós do param4 DONE, 83
@@ -1010,8 +1018,10 @@ def _rewarded(s: GameSession) -> bool:
     return c is None or c.run is None or c.run.rewarded
 
 
-def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run: StageRun | None, created: int) -> None:
+def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run: StageRun | None, created: int) -> Any:
+    """Entra num mapa da masmorra. No labirinto, pelo portal, devolve a linha da torre a gravar."""
     s.campaign = c = CampaignMap.enter_dungeon(content, map_id, run)
+    row = None
     room = pb.RoomCreatedMsg(createdType=created)
     room.room.campaignId = map_id
     _send(s, S_ROOM_CREATED, room)
@@ -1024,6 +1034,10 @@ def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run:
         _send(s, S_NODES, c.node_list())
         _send(s, S_FOG, c.fog())
         _send(s, S_ROOM_ENTER, _room_enter(s))
+        if mz.is_floor(map_id):
+            from . import tower  # tower importa este módulo nas funções
+
+            row = tower.floor_entered(s, map_id)
         _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     else:
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
@@ -1033,6 +1047,7 @@ def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run:
         _send(s, S_MOVIE, pb.PlayerMovieMsg(movieTargetType=3, targetId=0, movieType="MOVIE_MAP_NAME", delay=0))
         if (plot := content["maps"][str(map_id)].get("plot")) is not None:
             _send_plot(s, plot)  # (visto) inglesa #850 (Dinah no 1011), #2317 (1131)
+    return row
 
 
 async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
@@ -1045,7 +1060,8 @@ async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> No
     if (target := c.part("portals", camp)) is not None:
         _send(s, S_NODE_STAND, pb.PlayerNodeStateMsg(mapId=c.map_id, nodeId=camp, isStand=True, armyId=s.player_id))
         assert c.content is not None
-        _enter_dungeon(s, c.content, int(target), c.run, PORTAL_ENTER)
+        if (row := _enter_dungeon(s, c.content, int(target), c.run, PORTAL_ENTER)) is not None:
+            await s.ctx.characters.save(row)
     elif (plot := c.part("plots", camp)) is not None:
         _send_plot(s, plot)  # Karlan (#2666-#2667, um 138 por 5125); a luta vem no 5032 do fim do diálogo
     elif (switch := c.part("switches", camp)) is not None and node["state"] == NORMAL:
@@ -1054,6 +1070,10 @@ async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> No
         # (visto) inglesa #1428-#1429, #2397-#2398: 29 e 4126 na posição do nó + 2
         _send(s, S_CONFIRM, ParseDict(confirm, pb.CampaignConfirmMsg()))
         _send(s, S_STANDPOS, pb.StandPosMsg(id=s.player_id, posX=node["posX"] + 2, posY=node["posY"] + 2))
+    elif (box := c.part("maze_chests", camp)) is not None:
+        from . import tower  # tower importa este módulo nas funções
+
+        await tower.open_chest(s, camp, box)
     elif c.battle(camp) is not None and node["masterType"] in (MONSTER, BOSS):
         _start_battle(s, camp)  # o chefe 102109/114206 é masterType 41, não 42
     elif (chest := _chest(c, camp)) is not None:
