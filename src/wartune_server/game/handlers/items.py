@@ -204,10 +204,10 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     if trimmed:
         s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates))
     _player(s)
-    hp_pack(s, healed)
     _army(s)
     s.send(S_ITEMS, item_moved(*begin, first, s.player_id))
     s.send(S_ITEMS, item_moved(*end, second, s.player_id))
+    hp_pack(s, healed)  # depois dos dois 115 (só turco: envanterden_item_kusanma #4-#6, #15-#17)
     if book is not None:
         send(s, fashion.S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
     if BagType.HERO in (begin[0], end[0]):
