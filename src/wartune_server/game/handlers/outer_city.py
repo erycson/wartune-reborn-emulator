@@ -276,7 +276,9 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     now = s.ctx.clock.now()
     if oc.template_of(msg.mapId) == oc.BASE_MAP:  # tutorial_en #532: as minas vêm antes do castelo
         for mine in mines.mines_in(s.ctx.world, grids):
-            land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s))
+            land = mines.mine_msg(
+                snap, s.ctx.world, s.ctx.templates, mine, mines.MINE_FREE, _capacity(s), _guild_name(s)
+            )
             reply.wildLand.append(land)
     if found_mines := mines.world_mines_in(s.ctx.world, s.ctx.templates, msg.mapId, grids):
         holders = await _holders(s, msg.mapId, now)
@@ -502,7 +504,7 @@ def _mine_sync(s: GameSession, mine: Mine, state: int) -> None:
     """140 da mina com o dono que ela tem agora (o próprio jogador, se ocupou)."""
     snap = s.snapshot
     assert snap is not None
-    land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, state, _capacity(s))
+    land = mines.mine_msg(snap, s.ctx.world, s.ctx.templates, mine, state, _capacity(s), _guild_name(s))
     if state == mines.MINE_FIGHTING:
         land.curArmyId.append(s.player_id)  # (visto) tutorial_en #726: o exército de quem ataca
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_WILD, wildLand=land))

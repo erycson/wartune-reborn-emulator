@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from tests.game.harness import Game, logged_in
+from tests.game.test_missoes_social import _create_guild
 from wartune_server.domain.models import Item, Pawn, PlayerSnapshot, Quest, WildLand, WildMonsterKill
 from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
@@ -237,7 +238,7 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
         assert (report.battleResult, report.battleScene) == (1, 4)
         after = [p.code for p in got if p.code not in (153, 75, 154, 156, 4600)]
-        # o 83 da devoção (leed 9) logo depois do 4152; o oficial manda depois do 140 (tutorial_en #748-#753).
+        # o 83 da devoção (leed 9) depois do 140 da mina ocupada e antes do 169 (tutorial_en #748-#754).
         # Com soldados perdidos, 109 e 3 antes do 4103 e o Daru = os perdidos (oficial_20261023-153200-1 #1620-#1623)
         assert after == [150, 109, 3, 4103, 150, 100, 140, 140, 112, 4152, 109, 152, 140, 83, 169]
         assert report.strategyBonus > 0 and snap.character.strategy == strategy + report.strategyBonus
@@ -256,11 +257,15 @@ async def test_mina_de_ouro_luta_e_ocupa(tmp_path: Path, monkeypatch: pytest.Mon
         # já é dele: atacar de novo só para o exército; e relogar mantém a mina ocupada
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=castle.map_id, posX=16, posY=34))
         assert [p.code for p in await g.until(140)] == [140]
+        await _create_guild(g)  # (só turco) a mina ocupada leva a guilda em occupyLeagueName
         again = await g.connect()
         again.client.send(8201, pb.PhysicUpdateReqMsg(mapId=castle.map_id, reqGrid="0_0"))
         got = await again.until(4129)
         lands = pb.PhysicListUpdateMsg.FromString(got[-1].body).wildLand
-        assert [(w.posX, w.occupyPlayerId) for w in lands] == [(16, g.user_id), (36, 0)]
+        assert [(w.posX, w.occupyPlayerId, w.occupyLeagueName) for w in lands] == [
+            (16, g.user_id, "Lobos"),
+            (36, 0, ""),
+        ]
 
 
 async def test_refresh_de_12_horas_sorteia_nivel_e_guarda(tmp_path: Path) -> None:

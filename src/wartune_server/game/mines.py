@@ -310,10 +310,10 @@ def give_up(snap: PlayerSnapshot, land: WildLand) -> None:
 
 
 def mine_msg(
-    snap: PlayerSnapshot, world: World, templates: GameTemplates, mine: Mine, state: int, capacity: int
+    snap: PlayerSnapshot, world: World, templates: GameTemplates, mine: Mine, state: int, capacity: int, guild: str = ""
 ) -> pb.WildLandMsg:
-    """Como no 4129 e no 140 do oficial: a livre não tem ``occupyPlayerName``; a ocupada leva o nome e o
-    poder do jogador em ``fightCapaity``."""
+    """Como no 4129 e no 140 do oficial: a livre não tem ``occupyPlayerName``; a ocupada leva o nome, o
+    poder do jogador em ``fightCapaity`` e a guilda em ``occupyLeagueName`` (só turco), como a do mundo."""
     land = occupied(snap, mine)
     template, guard = draw(snap, world, templates, mine)
     if land is not None and land.template_id:
@@ -338,6 +338,8 @@ def mine_msg(
     if land is not None:
         msg.occupyPlayerId, msg.occupyPlayerName = snap.character.id or 0, snap.character.nickname or ""
         msg.fightCapaity = capacity
+        if guild:
+            msg.occupyLeagueName = guild
     msg.armyPawn.add(id=mine.id, armyId=mine.id, tempateId=guard, ownPawns=1)
     return msg
 
