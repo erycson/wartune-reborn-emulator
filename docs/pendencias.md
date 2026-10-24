@@ -58,7 +58,7 @@ Itens fora da loja:
 | Fundo de novato | 8751 | **dedução**: janela oficial desconhecida (`endDate` 2099) |
 
 Outros eventos:
-- 8519/8521 (roleta VIP) são reais ([eventos.md](eventos.md#vip-e-contrato-do-rei)); 8518 responde o 4412 vazio (contadores do painel do dia: **depende de** cada sistema contar); 8756 só registra; loja de teste (8582) recusa: o mapa de teste não existe.
+- 8519/8521 (roleta VIP) são reais ([eventos.md](eventos.md#vip-e-contrato-do-rei)); 8518 responde o 4412 com os contadores do dia; só o torneio de fadas (`pet`) conta (só turco); as chaves 5001/5002/5003, match, 4001/4002, reward, vehicle e minefield **precisam de captura** (onde sai o 4413 de cada uma); 8756 só registra; loja de teste (8582) recusa: o mapa de teste não existe.
 - Quadro de recompensas 8291 sem passe, 8298, 8729: **depende de** batalha, missões e mensagens reportarem progresso.
 - SumActive: contam 12 (devoção), 13, 14, 21/22 (alquimia), 26 (coliseu), 108/109 (destino) e 110 (torneio
   de fadas); diário x período todo vem dos textos "today" do cliente (**dedução** para os sem texto). Os outros

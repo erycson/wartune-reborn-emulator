@@ -56,6 +56,23 @@ def daily(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
     return st
 
 
+CLICK = "click:"  # contadores do painel de atividades (4412/4413)
+
+
+def click(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
+    """Soma 1 no contador do dia ``key`` (``keys`` do cliente DayGuideManager: 5001, match, 5002, 4001, 4002, 5003,
+    reward, vehicle, minefield, pet)."""
+    st = daily(snap, CLICK + key, now)
+    st.value += 1
+    st.updated_at = now
+    return st
+
+
+def clicks(snap: PlayerSnapshot, now: datetime) -> list[EventState]:
+    """Os contadores do painel mexidos hoje."""
+    return [e for e in snap.events if e.key.startswith(CLICK) and gameday.same_day(e.updated_at, now) and e.value]
+
+
 def rate_window(r: ExpRate) -> tuple[datetime, datetime]:
     """Início e fim do evento de EXP (datas na hora do jogo). ``begin_time``/``end_time`` = segundos somados ao
     dia (0/86399 = o dia inteiro, como o PlayerBufferManager conta).

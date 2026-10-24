@@ -25,6 +25,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .campaign import map_sync, player_hero
+from .events import click_info
 from .login import player_info
 from .player import push_level
 from .vip import free_cool, is_vip, vip_grade
@@ -33,6 +34,7 @@ S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 1
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
 S_PET_LIST, S_PET_TOP, S_PET_REWARD, S_PET_INFO, S_BATTLE_REPORT = 4611, 4619, 4613, 4540, 4103
 S_QUESTS = 112  # QuestUpdatedRspMsg
+S_CLICK_ADD = 4413  # ClickDatasRspMsg: um contador do painel de atividades subiu
 PRIZE_KEY = "arena:prize"  # event_states: prêmios do coliseu no dia (``_prize``)
 QUEST_CHALLENGE = 35  # QuestCondictionInfos 2/4/188 "Challenge" (Para1 1): cada desafio do coliseu conta
 QUEST_PET_TOURNAMENT = 87  # QuestCondictionInfos: participar do torneio de fadas (Para2 1)
@@ -578,13 +580,16 @@ async def _pet_over(s: GameSession, won: bool, target: int, name: str) -> None:
         logs.append(ChallengeLog(target, A.PETS, now, me, c.nickname or "", False, not won, 0))
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_PET_TOURNAMENT, 0, 1)  # participar conta, ganhando ou não
     counted = ev.count(snap, s.ctx.events, ev.PET_CHALLENGE, now)  # atividade "Sylph Arena" (tipo 110), idem
-    await s.ctx.characters.save(arena, *logs, *quests, *counted)
+    clicked = ev.click(snap, "pet", now)
+    await s.ctx.characters.save(arena, *logs, *quests, *counted, clicked)
     _cool(s, A.PETS)
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=0, gpBonus=0)
     report.battleScene, report.failCount, report.goldBonus, report.petGpBonus = 19, 0, 0, 0
     s.send(S_BATTLE_REPORT, report)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    # (só turco: peri_turnuvasi #53) {keys "pet", keyData 1, changeTime} entre o 112 e o 140
+    s.send(S_CLICK_ADD, pb.ClickDatasRspMsg(info=[click_info(clicked)]))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
     if delta:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points  {delta:+d}"))  # (só turco: "Puan")

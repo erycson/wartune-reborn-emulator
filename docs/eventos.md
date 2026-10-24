@@ -69,7 +69,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 | 5019 | baú online: conta só depois do 1º 5019; resgate zera; 109 (ou 3), 115, 111, 4250, 4, 83 "Received: ...", 83 "Reward retrieval successful!" | (visto) tutorial_en #1594-#1598, #2097-#2114 |
 | 8234, 8322 | só devolvem 4152 (o 8322 vem do login com `templateId` 1, como oficial_encantar #25/#52; o 8234 nenhuma tela manda; o progresso vem do servidor) | (cliente), (visto) |
 | 8235 | baú `site` 1..5 da atividade diária (10/40/60/80/100 pontos), `LeedDrop`; 4150 | (cliente) |
-| 8518 | 4412 vazio (contadores do painel do dia) | (cliente) |
+| 8518 | 4412 com os contadores do dia (`events.click`, `click:<chave>`); o torneio de fadas soma `pet` e manda o 4413 `{keys, keyData, changeTime}` entre o 112 e o 140 | (cliente) DayGuideManager; 4413 só turco (peri_turnuvasi #53) |
 
 - Cliente: `FunnyManager`. Atividade com `stopTime` passado é descartada; o cache só troca quando
   `dataStamp` sobe. O oficial inglês mandou 4 páginas, 41 atividades, `dataStamp 3` (#60-#67).

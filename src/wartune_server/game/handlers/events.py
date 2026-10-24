@@ -609,10 +609,17 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
 
 @router.on(8518)
 async def daily_counts(s: GameSession, _: object) -> None:
-    """Painel de atividades do dia (4412): contadores por chave (``5001``, ``match``, ``reward``...).
+    """Painel de atividades do dia (4412): contadores por chave (``5001``, ``match``, ``reward``...), os de hoje.
+    Conta só o torneio de fadas (``pet``, 4413 visto no turco); as outras chaves precisam de captura."""
+    assert s.snapshot is not None
+    now = s.ctx.clock.now()
+    s.send(S_CLICK, pb.ClickDatasRspMsg(info=[click_info(e) for e in ev.clicks(s.snapshot, now)]))
 
-    ponytail: nenhum desses sistemas conta ainda; lista vazia = tudo zerado no painel."""
-    s.send(S_CLICK, pb.ClickDatasRspMsg())
+
+def click_info(st: EventState) -> pb.ClickDataRspMsg:
+    return pb.ClickDataRspMsg(
+        keys=st.key.removeprefix(ev.CLICK), keyData=st.value, changeTime=b.fmt_time(st.updated_at)
+    )
 
 
 # ---------------------------------------------------------------- guia de 7 dias (8749)

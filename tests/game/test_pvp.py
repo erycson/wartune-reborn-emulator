@@ -291,6 +291,12 @@ async def test_pet_tournament_battle_is_automatic(tmp_path: Path, monkeypatch: p
         assert body(got, 4176, pb.ChallengeCoolTimeMsg).leftTime == 300
         assert snap.arena is not None and snap.arena.pet_count == 1
         assert snap.arena.pet_score == (1005 if report.battleResult == 1 else 1000)
+        rest = got + await g.idle()
+        click = body(rest, 4413, pb.ClickDatasRspMsg).info  # (só turco: peri_turnuvasi #53)
+        assert [(c.keys, c.keyData) for c in click] == [("pet", 1)]
+        g.client.send(8518)
+        listed_clicks = body(await g.until(4412), 4412, pb.ClickDatasRspMsg).info
+        assert [(c.keys, c.keyData) for c in listed_clicks] == [("pet", 1)]
 
 
 @pytest.mark.parametrize("online", [True, False])

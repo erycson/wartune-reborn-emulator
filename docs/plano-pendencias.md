@@ -42,7 +42,7 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] Loteria, caça-níquel, cadeiras, caixa de ano novo, história, sorteio de grupo
 - [ ] Recuperar EXP 9503 (participação do dia por sistema)
 - [ ] Troca da sorte 9610; labirinto de gemas: ajuda de amigo
-- [ ] 8518 contadores do painel; quadro 8291/8298/8729; SumActive tipos em status 3
+- [ ] 8518 contadores do painel (só `pet` conta; as outras chaves precisam de captura); quadro 8291/8298/8729; SumActive tipos em status 3
 - [ ] Devoção: 13, 22, 23, 27, 28
 
 ## 6. Chefe do mundo
