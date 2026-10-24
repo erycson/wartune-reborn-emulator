@@ -100,7 +100,8 @@ async def push_level(s: GameSession, before: int) -> None:
 async def _level_buildings(s: GameSession) -> None:
     """Os prédios do nível novo (``castle.level_buildings``). (visto) oficial_20261023-231733-1 #3939-#3944, academia
     no 18: 110/109/152 da tecnologia de ouro que ela libera, 4130 da tecnologia, 104 da fila de tecnologia e 4130 da
-    academia, antes do 100/150; tutorial_en #2246, depósito no 9: só o 4130."""
+    academia, antes do 100/150; tutorial_en #2245-#2246, depósito no 9: o 109 já com o teto novo (10000 -> 450000)
+    e o 4130."""
     snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
     assert snap is not None
     born = cs.level_buildings(snap, templates)
@@ -120,6 +121,8 @@ async def _level_buildings(s: GameSession) -> None:
         s.send(S_BUILDINGS, b.buildings_msg(snap, templates, unlocked, used))
     if order is not None:
         s.send(S_ORDER_ADD, order_info(order, now))
+    if any(cs.by_son_type(snap, templates, cs.DEPOT) is x for x in born):
+        castle_yield(s)
     s.send(S_BUILDINGS, b.buildings_msg(snap, templates, born, used))
 
 

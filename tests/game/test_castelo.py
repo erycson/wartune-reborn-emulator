@@ -622,3 +622,19 @@ def cs_pawns(snap: PlayerSnapshot, templates: object) -> pb.ArmyPawnUpdatedMsg:
     from wartune_server.game.builders.army import castle_pawns
 
     return castle_pawns(snap, templates)  # type: ignore[arg-type]
+
+
+async def test_reaching_grade_9_builds_the_depot(tmp_path: Path) -> None:
+    """(visto) tutorial_en #2245-#2246: o 109 já com o teto do depósito (450000) e o 4130 do 30101."""
+    from wartune_server.game.handlers.player import push_level
+
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = await _grow(g, 8)
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        snap.character.grades = 9
+        await push_level(session, 8)
+        got = await g.until(150)
+        assert [p.code for p in got][:2] == [109, 4130]
+        assert pb.CastleYieldMsg.FromString(got[0].body).goldMax == 450000
+        assert pb.BuildingInfoListMsg.FromString(got[1].body).building[0].templateId == 30101
