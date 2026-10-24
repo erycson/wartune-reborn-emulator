@@ -92,6 +92,25 @@ cidade externa vai o 150 sem as mortas, o 4103 e o 150 e o 100 já repostos. A p
 - Dragão e cartas: **precisa de captura** (o buffer das cartas, 3040/3041, não está nos templates; o
   dragão não tem tabela de skill).
 
+## Mascote e despertar (4600)
+
+- O pet em batalha (`isFight`) luta junto como entrada do `pets` (`campaign.fighting_pet`; **visto**
+  peri_uyanis #50, só turco): `skillId` = `followSkills` + `changeSkills`, vida = `maxHp` do 4540,
+  `headId` = petId. Ele e o herói se apontam pelo `livingId2`; o livingId do pet é o primeiro livre.
+  Age com as `followSkills` ativas (**visto** exp_kitabi #76: 730101).
+- Do nível 55 do pet em diante (cliente `PetData.MORPH_OPEN_GRADE`) o herói leva as ativas das
+  `changeSkills` no `changeSkillId`.
+- Despertar (`Battle.awake`, gravado em `heroes.awake`, passa de uma luta para outra): +250 depois de
+  cada 153 do herói (**visto** exp_kitabi) e +250 por golpe levado, um só entre duas ações dele
+  (**dedução**: três golpes, um 4600; a internet diz "+250 por intervalo", e dois 4600 do turco não têm
+  golpe ao lado). Teto 3000 (cliente `HeroRoleInfo.updateAwaken`). O 153 do herói leva o valor de antes.
+- 700001 (Morph) com 3000 e 700002 (Cancel Morph) com mais que 0 (cliente `canMorph`/`canCancelMorph`).
+  Transformado: as skills viram as do `changeSkillId`, a passiva (731201) vira buffer, cada ação gasta
+  150 (**visto** peri_uyanis #59, #69) e golpe levado não dá. No 0 a próxima vez do herói é o 700002
+  (**dedução**: o cliente fica em `isWaitingChangeBody`). Números em `game_settings.battle_formula`
+  (`awake_max`, `awake_gain`, `awake_cost`).
+- Falta captura: o -150 do turco logo depois do 75 do 731001 (#63, antes do 153) e o ganho por tempo.
+
 ## Buffers e controle
 
 `SkillTempInfo.BufferIds` (com a chance do texto, "50% chance"; sem texto, sempre: **dedução**) aplica
@@ -117,7 +136,7 @@ linhas de `SkillBufferTempInfos`. `BufferMsg` no 153 de quem age e dos alvos.
 - Batalha com cartas de poder equipadas e com dragão: 157 (buffers do herói). O 4902 não é da batalha (ver heroi-exercito.md).
 - Golpes críticos e bloqueados em quantidade (multiplicadores e chances); um guerreiro ou caçador no
   150 (o ×1,05 do `MagicAttack` no poder de combate só foi visto na maga).
-- Skills com chance de buffer (quantas vezes entra); Selo sagrado; pets numa luta normal.
+- Skills com chance de buffer (quantas vezes entra); Selo sagrado; pets numa luta inglesa (o despertar só foi visto no turco).
 ## Regras que travam o cliente em silêncio
 
 - O herói do jogador no 157 precisa de `userId == playerId`; senão a batalha nunca começa.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import random
 import time
@@ -190,3 +191,71 @@ def test_tropas_mortas_saem_e_a_reserva_repoe() -> None:
     assert hit == (pawn, 162)
     oc.refill(*hit)
     assert (pawn.army_count, pawn.castle_count) == (50, 0)
+
+
+def _pet_battle(awake: int) -> tuple[bt.Battle, list[tuple[int, Message]], list[int]]:
+    """Herói 3 com o Pan (104101) em batalha, como peri_uyanis #50."""
+    sent: list[tuple[int, Message]] = []
+    saved: list[int] = []
+    spec: dict[str, Any] = {
+        "battleType": 6,
+        "mapTempId": 1021,
+        "attackModel": 2,
+        "soldiers": [{"livingId": 5, "tempId": 2011, "type": 1, "side": 2, "pos": 2, "initHp": 9000, "hp": 9000}],
+        "heroes": [{"livingId": 4, "tempId": 1011, "side": 2, "pos": 5, "maxHp": 9000, "hp": 9000}],
+        "player": {"livingId": 3, "pos": 4},
+    }
+    msg = pb.HeroMsg(livingId=3, userId=1, tempId=3, side=1, pos=4, maxHp=410, hp=410, sp=0, awake=awake)
+    msg.skillId.extend([30711, 30811])
+    msg.changeSkillId.extend([735101, 731001, 733101])
+    change = [735101, 731001, 733101, 731201]
+    pet = {"tempId": 104101, "side": 1, "pos": 0, "maxHp": 7173, "initHp": 7173, "hp": 7173, "userId": 1}
+    pet |= {"skillId": [728101, 729101, 730101, *change], "follow": [729101, 730101], "change": change}
+    stats = {"PhyAttack": 4, "PhyDefence": 40, "MagicAttack": 124, "MagicDefence": 91, "ForceHit": 10, "Parry": 10}
+    player = bt.PlayerHero(msg, stats, 30000, pet=pet, on_awake=saved.append)
+
+    async def end(*_: Any) -> None: ...
+
+    b = bt.Battle(spec, player, _templates(), FakeClock(), lambda c, m: sent.append((c, m)), end, rng=random.Random(1))
+    return b, sent, saved
+
+
+def _awakes(sent: list[tuple[int, Message]]) -> list[int]:
+    return [m.awake[0].awake for c, m in sent if c == bt.S_AWAKE]  # type: ignore[attr-defined]
+
+
+@needs_templates
+def test_mascote_entra_na_luta_e_o_despertar_sobe_250() -> None:
+    b, sent, saved = _pet_battle(0)
+    prep = b.prepare_msg()
+    hero = next(h for h in prep.heros if h.livingId == 3)
+    assert (hero.livingId2, [p.livingId for p in prep.pets], prep.pets[0].livingId2) == (6, [6], 3)
+    assert _unit(b, 6).skills == [729101, 730101]  # as passivas e as do modo mascote não entram na rotação
+    b._act(_unit(b, 3), 30000)
+    b._act(_unit(b, 4), _unit(b, 4).default_skill)
+    b._act(_unit(b, 5), _unit(b, 5).default_skill)
+    assert _awakes(sent) == [250, 500]  # golpe levado: um 4600 só até a próxima ação do herói
+    assert saved == [250, 500]
+    attack = next(m for c, m in sent if c == bt.S_ATTACK)
+    assert attack.awake == 0  # type: ignore[attr-defined]  (o 153 leva o valor de antes)
+
+
+@needs_templates
+def test_transforma_com_3000_gasta_150_e_desfaz_no_zero() -> None:
+    b, sent, _ = _pet_battle(3000)
+    hero = _unit(b, 3)
+    b.order(3, bt.UNMORPH)
+    assert sent[-1][1].result == 1  # type: ignore[attr-defined]  (não está transformado)
+    b.order(3, bt.MORPH)
+    assert sent[-1][1].result == 0  # type: ignore[attr-defined]
+    b._act(hero, bt.MORPH)
+    assert b.morphed and hero.skills == [735101, 731001, 733101]
+    assert any(x.row["Id"] == "731201" and x.active for x in b.buffs)
+    b._act(_unit(b, 4), _unit(b, 4).default_skill)  # transformado, golpe levado não dá
+    b._act(hero, 731001)
+    assert _awakes(sent) == [2850, 2700]  # (visto peri_uyanis #59, #69)
+    b.awake = 0
+    assert asyncio.run(b._player_skill(0)) == bt.UNMORPH
+    b._act(hero, bt.UNMORPH)
+    assert not b.morphed and hero.skills == [30711, 30811]
+    assert not any(x.row["Id"] == "731201" and x.active for x in b.buffs)

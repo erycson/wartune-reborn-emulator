@@ -218,6 +218,7 @@ class Hero:
     fast_key2: str = ""
     skill_index: int = 0  # conjunto em uso
     active_second: bool = False
+    awake: int = 0  # despertar do mascote (0 a 3000); passa de uma luta para outra (visto peri_uyanis #50)
 
 
 @dataclass(eq=False)

@@ -509,8 +509,8 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
         wingAvata="",
         fashionArmAvata="",
         fashionClothAvata="",
-        awake=0,
-        livingId2=0,
+        awake=leader.awake,
+        livingId2=0,  # a batalha põe o livingId do mascote
         fateSkillTempIds="",
         isChange=False,
         fightCapacity=stats.fighting_capacity,
@@ -525,6 +525,11 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
     if boost:
         for unit in army:
             unit["initHp"] = unit["hp"] = _boost(int(str(unit["hp"])))
+    pet = fighting_pet(s, msg)
+
+    def on_awake(value: int) -> None:
+        leader.awake = value  # vai para o banco com o herói (o fim da luta grava a vida dele)
+
     return PlayerHero(
         msg,
         total,
@@ -532,7 +537,39 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
         passives=passive_skills(snap, s.ctx.templates),
         army=tuple(army),
         once=frozenset(runes),
+        pet=pet,
+        on_awake=on_awake,
     )
+
+
+MORPH_GRADE = 55  # cliente PetData.MORPH_OPEN_GRADE
+
+
+def fighting_pet(s: GameSession, msg: pb.HeroMsg) -> dict[str, Any] | None:
+    """O mascote em batalha (``isFight``) luta junto, como entrada do ``pets`` (visto peri_uyanis #50: tempId 104101,
+    side 1, maxHp 7173 igual ao 4540, skillId = followSkills + changeSkills, headId = petId, petQuality 7). Do nível
+    ``MORPH_GRADE`` em diante o herói leva as skills ativas do modo mascote no ``changeSkillId`` (735101,731001,733101;
+    a passiva 731201 fica fora)."""
+    from .. import arena as A  # noqa: PLC0415  (arena importa handlers)
+    from . import pets as P  # noqa: PLC0415  (pets importa shop, que importa este módulo)
+
+    snap = s.snapshot
+    assert snap is not None
+    pet = next((p for p in snap.pets if p.is_fight), None)
+    if pet is None:
+        return None
+    templates = s.ctx.templates
+    info = P.pet_info(pet, templates, P.pet_items(snap, pet))
+    follow = [int(x) for x in pet.follow_skills.split(",") if x]
+    change = [int(x) for x in pet.change_skills.split(",") if x]
+    entry = A.pet_unit(pet.template_id, pet.grade, info.quality, 0, 1, 0, s.player_id, pet.id or 0, templates)
+    hp = info.maxHp or entry["hp"]
+    entry |= {"skillId": follow + change, "maxHp": hp, "initHp": hp, "hp": hp, "castTime": 14000}
+    entry |= {"follow": [x for x in follow if (templates.get("SkillTempInfos", x) or {}).get("UseWay") != "2"]}
+    entry["change"] = change
+    if pet.grade >= MORPH_GRADE:
+        msg.changeSkillId.extend(x for x in change if (templates.get("SkillTempInfos", x) or {}).get("UseWay") != "2")
+    return entry
 
 
 def rune_skills(rune_key: str, templates: GameTemplates) -> list[int]:

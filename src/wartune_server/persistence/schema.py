@@ -277,6 +277,7 @@ heroes = Table(
     _str("fast_key2"),
     _int("skill_index"),
     _bool("active_second"),
+    _int("awake"),
 )
 
 castles = Table(

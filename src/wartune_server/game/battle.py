@@ -42,6 +42,8 @@ log = structlog.get_logger(__name__)
 
 S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP, S_NOTICE = 157, 156, 153, 154, 75, 69, 4361
 S_REINFORCE = 72
+S_AWAKE = 4600  # AwakeMsg: despertar do herói com mascote
+MORPH, UNMORPH = 700001, 700002  # (cliente SelfAwakenView) transformar no mascote e desfazer
 
 FRAME_SECONDS = 0.04
 FIRST_ACTION = 100
@@ -75,6 +77,12 @@ FORMULA: dict[str, float] = {
     "crit_damage": 1.5,
     "block_base": 0.9995,
     "block_damage": 0.75,
+    # despertar: teto (cliente HeroRoleInfo.updateAwaken), ganho por ação/golpe e gasto no modo mascote (só turco:
+    # exp_kitabi +250 depois de cada 153 do herói; peri_uyanis -150 a cada ação transformado; internet: wiki Sylph,
+    # +250 e 3000 para despertar)
+    "awake_max": 3000,
+    "awake_gain": 250,
+    "awake_cost": 150,
 }
 STATS = ("PhyAttack", "PhyDefence", "MagicAttack", "MagicDefence", "ForceHit", "Parry")
 TEMPLATE_STATS = dict(
@@ -193,7 +201,9 @@ class PlayerHero:
 
     ``stats``: ``HeroStats.total``. ``passives``: skills passivas de talento e destino (viram buffers no 157,
     como as ``UseWay`` 2 da lista de skills). ``army``: pilhas da tropa (``outer_city.army_soldiers``) que
-    trocam as do jogador na spec; ``None`` não mexe. ``once``: skills de runa, uma vez por batalha."""
+    trocam as do jogador na spec; ``None`` não mexe. ``once``: skills de runa, uma vez por batalha. ``pet``: o
+    mascote em batalha (entrada do ``pets``, livingId posto pela luta; ``follow``: as skills com que ele age,
+    ``change``: as do modo mascote). ``on_awake``: grava o despertar novo (ele passa de uma luta para outra)."""
 
     msg: pb.HeroMsg
     stats: Mapping[str, int]
@@ -201,6 +211,8 @@ class PlayerHero:
     passives: tuple[int, ...] = ()
     army: tuple[dict[str, Any], ...] | None = None
     once: frozenset[int] = frozenset()
+    pet: Mapping[str, Any] | None = None
+    on_awake: Callable[[int], None] | None = None
 
     @property
     def attack(self) -> int:
@@ -248,6 +260,9 @@ class Battle:
         self._player_msg = player.msg if player is not None else None
         self._once = set(player.once) if player is not None else set()
         self.spec = self._with_army(spec, player)
+        self._pet_id = 0  # livingId do mascote do jogador (0: sem mascote, sem despertar)
+        if player is not None and player.pet is not None:
+            self.spec = self._with_pet(player, player.pet)
         self.buffs: list[Buff] = []
         self._buff_seq = 0  # bufferId: 1, 2... por batalha (visto #1466 e #1484)
         self.units = self._units(player)
@@ -256,6 +271,14 @@ class Battle:
         self.wound = self.hurt = 0  # dano causado e sofrido pelo lado do jogador (relatório 137 da masmorra)
         if player is not None and self.player is not None:
             self._passives(self.player, [*player.msg.skillId, *player.passives])
+        self.awake = player.msg.awake if player is not None else 0
+        self.morphed = False
+        self._hit_awake = False  # já ganhou pelo golpe levado desde a última ação do herói
+        self._hero_skills = list(self.player.skills) if self.player is not None else []
+        self._change = list(player.msg.changeSkillId) if player is not None else []
+        pet = player.pet if player is not None else None
+        self._morph_passives = [s for s in (pet or {}).get("change", []) if not self._usable(s)]
+        self._on_awake = player.on_awake if player is not None else None
 
     @property
     def player_sp(self) -> int:
@@ -304,6 +327,17 @@ class Battle:
             self._player_msg.pawnTempId = int(player.army[0]["tempId"]) if player.army else 0
         return spec | {"soldiers": [*player.army, *others]}
 
+    def _with_pet(self, player: PlayerHero, pet: Mapping[str, Any]) -> dict[str, Any]:
+        """O mascote entra nos ``pets`` com o primeiro livingId livre; ele e o herói se apontam pelo ``livingId2``
+        (visto peri_uyanis #50: herói 1 com livingId2 2, pet 2 com livingId2 1)."""
+        spec = self.spec
+        used = [u["livingId"] for k in ("soldiers", "heroes", "pets") for u in spec.get(k, [])]
+        used += [u["livingId"] for wave in spec.get("reinforce", []) for u in wave]
+        self._pet_id = max([*used, player.msg.livingId]) + 1
+        player.msg.livingId2 = self._pet_id
+        entry = dict(pet) | {"livingId": self._pet_id, "livingId2": player.msg.livingId}
+        return spec | {"pets": [*spec.get("pets", []), entry]}
+
     def _units(self, player: PlayerHero | None) -> list[Unit]:
         """Soldados, heróis NPC e pets da spec, mais o herói do jogador. Atributos do template; ``stats`` e
         ``attack``/``defaultSkill`` na spec valem mais (cópia de jogador, robô, pet)."""
@@ -312,7 +346,7 @@ class Battle:
             for h in self.spec.get(kind, []):
                 row = self.templates.get(category, h["tempId"]) or {}
                 default = int(h.get("defaultSkill") or row.get("DefaultSkill") or row.get("DefaultSkills") or 0)
-                skills = list(h.get("skillId", [])) or [default]
+                skills = list(h.get("follow") or h.get("skillId", [])) or [default]
                 hp = int(h["hp"])
                 reject = frozenset(int(x) for x in str(row.get("RejectType", "")).split(",") if x)
                 unit = Unit(h["livingId"], h["side"], hp, skills, default, _stats(row, h), int(h.get("maxHp") or hp))
@@ -423,7 +457,11 @@ class Battle:
     def order(self, living_id: int, skill_id: int) -> None:
         """10008: aceita (75 result 0) ou recusa (result 1) a skill escolhida."""
         p = self.player
-        ok = p is not None and living_id == p.living_id and skill_id in p.skills and self._affordable(skill_id)
+        ok = (
+            p is not None
+            and living_id == p.living_id
+            and (self._awaken_ok(skill_id) or skill_id in p.skills and self._affordable(skill_id))
+        )
         targets = [t.living_id for t in self._targets(p, skill_id)] if ok and p is not None else []
         reply = pb.HeroOrderMsg(battleId=self.id, heroIndexId=living_id, skillId=skill_id, result=0 if ok else 1)
         reply.castTime, reply.qteTime = 0, 0
@@ -524,6 +562,8 @@ class Battle:
     async def _player_skill(self, due: int) -> int:
         assert self.player is not None
         self._order_frame = None
+        if self.morphed and self.awake <= 0:  # (dedução) o cliente espera o 700002 (isWaitingChangeBody)
+            return UNMORPH
         if self.auto:
             return self._auto_skill()
         # manual: sem ordem na vez dele, golpe básico (visto: tutorial_en #152, #271, #274, sem 10008, e o
@@ -537,7 +577,13 @@ class Battle:
         skill, self._order_frame = self._order
         self._order = None
         # ordem que não dá mais (fúria): golpe básico (visto #279 recusada, #281 com 30000)
-        return skill if self._affordable(skill) else self.player.default_skill
+        return skill if self._awaken_ok(skill) or self._affordable(skill) else self.player.default_skill
+
+    def _awaken_ok(self, skill: int) -> bool:
+        """Cliente HeroRoleInfo.canMorph/canCancelMorph: transforma com o despertar cheio, desfaz com mais que 0."""
+        if skill == MORPH:
+            return not self.morphed and bool(self._change) and self.awake >= int(self.formula["awake_max"])
+        return skill == UNMORPH and self.morphed and self.awake > 0
 
     def _auto_skill(self) -> int:
         assert self.player is not None
@@ -700,7 +746,7 @@ class Battle:
             execFrame=self.frame,
             frameNum=frames,
             attackMillis=fmt_time(self.clock.now()),
-            awake=0,
+            awake=self.awake if unit.is_player else 0,  # (visto) só o 153 do herói leva o despertar
             curturn=unit.turn,
         )
         self._turn_buffs(unit)  # sangramento antes do golpe (visto #1485: 222 -> 197, depois o golpe)
@@ -757,7 +803,54 @@ class Battle:
         self.buffs = [b for b in self.buffs if b.active or id(b) not in sent]
         if not self._skip:
             self._send(S_ATTACK, msg)
+        self._awaken(unit, skill, targets)
         return frames
+
+    def _awaken(self, unit: Unit, skill: int, targets: list[Unit]) -> None:
+        """Despertar (4600 depois do 153, só com mascote): ganha por ação do herói e por golpe levado (um só entre
+        duas ações dele; dedução: exp_kitabi #59-#63, três golpes e um 4600); transformado, cada ação gasta e golpe
+        não dá. 700001 troca as skills pelas ``changeSkillId`` e põe as passivas do mascote; 700002 desfaz."""
+        hero, f = self.player, self.formula
+        if hero is None or not self._pet_id:
+            return
+        old = self.awake
+        if unit is hero:
+            if skill == MORPH:
+                self.morphed, hero.skills = True, list(self._change)
+                self._morph_buffs(hero, on=True)
+            elif skill == UNMORPH:
+                self.morphed, hero.skills = False, list(self._hero_skills)
+                self._morph_buffs(hero, on=False)
+            if self.morphed:
+                self.awake -= int(f["awake_cost"])
+            elif skill != UNMORPH:
+                self.awake += int(f["awake_gain"])
+            self._hit_awake = False
+        elif hero in targets and unit.side != hero.side and not self.morphed and not self._hit_awake:
+            self.awake += int(f["awake_gain"])
+            self._hit_awake = True
+        self.awake = max(0, min(int(f["awake_max"]), self.awake))
+        if self.awake == old:
+            return
+        if self._on_awake is not None:
+            self._on_awake(self.awake)
+        if not self._skip:
+            self._send(S_AWAKE, pb.AwakeMsg(awake=[pb.AwakeInfoMsg(livingId=hero.living_id, awake=self.awake)]))
+
+    def _morph_buffs(self, hero: Unit, on: bool) -> None:
+        """Passivas do modo mascote (731201 Breath Shield): buffer permanente ao transformar, sai ao desfazer
+        (visto peri_uyanis #60: 731201 no herói com curTurn -1)."""
+        for skill in self._morph_passives:
+            row = self.templates.get("SkillTempInfos", skill) or {}
+            for buffer_id in filter(None, str(row.get("BufferIds", "")).split(",")):
+                if on:
+                    buff = self._apply(hero, hero, int(buffer_id))
+                    if buff is not None:
+                        buff.turn = -1
+                    continue
+                for b in self.buffs:
+                    if b.target == hero.living_id and b.active and int(b.row["Id"]) == int(buffer_id):
+                        b.turn, b.see = 0, 2
 
     def _skill_buffs(self, unit: Unit, row: Mapping[str, str], targets: list[Unit]) -> None:
         """BufferIds da skill nos alvos vivos (no próprio autor se ``AcceptObject`` 4). A chance vem do texto

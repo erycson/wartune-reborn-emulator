@@ -9,7 +9,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import Pawn, PlayerSnapshot
+from wartune_server.domain.models import Pawn, Pet, PlayerSnapshot
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import mines
 from wartune_server.game import outer_city as oc
@@ -166,3 +166,30 @@ async def test_virada_do_ciclo_com_o_jogador_online(tmp_path: Path, monkeypatch:
         assert rows == [1, 0]
         assert mines.held(snap) == []
         assert snap.castle.mines_at == mines.world_cycle_start(g.server.services.world, clock.now())
+
+
+async def test_mascote_em_batalha_luta_junto_com_o_despertar(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto peri_uyanis #50) o Pan em batalha entra nos ``pets`` e o herói leva o ``awake`` gravado e as skills do
+    modo mascote; o pet antes do nível 55 não dá ``changeSkillId``."""
+    _win(monkeypatch)
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = await _to_map_1(g)
+        pan = Pet(g.user_id, 104101, "Pan", grade=56, is_fight=True, pos=0)
+        pan.follow_skills, pan.change_skills = "728101,729101,730101", "735101,731001,733101,731201"
+        snap.pets.append(pan)
+        assert snap.leader is not None
+        snap.leader.awake = 3000
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=FIRST[1], posY=FIRST[2]))
+        prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+        hero = next(h for h in prepare.heros if h.userId == g.user_id)
+        pet = prepare.pets[0]
+        assert (pet.tempId, pet.userId, pet.livingId2, hero.livingId2) == (
+            104101,
+            g.user_id,
+            hero.livingId,
+            pet.livingId,
+        )
+        assert list(pet.skillId) == [728101, 729101, 730101, 735101, 731001, 733101, 731201]
+        assert (hero.awake, list(hero.changeSkillId)) == (3000, [735101, 731001, 733101])
+        await g.fight(prepare)
+        await g.idle()
