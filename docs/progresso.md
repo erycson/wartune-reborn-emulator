@@ -66,7 +66,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Produção de ouro e teto (5015) | 🟡 |  | tecnologia de ouro conferida no inglês (231733 #3969-#3979, 60 no grau 1); bônus de guilda não entra |
 | Roda da bênção do seminário (8489) | 🧪 | 🇹🇷 | subida de 10 a 70 inventada (`handlers/castle.py:38`); o 1º giro (10→50) só turco |
 | Fazenda: plantio e crescimento | ✅ |  | inglês: minutos inteiros e 1 min antes (215937 #1257, 171155); bate com o turco |
-| Fazenda: colheita, praga, acelerar, terras | ✅ | | |
+| Fazenda: colheita, praga, acelerar, terras | ✅ | | pragas tiram/devolvem 10% e totalGp acumulado no inglês (191924) |
 | Fazenda: roubo de amigo | ✅ | | ordem, textos e 10% no inglês (191924 #244-#263) |
 | Fazenda: reviver e regar do amigo | ✅ | 🇹🇷 | rega e ouro (grau × 20) no inglês; reviver do turco |
 | Fazenda: aviso ao dono online (145, rega e praga do amigo) | 🧪 | | rega e praga no inglês; textos do mato inventados (`farm.py`, `_tell_pest`) |
@@ -142,7 +142,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Vínculo de itens | ✅ | | |
 | Uso de recurso (203: ouro, Balens, EXP, Daru) | ✅ | | texto e ordem do inglês (231733) |
 | Caixas de pedra (206) e outras caixas | 🟡 | | caixa com conteúdo só na descrição é recusada |
-| Poção de HP e reserva de vida (209) | 🧪 | | "HP Pack has been exhausted." visto (171155); contrato de cura (`rules.py:210`) |
+| Poção de HP e reserva de vida (209) | 🧪 | | "HP Pack has been exhausted." e a cura ao evoluir tropa vistos (171155, 231733); contrato de cura (`rules.py:210`) |
 | Pergaminhos de EXP, ouro e população | ✅ | 🇹🇷 | do turco |
 | Pergaminhos de outros efeitos | 🟡 | | ícone e tempo ligam; o efeito não existe |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
@@ -357,11 +357,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Login diário e presente online | ✅ | | |
+| Login diário e presente online | ✅ | | dias 1 a 4 do login acumulado no inglês (153200, 191924) |
 | Baú de atividade diária (8235) | ✅ | | ordem e texto do inglês (tutorial_en #1561) |
 | Devoção (leeds) | 🟡 | 🇹🇷 | leed 8 no inglês (171155 #4955); 17 e 33 do turco; 13, 27, 28 sem gancho |
 | Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 nunca; login do turco |
-| Atividades por contador (SumActive) | 🟡 | | vários tipos sem contador |
+| Atividades por contador (SumActive) | 🟡 | | troca (tipo 10) vista (191924); vários tipos sem contador |
 | Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | só o torneio de fadas conta (turco); 5001-5003, match, reward, vehicle e minefield sem captura |
 | Fundo de novato e fundo normal | 🟡 | | janelas por dedução; compra e resgate do fundo normal sem captura |
 | Árvore dourada (8604) | 🟡 | | pesos, início da edição e "uma vez por dia" por dedução |
