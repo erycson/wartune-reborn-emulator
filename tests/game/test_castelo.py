@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, Character, FarmLand, Item, PlayerSnapshot, Relation
-from wartune_server.game import timebox
+from wartune_server.game import farm, timebox
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
@@ -388,15 +388,17 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         await g.idle()
         g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))
         got = await g.until(83)
-        assert [p.code for p in got] == [4158, 109, 147, 165, 146, 83]  # só turco: ciftlik #82-#87
+        got += await g.until(83)
+        # só turco: ciftlik #82-#87; os +4 sobem a fazenda para o 2 (111, 4386, 83: oficial_20261023-215937-1 #1279)
+        assert [p.code for p in got] == [4158, 109, 111, 4386, 83, 147, 165, 146, 83]
         assert pb.CastleYieldMsg.FromString(got[1].body).goldTotalCount == 240 + 1320
-        trees = pb.TreeUpdateRsp.FromString(got[2].body).tree
+        trees = pb.TreeUpdateRsp.FromString(got[5].body).tree
         assert [(t.userId, t.waterCount) for t in trees] == [(other.user_id, 1), (g.user_id, 0)]
-        info = pb.FriendInfoMsg.FromString(got[3].body)
+        info = pb.FriendInfoMsg.FromString(got[6].body)
         assert (info.userId, info.relationGrade, info.relationGp) == (other.user_id, 4, 34)
-        harvest = pb.TreeUpdateRsp.FromString(got[4].body).harvestMsg
+        harvest = pb.TreeUpdateRsp.FromString(got[7].body).harvestMsg
         assert harvest == ["Tree of the Ancients EXP +4", "Gold +1,320", "Friendliness  +1"]
-        text = pb.ChatChannelMsg.FromString(got[5].body).encodeMsg
+        text = pb.ChatChannelMsg.FromString(got[8].body).encodeMsg
         assert text == "Gold +1,320,Tree of the Ancients EXP +4,Friendliness  +1"
         g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))  # uma por dia por amigo
         assert await g.idle() == []
@@ -409,6 +411,27 @@ async def test_friend_farm_steal_revive_pest_and_tree(tmp_path: Path) -> None:
         assert [r.friend_gp for r in theirs.relations] == [1]
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=0))
         assert pb.FarmInfoRspMsg.FromString((await g.until(4386))[-1].body).todayFromFriendGp == 6
+
+
+async def test_watering_a_friend_tree_can_level_up_the_farm(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-215937-1 #1277-#1285: 4158, 109, 111/4386/83 "Your farm has been upgraded to level
+    3!", 147, 165, 146 com ``isUpGrade`` e 83."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        other = await g.join("outro")
+        await g.idle()
+        mine = await _set(g, grades=11)
+        await _set(other, grades=20)
+        await _friends(g, other, gp=0)
+        assert mine.castle is not None
+        need = next(g.server.services.templates.find("UpGradeTempInfos", Types=farm.FARM_GRADE, Grades=2))
+        mine.castle.farm_grade, mine.castle.farm_gp = 1, int(need["Data"]) - 1
+        g.client.send(15017, pb.BuildingReqMsg(userId=other.user_id))
+        got = await g.until(83)
+        got += await g.until(83)
+        assert [p.code for p in got] == [4158, 109, 111, 4386, 83, 147, 165, 146, 83]
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Your farm has been upgraded to level 2!"
+        assert pb.FarmInfoRspMsg.FromString(got[3].body).grades == 2
+        assert pb.TreeUpdateRsp.FromString(got[7].body).isUpGrade is True
 
 
 async def test_time_box_pays_each_period_once(tmp_path: Path) -> None:

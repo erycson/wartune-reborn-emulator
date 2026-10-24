@@ -23,7 +23,7 @@ from ..session import GameSession
 from .login import player_info
 from .player import CURRENCIES, push_level
 
-S_PLAYER, S_CHAT, S_ITEMS, S_QUESTS = 3, 83, 115, 112
+S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_QUESTS = 3, 83, 111, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
 S_HARVEST, S_WATER_LOG, S_FRIEND_UPDATE, S_TREE_PICK, S_PICK_HARVEST = 146, 4158, 165, 106, 4189
 REQ, PLANT, WORM, WEED, PICK, STEAL, REVIVE, ACCELERATE, CLEAR, LAND_UP = range(10)  # FarmOperateType
@@ -147,12 +147,26 @@ async def _plant(
 def _helper_gp(s: GameSession, snap: PlayerSnapshot, target: PlayerSnapshot, gp: int) -> None:
     """EXP da fazenda de quem ajudou: na própria, direto; na de amigo, até o teto do dia (expByOper)."""
     assert snap.castle is not None
-    grade, templates = snap.character.grades, s.ctx.templates
+    grade, templates, before = snap.character.grades, s.ctx.templates, snap.castle.farm_grade
     if target is snap:
         farm.add_farm_gp(snap.castle, grade, templates, gp)
-        return
-    farm.roll_day(snap.castle, s.ctx.clock.now())
-    farm.add_friend_gp(snap.castle, grade, templates, gp, _config(s, "Farm_TodayFromFriend_GP", 200))
+    else:
+        farm.roll_day(snap.castle, s.ctx.clock.now())
+        farm.add_friend_gp(snap.castle, grade, templates, gp, _config(s, "Farm_TodayFromFriend_GP", 200))
+    _farm_up(s, snap, before)  # (dedução) na hora, como na rega do amigo
+
+
+def _farm_up(s: GameSession, snap: PlayerSnapshot, before: int) -> bool:
+    """A fazenda subiu de ``before``: 111, 4386 (a própria) e 83 "Your farm has been upgraded to level N!".
+    (visto) oficial_20261023-215937-1 #1279-#1281, regando a árvore de um amigo (fazenda 2 -> 3)."""
+    assert snap.castle is not None
+    if snap.castle.farm_grade <= before:
+        return False
+    text = f"Your farm has been upgraded to level {snap.castle.farm_grade}!"
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    s.send(S_FARM_INFO, b.complete(farm.farm_info(snap, s.ctx.clock.now(), own=True)))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    return True
 
 
 async def _pest(
@@ -372,6 +386,7 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     # (internet) https://wartune.fandom.com/wiki/Tree_of_Ancients
     castle.tree_water, castle.tree_watered_at = castle.tree_water + 1, now
     castle.tree_water_today += 1
+    before = castle.farm_grade
     farm.add_farm_gp(castle, c.grades, templates, 1)
     farm.tree_charge(castle, templates)
     quests = rules.quest_event(snap, templates, rules.TREE_CONDITION, OWN_TREE, 1)
@@ -382,8 +397,10 @@ async def tree_water(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     if castle.tree_water_today >= farm.OWN_TREE_DAILY:
         s.send(S_WATER_LOG, pb.FarmLogRsp(playerId=s.player_id, operUserId=s.player_id))
     cs.castle_yield(s)
+    up = _farm_up(s, snap, before)  # (dedução) no mesmo lugar da rega do amigo
     # (visto) oficial_20261023-153200-1 #2228-#2229: os textos ingleses (a vírgula de milhar é dedução)
-    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=["Energy +1", f"Gold +{gold:,}", "Tree of the Ancients EXP +1"]))
+    lines = ["Energy +1", f"Gold +{gold:,}", "Tree of the Ancients EXP +1"]
+    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines, isUpGrade=up))
     text = f"Energized Successfully,Gold +{gold:,},Energy +1,Tree of the Ancients EXP +1"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
@@ -418,6 +435,7 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     gold = owner.farm_grade * TREE_GOLD
     cs.settle(snap, templates, now)
     c.gold += gold
+    before = castle.farm_grade
     gp = farm.add_friend_gp(castle, c.grades, templates, social.friend_grade(s.ctx, mine),
                             _config(s, "Farm_TodayFromFriend_GP", 200))  # fmt: skip
     castle.tree_friend_today += 1
@@ -432,6 +450,7 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
     await s.ctx.characters.save(*rows, *quests)
     s.send(S_WATER_LOG, pb.FarmLogRsp(playerId=s.player_id, operUserId=user_id))
     cs.castle_yield(s)
+    up = _farm_up(s, snap, before)  # (visto) oficial_20261023-215937-1 #1277-#1281: 4158, 109, 111, 4386, 83, 147
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
@@ -441,7 +460,7 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
         other.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, s.player_id, theirs))
     # (visto) #2242-#2243, com os dois espaços de "Friendliness  +1"
     lines = [f"Tree of the Ancients EXP +{gp}", f"Gold +{gold:,}", "Friendliness  +1"]
-    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines, isUpGrade=False))
+    s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines, isUpGrade=up))  # (visto) #1284 true, #1294 false
     text = f"Gold +{gold:,},Tree of the Ancients EXP +{gp},Friendliness  +1"
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
@@ -462,10 +481,12 @@ async def tree_pick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     c.strategy, c.crystals = c.strategy + daru, c.crystals + kyanite
     castle.tree_water = castle.tree_fruit = 0
     castle.tree_picked_at = now
+    before = castle.farm_grade
     farm.add_farm_gp(castle, c.grades, templates, TREE_PICK_GP)
     await s.ctx.characters.save(c, castle)
     s.send(S_TREE_PICK, pb.TreeUpdateRsp(pickMsg=[f"Daru + {daru:,}", f"Kyanite + {kyanite:,}"]))
-    s.send(S_PICK_HARVEST, pb.TreeUpdateRsp(harvestMsg=[f"Farm EXP + {TREE_PICK_GP}"]))
+    up = _farm_up(s, snap, before)  # (dedução) antes do 4189, como o 146 da rega
+    s.send(S_PICK_HARVEST, pb.TreeUpdateRsp(harvestMsg=[f"Farm EXP + {TREE_PICK_GP}"], isUpGrade=up))
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     cs.castle_yield(s)
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(farm.tree_msg(snap, now, own=True))]))
