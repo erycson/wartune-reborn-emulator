@@ -134,4 +134,4 @@ async def test_gold_scroll_raises_the_warehouse_cap(tmp_path: Path) -> None:
         await _give(g, GOLD_SCROLL)
         got = await _use(g)
         assert codes(got) == [115, 110, 4188, 109, 3]
-        assert pb.CastleYieldMsg.FromString(got[3].body).goldMax == 562500  # 450000 do armazém inicial + 25%
+        assert pb.CastleYieldMsg.FromString(got[3].body).goldMax == 12500  # 10000 sem armazém (nasce no 9) + 25%
