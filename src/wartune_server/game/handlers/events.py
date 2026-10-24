@@ -324,11 +324,13 @@ def _active_data(s: GameSession, actives: Sequence[ev.Active]) -> pb.SumActiveDa
         for p, status, countdown in _status(s, a, now):
             pd = data.packdata.add(packId=p.package_id, status=status, isShow=True)
             if a.active_type == ONLINE:
-                pd.countDown = countdown  # o oficial manda só isto no tipo 14
+                if status != TAKEN:  # (só turco: online_odul #39) o resgatado vai sem o countDown
+                    pd.countDown = countdown  # o oficial manda só isto no tipo 14
             else:
                 # getCount da troca = quantas ainda cabem (o número no botão, FunnyBagItem; tutorial_en #68: 1, 10 e
-                # 200 no personagem novo); 0 = sem limite
-                pd.param1, pd.finishValue, pd.getCount = "", 0, _exchanges_left(snap, a, p) or 0
+                # 200 no personagem novo); 0 = sem limite. finishValue dos contados = o progresso (só turco:
+                # online_odul #89, tipo 18 com value 9 e finishValue 9 em cada pacote)
+                pd.param1, pd.finishValue, pd.getCount = "", value or 0, _exchanges_left(snap, a, p) or 0
     return msg
 
 
@@ -367,13 +369,19 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
     await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new)
 
     # ordem do oficial (tutorial_en #2753-#2772): 3, 109, 115, 4476 de todas (o granted manda depois do 115), 111,
-    # 4476 só desta e o 83
-    granted(s, p.items, new, text, chat=False)
+    # 4476 só desta e o 83; sem moeda no pacote, sem o 3 (só turco: online_odul #23-#41, ouro e itens)
+    granted(s, p.items, new, text, chat=False, player=_coins(p.items))
     if not new:
         _sum_data(s, listed)
     alert(s, GIFT_OK)
     _sum_data(s, [a])
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+def _coins(drops: Sequence[tuple[int, int]]) -> bool | None:
+    """O 3 do resgate só sai quando o pacote mexe no ``PlayerMsg`` (Balens, Daru, EXP...): ouro e cristais vão no 109,
+    itens no 115 (só turco: online_odul #23-#41 e #64-#82 sem o 3; #44 com Ruh, o 3)."""
+    return True if any(t < 0 and t not in (-100, -600) for t, _ in drops) else None
 
 
 async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg, listed: list[ev.Active]) -> None:
@@ -403,7 +411,7 @@ async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg
     await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new, delete=tuple(gone))
 
     s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
-    granted(s, drops, new, text, chat=False)
+    granted(s, drops, new, text, chat=False, player=_coins(drops))  # (só turco: online_odul #64-#82) 115, 115, 4476
     if not new:
         _sum_data(s, listed)
     alert(s, GIFT_OK)

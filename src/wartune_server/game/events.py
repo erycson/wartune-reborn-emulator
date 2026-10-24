@@ -182,8 +182,11 @@ class EventCatalog:
 # do progresso, funny.FunnyRightView.processNN, = diário; sem "today" conta o período todo, *dedução*)
 ALCHEMY, REFINE_SOUL, CHALLENGE, FATE_TURN, FATE_EAT, PET_CHALLENGE = 21, 22, 26, 108, 109, 110
 SPEND = 1  # "Spending Bonus": Balens gastos (condição 9), "during the event" = o período (um dia na inglesa #60)
+# "10/15 Mount Training": "train the Mount the required times everyday" (diário); cada unidade treinada conta (só
+# turco: online_odul #84-#89, 9 chicotes -> value 9)
+MOUNT_TRAIN = 18
 COUNTED = {ALCHEMY: False, REFINE_SOUL: False, CHALLENGE: False, FATE_TURN: True, FATE_EAT: True, PET_CHALLENGE: True}
-COUNTED |= {SPEND: False}
+COUNTED |= {SPEND: False, MOUNT_TRAIN: True}
 
 
 def count(snap: PlayerSnapshot, catalog: EventCatalog, active_type: int, now: datetime, n: int = 1) -> list[EventState]:

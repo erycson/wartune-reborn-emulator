@@ -296,10 +296,12 @@ async def test_mount_list_train_and_change(tmp_path: Path) -> None:
 
         g.client.send(8529, pb.MountEditMsg(op=1, propertyType=0, payType=1, param1=9))
         got = await g.until(4426)
-        assert codes(got) == [115, 3, 150, 4426]
+        got += await g.until(4426)
+        # (só turco: online_odul #83-#91) 109, 115, 3, 150, 4476 da atividade 18 com o seu 4426 e o 4426 do treino
+        assert codes(got) == [109, 115, 3, 150, 4476, 4426, 4426]
         info = pb.MountInfoMsg.FromString(got[-1].body)
         assert (info.power, info.powerGp, info.mountTotalGp) == (70, 1700, 4100)  # só turco: captura de treino #90
-        assert pb.ArmyArmyMsg.FromString(got[2].body).mountTempId == 1103
+        assert pb.ArmyArmyMsg.FromString(got[3].body).mountTempId == 1103
         g.client.send(8529, pb.MountEditMsg(op=1, propertyType=0, payType=1, param1=1))  # acabou a comida
         g.client.send(8529, pb.MountEditMsg(op=2, param1=2000))  # não possui
         assert await g.idle() == []

@@ -95,7 +95,14 @@ async def test_troca_gasta_o_item_respeita_o_limite_e_a_que_vai_comecar_so_apare
         gold = snap.character.gold
         g.client.send(8586, pb.SumActiveGetPackageMsg(type=2, activeId="TROCA", packageId="T1", count=2))
         got = await g.until(83)
-        assert [p.code for p in got] == [115, 3, 109, 4476, 111, 4476, 83]
+        assert [p.code for p in got] == [
+            115,
+            109,
+            4476,
+            111,
+            4476,
+            83,
+        ]  # só ouro: sem o 3 (só turco: online_odul #64-#82)
         assert horn.count == 1 and snap.character.gold == gold + 2000
         assert (await _data(g))["TROCA"][1] == [(TAKEN, 0)]
         saved = await s.ctx.characters.snapshot(g.user_id)

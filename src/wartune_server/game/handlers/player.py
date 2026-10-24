@@ -126,10 +126,15 @@ async def _level_buildings(s: GameSession) -> None:
 
 
 def granted(
-    s: GameSession, drops: Sequence[rewards.Drop], new: list[Item], text: str, chat: bool = True, player: bool = True
+    s: GameSession,
+    drops: Sequence[rewards.Drop],
+    new: list[Item],
+    text: str,
+    chat: bool = True,
+    player: bool | None = True,
 ) -> None:
     """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro e cristais), 115 (itens) e o 83.
-    ``player=False``: o 3 vai depois dos itens, logo antes do 83 (login acumulado)."""
+    ``player=False``: o 3 vai depois dos itens, logo antes do 83 (login acumulado); ``None``: sem o 3."""
     if player:
         _player(s)
     if any(t == rewards.EXP for t, _ in drops):
@@ -143,7 +148,7 @@ def granted(
 
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
         events.items_gained(s)
-    if not player:
+    if player is False:
         _player(s)
     if chat:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

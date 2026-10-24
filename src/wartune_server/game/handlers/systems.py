@@ -324,7 +324,8 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
     """op 1 treina ``propertyType`` com ``param1`` unidades (chicotes 208017 primeiro, o resto Mount_Point
     diamantes cada; 10 de EXP por unidade, até o grau levelMax); op 2 escolhe ``param1`` (precisa possuir);
     op 3 monta (``param1`` 1) ou descansa (0, MountsFrame Mount/Rest); op 5 manda a montaria do jogador ``param1``
-    (4459). Resposta do treino: 109, 115, 3, 150, 4426 (só turco: online_odul_..._binek_upgrade #83-#90)."""
+    (4459). Resposta do treino (só turco: online_odul_..._binek_upgrade #83-#91): 109, 115, 3, 4902, 150, 4902, 4476
+    da atividade 18 com o seu 4426 e o 4426 do treino."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy = rules.systems(snap)
@@ -396,12 +397,20 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
     sy.mount_gp = ",".join(map(str, gps))
     new_mount = soul_mounts(templates, sy, s.ctx.clock.now())
     quests = rules.quest_event(snap, templates, QUEST_MOUNT_TRAIN, 0, 1)  # uma ação de treino, qualquer atributo
+    counted = ev.count(snap, s.ctx.events, ev.MOUNT_TRAIN, s.ctx.clock.now(), n)
     await s.ctx.characters.save(
-        sy, snap.character, *changed, *quests, *([spent] if spent else []), delete=tuple(deleted)
+        sy, snap.character, *changed, *quests, *counted, *([spent] if spent else []), delete=tuple(deleted)
     )
+    from ..castle import castle_yield
+    from .events import progress  # events importa este módulo
+
+    castle_yield(s)
     send_items(s, changed, deleted)
     _player(s)
     _army(s)
+    if (add := fight_add_msg(snap, templates)) is not None:
+        s.send(S_FIGHT_ADD, add)
+    progress(s)
     send_mount(s)
     if new_mount:
         send_avatars(s)
