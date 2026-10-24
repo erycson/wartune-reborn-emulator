@@ -24,7 +24,6 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Pergaminho de EXP | exp_kitabi_kullanim | 115, 110, 4188, 3 (2013002) | itens.md, test_pergaminhos | usar o Lvl. 2 Bonus EXP Scroll (a inglesa tem e não usou) |
 | Loja do labirinto subterrâneo | yeralti_labirent_marketi_alisveris | 5154 goodId 105/110 | test_loja_labirinto | comprar na loja |
 | Montaria, cartas, login com veículos | login.json | soulScore 400, cartas de poder (#76), 4512/4515/4516, 4696, eventos do login | heroi-exercito.md, diversos.md, eventos.md | login de conta antiga (nível alto) |
-| Cidade do céu | gokyuzu_sehrine_teleport | teleporte e andar | mundo-compartilhado.md | teleportar e andar |
 | Login 20001 | relay | chave e corpo cifrado do 20001 (`test_cipher_and_packet`, `pcap_samples` c2s 20001) | tests/protocol | capturar desde o login (a inglesa começa no meio) |
 | Amostras do .proto | replay | c2s 5172, 8574, 10020; s2c 102, 4224, 4463, 4922 | test_messages_against_pcap | usar esses sistemas |
 | Textos de pontos | meydan_okuma, av_askeri | "Puan" do chat virou "Points" por dedução (`arena.py`, `gemmaze.py`) | pvp.md, eventos.md | uma luta no torneio e uma troca no labirinto |
@@ -41,6 +40,8 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 
 | captura | coberta por |
 |---|---|
+| gökyüzü şehrine teleport ve yürüme sistemi | cidade do céu (`game/space.py`): 4606, 4597 + 4594 de quem está lá, 4607; o oficial agrupa o 4594 por região, o nosso manda um só (o cliente desenha igual) |
+| büyük exp kitabı-orta ruh incisi-altın kutusu kullanımı | recurso 203 de EXP, Daru e ouro: 115, (109), 111 "Received:EXP x5000", 3, 83 "Received 5,000 EXP " (o turco escreve "Lord EXP"; o nome inglês é o do template -700) |
 | eşşiz can ilacı kullanımı | uso de recurso 203 (115, 111, 3) no formato inglês "Received:Stamina x10" (231733 #4143-#4150) |
 | büyük hp iksiri kullanım | poção de HP (115, 113, 150 sem o 4902, 3); o 83 canal 2 da bênção da guilda no formato inglês (oficial_encantar #1749); o 4542 é sobra de outra ação |
 | büyük sefer kullanımı- grup sahne yararı +1 | The Empire Crusade: 115, 4240, 111, 3 (`items._use_copies`, test_copias_campanha; o texto do 111 é dedução); 4234 e 109 são os periódicos |
