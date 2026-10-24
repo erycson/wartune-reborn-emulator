@@ -29,7 +29,6 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Cartas das masmorras | replay #1241/#1355/#1744 | sem filtro de classe, 3 atributos no 1080013, Lvl. 1 Luck Stone 0,5 no 102102 (migração 0034) | drops-masmorras.md | rodar a 1001 mais vezes |
 | Forgotten Catacombs | login.json #55, yeralti_labirenti, labirent_sandik | 4205, campanha 8001 (`handlers/tower.py`; o maxIndex 60 é o recorde daquele personagem) | salas-campanha.md | abrir e entrar (8296 e a resposta: os andares não têm nós nos templates), resetar (8299) |
 | Sala em grupo | exp_kitabi_…_ek_sahne_mob #17-#23 | 12/17/32/120, playerState 2 do dono (`handlers/room.py`; 0/1 dos outros vêm do cliente) | salas-campanha.md | criar sala de campanha em grupo, entrar com outra conta, pronto, convite (5028), aba Hall (5027 → 4161) |
-| Forja | degerli_tas_birlestirme | 5153 de síntese | itens.md | sintetizar pedras |
 | Login de conta avançada | login.json | 4224/4372 (alquimia e alma: a conta nova inglesa não recebe, #17-#18), 4912 (recuperar EXP), 4614/4198 (anel em andamento), 4540 e pet no 150, 4905, 4201, appraisalSkill, 4426/4555 (roda, alma do dragão), bit da repetível, +30 de ouro | diversos.md, eventos.md | logar com conta de nível alto, guilda, pet, montaria |
 | Castelo | city_city_upgrade, login.json | cobrança 8327 (remainTime 3600, fórmula), bênção 8489 (4152 antes do 4391) | castelo.md | cobrar impostos e usar o seminário |
 
@@ -49,3 +48,6 @@ Apagadas do `D:\wartune\server-relay` (pcapng e txt) quando tudo nelas ficou imp
 | atölye item basma ve mozaik | forja: reforço (109, 109, 115, 86), engaste (109, 115, 115, 111, 83), desengaste com o 4476/4484 do item ganho; a bancada no formato inglês do 5005 (tutorial_en #3202/#3217, 231733 #4804) |
 | envanterden item kuşanma | equipar pela mochila: 3, 150, 115, 115 com o 83 do HP pack entre o 3 e o 150 como no inglês (153200 #2182-#2187) |
 | av askeri ve ödül toplama | labirinto de gemas (`game/gemmaze.py`, test_labirinto_gemas): tabuleiro, cascata, pontos e prêmios (`CAPTURED_*`, só turco); o 4903 dos buffs das cartas por tipo de campanha (`systems.send_camp_buffs`) |
+| değerli taş birleştirme | composição de pedras 5153 (`forge.compose`): 115, 109 ×2, 115, 4476, 4426, 4484, 111 "Received: ...", 89, 83, com a ordem inglesa (231733 #1493-#1511) |
+| lvl1 değerli taş sandığı açımı ve içinden çıkanlar | caixa de pedras (`items._open_gem_box`): 115, 115, 4476, 4426, 4484, 111, 3, 83 |
+| market alışveriş | compra na loja 5154 (`shop.buy`): 115, 4476, 4426, 4484, 111, 83, 90 na ordem inglesa (itens.md) |
