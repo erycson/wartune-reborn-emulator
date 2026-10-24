@@ -59,12 +59,15 @@ def appearance(s: GameSession, snap: PlayerSnapshot) -> pb.HeroEquUpdatedMsg:
 
 @router.on(5008)
 async def hide_fashion(s: GameSession, msg: pb.HeroHideFashionReqMsg) -> None:
-    """Esconde/mostra a moda e avisa todos (149, como a troca de aparência)."""
+    """Esconde/mostra a moda e avisa todos (149, como a troca de aparência). (visto) oficial_20261023-171155-1 #2958,
+    #5596, #8610: o cliente manda ``hide`` 0 com a moda já à mostra (depois de mexer no equipamento) e o oficial não
+    responde; sem mudança, nada sai."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    if msg.hide in (HIDE, SHOW) and snap.leader.hide_fashion != (msg.hide == HIDE):
-        snap.leader.hide_fashion = msg.hide == HIDE
-        await s.ctx.characters.save(snap.leader)
+    if msg.hide not in (HIDE, SHOW) or snap.leader.hide_fashion == (msg.hide == HIDE):
+        return
+    snap.leader.hide_fashion = msg.hide == HIDE
+    await s.ctx.characters.save(snap.leader)
     s.ctx.online.broadcast(S_APPEARANCE, appearance(s, snap))
 
 

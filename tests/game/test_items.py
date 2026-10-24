@@ -3,7 +3,8 @@ from pathlib import Path
 
 from tests.game.harness import logged_in
 from tests.game.test_shop import codes, me
-from wartune_server.domain.models import Item
+from wartune_server.domain.models import Item, Pawn
+from wartune_server.game import rules
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 WAND = 1013002  # Templar Priest Staff: arma de mago (SonType 101, espaço 0), SellGold 150
@@ -12,6 +13,7 @@ EXP_BOOK = 2030701  # Lvl. 1 EXP Book: EXP+500
 HONOR_CERT = 2030601  # Lvl. 1 Honor Certificate: honra (geste) +500
 GEM_BOX = 2060008  # Lvl. 1 Gem Pack
 SMALL_HP = 2090101  # Minor HP Pack: SonType 209, +10000 HP
+LANCER = 10101
 
 
 async def test_bag_move_checks_the_hero_slot(tmp_path: Path) -> None:
@@ -74,12 +76,17 @@ async def test_using_resources_potions_and_gem_boxes(tmp_path: Path) -> None:
         assert sum(i.count for i in stones) == 2 and all(i.template_id != GEM_BOX for i in snap.items)
 
         c.grades = 11  # a poção pede nível 11
+        assert snap.leader is not None
+        snap.leader.hp = 100  # ferido: a reserva nova já cura
         g.client.send(5006, pb.ItemUseMsg(pos=3, count=1, bagType=1))
-        got = await g.until(3)
-        assert codes(got) == [115, 113, 150, 3] and snap.leader.blood == 10000  # type: ignore[union-attr]
+        got = await g.until(83)
+        assert codes(got) == [115, 113, 150, 3, 83]  # oficial_20261023-171155-1 #7589-#7593
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Used HP pack to restore HP."
+        blood = snap.leader.blood
+        assert 0 < blood < 10000 and snap.leader.hp > 100
 
         saved = await g.server.services.characters.snapshot(g.user_id)
-        assert saved.character.gold == gold + 2000 and saved.leader.blood == 10000  # type: ignore[union-attr]
+        assert saved.character.gold == gold + 2000 and saved.leader.blood == blood  # type: ignore[union-attr]
 
 
 async def test_sell_lock_and_buy_bag_rows(tmp_path: Path) -> None:
@@ -162,3 +169,36 @@ async def test_equipping_and_stacking_bind_the_item(tmp_path: Path) -> None:
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert [(i.bag_type, i.is_binds) for i in saved.items if i.template_id == WAND] == [(4, True)]
+
+
+async def test_unequipping_lowers_hp_and_sends_extra_troops_home(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #2310-#2316: o cajado com Captain +6 e Physique +6 (70406, 70506) saiu; 113
+    com a vida no máximo novo, 100 com 6 soldados de volta ao castelo (exército 218 -> 212), 3, 150, 115, 115."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        leader = snap.leader
+        assert leader is not None
+        wand = Item(g.user_id, WAND, bag_type=4, object_id=leader.id or 0, pos=0)
+        wand.random_skills = [70406, 70506]
+        snap.items.append(wand)
+        now = g.server.services.clock.now()
+        stats = rules.leader_stats(snap, g.server.services.templates, now).total
+        for other in snap.pawns:
+            other.army_count = 0
+        pawn = next((p for p in snap.pawns if p.template_id == LANCER), None) or Pawn(snap.character.id or 0, LANCER)
+        pawn.castle_count, pawn.army_count = 100, stats["ConatArmy"]
+        if pawn not in snap.pawns:
+            snap.pawns.append(pawn)
+        leader.hp = 0  # cheia
+        await g.server.services.characters.save(wand, *snap.pawns, leader)
+
+        g.client.send(5005, pb.ItemReqMsg(beginBagType=4, beginObjId=leader.id, beginPos=0, endBagType=1, endPos=0))
+        got = await g.until(115) + await g.until(115)
+        assert codes(got) == [113, 100, 3, 150, 115, 115]
+        live = rules.leader_stats(snap, g.server.services.templates, now).total["Live"]
+        assert live == stats["Live"] - 120 and pb.SimpleHeroInfoMsg.FromString(got[0].body).hp == live
+        assert (pawn.army_count, pawn.castle_count) == (stats["ConatArmy"] - 6, 106)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert [(p.army_count, p.castle_count) for p in saved.pawns if p.template_id == LANCER] == [
+            (stats["ConatArmy"] - 6, 106)
+        ]

@@ -496,6 +496,19 @@ def top_up_army(snap: PlayerSnapshot, templates: GameTemplates) -> None:
         pawn.castle_count, pawn.army_count = pawn.castle_count - moved, pawn.army_count + moved
 
 
+def trim_army(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> bool:
+    """A liderança caiu (tirar equipamento): o que passa dela volta ao castelo. (visto) oficial_20261023-171155-1
+    #2310-#2314: exército 218 -> 212, castelo 769 -> 775. Devolve se mexeu (quem chama grava ``snap.pawns``)."""
+    pawn = army_pawn(snap)
+    if pawn is None or snap.leader is None:
+        return False
+    extra = pawn.army_count - leader_stats(snap, templates, now).total["ConatArmy"]
+    if extra <= 0:
+        return False
+    pawn.army_count, pawn.castle_count = pawn.army_count - extra, pawn.castle_count + extra
+    return True
+
+
 def skill_grades(templates: GameTemplates, script: str) -> int:
     return sum(int((templates.get("SkillTempInfos", int(t)) or {}).get("Grades", 0)) for t in script.split(",") if t)
 
