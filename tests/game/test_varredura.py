@@ -77,7 +77,7 @@ async def test_rodadas_no_tempo_aceleracao_e_fechar(tmp_path: Path) -> None:
         codes = [p.code for p in got]
         assert codes.index(115) < codes.index(4152) and 4476 in codes
         [text] = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
-        assert text.startswith("Received items: ") and text.endswith(" x1")
+        assert text.startswith("Received: ") and text.endswith(" x1")
 
         g.client.send(8528, pb.CampaignSweepReq(sweepType=1, opType=2, campaignId=WORG, payType=1))
         done = _rsp(await g.until(4425))  # faltam 601 s: ceil(601/60) = 11 Balens

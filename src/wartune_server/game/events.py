@@ -124,6 +124,7 @@ class Active:
     begin: datetime
     end: datetime
     packages: tuple[Package, ...]
+    charge: int = 0  # activeCharge do 4476: o "você pode receber mais N" (FunnyHelper canGet)
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,6 +160,7 @@ class EventCatalog:
                     )
                     for p in a["packages"]
                 ),
+                int(a.get("activeCharge", 0)),
             )
             for a in data.get("actives", [])
         )

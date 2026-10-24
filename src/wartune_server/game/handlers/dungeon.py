@@ -9,7 +9,7 @@ from __future__ import annotations
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
-from .. import bag, rewards
+from .. import rewards
 from .. import sweep as sw
 from ..builders import login as b
 from ..router import router
@@ -54,8 +54,8 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     if moved:
         events.items_gained(s)
     if got := [t for r in new for t in r.items]:
-        # (dedução) "Kazanılan Eşyalar:" traduzido como os outros "Kazanılan:" (o oficial inglês escreve "Received:")
-        text = "Received items: " + ", ".join(f"{bag.name(s.ctx.templates, t)} x{n}" for t, n in got)
+        # (dedução) "Kazanılan Eşyalar:" no turco; no inglês, como os outros "Kazanılan:" ("Received: Worg Tooth x2")
+        text = rewards.received(s.ctx.templates, got)
         alert(s, text)
         s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
     if snap.character.grades > before:

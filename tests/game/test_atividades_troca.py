@@ -63,6 +63,8 @@ def test_catalogo_do_operador_traz_as_41_do_oficial_como_a_captura() -> None:
     limits = {p.packId: p.getCount for d in data.datas if d.type == hev.EXCHANGE for p in d.packdata}
     mine = {p.package_id: p.limit for a in catalog.actives if a.active_type == hev.EXCHANGE for p in a.packages}
     assert mine == limits  # o personagem novo ainda não trocou: o getCount do #68 é o limite
+    charges = {d.activeId: d.activeCharge for d in data.datas if catalog.active(d.activeId) is not None}
+    assert {a.active_id: a.charge for a in catalog.actives if a.active_id in charges} == charges
     assert catalog.data_stamp > 3  # o cliente só troca o cache quando sobe
 
 

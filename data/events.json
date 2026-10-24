@@ -1,5 +1,5 @@
 {
-  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. O painel mostra toda atividade que ainda não acabou (endDate), também as que vão começar. Depois das duas do operador (Login Bonus e presente online, sem fim) vêm as 41 do oficial inglês (tutorial_en #60-#67, datas de 2026-10-01 a 2026-11-04) e mais 2 que o 4475 de oficial_encantar #63/#68 trouxe (Recharge Bonus I-1023, tipo 15, e 10/22 Online Bonus, tipo 14), cada uma depois da vizinha que o oficial manda antes dela. Pacote: condition = [conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4] (os zeros do fim podem faltar); items = [TemplateId, quantidade] ou [TemplateId, quantidade, templateType], e templateType 4 é o custo da troca (só aparece; não é dado); limit = trocas por jogador no tipo 10 (0 ou ausente = sem limite). Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP), 14 (presente online diário, condição 15 = segundos online desde o último resgate), 10 (troca, condição 11 = ter conditionValue do item conditionBak), 1 (Balens gastos no período, condição 9) e os contados de docs/eventos.md (12, 21, 22, 26, 108, 109, 110); os outros ficam 'ainda não'. Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
+  "_doc": "Atividades do painel de eventos (4475/4476/8586). Ver docs/eventos.md. Suba dataStamp sempre que mudar algo: o cliente só troca o cache quando ele aumenta. O painel mostra toda atividade que ainda não acabou (endDate), também as que vão começar. Depois das duas do operador (Login Bonus e presente online, sem fim) vêm as 41 do oficial inglês (tutorial_en #60-#67, datas de 2026-10-01 a 2026-11-04) e mais 2 que o 4475 de oficial_encantar #63/#68 trouxe (Recharge Bonus I-1023, tipo 15, e 10/22 Online Bonus, tipo 14), cada uma depois da vizinha que o oficial manda antes dela. Pacote: condition = [conditionId, conditionValue, conditionBak, Bak2, Bak3, Bak4] (os zeros do fim podem faltar); items = [TemplateId, quantidade] ou [TemplateId, quantidade, templateType], e templateType 4 é o custo da troca (só aparece; não é dado); limit = trocas por jogador no tipo 10 (0 ou ausente = sem limite). activeCharge = o \"você pode receber mais N\" do 4476 (FunnyHelper canGet; tutorial_en #68; ausente = 0). Tipos com regra no servidor: 13 (Login Bonus, uma vez por dia; condição 14 = 1 todos, 2 só VIP), 14 (presente online diário, condição 15 = segundos online desde o último resgate), 10 (troca, condição 11 = ter conditionValue do item conditionBak), 1 (Balens gastos no período, condição 9) e os contados de docs/eventos.md (12, 21, 22, 26, 108, 109, 110); os outros ficam 'ainda não'. Itens: TemplateId de ItemTempInfo ou moeda (-100 ouro, -300 Daru, -400 diamante, -500 diamante vinculado, -700 EXP).",
   "dataStamp": 6,
   "actives": [
     {
@@ -203,6 +203,7 @@
       "conditionDetail": "For a limited time only, players who recharge 500 or more Balens in a single payment will receive a special gift pack.\nNote: Each character may only redeem each reward once.",
       "getway": 1,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-23 00:00:00",
       "endDate": "2026-10-23 23:59:59",
       "packages": [
@@ -217,6 +218,7 @@
       "conditionDetail": "The power of duplicate runes is excessive. Please exchange duplicate runes for Runestone in this event and continue to develop your runes.",
       "getway": 2,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-15 00:00:00",
       "endDate": "2026-10-21 23:59:59",
       "packages": [
@@ -239,6 +241,7 @@
       "conditionDetail": "During the event, spin the Blessing Wheel and reach 150% to receive rewards (Claim once everyday).",
       "getway": 3,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-15 00:00:00",
       "endDate": "2026-10-21 23:59:59",
       "packages": [
@@ -253,6 +256,7 @@
       "conditionDetail": "Exchange Monthly Event Items for various items.",
       "getway": 2,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-22 00:00:00",
       "endDate": "2026-11-04 23:59:59",
       "packages": [
@@ -282,6 +286,7 @@
       "conditionDetail": "Strengthen your Sylphs to win rewards.",
       "getway": 3,
       "order": 28,
+      "activeCharge": 1,
       "beginDate": "2026-10-22 00:00:00",
       "endDate": "2026-10-28 23:59:59",
       "packages": [
@@ -298,6 +303,7 @@
       "conditionDetail": "Time flies, and you can't help but pause for a moment.",
       "getway": 2,
       "order": 2,
+      "activeCharge": 1,
       "beginDate": "2026-10-23 00:00:00",
       "endDate": "2026-11-01 23:59:59",
       "packages": [
@@ -320,6 +326,7 @@
       "conditionDetail": "During the event, upgrade Sylphs the required amount of times to receive rewards everyday.",
       "getway": 3,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-29 00:00:00",
       "endDate": "2026-11-04 23:59:59",
       "packages": [
@@ -654,6 +661,7 @@
       "conditionDetail": "Get stronger with your Sylphs!",
       "getway": 2,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-01 00:00:00",
       "endDate": "2026-10-21 23:59:59",
       "packages": [
@@ -679,6 +687,7 @@
       "conditionDetail": "Exchange Golden Road Tokens for various of items.",
       "getway": 2,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-26 00:00:00",
       "endDate": "2026-11-01 23:59:59",
       "packages": [
@@ -705,6 +714,7 @@
       "conditionDetail": "Time flies, and you can't help but pause for a moment.",
       "getway": 2,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-23 00:00:00",
       "endDate": "2026-11-01 23:59:59",
       "packages": [
@@ -736,6 +746,7 @@
       "conditionDetail": "Spend a certain amount during the event to get event items and Runestone.",
       "getway": 1,
       "order": 76,
+      "activeCharge": 1,
       "beginDate": "2026-10-28 00:00:00",
       "endDate": "2026-10-28 23:59:59",
       "packages": [
@@ -754,6 +765,7 @@
       "conditionDetail": "Strengthen your Sylphs to win rewards.",
       "getway": 3,
       "order": 28,
+      "activeCharge": 1,
       "beginDate": "2026-10-15 00:00:00",
       "endDate": "2026-10-18 23:59:59",
       "packages": [
@@ -771,6 +783,7 @@
       "conditionDetail": "-",
       "getway": 1,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-17 00:00:00",
       "endDate": "2026-10-18 23:59:59",
       "packages": [
@@ -785,6 +798,7 @@
       "conditionDetail": "During the event, synthesize Resistance Crystals of the specified levels to receive rewards (Claim them everyday).",
       "getway": 3,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-22 00:00:00",
       "endDate": "2026-10-28 23:59:59",
       "packages": [
@@ -803,6 +817,7 @@
       "conditionDetail": "During the event, explore Great Card Hunt the required number of times to receive rewards.",
       "getway": 3,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-29 00:00:00",
       "endDate": "2026-11-04 23:59:59",
       "packages": [
@@ -818,6 +833,7 @@
       "conditionDetail": "Exchange Monthly Event Items for various items.",
       "getway": 2,
       "order": 1,
+      "activeCharge": 1,
       "beginDate": "2026-10-22 00:00:00",
       "endDate": "2026-11-04 23:59:59",
       "packages": [

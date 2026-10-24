@@ -312,7 +312,9 @@ def _active_data(s: GameSession, actives: Sequence[ev.Active]) -> pb.SumActiveDa
         # value = finishNum do cliente; nos tipos 13/14 o oficial manda 0 (tutorial_en #68); nos contados vai o
         # progresso, que o texto da tela mostra (FunnyHelper.processText, *dedução* sem captura)
         value = _progress(s, a, now) if a.active_type in ev.COUNTED else 0
-        data = msg.datas.add(activeId=a.active_id, isShow=True, type=a.active_type, value=value or 0, activeCharge=0)
+        data = msg.datas.add(
+            activeId=a.active_id, isShow=True, type=a.active_type, value=value or 0, activeCharge=a.charge
+        )
         for p, status, countdown in _status(s, a, now):
             pd = data.packdata.add(packId=p.package_id, status=status, isShow=True)
             if a.active_type == ONLINE:
