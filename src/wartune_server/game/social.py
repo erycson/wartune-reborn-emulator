@@ -110,27 +110,35 @@ def simple_player(ctx: GameContext, c: Character) -> pb.SimplePlayerInfoMsg:
 
 
 def sns_info(c: Character, p: SnsProfile | None) -> pb.SNSInfoMsg:
+    """(visto) oficial_20261023-171155-1: nenhum dos 42 ``snsInfo`` (78, 4256, login) leva ``job``; quem completa a
+    mensagem de fora tira de novo com ``no_job``."""
     p = p or SnsProfile(c.id or 0)
-    return b.complete(
-        pb.SNSInfoMsg(
-            id=p.id or 0,
-            userId=c.id,
-            nickname=c.nickname or "",
-            signDesc=p.sign_desc,
-            sex=p.sex,
-            birthdayType=p.birthday_type,
-            birthYear=p.birth_year,
-            birthMonth=p.birth_month,
-            birthDay=p.birth_day,
-            starId=p.star_id,
-            bloodType=p.blood_type,
-            country=p.country,
-            province=p.province,
-            city=p.city,
-            headId=p.head_id,
-            job=c.job,
+    return no_job(
+        b.complete(
+            pb.SNSInfoMsg(
+                id=p.id or 0,
+                userId=c.id,
+                nickname=c.nickname or "",
+                signDesc=p.sign_desc,
+                sex=p.sex,
+                birthdayType=p.birthday_type,
+                birthYear=p.birth_year,
+                birthMonth=p.birth_month,
+                birthDay=p.birth_day,
+                starId=p.star_id,
+                bloodType=p.blood_type,
+                country=p.country,
+                province=p.province,
+                city=p.city,
+                headId=p.head_id,
+            )
         )
     )
+
+
+def no_job[M: pb.SNSInfoMsg](sns: M) -> M:
+    sns.ClearField("job")  # ``b.complete`` põe o 0 de volta
+    return sns
 
 
 GRADE_STEP = 10  # padrão de game_settings friend_grade_step (0037)
@@ -146,10 +154,11 @@ def friend_grade(ctx: GameContext, r: Relation) -> int:
 
 
 def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | None = None) -> pb.FriendInfoMsg:
-    """78 / 165 (``FriendManager.readFriendInfo``)."""
+    """78 (``FriendManager.readFriendInfo``). (visto) oficial_20261023-171155-1 #6060-#6100: ``onlineState`` 7 de quem
+    está online e ``chatState`` o estado do IM (7 ou 4), os dois 0 offline."""
     state = state_of(ctx, c.id or 0)
     guild = ctx.guilds.of(c.id or 0)
-    return b.complete(
+    msg = b.complete(
         pb.FriendInfoMsg(
             userId=c.id,
             relation=r.relation,
@@ -159,7 +168,7 @@ def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | Non
             pic=c.icon,
             grades=c.grades,
             nickName=c.nickname or "",
-            onlineState=state,
+            onlineState=ONLINE if ctx.online.get(c.id or 0) is not None else OFFLINE,
             result=True,
             addMsg="success",
             fightCapacity=c.fighting_capacity,
@@ -170,6 +179,24 @@ def friend_info(ctx: GameContext, c: Character, r: Relation, p: SnsProfile | Non
             snsInfo=sns_info(c, p),
             chatState=state,
         )
+    )
+    no_job(msg.snsInfo)
+    return msg
+
+
+def friend_update(ctx: GameContext, other_id: int, r: Relation) -> pb.FriendInfoMsg:
+    """165 só com a amizade e a guilda do outro: (visto) oficial_20261023-171155-1 #6143, #6179, #7776, #7787 e
+    oficial_20261023-153200-1 #2241 (userId, relation, relationGrade, relationGp, consortiaId, consortiaName,
+    groupId)."""
+    guild = ctx.guilds.of(other_id)
+    return pb.FriendInfoMsg(
+        userId=other_id,
+        relation=r.relation,
+        relationGrade=friend_grade(ctx, r),
+        relationGp=r.friend_gp,
+        consortiaId=guild[0].id if guild else 0,
+        consortiaName=guild[0].name if guild else "",
+        groupId=r.group_id,
     )
 
 

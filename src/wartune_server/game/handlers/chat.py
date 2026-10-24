@@ -236,9 +236,17 @@ async def user_info(s: GameSession, msg: pb.InfoReqMsg) -> None:
         sns = await s.ctx.characters.read(lambda uow: uow.sns.by_character(msg.otherId))
     out = pb.RelationPlayerMsg()
     setattr(out, "from", getattr(msg, "from"))  # "from" é palavra reservada
+    # (visto) oficial_20261023-171155-1 #70, #7753, #7758: a amizade de quem pergunta (relation 1, friendRp,
+    # friendGrade, groupId 2). (dedução) sem relação os campos ficam 0: nenhuma captura pergunta por um estranho
+    mine = s.snapshot.relations if s.snapshot is not None else []
+    if (rel := next((r for r in mine if r.other_id == msg.otherId), None)) is not None:
+        out.relation, out.friendRp, out.groupId = rel.relation, rel.friend_gp, rel.group_id
+        out.friendGrade = social.friend_grade(s.ctx, rel)
     out.player.CopyFrom(social.simple_player(s.ctx, c))
     out.snsInfo.CopyFrom(social.sns_info(c, sns))  # o cliente lê snsInfo sem checar nulo
-    s.send(S_USER_INFO, b.complete(out))
+    b.complete(out)
+    social.no_job(out.snsInfo)
+    s.send(S_USER_INFO, out)
 
 
 @router.on(8353)

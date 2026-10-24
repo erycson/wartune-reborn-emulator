@@ -122,3 +122,47 @@ async def test_rename_needs_card_and_free_name(tmp_path: Path) -> None:
         a.client.send(8345, pb.PlayerRenameReqMsg(type=2, nickName="Novo"))
         assert _bodies(await a.until(4271), 4271, pb.PlayerRenameRspMsg)[-1].result is True
         assert _session(a).snapshot.castle.name == "Novo"  # type: ignore[union-attr]
+
+
+async def test_recommend_list_is_empty_like_the_official_unless_enabled(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #71, #4219, #5864: 85 vazio; ``game_settings.friend_recommend`` liga a lista."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        b.server.online.get(b.user_id).snapshot.character.grades = 20  # type: ignore[union-attr]
+        world = a.server.services.world
+        assert world.settings["friend_recommend"] is False  # migração 0070
+        a.client.send(15013)
+        got = pb.RecommendListMsg.FromString((await a.until(85))[-1].body)
+        assert list(got.girlList) == list(got.boyList) == []
+        object.__setattr__(world, "settings", {**world.settings, "friend_recommend": True})  # só do teste
+        a.client.send(15013)
+        got = pb.RecommendListMsg.FromString((await a.until(85))[-1].body)
+        assert [p.playerId for p in (*got.girlList, *got.boyList)] == [b.user_id]
+
+
+async def test_user_info_carries_the_friendship(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #7758: 4256 com relation 1, friendRp, friendGrade 1 e groupId 2 do amigo."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        await _friends(a, b)
+        a.client.send(15038, pb.InfoReqMsg(otherId=b.user_id))
+        info = pb.RelationPlayerMsg.FromString((await a.until(4256))[-1].body)
+        assert (info.relation, info.friendRp, info.friendGrade, info.groupId) == (1, 0, 1, 2)
+
+
+async def test_friend_messages_match_the_official_fields(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1: 78 com ``onlineState`` 7 e ``snsInfo`` sem ``job`` (#6069); o 165 do aceite só
+    com a amizade e a guilda (#6143)."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        for g in (a, b):
+            _session(g).snapshot.character.grades = 40  # type: ignore[union-attr]
+        a.client.send(15003, pb.FriendRelationMsg(nickName="Bruxa", relation=1))
+        added = pb.FriendInfoMsg.FromString((await a.until(78))[-1].body)
+        assert added.onlineState == 7 and not added.snsInfo.HasField("job")
+        await b.until(84)
+        b.client.send(15003, pb.FriendRelationMsg(nickName="Maga", relation=1))
+        await b.until(78)
+        update = pb.FriendInfoMsg.FromString((await a.until(165))[-1].body)
+        assert (update.userId, update.relation, update.relationGrade, update.groupId) == (b.user_id, 1, 1, 2)
+        assert not update.HasField("nickName") and not update.HasField("snsInfo")

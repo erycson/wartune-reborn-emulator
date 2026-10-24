@@ -20,7 +20,7 @@ Alvo online vem de `OnlinePlayers` (snapshot); offline, do banco (`characters.by
 | `characters` | + `refuse_friend`, `bugle_free_used`, `bugle_free_day` |
 | `relations` (0037) | + `friend_gp` (amizade; sobe 1 dos dois lados a cada rega de árvore de amigo) e `tree_day` (dia em que `character_id` regou a árvore de `other_id`) |
 
-Amizade: 78/165 levam `relationGp` = `friend_gp` e `relationGrade`; o 4156 leva `friendRp`/`friendGrade`. Grau =
+Amizade: 78/165 levam `relationGp` = `friend_gp` e `relationGrade`; o 4156 e o 4256 (15038) levam `friendRp`/`friendGrade`/`groupId` *(visto, oficial_20261023-171155-1 #70, #7758)*. O 165 só tem userId, relation, relationGrade, relationGp, consortiaId/Name e groupId (#6143, #7776); o 78 leva `onlineState` 7 de quem está online e o estado do IM em `chatState` (7 ou 4); nenhum `snsInfo` leva `job` (42 vistos). Grau =
 1 + `friend_gp` // `friend_grade_step` (game_settings, 10) só para amigo, 0 nos outros *(dedução: ciftlik #85 (só turco: `ciftlik`) tem
 grau 4 com 34; a tabela real precisa de captura)*. Fazenda e árvore de amigo em [castelo.md](castelo.md).
 
@@ -38,7 +38,7 @@ no lado dele até eu mandar 15003 relation 1 de volta. Lista negra (2) filtra mu
 | 8285 | vazio | 4193 RefuseFriendRspMsg | pronto: alterna "recusar pedidos" *(cliente)* |
 | 8286 | vazio | 4194 RefuseFriendRspMsg | pronto: alterna "recusar convites" *(cliente)* `sendRefuseInvite`; no cliente inglês o `refuseInvite` (SettingFrame, C_ROOM_REFUSE) cobre pesca, estrada e caça-níquel; o bloqueio do convite de guilda (5142) é *(dedução)*, ver [guilda.md](guilda.md) |
 | 8746 | vazio | 4635 RefuseFriendRspMsg | pronto: alterna "recusar convites de time"; o 8738 não chega ao alvo que recusa *(cliente)* `sendRefuseTeamInvite` |
-| 15013 | vazio | 85 RecommendListMsg | pronto: até 10 online fora da lista *(cliente)* |
+| 15013 | vazio | 85 RecommendListMsg | pronto: vazio como o oficial *(visto, oficial_20261023-171155-1 #71, #4219, #5864)*; `game_settings.friend_recommend` (0070) liga até 10 online fora da lista *(cliente)* |
 | 15025 / 15026 / 15027 | FriendGroupMsg | 4227 / 4228 / 4229 | pronto: apagar devolve os amigos ao grupo 2 *(cliente)*; até 3 grupos do jogador (o `groupDic` tem no máximo 4 com o 2: "Max Group number has been reached."), nome até 12 e sem `,` `|` `%` ("Group name contains invalid characters") *(cliente inglês `FridendsListView`)* |
 | 15028 | MoveFriendReqMsg | 4230 | pronto *(cliente)* |
 | 15029 | ChatStateMsg | 4232 para mim e para quem me tem na lista | pronto *(visto)* inglesa #75 |

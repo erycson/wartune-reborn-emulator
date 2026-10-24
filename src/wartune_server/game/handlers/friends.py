@@ -135,7 +135,7 @@ async def _add(s: GameSession, nickname: str, relation: int) -> None:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     other = s.ctx.online.get(target.id)
     if theirs in changed and other is not None and theirs is not None:
-        other.send(S_UPDATE, social.friend_info(s.ctx, me, theirs, snap.sns))
+        other.send(S_UPDATE, social.friend_update(s.ctx, me.id or 0, theirs))
         if theirs.relation == RelationType.FRIEND:  # aceitou: 165 e o aviso, como em #1792-#1793
             text = ADDED_YOU.format(social.player_link(s.ctx, me))
             other.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
@@ -178,7 +178,7 @@ async def remove_relation(s: GameSession, msg: pb.FriendRelationMsg) -> None:
     s.send(S_REMOVE, b.complete(pb.FriendRelationMsg(otherId=msg.otherId, result=True)))
     other = s.ctx.online.get(msg.otherId)
     if demoted and other is not None and theirs is not None:
-        other.send(S_UPDATE, social.friend_info(s.ctx, snap.character, theirs, snap.sns))
+        other.send(S_UPDATE, social.friend_update(s.ctx, s.player_id, theirs))
 
 
 @router.on(8285)
@@ -193,11 +193,15 @@ async def refuse_friend(s: GameSession, _: object) -> None:
 
 @router.on(15013)
 async def recommend(s: GameSession, _: object) -> None:
-    """85: jogadores online que ainda não estão na lista (o cliente pede no login)."""
+    """85: jogadores online que ainda não estão na lista (o cliente pede no login). (visto) oficial_20261023-171155-1
+    #71, #4219, #5864: o oficial manda vazio; ``game_settings.friend_recommend`` (migração 0070) liga a lista."""
     snap = s.snapshot
     assert snap is not None
     known = {r.other_id for r in snap.relations} | {s.player_id}
     msg = pb.RecommendListMsg()
+    if not s.ctx.world.settings.get("friend_recommend", False):
+        s.send(S_RECOMMEND, msg)
+        return
     for other in s.ctx.online.sessions():
         c = other.snapshot.character if other.snapshot else None
         if c is None or c.id in known or c.grades < MIN_GRADE:

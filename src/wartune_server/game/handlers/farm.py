@@ -436,9 +436,9 @@ async def _water_friend(s: GameSession, snap: PlayerSnapshot, user_id: int) -> N
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     trees = [farm.tree_msg(target, now, own=False), farm.tree_msg(snap, now, own=True)]
     s.send(S_TREE, pb.TreeUpdateRsp(tree=[b.complete(t) for t in trees]))
-    s.send(S_FRIEND_UPDATE, social.friend_info(s.ctx, target.character, mine, target.sns))
+    s.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, user_id, mine))
     if theirs is not None and (other := s.ctx.online.get(user_id)) is not None:
-        other.send(S_FRIEND_UPDATE, social.friend_info(s.ctx, c, theirs, snap.sns))
+        other.send(S_FRIEND_UPDATE, social.friend_update(s.ctx, s.player_id, theirs))
     # (visto) #2242-#2243, com os dois espaços de "Friendliness  +1"
     lines = [f"Tree of the Ancients EXP +{gp}", f"Gold +{gold:,}", "Friendliness  +1"]
     s.send(S_HARVEST, pb.TreeUpdateRsp(harvestMsg=lines, isUpGrade=False))

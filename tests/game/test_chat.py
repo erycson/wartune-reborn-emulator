@@ -77,6 +77,7 @@ async def test_private_chat_and_offline_target(tmp_path: Path) -> None:
         b.client.send(15038, pb.InfoReqMsg(otherId=a.user_id, **{"from": 2}))
         info = pb.RelationPlayerMsg.FromString((await b.until(4256))[-1].body)
         assert (info.player.userId, info.player.nickName, getattr(info, "from")) == (a.user_id, "Maga", 2)
+        assert (info.relation, info.friendRp, info.friendGrade, info.groupId) == (0, 0, 0, 0)  # estranho
 
         session_b = b.server.online.get(b.user_id)
         assert session_b is not None
