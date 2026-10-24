@@ -163,9 +163,12 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 - **Fim** *(visto)* inglesa #1758-#1770: 150, 109, 3, 4103 (`battleScene` 6), 150, 100, 112, 148 (relatório da
   batalha), 140 ×2 do exército, 140 do robô de volta ao `state` 1 e 4382. A captura é uma derrota: `strategyBonus`
   172, as 172 tropas do exército; o PlayerMsg sobe 172 de Daru e o 4382 leva `strategy` 172.
-- **Relatório (148)** *(cliente)*: carta `MailType` 3, que o cliente lê com `BattleReportHelp.covertToBattleInfo`
-  (XML `info`/`me`/`he`: nome e tile do castelo, resultado, tropa perdida, Daru, poder e nível dos dois lados;
-  `oc.report_contents`). **TODO(inventado)**: o título ("Battle Report: nome") e as perdas do castelo (0).
+- **Relatório (148)** *(visto: cartas 11554, 11564 e 11569 do `maillist` de oficial_20261023-171155-1)*: "Battle
+  Report" de "System Mail", `MailType` 3, lido por `BattleReportHelp.covertToBattleInfo`. XML (`oc.report_contents`):
+  `<infos><info type camp result playerName siteName pos mapId time /><me .../><he .../></infos>`, com
+  `playerName` = `siteName` = nome do castelo, `result` 1 vitória / 2 derrota, e em `me`/`he` heroId, site1/site2
+  vazios (0 mesmo perdendo tropa), `fight` (o nosso poder; o do Aladyr 1760), grade, `gold` (o saque; negativo em
+  `he`) e `crystal` (a Kyanite do VIP).
 - **Daru de toda luta com tropa** *(visto)*: é o número de soldados perdidos, ganhando ou perdendo (`_casualties`).
   Na inglesa: Wulfgar 88, Karlan 9, Karda 28, o robô 172 = a queda da reserva. Em `oficial_20261023-153200-1`:
   mina 116 (#1620-#1636), tesouro tipo 22 perdido 201 (#1896-#1909), mina 106 (#2004-#2017). Com perda, o 109
@@ -174,9 +177,13 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
 - **Missão**: `quest_event(8, vitória ? 1 : 0, 1)`. Para1 0 = qualquer, então 100 e 411 avançam também na derrota
   (*visto* #1765: a 100 com `condition_1` 1 depois de perder); a 765 (Para1 1) só na vitória. A gravação do
   ataque vai em uma só save.
-- **Vitória: ouro saqueado sem fonte.** As 3 capturas são derrotas, e o `U_C_ARMY_ATTACK_CASTLE` (97) não tem
-  listener no cliente (só a constante). **TODO(inventado)**: a vitória sai com `goldBonus` 0 (o Daru são as perdas,
-  como em toda luta).
+- **Vitória** *(visto)* oficial_20261023-171155-1 #6014-#6027 (Aladyr, grau 12): 150, 109, 3, 4103 (`goldBonus` 0,
+  `strategyBonus` 100 = as perdas), 150, 100, **118** (`CastleDefenseRspMsg` x, y, `leftTime` 7200), 112, 148, 140 ×2,
+  140 do castelo com `defenceLefttime` 7199, 4382 (`gold` 0). Os 4950 de ouro saqueado não vão em nenhum desses:
+  entram no ouro e aparecem no 109 seguinte (#6046) e no relatório. Castelo protegido recusa ataque (o cliente
+  avisa com `MapPhysicsCastle.command03`). VIP: + a Kyanite do privilégio 7 ("Bonus Kyanite from Plunder", 500 do
+  VIP 4). **TODO(inventado)**: o saque nos outros graus (`npc_castles.loot_per_grade` 412,5 × grau) e a proteção
+  só em memória (`Wilds.shields`; `shortcut:`).
 - **Níveis** *(cliente + grau 8)*: a diferença menor que 10 deixa atacar até o nível 17. A 411 pede nível 17,
   então só passa no 17. A 765 (nível 12) passa de 12 a 17. Se o grau do oficial for outro, isso muda.
 - **Não feito**: PvP contra castelo de jogador (8488 segue sem alvo, porque exército alheio não existe aqui);
@@ -366,8 +373,8 @@ Fonte: oficial_20261023-153200-1 #197/#1524/#1531/#1532 e oficial_20261023-17115
   outro, ids `1_250_000_000 + mapa × 1_000_000 + (gx × 100 + gy) × 10 + n` e donos `1_300_100_000 + ...`. Fora dos
   tiles das minas.
 - **Ataque e fim** *(visto)*: os do castelo-robô (*Castelos-robô*: leed, 140 do próprio castelo, 4452, 3, 157; no
-  fim 100, 148 do relatório, 140 ×2, 140 do castelo de volta ao state 1, 4382), com as mesmas recusas (ataque do dia,
-  10 níveis).
+  fim 100, 118 na vitória, 148 do relatório, 140 ×2, 140 do castelo de volta ao state 1, 4382), com as mesmas recusas
+  (ataque do dia, 10 níveis, protegido). Saque, proteção e `fight` em `game_settings.npc_castles` (migração 0066).
 - **Luta** *(visto)* #749 e #1893: battleType 4 no 993, herói 11012 "Aladyr" (vida 501 e skills 10711/10811/11011 do
   `GameHeroTemp`), 2 pilhas de 10112 (o lanceiro do grau) com 443 de vida nas pos 1 e 7. **TODO(inventado)**: a vida
   das pilhas nos outros graus (`Live` × 1,05, a razão 443 / 422 do grau 12) e o herói acima do grau 30 (o 11030 com

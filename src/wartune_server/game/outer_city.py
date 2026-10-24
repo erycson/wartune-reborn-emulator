@@ -259,11 +259,12 @@ def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
 
 def report_contents(info: dict[str, object], me: dict[str, object], he: dict[str, object]) -> str:
     """``Contents`` da carta de relatório de batalha (``MailType`` 3). (cliente) ``BattleReportHelp.covertToBattleInfo``
-    lê o XML: ``info`` (type, time, camp 1 = atacante, result 1 = vitória de quem lê, playerName, siteName, pos "x,y",
-    mapId), ``me`` e ``he`` (heroId, site1Name/site1Count = tropa perdida, site2Name/site2Count, strategy, gold, fight,
-    grade, crystal)."""
+    lê o XML; (visto) as cartas 11554/11564/11569 do ``maillist`` de oficial_20261023-171155-1: raiz ``infos``,
+    ``info`` (type 1, camp 1 = atacante, result 1 = vitória de quem lê, playerName e siteName = o nome do castelo,
+    pos "x,y", mapId, time) e ``me``/``he`` (heroId, site1Name/site1Count e site2Name/site2Count vazios, fight, grade,
+    gold, crystal), nessa ordem."""
 
     def attrs(d: dict[str, object]) -> str:
         return " ".join(f"{k}={quoteattr(str(v))}" for k, v in d.items())
 
-    return f"<report><info {attrs(info)}/><me {attrs(me)}/><he {attrs(he)}/></report>"
+    return f"<infos><info {attrs(info)} /><me {attrs(me)} /><he {attrs(he)} /></infos>"

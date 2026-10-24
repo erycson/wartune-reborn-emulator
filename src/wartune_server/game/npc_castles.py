@@ -9,6 +9,10 @@ O resto é ``game_settings.npc_castles`` (migração 0065): os vistos, quantos p
 (``world_mines.seen_grids``: 40 sem nenhum, 5 com um) e a vida das pilhas. TODO(inventado): os castelos das grades
 não vistas (sorteio com semente mapa e grade, grau na faixa do ``MapInfos``, nome juntando metades dos nomes vistos)
 e a vida das pilhas fora do grau 12 (``Live`` × ``hp_factor``, a razão 443 / 422 do grau 12).
+
+Vitória (#6014-#6027 e o relatório 11569 do ``maillist``): 4950 de ouro saqueado do Aladyr (grau 12) e 2 h de proteção
+(118 ``leftTime`` 7200; o 140 do castelo volta com ``defenceLefttime``). TODO(inventado): o saque nos outros graus
+(``loot_per_grade`` × grau, 4950 / 12) e o ``fight`` do relatório fora do grau 12 (1760 × grau / 12).
 """
 
 from __future__ import annotations
@@ -29,7 +33,10 @@ ID_BASE = 1_250_000_000  # castelo gerado: + mapa × 1_000_000 + (gx × 100 + gy
 # dono gerado: longe dos vistos (1300000011-77), dos robôs do torneio de pets (1300001401-2398) e da instância (9000)
 USER_BASE = 1_300_100_000
 PAWN_BASE = 10100  # 101xx: o lanceiro de nível = grau (visto 10112 no grau 12)
-DEFAULT: dict[str, Any] = {"seen": [], "per_grid": {"0": 40, "1": 5}, "pawn_hp": {}, "hp_factor": 1.05}
+DEFAULT: dict[str, Any] = {
+    "seen": [], "per_grid": {"0": 40, "1": 5}, "pawn_hp": {}, "hp_factor": 1.05, "loot_per_grade": 412.5,
+    "shield_seconds": 7200, "fight": {"12": 1760},
+}  # fmt: skip
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +51,7 @@ class NpcCastle:
 
 
 def settings(world: World) -> dict[str, Any]:
-    return dict(world.settings.get("npc_castles") or DEFAULT)
+    return {**DEFAULT, **(world.settings.get("npc_castles") or {})}
 
 
 def _seen(world: World, map_id: int) -> list[NpcCastle]:
@@ -110,13 +117,27 @@ def tile_taken(world: World, templates: GameTemplates, map_id: int, x: int, y: i
     )
 
 
-def castle_msg(c: NpcCastle, state: int = 1) -> pb.BaseCastleMsg:
-    """Como no 4129 e no 140 do oficial (#197, #748: state 4 na luta)."""
+def castle_msg(c: NpcCastle, state: int = 1, defence: int = 0) -> pb.BaseCastleMsg:
+    """Como no 4129 e no 140 do oficial (#197, #748: state 4 na luta; #6025: ``defenceLefttime`` depois de vencido)."""
     return pb.BaseCastleMsg(
         id=c.id, mapId=c.map_id, posX=c.x, posY=c.y, type=1, occupyPlayerId=c.user_id, occupyPlayerName=c.name,
-        occupyLeagueName="", state=state, defenceLefttime=0, castleName=c.name, grade=c.grade, vipCastleView=0,
+        occupyLeagueName="", state=state, defenceLefttime=defence, castleName=c.name, grade=c.grade, vipCastleView=0,
         vipType=0,
     )  # fmt: skip
+
+
+def loot(world: World, grade: int) -> int:
+    """Ouro saqueado na vitória (visto 4950 no grau 12; TODO(inventado): proporcional ao grau nos outros)."""
+    return round(float(settings(world)["loot_per_grade"]) * grade)
+
+
+def fight(world: World, grade: int) -> int:
+    """``fight`` do castelo no relatório (visto 1760 no grau 12; TODO(inventado): proporcional nos outros)."""
+    seen = {int(k): int(v) for k, v in settings(world)["fight"].items()}
+    if grade in seen:
+        return seen[grade]
+    base = min(seen, key=lambda g: abs(g - grade)) if seen else 0
+    return round(seen[base] * grade / base) if base else 0
 
 
 def pawn_hp(world: World, templates: GameTemplates, grade: int) -> int:

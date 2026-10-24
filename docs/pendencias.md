@@ -102,7 +102,7 @@ Outros eventos:
   jogador). Nos mapas 1 a 5 o 4129 leva os castelos de outros jogadores nas grades. Não existem: exércitos
   alheios andando (169, 4167, 4168; precisa de presença entre sessões). Castelos NPC dos mapas 1 a 5: **feito**
   ([cidade-externa.md](cidade-externa.md#castelos-npc-do-mundo-mapas-1-a-5-gamenpc_castlespy)); **TODO(inventado)**:
-  os das grades não vistas, a vida das pilhas fora do grau 12, o ouro da vitória e o título do relatório. Minas dos
+  os das grades não vistas, a vida das pilhas, o saque e o `fight` fora do grau 12. Minas dos
   mapas 1 a 5: **feito** ([cidade-externa.md](cidade-externa.md#minas-do-mundo-mapas-1-a-5-gameminespy));
   **TODO(inventado)**: minas das grades não vistas, guardas 21-60, a luta pela mina de outro jogador e as cartas.
   O 5160 luta só contra mina livre; castelo e exército alheio só param o exército. 8488 (PvP no mapa) e 5004

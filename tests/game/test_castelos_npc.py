@@ -108,14 +108,59 @@ async def test_ataque_ao_castelo_npc_e_relatorio(tmp_path: Path, monkeypatch: py
         chars = g.server.services.characters
         [mail] = [m for m in await chars.read(lambda uow: uow.mails.by_receiver(g.user_id)) if m.mail_type == 3]
         assert mail.mail_type == MailType.BATTLE_REPORT
-        report = ET.fromstring(mail.contents)
+        assert mail.title == "Battle Report"
+        report = ET.fromstring(mail.contents)  # (visto) a carta 11554 do maillist
         info, me, he = report.find("info"), report.find("me"), report.find("he")
-        assert info is not None and me is not None and he is not None
-        assert (info.get("playerName"), info.get("result"), info.get("pos"), info.get("mapId")) == (
-            "Aladyr", "2", "2486,2671", "1"
+        assert report.tag == "infos" and info is not None and me is not None and he is not None
+        assert list(info.attrib) == ["type", "camp", "result", "playerName", "siteName", "pos", "mapId", "time"]
+        assert (info.get("playerName"), info.get("siteName"), info.get("result"), info.get("pos")) == (
+            "Aladyr", "Aladyr", "2", "2486,2671"
         )  # fmt: skip
-        assert (me.get("site1Name"), he.get("heroId"), he.get("grade")) == ("Lancer", "11012", "12")
-        assert int(me.get("site1Count") or 0) == 150
+        assert list(me.attrib) == [
+            "heroId", "site1Name", "site1Count", "site2Name", "site2Count", "fight", "grade", "gold", "crystal"
+        ]  # fmt: skip
+        assert (me.get("site1Name"), me.get("site1Count"), me.get("gold")) == ("", "0", "0")
+        assert (he.get("heroId"), he.get("fight"), he.get("grade"), he.get("gold")) == ("11012", "1760", "12", "0")
+
+
+async def test_vitoria_no_castelo_npc_saque_e_protecao(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) oficial_20261023-171155-1 #6014-#6027 e a carta 11569: a vitória sobre o Aladyr manda 118 (2 h de
+    proteção) depois do 100, o castelo volta com ``defenceLefttime``, entram 4950 de ouro (gold 4950 / -4950 no
+    relatório) e o castelo protegido recusa outro ataque."""
+
+    async def win(battle: battle_mod.Battle) -> bool:
+        for unit in battle.units:
+            if unit.side == 2:
+                unit.hp = 0
+        return True
+
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    monkeypatch.setattr(battle_mod.Battle, "_fight", win)
+    async with logged_in(tmp_path, novice=22500, clock=FakeClock()) as g:
+        snap = await _to_map_1(g)
+        gold = snap.character.gold
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=ALADYR[1], posY=ALADYR[2]))
+        prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
+        got = await g.fight(prepare) + await g.idle()
+        after = [p.code for p in got if p.code not in NOISE]
+        assert after[after.index(100) : after.index(100) + 2] == [100, 118]
+        assert after[-5:] == [148, 140, 140, 140, 4382]
+        shield = pb.CastleDefenseRspMsg.FromString(next(p.body for p in got if p.code == 118))
+        assert (shield.posX, shield.posY, shield.leftTime) == (ALADYR[1], ALADYR[2], 7200)
+        back = pb.MapUpdatedMsg.FromString([p.body for p in got if p.code == 140][-1])
+        assert (back.baseCastle.id, back.baseCastle.state, back.baseCastle.defenceLefttime) == (ALADYR[0], 1, 7200)
+        assert snap.character.gold - gold == 4950
+        chars = g.server.services.characters
+        [mail] = [m for m in await chars.read(lambda uow: uow.mails.by_receiver(g.user_id)) if m.mail_type == 3]
+        report = ET.fromstring(mail.contents)
+        assert report.find("info").get("result") == "1"  # type: ignore[union-attr]
+        assert (report.find("me").get("gold"), report.find("he").get("gold")) == ("4950", "-4950")  # type: ignore[union-attr]
+
+        left = snap.arena.attack_left if snap.arena else 0
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=ALADYR[1], posY=ALADYR[2]))
+        refused = await g.until(140)
+        assert pb.MapUpdatedMsg.FromString(refused[-1].body).updatedType == 3  # o exército parado, sem luta
+        assert snap.arena is not None and snap.arena.attack_left == left
 
 
 async def test_castelo_nao_muda_para_tile_ocupado(tmp_path: Path) -> None:

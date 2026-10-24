@@ -26,7 +26,6 @@ from ...domain.models import (
     Item,
     Mail,
     MailType,
-    Pawn,
     PlayerSnapshot,
     TreasureCacheOpen,
     WildLand,
@@ -52,12 +51,14 @@ from . import events
 from .campaign import player_hero, quarry_fight
 from .login import army, player_info
 from .player import S_CHAT, alert, hero_after_fight, hp_pack
+from .vip import vip_right
 from .wild_boxes import drop_box, send_boxes
 
 S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
-S_ITEMS, S_UNOCCUPY, S_CASTLE_TIME = 115, 108, 4452
+S_ITEMS, S_UNOCCUPY, S_CASTLE_TIME, S_CASTLE_DEFENSE = 115, 108, 4452, 118
+VIP_PLUNDER_CRYSTALS = 7  # VipPrerogativeTempInfos "Bonus Kyanite from Plunder" (500 do VIP 4 em diante)
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
 # tutorial_en #773-#777: 18 tiles em 2,34 s (do 140 andando ao 140 parado). ponytail: velocidade fixa, sem
 # montaria nem efeitos
@@ -301,10 +302,12 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
     # (visto) tutorial_en #532: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
-        reply.baseCastle.add().CopyFrom(b.complete(robots.robot_castle_msg(snap, s.ctx.world, robot)))
+        left = s.ctx.wilds.shield_left((snap.character.id or 0, robot.id), now)
+        reply.baseCastle.add().CopyFrom(b.complete(robots.robot_castle_msg(snap, s.ctx.world, robot, 1, left)))
     # (visto) oficial_20261023-153200-1 #197: os castelos NPC do mundo junto dos castelos
     for npc in npc_castles.castles_in(s.ctx.world, s.ctx.templates, msg.mapId, grids):
-        reply.baseCastle.add().CopyFrom(b.complete(npc_castles.castle_msg(npc)))
+        left = s.ctx.wilds.shield_left((0, npc.id), now)
+        reply.baseCastle.add().CopyFrom(b.complete(npc_castles.castle_msg(npc, 1, left)))
     for castle, name in await _rivals(s, grids, msg.mapId):
         reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
     s.send(S_PHYSICS, reply)
@@ -880,8 +883,9 @@ class _Target:
     grade: int
     name: str
     where: tuple[int, int, int]  # mapa, x, y
-    msg: Callable[[int], pb.BaseCastleMsg]  # o 140 com o state
+    msg: Callable[[int, int], pb.BaseCastleMsg]  # o 140 com o state e o defenceLefttime
     spec: Callable[[], dict[str, Any]]
+    shield: tuple[int, int]  # chave da proteção depois de vencido (``Wilds.shields``)
 
 
 def _robot_target(s: GameSession, robot: RobotCastle) -> _Target:
@@ -890,8 +894,8 @@ def _robot_target(s: GameSession, robot: RobotCastle) -> _Target:
     name = robots.robot_name(s.ctx.world, snap.character.id or 0, robot)
     return _Target(
         robot.id, robot.grade, name, (snap.castle.map_id, robot.x, robot.y),
-        lambda state: robots.robot_castle_msg(snap, s.ctx.world, robot, state),
-        lambda: oc.robot_battle(snap, s.ctx.templates, robot.grade, name),
+        lambda state, left: robots.robot_castle_msg(snap, s.ctx.world, robot, state, left),
+        lambda: oc.robot_battle(snap, s.ctx.templates, robot.grade, name), (snap.character.id or 0, robot.id),
     )  # fmt: skip
 
 
@@ -899,16 +903,17 @@ def _npc_target(s: GameSession, c: npc_castles.NpcCastle) -> _Target:
     snap = s.snapshot
     assert snap is not None
     return _Target(
-        c.id, c.grade, c.name, (c.map_id, c.x, c.y), lambda state: npc_castles.castle_msg(c, state),
-        lambda: npc_castles.battle(snap, s.ctx.world, s.ctx.templates, c),
+        c.id, c.grade, c.name, (c.map_id, c.x, c.y), lambda state, left: npc_castles.castle_msg(c, state, left),
+        lambda: npc_castles.battle(snap, s.ctx.world, s.ctx.templates, c), (0, c.id),
     )  # fmt: skip
 
 
 def _attack_castle(s: GameSession, target: _Target) -> list[object]:
     """Ataque a um castelo NPC (cliente: MapPhysicsCastle.attack e CityInfoFrame). Recusa com 140 parado,
-    sem luta, se já há luta, se não há ataque no dia (``attackCount`` do cliente) ou se a diferença de nível
-    para o castelo for 10 ou mais (MapPhysicsCastle.attack). Senão gasta um ataque e manda, na ordem do oficial
-    (tutorial_en #1648-#1657, oficial_20261023-171155-1 #740-#749): o leed 10, 140 do exército lutando, 140 do
+    sem luta, se já há luta, se não há ataque no dia (``attackCount`` do cliente), se a diferença de nível
+    para o castelo for 10 ou mais ou se o castelo ainda está protegido (MapPhysicsCastle.attack, command02/03).
+    Senão gasta um ataque e manda, na ordem do oficial (tutorial_en #1648-#1657, oficial_20261023-171155-1
+    #740-#749): o leed 10, 140 do exército lutando, 140 do
     próprio castelo, 4452 (``defenceLefttime`` 0: atacar acaba a proteção, que aqui não existe), 3 com o
     ``attackLeftCount`` novo, 140 do castelo em luta (state 4) e a luta.
     (dedução) o ataque sai do contador do dia (o mesmo do 9506, "x/5" do AttackAlertFrame). O contador e a
@@ -918,8 +923,12 @@ def _attack_castle(s: GameSession, target: _Target) -> list[object]:
     c, arena, now = snap.character, snap.arena, s.ctx.clock.now()
     if A.roll_day(arena, now):
         s.send(S_RESET, A.data_reset(snap, now))
-    if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - target.grade) >= 10:
-        s.log.info("5160 castelo NPC recusado", castelo=target.id, ataques=arena.attack_left, nivel=c.grades)
+    shielded = s.ctx.wilds.shield_left(target.shield, now) > 0
+    if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - target.grade) >= 10 or shielded:
+        s.log.info(
+            "5160 castelo NPC recusado",
+            castelo=target.id, ataques=arena.attack_left, nivel=c.grades, protegido=shielded,
+        )  # fmt: skip
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
         return []
     arena.attack_left -= 1  # sem await até criar a luta: dois 5160 seguidos não gastam o mesmo ataque
@@ -944,61 +953,75 @@ def _attack_castle(s: GameSession, target: _Target) -> list[object]:
 
 
 def _target_sync(s: GameSession, target: _Target, state: int) -> None:
-    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=b.complete(target.msg(state))))
+    left = s.ctx.wilds.shield_left(target.shield, s.ctx.clock.now())
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=b.complete(target.msg(state, left))))
 
 
 async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: bool) -> None:
-    """Fim da luta com o castelo NPC (tutorial_en #1758-#1770, oficial_20261023-171155-1 #819-#833): 150, 109, 3,
-    4103 (battleScene 6), 150, 100, 112, 148 (o relatório da batalha), 140 do exército, 140 do castelo de volta ao
-    state 1 e 4382. Conta o tipo 8 com Para1 1 na vitória e 0 na derrota (#1765: a missão 100 conta perdendo; 765
-    pede a vitória). O Daru são os soldados perdidos (``_casualties``; #1762: strategyBonus 172 = as 172 tropas de
-    #1758). TODO(inventado): ouro saqueado da vitória (as 3 lutas vistas são derrotas), sai 0."""
+    """Fim da luta com o castelo NPC (tutorial_en #1758-#1770, oficial_20261023-171155-1 #819-#833 e a vitória
+    #6014-#6027): 150, 109, 3, 4103 (battleScene 6), 150, 100, na vitória 118 (2 h de proteção), 112, 148 (o relatório
+    da batalha), 140 do exército, 140 do castelo de volta ao state 1 (com o ``defenceLefttime``) e 4382. Conta o tipo 8
+    com Para1 1 na vitória e 0 na derrota (#1765: a missão 100 conta perdendo; 765 pede a vitória). O Daru são os
+    soldados perdidos (``_casualties``; #1762: strategyBonus 172 = as 172 tropas de #1758). O ouro saqueado (4950 no
+    grau 12, ``npc_castles.loot``) não vai no 4103 nem no 4382: entra no ouro e aparece no 109 seguinte (#6046);
+    o VIP soma a Kyanite do privilégio 7."""
     snap = s.snapshot
     assert snap is not None and snap.arena is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()
     s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
-    pawn = next((p for p in snap.pawns if p.army_count > 0), None)
     fight = _capacity(s)
     daru = await _casualties(s, battle, won, oc.ROBOT_SCENE)
     s.battle_strategy = 0  # o 4382 do castelo sai aqui mesmo (#1770)
+    gold = npc_castles.loot(s.ctx.world, target.grade) if won else 0
+    crystals = vip_right(s, snap, VIP_PLUNDER_CRYSTALS) if won else 0
+    snap.character.gold += gold
+    snap.character.crystals += crystals
+    if won:
+        seconds = int(npc_castles.settings(s.ctx.world)["shield_seconds"])
+        s.ctx.wilds.shield(target.shield, now, seconds)
+        _, x, y = target.where
+        s.send(S_CASTLE_DEFENSE, pb.CastleDefenseRspMsg(posX=x, posY=y, leftTime=seconds))
     quests = rules.quest_event(snap, templates, ATTACK_CASTLE, int(won), 1)
-    letter = _castle_report(s, target, won, pawn, daru, fight, now)
+    letter = _castle_report(s, target, won, fight, gold, crystals, now)
     await s.ctx.characters.save(snap.character, snap.arena, *quests)
     await s.ctx.characters.write(lambda uow: stage(uow, letter))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     notify(s.ctx.online, letter)
-    s.log.info("relatório do castelo NPC", castelo=target.id, carta=letter.id, venceu=won)
+    s.log.info("relatório do castelo NPC", castelo=target.id, carta=letter.id, venceu=won, ouro=gold, kyanite=crystals)
     _army_sync(s, ARMY_IDLE)
     _target_sync(s, target, CASTLE_IDLE)
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
 
 
 def _castle_report(
-    s: GameSession, target: _Target, won: bool, pawn: Pawn | None, lost: int, fight: int, now: datetime
+    s: GameSession, target: _Target, won: bool, fight: int, gold: int, crystals: int, now: datetime
 ) -> Mail:
-    """A carta do 148 (tutorial_en #1766, oficial_20261023-171155-1 #827 e #1985): relatório de batalha (``MailType``
-    3, o XML de ``oc.report_contents``). TODO(inventado): o título (o oficial manda a carta por HTTP, fora da
-    captura) e as perdas do castelo (0)."""
+    """A carta do 148 (tutorial_en #1766, oficial_20261023-171155-1 #827, #1985 e #6022): "Battle Report" de
+    "System Mail" (``MailType`` 3, o XML de ``oc.report_contents``), como as cartas 11554/11564/11569 do ``maillist``
+    da mesma sessão: perdas vazias, ``fight`` dos dois, o ouro ganho em ``me`` e o mesmo negativo em ``he``."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    templates = s.ctx.templates
     spec = target.spec()
     enemy = spec["heroes"][0] if spec["heroes"] else {}
-    side2 = [u for u in spec["soldiers"] if u["side"] == 2]
-    pawn_name = str((templates.get("PawnTempInfos", pawn.template_id) or {}).get("PawnName", "")) if pawn else ""
-    enemy_pawn = str((templates.get("PawnTempInfos", side2[0]["tempId"]) or {}).get("PawnName", "")) if side2 else ""
     map_id, x, y = target.where
+    empty = {"site1Name": "", "site1Count": 0, "site2Name": "", "site2Count": 0}
     contents = oc.report_contents(
-        {"type": 1, "time": mines.game_date(now), "camp": 1, "result": 1 if won else 2, "playerName": target.name,
-         "siteName": "", "pos": f"{x},{y}", "mapId": map_id},
-        {"heroId": snap.leader.template_id, "site1Name": pawn_name, "site1Count": lost, "site2Name": "",
-         "site2Count": 0, "strategy": lost, "gold": 0, "fight": fight, "grade": snap.character.grades, "crystal": 0},
-        {"heroId": enemy.get("tempId", 0), "site1Name": enemy_pawn, "site1Count": 0, "site2Name": "",
-         "site2Count": 0, "strategy": 0, "gold": 0, "fight": 0, "grade": target.grade, "crystal": 0},
+        {"type": 1, "camp": 1, "result": 1 if won else 2, "playerName": target.name, "siteName": target.name,
+         "pos": f"{x},{y}", "mapId": map_id, "time": mines.game_date(now)},
+        {"heroId": snap.leader.template_id, **empty, "fight": fight, "grade": snap.character.grades, "gold": gold,
+         "crystal": crystals},
+        {"heroId": enemy.get("tempId", 0), **empty, "fight": npc_castles.fight(s.ctx.world, target.grade),
+         "grade": target.grade, "gold": -gold, "crystal": 0},
     )  # fmt: skip
-    title = f"Battle Report: {target.name}"
-    return Mail(snap.character.id or 0, now, title, contents, mail_type=MailType.BATTLE_REPORT, send_type=SYSTEM_SENDER)
+    return Mail(
+        snap.character.id or 0,
+        now,
+        "Battle Report",
+        contents,
+        mail_type=MailType.BATTLE_REPORT,
+        send_type=SYSTEM_SENDER,
+    )
 
 
 @router.on(8488)
