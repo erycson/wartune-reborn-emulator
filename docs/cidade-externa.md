@@ -205,6 +205,11 @@ que já está ocupado. Ocupação de antes da 0027 ganha o nível no próximo lo
   faz `x * 20`; o mapa 2 tem 4000 tiles). A instância do castelo vem sem chefes (inglesa #526, #710): ela não está em
   `world_monster_counts`. O chefe abatido no ciclo fica na lista com `type` 0 e o em luta com 4 (language
   `bossinfo.bossStatus0` "(Killed)", `bossStatus4` "(In battle)").
+- **Inglês** *(visto, oficial_20261023-171155-1, mapa 1)*: #284-#839 (ciclo das 12:00, `leftBossTime` 2524 às 13:17:01 =
+  14:00) Tauren Grand Master 10, Spirit of Wind 60, Spirit of Dark 80, Deserted Eye 60, Spirit of Fire 70; #1694-#3169
+  (ciclo das 14:00, 4222 às 14:49:01 = 16:00) Tauren Grand Master 10 em outro tile, Spirit of Wind 60 **duas vezes**,
+  Spirit of Light 70, Spirit of Fire 70. Confirma o sorteio por ciclo: posição e chefe mudam, com repetição de template,
+  sempre 5 `type` 1; o refresh a cada 2 h na hora cheia.
 - **Contadores** (`count1-3`): abates do dia que contaram, por tipo (`characters.kills_normal`, `kills_elite`,
   `kills_boss`; zeram no `daily.roll` das 5h). O cliente mostra "{0}/{1}" com o `WorldMapKill` (5,3,1).
 - **Divine Light** (item 2131055, `SonType` 316, pelo 5006): gasta um e tira a névoa do mapa do castelo para
