@@ -59,15 +59,16 @@ async def test_ganho_manda_so_o_leed_e_o_83_quando_o_total_sobe(tmp_path: Path) 
 
 
 async def test_entrega_de_diaria_conta_o_leed_20(tmp_path: Path) -> None:
-    """183 "Intense Battle (Daily)" (TemplateType 1): a entrega soma 1 no leed 20, depois do 52."""
+    """183 "Intense Battle (Daily)" (TemplateType 1): a entrega soma 1 no leed 20; (visto) oficial_20261023-171155-1
+    #6042-#6043 e #7808-#7809: o 4152 antes do 52."""
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _session(g).snapshot
         assert snap is not None
         snap.character.grades = 40
         snap.quests.append(Quest(g.user_id, 183, START, progress=3))
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=183))
-        got = await g.until(4152)
-        assert 52 in [p.code for p in got]
+        got = await g.until(52)
+        assert [p.code for p in got][-2:] == [4152, 52]
         assert [(x.templateId, x.currentCount) for x in _leed(got).leed] == [(20, 1)]
 
 

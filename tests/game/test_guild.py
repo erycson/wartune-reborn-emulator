@@ -47,7 +47,7 @@ async def _create(g: Game, name: str = "Lobos") -> list[Packet]:
     _rich(g)
     await g.idle()
     g.client.send(5130, pb.ConsortiaMsg(consortiaName=name))
-    return await g.idle()
+    return await g.until(164) + await g.idle()  # o 164 fecha a criação; só idle() perde a guilda sob carga
 
 
 async def _member(a: Game, username: str) -> Game:

@@ -153,17 +153,16 @@ async def test_entrega_cabe_quando_a_pilha_libera_espaco(tmp_path: Path) -> None
         g.client.send(5014, pb.QuestFinishedReqMsg(templateId=9))
         got = await g.until(52)
         assert _quest(got, 9).isComplete
-        # captura EN #489-#505 (45): o 115 dos itens ganhos depois do 3, o 4476, um 111 por item e o 52; depois os 83
-        # (#506-#507)
-        assert _codes(got)[-5:] == [115, 4476, 111, 111, 52]
+        # captura EN #489-#505 (45): o 115 dos itens ganhos depois do 3, o 4476, o 111 e o 52; depois os 83 (#506-#507).
+        # Vários itens num texto só: oficial_20261023-171155-1 #4994 (missão 221)
+        assert _codes(got)[-5:] == [115, 4476, 111, 4152, 52]  # a 9 é diária: o 4152 antes do 52
         names = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 111]
-        assert names == [
-            f"Received: {bag.name(g.server.services.templates, t)} x{n}" for t, n in ((2060013, 1), (208005, 2))
-        ]
+        templates = g.server.services.templates
+        assert names == [f"Received: {bag.name(templates, 2060013)} x1, {bag.name(templates, 208005)} x2"]
         chat = [
             pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in await g.until(83) + await g.idle() if p.code == 83
         ]
-        assert chat[-2:] == names and chat[0].startswith("Received ") and chat[0].endswith(" EXP ")
+        assert chat[-1:] == names and chat[0].startswith("Received ") and chat[0].endswith(" EXP ")
         assert rules.goods_count(snap, PILE_9) == 0
         rewards = sorted((i.template_id, i.count) for i in snap.items if i.template_id in (2060013, 208005))
         assert rewards == [(208005, 2), (2060013, 1)]

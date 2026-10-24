@@ -11,9 +11,8 @@ from ....domain.models import (
 from ....protocol.messages import wartune_pb2 as pb
 from ....services import ledger
 from ... import guild as gd
-from ... import rules
 from ...builders import login as b
-from ...builders.player import item_moved, quest_update
+from ...builders.player import item_moved
 from ...router import router
 from ...session import GameSession
 from .common import (
@@ -29,7 +28,6 @@ from .common import (
     S_JOINED,
     S_NEW_APPLY,
     S_PASS,
-    S_QUESTS,
     S_RECRUIT,
     _can,
     _char,
@@ -171,15 +169,9 @@ async def apply_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     who = _profile(s, app.user_id)
     # texto deduzido (sem fonte no cliente/captura)
     event = _event(s, guild, gd.EV_MEMBER, (who.nickname if who else None) or str(app.user_id), "joined the guild.")
-    # offline: a missão 22 dele avança no 5014 (rules.social_state_quests)
-    other = s.ctx.online.get(app.user_id)
-    snap = other.snapshot if other is not None else None
-    quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1) if snap is not None else []
-    await s.ctx.characters.save(member, event, *quests, delete=tuple(gone))
+    await s.ctx.characters.save(member, event, delete=tuple(gone))
     s.send(S_PASS)
     _joined(s, guild, app.user_id)
-    if other is not None and snap is not None and quests:
-        other.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(5149)
@@ -260,13 +252,8 @@ async def invite_answer(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     member, gone = _join(s, guild, s.player_id)
     # texto deduzido (sem fonte no cliente/captura)
     event = _event(s, guild, gd.EV_MEMBER, _char(s).nickname or "", "joined the guild.")
-    snap = s.snapshot
-    assert snap is not None
-    quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22
-    await s.ctx.characters.save(member, event, *quests, delete=tuple(gone))
+    await s.ctx.characters.save(member, event, delete=tuple(gone))
     _joined(s, guild, s.player_id)
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 # ---- sair / expulsar / cargos ----------------------------------------------------------------

@@ -15,7 +15,6 @@ from ....services.characters import normalize_nickname
 from ... import guild as gd
 from ... import rankings, rules
 from ...builders import login as b
-from ...builders.player import quest_update
 from ...castle import castle_yield
 from ...router import router
 from ...session import GameSession
@@ -30,7 +29,6 @@ from .common import (
     S_INFO,
     S_LINK,
     S_MEMBERS,
-    S_QUESTS,
     S_RENAME,
     S_SEARCH,
     _can,
@@ -78,7 +76,6 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     c.gold -= CREATE_GOLD
     snap = s.snapshot
     assert snap is not None
-    quests = rules.quest_event(snap, s.ctx.templates, rules.GUILD_JOIN_CONDITION, 0, 1)  # missão 22: criar
     guild = Consortia(c.server_id, name, s.player_id, c.nickname or "", s.player_id, now)
     member = ConsortiaMember(0, s.player_id, now, duty_id=gd.CHAIRMAN)
     # texto deduzido (sem fonte no cliente/captura)
@@ -97,8 +94,6 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         member.consortia_id = event.consortia_id = guild.id or 0
         await uow.save(member)
         await uow.save(event)
-        for q in quests:
-            await uow.save(q)
         for invite in gone:
             await uow.delete(invite)
 
@@ -114,8 +109,6 @@ async def create(s: GameSession, msg: pb.ConsortiaMsg) -> None:
     g.profiles[s.player_id] = c
     castle_yield(s)
     _joined(s, guild, s.player_id, welcome=False)
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 @router.on(8213)

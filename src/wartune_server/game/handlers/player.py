@@ -220,7 +220,7 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     # estado que o cliente confere sozinho (amigos, guilda, contribuição, nível da guilda, bolsa): atualiza antes
     rules.update_state_quests(snap, templates, [q])
     refresh = _unique([q, *rules.social_state_quests(snap, templates, guild)])
-    if not rules.quest_done(snap, templates, q, now):
+    if not rules.quest_done(snap, templates, q, now, guild is not None):
         s.log.info("5014 recusado", quest=msg.templateId)
         await s.ctx.characters.save(*refresh)
         s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))  # resposta: progresso atual, sem concluir
@@ -239,7 +239,8 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         return
     # Ordem da captura EN (#210-#218, #482-#507, #1569-#1576, #2077-#2085, #2242-#2265): 112 do progresso (só tipos
     # 23, 2 e 10), 115 do que a entrega gasta, 3 (já com o bit da missão), 112 concluída, 3 da RewardStrategy, 109,
-    # 150 (só quando sobe de nível), 3, 115 dos itens ganhos, 4476, 111 de cada item, 52, 83 da EXP e 83 de cada item.
+    # 150 (só quando sobe de nível), 3, 115 dos itens ganhos, 4476, 111 dos itens, 4152 da diária, 52, 83 da EXP e 83
+    # dos itens. oficial_20261023-171155-1 manda o 112 do progresso também nos tipos 21, 29 e 51.
     # O 83 da EXP varia no oficial: antes do 100 nas subidas de nível (#630, #3187) e logo depois do 3 em
     # oficial_20261023-153200-1 #204 e #2130; fica depois do 52, como na maioria do tutorial (#700, #834, #2159).
     if rules.finish_progress(snap, templates, q):
@@ -286,13 +287,16 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
     if new:
         s.send(S_ITEMS, bag.moved(new, s.player_id))
         events.items_gained(s)  # (visto) tutorial_en #490, oficial_20261023-153200-1 #205-#206
-    texts = [f"Received: {bag.name(templates, template_id)} x{count}" for template_id, count in goods]
+    # (visto) oficial_20261023-171155-1 #4994/#4996: um texto só, "Received: Moderate Stamina Potion x1, Skeleton
+    # Key x1"
+    texts = ["Received: " + ", ".join(f"{bag.name(templates, t)} x{n}" for t, n in goods)] if goods else []
     for text in texts:
         alert(s, text)
+    # (visto) #6042, #7808: o 4152 da diária sai antes do 52
+    if row.get("TemplateType") == "1":  # (cliente) TaskTraceItem: tipo 1 = "Daily"; leed 20 "Complete a daily quest"
+        await events.leed_done(s, events.DAILY_QUEST_LEED)
     s.send(S_QUEST_DONE, pb.QuestFinishedRspMsg(templateId=q.template_id))
     if gp:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(gp)))
     for text in texts:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
-    if row.get("TemplateType") == "1":  # (cliente) TaskTraceItem: tipo 1 = "Daily"; leed 20 "Complete a daily quest"
-        await events.leed_done(s, events.DAILY_QUEST_LEED)

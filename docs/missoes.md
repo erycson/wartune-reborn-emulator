@@ -38,18 +38,19 @@ Missões são `QuestTemps` (título, recompensa, janela) com uma ou mais linhas 
 
 (visto) captura EN, as 19 entregas (10 a 130): #210-#218, #482-#507, #1569-#1576, #2077-#2085, #2242-#2265.
 
-1. 112 do progresso (`isComplete` falso), **só** quando a missão tem condição de tipo 23, 2 ou 10 (`rules.PROGRESS_BEFORE_FINISH`). Nos tipos 3, 7, 8, 14, 26, 27 e 32 o oficial não manda (52 #700, 60 #834, 70 #1129, 110 #2242...).
+1. 112 do progresso (`isComplete` falso), **só** quando a missão tem condição de tipo 23, 2, 10, 21, 29 ou 51 (`rules.PROGRESS_BEFORE_FINISH`; os três últimos de oficial_20261023-171155-1: 200 #4274, 221 #4978, 819 #5889). Nos tipos 3, 7, 8, 14, 20, 22, 26, 27, 32 e 42 o oficial não manda (52 #700, 60 #834, 70 #1129, 110 #2242; 765, 271, 220, 210, 190, 763 na oficial).
 2. 115 do que a entrega gasta (bolsa: 90 #1570, 102 #2079).
 3. 3 já com o bit da missão no `questSite`, mas antes da recompensa (gp e strategy antigos).
-4. 112 concluída (`condition` da bolsa em 0; tipo 3 guarda a soma: 52 = 900, 110 = 460).
+4. 112 concluída (`condition` da bolsa em 0; tipo 3 guarda a soma: 52 = 900, 110 = 460). O tipo 22 (estar em guilda) nunca conta: `condition_1` 0 na entrada e na entrega (oficial #4218, #4919); `quest_done` confere a guilda na hora.
 5. 3 só com a `RewardStrategy` paga, quando há (90 #1573, 101 #2183); o EXP vem no 3 seguinte.
 6. 109 quando a recompensa tem ouro ou cristal.
 7. 150 **só** quando sobe de nível (50, 52, 60, 80, 90, 100, 102 não mandam).
 8. 3 com tudo pago.
 9. 115 dos itens ganhos (45 #489, 110 #2250).
-10. 111 "Received: <nome> x<n>" de cada item (#504, #2262).
-11. 52.
-12. 83 "Received 3,000 EXP " (vírgula de milhar e espaço no fim) e o 83 de cada item com o mesmo texto do 111.
+10. Um 111 "Received: <nome> x<n>" com todos os itens separados por ", " (#504, #2262; vários itens: oficial #4994 "Received: Moderate Stamina Potion x1, Skeleton Key x1").
+11. 4152 do leed 20 quando a missão é diária (`TemplateType` 1; oficial #6042, #7808).
+12. 52.
+13. 83 "Received 3,000 EXP " (vírgula de milhar e espaço no fim) e o 83 com o mesmo texto do 111.
 
 Na subida de nível da entrega (`player.push_level`, (visto) tutorial_en): o exército completa com
 as tropas do castelo até a nova liderança (+10 no mago); com o castelo já criado (8281) vão 139 se o castelo não tem

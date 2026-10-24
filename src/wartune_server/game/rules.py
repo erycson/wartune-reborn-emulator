@@ -335,7 +335,9 @@ def _para1_ok(kind: int, raw: str, para1: int) -> bool:
 # Missões sociais e de guilda (QuestCondictionInfos.CondictionType)
 # (cliente) TaskTemplate.as: os tipos 21, 22, 29 e 51 conferem o estado, não a contagem
 FRIEND_CONDITION = 21  # ter amigo: checkFriendsCount, tamanho da lista de amigos
-GUILD_JOIN_CONDITION = 22  # estar em guilda: checkJoinConsortia, consortiaID > 0
+# estar em guilda: checkJoinConsortia, consortiaID > 0. (visto) oficial_20261023-171155-1: o servidor não conta, o
+# condition_1 fica 0 na entrada da guilda (sem 112) e na entrega (#4218, #4919); ``quest_done`` lê a guilda agora
+GUILD_JOIN_CONDITION = 22
 OFFER_CONDITION = 29  # contribuição total: checkConsortiaOffer, consortiaTotalOffer >= Para2
 GUILD_LEVEL_CONDITION = 51  # nível da guilda: checkConsortuaGrade; Para1 = prédio (GUILD_LEVEL_ATTRS)
 # (visto) tempinfos QuestTemps 241 Detail: [Guild] > [Guild Territory] > [Altar] > [spin] = altar (5145)
@@ -381,7 +383,6 @@ def social_state_quests(snap: PlayerSnapshot, templates: GameTemplates, guild: C
     progresso até o valor atual. Chamado no 5014: o cliente mostra a missão cumprida quando o estado bate,
     então o servidor precisa do mesmo progresso para concluir (e para quem agiu offline ou antes de aceitar)."""
     changed = quest_event(snap, templates, FRIEND_CONDITION, 0, len(snap.relations))
-    changed += quest_event(snap, templates, GUILD_JOIN_CONDITION, 0, int(guild is not None))
     changed += quest_event(snap, templates, OFFER_CONDITION, 0, snap.character.consortia_total_offer)
     if guild is not None:
         for kind, attr in GUILD_LEVEL_ATTRS.items():
@@ -396,8 +397,9 @@ PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # cond
 # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount). O condition_N fica em 0: (visto)
 # captura EN, a 90 e a 102 só têm 112 com 0 (#1140, #1572, #1800, #2081), nem nos drops do Worg Tooth (#1276, #1408)
 GOODS_CONDITIONS = {27, 28, 32, 49}
-# (visto) captura EN: só estes tipos mandam o 112 do progresso antes da entrega (5014): 23 (#211), 2 (#631), 10 (#2180)
-PROGRESS_BEFORE_FINISH = {NOVICE_CONDITION, BUILDING_CONDITION, 10}
+# (visto) só estes tipos mandam o 112 do progresso antes da entrega (5014): captura EN 23 (#211), 2 (#631), 10 (#2180);
+# oficial_20261023-171155-1 21 (#4274, missão 200), 29 (#4978, 221) e 51 (#5889, 819). Sem ele: 8, 20, 22, 26, 27, 42
+PROGRESS_BEFORE_FINISH = {NOVICE_CONDITION, BUILDING_CONDITION, 10, 21, 29, 51}
 QUEST_GOODS_SON = "210"  # SonType do item só de missão (2100001): a entrega tira todas as unidades (goods_to_take)
 # (cliente) newbie.xml (espelho inglês res134 ui/zh_cn), saveId: o maior salto do guia é 28500 -> 32000 (3500)
 # ponytail: teto de salto em vez da lista exata de saveId; a lista seria o próximo passo
@@ -683,10 +685,10 @@ def update_state_quests(snap: PlayerSnapshot, templates: GameTemplates, quests: 
     return changed
 
 
-def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: datetime) -> bool:
-    """Concluída quando todas as condições batem, como no cliente. Nível do jogador, dia do login e bolsa são lidos
-    agora; os de contagem usam o contador gravado (condition_N). Sem linha de condição não conclui: nenhuma missão
-    dos dados está assim, e o cliente a acharia pronta sem nada a cumprir."""
+def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: datetime, in_guild: bool = False) -> bool:
+    """Concluída quando todas as condições batem, como no cliente. Nível do jogador, dia do login, bolsa e guilda são
+    lidos agora; os de contagem usam o contador gravado (condition_N). Sem linha de condição não conclui: nenhuma
+    missão dos dados está assim, e o cliente a acharia pronta sem nada a cumprir."""
     rows = conditions(templates, q.template_id)
     if not rows:
         return False
@@ -698,6 +700,8 @@ def quest_done(snap: PlayerSnapshot, templates: GameTemplates, q: Quest, now: da
             have = int(_game_day(now) > _game_day(q.added_at))
         elif kind in GOODS_CONDITIONS:
             have = goods_count(snap, int(cond["Para1"]))
+        elif kind == GUILD_JOIN_CONDITION:
+            have = int(in_guild)
         else:
             have = progress_of(q, k)
         if have < need:

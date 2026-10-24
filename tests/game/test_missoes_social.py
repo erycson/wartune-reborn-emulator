@@ -71,18 +71,23 @@ async def test_pedir_amizade_avanca_a_missao_21(tmp_path: Path) -> None:
         assert _quests(got) == {200: (1, False)}
 
 
-async def test_criar_guilda_avanca_a_missao_22(tmp_path: Path) -> None:
+async def test_missao_22_nao_conta_e_conclui_pela_guilda(tmp_path: Path) -> None:
+    """(visto) oficial_20261023-171155-1 #4218, #4919: o condition_1 fica 0; a entrega confere a guilda de agora."""
     async with logged_in(tmp_path, novice=19000) as g:
         _open(g, 220)
         c = _snap(g).character
         c.grades, c.gold, c.point = 20, 1_000_000, 100
         await g.idle()
+        g.client.send(5014, pb.QuestFinishedReqMsg(templateId=220))  # sem guilda: recusa
+        assert _quests(await g.idle()) == {220: (0, False)}
         g.client.send(5130, pb.ConsortiaMsg(consortiaName="Lobos"))
-        assert _quests(await g.idle()) == {220: (1, False)}
+        assert _quests(await g.idle()) == {}
+        g.client.send(5014, pb.QuestFinishedReqMsg(templateId=220))
+        assert _quests(await g.until(52)) == {220: (0, True)}
 
 
-async def test_entrar_na_guilda_avanca_a_missao_22_do_candidato(tmp_path: Path) -> None:
-    """O líder aceita (5134) a candidatura de quem está online: o 112 vai para o candidato."""
+async def test_entrar_na_guilda_nao_manda_112_da_missao_22(tmp_path: Path) -> None:
+    """O líder aceita (5134) a candidatura de quem está online: (visto) a entrada não manda 112 (#4917-#4919)."""
     async with logged_in(tmp_path, novice=19000) as a:
         await _create_guild(a)
         other = await a.join("clara")
@@ -93,7 +98,7 @@ async def test_entrar_na_guilda_avanca_a_missao_22_do_candidato(tmp_path: Path) 
         [apply] = [p for p in await other.idle() if p.code == 35]
         a.client.send(5134, pb.ConsortiaMsg(applyId=pb.ConsortiaMsg.FromString(apply.body).applyId, result=True))
         await a.idle()
-        assert _quests(await other.idle()) == {220: (1, False)}
+        assert _quests(await other.idle()) == {}
 
 
 async def test_pesquisa_da_guilda_nao_avanca_a_missao_51(tmp_path: Path) -> None:
@@ -116,6 +121,12 @@ async def test_contribuicao_avanca_a_missao_29_pelo_total(tmp_path: Path) -> Non
         assert _quests(await g.idle()) == {221: (4, False)}
         g.client.send(5144, pb.ConsortiaUserOfferReqMsg(offerGold=6000))  # total 10
         assert _quests(await g.idle()) == {221: (10, False)}
+        # (visto) oficial_20261023-171155-1 #4978-#4980: 112 do progresso, 3, 112 concluída
+        _snap(g).character.grades = 40
+        g.client.send(5014, pb.QuestFinishedReqMsg(templateId=221))
+        got = await g.until(52)
+        assert [p.code for p in got][:3] == [112, 3, 112]
+        assert _quests(got[:1]) == {221: (10, False)} and _quests(got[2:3]) == {221: (10, True)}
 
 
 async def test_bencao_da_guilda_avanca_a_missao_30(tmp_path: Path) -> None:
