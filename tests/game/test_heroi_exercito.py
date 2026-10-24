@@ -8,7 +8,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import Item, Pawn, Pet, PlayerSnapshot
+from wartune_server.domain.models import Item, Pawn, Pet, PlayerSnapshot, Star
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -222,9 +222,9 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         await g.server.services.characters.save(snap.character, snap.systems)
 
         g.client.send(8269, pb.StarRandReqMsg(site=0))  # grátis do dia
-        got = await g.until(4180)
-        # 4152/83: leed 17 "Capture an Astral" (só turco: kader_sistemi #5), só no 1º sorteio do dia
-        assert codes(got) == [109, 3, 4152, 83, 4180] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
+        got = await g.until(83)
+        # 4152/83: leed 17 "Capture an Astral" (só turco: kader_sistemi #1-#8), só no 1º sorteio do dia
+        assert codes(got) == [109, 3, 4152, 3, 4180, 83] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
         for _ in range(2):
             g.client.send(8269, pb.StarRandReqMsg(site=0))
             await g.until(4180)
@@ -236,13 +236,13 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         assert snap.systems.star_point == 3  # 1 ponto por sorteio no cristal 0 (MakeStarView)
 
         g.client.send(8268, pb.StarPickReqMsg(dropsite=1, way=1))  # Pick (StarIconView): way 1 recolhe
-        assert codes(await g.until(3)) == [4178, 4179, 3]
+        assert codes(await g.until(4179)) == [4178, 4179]
         g.client.send(8268, pb.StarPickReqMsg(dropsite=2, way=2))  # Sell: way 2 vende o Energine (SellGold)
-        assert codes(await g.until(3)) == [109, 4179, 3]
+        assert codes(await g.until(4179)) == [109, 4179]
         g.client.send(8268, pb.StarPickReqMsg(dropsite=-1, way=1))  # venda rápida só do lixo: o verde não é
         assert await g.idle() == []
         g.client.send(8268, pb.StarPickReqMsg(dropsite=-2))  # Collect all
-        assert codes(await g.until(3)) == [4178, 4179, 3]
+        assert codes(await g.until(4179)) == [4178, 4179]
         assert sorted((s.bag_type, s.pos) for s in snap.stars) == [(1, 0), (1, 1)]
 
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0))
@@ -250,8 +250,11 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=2))  # 2 espaços
         assert await g.idle() == []
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=0, eat=True))
-        got = await g.until(150)
-        moved = pb.StarMoveRspMsg.FromString(got[0].body).move
+        got = await g.until(4178)
+        assert codes(got) == [111, 150, 4178]  # só turco: kader_sistemi #122-#126
+        assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg.endswith("gained 10 Astral EXP")
+        moved = [*pb.StarMoveRspMsg.FromString(got[-1].body).move]
+        moved += pb.StarMoveRspMsg.FromString((await g.until(4178))[-1].body).move
         assert [(m.changeType, m.changePos, m.star_Info.gp) for m in moved] == [(1, 1, 0), (2, 0, 10)]
 
         g.client.send(8330, pb.StarLockReqMsg(starType=2, pos=0))
@@ -529,6 +532,26 @@ async def test_pawn_upgrade_closing_the_seven_day_task_sends_4638_before_the_arm
         assert day1.simpleTask[0].isComplete == 1
 
 
+async def test_star_compose_says_exp_and_level(tmp_path: Path) -> None:
+    """(só turco: kader_sistemi #112-#117) 111 do nível, 111 da EXP, 109 do lixo vendido, 4479, 83 do nível e 4484."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        uid = snap.character.id or 0
+        made = [Star(uid, 1503, bag_type=0, pos=0)] + [Star(uid, 303, bag_type=0, pos=p) for p in (1, 2, 3)]
+        made.append(Star(uid, 1, bag_type=0, pos=4))  # lixo: vendido
+        snap.stars.extend(made)
+        await g.server.services.characters.save(*made)
+        g.client.send(8331, pb.StarComposeReqMsg(bagType=0, pos=0))
+        got = await g.until(4484)
+        assert codes(got) == [111, 111, 109, 4479, 83, 4484]
+        texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code in (111, 83)]
+        name = g.server.services.templates.get("starTempInfos", 1503)["TemplateName"]
+        level = f"Astral {name} has been upgraded to Lvl. 2"
+        assert texts == [level, f"Astral {name} gained 90 Astral EXP", level]
+        left = pb.StarRandRspMsg.FromString(got[3].body).starRand
+        assert [(r.starInfo.templateId, r.starInfo.grade, r.starInfo.gp) for r in left] == [(1503, 2, 20)]
+
+
 async def test_rare_astral_is_shouted_to_the_whole_server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """(visto) oficial_encantar #2753: a Profile 5 sorteada vai no 83 canal 2 para todos os online."""
     from wartune_server.game.handlers import stars
@@ -542,6 +565,7 @@ async def test_rare_astral_is_shouted_to_the_whole_server(tmp_path: Path, monkey
         snap.character.gold, snap.character.grades = 8000, 40
         g.client.send(8269, pb.StarRandReqMsg(site=0))
         await g.until(4180)
+        assert codes(await g.until(83)) == [83]  # a devoção do 1º sorteio do dia (só turco: kader_sistemi #8)
         got = await g.until(83)
         assert codes(got) == [83]
         text = pb.ChatChannelMsg.FromString(got[-1].body)

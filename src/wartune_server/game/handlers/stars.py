@@ -45,6 +45,10 @@ OPEN_NEXT = 0.3
 # a Profile 7, mais rara, também; ``game_settings.star_rare_profiles`` troca a lista
 RARE_PROFILES, S_CHAT, WORLD = ("5", "7"), 83, 2
 RARE_TEXT = '{} just received the extremely rare [<a t="3" id="{}" name="{}" grades="{}"/>] Astral!'
+# (só turco: kader_sistemi #64, #112-#122) 111 canal 7 "Kader Tiran lv 2'a geliştirildi." e "Kader Tiran, 200 puan kader
+# EXP kazandı"; o de nível volta no 83 canal 3 depois da resposta. TODO(inventado): o inglês, no molde do
+# "Town Hall has been upgraded to Lvl. 2" (oficial_20261023-153200 #594) e com Kader = Astral
+LEVEL_TEXT, EXP_TEXT, S_ALERT = "Astral {} has been upgraded to Lvl. {}", "Astral {} gained {} Astral EXP", 111
 _rng = random.Random()  # abrir o próximo cristal (os testes trocam)
 
 
@@ -109,6 +113,32 @@ def feed(templates: GameTemplates, star: Star, gp: int) -> None:
         star.grade += 1
 
 
+def eat_all(templates: GameTemplates, star: Star, gp: int) -> list[str]:
+    """``feed`` com os textos de nível (um por grau, dedução) que saem antes e depois da resposta."""
+    before = star.grade
+    feed(templates, star, gp)
+    name = star_tpl(templates, star).get("TemplateName", "")
+    return [LEVEL_TEXT.format(name, g) for g in range(before + 1, star.grade + 1)]
+
+
+def say_gain(s: GameSession, star: Star, gp: int, levels: list[str]) -> None:
+    """(só turco: kader_sistemi #112-#113) os 111 de nível e depois o 111 com a EXP ganha."""
+    name = star_tpl(s.ctx.templates, star).get("TemplateName", "")
+    for text in [*levels, EXP_TEXT.format(name, gp)]:
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+
+
+def say_levels(s: GameSession, levels: list[str]) -> None:
+    """(só turco: kader_sistemi #116-#117, #121) o 83 canal 3 de cada nível e o 4484: o título "Astral Master"
+    (AppellInfos 7, CondtionType 6) depende do nível das estrelas."""
+    for text in levels:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    if levels:
+        from .events import send_titles  # handlers.events importa login, que importa player
+
+        send_titles(s)
+
+
 def sites(snap: PlayerSnapshot) -> list[int]:
     return [int(x) for x in rules.systems(snap).star_sites.split(",")]
 
@@ -150,7 +180,9 @@ def roll(templates: GameTemplates, grade: int, site: int, table: Mapping[str, Se
 @router.on(8269)
 async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     """Sorteia no cristal ``site`` (ouro SITE_COST, ou um sorteio grátis do dia); -1 = rápido (repete
-    no melhor cristal aberto até encher ou acabar o ouro). Resposta (só turco: kader_sistemi): 109, 3, 4180."""
+    no melhor cristal aberto até encher ou acabar o ouro). Resposta (só turco: kader_sistemi #9-#11): 109, 3, 4180;
+    no 1º do dia (#1-#8) 109, 3, 4152 do leed, 3, 4180 e o 83 da devoção; o que enche a temporária (#110-#111) leva o
+    4484 depois (dedução do gatilho: é o único dos 16 que o tem)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
@@ -193,8 +225,15 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     _player(s)
     from . import events  # handlers.events importa login, que importa player
 
-    await events.leed_done(s, events.ASTRAL_LEED)  # só turco: kader_sistemi #4-#7: 3, 4152, 3, 4180
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.ASTRAL_LEED, say=False)
+    if up := events.devotion(s) != devotion:
+        _player(s)
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
+    if up:
+        events.say_devotion(s)
+    if free_pos(snap, StarBag.TEMP, TEMP_MAX) is None:
+        events.send_titles(s)
     rare = tuple(settings.get("star_rare_profiles") or RARE_PROFILES)
     for star in new:
         if (tpl := star_tpl(templates, star)).get("Profile") in rare:
@@ -216,7 +255,7 @@ async def star_pick(s: GameSession, msg: pb.StarPickReqMsg) -> None:
     -2 recolhe todas ("Collect all", StarModel.quickPickupClick); -1 vende as de ``Profile <= way``, grau 1 e
     sem gp (venda rápida, DisplayStarView/StarModel.checkAction). O lixo (Profile 1) sempre é vendido (SellGold,
     bagType -1 no 4179). Resposta (só turco: kader_sistemi #56-#60): 109 e 4179 dos vendidos, 4178 e 4179 dos
-    recolhidos."""
+    recolhidos, sem o 3."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     sy, c = rules.systems(snap), snap.character
@@ -256,14 +295,14 @@ async def star_pick(s: GameSession, msg: pb.StarPickReqMsg) -> None:
         for drop, star in picked:
             reply.starRand.add(dropSite=drop, starInfo=star_info(star, s.player_id))
         s.send(S_PICK, reply)
-    _player(s)
 
 
 @router.on(8267)
 async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
     """Move entre mochila (1) e equipadas (2). Destino ocupado: com ``eat`` a estrela do destino
-    devora a movida (só turco: kader_sistemi #125-#126), senão trocam. Equipadas: até min(8, nível/10), sem repetir
-    MasterType, sem lixo nem fonte de energia. Resposta: 4178 (+150 se mexeu nas equipadas)."""
+    devora a movida, senão trocam. Equipadas: até min(8, nível/10), sem repetir MasterType, sem lixo nem fonte de
+    energia. Resposta: 4178 (+4902 e 150 se mexeu nas equipadas). Devorando (só turco: kader_sistemi #122-#126): 111 da
+    EXP, 4902 e 150, um 4178 com a origem vazia e outro com a que comeu."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     src = at(snap, msg.beginStarType, msg.beginPos)
@@ -281,7 +320,8 @@ async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
         if dst.locked or src.locked or star_tpl(templates, dst).get("Profile") == ENERGY:
             s.log.info("8267 recusado: travada", pedido=str(msg))
             return
-        feed(templates, dst, value(templates, src))
+        gp = value(templates, src)
+        levels = eat_all(templates, dst, gp)
         snap.stars.remove(src)
         deleted.append(src)
         changes += [(msg.beginStarType, msg.beginPos, None), (dst.bag_type, dst.pos, dst)]
@@ -296,8 +336,18 @@ async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
             dst.bag_type, dst.pos = msg.beginStarType, msg.beginPos
         changes += [(msg.beginStarType, msg.beginPos, dst), (msg.endStarType, msg.endPos, src)]
     await s.ctx.characters.save(*(x for x in (src, dst) if x is not None and x not in deleted), delete=tuple(deleted))
+    equip = StarBag.EQUIP in (msg.beginStarType, msg.endStarType)
+    if deleted:
+        assert dst is not None
+        say_gain(s, dst, gp, levels)
+        if equip:
+            _army(s)
+        for change in changes:
+            s.send(S_MOVE, move_msg([change], s.player_id))
+        say_levels(s, levels)
+        return
     s.send(S_MOVE, move_msg(changes, s.player_id))
-    if StarBag.EQUIP in (msg.beginStarType, msg.endStarType):
+    if equip:
         _army(s)
 
 
@@ -315,8 +365,9 @@ def equip_ok(snap: PlayerSnapshot, templates: GameTemplates, star: Star, kind: i
 @router.on(8331)
 async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
     """Composição rápida: a estrela em ``pos`` devora todas as outras não travadas da mesma sacola
-    (0 temporária, 1 mochila); o lixo da temporária é vendido. Resposta (só turco: kader_sistemi #114-#115): 109 e
-    4479 com as que sobraram (temporária) ou 4178 (mochila, #120)."""
+    (0 temporária, 1 mochila); o lixo da temporária é vendido. Resposta (só turco: kader_sistemi #64-#65, #112-#121):
+    111 de cada nível, 111 da EXP, 109 (só se vendeu lixo), 4479 com as que sobraram (temporária) ou 4178 (mochila),
+    83 de cada nível e o 4484."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None
     c = snap.character
@@ -328,24 +379,30 @@ async def star_compose(s: GameSession, msg: pb.StarComposeReqMsg) -> None:
     ):
         s.log.info("8331 recusado", pedido=str(msg))
         return
-    eaten = []
+    eaten, gp, junk = [], 0, False
     for star in bag(snap, msg.bagType):
         profile = star_tpl(templates, star).get("Profile")
         if star is target or star.locked or star.grade >= MAX_GRADE:  # o Energine também é devorado (HoroscopeFrame)
             continue
         if profile == JUNK:
             c.gold += int(star_tpl(templates, star).get("SellGold", 0))
+            junk = True
         else:
-            feed(templates, target, value(templates, star))
+            gp += value(templates, star)
         snap.stars.remove(star)
         eaten.append(star)
+    levels = eat_all(templates, target, gp)
     await s.ctx.characters.save(c, target, delete=tuple(eaten))
+    if gp:
+        say_gain(s, target, gp, levels)
     if msg.bagType == StarBag.TEMP:
-        castle_yield(s)
+        if junk:
+            castle_yield(s)
         s.send(S_COMPOSE, rand_msg(snap, bag(snap, StarBag.TEMP), s.player_id))
     else:
         changes = [(StarBag.BAG, st.pos, None) for st in eaten] + [(StarBag.BAG, target.pos, target)]
         s.send(S_MOVE, move_msg(changes, s.player_id))  # type: ignore[arg-type]
+    say_levels(s, levels)
 
 
 @router.on(8330)
