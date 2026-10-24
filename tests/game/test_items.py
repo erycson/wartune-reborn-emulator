@@ -129,9 +129,11 @@ async def test_sell_lock_and_buy_bag_rows(tmp_path: Path) -> None:
         g.client.send(5007, pb.ItemReqMsg(beginPos=0))  # travado: não vende
         assert await g.idle() == []
         g.client.send(8624, pb.ItemSellReqMsg(selledItemInfos=[pb.SelledItemInfo(pos=1, count=1)]))
-        assert codes(await g.until(109)) == [115, 109]
+        got = await g.until(111)
+        assert codes(got) == [115, 109, 111]  # 231733 #224-#229
         # 150 + 70% de (1.5^1 * 3 * 1 * 5 + 500)
         assert c.gold == gold + int(150 + 0.7 * (1.5 * 3 * 5 + 500)) and other not in snap.items
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Sale successful! You have received 515 gold."
 
         g.client.send(5010, pb.PayTypeMsg(payType=1, property1=2))  # 10 + 20 elmas: só tem 25
         assert await g.idle() == []

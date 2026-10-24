@@ -182,24 +182,45 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
         s.log.info("5151 recusado", pedido=str(msg), furo=old, repetida=duplicate)
         return
     c.gold -= cost
+    if old > 0:
+        # (visto) oficial_20261024-121659-1 #302-#321: a troca é a remoção inteira (109, 115 do item sem a pedra,
+        # 115 da antiga de volta, 4476/4426/4484, 111 e 83 da remoção) e depois o engaste (115 da pedra, 115 do
+        # item) com o 111 "Swap Successful", sem 83
+        joins[msg.mountPos - 1] = 0
+        item.joins = joins
+        back = bag.add(snap, templates, old, 1, now)
+        castle_yield(s)
+        send(s, S_ITEMS, bag.moved([item], s.player_id))
+        send(s, S_ITEMS, bag.moved(back, s.player_id))
+        _removed(s, old)
+    else:
+        back = []
     gone = [stone] if bag.take_one(snap, stone, 1) else []
     changed = [] if gone else [stone]
-    back = bag.add(snap, templates, old, 1, now) if old > 0 else []
     joins[msg.mountPos - 1] = stone.template_id
     item.joins, item.is_binds = joins, True
-    # (visto) tempinfos: 281 "Socket a Gem" = tipo 18 ("[Blacksmith] > [Socket]"); (visto, só turco:
-    # atolye_item_basma_ve_mozaik) o oficial avisa que a pedra foi engastada
+    # (visto) tempinfos: 281 "Socket a Gem" = tipo 18 ("[Blacksmith] > [Socket]")
     quests = rules.quest_event(snap, templates, GEM_INLAY, MOSAIC_PARA1, 1) if gem == GEM else []
     await s.ctx.characters.save(c, item, *changed, *back, *quests, delete=tuple(gone))
 
-    if cost:  # o 109 só quando a troca cobra ouro (o turco trocou; as 4 inglesas, furo vazio, não têm 109)
-        castle_yield(s)
-    send(s, S_ITEMS, bag.moved([*changed, *back], s.player_id, empty=gone))
+    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     send(s, S_ITEMS, bag.moved([item], s.player_id))
     # (visto) 231733 #1392-#1397: 115 da pedra, 115 do item, 112 da missão, o 111 e o 83 com o mesmo texto
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
-    alert(s, "Successfully Socketed Gem!")
+    if old > 0:
+        send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Swap Successful"))
+    else:
+        alert(s, "Successfully Socketed Gem!")
+
+
+def _removed(s: GameSession, gem: int) -> None:
+    """(visto) oficial_20261024-121659-1 #306-#318 e #326-#339: 4476/4426/4484, 111 "Remove successful!" e 83
+    "Removal successful! You received: Lvl. 1 Charisma Gem x1!"."""
+    _gained(s)
+    send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Remove successful!"))
+    text = f"Removal successful! You received: {bag.name(s.ctx.templates, gem)} x1!"
+    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 @router.on(5152)
@@ -231,6 +252,8 @@ async def inlay_join(s: GameSession, msg: pb.StoreReqMsg) -> None:
         await s.ctx.characters.save(item, *changed, delete=tuple(gone))
         send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
         send(s, S_ITEMS, bag.moved([item], s.player_id))
+        # (visto) oficial_20261024-121659-1 #434-#437: 115 da broca, 115 do item e o 111, sem 83
+        send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Socket open successfully!"))
         return
     stone_row = templates.get("ItemTempInfos", hole) if hole > 0 else None
     cost = int(stone_row.get("Property3") or 0) if stone_row else 0
@@ -243,14 +266,11 @@ async def inlay_join(s: GameSession, msg: pb.StoreReqMsg) -> None:
     back = bag.add(snap, templates, hole, 1, now)
     await s.ctx.characters.save(c, item, *back)
 
+    # (visto) oficial_20261024-121659-1 #322-#339: 109, 115 do item, 115 da pedra, 4476/4426/4484, 111 e 83
     castle_yield(s)
     send(s, S_ITEMS, bag.moved([item], s.player_id))
     send(s, S_ITEMS, bag.moved(back, s.player_id))
-    _gained(s)  # (só turco: atolye_item_basma_ve_mozaik #25-#42) 109, 115, 115, 4476, 4484, 111, 83
-    # texto deduzido (sem fonte no cliente/captura); termo Unsocketing do language.txt
-    send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Unsocketing successful!"))
-    text = f"Unsocketing successful! Received: {bag.name(templates, hole)} x1!"
-    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    _removed(s, hole)
 
 
 # --- composição ---

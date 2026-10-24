@@ -75,8 +75,8 @@ async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
         assert await g.idle() == []
         for hole in (1, 2):
             g.client.send(5152, pb.StoreReqMsg(holePos=hole, operate=True))
-            await g.until(115)
-            await g.until(115)
+            # (visto) oficial_20261024-121659-1 #434-#437
+            assert codes(await g.until(111)) == [115, 115, 111]
         assert wand.joins == [0, 0, -1, -1] and drills not in me(g).items and not wand.is_binds
 
         g.client.send(5151, pb.StoreReqMsg(mountPos=1, bagType=1, bagPos=1))
@@ -92,10 +92,22 @@ async def test_drill_inlay_and_remove(tmp_path: Path) -> None:
         assert codes(got) == [109, 115, 115, 4476] + [4484] * 9 + [111, 83] and wand.join_1 == 0 and c.gold == 800
         assert (
             pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg
-            == "Unsocketing successful! Received: Lvl. 1 Physical Attack Gem x1!"
+            == "Removal successful! You received: Lvl. 1 Physical Attack Gem x1!"  # 121659 #339
         )
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert sorted(i.template_id for i in saved.items if i.bag_type == 1) == [ATTACK_1, ATTACK_2]
+
+        # troca (121659 #302-#321): a remoção inteira e depois o engaste, com "Swap Successful" sem 83
+        def pos_of(template: int) -> int:
+            return next(i.pos for i in me(g).items if i.template_id == template and i.bag_type == 1)
+
+        g.client.send(5151, pb.StoreReqMsg(mountPos=1, bagType=1, bagPos=pos_of(ATTACK_1)))
+        await g.until(83)
+        g.client.send(5151, pb.StoreReqMsg(mountPos=1, bagType=1, bagPos=pos_of(ATTACK_2)))
+        got = await g.idle()
+        assert codes(got) == [109, 115, 115, 4476] + [4484] * 9 + [111, 83, 115, 115, 111]
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Swap Successful"
+        assert wand.join_1 == ATTACK_2 and c.gold == 600
 
 
 async def test_compose_and_transform(tmp_path: Path) -> None:

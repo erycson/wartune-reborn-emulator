@@ -276,6 +276,8 @@ async def _open_box(s: GameSession, box: Item, row: Row, _: int) -> bool:
     known = all(t in CURRENCIES or (t > 0 and templates.get("ItemTempInfos", t)) for t in ids)
     goods = [d for d in drops if int(d["TemplateId"]) > 0]
     fits = len(bag.in_bag(snap)) - 1 + len(goods) <= bag.capacity(c, s.ctx.clock.now())
+    if drops and known and not fits:  # (visto) 215937 #585-#586, 231733 #210-#211: só o 111
+        send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Inventory full, unable to retrieve item."))
     if not (drops and known and fits):
         return False
 
@@ -578,6 +580,13 @@ async def _sell(s: GameSession, wanted: list[tuple[int, int]], code: int) -> Non
             await s.ctx.characters.save(snap.character, *changed, delete=tuple(gone))
             _send_items(s, changed, gone)
             castle_yield(s)
+            # (visto) 231733 #224-#229 e #245-#253: 115 por item, 109 e o 111, sem 83
+            total = sum(gold for _, _, gold in plan)
+            send(
+                s,
+                S_ALERT,
+                pb.ChatChannelMsg(channel=7, encodeMsg=f"Sale successful! You have received {total:,} gold."),
+            )
             return
     s.log.info(f"{code} recusado", itens=wanted)
 
