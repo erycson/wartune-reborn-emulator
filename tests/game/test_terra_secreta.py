@@ -76,12 +76,10 @@ async def test_entrar_perder_para_o_invasor_e_sair(tmp_path: Path, monkeypatch: 
         assert codes(await back_to_map(g)) == [4382]  # #5117
 
         g.client.send(5025, pb.RoomExitMsg())
-        got = await g.until(4595)
-        assert codes(got) == [4165, 150, 150, 140, 22, 4595]  # #5164-#5169
+        got = await g.until(83)
+        assert codes(got) == [4165, 150, 150, 140, 22, 4595, 83]  # #5164-#5169; 121659 #656
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Left Guild Chamber"
         assert _session(g).campaign is None
-        g.client.send(8747, pb.SimplePropertyMsg(param7=True))
-        got = await g.idle()
-        assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg == "Left Guild Chamber"  # #5172
 
 
 async def test_vencer_o_invasor_da_contribuicao(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

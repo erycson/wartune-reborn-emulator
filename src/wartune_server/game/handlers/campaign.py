@@ -1693,11 +1693,13 @@ async def _quarry_over(s: GameSession, battle: Battle, won: bool) -> None:
 
 def leave_quarry(s: GameSession) -> bool:
     """5025 na pedreira: (visto) inglesa #2117-#2123: 4165, 150, 150, 140, 22 e a cidade do céu (4595). A terra
-    secreta sai igual (oficial_20261023-171155-1 #5163-#5169) e o 83 "Left Guild Chamber" vai no 8747 seguinte."""
+    secreta sai igual (oficial_20261023-171155-1 #5163-#5169) mais o 83 "Left Guild Chamber" logo depois do 4595
+    (oficial_20261024-121659-1 #655-#656)."""
     c, snap = s.campaign, s.snapshot
     if c is None or not (c.quarry or c.fam) or snap is None:
         return False
-    if c.fam:
+    fam_room = c.fam
+    if fam_room:
         from . import fam  # fam importa este módulo
 
         fam.leaving(s)
@@ -1711,6 +1713,8 @@ def leave_quarry(s: GameSession) -> bool:
     s.campaign = None
     _send(s, S_EXIT, pb.CampaignExitMsg(result=1, playerId=s.player_id, armyId=s.player_id))
     space.enter(s)
+    if fam_room:
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg="Left Guild Chamber"))
     return True
 
 

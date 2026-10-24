@@ -7,7 +7,8 @@
 - 5038 {7501} -> 20 {soldierTemplated 3001} (``campaign_map.system_army``, do conteúdo);
 - 5125 num Invasor (masterType 151) -> 140, 131, 128 em combate e 157 battleType 23 (``campaign._start_battle``);
 - a derrota (#5099-#5114) e o 4382 no 5035 state 4 seguinte (#5117); a vitória não tem captura;
-- 5025 sai como a pedreira (``campaign.leave_quarry``) e o 8747 seguinte manda 83 "Left Guild Chamber".
+- 5025 sai como a pedreira (``campaign.leave_quarry``) e o 83 "Left Guild Chamber" vem logo depois do 4595
+  (oficial_20261024-121659-1 #647-#656 sem pedido no meio; na 171155 o 5035/8747 do cliente chegou antes).
 
 Conteúdo no banco (``campaign_contents`` 7501, migração 0073, ``tools/extract_dungeon.py``): os 62 nós, só 3
 Invasores à vista (state 1); os outros 6, a árvore, as 21 coletas e os 30 Master Treasure Thief chegam escondidos.
@@ -418,8 +419,7 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
 
 
 def leaving(s: GameSession) -> None:
-    """5025 (antes de ``leave_quarry`` limpar o mapa): o 83 sai no 8747 e os outros veem um a menos."""
-    s.fam_left = True
+    """5025 (antes de ``leave_quarry`` limpar o mapa): os outros veem um a menos."""
     if (mine := _mine(s)) is not None:
         s.campaign = None
         _tell_room(s, mine[0])
