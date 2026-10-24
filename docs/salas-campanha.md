@@ -308,8 +308,8 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 
 ## Dependências que faltam
 
-- **Começar a campanha da sala**: o dono escolhe a campanha no 5034 (`InstanceSelectFrame`) e o 5039 entra na campanha pedida (seção das masmorras). Sem escolha, o cliente inglês mostra "Room owner has not selected a map yet." (`RoomRightView.command02`); o `roomName` do 32 o cliente não lê.
-- **Progresso de campanha e mapa 2011**: o estado dos nós da masmorra não é salvo (só a etapa da vez, a melhor nota, a carta e as missões). O mapa 2011 não tem nós, e a varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
+- **Campanha da sala** (feito, `campaign._group_start`): o Start manda 5039 com `paraBool1` (usar a entrada do dia; `RoomSocketOuterManager.sendStartCampaignScene`); cada um entra com 125 da sala inteira (roomState 3). Só a 9001 tem conteúdo (0084); falta o mapa 2012 e a luta compartilhada entre os da sala (cada um joga o seu mapa).
+- **Progresso de campanha e mapa 2011**: o estado dos nós da masmorra não é salvo (só a etapa da vez, a melhor nota, a carta e as missões). A varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
 - **Lista de soldados por mapa (5038)**: as campanhas no banco levam a sua (`maps[mapa].army`, inglesa
   #924, #1524, #2513); fora delas só o 2011 (só turco: peri_uyanis). Os demais mapas precisam de captura do 5038 de cada um.
 - **Varredura do labirinto (8528 `sweepType` 2)**: depende do progresso da torre (andar e recorde).
@@ -321,10 +321,7 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
   `tollgate_attack_count` 10 (desafio com diamantes), `tollgate_add_count` 1000 de limite de compras extras) e as tabelas
   `ScoreRewards` (28), `BossRewards` (370), `AreaRewards` (30) e `LuckyRewards`, que o parser descarta
   (filhos aninhados). Sem a agenda, fica fechado.
-- **Contador de campanha multi (4240)**: falta o gasto da entrada. Nenhuma captura mostra o que consome uma entrada
-  (entrar numa campanha em grupo, 5039, ou concluir). **precisa de captura**: entrar numa campanha em grupo com 1/1 e
-  anotar o S>C seguinte (4240 ou não), depois concluir e anotar de novo. O teto de The Empire Crusade por dia não foi visto
-  (`# ponytail:` em `_use_copies`).
+- **Contador de campanha multi (4240)**: a entrada gasta uma ao começar com `isGet` (só turco: exp_kitabi #40, "1/2" depois da entrada; o PlayerMsg leva o `campaignCount` novo). Sem 4240 na entrada (a captura não tem). O teto de The Empire Crusade por dia não foi visto (`# ponytail:` em `_use_copies`).
 - **Protocolo**: o cliente usa `com.road.yishi.proto.simple.PropertyMsg` para 9504 e 4913, que é o
   `SimplePropertyMsg` do `wartune.proto`. `ArmyMsg` não está em `wartune.proto`.
 
