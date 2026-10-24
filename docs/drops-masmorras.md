@@ -1,7 +1,7 @@
 # Drops das masmorras
 
 A carta do fim da etapa é sorteada pela tabela `campaign_cards` (migração 0034), no formato (campanha, item,
-peso, fonte). O peso é quantas vezes o item saiu nas capturas (inglesa; as cartas 1080013 e 1080002 só turco: replay). Os itens da coluna `Item` de
+peso, fonte). O peso é quantas vezes o item saiu nas capturas (inglesa; a carta 1080013 só no turco: replay). Os itens da coluna `Item` de
 `Campaigns` que nunca foram vistos pesam 1. Uma campanha sem linhas na tabela usa a coluna `Item` com pesos iguais
 (`game/drops.py`). As tabelas por campanha abaixo são um retrato do template, para conferir com vídeos e capturas.
 
@@ -9,8 +9,9 @@ peso, fonte). O peso é quantas vezes o item saiu nas capturas (inglesa; as cart
 
 - *(visto)* Inglesa #1102-#1123 (1001): 135 (5 cartas, `payCardCount` 5, `price` 0), depois 5122 → 115, 26 e 83
   "Received: Banshee Plume x1". O 134 só vem como resposta do 5180.
-- *(visto)* Cartas da 1001: 1080012 Banshee Plume duas vezes (inglesa #1122 e #1544, mago); 1080013 e 1080002 uma
-  vez cada (só turco: replay #1241 e #1744).
+- *(visto)* Cartas da 1001: 1080012 Banshee Plume duas vezes (inglesa #1122 e #1544, mago); 1080002 Coruscan Crest uma vez
+  na inglesa (oficial_encantar #721, 83 "Received: Coruscan Crest x1") e no turco (replay #1744); 1080013 uma vez
+  (só turco: replay #1241).
 - *(visto)* Cartas da 1002: 2040102 Lvl. 2 Luck Stone nas duas (#2727, #3181). Esse item **não está** no
   `CampaignInfo.Item` da 1002, então o sorteio do oficial não é a lista do template.
 - *(dedução)* O peso vem da contagem dessa amostra pequena. Não há filtro de classe: o mesmo personagem tirou
@@ -46,7 +47,7 @@ Cartas:
 |---|---|---|---|---|---|
 | 1080003 | Stigma Crest | guerreiro/arqueiro | 3 | 1 |  |
 | 1080013 | Duskan Glyph | mago | 3 | 1 | (só turco: replay #1241) |
-| 1080002 | Coruscan Crest | guerreiro/arqueiro | 1 | 1 | (só turco: replay #1744) |
+| 1080002 | Coruscan Crest | guerreiro/arqueiro | 1 | 1 | *(visto)* oficial_encantar #721; turco replay #1744 |
 | 1080012 | Banshee Plume | mago | 1 | 2 | inglesa #1122, #1544 |
 | 2040101 | Lvl. 1 Luck Stone | todas | 0 | 1 |  |
 

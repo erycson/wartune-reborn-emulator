@@ -3,7 +3,7 @@
 *(visto)* captura inglesa #1102-#1126 e #1526-#1547 (Worg Lair, 1001): 135 (5 cartas), 115 com o item na
 mochila, 26 com a carta (``index`` escolhido no 5122, ``count`` 1, ``bind``, os ``randomSkill`` já sorteados), 83
 ``Received: <nome> x1`` e o 134 como resposta do 5180 (sair). Lista vazia (tutorial, chefe do mundo, guilda) =
-sem carta: os quatro 26 da captura inglesa são só das masmorras, nenhum no fim do tutorial.
+sem carta: os 26 das capturas inglesas são só das masmorras, nenhum no fim do tutorial.
 """
 
 from __future__ import annotations
