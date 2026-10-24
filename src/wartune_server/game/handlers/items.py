@@ -330,12 +330,12 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
         setattr(c, field, getattr(c, field) + amount)
     await s.ctx.characters.save(c, *changed, *extra, delete=tuple(gone))
 
+    # (visto) 153200 #2188-#2192 (ouro: 115, 109, 111 "Received:Gold x1000", 3) e 231733 #4131-#4150 (Daru, Stamina:
+    # 115, 111, 3); sem separador de milhar. O turco (essiz_can_ilaci_kullanimi) põe "Tebrikler! " na frente
     _send_items(s, changed, gone)
-    text = f"Received: {amount:,} {label}"  # (dedução) como o pacote (captura EN #1563 "Received: 50,000 Gold")
-    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     if field == "gold":
         castle_yield(s)
-        return True
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Received:{label} x{amount}"))
     _player(s)
     if field == "gp":
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
