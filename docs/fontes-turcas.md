@@ -14,7 +14,7 @@ Esta tabela lista o que ainda depende de captura turca (`D:\wartune\server-relay
 | Guilda | birlik_katkisi, login | contribuição (5144), ranking, baú, mercado (goodId 19), cargos 4137/4138/4133 | guilda.md, test_guild | criar/entrar em guilda, contribuir, comprar |
 | Amizade | arkadas_istegi_gonderme, login | 78 relation 3, textos do pedido, 4156 em 2 páginas | social.md, chat.md | mandar pedido de amizade |
 | Labirinto de gemas | av_askeri_ve_odul_toplama | tabuleiro, cascata, pontos, prêmios (`CAPTURED_*`) | eventos.md, test_labirinto_gemas | jogar o labirinto (4922-4924) |
-| Coliseu | meydan_okuma | 4169, 157 tipo 16, 4176, drop | pvp.md | uma luta no coliseu |
+| Coliseu | meydan_okuma | 4169, 157 tipo 16, 4176; drop da vitória Lvl. 3 Luck Stone (`arena_challenge_items`, 0072; o inglês viu VIP Token) | pvp.md, handlers/arena.py `_prize` | mais vitórias no coliseu (o que mais sai, se derrota dá, limite por dia) |
 | Torneio de fadas | peri_turnuvasi | 4611, 157 tipo 35, 4361, "Puan +5" | pvp.md, test_missoes_fazenda_pets_simbolos | uma luta no torneio |
 | Despertar de fada | peri_uyanis | 5038 2011: herói 3011 e dois soldados | test_salas_tipos | campanha 2011 |
 | Astral (kader) | kader_sistemi | leed 17, 8269/4180 | eventos.md, test_heroi_exercito | um sorteio de estrela |

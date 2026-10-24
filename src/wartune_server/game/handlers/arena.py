@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from ...domain.errors import NotFoundError
-from ...domain.models import ArenaRank, BagType, ChallengeLog, Item, PlayerSnapshot
+from ...domain.models import ArenaRank, BagType, ChallengeLog, EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import arena as A
@@ -33,6 +33,7 @@ S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_FULL_ARMY, S_MAP_SYNC = 3, 83, 111, 115, 1
 S_INFO, S_COOL, S_RESET, S_TAKE, S_IS_TAKE, S_CROSS = 4169, 4176, 4202, 4243, 4244, 4482
 S_PET_LIST, S_PET_TOP, S_PET_REWARD, S_PET_INFO, S_BATTLE_REPORT = 4611, 4619, 4613, 4540, 4103
 S_QUESTS = 112  # QuestUpdatedRspMsg
+PRIZE_KEY = "arena:prize"  # event_states: prêmios do coliseu no dia (``_prize``)
 QUEST_CHALLENGE = 35  # QuestCondictionInfos 2/4/188 "Challenge" (Para1 1): cada desafio do coliseu conta
 QUEST_PET_TOURNAMENT = 87  # QuestCondictionInfos: participar do torneio de fadas (Para2 1)
 S_MATCH = 4201  # MatchStateMsg: liga o botão de PvP (playerInfo.isPVPStart)
@@ -287,7 +288,7 @@ async def _colosseum_over(
         arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)
         gp = A.battle_gp(snap.character.grades, won)
         rules.add_gp(snap, s.ctx.templates, gp)
-        prize = _prize(s, snap, now)
+        prize = _prize(s, snap, won, now)
         logs = [
             ChallengeLog(me, A.COLOSSEUM, now, target, name, True, won, new_mine, _forward(mine, new_mine), grade, job)
         ]
@@ -300,7 +301,7 @@ async def _colosseum_over(
                     target, A.COLOSSEUM, now, me, c.nickname or "", False, not won, new_theirs, forward, c.grades, jt
                 )
             )
-        changed = prize[0] if prize else []
+        changed = [*prize[0], prize[2]] if prize else []
         await s.ctx.characters.save(
             snap.character, snap.leader, *snap.pawns, arena, *logs, *changed, ranks=tuple(ranks)
         )
@@ -322,22 +323,31 @@ async def _colosseum_over(
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=prize[1]))
 
 
-def _prize(s: GameSession, snap: PlayerSnapshot, now: datetime) -> tuple[list[Item], str] | None:
-    """``game_settings.arena_challenge_items`` ([[templateId, quantidade], ...], migração 0072) na mochila ao fim
-    de cada luta do coliseu. (visto) oficial_20261023-215937-1 #1168-#1181: depois do 4176, 115 (VIP Token 208015
-    empilhado), 111 e 83 "Received: VIP Token x1"; o jogador não era VIP (4410 #103 isVip false).
-    TODO(inventado): uma luta só (vitória): não se sabe se perder também dá, se é sorte ou se tem limite por dia.
+def _prize(s: GameSession, snap: PlayerSnapshot, won: bool, now: datetime) -> tuple[list[Item], str, EventState] | None:
+    """``game_settings.arena_challenge_items`` (migração 0072): um item sorteado de ``pool`` ([[templateId,
+    quantidade], ...]) na mochila ao fim da luta do coliseu, ``win_only`` e no máximo ``daily`` vezes por dia
+    (0 = sem limite). Depois do 4176 de uma vitória, a 1ª do dia nas duas: (visto) oficial_20261023-215937-1
+    #1168-#1181, 115 (VIP Token 208015), 111 e 83 "Received: VIP Token x1"; (só turco: meydan_okuma #30-#45) Lvl. 3
+    Luck Stone x1 (2040103), "Kazanılan:Şans Taşı Lv.3 x1". Nada no cliente nem na internet (wiki Arena: só ouro e
+    Daru pela posição).
+    TODO(inventado): o conjunto além dos dois vistos, pesos iguais, ``win_only`` true e ``daily`` 1.
     Sem espaço na mochila não dá nada."""
-    goods = [(int(t), int(n)) for t, n in s.ctx.world.settings.get("arena_challenge_items", [])]
-    if not goods or not bag.fits(snap, s.ctx.templates, goods, now):
-        if goods:
-            s.log.info("coliseu sem espaço para o prêmio", premio=goods)
+    cfg = s.ctx.world.settings.get("arena_challenge_items", {})
+    pool = [(int(t), int(n)) for t, n in cfg.get("pool", [])]
+    goods = [random.choice(pool)] if pool else []
+    count = ev.daily(snap, PRIZE_KEY, now)
+    limit = int(cfg.get("daily", 0))
+    if not goods or (cfg.get("win_only", True) and not won) or (limit and count.value >= limit):
+        return None
+    if not bag.fits(snap, s.ctx.templates, goods, now):
+        s.log.info("coliseu sem espaço para o prêmio", premio=goods)
         return None
     changed: list[Item] = []
     for tid, n in goods:
         changed += [i for i in bag.add(snap, s.ctx.templates, tid, n, now) if i not in changed]
-    s.log.info("coliseu prêmio", premio=goods)
-    return changed, rewards.received(s.ctx.templates, goods)
+    count.value, count.updated_at = count.value + 1, now
+    s.log.info("coliseu prêmio", premio=goods, hoje=count.value)
+    return changed, rewards.received(s.ctx.templates, goods), count
 
 
 def _forward(before: int, after: int) -> int:

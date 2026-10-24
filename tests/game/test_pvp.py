@@ -98,7 +98,13 @@ async def test_colosseum_against_a_robot_enters_the_ranking(tmp_path: Path, monk
             111,
             83,
         ]
-        assert bag_count(snap_of(g), 208015) == 1
+        assert bag_count(snap_of(g), 208015) + bag_count(snap_of(g), 2040103) == 1  # um dos dois do sorteio
+        live = g.server.online.get(g.user_id)
+        assert live is not None
+        now = live.ctx.clock.now()
+        assert arena_handlers._prize(live, snap_of(g), True, now) is None  # daily 1: a 2ª vitória do dia não dá
+        ev.daily(snap_of(g), arena_handlers.PRIZE_KEY, now).value = 0
+        assert arena_handlers._prize(live, snap_of(g), False, now) is None  # win_only: derrota não dá
 
         after = await info(g)
         assert (after.curRank, after.lastWinCount, after.challengeCount) == (1, 1, 1)
