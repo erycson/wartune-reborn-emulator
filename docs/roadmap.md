@@ -43,6 +43,7 @@ Levantamento e ordem em [multiplayer.md](multiplayer.md).
 - [x] Torneio de fadas: formação, desafio com os pets gravados, pontos, recompensas e encerrar já com VIP ([pvp.md](pvp.md)); pets que o jogador ganha são do sistema de pets
 - [x] Guilda: criar, entrar, cargos, contribuição, melhorias, habilidades, mercado, bênção, baú ([guilda.md](guilda.md))
 - [ ] Senhores, campo de batalha, mina de ametista: respondem como fechados
-- [ ] Boss de guilda (altar), terra secreta, guerra de guildas: falta o mapa de campanha
+- [x] Terra secreta da guilda (7501): sala, Invasores, árvore, buff e coletas ([guilda.md](guilda.md))
+- [ ] Boss de guilda (altar), guerra de guildas: falta o mapa de campanha
 - [ ] Ataque a castelo: 9506 compra tentativas, nada as gasta
 - O que falta em cada sistema: [pendencias.md](pendencias.md)

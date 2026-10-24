@@ -1,7 +1,7 @@
 # Guilda (consortia)
 
 Código: `game/guild.py` (estado e mensagens), `game/handlers/guild/` (gestão: `info`, `members`, `upgrades`, `altar`, `box`, `election`; ajudantes em `common`),
-`game/handlers/guild_events.py` (altar, terra secreta, guerras). Testes: `tests/game/test_guild.py`.
+`game/handlers/guild_events.py` (altar, guerras), `game/handlers/fam.py` e `game/fam.py` (terra secreta). Testes: `tests/game/test_guild.py`.
 
 Fontes: *(visto)* captura e índice; *(cliente)* arquivo `.as` (m2 = `D:\wartune\decompiled\m2`, m6 =
 janelas da guilda decompiladas do CDN, ver [ferramentas.md](ferramentas.md)); *(dedução)* sem fonte
@@ -94,8 +94,15 @@ meio). O baú, depois das leituras, troca pelo snapshot da sessão quem logou en
 | 8541 | abrir o altar do demônio | 4436 `{result: 1, pop}` para os membros, 164 | *(cliente)* m6 `sendOpenDemon`, m2 `ConsortiaManager.__demonSwitchHandler` |
 | 8542 | entrar no altar | nada (ver pendências) | *(cliente)* m2 |
 | 8549, 8550, 8593 | dentro do altar: chegar no nó, buff, habilidade | nada | *(cliente)* m2 |
-| 8537 | entrar na terra secreta | nada (ver pendências) | *(cliente)* m2 |
-| 8565, 8566, 8743 | dentro da terra secreta: árvore, buff, nó do senhor | nada | *(cliente)* m2 |
+| 8537 | entrar na terra secreta (só membro) | 125 {1, 7501}, 140, 21; no 5035 state 4: 127, 21, 21, 4432, 4632, 4453 | *(visto)* oficial_20261023-171155-1 #5056-#5066 |
+| 5125 no Invasor (masterType 151) | luta battleType 23 | 140, 131, 128, 157; derrota: 113, 3, 83, 150, 4103, 3, 150, 100, 4122, 140, 4104, 131, 128 state 1, 83; 4382 no 5035 state 4 | *(visto)* #5080-#5117; **TODO(inventado)** a vitória: o nó some e `fam_invader_offer` (10, 0073) de contribuição com 111/83 |
+| 5025 / 8747 | sair | 4165, 150, 150, 140, 22, 4595; no 8747 o 83 "Left Guild Chamber" | *(visto)* #5163-#5172 |
+| 8565 | invocar a árvore (só o líder, 1 por dia) | 4432 `opreate` 2 a todos os membros online; na sala a árvore e as 21 coletas aparecem (128) | **dedução** do cliente (`ConsortiaSecretInfoView`, `ConsortiaSecretInfo`) e da ajuda |
+| 5125 na árvore / numa coleta | energizar (1 por invocação, até `levels × 20 + 10` e `FamTree_WaterMax`) / colher | 4432 e 4453 à sala / 128 state 8, 3, 111, 83 | **dedução**; **TODO(inventado)** o bônus da energia e a contribuição da coleta (`fam_tree`, 0074) |
+| 8566 | buff +20% de EXP por `Fam_Buffer_Price` (200) de contribuição, 1 por invocação | 3 e 4453 com o `rate` novo | **dedução** do cliente |
+| 20008 na sala | EXP a cada 15 s nos 15 min da invocação | 3 e 83 "Received N EXP " | **TODO(inventado)** a EXP do tique (`fam_tree.exp_per_grade`, 0074) |
+| (contribuição da sala) | a coleta e o Invasor contam a missão 29 (contribuição total) com o 112; nenhum `LeedTemp` nem missão fala da sala (as de "Tree of Ancients" são da fazenda) | 112 | templates |
+| 8743 | chamar o Master Treasure Thief | recusado: precisa do ranking da Class Wars (entre servidores); o 4632 manda `isCanCall` falso e o botão não aparece | *(cliente)* ajuda da Class Wars, item 7 |
 | 8546 | grupos da guerra de guildas | 4441 (guildas, `fightPower`, `isGuildSize`) e 4458 (ordem da semana) | *(visto)* oficial_20261023-171155-1 #5135–#5136; **TODO(inventado)**: as 8 de maior poder agora, sem grupos/resultados, e a "semana passada" = agora (a guerra não roda) |
 | 8472, 8477 | desafios e lista da guerra | 4377, 4379 vazios | *(cliente)* m2; o cliente não chama |
 | 8471, 8473, 8547 | entrar, montar time, buff da guerra | nada | *(cliente)* m2 |
@@ -156,21 +163,21 @@ em 2026-10-17 com o decodificador dos `.maps` do CDN (memória `campaign-nodes-i
 | Mapa | Atividade | `MapInfos` | `.maps` (nós com `id` diferente de 0) | Situação |
 |---|---|---|---|---|
 | 7601 | altar do demônio | 4000×3000, `Campaigns` tipo 8 | 4.591 objetos com dados de campanha, todos com `id` 0 | captura |
-| 7501 | terra secreta | 2000×2000, tipo 7 | nenhum objeto de campanha | captura |
+| 7501 | terra secreta | 2000×2000, tipo 7 | nenhum objeto de campanha | **feito** pela captura (0073) |
 | 4501 | guerra de guildas | 8000×4000, tipo 6 | nenhum objeto de campanha | captura |
 | 4601 | guerra entre servidores | 6000×3500, tipo 16 | 41 nós com `id`: 20 carros de guilda, 5 torres, 5 nós de energia e o resto (recursos e outros) | evento fechado (abaixo) |
 
 `MapNodeInfos` e `CampaignData` não têm nenhuma linha para esses quatro mapas. A luta usaria o fluxo
 PvE de `game/battle.py` com esses nós; sem eles o cliente carregaria um mapa vazio, sem saída, então
-8542, 8537, 8471 e 8783 continuam recusados.
+8542, 8471 e 8783 continuam recusados; a terra secreta saiu da captura (0073).
 
 **O que capturar** (uma captura por atividade, de uma sessão completa):
 
 - **Altar (7601)**: guilda nível 5 ou mais, o chefe abre o altar (8541), um membro entra (8542) e
   chega ao fim. Precisa do 125 do mapa 7601, da lista de nós (5125 ou `CampaignNodeList`) com os
   monstros e o altar, e dos pacotes 8549, 8550, 8593, 8264 (reviver), 4437 (relatório), 4448 e 4449.
-- **Terra secreta (7501)**: entrar (8537), regar a árvore (8565), comprar o buff (8566), chegar ao
-  nó do senhor (8743), com a lista de nós.
+- **Terra secreta (7501)**: entrada, sala, derrota e saída já vistas. Falta: o líder invocar a árvore (8565) e
+  a sala inteira dos 15 min (EXP dos tiques, energizar, buff 8566, coletas) e uma vitória contra um Invasor.
 - **Guerra (4501)**: no dia de `Guild_WarDay` (1, 3 e 5) entre 20:00 e 21:00, duas guildas: grupos
   (8546 e 4441), desafios e lista (8472/8477 com 4377/4379), entrar (8471, 125 do 4501), montar time
   (8473), buff (8547) e os pacotes de dentro do mapa.

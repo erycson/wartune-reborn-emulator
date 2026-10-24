@@ -142,6 +142,9 @@ class GameSession:
         self.outer_walk: asyncio.Task[None] | None = None  # chegada do exército andando (140 parado)
         self.hangup: Any = None  # meditação na sala do gancho (``handlers.hangup.Cultivation``)
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
+        self.fam_left = False  # saiu da terra secreta: o 8747 seguinte manda "Left Guild Chamber" (handlers/fam.py)
+        self.fam_paid_at: datetime | None = None  # último tique de EXP da árvore pago a esta sessão
+        self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
         # Treasure Caches na vista do último 8201 (id -> baú) e o último 20008 que os conferiu (``_roll_caches``)

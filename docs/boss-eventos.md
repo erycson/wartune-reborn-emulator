@@ -172,7 +172,7 @@ no 164/4138), mas a entrada (8542) é recusada: falta o mapa de campanha 7601 co
   - abertura: o servidor manda o 4436;
   - entrada: o cliente manda o 8542;
   - relatório: o servidor manda o 4437 (durabilidade, ondas, `hurtOrder`).
-- **7501 "Guild Chamber"**: 8537.
+- **7501 "Guild Chamber"**: 8537 (`handlers/fam.py`, ver [guilda.md](guilda.md)).
 
 Quem abre é quem tem o direito 3 (só o chefe), com a guilda no nível 5, pagando 50000 ou 200000
 de riqueza (`Consortia_OpenAltar1_Offer`/`2`); m6 `ConsortiaSocektSendManager.sendOpenDemon`.

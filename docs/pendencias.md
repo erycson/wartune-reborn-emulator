@@ -145,8 +145,8 @@ Outros eventos:
 
 ## Guilda ([guilda.md](guilda.md))
 
-- Mapas e batalhas das atividades (altar 7601, terra secreta 7501, guerra 4501, entre servidores 4601) e os
-  pacotes dentro deles: recusados. **precisa de captura**: os nós de 7601, 7501 e 4501 não estão em nenhuma
+- Mapas e batalhas das atividades (altar 7601, guerra 4501, entre servidores 4601) e os
+  pacotes dentro deles: recusados. **precisa de captura**: os nós de 7601 e 4501 não estão em nenhuma
   fonte; o 4601 tem os nós, mas o evento está fechado pelo template. O que capturar está em
   [guilda.md](guilda.md#pendências).
 - Rankings e prêmios das atividades: o gancho `add_to_box` existe, ninguém chama (depende das atividades).
@@ -158,8 +158,14 @@ Outros eventos:
 - Sair da guilda antes de pegar o prêmio da bênção perde o prêmio (*ponytail*).
 - Habilidades (5147): bônus no herói e sequência **feitos** *(visto)*. **TODO(inventado)**: o "Gold Production +N%"
   (tipo 11) sobre a produção de ouro por hora (`castle.gold_yield`), sem captura com esse nível.
-- Terra secreta 7501: a captura oficial_20261023-171155-1 #5056-#5163 já tem a entrada (8537); falta implementar
-  o mapa a partir dela.
+- Terra secreta 7501: **feita** (`handlers/fam.py`, 0073 e 0074). *(visto)* entrada, sala, derrota contra o
+  Invasor e saída (oficial_20261023-171155-1 #5056-#5172). **dedução** do cliente: a árvore (invocar 1 por dia, só
+  o líder; nível pelo `UpGradeTempInfos` tipo 20 com a EXP zerando, que fecha com a guilda de 36 dias da captura),
+  energizar, o buff 8566 e as coletas a cada 3 min. **TODO(inventado)**: a vitória contra o Invasor e a
+  contribuição dela (`fam_invader_offer` 10), a EXP de cada tique, o bônus da energia e a contribuição da coleta
+  (`fam_tree`), o texto "Received: N Contribution". Cada jogador tem a sua cópia dos nós (Invasor vencido e coletas
+  não somem para os outros) e os outros membros não aparecem no mapa (só o número no 4453). O 8743 (Master
+  Treasure Thief) fica recusado: depende da Class Wars entre servidores.
 
 ## Herói, exército e pets ([heroi-exercito.md](heroi-exercito.md))
 

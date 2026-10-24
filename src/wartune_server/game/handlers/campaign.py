@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 import uuid
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -33,6 +33,7 @@ from ..campaign import (
     COLLECT,
     DISAPPEAR_DELAY,
     DONE,
+    FAM_MAP,
     FIGHTING,
     FIRST_MAP,
     FLICKER_DELAY,
@@ -248,6 +249,11 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
         hook_arrive(s, node)
         return
+    if c.fam:
+        from . import fam  # fam importa este módulo
+
+        await fam.arrive(s, camp, node)
+        return
     if c.world_boss:
         from .worldboss import boss_attack  # worldboss importa este módulo
 
@@ -459,7 +465,8 @@ def passive_skills(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int,
     return tuple(skills)
 
 
-def _start_battle(s: GameSession, camp: int) -> None:
+def _start_battle(s: GameSession, camp: int, over: Callable[[Battle, bool], Awaitable[None]] | None = None) -> None:
+    """140, 131, 128 (em combate) e o 157. ``over``: o fim da luta no lugar do ``_battle_over`` (terra secreta)."""
     c = _map(s)
     spec = c.battle_like(camp) if c.content is not None else battle_spec(camp)
     assert spec is not None
@@ -469,7 +476,7 @@ def _start_battle(s: GameSession, camp: int) -> None:
     _node_update(s, camp, FIGHTING, user=True)
 
     async def finished(battle: Battle, won: bool) -> None:
-        await _battle_over(s, battle, camp, won)
+        await (over(battle, won) if over is not None else _battle_over(s, battle, camp, won))
 
     s.battle = Battle(
         spec,
@@ -675,6 +682,10 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0
     c = s.campaign
+    if msg.state == BACK_TO_MAP and c is not None and c.fam and not c.ready:
+        from . import fam  # fam importa este módulo
+
+        fam.show_room(s)
     if msg.state == BACK_TO_MAP and c is not None and c.over is not None:
         gp, strategy = c.over
         c.over = None
@@ -1324,7 +1335,7 @@ async def enter_quarry(s: GameSession, campaign_id: int) -> bool:
     """8258 {param1: 6001} (botão "ir" da missão 102, TaskFrameII.as:707): a pedreira é uma campanha (Types 2) com
     conteúdo sem névoa. Falso se ``campaign_id`` não for pedreira. (visto) inglesa #1803-#1809."""
     content = s.ctx.world.campaigns.get(campaign_id)
-    if content is None or "fog" in content["maps"][str(content["stages"][0][0])]:
+    if content is None or campaign_id == FAM_MAP or "fog" in content["maps"][str(content["stages"][0][0])]:
         return False
     if s.battle is not None or s.campaign is not None:
         return True  # já está num mapa
@@ -1390,10 +1401,15 @@ async def _quarry_over(s: GameSession, battle: Battle, won: bool) -> None:
 
 
 def leave_quarry(s: GameSession) -> bool:
-    """5025 na pedreira: (visto) inglesa #2117-#2123: 4165, 150, 150, 140, 22 e a cidade do céu (4595)."""
+    """5025 na pedreira: (visto) inglesa #2117-#2123: 4165, 150, 150, 140, 22 e a cidade do céu (4595). A terra
+    secreta sai igual (oficial_20261023-171155-1 #5163-#5169) e o 83 "Left Guild Chamber" vai no 8747 seguinte."""
     c, snap = s.campaign, s.snapshot
-    if c is None or not c.quarry or snap is None:
+    if c is None or not (c.quarry or c.fam) or snap is None:
         return False
+    if c.fam:
+        from . import fam  # fam importa este módulo
+
+        fam.leaving(s)
     if s.battle is not None:
         s.battle.cancel()
         s.battle = None

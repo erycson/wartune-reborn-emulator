@@ -25,6 +25,7 @@ from ..protocol.messages import wartune_pb2 as pb
 
 FIRST_MAP, SECOND_MAP = 10001, 10002
 PET_ISLANDS = range(20001, 25001)  # WorldBossHelper.checkPetLand: 20000 < mapa <= 25000
+FAM_MAP = 7501  # terra secreta da guilda (Guild Chamber), handlers/fam.py
 SECOND_MAP_FROM = 15500  # noviceProcess a partir do qual o jogador já passou pelo portal
 ESCORT_FROM = 15300  # a Tina segue o jogador desde aqui (mapa 10001) até o fim
 FOG_ROWS, FOG_COLS = 18, 19
@@ -94,6 +95,8 @@ class CampaignMap:
     ending: list[Any] | None = None  # etapa vencida: missões (Quest) que fecham no fim, que sai com o 4382
     fallen: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # baús da luta por signId (5129)
     hook: bool = False  # sala do gancho (7001-7009): estátuas, em ``handlers/hangup.py``
+    fam: bool = False  # terra secreta da guilda (7501): Invasores, em ``handlers/fam.py``
+    ready: bool = False  # terra secreta: a sala (127, 4432 ...) já saiu no 1º 5035 state 4
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:
@@ -112,6 +115,8 @@ class CampaignMap:
         data = content["maps"][str(map_id)]
         nodes = {n["campDataId"]: copy.deepcopy(n) for n in data["nodes"]}
         x, y = data["start"]
+        if map_id == FAM_MAP:  # sem névoa como a pedreira, mas sem coleta nem a luta do 8699
+            return cls(map_id, nodes, (int(x), int(y)), content=content, fam=True)
         if "fog" not in data:  # pedreira: (visto) #1805-#1809 sem 130
             return cls(map_id, nodes, (int(x), int(y)), content=content, quarry=True)
         return cls(map_id, nodes, (int(x), int(y)), dungeon=True, fog_data=data["fog"], content=content, run=run)

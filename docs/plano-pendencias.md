@@ -64,7 +64,8 @@ Status: `[ ]` a fazer, `[x]` feito (commit), `[~]` em andamento. Fonte: C client
 - [ ] mascote no leilão; cartas oficiais; ordenação 8450/8457; reempilhar; validade do correio
 
 ## 10. Guilda
-- [ ] altar 7601, terra secreta 7501, guerra 4501, entre servidores 4601; rankings/add_to_box
+- [x] terra secreta 7501 (0073, 0074)
+- [ ] altar 7601, guerra 4501, entre servidores 4601; rankings/add_to_box
 - [ ] bênção: tabela e x10; eleição com relógio; prêmio da bênção ao sair
 
 ## 11. Herói, pets, montaria

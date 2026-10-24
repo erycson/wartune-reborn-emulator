@@ -149,10 +149,12 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     for a in s.ctx.announcer.tick(s.ctx.world.announcements, now):
         _announce(s, a)
     from .arena import push_match  # arena importa este módulo
+    from .fam import push_state as push_fam  # fam importa este módulo
     from .pet_defend import push_state as push_defend
     from .vehicle import push_state  # vehicle importa este módulo
 
     await close_windows(s)
+    await push_fam(s)
     push_states(s)
     push_state(s)
     push_defend(s)

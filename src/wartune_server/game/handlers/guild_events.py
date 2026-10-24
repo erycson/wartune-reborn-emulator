@@ -2,10 +2,9 @@
 guerra entre servidores.
 
 Todas acontecem em mapas próprios (7601 altar, 7501 terra secreta, 4501 guerra, 4601 entre
-servidores) que o cliente abre com o 125 ``RoomCreatedMsg``. O servidor só tem o mapa do
-tutorial (``game/campaign.py``), então as entradas ficam recusadas e os pacotes de dentro do mapa
-só registram no log. O que tem estado fora do mapa (abrir o altar, listas vazias) está aqui.
-Dependências em docs/guilda.md.
+servidores) que o cliente abre com o 125 ``RoomCreatedMsg``. A terra secreta está em ``handlers/fam.py``; as
+outras entradas ficam recusadas e os pacotes de dentro do mapa só registram no log. O que tem estado fora do mapa
+(abrir o altar, listas vazias) está aqui. Dependências em docs/guilda.md.
 """
 
 from __future__ import annotations
@@ -86,21 +85,6 @@ async def altar_buff(s: GameSession, _: object) -> None:
 @router.on(8593)
 async def altar_skill(s: GameSession, msg: pb.ConsortiaAltarOpenReqMsg) -> None:
     _refuse(s, 8593, "fora do mapa do altar", tipo=msg.altarType)
-
-
-# ---- terra secreta (fam) ---------------------------------------------------------------------
-
-
-@router.on(8537)
-async def fam_enter(s: GameSession, _: object) -> None:
-    """Entrar na terra secreta: o cliente espera o 125 do mapa 7501 (sem mapa: nada acontece)."""
-    _refuse(s, 8537, "mapa da terra secreta (7501) não implementado")
-
-
-@router.on(8565, 8566, 8743)
-async def fam_action(s: GameSession, _: object) -> None:
-    """Chamar a árvore, buff e nó do senhor: só existem dentro do mapa 7501."""
-    _refuse(s, 8565, "8565/8566/8743 fora do mapa da terra secreta")
 
 
 # ---- guerra de guildas -----------------------------------------------------------------------

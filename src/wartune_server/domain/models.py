@@ -795,6 +795,11 @@ class Consortia:
     kick_at: datetime | None = None
     altar_state: int = 0
     altar_at: datetime | None = None
+    # árvore da terra secreta (game/fam.py): nível, EXP, energia da invocação e a hora da invocação (pickTime)
+    tree_grade: int = 1
+    tree_gp: int = 0
+    tree_power: int = 0
+    tree_called_at: datetime | None = None
     max_wave: int = 0
     voting_state: int = 0
     voting_id: int = 0
@@ -820,6 +825,9 @@ class ConsortiaMember:
     bless_item_count: int = 0
     voted_for: int = 0  # eleição de chefe: em quem votou na eleição ``Consortia.voting_id``
     voted_id: int = 0
+    # terra secreta: a invocação (``Consortia.tree_called_at``) em que energizou e em que comprou o buff (8566)
+    fam_power_at: datetime | None = None
+    fam_buff_at: datetime | None = None
 
 
 @dataclass(eq=False)

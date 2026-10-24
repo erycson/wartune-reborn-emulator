@@ -937,6 +937,10 @@ consortias = Table(
     Column("kick_at", UTCDateTime),
     _int("altar_state"),
     Column("altar_at", UTCDateTime),
+    _int("tree_grade", 1),
+    _int("tree_gp"),
+    _int("tree_power"),
+    Column("tree_called_at", UTCDateTime),
     _int("max_wave"),
     _int("voting_state"),
     _int("voting_id"),
@@ -962,6 +966,8 @@ consortia_members = Table(
     _int("bless_item_count"),
     _int("voted_for"),
     _int("voted_id"),
+    Column("fam_power_at", UTCDateTime),
+    Column("fam_buff_at", UTCDateTime),
 )
 
 consortia_invites = Table(

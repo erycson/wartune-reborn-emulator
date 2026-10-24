@@ -1188,6 +1188,9 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
 
 @router.on(8747)
 async def enter_castle(s: GameSession, _: pb.SimplePropertyMsg) -> None:
+    if s.fam_left:  # (visto) oficial_20261023-171155-1 #5171-#5172: o 83 logo depois do 8747 da saída da terra secreta
+        s.fam_left = False
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg="Left Guild Chamber"))
     # só com luta pendente (tutorial_en #576 sim, #826 e #1128 não): sem luta o OuterCityManager quebra
     if s.outer_fight_over or s.battle_gp:
         s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=s.battle_strategy))
