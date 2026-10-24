@@ -35,7 +35,7 @@ from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
-from .. import bosses, mines, monsters, npc_castles, rewards, robots, rules
+from .. import bosses, mines, monsters, npc_castles, rewards, robots, rules, social
 from .. import caches as tc
 from .. import castle as cs
 from .. import outer_city as oc
@@ -58,6 +58,7 @@ S_PLAYER, S_RESET, S_MAP_SYNC, S_TRANSFER, S_RETURN = 3, 4202, 140, 105, 98
 S_MAP_BOSS, S_PHYSICS, S_GRID_ARMY, S_FIGHT_MOVIE = 4938, 4129, 169, 4382
 S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 152
 S_ITEMS, S_UNOCCUPY, S_CASTLE_TIME, S_CASTLE_DEFENSE = 115, 108, 4452, 118
+WORLD = 2  # ChatChannelMsg.channel dos anúncios para o servidor
 S_TELEPORT, S_TELEPORT_FAIL = 4237, 4263
 TELEPORT_ENERGY, TELEPORT_POINT = 100, 100  # TransmitHandler
 VIP_PLUNDER_CRYSTALS = 7  # VipPrerogativeTempInfos "Bonus Kyanite from Plunder" (500 do VIP 4 em diante)
@@ -831,6 +832,8 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
             if monsters.count_kill(snap.character, templates, m):
                 await s.ctx.characters.save(snap.character)
                 await drop_box(s, m)
+            if m.boss_type == monsters.CHIEF:
+                _boss_killed(s, m)
     if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
         _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
     if won:
@@ -839,6 +842,24 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
         _stop_walk(s)
         s.outer_army = None
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
+
+
+# (só turco: teknoloji_upgrade #1) o chefe morto sai no 83 canal 2 para o servidor inteiro, com o link 111 que abre o
+# painel dos chefes (ChatCellData.__outerCityBossClickHandler). TODO(inventado): o texto inglês, montado do turco
+# "Tebrikler, oyuncu X çevredeki BOSS Y öldürdü, ödül kazandınız" com "Wilds" do language.txt (outercity.helpContent)
+BOSS_KILLED = 'Congratulations! Player {} has killed the Wilds BOSS {} and won a reward<a t="111" name="{}"/>'
+BOSS_LINK = "Find the Wilds BOSS"
+
+
+def _boss_killed(s: GameSession, m: monsters.Monster) -> None:
+    assert s.snapshot is not None
+    row = s.ctx.templates.get("MapPhysicsTempInfos", m.template_id) or {}
+    text = BOSS_KILLED.format(
+        social.player_link(s.ctx, s.snapshot.character), row.get("MapPhysicsTempName", ""), BOSS_LINK
+    )
+    shout = pb.ChatChannelMsg(channel=WORLD, encodeMsg=text)
+    for other in s.ctx.online.sessions():
+        other.send(S_CHAT, shout)
 
 
 async def _attack_cache(s: GameSession, c: tc.Cache) -> None:

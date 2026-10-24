@@ -987,3 +987,24 @@ async def test_teleporte_do_exercito_como_no_oficial(tmp_path: Path) -> None:
         assert g.server.online.get(g.user_id).outer_army == (snap.castle.map_id, x, y)  # type: ignore[union-attr]
         g.client.send(8326, pb.ArmyPositionMsg(posX=size[0], posY=1, payType=2))
         assert [p.code for p in await g.idle()] == [4263]
+
+
+async def test_chefe_morto_e_anunciado_para_o_servidor(tmp_path: Path) -> None:
+    """(só turco: teknoloji_upgrade #1) 83 canal 2 para todos, com o link 111 do painel dos chefes."""
+    from wartune_server.game.handlers import outer_city as hoc
+
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        other = await g.join("outro")
+        await g.idle()
+        await other.idle()
+        templates, world = g.server.services.templates, g.server.services.world
+        chief = next(x for x in monsters.on_map(world, templates, 2, clock.now()) if x.boss_type == monsters.CHIEF)
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        hoc._boss_killed(s, chief)
+        mine, theirs = [pb.ChatChannelMsg.FromString((await c.until(83))[-1].body) for c in (g, other)]
+        name = templates.get("MapPhysicsTempInfos", chief.template_id)["MapPhysicsTempName"]
+        assert mine == theirs and mine.channel == 2
+        assert f"has killed the Wilds BOSS {name} and won a reward" in mine.encodeMsg
+        assert mine.encodeMsg.endswith('<a t="111" name="Find the Wilds BOSS"/>')
