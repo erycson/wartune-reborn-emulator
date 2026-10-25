@@ -543,6 +543,9 @@ async def test_pawn_upgrade_closing_the_seven_day_task_sends_4638_before_the_arm
         assert codes(got) == [3, 116, 4638, 150, 83]
         day1 = pb.ServenDayLeadMsg.FromString(got[2].body).singleDay[0]
         assert day1.simpleTask[0].isComplete == 1
+        # (visto) no 10 a 1ª especialidade vem sozinha: Lancer "100" (171155 #1678; Hunter "200" em 191924 #1318)
+        assert pb.ArmyPawnInfoMsg.FromString(got[1].body).specialTempIds == "100"
+        assert lancer.specials == "100"
 
 
 async def test_star_compose_says_exp_and_level(tmp_path: Path) -> None:

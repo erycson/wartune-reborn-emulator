@@ -182,6 +182,10 @@ async def upgrade(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
         return
     snap.character.strategy -= cost
     pawn.template_id = int(nxt["TemplateId"])
+    if level >= CHANGE_LEVEL and not pawn.specials:
+        # (visto) no nível 10 a tropa já ganha a 1ª especialidade do tipo, sem pedido: Lancer "100"
+        # (oficial_20261023-171155-1 #1678), Hunter "200" (191924 #1318); HP Transformation grau 1, o menor id
+        pawn.specials = min(templates.find("SpecialTempInfos", PawnMasterType=nxt["MasterType"]), key=_id)["TemplateId"]
     keep(snap, pawn)
     quests = rules.quest_event(snap, templates, PAWN_LEVEL, int(tpl["MasterType"]), level)
     # (visto) oficial_20261023-171155-1 #1676-#1683 e #5899-#5904, 231733 #2110-#2116: com o herói ferido a reserva
@@ -232,6 +236,10 @@ async def pawn_change(s: GameSession, msg: pb.PawnChangeMsg) -> None:
 
 MAX_SPECIAL_GRADE = 10  # PawnSpecialAbilityFrame.helpContent: "The highest level specialty is level 10"
 FIGHT_ROWS = (1, 3)  # AllocateView: _frontRowIndex 1, _backRowIndex 3 ("fightPos must be 1 or 3")
+
+
+def _id(row: Row) -> int:
+    return int(row["TemplateId"])
 
 
 def special_pick(templates: GameTemplates, master_type: str, grade: int, exact: bool = False) -> Row | None:

@@ -23,7 +23,7 @@ from ..router import router
 from ..session import GameSession
 from . import offer
 from .login import player_info
-from .player import CURRENCIES, push_level
+from .player import CURRENCIES, balens_changed, push_level
 
 S_PLAYER, S_CHAT, S_ALERT, S_ITEMS, S_QUESTS = 3, 83, 111, 115, 112
 S_FARM_INFO, S_FARM_LAND, S_TREE, S_FRIEND_TREE, S_CAN_WATER = 4386, 4387, 147, 4146, 4190
@@ -396,12 +396,13 @@ async def _accelerate(
     await s.ctx.characters.save(c, land, entry)
     from . import events  # handlers.events importa login
 
-    # (visto) oficial_20261024-121659-1 #204-#210: 3, 4152 (leed 15), 4387 e o 83 da devoção (os 150/4434 no meio
-    # são o refresco do exército, ``player._army_refresh``)
+    # (visto) oficial_20261024-121659-1 #204-#210: 3, 4152 (leed 15), 150 e 4434 do gasto (fase 176 s; o tique veio à
+    # parte no #212), 4387 com a metade do que faltava (3533 s -> 08:47:22) e o 83 da devoção
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     devotion = events.devotion(s)
     await events.leed_done(s, events.BALEN_LEED, say=False)
     s.balen_leed_sent = True
+    balens_changed(s)
     _land_reply(s, s.player_id, msg.pos, land, ACCELERATE, OK)
     if events.devotion(s) > devotion:
         events.say_devotion(s)

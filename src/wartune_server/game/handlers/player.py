@@ -202,6 +202,16 @@ def _army_refresh(s: GameSession, now: datetime) -> None:
         send_king(s)
 
 
+def balens_changed(s: GameSession) -> None:
+    """150 e 4434 logo depois do 3 quando os Balens mudam fora do tique: (visto) o pacote de 5 com 10 Bound Balens
+    (tutorial_en #674-#675; o de 10, sem Balens, não manda: #3241-#3245) e a aceleração de fila com 5 vinculados
+    (oficial_20261024-191924-1 #1342-#1344, fase 75 s, fora do tique de 180,7)."""
+    from .vip import send_king  # noqa: PLC0415  (vip importa este módulo)
+
+    _army(s)
+    send_king(s)
+
+
 @router.on(20008)
 async def synchronized_time(s: GameSession, _: object) -> None:
     """Relógio (a cada ~60 s). Também vira o dia de quem está online (4202 com os valores novos e o 3), os

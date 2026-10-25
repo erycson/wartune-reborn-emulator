@@ -23,6 +23,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .login import player_info
+from .player import balens_changed
 from .vip import free_cool
 
 S_PLAYER, S_CHAT, S_ALERT, S_QUESTS = 3, 83, 111, 112
@@ -246,8 +247,8 @@ async def order_quick(s: GameSession, msg: pb.BuildingReqMsg) -> None:
     # já feito no dia e não repete. VIP grátis (index 0) não gasta diamante: não conta
     if entry is not None:
         await events.leed_done(s, events.BALEN_LEED)
-    # texto deduzido (sem fonte no cliente/captura)
-    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Cooldown removed."))
+        balens_changed(s)  # (visto) oficial_20261024-191924-1 #1341-#1346: 3, 150, 4434, 111, 102 (leed já feito)
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Cooldown successful."))  # (visto) 191924 #1345
     s.send(S_ORDER_QUICK, pb.OrderQuickRspMsg(orderInfo=[cs.order_info(o, now) for o in orders]))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))

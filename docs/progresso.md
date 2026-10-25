@@ -24,7 +24,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
-| Castelo | 9 | 6 | 2 | 2 | 4 |
+| Castelo | 10 | 5 | 2 | 2 | 4 |
 | Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 11 | 7 | 4 | 4 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 2 | 1 | 1 | 2 | 1 |
-| **Total** | **90** | **90** | **33** | **52** | **42** |
+| **Total** | **91** | **89** | **33** | **52** | **42** |
 
 ## Validação e base
 
@@ -61,7 +61,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Prédios: upgrade (8203) | ✅ | 🇹🇷 | upgrade comum conferido em 42 pedidos ingleses; tecnologia de atributo só no turco |
 | Tecnologia: nível e fila 2 (8202/8203) | 🟡 | 🇹🇷 | ordem dos efeitos (110/150) do turco; fila de tecnologia no login por dedução |
 | Filas de construção (8279, 5175, 8281) | ✅ | | |
-| Aceleração de filas (5172) | 🟡 | | preço do cliente; resposta e ×5/×1 por dedução |
+| Aceleração de filas (5172) | ✅ | | preço do cliente; resposta e texto vistos (191924 #1341-#1346) |
 | Cobrança de ouro (8327) | ✅ | | |
 | Produção de ouro e teto (5015) | 🟡 |  | tecnologia de ouro conferida no inglês (231733 #3969-#3979, 60 no grau 1); bônus de guilda não entra |
 | Roda da bênção do seminário (8489) | 🧪 | 🇹🇷 | subida de 10 a 70 inventada (`handlers/castle.py:38`); o 1º giro (10→50) só turco |
@@ -85,7 +85,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Tropas: recrutar (5155) | ✅ | | |
 | Tropas: formação (8276) e posição (8328) | ✅ | | |
 | Tropas: evoluir (5158) e trocar tipo (8580) | ✅ | | |
-| Tropas: especialidades (8455/8456) | 🟡 | | sorteio só até o grau atual (atalho, `handlers/army.py:256`) |
+| Tropas: especialidades (8455/8456) | 🟡 | | a 1ª vem sozinha no nível 10 (visto: Lancer 100, Hunter 200); o sorteio do 8455 só até o grau atual (atalho, `handlers/army.py`) |
 | Tropas: formação de campanha (8277/8278) | 🟡 | | só a posição do herói é gravada |
 | Herói: aprender skills e talento (5185/5187) | ✅ | | custo do talento por dedução |
 | Herói: resetar skills e 2º conjunto | ✅ | | |

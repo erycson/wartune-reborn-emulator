@@ -73,8 +73,10 @@ async def test_upgrade_pays_occupies_the_order_and_quick_finish_goes_through_the
         await _set(g, point=9)  # 10 s de fila: 5 (ceil(10 / 600) * 5, QueueItem)
         g.client.send(5172, pb.BuildingReqMsg(orderId=1, index=1))
         got = await g.until(102)
-        assert [p.code for p in got] == [3, 4152, 83, 111, 102]  # leed 15 "Consume Balens" (só turco: replay #1289)
-        assert pb.OrderQuickRspMsg.FromString(got[4].body).orderInfo[0].remainTime == 0
+        # leed 15 "Consume Balens" (só turco: replay #1289); 150 e 4434 do gasto (191924 #1342-#1344)
+        assert [p.code for p in got] == [3, 4152, 83, 150, 4434, 111, 102]
+        assert pb.ChatChannelMsg.FromString(got[5].body).encodeMsg == "Cooldown successful."
+        assert pb.OrderQuickRspMsg.FromString(got[6].body).orderInfo[0].remainTime == 0
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert (saved.character.gold, saved.character.point) == (800, 4)
@@ -240,9 +242,10 @@ async def test_farm_plant_accelerate_and_pick(tmp_path: Path) -> None:
         await g.until(4387)
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=7, pos=1, payType=1))
         got = await g.until(83)
-        assert [p.code for p in got] == [3, 4152, 4387, 83]  # oficial_20261024-121659-1 #205-#210; leed 15
+        # oficial_20261024-121659-1 #205-#210: leed 15 e o 150/4434 do gasto de Balens
+        assert [p.code for p in got] == [3, 4152, 150, 4434, 4387, 83]
         assert pb.PlayerMsg.FromString(got[0].body).point == 0
-        assert pb.FarmInfoRspMsg.FromString(got[2].body).farmLandInfo[0].matureTime == "2026-01-01 00:29:30"  # 50%
+        assert pb.FarmInfoRspMsg.FromString(got[4].body).farmLandInfo[0].matureTime == "2026-01-01 00:29:30"  # 50%
         assert [p.code for p in await g.idle()] == []
         g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=7, pos=0, payType=1))  # sem diamante
         assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1

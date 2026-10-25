@@ -33,6 +33,7 @@ from .player import (
     S_ITEMS,
     _army,
     _player,
+    balens_changed,
     exp_text,
     hp_pack,
     push_level,
@@ -311,14 +312,11 @@ async def _open_box(s: GameSession, box: Item, row: Row, _: int) -> bool:
         c, *new, *logs, *([ledger] if ledger else []), *([boxes] if boxes else []), delete=(box,)
     )
 
-    from . import events, vip  # events importa login, que importa este módulo
+    from . import events  # events importa login, que importa este módulo
 
     s.send(S_ITEMS, item_moved(BagType.BAG, 0, box.pos, None, s.player_id))
     if ledger:
-        # (dedução) 150 e 4434 só com Balens: o pacote de 5 (10 Bound Balens, tutorial_en #674-#675) manda, o de 10
-        # (Daru, ouro e itens, #3241-#3245) não
-        _army(s)
-        vip.send_king(s)
+        balens_changed(s)
     if -100 in ids:
         castle_yield(s)
     s.send(S_ITEMS, bag.moved(new, s.player_id))
