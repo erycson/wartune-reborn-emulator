@@ -383,7 +383,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Caça ao tesouro, quiz, minério | ❌ | | fechados |
 | Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
 | Campo minado, caixa de ano novo, história | ❌ | | |
-| Recuperar EXP (9503) | 🟡 | | 4912 e 109 no inglês (24/10 #9044, 26/10 #2207, 27/10 #745); resgate (tipo 1) sem captura |
+| Recuperar EXP (9503) | 🟡 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); só grupo (1), painel (4) e coliseu (8) têm contador; curva de EXP por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
 | Corneta (passe), 360 | ❌ | | |
 

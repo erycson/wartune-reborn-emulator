@@ -240,8 +240,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         if cards(rules.systems(snap)):
             s.send(S_CAMP_BUFFS, pb.PowCardBufListMsg())  # (só turco: login #75) vazio fora de campanha
             send_cards(s)
-    if msg.tower:  # (visto) 215937 #48-#49, tutorial_en: 4912 e 4373 vazios (nada para recuperar, torre sem registro)
-        s.send(S_RECOVER, pb.RecoverInfosMsg())
+    if msg.tower:  # (visto) 215937 #48-#49, tutorial_en: 4912 e 4373 vazios; d27 #63: 4912 cheio (game/recover)
+        from .. import recover
+
+        s.send(S_RECOVER, recover.infos_msg(snap, s.ctx.templates, now))
         from .tower import login_list  # tower importa campaign, que importa este módulo
 
         s.send(S_TOWER_LIST, login_list(s))

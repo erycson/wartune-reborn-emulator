@@ -8,6 +8,7 @@ Fontes e dependências de cada opcode em docs/eventos.md (tabela "Minigames").
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -17,14 +18,15 @@ from ...domain import gameday
 from ...domain.models import EventState, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
+from .. import bag, rewards, rules
 from .. import events as ev
-from .. import rewards
+from .. import recover as rec
 from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import gemmaze, gold_tree
-from .player import alert, granted
+from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
@@ -514,18 +516,68 @@ async def signin_op(s: GameSession, msg: pb.SuperSigninCardReqMsg) -> None:
 
 @router.on(9503)
 async def recover(s: GameSession, msg: pb.RecoverReqMsg) -> None:
-    """Lista de recuperação (4912) sempre vazia: o servidor não conta as atividades perdidas de ontem
-    (campanha, arena, boss, imposto...). Com a lista vazia o cliente não mostra o aviso de EXP.
+    """Lista (type 0) ou resgate do ``sonType`` ``type`` (lista e fórmulas em ``game/recover``).
 
-    O tutorial_en manda o 4912 vazio (#51), como aqui. Custos da lista conferidos como fórmula, para quando a
-    contagem existir (só turco: login.json #54):
-    ``itemCost = num*ItemCount``, ``goldCost = num*Gold``, ``goldReward = itemReward*GoldPercent/ItemPercent``
-    (linhas de RecoverInfos). Pedido de resgate (type != 0) é recusado: não há EXP para recuperar."""
+    ExpBackSignelFrame: ``count`` 1 = uma unidade, 2 = tudo; ``way`` 2 = ouro (ganha ``goldReward``), 1 = item
+    2131020 (ganha ``itemReward``), 3 = item com diamante cobrindo o que falta (RECOVER_POINT por item, vinculado
+    primeiro). (visto) d27 #749-#754, ouro: 109, 3, 111 "80,160 EXP gained through Recovery.", 83, 4912 sem a
+    linha; #18452-#18479, way 3 no coliseu: 3, 115, 111 "Gained Insigniax150", 4912."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
     if msg.type != RECOVER_LIST:
-        s.log.info("9503 recusado: sem atividade perdida", tipo=msg.type)
-    _send(s, S_RECOVER, pb.RecoverInfosMsg())
+        await _recover_one(s, snap, msg, now)
+    _send(s, S_RECOVER, rec.infos_msg(snap, s.ctx.templates, now))
     if msg.type == RECOVER_LIST:  # (visto) 191924-1 #9044, 1026 #2207 e 1027 #745: 4912 e depois 109 (só a lista)
         castle_yield(s)
+
+
+async def _recover_one(s: GameSession, snap: PlayerSnapshot, msg: pb.RecoverReqMsg, now: datetime) -> None:
+    templates, c = s.ctx.templates, snap.character
+    left = rec.pending(snap, now)
+    num = left.get(msg.type, 0)
+    units = 1 if msg.count == 1 else num
+    row = rec.info(templates, msg.type, units, c.grades) if num and msg.count in (1, 2) else None
+    if row is None or msg.way not in (1, 2, 3):
+        s.log.info("9503 recusado", tipo=msg.type, way=msg.way)
+        return
+    gold = msg.way == 2
+    cost, reward = (row.goldCost, row.goldReward) if gold else (row.itemCost, row.itemReward)
+    have = sum(i.count for i in bag.in_bag(snap) if i.template_id == rec.ITEM)
+    short = 0 if gold else max(0, cost - have)
+    price = short * int(rules.config(templates, "RECOVER_POINT", "10"))
+    drops = [(rec.base(msg.type, c.grades)[0], reward)]  # type: ignore[index]
+    if (
+        reward <= 0
+        or (gold and c.gold < cost)
+        or (short and msg.way != 3)
+        or c.point + c.gift_token < price
+        or not rewards.can_grant(snap, templates, drops, now)
+    ):
+        s.log.info("9503 recusado: sem saldo", tipo=msg.type, way=msg.way)
+        return
+    spent = ledger.pay(c, price, bind=True, reason="recover", ref=str(msg.type), now=now) if price else None
+    changed, gone = ([], []) if gold else bag.take(snap, rec.ITEM, cost - short)
+    c.gold -= cost if gold else 0
+    left[msg.type] = num - units
+    st = ev.daily(snap, rec.KEY, now)
+    st.text, st.updated_at = json.dumps({str(k): v for k, v in left.items() if v > 0}), now
+    new, _ = rewards.grant(snap, templates, drops)
+    changed = [i for i in changed if i not in new]
+    extra = [spent] if spent is not None else []
+    await s.ctx.characters.save(*rewards.owners(snap), st, *changed, *new, *extra, delete=tuple(gone))
+    if gold:
+        castle_yield(s)
+    _player(s)
+    if changed or gone:
+        s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    if new:
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+    if drops[0][0] == rewards.EXP:
+        alert(s, f"{reward:,} EXP gained through Recovery.")
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(reward)))
+    else:
+        alert(s, f"Gained {(templates.get('ItemTempInfos', drops[0][0]) or {}).get('TemplateName', '')}x{reward}")
 
 
 # ---------------------------------------------------------------- fechados sem tabela no servidor

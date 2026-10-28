@@ -11,7 +11,7 @@ from datetime import datetime
 from ..domain import gameday
 from ..domain.models import PlayerSnapshot
 from ..templates.repository import GameTemplates
-from . import arena
+from . import arena, recover
 from .castle import energy_max
 
 WEARY_DAILY = 100  # stamina dada a cada virada, sem passar do máximo
@@ -25,6 +25,7 @@ def roll(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[
     """Aplica as viradas pendentes. Devolve o que mudou (para gravar e mandar o 4202), ou vazio."""
     c, changed = snap.character, list[object]()
     if days := gameday.days_between(c.reset_day, now):
+        changed.append(recover.build(snap, templates, now))  # antes de zerar: lê os contadores de ontem
         c.reset_day, c.weary_potions = gameday.today(now), 0
         c.kills_normal = c.kills_elite = c.kills_boss = 0  # monstros dos Wilds: "reset at 5 a.m." (help)
         c.weary = max(c.weary, min(c.weary_limit, c.weary + WEARY_DAILY * days))
