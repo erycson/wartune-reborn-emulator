@@ -68,7 +68,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
 | login | 4247 com os eventos de EXP em curso (`exp_rate_events`), logo depois do 4686; multiplicador não aplicado (o EXP das capturas já inclui o evento) | (visto) tutorial_en #44-#46 |
 | 5019 | baú online: conta só depois do 1º 5019; resgate zera; 109 (ou 3), 115, 111, 4250, 4, 83 "Received: ...", 83 "Reward retrieval successful!" | (visto) tutorial_en #1594-#1598, #2097-#2114 |
 | 8234, 8322 | só devolvem 4152 (o 8322 vem do login com `templateId` 1, como oficial_encantar #25/#52; o 8234 nenhuma tela manda; o progresso vem do servidor) | (cliente), (visto) |
-| 8235 | baú `site` 1..5 da atividade diária (10/40/60/80/100 pontos), `LeedDrop`: 109/115, 4476 e os 4484 do que ganhou, 111 "Received: 50,000 Gold", 4150 e o 83 (3 só com moeda além do ouro, dedução) | (cliente); (visto) tutorial_en #1561-#1565; só turco: login.json #134-#150 (item) |
+| 8235 | baú `site` 1..5 da atividade diária (10/40/60/80/100 pontos), `LeedDrop`: 109/115, 4476 e os 4484 do que ganhou, 111 "Received: 50,000 Gold", 4150 e o 83 (3 só com moeda além do ouro, dedução). Sem espaço na mochila: 111 "Insufficient Inventory space." e 4150 com `result` false | (cliente); (visto) tutorial_en #1561-#1565; (visto) oficial_20261027-152321-1 #6040-#6042 (sem espaço); só turco: login.json #134-#150 (item) |
 | 8518 | 4412 com os contadores do dia (`events.click`, `click:<chave>`); o torneio de fadas soma `pet` e manda o 4413 `{keys, keyData, changeTime}` entre o 112 e o 140 | (cliente) DayGuideManager; 4413 só turco (peri_turnuvasi #53) |
 
 - Cliente: `FunnyManager`. Atividade com `stopTime` passado é descartada; o cache só troca quando
@@ -384,7 +384,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 9520 | 300 (fecha o quadro; só o GoldRoadManager escuta) | (cliente) GoldRoadManager |
 | 9523 | 4936 `leadExtractTimes` 0 | (cliente) FunnyControler |
 | 9550 | 4980 lista vazia | (cliente) InfoTipsManager |
-| 9610 `LuckExchangeOpMsg` | é a troca (`exchangeId` x `exchangeCount`), não um pedido: sem edição vigente, recusa só no log. As listas (363, 364) vão vazias no login, sem pedido | (cliente) LuckyExchangeManager + (visto) tutorial_en #88, #102 |
+| 9610 `LuckExchangeOpMsg` | é a troca (`exchangeId` x `exchangeCount`), não um pedido: sem edição vigente, recusa sempre (sem tabela das edições), com 111 "Insufficient exchange items." e um 4247 com a linha zerada. As listas (363, 364) vão vazias no login, sem pedido | (cliente) LuckyExchangeManager + (visto) tutorial_en #88, #102; (visto) oficial_20261027-152321-1 #11765-#11767 |
 | 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) tutorial_en #112 (414); 415 só turco: login #127 |
 | 8604 | árvore dourada, real (acima); sem a linha no banco: 295 `open` falso e 4526 `openView` falso | (visto) tutorial_en #71-#72 + (cliente) BottleManager, BottleFrame |
 | 9645 `extend1` 35 | minério: 190 fechado | (visto) tutorial_en #109 |

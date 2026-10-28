@@ -135,8 +135,14 @@ def rate_refresh(s: GameSession, now: datetime) -> None:
         return
     s.rate_tick = tick
     if not ev.running_rates(s.ctx.world, now):
-        epoch = b.fmt_time(gameday.local(datetime.fromtimestamp(0, UTC)))
-        s.send(S_RATE, pb.RateUpdateReqMsg(rateInfo=[pb.RateUpdate(beginDay=epoch, endDay=epoch)]))
+        send_empty_rate(s)
+
+
+def send_empty_rate(s: GameSession) -> None:
+    """4247 com uma linha zerada (sem evento de EXP): a época no fuso do servidor em ``beginDay``/``endDay``. Vai no
+    periódico (``rate_refresh``) e na resposta da troca da sorte (9610)."""
+    epoch = b.fmt_time(gameday.local(datetime.fromtimestamp(0, UTC)))
+    s.send(S_RATE, pb.RateUpdateReqMsg(rateInfo=[pb.RateUpdate(beginDay=epoch, endDay=epoch)]))
 
 
 async def leave(s: GameSession) -> None:
@@ -624,13 +630,12 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
     bit = 1 << msg.site if 1 <= msg.site <= len(LEED_BOX) else 0
     drops = [(int(r["itemId"]), int(r["count"])) for r in s.ctx.templates.find("LeedDrop", site=msg.site)]
     total = _leeds(s, now)[1]
-    if (
-        not bit
-        or box.value & bit
-        or total < LEED_BOX[msg.site - 1]
-        or not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now())
-    ):
+    fits = rewards.can_grant(snap, s.ctx.templates, drops, now)
+    if not bit or box.value & bit or total < LEED_BOX[msg.site - 1] or not fits:
         s.log.info("8235 recusado", bau=msg.site, atividade=total)
+        if bit and not box.value & bit and total >= LEED_BOX[msg.site - 1]:
+            # (visto) oficial_20261027-152321-1 #6040-#6042: mochila cheia, 111 e depois o 4150 com result false
+            alert(s, "Insufficient Inventory space.")
         s.send(S_LEED_RECEIVE, pb.LeedFinishedRspMsg(result=False, site=msg.site, leedProcess=box.value))
         return
     box.value, box.updated_at = box.value | bit, now
