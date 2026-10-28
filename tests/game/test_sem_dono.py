@@ -66,3 +66,18 @@ async def test_lock_star_sends_astral_locked_text(tmp_path: Path) -> None:
         got = await g.until(111)
         assert codes(got) == [4178, 111]
         assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Astral Locked!"
+
+
+async def test_equip_move_sends_150_then_one_4178_per_slot(tmp_path: Path) -> None:
+    """(visto) 191924-1 #19445: 150 e depois dois 4178 (um por casa). Não reproduzidos: 3, 4638 e 4247 do mesmo pedido (TODO: origem não identificada)."""
+    async with logged_in(tmp_path, novice=30014) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap = session.snapshot
+        snap.character.grades = 30  # equipar exige o grau da estrela (NeedGrades)
+        star = Star(snap.character.id or 0, 1503, bag_type=1, pos=0)
+        snap.stars.append(star)
+        await g.server.services.characters.save(star)
+        g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0, eat=True))
+        got = [c for c in codes(await g.idle()) if c in (150, 4178)]
+        assert got == [150, 4178, 4178]

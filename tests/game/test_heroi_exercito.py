@@ -258,7 +258,8 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         assert sorted((s.bag_type, s.pos) for s in snap.stars) == [(1, 0), (1, 1)]
 
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0))
-        assert codes(await g.until(150)) == [4178, 150]
+        assert codes(await g.until(4178)) == [150, 4178]  # (visto) 191924-1 #19445: 150 antes, um 4178 por casa
+        assert codes(await g.idle()) == [4178]
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=2))  # 2 espaços
         assert await g.idle() == []
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=0, eat=True))
@@ -564,7 +565,7 @@ async def test_star_compose_says_exp_and_level(tmp_path: Path) -> None:
         texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code in (111, 83)]
         name = g.server.services.templates.get("starTempInfos", 1503)["TemplateName"]
         level = f"Astral {name} has been upgraded to Lvl. 2"
-        assert texts == [level, f"Astral {name} gained 90 Astral EXP", level]
+        assert texts == [f"Astral {name} gained 90 Astral EXP", level, level]  # (visto) EXP antes do nível (inglês)
         left = pb.StarRandRspMsg.FromString(got[3].body).starRand
         assert [(r.starInfo.templateId, r.starInfo.grade, r.starInfo.gp) for r in left] == [(1503, 2, 20)]
 

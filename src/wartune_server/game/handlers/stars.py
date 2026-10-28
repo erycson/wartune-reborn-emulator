@@ -122,9 +122,10 @@ def eat_all(templates: GameTemplates, star: Star, gp: int) -> list[str]:
 
 
 def say_gain(s: GameSession, star: Star, gp: int, levels: list[str]) -> None:
-    """(só turco: kader_sistemi #112-#113) os 111 de nível e depois o 111 com a EXP ganha."""
+    """111 da EXP ganha e depois os 111 de nível. (visto) inglês 1026-225632-1 #13814 e 1025-232017-1 #6811: a EXP
+    vem primeiro. TODO(inventado): a turca (kader_sistemi #112-#113) mostra os níveis antes; ficou a inglesa."""
     name = star_tpl(s.ctx.templates, star).get("TemplateName", "")
-    for text in [*levels, EXP_TEXT.format(name, gp)]:
+    for text in [EXP_TEXT.format(name, gp), *levels]:
         s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
 
 
@@ -347,9 +348,10 @@ async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
             s.send(S_MOVE, move_msg([change], s.player_id))
         say_levels(s, levels)
         return
-    s.send(S_MOVE, move_msg(changes, s.player_id))
-    if equip:
+    if equip:  # (visto) 1024-191924-1 #19445: 150 antes dos 4178
         _army(s)
+    for change in changes:  # (visto) um 4178 por casa: 1024-191924-1 #19445 e 1025-232017-1 #6811
+        s.send(S_MOVE, move_msg([change], s.player_id))
 
 
 def equip_ok(snap: PlayerSnapshot, templates: GameTemplates, star: Star, kind: int, leaving: Star | None) -> bool:
