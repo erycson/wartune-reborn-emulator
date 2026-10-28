@@ -37,6 +37,7 @@ from .tower import record as maze_record
 S_ITEMS, S_ALERT, S_CHAT, S_HERO = 115, 111, 83, 113
 S_SHOP_BUY, S_HAS_BUY, S_FASHION_BUY, S_BLOOD = 90, 4145, 4486, 170
 S_FLASH_FRESH, S_BUY_COUNT, S_MYSTERY_BUY, S_MYSTERY_LIST, S_APPELLS = 4547, 4599, 4383, 4384, 4484
+S_MYSTERY_EVENTS = 4470  # MysteryEventListMsg (U_C_MYSTERYEVENT_LIST)
 S_OFFERS, S_OFFER = 4238, 4375
 OFFERS_PER_MSG = 50  # o oficial parte em 50 + 3 com o mesmo flag (oficial_encantar #57-#58); o cliente junta
 
@@ -616,6 +617,9 @@ async def mystery_fresh(s: GameSession, msg: pb.ShopFreshReqMsg) -> None:
     if msg.isButton:
         _player(s)
     send(s, S_MYSTERY_LIST, _mystery_list(s, shop))
+    # (visto) oficial_20261025-232017-1 #3056-#3061, todos os 8483: 4384 e o 4470 vazio (MysteryShopManager
+    # .luckyPlayerList). TODO(inventado): quem entra na lista de sortudos não aparece em nenhuma captura
+    send(s, S_MYSTERY_EVENTS, pb.MysteryEventListMsg())
 
 
 @router.on(8482)

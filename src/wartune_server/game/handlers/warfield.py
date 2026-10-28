@@ -30,6 +30,8 @@ S_WARFIELD_STATE, S_WAR_ORDER, S_WAR_INFO, S_WAR_REPORT = 4248, 4255, 4252, 4254
 S_PLAYER_STATE, S_MINE, S_ROOM_CREATED, S_ROOM_ENTER, S_NODES = 4175, 4548, 125, 21, 127
 S_MAP, S_FULL_ARMY, S_MOVE, S_EXIT, S_QUESTS, S_ITEMS = 140, 150, 4185, 22, 112, 115
 S_CONFIRM, S_MOVIE, S_CHAT, S_ALERT, S_COUNT = 29, 143, 83, 111, 4493
+S_WAR_MOVIE = 4269  # WarMovieMsg (U_C_WARMOVIE)
+S_MINE_ACTIVE = 4549  # GuildMsg.param5 (U_C_MINE_ACTIVE_STATE): BaseManager.__mineralHandler -> mineralIsOpen
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
 ENTER_QUEST = 44  # "Participate in a Battleground" (QuestCondictionInfos tipo 44, visto nos templates)
 END_TEXT = "The battle has ended! You will be teleported out momentarily."
@@ -84,13 +86,20 @@ def login(s: GameSession) -> None:
     now = s.ctx.clock.now()
     s.war_states = _states_tuple(s.ctx.templates, now)
     s.send(S_WARFIELD_STATE, states(s.ctx.templates, now))
+    s.mine_open = bf.mine_open(now)
+    if s.mine_open:  # TODO(inventado): login dentro da janela; as capturas só têm a abertura e o fecho
+        s.send(S_MINE_ACTIVE, pb.GuildMsg(param5=True))
 
 
 def push_states(s: GameSession) -> None:
-    """No relógio (20008): manda o 4248 de novo quando um campo abre ou fecha."""
+    """No relógio (20008): manda o 4248 de novo quando um campo abre ou fecha, e o 4549 quando a mina abre ou fecha
+    ((visto) 231733 #1232 e #4154: true às 19:30, false às 20:00, a todos os online)."""
     if s.war_states is None:
         return  # o cliente ainda não recebeu o login
     now = s.ctx.clock.now()
+    if (mine := bf.mine_open(now)) != s.mine_open:
+        s.mine_open = mine
+        s.send(S_MINE_ACTIVE, pb.GuildMsg(param5=mine))
     if (cur := _states_tuple(s.ctx.templates, now)) != s.war_states:
         s.war_states = cur
         s.send(S_WARFIELD_STATE, states(s.ctx.templates, now))
@@ -359,6 +368,9 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     text = bf.turn_in_text(quality, pts, honor, shards)
     s.send(S_ALERT, _chat(text, 7))
     s.send(S_CHAT, _chat(text, 3))
+    # (visto) 152321 #14713-#14717: 111, 83, 4252 e o 4269 (ScoreOrGesteAction: o número subindo no mapa)
+    s.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=honor, isAdd=True, userId=s.player_id,
+                                       serverName=snap.server.name))  # fmt: skip
 
 
 def leave_field(s: GameSession) -> bool:

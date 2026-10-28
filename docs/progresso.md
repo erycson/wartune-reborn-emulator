@@ -42,8 +42,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Atividades e eventos | 5 | 10 | 4 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
-| Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **100** | **90** | **40** | **46** | **35** |
+| Conta e segurança | 3 | 1 | 2 | 2 | 1 |
+| **Total** | **100** | **90** | **41** | **46** | **35** |
 
 ## Validação e base
 
@@ -107,7 +107,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
 | Cartas: bônus de coleção (4905) | 🟡 | | degraus por dedução; o bônus não entra na luta |
 | Cartas: ganho nas batalhas | 🟡 | | incompleto |
-| Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade são atalho |
+| Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade são atalho; 4388 (SNS) na estrela de qualidade 4 com md5 inventado |
 | Estrelas: recolher, vender, mover | ✅ | | |
 | Estrelas: compor (8331) | 🟡 | | textos e ordem do inglês (#19525, #6816, #13736); o 4484 do início sem gatilho conhecido |
 | Estrelas: travar, espaço, loja | ✅ | | |
@@ -166,7 +166,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Loja comum (5154) | 🟡 | | lojas de pontuação (8, 13, 15, 20) sem suporte |
 | Loja de moda (8592) e poção (5633) | ✅ | | |
-| Loja misteriosa (8483/8482) | ✅ | | |
+| Loja misteriosa (8483/8482) | ✅ | | 4470 vazio depois de cada 4384 (232017 #3057); quem entra na lista de sortudos, sem captura |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
 | Compra coletiva (8645) | ❌ | | nenhuma oferta tipo 3 |
 | Presente a outro jogador e mochila cheia pelo correio | ✅ | | loja, ofertas e misteriosa: `receiveId` de outro (id pelo 8223/4148) cobra quem compra e manda pelo correio do sistema; mochila cheia paga e o que não cabe vai pelo correio (item com vínculo e validade). VIP e contrato a amigo seguem abaixo |
@@ -241,7 +241,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Varredura / Blitz (8528) | 🧪 | 🇹🇷 | baú de prata e caixa misteriosa inventados (`sweep.py:40`); ouro só da 1007 turca |
 | Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga tratada como grátis |
 | Relatório da etapa (137) | 🟡 | | curva por nível falta |
-| Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem) |
+| Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem); 5024 recusado (senha, cheia) devolve o 4270 da sala (225632 #12656) |
 | Times (convite, capitão, sair) | 🟡 | | não persistem |
 | Link de sala no chat (9504) | ✅ | | |
 | Salas PvP (5023, 5039, 8344, 8465) | 🟡 | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); a partida em si não |
@@ -354,7 +354,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
 | Arena entre servidores (8590) | ❌ | | |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
-| Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10); falta o PvP 8334 (alvo em outro servidor), honra e Amethyst sem moeda, perda de pontos por morte, 4269; nós, vencedor e constantes no código (sem `game_settings`) inventados |
+| Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); falta o PvP 8334 (alvo em outro servidor) e com ele o 4494, o 4269 de perda e o 4388 tipo 4; honra e Amethyst sem moeda, perda de pontos por morte; nós, vencedor e constantes no código (sem `game_settings`) inventados |
 | Ataque a castelo/exército de jogador | ❌ | | |
 | Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
 | Boss mundial: buff e dublê | ❌ | | |
@@ -396,7 +396,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Presente semanal, cartão de teste, roleta | ✅ | | |
 | Contrato do rei: compra | 🟡 | | presente a amigo recusado: contrato não é item, não vai pelo correio |
 | Contrato do rei: efeitos | 🧪 | | cura e varredura (`rules.py:210`, `sweep.py:40`) |
-| Privilégios extras (montaria, missões, cornetas) | ❌ | | lista em [eventos.md](eventos.md) |
+| Privilégios extras (montaria, missões, cornetas) | ❌ | | lista em [eventos.md](eventos.md); só o aviso 4610 da montaria VIP (cartão e primeiro login vencido) |
 | Loja do teste (8582) | ❌ | | |
 
 ## Veículos (Tank Trials)
@@ -418,5 +418,6 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anti-vício (AAS) | ❌ | | desligado |
 | Captcha, SMS, celular | ❌ | | |
 | Login: ordem dos pacotes | ✅ | 🇹🇷 | conta até o nível 16 conferida no inglês; nível alto (4631/4633/4555/4495) só no turco |
+| Login em outro lugar (3842) | 🧪 | | a sessão antiga recebe o 3842 antes de ser derrubada (`BaseManager.__loginOtherHandler`); sem captura: texto inventado |
 | Taxa de EXP periódica (4247) | ✅ | | sem evento: vazio no login e uma linha zerada (época no fuso do servidor) a cada 5 min, visto nas 7 capturas de 23-24/10; fase do tick (~114,2 s) na constante `RATE_PHASE` (0 aqui) |
 | Login: 363/364 (troca da sorte) | 🟡 | | diferenças contra a inglesa ([tutorial.md](tutorial.md)) |

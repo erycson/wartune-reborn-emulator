@@ -30,6 +30,9 @@ from . import account, pet_defend, vehicle
 KEY_SIZE = 8
 
 S_LOGIN_OK = 3841
+LOGIN_OTHER = 3842  # GatewayMsg (U_G_LOGIN_OTHER): BaseManager.__loginOtherHandler mostra notifyMsg e fecha o jogo
+# TODO(inventado): sem captura nem texto no cliente; o título do alerta é o "public.prompt" do cliente
+LOGIN_OTHER_TEXT = "Your account has logged in from another location."
 S_PLAYER_INFO = 3
 S_ARMY = 150
 S_LOGIN_STATE = 6
@@ -118,6 +121,8 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
         character = await s.ctx.login.claim_socket(msg.key, s.connection.transport.peer.rsplit(":", 1)[0])
         # relogin: a sessão anterior termina (e grava) antes de carregarmos o snapshot; senão ela
         # gravaria depois por cima do que esta sessão fizer (item duplicado ou perdido)
+        if (old := s.ctx.online.get(character.id or 0)) is not None:
+            old.send(LOGIN_OTHER, pb.GatewayMsg(notifyMsg=LOGIN_OTHER_TEXT))  # o close envia a fila antes de fechar
         await s.ctx.online.kick(character.id or 0)
         snap = await s.ctx.characters.snapshot(character.id or 0)
     except DomainError as exc:

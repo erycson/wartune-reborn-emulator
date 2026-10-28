@@ -162,6 +162,7 @@ class GameSession:
         self.match_open: bool | None = None  # último estado do PvP (4201); o 20008 manda quando muda
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
         self.war_states: tuple[tuple[int, int], ...] | None = None  # último 4248 (campos; o 20008 manda se mudou)
+        self.mine_open = False  # último 4549 (mina de ametista aberta; o 20008 manda se mudou)
         self.pet_defend_map: int | None = None  # mapId do último 4686 (handlers.pet_defend.push_state)
         self.pet_defend_nodes: tuple[datetime, bool] | None = None  # (janela, chefe à vista) dos nós 1003
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)

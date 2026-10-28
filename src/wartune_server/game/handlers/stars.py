@@ -7,6 +7,7 @@ Sacolas: 0 temporária (sorteadas, até 16), 1 mochila (8 + compradas), 2 equipa
 
 from __future__ import annotations
 
+import hashlib
 import random
 from collections.abc import Mapping, Sequence
 
@@ -21,6 +22,9 @@ from ..session import GameSession
 from .player import _army, _player
 
 S_MOVE, S_PICK, S_RAND, S_COMPOSE = 4178, 4179, 4180, 4479
+# 4388 (U_C_SNSINFO) ``type`` 2 com a qualidade (unidade do TemplateId) da estrela sorteada: (visto) 191924 #19374
+# (404) e #19666 (704) com data "4"; 402, 403 e 503 sem 4388. TODO(inventado): >= 4 (só a 4 foi vista)
+S_SNS, SNS_STAR, SNS_QUALITY = 4388, 2, 4
 SITE_COST = (4000, 5000, 6000, 8000, 10000)  # ouro por cristal (MakeStarView inglês ``_makeStarCosts``)
 # MakeStarView: "Astro Expense:{0}\n Star Point:{1}" com {1} = 1..5 do cristal 0..4
 QUICK_MIN_GOLD = 20000  # StarRandView: sorteio rápido (site -1)
@@ -50,6 +54,13 @@ RARE_TEXT = '{} just received the extremely rare [<a t="3" id="{}" name="{}" gra
 # "Town Hall has been upgraded to Lvl. 2" (oficial_20261023-153200 #594) e com Kader = Astral
 LEVEL_TEXT, EXP_TEXT, S_ALERT = "Astral {} has been upgraded to Lvl. {}", "Astral {} gained {} Astral EXP", 111
 _rng = random.Random()  # abrir o próximo cristal (os testes trocam)
+
+
+def sns_msg(player_id: int, kind: int, data: str) -> pb.SnsRspMsg:
+    """4388: o ``SnsPortManager`` repassa ``type``/``data``/``md5`` por POST ao SNSPATH (só com SNS_PORT ligado).
+    TODO(inventado): a fórmula do md5 do oficial não saiu (md5 de id, tipo e dado em várias ordens não bate)."""
+    md5 = hashlib.md5(f"{player_id}{kind}{data}".encode()).hexdigest().upper()
+    return pb.SnsRspMsg(type=kind, data=data, md5=md5)
 
 
 def star_tpl(templates: GameTemplates, star: Star) -> Row:
@@ -237,6 +248,9 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     await events.leed_done(s, events.ASTRAL_LEED, say=False)
     if up := events.devotion(s) != devotion:
         _player(s)
+    for star in new:
+        if star.template_id % 100 >= SNS_QUALITY:  # (visto) #19374: antes do 3 e do 4180
+            s.send(S_SNS, sns_msg(s.player_id, SNS_STAR, str(star.template_id % 100)))
     s.send(S_RAND, rand_msg(snap, new, s.player_id))
     if up:
         events.say_devotion(s)

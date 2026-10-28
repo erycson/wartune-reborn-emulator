@@ -28,6 +28,7 @@ LEFT, JOINED = 0, 1  # state do 11: 1 entra na lista, 0 sai (PlayerManager.__pla
 ONLINE = 1  # playerState da aba Hall: o cliente só lista com state != 0 (SimplePlayerInfo.isOnline)
 S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
 S_ALERT = 111
+S_ROOM_SEND = 4270  # RoomMsg (U_C_ROOM_SEND): PVE/PVPRoomListControler atualiza a sala na lista
 S_ROOM_STATE = 4913  # SimplePropertyMsg: sala do link no chat (9504), BaseManager.__mulityCampaignRequestHandler
 # playerState/readyState: 0 sem "pronto" (o RoomRightView mostra o botão Ready), 1 pronto (5036 state 1; o
 # PVPRoomPlayerFigure desenha 0 e 1), 2 o dono (só turco, #20)
@@ -195,11 +196,15 @@ async def enter_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
     if room is None or room.type != msg.roomType or s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5024 recusado", sala=msg.roomId)
         return
+    # recusado com a sala existindo: 4270 com o estado dela para a lista se corrigir
+    # (visto) oficial_20261026-225632-1 #12655-#12656: 111 e o 4270 da sala
     if room.password and room.password != msg.password:
         s.log.info("5024 senha errada", sala=msg.roomId)
+        s.send(S_ROOM_SEND, _room_msg(s, room))
         return
     if not s.ctx.rooms.join(room, s.player_id):  # sala cheia
         s.log.info("5024 sala cheia", sala=msg.roomId)
+        s.send(S_ROOM_SEND, _room_msg(s, room))
         return
     s.send(S_ROOM, _room_msg(s, room))
     _sync(s, room)

@@ -38,6 +38,8 @@ KING_BUFF, KING_BUFF_FROM = rules.BOOST_CONTRACT, 6  # o 6 dá o buff 7 (30 min)
 KING_ALL = (1, 2, 3, 4, 5, 6)  # "comprar todos" = All_KingContract
 S_VIP_FIRST, S_WHEEL_RESULT = 4539, 4415
 S_GUILD_VIP = 4455  # VipToConsortiaMsg (U_C_CONSORTIA_VIP)
+S_VIP_MOUNT = 4610  # SimplePropertyMsg (U_C_VIPMOUNT_STATE): param1 = montaria do VIP, param7 = ganhou/perdeu
+VIP_MOUNT_KEY = "vip:mount"  # 1 = o 4610 de ganho já foi; o de perda vai uma vez no login depois do vencimento
 GIFT_NEXT, VIP_TYPE, WHEEL = "vipgift:next", "vip:type", "vipwheel"  # event_states
 TRIAL_TYPE = 2  # vipType depois do cartão de teste 2031201 (tutorial_en #3262)
 VIP_TOKEN, WHEEL_SPINS = 208015, 8  # VIP Token (SonType 292) e giros por roleta (VipBoxFrame: 8 desliga o botão)
@@ -234,15 +236,48 @@ async def use_trial_card(s: GameSession, item: Item, row: Mapping[str, str], n: 
     end = max(now, _vip_expiry(snap) or now) + timedelta(hours=hours)
     st.text, st.updated_at = b.fmt_time(end), now
     kind.value, kind.updated_at = TRIAL_TYPE, now
+    mount = _vip_mount(s)
+    flag = ev.state(snap, VIP_MOUNT_KEY, now) if mount else None
+    if flag is not None:
+        flag.value, flag.updated_at = 1, now
+    extra = [flag] if flag is not None else []
     if gone:
-        await s.ctx.characters.save(st, kind, delete=(item,))
+        await s.ctx.characters.save(st, kind, *extra, delete=(item,))
     else:
-        await s.ctx.characters.save(st, kind, item)
+        await s.ctx.characters.save(st, kind, item, *extra)
     s.send(S_ITEMS, bag.moved([] if gone else [item], s.player_id, empty=[item] if gone else []))
+    if mount:  # (visto) oficial_20261024-191924-1 #7255-#7258: 4610, 4426, 111, 4410
+        s.send(S_VIP_MOUNT, pb.SimplePropertyMsg(param1=mount, param7=True))
+        from .systems import send_mount  # systems importa player, como este módulo
+
+        send_mount(s)
     alert(s, f"Your VIP service has been extended {hours} hours; new expiration date is {end:%Y-%m-%d}.")
     vip_changed(s)
     granted(s, [], [], "", chat=False)
     return True
+
+
+def _vip_mount(s: GameSession) -> int:
+    """A montaria do VIP (``MountType`` 3, 1116 no oficial) para quem já tem montaria; 0 sem ela.
+    (dedução) o tutorial_en (nível 1, sem montaria) não recebe o 4610 no cartão (#3259-#3263); o 191924 recebe."""
+    snap = s.snapshot
+    if snap is None or not rules.systems(snap).mount_template:
+        return 0
+    row = next(s.ctx.templates.find("MountTempInfos", MountType="3"), None)
+    return int(row["TemplateId"]) if row else 0
+
+
+async def vip_mount_expired(s: GameSession) -> None:
+    """4610 com ``param7`` false uma vez só, no primeiro login depois de o VIP vencer (o ``BaseManager`` mostra o
+    aviso 35). (visto) oficial_20261025-232017-1 #19: entre o 4427 e o 4426; o login seguinte (26/10) não manda."""
+    snap = s.snapshot
+    flag = ev.peek(snap, VIP_MOUNT_KEY) if snap else None
+    if snap is None or flag is None or not flag.value or is_vip(snap, s.ctx.clock.now()):
+        return
+    row = next(s.ctx.templates.find("MountTempInfos", MountType="3"), None)
+    flag.value, flag.updated_at = 0, s.ctx.clock.now()
+    await s.ctx.characters.save(flag)
+    s.send(S_VIP_MOUNT, pb.SimplePropertyMsg(param1=int(row["TemplateId"]) if row else 0, param7=False))
 
 
 async def use_covenant(s: GameSession, item: Item, row: Mapping[str, str], n: int) -> bool:

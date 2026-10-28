@@ -194,8 +194,11 @@ def send_mount(s: GameSession) -> None:
 @router.on(8530)
 async def mount_avatar_list(s: GameSession, _: object) -> None:
     """Login: 4427 (tutorial_en #19-#20) e, com montaria, 4426 (visto: 231733 #13-#14, como o turco)."""
+    from .vip import vip_mount_expired  # vip importa este módulo dentro do cartão
+
     await expire_mount(s)
     send_avatars(s)
+    await vip_mount_expired(s)  # (visto) 232017 #18-#20: 4427, 4610, 4426
     send_mount(s)
 
 
