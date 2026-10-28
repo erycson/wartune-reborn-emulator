@@ -12,6 +12,7 @@ from tests.game.test_guild import _create, _session
 from tests.game.test_masmorra_1001 import back_to_map, codes
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import Consortia
+from wartune_server.game import arena
 from wartune_server.game import guildwar as gw
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -39,6 +40,37 @@ async def test_entrar_no_mapa_4501_recebe_placar_e_nos(tmp_path: Path) -> None:
         hp = pb.NodeHpListMsg.FromString(next(p.body for p in got if p.code == 4450))
         assert [n.currentHp for n in hp.nodeHp] == [gw.TOWER_HP, gw.TOWER_HP]
         guilds.wars[903].ticker.cancel()
+
+
+@pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
+async def test_8548_luta_real_contra_jogador_inimigo(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    copy = arena.copy_hero  # o inimigo com 1 de vida: quem ataca vence no primeiro golpe
+    monkeypatch.setattr(arena, "copy_hero", lambda *a: copy(*a) | {"maxHp": 1, "initHp": 1, "hp": 1})
+    clock = FakeClock(datetime(2026, 10, 26, 20, 1, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=33000, clock=clock) as g:
+        await _create(g, "Lobos")
+        other = await g.join("outro")
+        await _create(other, "Ursos")
+        s = _session(g)
+        ids = [s.ctx.guilds.of(x.user_id)[0].id for x in (g, other)]  # type: ignore[index]
+        war = gw.War(gw.Side(ids[0], "Lobos", gw.RED), gw.Side(ids[1], "Ursos", gw.BLUE), gw.window(clock.now())[0])
+        s.ctx.guilds.wars[ids[0]] = s.ctx.guilds.wars[ids[1]] = war  # as duas se enfrentam hoje
+        for game in (g, other):
+            game.client.send(8471)
+            await game.idle()
+        assert other.server.online.get(other.user_id).campaign.gvg  # type: ignore[union-attr]
+        war.gates_open = True
+        g.client.send(8548, pb.GuildMsg(param1=other.user_id))
+        got = await g.until(157)
+        assert pb.BattlePrepareMsg.FromString(got[-1].body).battleType == 24
+        s.battle.set_auto(True)  # type: ignore[union-attr]
+        g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=s.battle.id))  # type: ignore[union-attr]
+        mine = await g.until(4103) + await g.idle()
+        assert pb.BattleReportMsg.FromString(next(p.body for p in mine if p.code == 4103)).battleResult == 1
+        theirs = await other.idle()
+        dead = [pb.PlayerStateListMsg.FromString(p.body) for p in theirs if p.code == 4175]
+        assert any(x.armyId == other.user_id and x.state == gw.DEAD for m in dead for x in m.playerState)
+        assert other.user_id in war.dead and {4104, 131} <= set(codes(theirs))
 
 
 def _war() -> gw.War:

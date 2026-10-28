@@ -37,6 +37,7 @@ from ..session import GameContext, GameSession
 from .campaign import (
     ARMY_FIGHTING,
     ARMY_IDLE,
+    pvp_fight,
     ENTER,
     S_ARMY_PAWN,
     S_BATTLE_REPORT,
@@ -80,6 +81,7 @@ LATE_TEXT = (  # (visto #4884)
 WIN_TEXT = "Guild [{win}] has claimed victory, having earned {lead:,} more points than guild [{lose}]!"  # #6249
 STRATEGY = 435  # (visto #2990, #3443 ... #5541) strategyBonus de cada luta na torre
 SCENE = 12  # (visto #2990) battleScene
+PLAYER_BATTLE = 24  # BattleType.GUILD_WAR_BATTLE_PLAYER do cliente: a luta do 8548
 RANGE = 2  # TODO(inventado): distância (tiles) da Mystery Tower em que a defesa vale (handlerRange 1 no nó)
 WOUND_EVERY = 8  # (dedução) o 4460/4450 sai a cada poucos segundos (219 em ~27 min); como o 4174 do chefe
 INSIGNIA, WHIP = 208001, 208017  # ItemTempInfos "Insignia" e "Mount Training Whip" (#6276, #6289)
@@ -445,19 +447,28 @@ def moved(s: GameSession, msg: pb.PosMoveMsg) -> None:
 def player_fight(s: GameSession, target: int) -> None:
     """8548 (cliente ``checkGvgArmy``: exército perto no mapa; ``param1`` = userId). (visto 26/10 #2924-#3348): 14
     pedidos contra a própria guilda (a adversária não entrou) e nenhuma resposta, então mesmo lado é ignorado.
-    TODO(inventado): contra o inimigo não há luta na captura; vence o de maior ``fightingCapacity`` (empate: quem
-    ataca) e o perdedor morre como na torre: 4175 state 1, 4104 e 131 no acampamento (a sequência de #3334-#3336)."""
+    Contra o inimigo: luta real (157 ``GUILD_WAR_BATTLE_PLAYER`` 24 do cliente) contra a cópia do herói dele, como
+    o 8334 do campo; o perdedor morre como na torre: 4175 state 1, 4104 e 131 no acampamento (#3334-#3336)."""
     found, other = war_of(s), s.ctx.online.get(target)
-    if found is None or other is None or other.campaign is None or not other.campaign.gvg:
+    if found is None or other is None or other.campaign is None or not other.campaign.gvg or other.snapshot is None:
         return
     war, me = found
     if _side_of(s.ctx, war, target) in (0, me.side) or war.settled or not war.gates_open:
         return
     if {s.player_id, target} & war.dead or s.battle is not None or other.battle is not None:
         return
-    power = {o: o.snapshot.character.fighting_capacity if o.snapshot else 0 for o in (s, other)}
-    loser = other if power[s] >= power[other] else s
-    _kill(loser, war)
+    s.send(S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
+
+    async def finished(won: bool) -> None:
+        s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+        report = pb.BattleReportMsg(battleResult=1 if won else 2, gpBonus=0, battleScene=SCENE)
+        s.send(S_BATTLE_REPORT, report)
+        found = war_of(s)
+        loser = other if won else s
+        if found is not None and not found[0].settled and loser.campaign is not None and loser.campaign.gvg:
+            _kill(loser, found[0])
+
+    pvp_fight(s, other.snapshot, PLAYER_BATTLE, SCENE, finished, boosted(s))
 
 
 def _kill(o: GameSession, war: gw.War) -> None:

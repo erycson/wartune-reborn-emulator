@@ -5,7 +5,7 @@ entrega e coleta (5125/5032/5033), lista de pedidos (8337), restaurar vida (8338
 20008, ``clock``), a mina com o carrinho (8633) e o PvP entre jogadores do campo (8334, 157 battleType 32; todos
 estão neste servidor, então ``defenceServerName`` é o nosso). Regras e números em ``game/battlefield.py``.
 
-Pendente: as missões tipo 45 (abates) e 50 (vitórias) do PvP.
+Missões: 44 na entrada, 45 (abates) a cada vitória no PvP e 50 (vitória no campo) no fim da partida.
 """
 
 from __future__ import annotations
@@ -23,9 +23,7 @@ from ..builders.player import quest_update
 from ..campaign import CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
-from .. import arena as A
-from ..battle import Battle
-from .campaign import ARMY_IDLE, map_sync, player_hero
+from .campaign import ARMY_IDLE, map_sync, pvp_fight
 from .login import army
 from .stars import sns_msg
 
@@ -35,7 +33,8 @@ S_MAP, S_FULL_ARMY, S_MOVE, S_EXIT, S_QUESTS, S_ITEMS = 140, 150, 4185, 22, 112,
 S_CONFIRM, S_MOVIE, S_CHAT, S_ALERT, S_COUNT = 29, 143, 83, 111, 4493
 S_WAR_MOVIE = 4269  # WarMovieMsg (U_C_WARMOVIE)
 S_CROSS, S_ARMY_POS, S_SNS, S_REPORT = 4494, 4104, 4388, 4103  # CrossArmyListMsg, ArmyPosUpdatedMsg, SnsRspMsg
-PVP_TYPE, SNS_PVP = 32, 4  # battleType do 8334 (visto #9662); 4388 type 4 depois da vitória (visto #11111)
+PVP_TYPE, PVP_SCENE, SNS_PVP = 32, 11, 4  # 157 do 8334 (visto #9662, #11103); 4388 type 4 na vitória (#11111)
+KILL_QUEST, WIN_QUEST = 45, 50  # "Battleground Kills" (missão 767 sobe no #11106) e "Obtain Victory in War Camp"
 RESPAWN, RESPAWN_MS = (179, 75), 25000  # (visto #11098, #11101): o perdedor volta para lá, 25 s morto
 LOSS_PCT, WIN_HONOR = 15, 10  # (visto #9828 "You lost: 15 Points." com 100; #11130 "... and 10 Honor.")
 WIN_TEXT, LOSE_TEXT = "You received: {} Points and {} Honor.", "You lost: {} Points."
@@ -193,9 +192,17 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
     s.send(S_NODES, s.campaign.node_list())
     s.send(S_WAR_INFO, _info(s, field, stop))
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
-    quests = rules.quest_event(snap, ctx.templates, ENTER_QUEST, 0, 1)
+    await _quest(s, ENTER_QUEST)
+
+
+async def _quest(s: GameSession, kind: int) -> None:
+    """+1 nas missões de condição ``kind`` (``Para1`` 0) e o 112 se alguma subiu."""
+    snap = s.snapshot
+    if snap is None:
+        return
+    quests = rules.quest_event(snap, s.ctx.templates, kind, 0, 1)
     if quests:
-        await ctx.characters.save(*quests)
+        await s.ctx.characters.save(*quests)
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
@@ -247,16 +254,10 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
     me.fighting = them.fighting = True
     cid = c.warfield
     _to_map(s.ctx, cid, S_CROSS, _cross((s, c.pos, 2), (target, target.campaign.pos, 2)))
-    spec = A.colosseum_spec([], [A.copy_hero(target.snapshot, s.ctx.templates, s.ctx.clock.now())])
-    spec.update(battleType=PVP_TYPE, mapTempId=1, battleScene=11)  # (visto) #9662 e #11103
-    hero = player_hero(s, spec)
-
-    async def finished(battle: Battle, won: bool) -> None:
-        s.battle, s.hero_sp = None, battle.player_sp
+    async def finished(won: bool) -> None:
         await pvp_over(s, target, field, won)
 
-    s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
-    s.battle.start()
+    pvp_fight(s, target.snapshot, PVP_TYPE, PVP_SCENE, finished)
 
 
 async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bool) -> None:
@@ -269,7 +270,7 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
     wm, lm = field.mark(winner.player_id), field.mark(loser.player_id)
     wm.fighting = lm.fighting = False
     if field.settled:  # a partida acabou durante a luta: só o fim da luta
-        s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=11))
+        s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))
         return
     cid = field.campaign_id
     lost = -(-lm.score * LOSS_PCT // 100)
@@ -289,7 +290,8 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
         o.send(S_WAR_INFO, _info(o, field, stop))
     rows = [(o, o.campaign.pos, 0) for o in here]  # type: ignore[union-attr]
     _to_map(s.ctx, cid, S_CROSS, _cross(*rows))
-    s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=11))  # (visto) #11103
+    s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))  # (visto) #11103
+    await _quest(winner, KILL_QUEST)  # (visto #11106): 112 da 767 depois do 4103
     winner.send(S_SNS, sns_msg(winner.player_id, SNS_PVP, str(wm.wins)))
     for o, add, honor, text in ((winner, True, WIN_HONOR, WIN_TEXT.format(lost, WIN_HONOR)),
                                 (loser, False, 0, LOSE_TEXT.format(lost))):  # fmt: skip
@@ -523,5 +525,6 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
         if new:
             o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
         o.send(S_CHAT, _chat(bf.win_text()))  # o prêmio chega depois da saída (visto #16396)
+        await _quest(o, WIN_QUEST)  # "Obtain Victory in War Camp" (missão 818); TODO(inventado): a posição do 112
     for o in ctx.online.sessions():
         push_states(o)

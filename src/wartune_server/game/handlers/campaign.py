@@ -501,6 +501,26 @@ def _boost(value: int) -> int:
     return value * (100 + rules.BOOST_PCT) // 100
 
 
+def pvp_fight(
+    s: GameSession, target: PlayerSnapshot, battle_type: int, scene: int,
+    on_end: Callable[[bool], Awaitable[None]], boost: bool = False,
+) -> None:  # fmt: skip
+    """Luta PvP num mapa (campo de batalha 8334, guerra de guildas 8548) contra a cópia do herói do alvo, no motor
+    do coliseu; ``on_end(venceu)`` roda com ``s.battle`` já liberada (o 4103 fica com quem chama)."""
+    from .. import arena as A  # noqa: PLC0415  (game.arena é pesado e só serve aqui)
+
+    spec = A.colosseum_spec([], [A.copy_hero(target, s.ctx.templates, s.ctx.clock.now())])
+    spec.update(battleType=battle_type, mapTempId=1, battleScene=scene)
+
+    async def finished(battle: Battle, won: bool) -> None:
+        s.battle, s.hero_sp = None, battle.player_sp
+        await on_end(won)
+
+    hero = player_hero(s, spec, boost)
+    s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
+    s.battle.start()
+
+
 def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) -> PlayerHero:
     """``boost``: o buff do contrato 7 (+10% nos ataques, defesas, vida e tropa; ``boosted``). (dedução) a vida
     atual ganha o mesmo tanto que a máxima."""
