@@ -309,7 +309,7 @@ Causas corrigidas no teste (o servidor já estava certo): 490 tinha um 109 do ci
 
 | id | estado | #idx | motivo |
 |---|---|---|---|
-| 360, 380, 410, 420, 440, 450, 460, 470, 480?, 490, 500, 510, 520, 550, 560, 580, 590, 600, 610 | ok | ver teste | códigos e textos do 83 iguais |
+| 360, 380, 410, 420, 440, 450, 460, 470, 490, 500, 510, 520, 550, 560, 580, 590, 600, 610 | ok | ver teste | códigos e textos do 83 iguais |
 | 310 | pendente (xfail) | 8939 | recompensa com 4484/111/114/4131/149 de outras áreas |
 | 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | subida de nível (100/150): o 3 traz só o grau, não o EXP atual |
 
