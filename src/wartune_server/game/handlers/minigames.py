@@ -20,6 +20,7 @@ from ...services import ledger
 from .. import events as ev
 from .. import rewards
 from ..builders import login as b
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import gemmaze, gold_tree
@@ -484,6 +485,8 @@ async def recover(s: GameSession, msg: pb.RecoverReqMsg) -> None:
     if msg.type != RECOVER_LIST:
         s.log.info("9503 recusado: sem atividade perdida", tipo=msg.type)
     _send(s, S_RECOVER, pb.RecoverInfosMsg())
+    if msg.type == RECOVER_LIST:  # (visto) 191924-1 #9044, 1026 #2207 e 1027 #745: 4912 e depois 109 (só a lista)
+        castle_yield(s)
 
 
 # ---------------------------------------------------------------- fechados sem tabela no servidor

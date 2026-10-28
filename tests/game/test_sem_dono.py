@@ -91,3 +91,11 @@ async def test_equip_move_sends_150_then_one_4178_per_slot(tmp_path: Path) -> No
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0, eat=True))
         got = [c for c in codes(await g.idle()) if c in (150, 4178)]
         assert got == [150, 4178, 4178]
+
+
+async def test_recover_list_sends_4912_then_109(tmp_path: Path) -> None:
+    """(visto) 191924-1 #9044, 1026 #2207 e 1027 #745: 4912 e depois 109 (lista de recuperação vazia)."""
+    async with logged_in(tmp_path, novice=30016) as g:
+        g.client.send(9503, pb.RecoverReqMsg(type=0))
+        got = await g.until(109)
+        assert codes(got) == [4912, 109]
