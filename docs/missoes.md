@@ -295,7 +295,7 @@ Causas achadas: o 115 de consumo de item e o 83 da EXP já saíam no código (HE
 
 | id | estado | #idx | motivo |
 |---|---|---|---|
-| 360, 380, 410, 420, 440, 450, 460, 470, 500, 510, 520, 550, 560, 570? | ok (ver teste) | ver tabela | códigos e textos do 83 iguais |
+| 360, 380, 410, 420, 440, 450, 460, 470, 500, 510, 520, 550, 560, 590, 600, 610 | ok (16) | #11761, #14667, #17367, #17542, #18290, #20432, #20602, #1784, #5348, #7537, #7597, #8188, #12626, #8417, #14162, #13701 | códigos e textos do 83 iguais |
 | 310 | pendente (xfail) | 8939 | recompensa com 4484/111/114/4131/149 de outras áreas |
 | 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | oficial sobe de nível depois do 83 (100/150); grau do personagem da captura não se conhece |
 | 490 | pendente (xfail) | 3082 | oficial manda 109 antes do 3; causa não confirmada |
