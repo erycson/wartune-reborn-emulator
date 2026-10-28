@@ -32,7 +32,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
-| Labirinto (Forgotten Catacombs) | 2 | 1 | 5 | 2 | 3 |
+| Labirinto (Forgotten Catacombs) | 3 | 1 | 4 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 0 | 6 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **96** | **92** | **38** | **49** | **35** |
+| **Total** | **97** | **92** | **37** | **49** | **35** |
 
 ## Validação e base
 
@@ -255,8 +255,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) 0 por atalho; prêmio do reset sem captura |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
 | Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
-| Andares 26 em diante | 🧪 | | sem captura: repetem o monstro e a força do 25 (`content/maze_floors.json`) |
-| Aviso de respawn (4207) | 🧪 | | manda após a derrota (25/10 #10593); 1ª morte do dia grátis e as outras 25, sair não zera (jogador 28/10; o valor da 3ª morte não foi visto); no oficial 150/100/4122 vêm antes do 140, aqui depois |
+| Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante repete o 28 (`TODO(inventado)`) |
+| Aviso de respawn (4207) | ✅ | | manda após a derrota: 0 grátis e 25 depois (28/10 #1105, #1547, #1742, #1827). Morto e sem reviver, a saída (5025) manda 4419 com os itens e zera a corrida (25/10 #11411, 26/10 #13469, 28/10 #1839-#1854); revivido (8300) ou vivo, sai sem 4419 e a corrida continua (24/10 #13956-#13965) |
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | 🧪 | | resposta inventada (`tower.py:207`) |
 | Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |

@@ -22,6 +22,7 @@ S_TOWER_INFO, S_TOWER_LIST, S_BATTLEGUARD, S_ITEMS = 4205, 4373, 4631, 115
 CONTINUE, START = 0, 1  # EnterTowerInfoMsg.chooseIndex (MazeFrame: Continue / Start)
 DOUBLE = 2  # isDouble: lucro dobrado, gasta uma Crypt Key
 S_TOWER_DIED = 4207  # TowerDiedMsg "Respawn Note": o msg é o custo do reviver (``MazeRiverView.cost``, 0 = grátis)
+S_TOWER_REPORT = 4419  # TowerInfoMsg só com itemTempIds: a saída morta, os itens da corrida (visto 10/28 #1840)
 RESPAWN_TITLE = "Respawn Note"
 MAZE_LEED = 23  # LeedTemp 23 "Enter Forgotten Catacombs"
 
@@ -93,7 +94,7 @@ async def tower_enter(s: GameSession, msg: pb.EnterTowerInfoMsg) -> None:
             s.log.info("8296 dobrado sem Crypt Key")
             return
         tower.enters += 1
-        tower.index, tower.gp, tower.items, tower.double = 1, 0, [], msg.isDouble == DOUBLE
+        tower.index, tower.gp, tower.items, tower.double, tower.dead = 1, 0, [], msg.isDouble == DOUBLE, False
     elif tower.index <= 0:
         s.log.info("8296 continuar sem corrida")
         return
@@ -151,6 +152,7 @@ def died(s: GameSession) -> Any:
     now, cfg = s.ctx.clock.now(), _cfg(s)
     tower = mz.load(snap, now)
     tower.deaths += 1
+    tower.dead = True
     cost = 0 if tower.deaths == 1 else int(cfg["revive"])
     s.send(S_TOWER_DIED, pb.TowerDiedMsg(title=RESPAWN_TITLE, msg=str(cost)))
     return mz.store(snap, tower, now)
@@ -167,6 +169,7 @@ def floor_entered(s: GameSession, map_id: int) -> list[Any]:
     now = s.ctx.clock.now()
     tower = mz.load(snap, now)
     tower.index = mz.floor_of(map_id)
+    tower.record = max(tower.record, tower.index)  # (visto 10/28 #1672 maxIndex 28 antes de vencer o 28)
     s.send(S_TOWER_INFO, mz.info(tower, _cfg(s)))
     quests = rules.quest_event(snap, s.ctx.templates, rules.CATACOMBS_CONDITION, mz.CAMPAIGN, 1)
     send_quests(s, quests)
@@ -184,6 +187,28 @@ def floor_won(s: GameSession, map_id: int, gp: int) -> Any:
     tower.record = max(tower.record, mz.floor_of(map_id))
     s.send(S_TOWER_LIST, pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s))]))
     return mz.store(snap, tower, now)
+
+
+async def leave_maze(s: GameSession) -> bool:
+    """5025 num andar do labirinto: sai para a cidade do céu como a pedreira (4165, 150, 150, 140, 22, 4595). Morto sem
+    reviver manda antes o 4419 com os itens da corrida (já na mochila desde o baú, ``open_chest``: não entrega de
+    novo) e zera a corrida (index, gp, itens); o recorde e as entradas ficam. (visto 10/28 #1827-#1854; 10/25
+    #11400-#11418 e 10/26 #13436-#13476 com o 4419). Vivo ou revivido sai igual, sem 4419, e a corrida continua
+    (10/24 #13956-#13965, e o 4205 #17782 com towerIndex 20)."""
+    from . import campaign as ch  # campaign importa login, que importa este módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    if s.campaign is None or not mz.is_floor(s.campaign.map_id):
+        return False
+    now = s.ctx.clock.now()
+    tower = mz.load(snap, now)
+    if tower.dead:
+        s.send(S_TOWER_REPORT, pb.TowerInfoMsg(itemTempIds=tower.item_ids()))
+        tower.index, tower.gp, tower.items, tower.double, tower.dead = 0, 0, [], False, False
+        await s.ctx.characters.save(mz.store(snap, tower, now))
+    ch.exit_to_city(s)
+    return True
 
 
 def doubled(s: GameSession, gp: int) -> int:
@@ -233,13 +258,17 @@ async def tower_live(s: GameSession, msg: pb.PayTypeMsg) -> None:
     if s.campaign is None or not mz.is_floor(s.campaign.map_id) or snap.leader is None:
         return
     now = s.ctx.clock.now()
-    cost = 0 if mz.load(snap, now).deaths <= 1 else int(_cfg(s)["revive"])  # a 1ª morte da entrada é grátis
+    tower = mz.load(snap, now)
+    cost = 0 if tower.deaths <= 1 else int(_cfg(s)["revive"])  # a 1ª morte da entrada é grátis
     paid = cash.pay(snap.character, cost, msg.payType, "maze_revive", str(s.campaign.map_id), now) if cost else None
     if cost and paid is None:
         s.log.info("8300 sem Balens")
         return
     healed = rules.heal_hero(snap, s.ctx.templates, now)
-    await s.ctx.characters.save(snap.character, snap.leader, *([paid] if paid is not None else []))
+    tower.dead = False  # (visto 10/24 #13956-#13959) revivido, a saída depois não manda o 4419
+    await s.ctx.characters.save(
+        snap.character, snap.leader, mz.store(snap, tower, now), *([paid] if paid is not None else [])
+    )
     await _push_player(s)
     hp_pack(s, healed)
 

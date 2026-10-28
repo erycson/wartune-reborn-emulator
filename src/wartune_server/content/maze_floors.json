@@ -1,5 +1,5 @@
 {
- "fonte": "(visto) capturas 24/10 #12046-#13771 (andares 1-20), 25/10 #9658-#10906 (andares 20-25), 26/10 #13286 (andar 25); os nós do 127 de cada andar; os baús pelo ganho do itemTempIds do 4205 depois de vencer o andar; batalhas: pacotes 157 (mesmas capturas), escoltas em (pos 2, 3, 8, 9) com livingId 4 a 7, chefe com livingId 4 e sem escolta",
+ "fonte": "(visto) capturas 24/10 #12046-#13771 (andares 1-20), 25/10 #9658-#10906 (andares 20-25), 26/10 #13286 (andar 25), 28/10 #1369-#1766 e os 127 #1355, #1474, #1669 (andares 26-28); os nós do 127 de cada andar; os baús pelo ganho do itemTempIds do 4205 depois de vencer o andar; batalhas: pacotes 157 (mesmas capturas), escoltas em (pos 2, 3, 8, 9) com livingId 4 a 7, chefe com livingId 4 e sem escolta",
  "layouts": {
   "1": {
    "start": [
@@ -428,6 +428,54 @@
      60074,
      60073
     ]
+   }
+  },
+  "26": {
+   "son": 2121,
+   "name": "Tenacor Daradon",
+   "fight": 7497,
+   "battle": {
+    "cast": 4000,
+    "skills": [
+     40071,
+     40071,
+     40077,
+     40071,
+     40071
+    ],
+    "attack": 1
+   }
+  },
+  "27": {
+   "son": 2121,
+   "name": "Vixar Daradon",
+   "fight": 8623,
+   "battle": {
+    "cast": 4000,
+    "skills": [
+     40071,
+     40071,
+     40077,
+     40071,
+     40071
+    ],
+    "attack": 1
+   }
+  },
+  "28": {
+   "son": 2121,
+   "name": "Rage Daradon",
+   "fight": 8760,
+   "battle": {
+    "cast": 4000,
+    "skills": [
+     40071,
+     40071,
+     40077,
+     40071,
+     40071
+    ],
+    "attack": 1
    }
   }
  },

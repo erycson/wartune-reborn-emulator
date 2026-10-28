@@ -1747,6 +1747,16 @@ def leave_quarry(s: GameSession) -> bool:
     if s.battle is not None:
         s.battle.cancel()
         s.battle = None
+    exit_to_city(s)
+    if fam_room:
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg="Left Guild Chamber"))
+    return True
+
+
+def exit_to_city(s: GameSession) -> None:
+    """Sai da sala de campanha para a cidade do céu: 4165, 150, 150, 140, 22 e o 4595 (``space.enter``)."""
+    snap = s.snapshot
+    assert snap is not None
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
     _send(s, S_FULL_ARMY, b.complete(army(s, snap)[0]))
@@ -1754,9 +1764,6 @@ def leave_quarry(s: GameSession) -> bool:
     s.campaign = None
     _send(s, S_EXIT, pb.CampaignExitMsg(result=1, playerId=s.player_id, armyId=s.player_id))
     space.enter(s)
-    if fam_room:
-        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg="Left Guild Chamber"))
-    return True
 
 
 # -- progresso do guia -------------------------------------------------------------------------

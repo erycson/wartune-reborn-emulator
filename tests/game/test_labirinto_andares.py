@@ -150,6 +150,83 @@ async def test_morte_no_labirinto_manda_o_custo_do_reviver(tmp_path: Path) -> No
         assert _tower(g).deaths == 2
 
 
+def test_andares_26_a_28_como_o_157(content: dict) -> None:  # type: ignore[type-arg]
+    """(visto) 10/28 #1369, #1488, #1578, #1685, #1766 (157): escolta 7026/7027/7028 com vida 7680, 7808, 7936 nas
+    posições 2, 3, 8 e 9 (livingId 4 a 7), castTime 4000, skills 40071 40071 40077 40071 40071 e attackModel 1; sem
+    herói inimigo. Nó (127 #1355, #1474, #1669): monstro sonType 2121, poder 7497, 8623, 8760, portal para o 8027, 8028,
+    8029. Layout 21 (o da faixa 21-28 já dá as mesmas posições)."""
+    for floor, tid, hp, name, fight, nxt in (
+        (26, 7026, 7680, "Tenacor Daradon", 7497, 8027),
+        (27, 7027, 7808, "Vixar Daradon", 8623, 8028),
+        (28, 7028, 7936, "Rage Daradon", 8760, 8029),
+    ):
+        battle = content["battles"][str((8000 + floor) * 100 + 2)]
+        assert [(s["livingId"], s["tempId"], s["pos"], s["initHp"]) for s in battle["soldiers"]] == [
+            (4, tid, 2, hp), (5, tid, 3, hp), (6, tid, 8, hp), (7, tid, 9, hp)]  # fmt: skip
+        assert battle["heroes"] == [] and battle["attackModel"] == 1
+        assert battle["soldiers"][0]["castTime"] == 4000
+        assert battle["soldiers"][0]["skillId"] == [40071, 40071, 40077, 40071, 40071]
+        monster, portal = _nodes(content, floor)[2], _nodes(content, floor)[4]
+        assert (monster["nodeName"], monster["sonType"], monster["fightCapaity"]) == (name, 2121, fight)
+        assert portal["param1"] == nxt
+    assert (_nodes(content, 26)[1]["masterType"], _nodes(content, 26)[1]["state"]) == (62, 1)
+    assert (_nodes(content, 27)[1]["masterType"], _nodes(content, 27)[1]["state"]) == (40, 2)
+    assert _nodes(content, 26)[4]["posX"] == 52 and _nodes(content, 26)[4]["resetX"] == 49
+    assert content["battles"]["802502"]["heroes"][0]["initHp"] == 49440  # (visto) o chefe 25, #1022
+
+
+async def test_portal_sobe_o_recorde(tmp_path: Path) -> None:
+    """(visto) 10/28 #1360 e #1672: o 4205 do portal já traz o maxIndex do andar que vai abrir (26, 28), antes de vencê-lo."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        _set(g, mz.Tower(index=0, record=25))
+        tw.floor_entered(s, 8026)
+        assert (_tower(g).index, _tower(g).record) == (26, 26)
+
+
+async def test_saida_morto_manda_4419_e_zera_a_corrida(tmp_path: Path) -> None:
+    """(visto) 10/28 #1827-#1854: morto sem reviver, o 5025 manda 4419 com os itens da corrida, sai como a pedreira
+    (4165, 150, 150, 140, 22, 4595) sem entregar item de novo, e a corrida zera (towerIndex 0, totalGp 0, maxIndex 28)."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        items = [[2050601, 2], [208009, 18]]
+        _set(g, mz.Tower(index=28, record=28, gp=151200, items=items))
+        g.client.send(8296, pb.EnterTowerInfoMsg(campaignId=8001, chooseIndex=0))  # Continue: entra no 28
+        await g.until(21)
+        await g.idle()
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.campaign is not None and s.campaign.map_id == 8028
+        await s.ctx.characters.save(tw.died(s))
+        g.client.send(5025, pb.RoomExitMsg(msg=""))
+        got = await g.until(4595)
+        codes = [p.code for p in got]
+        assert [c for c in codes if c in (4419, 4165, 150, 140, 22, 4595)] == [4419, 4165, 150, 150, 140, 22, 4595]
+        report = next(p.body for p in got if p.code == 4419)
+        assert pb.TowerInfoMsg.FromString(report).itemTempIds == "2050601,2|208009,18"
+        assert 115 not in codes  # os itens já foram para a mochila no baú
+        tower = _tower(g)
+        assert (tower.index, tower.gp, tower.items, tower.record, tower.dead) == (0, 0, [], 28, False)
+
+
+async def test_saida_vivo_nao_manda_4419_e_mantem_a_corrida(tmp_path: Path) -> None:
+    """(visto) 10/24 #13956-#13965: revivido (8300), a saída manda 4165, 150, 150, 140, 22, 4595 sem 4419 e a corrida
+    continua (4205 #17782 com towerIndex 20)."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        _set(g, mz.Tower(index=20, record=20, gp=76000, items=[[2050701, 2]]))
+        g.client.send(8296, pb.EnterTowerInfoMsg(campaignId=8001, chooseIndex=0))
+        await g.until(21)
+        await g.idle()
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.campaign is not None
+        await s.ctx.characters.save(tw.died(s))
+        g.client.send(8300, pb.PayTypeMsg(payType=0))
+        await g.idle()
+        g.client.send(5025, pb.RoomExitMsg(msg=""))
+        codes = [p.code for p in await g.until(4595)]
+        assert [c for c in codes if c in (4419, 4165, 150, 140, 22, 4595)] == [4165, 150, 150, 140, 22, 4595]
+        assert (_tower(g).index, _tower(g).gp, _tower(g).items) == (20, 76000, [[2050701, 2]])
+
+
 async def test_subir_andar_avanca_a_missao_38(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """(dedução) o portal para o andar seguinte conta a condição 38 (Para1 8001) uma vez."""
     async with logged_in(tmp_path, novice=READY) as g:

@@ -4,7 +4,7 @@ Fontes (docs/salas-campanha.md): (só turco: yeralti_labirenti_ve_ilk_mob, labir
 varredura do andar 1, a entrada no 8002, a luta e o portal para o 8003; (cliente) ``MazeFrame``,
 ``MazeMopupPrepareFrame``, ``MazeMopupIngFrame``, ``PosType`` (40 início, 42 monstro, 62 portal).
 
-Andar ``k`` = mapa ``8000 + k`` (``MapInfos`` 8001-8100) com o monstro de TemplateId ``7000 + k``. Os andares 1 a 25
+Andar ``k`` = mapa ``8000 + k`` (``MapInfos`` 8001-8100) com o monstro de TemplateId ``7000 + k``. Os andares 1 a 28
 foram vistos nas capturas e estão em ``content/maze_floors.json`` (nós, monstro, poder de luta, baús); o resto é
 regra deduzida. Os nós de cada andar (127): o início ``mapa*100+1``, o monstro ``+2`` (``param3`` ele mesmo, ``param4``
 o portal), o baú ``+3`` (só a cada 5 andares, visível) e o portal ``+4`` (state 16 até o monstro cair, ``param1`` o
@@ -75,7 +75,10 @@ class Tower:
     enters: int = 0  # enterCount: Start do dia
     day: str = ""  # dia de jogo do ``enters``
     double: bool = False  # corrida com lucro dobrado (isDouble 2)
-    deaths: int = 0  # mortes do dia; a 1ª é grátis, as outras custam o revive (jogador 28/10: 0, 25, 25)
+    # mortes do dia; a 1ª é grátis, as outras custam o revive (visto 10/28 4207 #1105 msg 0, #1547, #1742, #1827 msg 25;
+    # o giftToken 2458 -> 2433 -> 2408 é do jogador, não entra aqui, ver 8300 em #1755/#1756)
+    deaths: int = 0
+    dead: bool = False  # morto sem reviver (4207 e sem 8300 depois): a saída manda 4419 e zera a corrida
 
     def item_ids(self) -> str:
         return "|".join(f"{t},{n}" for t, n in self.items)  # (visto) "2050201,2|208009,2"
@@ -196,13 +199,15 @@ def _hero(row: Any, battle: dict[str, Any]) -> dict[str, Any]:
 
 
 def _battle(templates: GameTemplates, cfg: dict[str, Any], floor: int) -> dict[str, Any]:
-    """(visto, 157) battleType 6, attackModel 2; quatro do monstro nas posições 2, 3, 8 e 9, e o chefe sozinho (sem
+    """(visto, 157) battleType 6, attackModel 2 (``attack`` do andar: 1 nos 26-28, 10/28 #1369, #1488, #1578, #1685,
+    #1766); quatro do monstro nas posições 2, 3, 8 e 9, e o chefe sozinho (sem
     escolta). ``battleScene`` 10 não conferido no 157. O gpBonus guardado é a base (``rules.exp_bonus`` soma o mundo e a
     descansada)."""
     tid = MONSTER_BASE + floor
     battle = _SEEN["floors"].get(str(floor), {}).get("battle", {})
     spec: dict[str, Any] = {
-        "battleType": 6, "mapTempId": map_of(floor), "attackModel": 2, "soldiers": [], "heroes": [],
+        "battleType": 6, "mapTempId": map_of(floor), "attackModel": battle.get("attack", 2), "soldiers": [],
+        "heroes": [],
         "player": {"livingId": 1, "pos": 1}, "map": map_of(floor), "gpBonus": floor_gp(cfg, floor),
         "strategyBonus": 0, "battleScene": 10,
     }  # fmt: skip
@@ -234,7 +239,7 @@ def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) 
     hero = templates.get("GameHeroTemp", tid)
     pawn = templates.get("PawnTempInfos", tid)
     name = (seen or {}).get("name") or (hero or {}).get("TemplateName") or (pawn or {}).get("PawnName", "")
-    # TODO(inventado) andares 26+: o sonType 2116 e o poder de luta do último andar visto (25) são chutes
+    # TODO(inventado) andares 29+: o sonType 2116 e o poder de luta do último andar visto (28) são chutes
     monster = _node(camp + MONSTER, NODE_MONSTER, (seen or {}).get("son", 2116), 1, lay["monster"][:2],
                     lay["monster"][2:4])  # fmt: skip
     monster |= {

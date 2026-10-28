@@ -139,6 +139,10 @@ async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
         s.campaign = None
         space.back(s)
         return
+    from .tower import leave_maze  # tower importa campaign, que importa space
+
+    if await leave_maze(s):
+        return
     if s.ctx.rooms.of(s.player_id) is not None:
         leave_room(s)
         return
