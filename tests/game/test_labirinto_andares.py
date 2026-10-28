@@ -265,3 +265,16 @@ def test_ranking_por_andar_e_desempate_pelo_horario() -> None:
     states = [st(1, 28, "2026-10-28T10:00"), st(2, 30, "2026-10-28T12:00"), st(3, 28, "2026-10-28T09:00")]
     assert [mz.position(states, c) for c in (1, 2, 3)] == [3, 1, 2]
     assert mz.position([*states, st(4, 0, "")], 4) == 0
+
+
+def test_poder_de_luta_sai_do_catalogo_em_todos_os_andares_vistos() -> None:
+    """A fórmula do ``fight_power`` reproduz o fightCapaity dos 28 andares vistos (content/maze_floors.json)."""
+    t = GameTemplates.parse(TEMPLATES.read_bytes())
+    for k, f in mz._SEEN["floors"].items():
+        tid = mz.MONSTER_BASE + int(k)
+        assert mz.fight_power(t.get("GameHeroTemp", tid), t.get("PawnTempInfos", tid)) == f["fight"], k
+
+
+def test_andar_29_usa_o_icone_do_mesmo_desenho(content: dict) -> None:  # type: ignore[type-arg]
+    """O 29 tem o monster007C dos 26-28 (sonType 2121, 10/28 #1369)."""
+    assert _nodes(content, 29)[2]["sonType"] == 2121

@@ -248,6 +248,33 @@ def _layout(floor: int) -> dict[str, Any]:
     return dict(_SEEN["layouts"][str(key)])
 
 
+def fight_power(hero: Any, pawn: Any) -> int:
+    """Poder do nó do monstro (fightCapaity), deduzido dos 28 andares vistos (erro < 1 em todos): escolta
+    vida/3 + 2 x ataque + defesa + defesa mágica + acerto, com a vida do 157 (Live / 100); chefe vida/5 + 2,05 x ataque
+    + o resto igual."""
+    row = hero if hero is not None else pawn
+    if row is None:
+        return 0
+    rest = int(row["Defence"]) + int(row["MagicDefence"]) + int(row["ForceHit"])
+    if hero is not None:
+        return int(row["Live"]) // 5 + int(row["Attack"]) * 205 // 100 + rest  # cada parte truncada (andar 5: 2883)
+    return int(int(row["Live"]) // 100 / 3 + 2 * int(row["Attack"]) + rest)
+
+
+def _swf(hero: Any, pawn: Any) -> str:
+    return str((hero or {}).get("ResPath") or (pawn or {}).get("Swf") or "")
+
+
+@lru_cache(maxsize=2)
+def _son_by_swf(templates: GameTemplates) -> dict[str, int]:
+    """Desenho do monstro -> sonType, dos andares vistos."""
+    out: dict[str, int] = {}
+    for k, f in _SEEN["floors"].items():
+        tid = MONSTER_BASE + int(k)
+        out[_swf(templates.get("GameHeroTemp", tid), templates.get("PawnTempInfos", tid))] = int(f["son"])
+    return out
+
+
 def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) -> dict[str, Any]:
     m = map_of(floor)
     camp = m * 100
@@ -263,12 +290,14 @@ def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) 
     hero = templates.get("GameHeroTemp", tid)
     pawn = templates.get("PawnTempInfos", tid)
     name = (seen or {}).get("name") or (hero or {}).get("TemplateName") or (pawn or {}).get("PawnName", "")
-    # TODO(inventado) andares 29+: o sonType 2116 e o poder de luta do último andar visto (28) são chutes
-    monster = _node(camp + MONSTER, NODE_MONSTER, (seen or {}).get("son", 2116), 1, lay["monster"][:2],
-                    lay["monster"][2:4])  # fmt: skip
+    # o sonType é o ícone do nó (tabela do cliente, não do catálogo): o do andar visto com o mesmo desenho (29 = o
+    # monster007C dos 26-28); TODO(inventado) desenho nunca visto (30+) usa o do último andar
+    son = (seen or {}).get("son") or _son_by_swf(templates).get(_swf(hero, pawn), last["son"])
+    monster = _node(camp + MONSTER, NODE_MONSTER, son, 1, lay["monster"][:2], lay["monster"][2:4])
     monster |= {
         "nodeName": name, "nameColor": 5, "toward": 180, "resource": 1, "handlerRange": 2,
-        "heroTempId": tid if hero is not None else -1, "fightCapaity": (seen or last)["fight"],
+        "heroTempId": tid if hero is not None else -1,
+        "fightCapaity": (seen or {}).get("fight") or fight_power(hero, pawn),
         "param3": str(camp + MONSTER), "param4": str(camp + PORTAL) if floor < top else "",
     }  # fmt: skip
     portal = _node(camp + PORTAL, NODE_SEND, 2336, HIDDEN_PORTAL, lay["portal"][:2], lay["portal"][2:4])

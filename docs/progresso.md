@@ -255,7 +255,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) por andar e desempate pelo horário (jogador 28/10), calculado ao abrir; dificuldade em `game_settings.maze.hp_pct`; prêmio do reset sem captura |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
 | Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
-| Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante repete o 28 (`TODO(inventado)`) |
+| Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante a luta e o poder do nó saem do catálogo (fórmula que reproduz os 28 vistos); o ícone (sonType) vem do desenho já visto (29), do 30 em diante falta captura |
 | Aviso de respawn (4207) | ✅ | | manda após a derrota: 0 grátis e 25 depois (28/10 #1105, #1547, #1742, #1827). Morto e sem reviver, a saída (5025) manda 4419 com os itens e zera a corrida (25/10 #11411, 26/10 #13469, 28/10 #1839-#1854); revivido (8300) ou vivo, sai sem 4419 e a corrida continua (24/10 #13956-#13965) |
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | 🧪 | | resposta inventada (`tower.py:207`) |
