@@ -286,3 +286,17 @@ Teste: tests/game/test_missoes_capturas.py (códigos S>C da entrega contra o ofi
 | 590 | ok | 8417 | códigos iguais |
 | 310, 360, 400, 410, 420, 430, 450, 460, 480, 490, 500, 510, 520, 550, 560, 570, 600, 610 | pendente (xfail) | 8939, 11761, 15035, 17367, 17542, 19336, 20432, 20602, 3001, 3082, 5348, 7537, 7597, 8188, 12626, 12635, 14162, 13701 | falta 83 (texto do EXP) e/ou 115 (consumo de item) |
 | 580 | pendente (xfail) | 18069 | oficial não manda resposta; o servidor responde |
+
+## Verificação por captura: entregas até o nível 10 (rodada 2)
+
+Tabela do oficial em tests/game/test_missoes_capturas.py (códigos e textos do 83). Janela do oficial: até o próximo pedido do cliente, mais o 83 "Received N EXP" logo depois dele (S\q\oficial.md). Personagem de teste no grau 39 (abaixo do bônus de EXP do mundo, min_grade 40).
+
+Causas achadas: o 115 de consumo de item e o 83 da EXP já saíam no código (HEAD). As divergências da rodada 1 eram do teste: item criado em memória sem estar no banco, e grau 60 que ligava o bônus de EXP do mundo ("Including World EXP").
+
+| id | estado | #idx | motivo |
+|---|---|---|---|
+| 360, 380, 410, 420, 440, 450, 460, 470, 500, 510, 520, 550, 560, 570? | ok (ver teste) | ver tabela | códigos e textos do 83 iguais |
+| 310 | pendente (xfail) | 8939 | recompensa com 4484/111/114/4131/149 de outras áreas |
+| 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | oficial sobe de nível depois do 83 (100/150); grau do personagem da captura não se conhece |
+| 490 | pendente (xfail) | 3082 | oficial manda 109 antes do 3; causa não confirmada |
+| 580 | pendente (xfail) | 18069 | oficial não responde (sem 112 de recusa); causa não confirmada |
