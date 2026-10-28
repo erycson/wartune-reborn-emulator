@@ -65,6 +65,26 @@ def test_layouts_por_faixa(content: dict) -> None:  # type: ignore[type-arg]
     assert (_nodes(content, 21)[4]["posX"], _nodes(content, 21)[4]["posY"]) == (52, 37)
 
 
+def test_batalhas_como_o_157(content: dict) -> None:  # type: ignore[type-arg]
+    """(visto, 157 de 24/10 a 27/10) 8002: quatro 7002 nas posições 2, 3, 8 e 9 (livingId 4 a 7), vida 1008, castTime
+    4000 e skills 40024, 40025, 40025. O chefe 8005 vem sozinho (livingId 4, castTime 4000, skills 60021...)."""
+    soldiers = content["battles"]["800202"]["soldiers"]
+    assert [(s["livingId"], s["tempId"], s["pos"], s["initHp"]) for s in soldiers] == [
+        (4, 7002, 2, 1008), (5, 7002, 3, 1008), (6, 7002, 8, 1008), (7, 7002, 9, 1008)]  # fmt: skip
+    assert soldiers[0]["castTime"] == 4000 and soldiers[0]["skillId"] == [40024, 40025, 40025]
+    boss = content["battles"]["800502"]
+    assert boss["soldiers"] == []
+    hero = boss["heroes"][0]
+    assert (hero["livingId"], hero["pos"], hero["castTime"], hero["captain"]) == (4, 5, 4000, 1)
+    assert hero["skillId"][:4] == [60021, 60021, 60023, 60021]
+    assert content["battles"]["802502"]["heroes"][0]["castTime"] == 4000
+
+
+def test_monstro_nao_larga_item(content: dict) -> None:  # type: ignore[type-arg]
+    """(visto, 4103 de 24/10 #12181-#13269) as vitórias dos andares 1 a 15 dão só EXP."""
+    assert all(v == [] for v in content["drops"].values())
+
+
 def test_ganho_do_andar_e_fog(content: dict) -> None:  # type: ignore[type-arg]
     """(visto) o totalGp depois do andar k é 200 * k * (k + 1); o andar 5 dá 2000 de GP de batalha."""
     assert content["battles"]["800502"]["gpBonus"] == 2000

@@ -49,7 +49,10 @@ DEFAULT: dict[str, Any] = {
     "gp_per_floor": 400,
     "free_enter": 1,  # (visto, só turco) freeEnterCount 1, maxEnterCount 1 em todos os 4205
     "max_enter": 1,
-    "drops": [[2090101, 2, 1.0]],  # (só turco: yeralti #69) Minor HP Pack x2 no 8002; TODO(inventado) o mesmo em todos
+    # (visto, 4103 de 24/10 #12181 a #13269) nenhuma vitória dos andares 1-15 deu item de monstro, só EXP (gpBonus).
+    # Os andares 21 e 22 têm loot depois do 4103 (25/10 #10000-#10421), mas não dá para atribuir a um monstro:
+    # TODO(inventado) nada além disso; o Minor HP Pack x2 do turco (yeralti #69) não apareceu nas capturas novas.
+    "drops": [],
     # baú dos andares não vistos (25 em diante): TODO(inventado) o do andar 5 (visto em content/maze_floors.json)
     "chest": [[2050701, 2], [208009, 2]],
     "chest_every": 5,
@@ -159,44 +162,46 @@ def _node(camp: int, master: int, son: int, state: int, pos: tuple[int, int], fi
     }  # fmt: skip
 
 
-def _soldier(living: int, row: Any, pos: int) -> dict[str, Any]:
-    """(só turco: yeralti #44) o 7002 entrou com 1008 de vida (Live 100800 / 100), ``castTime`` 4000 e três
-    habilidades; (dedução) as dos outros são o ``DefaultSkill`` três vezes."""
+def _soldier(living: int, row: Any, pos: int, battle: dict[str, Any]) -> dict[str, Any]:
+    """(visto, 157 de 24/10 a 27/10) a escolta tem vida Live / 100, ``castTime`` e skills do andar (``battle``) e
+    livingId 4 a 7 nas posições 2, 3, 8 e 9. Sem captura: o ``DefaultSkill`` três vezes e 4000 (TODO(inventado))."""
     hp = int(row["Live"]) // 100
-    skill = int(row["DefaultSkill"])
+    skills = battle.get("skills") or [int(row["DefaultSkill"])] * 3
     return {"livingId": living, "tempId": int(row["TemplateId"]), "type": 1, "side": 2, "pos": pos, "initHp": hp,
-            "hp": hp, "qteTime": 0, "castTime": 4000, "skillId": [skill] * 3}  # fmt: skip
+            "hp": hp, "qteTime": 0, "castTime": battle.get("cast", 4000), "skillId": skills}  # fmt: skip
 
 
-def _hero(row: Any) -> dict[str, Any]:
-    """Chefe: TODO(inventado) como o 201106 da 0084 (os números do GameHeroTemp)."""
+def _hero(row: Any, battle: dict[str, Any]) -> dict[str, Any]:
+    """Chefe (visto, 157): livingId 4 na posição 5, vida = Live, sem escolta; ``castTime`` e skills do andar. Sem
+    captura: TODO(inventado) o ``DefaultSkill`` dezoito vezes e 6000."""
     hp = int(row["Live"])
     return {
-        "heroId": 1300000000, "livingId": 5, "userId": 0, "userPics": 0, "tempId": int(row["TemplateId"]), "type": 3,
+        "heroId": 1300000000, "livingId": 4, "userId": 0, "userPics": 0, "tempId": int(row["TemplateId"]), "type": 3,
         "nickName": row["TemplateName"], "grade": int(row["Grades"]), "side": 2, "pos": 5, "maxHp": hp, "initHp": hp,
         "hp": hp, "hp2": 0, "sp": 0, "slotAvata": "", "clothAvate": "", "cloakPath": "", "hairPath": "",
-        "captain": int(row["Captain"]), "res": row["ResPath"], "qteTime": 0, "castTime": 6000, "pawnTempId": 0,
-        "skillId": [int(row["DefaultSkill"])] * 18, "headId": 0, "isShow": False, "serverName": "", "wingAvata": "",
-        "fashionArmAvata": "", "fashionClothAvata": "", "awake": 0, "livingId2": 0, "fateSkillTempIds": "",
-        "isChange": False, "fightCapacity": 0, "hasShadow": False, "mateId": 0, "curturn": 0,
+        "captain": int(row["Captain"]), "res": row["ResPath"], "qteTime": 0,
+        "castTime": battle.get("cast", 6000), "pawnTempId": 0,
+        "skillId": battle.get("skills") or [int(row["DefaultSkill"])] * 18, "headId": 0, "isShow": False,
+        "serverName": "", "wingAvata": "", "fashionArmAvata": "", "fashionClothAvata": "", "awake": 0, "livingId2": 0,
+        "fateSkillTempIds": "", "isChange": False, "fightCapacity": 0, "hasShadow": False, "mateId": 0, "curturn": 0,
     }  # fmt: skip
 
 
 def _battle(templates: GameTemplates, cfg: dict[str, Any], floor: int) -> dict[str, Any]:
-    """(só turco: yeralti #44) battleType 6, attackModel 2, battleScene 10, quatro do monstro nas posições 2, 3, 8 e 9;
-    o gpBonus guardado é a base (``rules.exp_bonus`` soma o mundo e a descansada)."""
+    """(visto, 157) battleType 6, attackModel 2; quatro do monstro nas posições 2, 3, 8 e 9, e o chefe sozinho (sem
+    escolta). ``battleScene`` 10 não conferido no 157. O gpBonus guardado é a base (``rules.exp_bonus`` soma o mundo e a
+    descansada)."""
     tid = MONSTER_BASE + floor
+    battle = _SEEN["floors"].get(str(floor), {}).get("battle", {})
     spec: dict[str, Any] = {
         "battleType": 6, "mapTempId": map_of(floor), "attackModel": 2, "soldiers": [], "heroes": [],
         "player": {"livingId": 1, "pos": 1}, "map": map_of(floor), "gpBonus": floor_gp(cfg, floor),
         "strategyBonus": 0, "battleScene": 10,
     }  # fmt: skip
     if (hero := templates.get("GameHeroTemp", tid)) is not None:
-        spec["heroes"] = [_hero(hero)]
-        pawn = templates.get("PawnTempInfos", tid - 1)  # TODO(inventado): dois do andar anterior com o chefe
-        spec["soldiers"] = [_soldier(3 + i, pawn, p) for i, p in enumerate((3, 9))] if pawn is not None else []
+        spec["heroes"] = [_hero(hero, battle)]
     elif (pawn := templates.get("PawnTempInfos", tid)) is not None:
-        spec["soldiers"] = [_soldier(3 + i, pawn, p) for i, p in enumerate((2, 3, 8, 9))]
+        spec["soldiers"] = [_soldier(4 + i, pawn, p, battle) for i, p in enumerate((2, 3, 8, 9))]
     return spec
 
 
