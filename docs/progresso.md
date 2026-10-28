@@ -39,11 +39,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 2 | 4 | 2 |
-| Atividades e eventos | 5 | 11 | 3 | 4 | 5 |
+| Atividades e eventos | 5 | 10 | 4 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **99** | **92** | **39** | **46** | **35** |
+| **Total** | **99** | **91** | **40** | **46** | **35** |
 
 ## Validação e base
 
@@ -383,7 +383,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Caça ao tesouro, quiz, minério | ❌ | | fechados |
 | Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
 | Campo minado, caixa de ano novo, história | ❌ | | |
-| Recuperar EXP (9503) | 🟡 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); só grupo (1), painel (4) e coliseu (8) têm contador; curva de EXP por nível inventada (TODO) |
+| Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis e Spire sem entrada: contam como não feitas); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
 | Corneta (passe), 360 | ❌ | | |
 

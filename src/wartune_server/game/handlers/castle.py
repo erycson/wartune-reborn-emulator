@@ -281,15 +281,13 @@ async def gold_impose(s: GameSession, _: object) -> None:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
-    council, mine = cs.by_son_type(snap, templates, cs.COUNCIL), cs.by_son_type(snap, templates, cs.MINE)
+    council = cs.by_son_type(snap, templates, cs.COUNCIL)
     cs.impose_order(snap, now)  # chegou ao 14 sem ``push_level`` (EXP de pacote, ``player.granted``): a fila nasce aqui
     order, used = cs.free_order(snap, cs.IMPOSE, now), cs.impose_used(snap.castle, s.ctx.clock.now())
     if council is None or order is None or used >= b.MAX_IMPOSE or c.grades < cs.IMPOSE_GRADE:
         _refuse(s, 8327, "sem conselho, fila ocupada, sem cobranças ou nível", used=used)
         return
-    p1 = int((cs.template(templates, council.template_id) or {}).get("Property1", 0))
-    mine_p1 = int((cs.template(templates, mine.template_id) or {}).get("Property1", 0)) if mine else 0
-    gold = p1 * 6 + mine_p1 * 3
+    gold = cs.levy_gold(snap, templates)
     cs.settle(snap, templates, now)  # antes de somar: a cobrança pode passar do teto
     c.gold += gold
     snap.castle.impose_used, snap.castle.imposed_at = used + 1, now

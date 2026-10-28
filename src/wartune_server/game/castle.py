@@ -196,6 +196,15 @@ def impose_used(castle: Castle, now: datetime) -> int:
     return castle.impose_used
 
 
+def levy_gold(snap: PlayerSnapshot, templates: GameTemplates) -> int:
+    """Ouro de uma cobrança (8327): conselho.Property1*6 + mina.Property1*3 (0 sem conselho)."""
+    council, mine = by_son_type(snap, templates, COUNCIL), by_son_type(snap, templates, MINE)
+    if council is None:
+        return 0
+    p1 = int((template(templates, council.template_id) or {}).get("Property1", 0))
+    return p1 * 6 + (int((template(templates, mine.template_id) or {}).get("Property1", 0)) if mine else 0) * 3
+
+
 # --- filas ---------------------------------------------------------------------------------------
 
 

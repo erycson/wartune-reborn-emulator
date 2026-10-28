@@ -537,7 +537,7 @@ async def _recover_one(s: GameSession, snap: PlayerSnapshot, msg: pb.RecoverReqM
     left = rec.pending(snap, now)
     num = left.get(msg.type, 0)
     units = 1 if msg.count == 1 else num
-    row = rec.info(templates, msg.type, units, c.grades) if num and msg.count in (1, 2) else None
+    row = rec.info(snap, templates, msg.type, units) if num and msg.count in (1, 2) else None
     if row is None or msg.way not in (1, 2, 3):
         s.log.info("9503 recusado", tipo=msg.type, way=msg.way)
         return
@@ -546,7 +546,8 @@ async def _recover_one(s: GameSession, snap: PlayerSnapshot, msg: pb.RecoverReqM
     have = sum(i.count for i in bag.in_bag(snap) if i.template_id == rec.ITEM)
     short = 0 if gold else max(0, cost - have)
     price = short * int(rules.config(templates, "RECOVER_POINT", "10"))
-    drops = [(rec.base(msg.type, c.grades)[0], reward)]  # type: ignore[index]
+    kind = rec.base(msg.type, snap, templates)[0]  # type: ignore[index]
+    drops = rec.drops(msg.type, kind, reward)
     if (
         reward <= 0
         or (gold and c.gold < cost)
@@ -563,6 +564,7 @@ async def _recover_one(s: GameSession, snap: PlayerSnapshot, msg: pb.RecoverReqM
     st = ev.daily(snap, rec.KEY, now)
     st.text, st.updated_at = json.dumps({str(k): v for k, v in left.items() if v > 0}), now
     new, _ = rewards.grant(snap, templates, drops)
+    c.weary += reward if kind == rec.STAMINA else 0  # como a poção: pode passar do teto
     changed = [i for i in changed if i not in new]
     extra = [spent] if spent is not None else []
     await s.ctx.characters.save(*rewards.owners(snap), st, *changed, *new, *extra, delete=tuple(gone))
@@ -573,11 +575,12 @@ async def _recover_one(s: GameSession, snap: PlayerSnapshot, msg: pb.RecoverReqM
         s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     if new:
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
-    if drops[0][0] == rewards.EXP:
+    if kind == rewards.EXP:
         alert(s, f"{reward:,} EXP gained through Recovery.")
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(reward)))
-    else:
-        alert(s, f"Gained {(templates.get('ItemTempInfos', drops[0][0]) or {}).get('TemplateName', '')}x{reward}")
+    else:  # TODO(inventado): o texto de estamina/ouro/Daru segue o da insígnia (só ela tem captura)
+        names = [(templates.get("ItemTempInfos", t) or {}).get("TemplateName", "") for t, _ in drops] or ["Stamina"]
+        alert(s, ", ".join(f"Gained {n}x{reward}" for n in names))
 
 
 # ---------------------------------------------------------------- fechados sem tabela no servidor

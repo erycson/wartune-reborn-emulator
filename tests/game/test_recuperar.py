@@ -8,7 +8,7 @@ from pathlib import Path
 from tests.game.harness import Game, logged_in
 from wartune_server.domain import gameday
 from wartune_server.domain.models import PlayerSnapshot
-from wartune_server.game import daily
+from wartune_server.game import daily, recover
 from wartune_server.game import events as ev
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -78,3 +78,44 @@ async def test_lista_de_ontem_resgate_e_virada(tmp_path: Path) -> None:
         daily.roll(snap, templates, clock.now())
         rows = (await _list(g))[1]
         assert (rows[1].num, rows[4].num, rows[8].num) == (1, 20, 15)
+
+
+async def test_labirinto_altar_transbordo_chefe_e_cobranca(tmp_path: Path) -> None:
+    clock = FakeClock(datetime(2026, 10, 23, 10, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        snap, templates = _snap(g), s.ctx.templates
+        c, now = snap.character, clock.now()
+        c.grades, c.point, c.gift_token = 29, 1000, 0
+        ev.daily(snap, "leed:23", now).value = 1  # entrou nas Catacombs
+        ev.daily(snap, "hangup", now).value = 57  # meditou 57 de 60
+        c.weary, c.weary_limit = 170, 200  # a virada dá 100: 70 transbordam
+        assert snap.castle is not None
+        snap.castle.impose_used, snap.castle.imposed_at = 5, now  # as 5 cobranças
+
+        clock.advance(DAY)
+        daily.roll(snap, templates, clock.now())
+        rows = (await _list(g))[1]
+        assert 2 not in rows and 3 not in rows and 10 not in rows  # feitas; Necropolis fechada
+        assert 5 not in rows  # The Spire: nível 38
+        # (visto) d27 #63: altar num 3 -> itemReward 60, sem ouro
+        assert (rows[6].num, rows[6].itemCost, rows[6].itemReward, rows[6].goldCost) == (3, 3, 60, 0)
+        assert (rows[7].num, rows[7].itemReward) == (70, 70)
+        assert rows[9].num == 1 and rows[9].itemReward > 0  # chefe do mundo: não lutou
+
+        weary = c.weary
+        _, rows = await _list(g, 6, 1, 3)  # uma unidade do altar, item pago em diamantes
+        assert rows[6].num == 2 and c.weary == weary + 20
+
+        gold, daru = c.gold, c.strategy
+        reward = rows[9].itemReward
+        _, rows = await _list(g, 9, 2, 3)
+        assert 9 not in rows and (c.gold - gold, c.strategy - daru) == (reward, reward)
+
+        snap.castle.impose_used = 0
+        clock.advance(DAY)  # nenhuma cobrança ontem: a linha 10 com o ouro de uma cobrança
+        daily.roll(snap, templates, clock.now())
+        rows = (await _list(g))[1]
+        one = recover.base(10, snap, templates)
+        assert one is not None and rows[10].num == 5 and rows[10].itemReward == 5 * one[1]
