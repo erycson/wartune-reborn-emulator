@@ -30,7 +30,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Itens | 12 | 6 | 6 | 2 | 2 |
 | Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
-| Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
+| Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **99** | **91** | **40** | **46** | **35** |
+| **Total** | **100** | **90** | **40** | **46** | **35** |
 
 ## Validação e base
 
@@ -216,7 +216,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Terra secreta: árvore sagrada | 🧪 | | EXP do tique e energia inventados (`fam.py:33`) |
 | Anúncio de recrutamento | 🧪 | | canal e remetente inventados |
 | Correio de guilda | ✅ | | |
-| Guerra de guildas | 🟡 | | lista inventada; entrar e time recusados; a luta (4439-4462) está em 26/10 #2464-#5970 e falta o mapa de GvG |
+| Guerra de guildas | ✅ | | mapa 4501 (26/10 #2464-#6452): par das 8 maiores, torres, placar/10000, vantagem de 4000, feridas, buffs, prêmio; TODO: PvP 8548, janela diária e carro/invencível sem efeito |
 | Guerra entre servidores | ❌ | | |
 | Master Treasure Thief (8743) | ❌ | | |
 

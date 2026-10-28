@@ -201,7 +201,14 @@ async def test_lider_invoca_energiza_compra_o_buff_e_ganha_exp(tmp_path: Path) -
         assert char.consortia_offer == 300  # Fam_Buffer_Price 200
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=COLLECT, paraBool1=True))
-        await g.idle()
+        got = await g.idle()
+        assert codes(got) == [143, 4609]  # (visto) 20261026-225632-1 #6488-#6489
+        assert pb.NodeLockReqMsg.FromString(got[1].body) == pb.NodeLockReqMsg(nodeId=COLLECT, lock=True)
+        assert char.consortia_offer == 300
+        g.client.send(5032, pb.CallBackReqMsg(mapId=7501, nodeId=COLLECT, cmd=2))
+        got = await g.idle()
+        assert codes(got) == [3, 111, 128]  # #6491-#6493
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Successfully collected!"
         assert char.consortia_offer == 305  # TODO(inventado) fam_tree.collect_offer 5 (0074)
 
         before, grade = char.total_gp, char.grades

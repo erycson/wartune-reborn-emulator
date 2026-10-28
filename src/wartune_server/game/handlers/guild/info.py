@@ -199,9 +199,11 @@ async def member_list(s: GameSession, _: object) -> None:
             ).fighting_capacity
         row = gd.member_msg(s.ctx.guilds, c, m, other is not None, guild)
         # (visto) oficial_20261023-171155-1 #4572: Daru em ``strategy``, posição por EXP, VIP e retrato também de
-        # quem está offline; ``isTeamPlayer`` veio true em todas as linhas. TODO(inventado): ``matchWin``/
-        # ``matchFailed`` vão 0 (o coliseu daqui não conta vitórias e derrotas)
-        row.strategy, row.gpOrder, row.headId, row.isTeamPlayer = c.strategy, order, head, True
+        # quem está offline; ``isTeamPlayer`` veio true em todas as linhas (todos começam na lista da guerra; o 8473
+        # tira e põe, ``handlers/guildwar.py``). TODO(inventado): ``matchWin``/``matchFailed`` vão 0 (o coliseu daqui
+        # não conta vitórias e derrotas)
+        row.strategy, row.gpOrder, row.headId = c.strategy, order, head
+        row.isTeamPlayer, row.role = not m.gvg_out, m.gvg_role
         if other is not None and other.snapshot is not None:
             vip, kind = is_vip(other.snapshot, s.ctx.clock.now()), vip_type(other.snapshot)
         else:

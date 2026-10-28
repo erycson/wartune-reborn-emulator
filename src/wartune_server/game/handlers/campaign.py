@@ -322,6 +322,10 @@ async def sync_pos(s: GameSession, msg: pb.PosMoveMsg) -> None:
             from .warfield import broadcast_move  # warfield importa este módulo
 
             broadcast_move(s, msg)
+        if s.campaign.gvg:
+            from .guildwar import moved  # guildwar importa este módulo
+
+            moved(s, msg)
 
 
 @router.on(8196)
@@ -341,6 +345,11 @@ async def node_lock(s: GameSession, msg: pb.NodeLockReqMsg) -> None:
 async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     c = s.campaign
     node = c.node(msg.paraInt1) if c else None
+    if c is not None and node is not None and c.gvg:  # as torres tomadas (16/17) e o acampamento (9) também
+        from .guildwar import arrive as war_arrive  # guildwar importa este módulo
+
+        await war_arrive(s, msg.paraInt1, node)
+        return
     if c is None or node is None or node["state"] != NORMAL or c.fighting or c.locked(msg.paraInt1):
         return
     camp = msg.paraInt1
@@ -398,6 +407,11 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
         from .warfield import callback as field_callback  # warfield importa este módulo
 
         await field_callback(s, msg)
+        return
+    if c.fam:
+        from . import fam  # fam importa este módulo
+
+        await fam.callback(s, camp, msg.cmd)
         return
     if c.content is not None:
         await _dungeon_callback(s, camp)
@@ -877,6 +891,10 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
         from . import fam  # fam importa este módulo
 
         fam.show_room(s)
+    if msg.state == BACK_TO_MAP and c is not None and c.gvg and not c.ready:
+        from .guildwar import show_map  # guildwar importa este módulo
+
+        show_map(s)
     if msg.state == BACK_TO_MAP and c is not None and c.over is not None:
         gp, strategy = c.over
         c.over = None
@@ -1252,6 +1270,11 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         from .hangup import confirm  # idem
 
         await confirm(s, msg)
+        return
+    if c is not None and c.gvg:
+        from .guildwar import confirm as war_confirm  # guildwar importa este módulo
+
+        await war_confirm(s, msg)
         return
     if c is not None and snap is not None and c.is_warfield:
         from .warfield import confirm as field_confirm  # warfield importa este módulo

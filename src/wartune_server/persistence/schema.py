@@ -978,6 +978,8 @@ consortia_members = Table(
     _int("voted_id"),
     Column("fam_power_at", UTCDateTime),
     Column("fam_buff_at", UTCDateTime),
+    _bool("gvg_out"),
+    _int("gvg_role"),
 )
 
 consortia_invites = Table(

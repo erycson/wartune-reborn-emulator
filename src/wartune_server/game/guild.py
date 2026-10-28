@@ -118,6 +118,7 @@ class Guilds:
     logout_at: dict[int, datetime] = field(default_factory=dict)
     reserved: set[str] = field(default_factory=set)  # nomes sendo criados (entre a checagem e o save)
     invasions: dict[int, Any] = field(default_factory=dict)  # guilda -> ``fam.Invasion`` (Invasores do 7501)
+    wars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``guildwar.War`` de hoje (as duas do par)
 
     @classmethod
     async def load(cls, characters: CharacterService, server_id: int) -> Guilds:
@@ -323,6 +324,9 @@ def on_logout(s: GameSession, fighting_capacity: int) -> None:
     g = s.ctx.guilds
     s.snapshot.character.fighting_capacity = fighting_capacity  # só para as listas de quem está offline
     g.logout_at[s.player_id] = s.ctx.clock.now()
+    from .handlers.guildwar import leave_war  # handlers importa este módulo
+
+    leave_war(s)
     mine = g.of(s.player_id)
     if mine is not None:
         for o in online_members(s.ctx, mine[0].id or 0):

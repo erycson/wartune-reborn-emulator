@@ -19,6 +19,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     gold_tree,
     guild,
     guild_events,
+    guildwar,
     hangup,
     hero,
     items,

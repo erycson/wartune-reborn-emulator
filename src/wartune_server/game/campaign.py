@@ -102,6 +102,7 @@ class CampaignMap:
     fam: bool = False  # terra secreta da guilda (7501): Invasores, em ``handlers/fam.py``
     ready: bool = False  # o 1º 5035 state 4 já foi tratado (terra secreta: a sala; chefe do mundo: 4371 e 4413)
     warfield: int = 0  # campo de batalha (4005/4007) ou mina (30000): ``handlers/warfield.py``; 0 = não é
+    gvg: bool = False  # guerra de guildas (4501): ``handlers/guildwar.py``
 
     @property
     def is_warfield(self) -> bool:

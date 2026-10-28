@@ -832,6 +832,9 @@ class ConsortiaMember:
     # terra secreta: a invocação (``Consortia.tree_called_at``) em que energizou e em que comprou o buff (8566)
     fam_power_at: datetime | None = None
     fam_buff_at: datetime | None = None
+    # guerra de guildas (8473): fora da lista de participantes e o papel (1 = gerente da luta)
+    gvg_out: bool = False
+    gvg_role: int = 0
 
 
 @dataclass(eq=False)

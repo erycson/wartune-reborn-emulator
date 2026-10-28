@@ -2,15 +2,17 @@
 guerra entre servidores.
 
 Todas acontecem em mapas próprios (7601 altar, 7501 terra secreta, 4501 guerra, 4601 entre
-servidores) que o cliente abre com o 125 ``RoomCreatedMsg``. A terra secreta está em ``handlers/fam.py``; as
-outras entradas ficam recusadas e os pacotes de dentro do mapa só registram no log. O que tem estado fora do mapa
-(abrir o altar, listas vazias) está aqui. Dependências em docs/guilda.md.
+servidores) que o cliente abre com o 125 ``RoomCreatedMsg``. A terra secreta está em ``handlers/fam.py`` e a guerra
+de guildas (entrar, lista de participantes, buffs e o mapa) em ``handlers/guildwar.py``; as outras entradas ficam
+recusadas e os pacotes de dentro do mapa só registram no log. O que tem estado fora do mapa (abrir o altar, listas
+vazias, os grupos da guerra) está aqui. Dependências em docs/guilda.md.
 """
 
 from __future__ import annotations
 
 from ...protocol.messages import wartune_pb2 as pb
 from .. import guild as gd
+from .. import guildwar as gw
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
@@ -95,19 +97,23 @@ GVG_GUILDS = 8  # (visto) oficial_20261023-171155-1 #5135-#5136: 8 guildas no 44
 
 @router.on(8546)
 async def gvg_groups(s: GameSession, _: object) -> None:
-    """Grupos da guerra. (visto) oficial_20261023-171155-1 #5135-#5136: 4441 com as guildas (nome, grupos, resultados e
-    ``fightPower``) e ``isGuildSize``, depois o 4458 com a ordem da semana passada (``order``, ``fightPower`` e
-    ``orderTime``). A guerra não roda aqui (login manda ``GuildMsg.param5`` falso; o mapa 4501 precisa de captura):
-    TODO(inventado): as 8 guildas de maior ``fightPower`` agora, sem grupos nem resultados, ``isGuildSize`` com 8
-    guildas no servidor, e a "semana passada" é a mesma ordem de agora com ``orderTime`` = agora.
+    """Grupos da guerra. (visto) oficial_20261023-171155-1 #5135-#5136 e 20261026-225632-1 #2464/#6451: 4441 com as 8
+    guildas de maior ``fightPower``, ``group1`` = posição % 4 + 1 (as duas do mesmo grupo se enfrentam, ``guildwar``)
+    e ``result1`` 1 na vencedora da guerra de hoje; depois o 4458 com a ordem da semana passada. TODO(inventado): só a
+    1ª rodada (``group2``-``group4`` vão 0), ``isGuildSize`` com 8 guildas no servidor, e a "semana passada" é a
+    mesma ordem de agora com ``orderTime`` = agora.
     """
+    from .guildwar import result  # guildwar importa guild, que importa este módulo
+
     g = s.ctx.guilds
     top = sorted(g.guilds.values(), key=lambda x: -g.fight_power(x.id or 0))[:GVG_GUILDS]
     teams = pb.GuildGroupListMsg(isGuildSize=len(g.guilds) >= GVG_GUILDS)
     order = pb.GuildGroupListMsg(orderTime=b.fmt_time(_now(s)))
+    ids = [x.id or 0 for x in top]
     for i, x in enumerate(top, 1):
         power = g.fight_power(x.id or 0)
-        teams.group.add(consortiaId=x.id or 0, consortiaName=x.name, fightPower=power)
+        teams.group.add(consortiaId=x.id or 0, consortiaName=x.name, fightPower=power,
+                        group1=gw.group_of(ids, x.id or 0), result1=result(s.ctx, x.id or 0))  # fmt: skip
         order.group.add(consortiaId=x.id or 0, consortiaName=x.name, order=i, fightPower=power)
     s.send(S_GVG_TEAM, b.complete(teams))
     s.send(S_GVG_ORDER, b.complete(order))
@@ -121,22 +127,6 @@ async def gvg_challenge(s: GameSession, _: object) -> None:
 @router.on(8477)
 async def gvg_list(s: GameSession, _: object) -> None:
     s.send(S_GVG_LIST, b.complete(pb.GuildChallengeOrderListMsg()))
-
-
-@router.on(8471)
-async def gvg_enter(s: GameSession, _: object) -> None:
-    """Entrar na guerra: o cliente espera o 125 do mapa 4501."""
-    _refuse(s, 8471, "guerra de guildas não implementada")
-
-
-@router.on(8473)
-async def gvg_team_edit(s: GameSession, msg: pb.TeamEditMsg) -> None:
-    _refuse(s, 8473, "guerra de guildas não implementada", alvo=msg.userId, op=msg.op)
-
-
-@router.on(8547)
-async def gvg_buff(s: GameSession, msg: pb.GuildMsg) -> None:
-    _refuse(s, 8547, "fora do mapa da guerra", buff=msg.param1)
 
 
 # ---- guerra entre servidores -----------------------------------------------------------------

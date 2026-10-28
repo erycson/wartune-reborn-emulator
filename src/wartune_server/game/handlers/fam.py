@@ -17,7 +17,8 @@ A árvore (regras em ``game/fam.py``, sem captura: tudo **dedução** do cliente
 botão só aparece com ``treeState`` 2 ao líder) e todos os membros online recebem o 4432 com ``opreate`` 2 (o cliente
 avisa "Tree of Ancients spawned" a quem está fora); por 15 min a árvore fica à vista, quem está na sala ganha EXP a
 cada 15 s (pago no relógio, 20008), energiza uma vez (5125 na árvore), compra o buff (8566) e colhe as coletas que
-aparecem a cada 3 min (5125 nelas, contribuição). O tesouro do senhor (8743, Master Treasure Thief) depende do
+aparecem a cada 3 min (5125 nelas trava o nó com o 4609,
+o 5032 colhe e dá contribuição). O tesouro do senhor (8743, Master Treasure Thief) depende do
 ranking da Class Wars entre servidores (``isCanCall``): sem ela o botão nunca aparece.
 """
 
@@ -65,7 +66,9 @@ from .login import army
 from .player import hero_after_fight, hp_pack, push_level
 from .shop import send_blood
 
-S_TREE, S_LORDS, S_INFO, S_ARMY_MOVED = 4432, 4632, 4453, 4104
+S_TREE, S_LORDS, S_INFO, S_ARMY_MOVED, S_MOVIE, S_LOCK = 4432, 4632, 4453, 4104, 143, 4609
+COLLECT_CMD = 2  # (visto #6490) CallBackReqMsg.cmd da coleta
+COLLECTED = "Successfully collected!"  # (visto #6492)
 INVADER = 151  # masterType do Invasor (o 127 da captura: 9 nós, sonType 2105)
 TREE = PANDORA  # masterType 61 do nó "Guild Tree of Ancients" (sonType 2392)
 SUMMONED = 2  # FamInfoMsg.opreate: o cliente avisa quem está fora da sala (``__consortiaTreeUpdateHandler``)
@@ -299,7 +302,9 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
         await _energize(s, camp, *mine)
         return
     if node["masterType"] == COLLECT and node["state"] == NORMAL and mine is not None:
-        await _collect(s, camp, mine[0])
+        # (visto) 20261026-225632-1 #6487-#6489: a animação de coleta e a trava do nó; a coleta vem no 5032
+        s.send(S_MOVIE, pb.PlayerMovieMsg(movieTargetType=0, targetId=node["nodeId"], movieType="COLLECTION"))
+        s.send(S_LOCK, pb.NodeLockReqMsg(nodeId=camp, lock=True))
         return
     if node["masterType"] != INVADER or c.battle_like(camp) is None or s.battle is not None or mine is None:
         s.log.info("terra secreta: 5125 sem luta", nó=camp, tipo=node["masterType"])
@@ -336,8 +341,18 @@ async def _energize(s: GameSession, camp: int, guild: Consortia, member: Consort
     s.log.info("terra secreta: energizou", nó=camp, energia=guild.tree_power)
 
 
+async def callback(s: GameSession, camp: int, cmd: int) -> None:
+    """5032 ``cmd`` 2 depois da animação: a coleta (visto #6490)."""
+    c, mine = s.campaign, _mine(s)
+    node = c.node(camp) if c is not None else None
+    if cmd == COLLECT_CMD and node is not None and node["masterType"] == COLLECT and node["state"] == NORMAL and mine:
+        await _collect(s, camp, mine[0])
+
+
 async def _collect(s: GameSession, camp: int, guild: Consortia) -> None:
-    """Coleta da leva em curso: some (128 state 8) e dá ``fam_tree.collect_offer`` de contribuição."""
+    """Coleta da leva em curso: (visto) #6491-#6493 3, 111 "Successfully collected!" e 128 state 8; dá
+    ``fam_tree.collect_offer`` de contribuição. ponytail: o 164 que veio depois (#6495) não sai: não se sabe o que a
+    coleta muda na guilda."""
     snap = s.snapshot
     assert snap is not None
     if fam.collect_batch(guild, s.ctx.clock.now()) is None:
@@ -345,9 +360,11 @@ async def _collect(s: GameSession, camp: int, guild: Consortia) -> None:
     offer = fam.collect_offer(s.ctx.world.settings)
     quests = _add_offer(s, offer)
     await s.ctx.characters.save(snap.character, *quests)
-    _node_update(s, camp, DONE, fresh=True)
     await _push_player(s)
-    _contribution(s, offer, quests)
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=COLLECTED))
+    _node_update(s, camp, DONE, fresh=True)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 
 
 async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
