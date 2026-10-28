@@ -66,7 +66,7 @@ async def tower_reset(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
     now = s.ctx.clock.now()
     tower = mz.load(snap, now)
     if msg.index == 0 and s.campaign is None:
-        tower.index, tower.gp, tower.items, tower.double, tower.deaths = 0, 0, [], False, 0
+        tower.index, tower.gp, tower.items, tower.double = 0, 0, [], False
         await s.ctx.characters.save(mz.store(snap, tower, now))
     s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), msg.index))
 
@@ -101,7 +101,6 @@ async def tower_enter(s: GameSession, msg: pb.EnterTowerInfoMsg) -> None:
         item, gone = key
         await s.ctx.characters.save(*([] if gone else [item]), delete=(item,) if gone else ())
         s.send(S_ITEMS, rewards.taken_msg(item, gone, s.player_id))
-    tower.deaths = 0  # (dedução) a morte grátis vale por entrada
     await s.ctx.characters.save(mz.store(snap, tower, now))
     await _enter(s, tower)
     if msg.chooseIndex == START:
@@ -145,8 +144,8 @@ async def _enter(s: GameSession, tower: mz.Tower) -> None:
 
 def died(s: GameSession) -> Any:
     """Herói caído no labirinto, depois do 140 da derrota: 4207 "Respawn Note" com o custo do reviver (0 = grátis).
-    (visto) 10/25 #10593 msg 0 e #11400 msg 25; 10/24 #13946 e 10/26 #13436 msg 0. TODO(inventado): a 1ª morte de
-    cada entrada é grátis (as quatro mortes vistas batem com isso). Devolve a linha a gravar."""
+    (visto) 10/25 #10593 msg 0 e #11400 msg 25; 10/24 #13946 e 10/26 #13436 msg 0. A 1ª morte do dia é grátis e as
+    seguintes custam 25 (jogador 28/10: 0, 25, 25; sair não zera). Devolve a linha a gravar."""
     snap = s.snapshot
     assert snap is not None
     now, cfg = s.ctx.clock.now(), _cfg(s)

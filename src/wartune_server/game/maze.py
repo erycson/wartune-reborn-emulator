@@ -75,7 +75,7 @@ class Tower:
     enters: int = 0  # enterCount: Start do dia
     day: str = ""  # dia de jogo do ``enters``
     double: bool = False  # corrida com lucro dobrado (isDouble 2)
-    deaths: int = 0  # mortes desde a última entrada; a 1ª é grátis (4207 msg 0; TODO(inventado) a regra)
+    deaths: int = 0  # mortes do dia; a 1ª é grátis, as outras custam o revive (jogador 28/10: 0, 25, 25)
 
     def item_ids(self) -> str:
         return "|".join(f"{t},{n}" for t, n in self.items)  # (visto) "2050201,2|208009,2"
@@ -95,7 +95,7 @@ def load(snap: PlayerSnapshot, now: datetime) -> Tower:
     tower = Tower(**json.loads(st.text)) if st is not None and st.text else Tower()
     today = gameday.today(now)
     if tower.day != today:  # (dedução) as entradas voltam no dia novo, como as das masmorras
-        tower.enters, tower.day = 0, today
+        tower.enters, tower.deaths, tower.day = 0, 0, today  # (jogador 28/10) a morte grátis volta só no dia novo
     return tower
 
 

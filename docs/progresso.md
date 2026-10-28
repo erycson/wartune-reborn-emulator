@@ -256,7 +256,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
 | Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
 | Andares 26 em diante | 🧪 | | sem captura: repetem o monstro e a força do 25 (`content/maze_floors.json`) |
-| Aviso de respawn (4207) | 🧪 | | manda após a derrota (25/10 #10593); 1ª morte da entrada grátis é inferida de 4 casos; no oficial 150/100/4122 vêm antes do 140, aqui depois |
+| Aviso de respawn (4207) | 🧪 | | manda após a derrota (25/10 #10593); 1ª morte do dia grátis e as outras 25, sair não zera (jogador 28/10; o valor da 3ª morte não foi visto); no oficial 150/100/4122 vêm antes do 140, aqui depois |
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | 🧪 | | resposta inventada (`tower.py:207`) |
 | Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |
