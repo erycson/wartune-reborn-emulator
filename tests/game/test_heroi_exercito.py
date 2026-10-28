@@ -63,8 +63,9 @@ async def test_recruit_put_in_army_and_dismiss(tmp_path: Path) -> None:
         assert await g.idle() == []
 
         g.client.send(5157, pb.ArmyPawnInfoMsg(tempateId=10101, ownPawns=50))
-        got = await g.until(109)
-        assert pb.ArmyPawnUpdatedMsg.FromString(got[0].body).armyPawn[0].ownPawns == 750
+        got = await g.until(100)  # (visto) 191924-1 #20734-#20738: 3, 109, 111 (reembolso em Daru) e 100
+        assert codes(got) == [3, 109, 111, 100]
+        assert pb.ArmyPawnUpdatedMsg.FromString(got[3].body).armyPawn[0].ownPawns == 750
         assert pb.CastleYieldMsg.FromString(got[1].body).curPopulation == 850
 
         saved = await g.server.services.characters.snapshot(g.user_id)
