@@ -997,14 +997,14 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     await s.ctx.characters.save(snap.character)
 
 
-# (cliente) "MP Dungeon attempts" (ThewAlertFrame.disclist01); TODO(inventado) a frase: o turco diz "[Büyük Kristal]
-# girildi, bugün kalan grup sahne hakkı: 1/2" (exp_kitabi #40)
-GROUP_TEXT = "Entered [{}]. MP Dungeon attempts remaining today: {}/{}"
+# (visto) 191924 #4537 "1/1" (paraBool1 true, não gasta) e #6886 "0/1" (false, gastou na entrada: o 3 #6874)
+GROUP_TEXT = "Entered [{}]. You still have {}/{} multi-player dungeon attempts available."
 
 
 async def _group_start(s: GameSession, room: Room, content: Mapping[str, Any], msg: pb.CampaignReqMsg) -> None:
     """Start da sala (``RoomRightView._startClick`` -> ``sendStartCampaignScene``: 5039 com ``paraInt2`` = campanha e
-    ``paraBool1`` = usar a entrada do dia). Só o dono, com a campanha da sala e todos prontos (``allPlayerReader``).
+    ``paraBool1`` = ``isNoGet``, sem prêmio: (visto) 191924 #4525 true dá gpBonus 0 e não gasta; #6870 false gasta e
+    dá EXP). Só o dono, com a campanha da sala e todos prontos (``allPlayerReader``).
     (só turco: exp_kitabi #24-#40) 24 com o dono em 2 e cada um entra (``_group_enter``)."""
     from .room import S_READY, _ready_state, _to_room  # room importa space, que este pacote também usa
 
@@ -1022,7 +1022,7 @@ async def _group_start(s: GameSession, room: Room, content: Mapping[str, Any], m
         if other.campaign is not None and not other.campaign.finished:
             continue
         await _group_enter(
-            other, room, content, msg.paraInt2, msg.paraBool1 if pid == room.master else pid in room.rewarded
+            other, room, content, msg.paraInt2, not msg.paraBool1 if pid == room.master else pid in room.rewarded
         )
 
 

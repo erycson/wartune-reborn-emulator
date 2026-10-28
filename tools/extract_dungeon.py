@@ -85,6 +85,13 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
     registry = MessageRegistry.load_default()
     names = Names(templates)
     nick = _nick(packets, registry)
+    me = 0
+    for p in packets:  # o jogador da captura: o 1º do primeiro 21 com gente
+        m21 = registry.decode(21, Direction.SERVER_TO_CLIENT, bytes.fromhex(p["bodyHex"])) if (
+            not p["isClient"] and p["code"] == 21 and p["bodyHex"]) else None  # fmt: skip
+        if m21 is not None and m21.player:
+            me = m21.player[0].playerId
+            break
     maps_of = {int(r["Id"]) for r in templates.find("MapInfos", CampaignId=campaign)}
     out: dict[str, Any] = {
         "campaign": campaign, "stages": [], "maps": {}, "battles": {}, "plots": {}, "chests": {},
@@ -104,6 +111,7 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
     quarry_fight = False  # 8699 pedido: o próximo 157 é a luta da pedreira
     army_wait: set[int] = set()  # mapas com 5038 esperando o 20
     stage_open = False  # 125 tipo 1 visto, o 138 seguinte é o diálogo da entrada
+    kept_gp = 0
 
     for p in packets:
         code = p["code"]
@@ -124,10 +132,12 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
             elif code == 5038 and msg is not None and msg.paraInt1 in maps_of:
                 army_wait.add(msg.paraInt1)
             continue
-        if code in (134, 22):  # fim da campanha ou saída da sala: o que vier depois é da cidade
-            current = 0
-            continue
         if msg is None:
+            if code in (134, 22):  # fim da campanha ou saída da sala: o que vier depois é da cidade
+                current = 0
+            continue
+        if code == 134 or (code == 22 and msg.playerId in (0, me)):
+            current = 0  # 22 de outro da sala (232017 #7833, playerId 110) no meio da luta não é a nossa saída
             continue
         if code == 125:
             target = msg.room.campaignId
@@ -149,8 +159,9 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
         entry = out["maps"][str(current)]
         if code == 21 and "start" not in entry:
             entry["start"] = [msg.player[0].curPosX, msg.player[0].curPosY]
-        elif code == 127 and "nodes" not in entry:
-            entry["nodes"] = [_dict(n) for n in reversed(msg.node)]  # oficial manda do último ao primeiro
+        elif code == 127:
+            entry.setdefault("nodes", [_dict(n) for n in reversed(msg.node)])  # oficial manda do último ao primeiro
+            # segunda corrida (191924 #6870): nodeIds novos, mesmos campDataId
             runtime_to_camp.update({n.nodeId: n.campDataId for n in msg.node})
         elif code == 130 and "fog" not in entry:
             entry["fog"] = {"row": msg.row, "col": msg.col, "forArray": [b.hex() for b in msg.forArray]}
@@ -181,6 +192,8 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
             if key == "0":  # revanche sem 128 de combate (225632, chefe 127204 de novo): a 1ª luta já ficou
                 battle_key, fighting, stage_open, pending = "", 0, False, 0
                 continue
+            # a corrida sem prêmio (5039 paraBool1 true, 191924 #4525) dá gpBonus 0: guarda o da corrida com prêmio
+            kept_gp = out["battles"].get(key, {}).get("gpBonus", 0)
             battle = out["battles"][key] = {
                 "battleType": msg.battleType,
                 "mapTempId": msg.mapTempId,
@@ -195,7 +208,7 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
         elif code == 72 and battle is not None:  # reforço: uma onda nova quando o lado inimigo cai
             battle.setdefault("reinforce", []).append([_dict(s) for s in msg.soldiers])
         elif code == 4103 and battle is not None:
-            battle["gpBonus"] = msg.gpBonus
+            battle["gpBonus"] = msg.gpBonus or kept_gp
             battle["strategyBonus"] = msg.strategyBonus
             battle["battleScene"] = msg.battleScene
             for item in msg.baseItem:  # baú de drop no chão (#2910 -> 5129 #2924): aqui sai direto

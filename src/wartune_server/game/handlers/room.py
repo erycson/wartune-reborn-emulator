@@ -312,7 +312,7 @@ async def room_password(s: GameSession, msg: pb.RoomEditMsg) -> None:
 async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
     """Pronto (``state`` 1) ou cancelar (0) de quem não é o dono (``RoomRightView.sendPlayerReady``/``_cancelClick``).
     Todos da sala recebem o 24 com o estado de cada um (``RoomManager.__updateReaderStateHandler``). O ``isGet``
-    (receber o prêmio da campanha) só vale quando a campanha da sala começar."""
+    leva o ``isNoGet`` do cliente (``!_incomeBtn.selected``, como o ``paraBool1`` do 5039): true = sem prêmio."""
     room = s.ctx.rooms.of(s.player_id)
     if room is None or room.master == s.player_id or msg.state not in (NOT_READY, READY):
         s.log.info("5036 recusado", estado=msg.state)
@@ -321,7 +321,7 @@ async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
         room.ready.add(s.player_id)
     else:
         room.ready.discard(s.player_id)
-    if msg.state == READY and msg.isGet:
+    if msg.state == READY and not msg.isGet:
         room.rewarded.add(s.player_id)
     else:
         room.rewarded.discard(s.player_id)

@@ -26,7 +26,7 @@ async def test_start_da_sala_entra_e_gasta_a_entrada(tmp_path: Path) -> None:
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None
         weary = session.snapshot.character.weary
-        g.client.send(5039, pb.CampaignReqMsg(paraInt2=9001, paraBool1=True))
+        g.client.send(5039, pb.CampaignReqMsg(paraInt2=9001, paraBool1=False))
         got = await g.until(83)
         codes = [p.code for p in got]
         # 4902 e 4903 só saem com cartas (o personagem novo não tem)
@@ -43,7 +43,7 @@ async def test_start_da_sala_entra_e_gasta_a_entrada(tmp_path: Path) -> None:
         me = pb.RoomEnterMsg.FromString(got[3].body).player[0]
         assert (me.roomId, me.count, me.playerState) == (room.roomId, 1, 2)
         text = pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg
-        assert text == "Entered [Claristun]. MP Dungeon attempts remaining today: 0/1"
+        assert text == "Entered [Claristun]. You still have 0/1 multi-player dungeon attempts available."
         c = session.snapshot.character
         assert (c.weary, c.multi_copy_count) == (weary, 0)
         assert session.campaign is not None and session.campaign.run is not None and session.campaign.run.rewarded
@@ -53,12 +53,14 @@ async def test_start_da_sala_entra_e_gasta_a_entrada(tmp_path: Path) -> None:
 
 
 async def test_sem_entrada_do_dia_entra_sem_premio(tmp_path: Path) -> None:
-    """(cliente) sem ``isGet`` a entrada não gasta e a campanha não dá prêmio (``RoomRightView.incomePrompt``)."""
+    """(cliente) ``paraBool1`` = ``isNoGet``: a entrada não gasta e a campanha não dá prêmio (``RoomRightView.incomePrompt``)."""
     async with logged_in(tmp_path, novice=READY) as g:
         await _room(g)
-        g.client.send(5039, pb.CampaignReqMsg(paraInt2=9001, paraBool1=False))
+        g.client.send(5039, pb.CampaignReqMsg(paraInt2=9001, paraBool1=True))
         got = await g.until(83)
-        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg.endswith("1/1")
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg.endswith(
+            " 1/1 multi-player dungeon attempts available."
+        )
         session = g.server.online.get(g.user_id)
         assert session is not None and session.campaign is not None and session.campaign.run is not None
         assert not session.campaign.run.rewarded
@@ -68,7 +70,7 @@ async def test_bau_vip_gasta_kyanite(tmp_path: Path) -> None:
     """Baú VIP (201110): o 29 em inglês, e o 5033 gasta 2000 Kyanite (o texto turco) e dá as chaves."""
     async with logged_in(tmp_path, novice=READY) as g:
         await _room(g)
-        g.client.send(5039, pb.CampaignReqMsg(paraInt2=9001, paraBool1=True))
+        g.client.send(5039, pb.CampaignReqMsg(paraInt2=9001, paraBool1=False))
         await g.until(83)
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None

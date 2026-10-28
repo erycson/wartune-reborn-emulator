@@ -31,7 +31,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
-| Campanhas e masmorras | 6 | 9 | 5 | 4 | 4 |
+| Campanhas e masmorras | 6 | 10 | 5 | 3 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 1 | 6 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **91** | **43** | **45** | **35** |
+| **Total** | **100** | **92** | **43** | **44** | **34** |
 
 ## Validação e base
 
@@ -231,10 +231,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | 1004 Temple of Ibalize (Inner) | ✅ | | |
 | 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | escolta da Elise vista (231733); luta do elite 115116 inventada (0075) |
 | 1007 Camp Calorn | 🟡 | | 1ª etapa (1171 → 1172) vista em 191924 #2345-#3706 (migração 0090), chefe Viscount Remus sem vitória: fim da etapa sem captura; 2ª etapa (1181/1182) não jogada; Mystery Box por dedução (0062) |
-| 9001 Claristun (em grupo) | 🧪 | 🇹🇷 | só a etapa 2011; chefe 201106 inventado (0084) |
 | Masmorras solo capturadas (1101-1107, 1201) | 🟡 | | 1101, 1103, 1104, 1105, 1107 e a 1ª etapa de 1102, 1106, 1201 das capturas (migração 0098) |
 | Masmorras solo geradas (1202-1602 e 2ª etapa de 1102, 1106, 1201) | 🧪 | | TODO(inventado) tools/gera_masmorras.py (migração 0099): planta das capturadas, mapas/casas/monstros do cliente; chave `inventado` marca o que trocar |
-| Masmorras em grupo 9000-9112 | ❌ | | só drops |
+| Masmorras em grupo capturadas (9000, 9001, 9002) | 🟡 | | das capturas inglesas 191924, 232017, 152321 (migração 0100; 9001 troca a turca 0084, fica o baú VIP dela); entrada do dia pelo `paraBool1` (= isNoGet) e o texto do 83 vistos; cada membro anda no seu mapa e luta sozinho (o oficial divide nós e lutas da sala); baús VIP 209109/203108 sem caixa |
+| Masmorras em grupo geradas (9003-9013, 9104-9112) | 🧪 | | TODO(inventado) `tools/gera_masmorras.py grupo` (migração 0101): planta da 9002 (2031 meio, 2033 fim), mapas/casas do cliente, monstros 4xxx/chefes 3xxx pelo nível; pesadelo igual à normal; chave `inventado` |
 | Torres 8200-8204 (Tower of Kings, Spire) | ❌ | | só drops |
 | Pedreira 6001 | ✅ | | |
 | Exército do sistema (5038) | 🟡 | 🇹🇷 | bate com o inglês em todos os mapas pedidos (1011-1161, 7501); a 2011 do turco; mapas sem lista mandam vazio |

@@ -1,4 +1,7 @@
-"""Gera as masmorras solo sem captura (1101-1602) a partir das capturadas: TODO(inventado) tudo o que sai daqui.
+"""Gera as masmorras sem captura a partir das capturadas: TODO(inventado) tudo o que sai daqui.
+
+Solo (1101-1602, migração 0099) e, com ``grupo``, as em grupo (9000-9112, migração 0101: planta da 9002 capturada,
+2031 no meio com portal e 2033 no fim com o chefe; monstros 4xxx e chefes 3xxx, a família das em grupo).
 
 Nenhuma fonte tem os nós dessas masmorras: o ``CampaignData`` só tem 40001/40002, o ``MapNodeInfos`` só o 10000 e
 os ``.maps`` do mirror (AMF3 com zlib, ``PathManager.getOuterCityMapsData``) só trazem decoração; o campo
@@ -16,6 +19,7 @@ os ``.maps`` do mirror (AMF3 com zlib, ``PathManager.getOuterCityMapsData``) só
 Cada campanha gerada leva ``"inventado"`` com os mapas gerados: é a marca para trocar por captura.
 
     uv run python tools/gera_masmorras.py
+    uv run python tools/gera_masmorras.py grupo
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ import copy
 import json
 import re
 import struct
+import sys
 import zlib
 from pathlib import Path
 from typing import Any
@@ -39,6 +44,15 @@ SINGLE = ("1104", ["1091"])  # planta de etapa de um mapa
 MULTI = ("1201", ["1291", "1292"])  # planta de etapa de vários mapas: meio (portal) e fim (chefe)
 LUCK_STONES = range(2040101, 2040110)
 TILE = 20  # fixX = posX * 20 + 9 (captura: 48 -> 969)
+GROUP = {
+    "captured": VERSIONS / "0100_masmorras_grupo.json",
+    "out": VERSIONS / "0101_masmorras_grupo_geradas.json",
+    "ids": range(9000, 9113),
+    "single": ("9002", ["2033"]),  # 9013 (um mapa): o fim da 9002, com o chefe e as cartas
+    "multi": ("9002", ["2031", "2033"]),  # o 2032 é cheio de nós da história (catacumbas, invocador)
+    "family": True,  # monstros 4xxx e chefes 3xxx só das em grupo (os solo têm outra vida)
+}
+SOLO = {"captured": CAPTURED, "out": OUT, "ids": range(1101, 1603), "single": SINGLE, "multi": MULTI, "family": False}
 
 
 def _amf3(data: bytes) -> list[Any]:
@@ -130,8 +144,8 @@ def _near(tiles: list[tuple[int, int]], x: int, y: int) -> tuple[int, int]:
 
 
 class Gen:
-    def __init__(self, t: GameTemplates) -> None:
-        self.t = t
+    def __init__(self, t: GameTemplates, family: bool = False) -> None:
+        self.t, self.family = t, family
         self.level = {int(r["CampaignId"]): int(r["MinLevel"]) for r in t.rows("Campaigns")}
         self.pawns = {int(r["TemplateId"]): r for r in t.rows("PawnTempInfos")}
         self.monsters = [r for r in self.pawns.values() if r["MasterType"] == "101" and int(r["Live"]) > 0]
@@ -141,12 +155,14 @@ class Gen:
     def pawn(self, old: int, delta: int) -> dict[str, Any]:
         o = self.pawns[old]
         want = int(o["Level"]) + delta
-        return min(self.monsters, key=lambda r: (abs(int(r["Level"]) - want), int(r["TemplateId"])))
+        pool = [r for r in self.monsters if not self.family or int(r["TemplateId"]) // 1000 == old // 1000]
+        return min(pool, key=lambda r: (abs(int(r["Level"]) - want), int(r["TemplateId"])))
 
     def hero(self, old: int, delta: int) -> dict[str, Any]:
         o = self.heroes[old]
         want = int(o["Grades"]) + delta
-        return min(self.bosses, key=lambda r: (abs(int(r["Grades"]) - want), r["Captain"] != o["Captain"],
+        pool = [r for r in self.bosses if not self.family or int(r["TemplateId"]) // 1000 == old // 1000]
+        return min(pool, key=lambda r: (abs(int(r["Grades"]) - want), r["Captain"] != o["Captain"],
                                                r["AddName"] != o["AddName"], int(r["TemplateId"])))  # fmt: skip
 
 
@@ -215,6 +231,7 @@ def stage(g: Gen, plan: dict[str, Any], plan_maps: list[str], maps: list[int], c
                              res=r["ResPath"], maxHp=live, initHp=live, hp=live)  # fmt: skip
                     h["skillId"] = [int(r["DefaultSkill"])] * len(h.get("skillId") or [1])
             out["battles"][str(_retarget(int(key), old, new))] = b
+        renamed = {g.pawns[o]["PawnName"]: p["PawnName"] for o, p in swap_p.items()}
         for n in entry.get("nodes", []):
             x, y = _near(tiles, n["posX"], n["posY"])
             n.update(posX=x, posY=y, curX=x, curY=y, fixX=x * TILE + 9, fixY=y * TILE + 9)
@@ -226,6 +243,8 @@ def stage(g: Gen, plan: dict[str, Any], plan_maps: list[str], maps: list[int], c
             if n["sonType"] in swap_p:
                 p = swap_p[n["sonType"]]
                 n["sonType"], n["nodeName"] = int(p["TemplateId"]), p["PawnName"]
+            elif g.family and (new_name := renamed.get(n["nodeName"])):
+                n["nodeName"] = new_name  # em grupo o sonType do nó não é o pawn (2126 "Scimitar Assassin" = 4024)
             if n.get("heroTempId", -1) in swap_h:
                 r = swap_h[n["heroTempId"]]
                 prefix = "[Elite] " if n["nodeName"].startswith("[Elite] ") else ""
@@ -253,14 +272,14 @@ def stage(g: Gen, plan: dict[str, Any], plan_maps: list[str], maps: list[int], c
     return out
 
 
-def main() -> None:
+def main(cfg: dict[str, Any]) -> None:
     t = GameTemplates.parse(TEMPLATES.read_bytes())
-    g = Gen(t)
-    captured = json.loads(CAPTURED.read_text(encoding="utf-8"))
+    g = Gen(t, cfg["family"])
+    captured = json.loads(cfg["captured"].read_text(encoding="utf-8"))
     result: dict[str, Any] = {}
     for row in t.rows("Campaigns"):
         cid = int(row["CampaignId"])
-        if not 1101 <= cid <= 1602:
+        if cid not in cfg["ids"]:
             continue
         ids = sorted(int(r["Id"]) for r in t.rows("MapInfos") if r.get("CampaignId") == str(cid))
         groups: dict[int, list[int]] = {}
@@ -272,7 +291,7 @@ def main() -> None:
         for maps in groups.values():
             if done & set(maps):
                 continue
-            pid, pmaps = SINGLE if len(maps) == 1 else MULTI
+            pid, pmaps = cfg["single"] if len(maps) == 1 else cfg["multi"]
             part = stage(g, captured[pid], pmaps, maps, cid)
             for k, v in part.items():
                 content.setdefault(k, {}).update(v)
@@ -281,9 +300,9 @@ def main() -> None:
         if made:
             content["inventado"] = made
             result[str(cid)] = {k: v for k, v in content.items() if v != {}}
-    OUT.write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"{OUT}: {len(result)} campanhas, {sum(len(c['inventado']) for c in result.values())} mapas gerados")
+    cfg["out"].write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{cfg['out']}: {len(result)} campanhas, {sum(len(c['inventado']) for c in result.values())} mapas gerados")
 
 
 if __name__ == "__main__":
-    main()
+    main(GROUP if sys.argv[1:] == ["grupo"] else SOLO)
