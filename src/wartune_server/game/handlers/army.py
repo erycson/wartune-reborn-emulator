@@ -133,7 +133,7 @@ async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
 
 @router.on(5157)
 async def dismiss(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
-    """Dispensa soldados do castelo (sem reembolso). Resposta: 100 e 109 (população)."""
+    """Dispensa soldados do castelo com reembolso em Daru. Resposta: 3, 109, 111 e 100."""
     snap = s.snapshot
     assert snap is not None
     pawn = pawn_of(snap, msg.tempateId // 100)
@@ -141,9 +141,15 @@ async def dismiss(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
         s.log.info("5157 recusado", pedido=str(msg))
         return
     pawn.castle_count -= msg.ownPawns
-    await s.ctx.characters.save(pawn)
-    s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates, [pawn]))
+    # (visto) 191924-1 #20734 (258 de 10210 = 51 Daru) e #20739 (952 de 10116 = 190 Daru): n // 5 bate nas duas.
+    # TODO(inventado): taxa 1/5 sem a tabela de custo do soldado (não há template de tropa no repositório)
+    refund = msg.ownPawns // 5
+    snap.character.strategy += refund
+    await s.ctx.characters.save(pawn, snap.character)
+    _player(s)  # (visto) 3 antes do 109
     castle_yield(s)
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Disband Successful. You gained {refund} Daru."))
+    s.send(S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates, [pawn]))
 
 
 def send_pawn(s: GameSession, pawn: Pawn) -> None:

@@ -415,6 +415,10 @@ async def take_reward(s: GameSession, _: object) -> None:
     else:
         s.log.info("8329 recusado", rank=rank, resgatado=arena.reward_day)
     s.send(S_TAKE, pb.ChallengeRankRewardMsg(isTake=False, param1=rank, param2=gold, param3=strategy, param4=days))
+    if gold or strategy:  # (visto) 191924-1 #9064-#9069: 109, 3, 4243, 111 e 83 com o mesmo texto; recusa sem captura
+        text = f"Retrieve Ranking Rewards: Golds x{gold:,}, Daru x{strategy:,}."
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
 @router.on(8590)
