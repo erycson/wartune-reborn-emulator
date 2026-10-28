@@ -300,3 +300,17 @@ Causas achadas: o 115 de consumo de item e o 83 da EXP já saíam no código (HE
 | 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | oficial sobe de nível depois do 83 (100/150); grau do personagem da captura não se conhece |
 | 490 | pendente (xfail) | 3082 | oficial manda 109 antes do 3; causa não confirmada |
 | 580 | pendente (xfail) | 18069 | oficial não responde (sem 112 de recusa); causa não confirmada |
+
+## Verificação por captura: entregas até o nível 10 (rodada 3, feat/missoes-2)
+
+Teste: tests/game/test_missoes_capturas.py. Grau do personagem por entrega vem do 3 antes do 5014 (captura). Mapa da missão 580 (condição 37) é o do personagem na entrega (castle.map_id = Para2).
+
+Causas corrigidas no teste (o servidor já estava certo): 490 tinha um 109 do ciclo do castelo antes do 3 (não é entrega); 580 precisa do mapa 3 (a entrega do oficial foi com o personagem no mapa 3) e o oficial paga 25.000 EXP (#18077, depois do 5012 #18076).
+
+| id | estado | #idx | motivo |
+|---|---|---|---|
+| 360, 380, 410, 420, 440, 450, 460, 470, 480?, 490, 500, 510, 520, 550, 560, 580, 590, 600, 610 | ok | ver teste | códigos e textos do 83 iguais |
+| 310 | pendente (xfail) | 8939 | recompensa com 4484/111/114/4131/149 de outras áreas |
+| 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | subida de nível (100/150): o 3 traz só o grau, não o EXP atual |
+
+Lotes 11 a 31: não feitos nesta rodada.
