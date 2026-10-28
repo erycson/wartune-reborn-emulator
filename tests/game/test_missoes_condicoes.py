@@ -115,3 +115,15 @@ async def test_falar_com_npc_pelo_8692_so_perto_e_nao_com_quem_anda(tmp_path: Pa
         assert _quest(got, 361).condition_1 == 1
         g.client.send(8692, pb.SimplePropertyMsg(param1=JESI_NODE))  # MasterType 1: recusado
         assert await g.idle() == []
+
+
+def test_tipos_sem_gancho_tem_o_numero_do_template() -> None:
+    """Os números dos tipos pendentes batem com o que as missões 1, 6, 16, 18, 503, 762, 758, 816 e 818 usam."""
+    assert rules.MINI_CLIENT_CONDITION == 33
+    assert rules.CATACOMBS_CONDITION == 38
+    assert rules.WORLDBOSS_DAMAGE_CONDITION == 41
+    assert rules.BATTLEGROUND_JOIN_CONDITION == 44
+    assert rules.BATTLEGROUND_KILL_CONDITION == 45
+    assert rules.PHONE_CONDITION == 48
+    assert rules.BATTLEGROUND_WIN_CONDITION == 50
+    assert rules.AMETHYST_CONDITION == 86

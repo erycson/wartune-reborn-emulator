@@ -256,3 +256,47 @@ Para as masmorras 1002+ destravarem uma missão, precisam de nós e lutas (`cont
 total (`petGpBonus` = `gpBonus`) e o 4540 sai logo depois do 3. O `leaveGp` cresce no login com a EXP offline do `timebox`
 (`rules.rest`). Abaixo de `min_grade` nada muda: o inglês (níveis 1-19) tem `leaveGp` 0 e nenhum bônus; o 40 é
 `TODO(inventado)`. Configurável em `game_settings.exp_bonus` `{"min_grade", "world_percent"}`.
+
+## Tipos pendentes (até o nível 31)
+
+Verificado nesta rodada: o cliente decompilado (`D:\wartune\decompiled\m3\scripts`, 514 arquivos) não tem nenhuma referência a mini-client nem a celular/verificação (grep `miniclient`, `cellphone`, `bindPhone`, `VerifyCode`). A condição 33 e a 48 não aparecem em nenhum `switch` de `TaskTemplate`. As 4 capturas novas (`x_20261024-191924-1`, `x_20261025-232017-1`, `x_20261026-225632-1`, `x_20261027-152321-1`) não têm texto nem pacote de mini-client. (visto) a 816 (celular, nível 25) é aceita no 5012 em quase todos os lotes, mas nunca recebe 5014 nas capturas.
+
+| Tipo | Missões (nível) | Estado | Gancho |
+|---|---|---|---|
+| 33 Mini-client | 1 (15), 150 (10) | pendente: sem pacote no cliente nem nas capturas | `MINI_CLIENT_CONDITION` |
+| 38 Forgotten Catacombs | 6 (23) | pendente: gancho do dono de campaign | `CATACOMBS_CONDITION` |
+| 41 Dano no chefe mundial | 762 (27) | pendente: gancho do dono de worldboss | `WORLDBOSS_DAMAGE_CONDITION` |
+| 44 Entrar em battleground | 758, 766 (30) | pendente: sistema inexistente | `BATTLEGROUND_JOIN_CONDITION` |
+| 45 Kills em battleground | 16 (30), 767 (30) | pendente: sistema inexistente | `BATTLEGROUND_KILL_CONDITION` |
+| 48 Cadastro de celular | 816 (25) | pendente: sem pedido no cliente nem 5014 nas capturas | `PHONE_CONDITION` |
+| 50 Vitória em battleground / war camp | 18, 818 (30) | pendente: sistema inexistente | `BATTLEGROUND_WIN_CONDITION` |
+| 86 Amethyst Rush | 503 (25) | pendente: gancho em outer_city/mines | `AMETHYST_CONDITION` |
+
+Constantes em `game/rules.py`; teste `test_tipos_sem_gancho_tem_o_numero_do_template` em `tests/game/test_missoes_condicoes.py`.
+
+## Verificação por captura: entregas até o nível 10
+
+Teste: tests/game/test_missoes_capturas.py (códigos S>C da entrega contra o oficial; o estado vem das condições da missão). Oficial: S\q\oficial.md. Personagem de teste no grau 60 (sem subida de nível).
+
+| id | estado | #idx (captura) | motivo |
+|---|---|---|---|
+| 380 | ok | 14667 | códigos iguais |
+| 440 | ok | 18290 | códigos iguais |
+| 470 | ok | 1784 | códigos iguais |
+| 590 | ok | 8417 | códigos iguais |
+| 310, 360, 400, 410, 420, 430, 450, 460, 480, 490, 500, 510, 520, 550, 560, 570, 600, 610 | pendente (xfail) | 8939, 11761, 15035, 17367, 17542, 19336, 20432, 20602, 3001, 3082, 5348, 7537, 7597, 8188, 12626, 12635, 14162, 13701 | falta 83 (texto do EXP) e/ou 115 (consumo de item) |
+| 580 | pendente (xfail) | 18069 | oficial não manda resposta; o servidor responde |
+
+## Verificação por captura: entregas até o nível 10 (rodada 2)
+
+Tabela do oficial em tests/game/test_missoes_capturas.py (códigos e textos do 83). Janela do oficial: até o próximo pedido do cliente, mais o 83 "Received N EXP" logo depois dele (S\q\oficial.md). Personagem de teste no grau 39 (abaixo do bônus de EXP do mundo, min_grade 40).
+
+Causas achadas: o 115 de consumo de item e o 83 da EXP já saíam no código (HEAD). As divergências da rodada 1 eram do teste: item criado em memória sem estar no banco, e grau 60 que ligava o bônus de EXP do mundo ("Including World EXP").
+
+| id | estado | #idx | motivo |
+|---|---|---|---|
+| 360, 380, 410, 420, 440, 450, 460, 470, 500, 510, 520, 550, 560, 590, 600, 610 | ok (16) | #11761, #14667, #17367, #17542, #18290, #20432, #20602, #1784, #5348, #7537, #7597, #8188, #12626, #8417, #14162, #13701 | códigos e textos do 83 iguais |
+| 310 | pendente (xfail) | 8939 | recompensa com 4484/111/114/4131/149 de outras áreas |
+| 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | oficial sobe de nível depois do 83 (100/150); grau do personagem da captura não se conhece |
+| 490 | pendente (xfail) | 3082 | oficial manda 109 antes do 3; causa não confirmada |
+| 580 | pendente (xfail) | 18069 | oficial não responde (sem 112 de recusa); causa não confirmada |

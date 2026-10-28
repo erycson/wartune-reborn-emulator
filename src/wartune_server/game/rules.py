@@ -439,6 +439,15 @@ def social_state_quests(snap: PlayerSnapshot, templates: GameTemplates, guild: C
 PLAYER_LEVEL_CONDITION = 1  # nível do jogador >= Para2, lido na hora (cliente: TaskTemplate.checkPlayerGrades)
 LOGIN_DAY_CONDITION = 39  # entrar num dia diferente do da aceitação (cliente: checkSencondLogin)
 TALK_CONDITION = 85  # falar com o NPC do nó Para4 ("mapa,nó"): vem do 8692 ou do aceite (cliente: finishStory)
+# Tipos sem gancho (quem tem o sistema chama quest_event); nenhum pacote no cliente nem nas capturas para 33 e 48
+MINI_CLIENT_CONDITION = 33  # "Login/Use Mini-client" (missões 1 e 150); sem pacote nem texto no cliente: pendente
+CATACOMBS_CONDITION = 38  # passar a Forgotten Catacombs (Para1 8001, Para2 = vezes): gancho em campaign.py
+WORLDBOSS_DAMAGE_CONDITION = 41  # dano total no chefe mundial (missão 762, Para2 50000): gancho em worldboss.py
+BATTLEGROUND_JOIN_CONDITION = 44  # entrar numa battleground (758, 766): sistema de battleground ainda não existe
+BATTLEGROUND_KILL_CONDITION = 45  # kills na battleground (16, 767): idem
+PHONE_CONDITION = 48  # cadastro de celular (missão 816): sem pedido no cliente nem nas capturas: pendente
+BATTLEGROUND_WIN_CONDITION = 50  # vitória na battleground / war camp (18, 818): idem
+AMETHYST_CONDITION = 86  # Amethyst Rush (503, Para4 "10000,15"): gancho em outer_city/mines
 PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
 # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount). O condition_N fica em 0: (visto)
 # captura EN, a 90 e a 102 só têm 112 com 0 (#1140, #1572, #1800, #2081), nem nos drops do Worg Tooth (#1276, #1408)
