@@ -354,7 +354,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
 | Arena entre servidores (8590) | ❌ | | |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
-| Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); falta o PvP 8334 (alvo em outro servidor) e com ele o 4494, o 4269 de perda e o 4388 tipo 4; honra e Amethyst sem moeda, perda de pontos por morte; nós, vencedor e constantes no código (sem `game_settings`) inventados |
+| Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); PvP 8334 entre jogadores locais (157 battleType 32 contra a cópia do alvo, 4494 state 2/0, 4104/4175 com o perdedor em 179,75 por 25 s, 4103, 4388 tipo 4, 4269 de ganho e perda; perda de 15% e ganho igual, inventados); faltam as missões 45/50 do PvP; honra e Amethyst sem moeda; nós, vencedor e constantes no código (sem `game_settings`) inventados |
 | Ataque a castelo/exército de jogador | ❌ | | |
 | Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
 | Boss mundial: buff e dublê | ❌ | | |

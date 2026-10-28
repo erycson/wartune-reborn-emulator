@@ -46,6 +46,8 @@ class Mark:
     score: int = 0
     honor: int = 0
     carry: str | None = None
+    wins: int = 0  # vitórias no PvP do campo (hitCount do 4252)
+    fighting: bool = False  # numa luta do 8334 (4494 state 2)
 
 
 @dataclass

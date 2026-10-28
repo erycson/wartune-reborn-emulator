@@ -8,7 +8,7 @@ from pathlib import Path
 from tests.game.harness import logged_in
 from wartune_server.domain.models import Item
 from wartune_server.game import events as ev
-from wartune_server.game import rules
+from wartune_server.game import arena, rules
 from wartune_server.game.builders import login as b
 from wartune_server.game.handlers import login, stars, warfield
 from wartune_server.game.rooms import PVE
@@ -16,7 +16,8 @@ from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
 
 TRIAL_CARD = 2031201
-IN_4007 = datetime(2026, 10, 27, 17, 10, tzinfo=UTC)
+IN_4005 = datetime(2026, 10, 27, 15, 10, tzinfo=UTC)
+IN_4007 =datetime(2026, 10, 27, 17, 10, tzinfo=UTC)
 IN_MINE = datetime(2026, 10, 27, 19, 45, tzinfo=UTC)  # carrinho: 19:30 a 20:00
 
 
@@ -119,6 +120,47 @@ async def test_4269_entrega_no_campo(tmp_path: Path) -> None:
         assert got[-1].code == 4269
         movie = pb.WarMovieMsg.FromString(got[-1].body)
         assert (movie.score, movie.geste, movie.isAdd, movie.userId) == (30, 3, True, g.user_id)
+
+
+async def test_8334_pvp_no_campo_com_4494_e_4269(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    copy = arena.copy_hero  # cópia do alvo com 1 de vida: a luta acaba no primeiro golpe
+    monkeypatch.setattr(arena, "copy_hero", lambda *a: copy(*a) | {"maxHp": 1, "initHp": 1, "hp": 1})
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4005)) as g:
+        games = [g]
+        for i in range(2):
+            if i:  # o segundo entra depois (como no teste do 4185)
+                games.append(await g.join("outro"))
+            game = games[-1]
+            _session(game).snapshot.character.grades = 35
+            await game.idle()
+            game.client.send(8332, pb.WorldBossMsg(param1=4005))
+            await game.idle()
+        other = games[1]
+        await g.idle()
+        s = _session(g)
+        field = s.ctx.warfields.fields[4005]
+        field.mark(other.user_id).score = 100
+        g.client.send(8334, pb.WarFieldAttackMsg(userId=other.user_id, defenceServerName="x"))
+        got = await g.idle()
+        assert got and got[-1].code == 157, [p.code for p in got]
+        start = pb.CrossArmyListMsg.FromString(next(p.body for p in got if p.code == 4494))
+        assert {a.state for a in start.armyList} == {2} and len(start.armyList) == 2
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert prepare.battleType == 32
+        s.battle.set_auto(True)  # o herói age sozinho
+        g.client.send(10007, pb.LoadOverMsg(armyId=g.user_id, battleId=prepare.battleId))
+        mine = await g.until(4103) + await g.idle()
+        theirs = await other.idle()
+        end = [pb.CrossArmyListMsg.FromString(p.body) for p in theirs if p.code == 4494][-1]
+        assert {a.state for a in end.armyList} == {0}
+        m1 = pb.WarMovieMsg.FromString(next(p.body for p in mine if p.code == 4269))
+        m2 = pb.WarMovieMsg.FromString(next(p.body for p in theirs if p.code == 4269))
+        assert m1.isAdd != m2.isAdd
+        loser = other if m1.isAdd else g
+        assert _session(loser).campaign.pos == warfield.RESPAWN
+        if m1.isAdd:  # venceu: tirou 15 dos 100 do outro
+            assert m1.score == 15 and field.mark(other.user_id).score == 85
+            assert pb.SnsRspMsg.FromString(next(p.body for p in mine if p.code == 4388)).type == 4
 
 
 async def test_4549_mina_abre_e_fecha(tmp_path: Path) -> None:

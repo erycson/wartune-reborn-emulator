@@ -2,10 +2,10 @@
 
 Entrada (8332) pela janela do template (``OpenTime``/``StopTime``) e nível, 4248 com o estado de cada campo, nós de
 entrega e coleta (5125/5032/5033), lista de pedidos (8337), restaurar vida (8338), o fim com o prêmio (no relógio
-20008, ``clock``) e a mina com o carrinho (8633). Regras e números em ``game/battlefield.py``.
+20008, ``clock``), a mina com o carrinho (8633) e o PvP entre jogadores do campo (8334, 157 battleType 32; todos
+estão neste servidor, então ``defenceServerName`` é o nosso). Regras e números em ``game/battlefield.py``.
 
-Pendente: PvP dentro do campo (8334 -> 157 battleType 32). O alvo fica em outro servidor e aqui não há como montar a
-luta, então o 8334 só registra. As missões tipo 45 (abates) e 50 (vitórias) dependem desse PvP.
+Pendente: as missões tipo 45 (abates) e 50 (vitórias) do PvP.
 """
 
 from __future__ import annotations
@@ -23,14 +23,23 @@ from ..builders.player import quest_update
 from ..campaign import CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
-from .campaign import ARMY_IDLE, map_sync
+from .. import arena as A
+from ..battle import Battle
+from .campaign import ARMY_IDLE, map_sync, player_hero
 from .login import army
+from .stars import sns_msg
 
 S_WARFIELD_STATE, S_WAR_ORDER, S_WAR_INFO, S_WAR_REPORT = 4248, 4255, 4252, 4254
 S_PLAYER_STATE, S_MINE, S_ROOM_CREATED, S_ROOM_ENTER, S_NODES = 4175, 4548, 125, 21, 127
 S_MAP, S_FULL_ARMY, S_MOVE, S_EXIT, S_QUESTS, S_ITEMS = 140, 150, 4185, 22, 112, 115
 S_CONFIRM, S_MOVIE, S_CHAT, S_ALERT, S_COUNT = 29, 143, 83, 111, 4493
 S_WAR_MOVIE = 4269  # WarMovieMsg (U_C_WARMOVIE)
+S_CROSS, S_ARMY_POS, S_SNS, S_REPORT = 4494, 4104, 4388, 4103  # CrossArmyListMsg, ArmyPosUpdatedMsg, SnsRspMsg
+PVP_TYPE, SNS_PVP = 32, 4  # battleType do 8334 (visto #9662); 4388 type 4 depois da vitória (visto #11111)
+RESPAWN, RESPAWN_MS = (179, 75), 25000  # (visto #11098, #11101): o perdedor volta para lá, 25 s morto
+LOSS_PCT, WIN_HONOR = 15, 10  # (visto #9828 "You lost: 15 Points." com 100; #11130 "... and 10 Honor.")
+WIN_TEXT, LOSE_TEXT = "You received: {} Points and {} Honor.", "You lost: {} Points."
+IN_BATTLE = "Player is now in battle!"  # (visto #10962)
 S_MINE_ACTIVE = 4549  # GuildMsg.param5 (U_C_MINE_ACTIVE_STATE): BaseManager.__mineralHandler -> mineralIsOpen
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
 ENTER_QUEST = 44  # "Participate in a Battleground" (QuestCondictionInfos tipo 44, visto nos templates)
@@ -126,7 +135,7 @@ def _info(s: GameSession, field: bf.Field, stop: datetime) -> pb.WarFightInfoMsg
     """4252: o placar do jogador e do time (visto #14238). O time 1 não tem jogadores aqui (0)."""
     mine = field.mark(s.player_id)
     left = max(0, int((stop - s.ctx.clock.now()).total_seconds() * 1000))
-    return pb.WarFightInfoMsg(teamId=bf.TEAM, score=mine.score, order=1, geste=mine.honor, hitCount=0, leftTime=left,
+    return pb.WarFightInfoMsg(teamId=bf.TEAM, score=mine.score, order=1, geste=mine.honor, hitCount=mine.wins, leftTime=left,
                               oneCount=len(field.marks), twoCount=0, oneScore=field.our_score(),
                               twoScore=0)  # fmt: skip
 
@@ -204,10 +213,90 @@ async def war_order(s: GameSession, _: object) -> None:
     s.send(S_WAR_ORDER, msg)
 
 
+def _cross(*rows: tuple[GameSession, tuple[int, int], int]) -> pb.CrossArmyListMsg:
+    """4494: posição (grade) e estado de cada exército (2 = lutando, 0 = livre)."""
+    msg = pb.CrossArmyListMsg()
+    for o, (x, y), state in rows:
+        name = o.snapshot.server.name if o.snapshot else ""
+        msg.armyList.add(armyId=o.player_id, playerId=o.player_id, curPosX=x, curPosY=y, state=state, serverName=name)
+    return msg
+
+
+def _to_map(ctx: GameContext, campaign_id: int, code: int, msg: Any) -> None:
+    for o in players_on(ctx, campaign_id):
+        o.send(code, msg)
+
+
 @router.on(8334)
 async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
-    """Atacar outro jogador no campo: o alvo vem de outro servidor (``defenceServerName``), sem luta aqui."""
-    s.log.info("8334 sem luta: o alvo está em outro servidor", pedido=str(msg))
+    """Atacar outro jogador no campo (``userId``; ``defenceServerName`` é sempre o nosso): luta PvP (157
+    battleType 32) contra a cópia do alvo, como o coliseu. (visto) 152321 #9660-#9662 e #10957-#10962: 4494 com os
+    dois em state 2 e o 157; alvo já lutando: 111 "Player is now in battle!"."""
+    c, snap = s.campaign, s.snapshot
+    found = _field(s)
+    target = s.ctx.online.get(msg.userId)
+    if (found is None or c is None or snap is None or s.battle is not None or target is None or target is s
+            or target.campaign is None or target.campaign.warfield != c.warfield or target.snapshot is None):  # fmt: skip
+        s.log.info("8334 recusado", pedido=str(msg))
+        return
+    field = found[0]
+    me, them = field.mark(s.player_id), field.mark(target.player_id)
+    if me.fighting or them.fighting or target.battle is not None:
+        s.send(S_ALERT, _chat(IN_BATTLE, 7))
+        return
+    me.fighting = them.fighting = True
+    cid = c.warfield
+    _to_map(s.ctx, cid, S_CROSS, _cross((s, c.pos, 2), (target, target.campaign.pos, 2)))
+    spec = A.colosseum_spec([], [A.copy_hero(target.snapshot, s.ctx.templates, s.ctx.clock.now())])
+    spec.update(battleType=PVP_TYPE, mapTempId=1, battleScene=11)  # (visto) #9662 e #11103
+    hero = player_hero(s, spec)
+
+    async def finished(battle: Battle, won: bool) -> None:
+        s.battle, s.hero_sp = None, battle.player_sp
+        await pvp_over(s, target, field, won)
+
+    s.battle = Battle(spec, hero, s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings)
+    s.battle.start()
+
+
+async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bool) -> None:
+    """Fim da luta do campo: o perdedor perde 15% dos pontos e renasce em 179,75 (4104 e 4175 state 1 por 25 s);
+    o vencedor ganha os mesmos pontos e 10 de honra. Ordem (visto) 152321 #11098-#11131: 4104, 4175, 4252, 4494,
+    4388 tipo 4, 4269, 111 e 83; o perdedor: 4269 (isAdd false), 111 e 83 (#9828-#9830).
+    TODO(inventado): 15% arredondado para cima (visto 100 -> 15, 115 -> 18); o ganho igual à perda (visto 21 e 23
+    sem a pontuação do outro) e o 4388 ``data`` = vitórias no campo (visto "1" na primeira)."""
+    winner, loser = (s, target) if won else (target, s)
+    wm, lm = field.mark(winner.player_id), field.mark(loser.player_id)
+    wm.fighting = lm.fighting = False
+    if field.settled:  # a partida acabou durante a luta: só o fim da luta
+        s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=11))
+        return
+    cid = field.campaign_id
+    lost = -(-lm.score * LOSS_PCT // 100)
+    lm.score -= lost
+    wm.score, wm.honor, wm.wins = wm.score + lost, wm.honor + WIN_HONOR, wm.wins + 1
+    here = [o for o in (winner, loser) if o.campaign is not None and o.campaign.warfield == cid]
+    if loser in here:
+        loser.campaign.pos = RESPAWN  # type: ignore[union-attr]
+        name = loser.snapshot.server.name if loser.snapshot else ""
+        _to_map(s.ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=loser.player_id, curPosX=RESPAWN[0],
+                                                             curPosY=RESPAWN[1], serverName=name))  # fmt: skip
+        state = pb.PlayerStateListMsg()
+        state.playerState.add(armyId=loser.player_id, state=1, leftTime=RESPAWN_MS, serverName=name)
+        _to_map(s.ctx, cid, S_PLAYER_STATE, state)
+    stop = bf.row_window(bf.field_row(s.ctx.templates, cid), s.ctx.clock.now())[1]  # type: ignore[arg-type]
+    for o in here:
+        o.send(S_WAR_INFO, _info(o, field, stop))
+    rows = [(o, o.campaign.pos, 0) for o in here]  # type: ignore[union-attr]
+    _to_map(s.ctx, cid, S_CROSS, _cross(*rows))
+    s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=11))  # (visto) #11103
+    winner.send(S_SNS, sns_msg(winner.player_id, SNS_PVP, str(wm.wins)))
+    for o, add, honor, text in ((winner, True, WIN_HONOR, WIN_TEXT.format(lost, WIN_HONOR)),
+                                (loser, False, 0, LOSE_TEXT.format(lost))):  # fmt: skip
+        name = o.snapshot.server.name if o.snapshot else ""
+        o.send(S_WAR_MOVIE, pb.WarMovieMsg(score=lost, geste=honor, isAdd=add, userId=o.player_id, serverName=name))
+        o.send(S_ALERT, _chat(text, 7))
+        o.send(S_CHAT, _chat(text, 3))
 
 
 @router.on(8338)
