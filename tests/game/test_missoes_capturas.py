@@ -179,7 +179,7 @@ GRAU: dict[int, int] = {
     769: 22,
     501: 24,
     502: 24,
-    503: 25,
+    503: 25,  # 86 (Amethyst): sem chamador no servidor; passa pelo contador direto (quest_event), não por gancho real
     530: 31,
     551: 24,
     581: 24,
@@ -194,19 +194,23 @@ GRAU: dict[int, int] = {
 
 PENDENTES = {
     310: "recompensa com atividades 4484/111/114/4131/149 de outras áreas fora da entrega de missão",
-    400: "subida 23 -> 24 (refinaria e tecnologia): o oficial manda 109 e 152 e põe o 83 da EXP no meio; o servidor põe no fim",
-    412: "subida 22 -> 23: o servidor manda 52 que o oficial não manda, e o 83 da EXP no fim (ordem do oficial no meio)",
-    430: "subida 24 -> 25: o oficial põe o 83 da EXP antes do 100; o servidor manda 52 e o 83 no fim",
-    480: "subida 25 -> 26: o oficial põe o 83 da EXP antes do 100; o servidor manda 52 e o 83 no fim",
-    570: "subida 28 -> 29: o servidor manda 52 que o oficial não manda; o 83 da EXP no fim",
+    # saídas medidas (servidor | oficial): 400 [..109,4130,100,150,3,52,83] | [..109,83,109,152,4130,100,150,3,52];
+    # 412 [3,112,109,100,150,3,52,83] | [3,112,109,100,150,3,83]; 430 [3,112,109,100,150,3,52,83] | [3,112,109,83,100,150,3];
+    # 480 [3,112,109,100,150,3,52,83] | [3,112,109,83,100,150,3,52]; 570 [..,100,150,3,52,83] | [..,100,150,3,83].
+    # O 52 e o 83 da EXP mudam de lugar entre as subidas sem regra achada nas 5 capturas (o servidor põe sempre 52, 83)
+    400: "subida 23 -> 24: oficial traz 83/109/152 no meio (refinaria e tecnologia) que o servidor não manda nesta janela",
+    412: "subida 22 -> 23: o 52 some no oficial e o 83 da EXP vai para depois do 150 (sem regra nas capturas)",
+    430: "subida 24 -> 25: oficial põe o 83 da EXP antes do 100 e não manda 52; servidor faz o contrário",
+    480: "subida 25 -> 26: oficial põe o 83 da EXP antes do 100 e o 52 no fim; servidor põe 52 e 83 depois do 150",
+    570: "subida 28 -> 29: o 52 some no oficial e o 83 da EXP fica depois do 150 (servidor põe 52 antes)",
     223: "recompensa com 4484/111 (pacote inicial) e 115 de itens: janela mistura outras áreas",
-    241: "bênção do altar (tipo 30): 109 duplicado e 83 de devoção; ordem não conferida, gancho em altar.py",
+    241: "bênção do altar (tipo 30, gancho altar.py:142): teste não chama o handler 5145 nem monta guilda com altar (não feito)",
     271: "árvore (tipo 20): 115 e 4476 fora da entrega; o teste não monta a árvore regada",
     313: "tipo 31 (cena com 1 jogador): janela só com 4594 de evento; gancho em campaign.py, não reproduzido",
     371: "tipo 31 (cena com 2 jogadores): janela com 4484/111 do pacote de VIP; gancho em campaign.py",
     422: "arena (tipo 16): gancho em arena.py; 3 duplicado na janela, causa não confirmada",
     765: "atacar cidade (tipo 8): gancho em outer_city.py, não reproduzido no teste",
-    768: "reciclagem (tipo 46): gancho em forge.py; a janela tem 4484/4260/111 de outras ações",
+    768: "reciclagem (tipo 46, gancho forge.py:560): teste não chama o handler 8340 nem põe equipamento na bolsa (não feito)",
     769: "refino (tipo 47): gancho em forge.py; oficial sem 83 da EXP, causa não confirmada",
     3: "Astro (tipo 36, stars.py): janela do oficial traz 109 e 3 da Daru; a contagem de 36 não é reproduzida no teste",
     6: "Forgotten Catacombs (tipo 38): gancho em tower.py:172 existe; janela com 4484/4426/4476 de recompensa não reproduzida",
@@ -264,12 +268,13 @@ async def test_entrega_ate_nivel_10_bate_com_o_oficial(tmp_path: Path, template_
                 snap.castle.map_id = para2
                 rules.update_state_quests(snap, templates, [q])
             elif kind == rules.BUILDING_CONDITION:  # o prédio já está no nível pedido (update_building_quests)
-                row = next(
-                    r
-                    for r in templates.find("BuildingTempInfos", SonType=row["Para1"])
-                    if int(r["BuildingGrade"]) == para2
-                )
-                snap.buildings.append(Building(snap.character.id or 0, int(row["TemplateId"])))
+                levels = templates.find("BuildingTempInfos", SonType=row["Para1"])
+                target = next(int(r["TemplateId"]) for r in levels if int(r["BuildingGrade"]) == para2)
+                mine = [b for b in snap.buildings if b.template_id in {int(r["TemplateId"]) for r in levels}]
+                if mine:  # o prédio já existe no castelo (castle.ensure): sobe o mesmo, sem duplicar
+                    mine[0].template_id = target
+                else:
+                    snap.buildings.append(Building(snap.character.id or 0, target))
                 rules.update_building_quests(snap, templates)
             else:
                 rules.quest_event(snap, templates, kind, para1, para2 or 1)

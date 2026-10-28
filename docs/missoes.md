@@ -350,15 +350,16 @@ Causa de cada um: não diagnosticada individualmente (janela e estado). O motivo
 
 ### Rodada 5 (missões: subida de nível, prédios, lote 21-31)
 
-O teste agora monta o castelo como no login (`castle.ensure`: filas, prédios do nível, produção), com `novice_process` no `CASTLE_READY` e exército cheio (tropa 10101 com `army_count` acima do limite do líder). Prédio (tipo 2) entra no `snap.buildings` no nível da condição e vale `rules.update_building_quests`. Grau das entregas novas vem do 3 antes do 5014 na captura (`x_20261024-191924-1` a `x_20261027-152321-1`).
+O teste agora monta o castelo como no login (`castle.ensure`: filas, prédios do nível, produção), com `novice_process` no `CASTLE_READY` e exército cheio (tropa 10101 com `army_count` acima do limite do líder). Prédio (tipo 2) sobe para o nível da condição (o do castelo, ou um novo se faltar) e vale `rules.update_building_quests`. Grau das entregas novas vem do 3 antes do 5014 na captura (`x_20261024-191924-1` a `x_20261027-152321-1`), conferido nos 12 casos novos.
 
 | id | nível | estado | #idx | motivo (resumo) |
 |---|---|---|---|---|
 | 501, 502, 551, 581, 681, 711, 721, 731 | 24 a 29 | passa (xfail tirado) | 15323, 15335, 15345, 15355, 20221, 4305, 13191, 487 | prédio (tipo 2) no nível da condição |
-| 400, 412, 430, 480, 570 | 22 a 28 | pendente (xfail) | 15035, 17367, 19336, 3001, 12635 | subida de nível: a fila de cobrança e o exército agora estão montados; falta a ordem do 83 da EXP (oficial no meio) e o 52 que o servidor manda a mais, além de 152/109 da subida 23 -> 24 |
+| 623 | 25 | passa (xfail tirado) | 20264 | estrela travada (tipo 53): gancho real em `handlers/stars.py:431` (`LOCK_QUEST`) |
+| 503 | 25 | passa, mas só por contador direto | 1931 | Amethyst Rush (tipo 86): `AMETHYST_CONDITION` não tem chamador no servidor (sem gancho de minas); o teste chama `quest_event` direto, então o pacote passa e o avanço real na partida não existe |
+| 400, 412, 430, 480, 570 | 22 a 28 | pendente (xfail) | 15035, 17367, 19336, 3001, 12635 | subida de nível: a fila de cobrança e o exército já estão montados; o 52 e o 83 da EXP mudam de lugar entre as subidas e nenhuma regra separa os casos (saídas no comentário do teste) |
 | 6 | 23 | pendente (xfail) | 12125 | catacumbas: gancho em tower.py:172 existe; a janela tem 4484/4426/4476 de recompensa não reproduzida |
-| 241 | 20 | pendente (xfail) | 1965 | bênção do altar: não foi refeita pelo handler 5145 nesta rodada (precisa de guilda com altar e a ordem da janela não confere) |
-| 768 | 20 | pendente (xfail) | 2274 | reciclagem: não foi refeita pelo handler 8340 nesta rodada (precisa de equipamento na bolsa e a janela tem 4484/4260/111) |
-| 86 (503) | 23 | pendente (xfail) | 1931 | Amethyst Rush: `AMETHYST_CONDITION` não tem gancho no servidor |
+| 241 | 20 | pendente (xfail) | 1965 | bênção do altar (gancho altar.py:142): não feito, o teste não chama o handler 5145 |
+| 768 | 20 | pendente (xfail) | 2274 | reciclagem (gancho forge.py:560): não feito, o teste não chama o handler 8340 nem põe equipamento na bolsa |
 
-Dos 26 casos do lote, 8 passaram (acima). Os outros continuam em xfail, cada um com o motivo na PENDENTES do teste (ver a tabela da rodada 4 para a causa de cada tipo).
+Dos 26 casos do lote, 10 passam (acima: 8 de prédio, 623 e 503). Os outros continuam em xfail, cada um com o motivo na PENDENTES do teste.
