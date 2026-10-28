@@ -135,7 +135,9 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
                 current = 0
                 continue
             if msg.createdType == 1:
-                out["stages"].append([target])
+                # segunda entrada na mesma etapa (225632, 1107): a etapa vai para o fim, sem repetir
+                old = [s for s in out["stages"] if s[0] == target]
+                out["stages"] = [s for s in out["stages"] if s[0] != target] + (old or [[target]])
                 stage_open = True
             elif target not in out["stages"][-1]:
                 out["stages"][-1].append(target)
@@ -176,6 +178,9 @@ def extract(packets: list[dict[str, Any]], templates: GameTemplates, campaign: i
             fighting = runtime_to_camp.get(msg.nodeId, 0)
         elif code == 157:
             key = QUARRY_FIGHT if quarry_fight else str(fighting)
+            if key == "0":  # revanche sem 128 de combate (225632, chefe 127204 de novo): a 1ª luta já ficou
+                battle_key, fighting, stage_open, pending = "", 0, False, 0
+                continue
             battle = out["battles"][key] = {
                 "battleType": msg.battleType,
                 "mapTempId": msg.mapTempId,

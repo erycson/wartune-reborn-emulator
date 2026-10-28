@@ -31,7 +31,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
-| Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
+| Campanhas e masmorras | 6 | 9 | 4 | 4 | 4 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 1 | 6 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **90** | **42** | **46** | **35** |
+| **Total** | **100** | **91** | **42** | **45** | **35** |
 
 ## Validação e base
 
@@ -232,7 +232,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | escolta da Elise vista (231733); luta do elite 115116 inventada (0075) |
 | 1007 Camp Calorn | 🟡 | | 1ª etapa (1171 → 1172) vista em 191924 #2345-#3706 (migração 0090), chefe Viscount Remus sem vitória: fim da etapa sem captura; 2ª etapa (1181/1182) não jogada; Mystery Box por dedução (0062) |
 | 9001 Claristun (em grupo) | 🧪 | 🇹🇷 | só a etapa 2011; chefe 201106 inventado (0084) |
-| Masmorras solo 1101-1602 | ❌ | | só drops |
+| Masmorras solo 1101-1602 | 🟡 | | 1101, 1103, 1104, 1105, 1107 jogáveis; 1102, 1106, 1201 só a 1ª etapa (migração 0098, das capturas); 1202-1602 sem captura de nós: fechadas |
 | Masmorras em grupo 9000-9112 | ❌ | | só drops |
 | Torres 8200-8204 (Tower of Kings, Spire) | ❌ | | só drops |
 | Pedreira 6001 | ✅ | | |
@@ -291,7 +291,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Segundo login, nível, eventos (39, 1, 40, 63, 66, 87) | ✅ | | |
 | Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 10 de 26 conferidas (prédios, 503, 623); faltam catacumbas (6), mina de Amethyst (86, sem gancho), 241/768 pelo handler e a ordem 52/83 em 5 subidas de nível |
 | Castelo e ocupação (7, 8) | 🟡 | | castelo de jogador sem alvo |
-| Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras sem nós |
+| Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras solo com captura na 0098 |
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
 | Diárias e repetíveis | 🟡 | | repetível concluída não aparece no login |
 | Conversa com NPC (85) | 🟡 | | patrulhas travam |
