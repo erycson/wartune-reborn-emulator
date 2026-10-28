@@ -24,26 +24,26 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
-| Castelo | 10 | 5 | 2 | 2 | 4 |
-| Herói e exército | 13 | 13 | 1 | 2 | 4 |
+| Castelo | 10 | 4 | 4 | 2 | 3 |
+| Herói e exército | 13 | 14 | 0 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 4 | 4 | 2 |
 | Lojas e mercado | 5 | 4 | 0 | 3 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
-| Campanhas e masmorras | 6 | 7 | 4 | 6 | 4 |
-| Labirinto (Forgotten Catacombs) | 1 | 1 | 4 | 2 | 5 |
+| Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
+| Labirinto (Forgotten Catacombs) | 2 | 1 | 4 | 3 | 4 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 3 | 5 | 0 | 6 | 0 |
+| Missões | 4 | 6 | 0 | 6 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 3 |
+| Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 1 | 2 | 5 | 2 |
-| Atividades e eventos | 5 | 9 | 1 | 4 | 5 |
+| Atividades e eventos | 5 | 11 | 2 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **93** | **86** | **36** | **51** | **39** |
+| **Total** | **95** | **90** | **38** | **51** | **36** |
 
 ## Validação e base
 
@@ -65,14 +65,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Cobrança de ouro (8327) | ✅ | | |
 | Produção de ouro e teto (5015) | 🟡 |  | tecnologia de ouro conferida no inglês (231733 #3969-#3979, 60 no grau 1); bônus de guilda não entra |
 | Roda da bênção do seminário (8489) | 🧪 | 🇹🇷 | subida de 10 a 70 inventada (`handlers/castle.py:38`); o 1º giro (10→50) só turco |
-| Fazenda: plantio e crescimento | ✅ |  | inglês: minutos inteiros e 1 min antes (215937 #1257, 171155); bate com o turco |
+| Fazenda: plantio e crescimento | ✅ |  | inglês: minutos inteiros e 1 min antes (215937 #1257, 171155); bate com o turco; slot vazio compra a semente (24/10 #347-#353) |
+| Fazenda: compra automática da semente | 🧪 | | pacote de 9 visto só para a Gold Seed; outras sementes usam 9 (inventado); 4484 antes do 111 não reproduzido |
 | Fazenda: colheita, praga, acelerar, terras | ✅ | | pragas tiram/devolvem 10% e totalGp acumulado no inglês (191924) |
 | Fazenda: roubo de amigo | ✅ | | ordem, textos e 10% no inglês (191924 #244-#263) |
-| Fazenda: reviver e regar do amigo | ✅ | 🇹🇷 | rega e ouro (grau × 20) no inglês; reviver do turco |
+| Fazenda: reviver e regar do amigo | ✅ | | rega, ouro (grau × 20) e reviver no inglês (24/10 #236, 27/10 #19855) |
 | Fazenda: aviso ao dono online (145, rega e praga do amigo) | 🧪 | | rega e praga no inglês; textos do mato inventados (`farm.py`, `_tell_pest`) |
 | Fazenda: subida de nível (111, 4386, 83) | 🟡 | | vista na rega e na praga do amigo; nos outros casos por dedução |
 | Árvore: rega própria (15017) | ✅ |  | própria e do amigo no inglês (153200, 171155, 215937), igual ao turco |
-| Árvore: colheita do fruto (5178) | 🟡 | | nenhuma captura com fruto; Daru, Kyanite e textos da internet |
+| Árvore: colheita do fruto (5178) | 🧪 | | ordem e textos vistos (25/10 #218-#227, 27/10 #5075-#5086); Daru/Kyanite/ouro vistos nos graus 6 e 10, os outros graus são reta entre eles (inventado) |
 | Caixa por tempo (5019) | ✅ | | reset diário de uma amostra só |
 | Recompensa offline (8287) | 🟡 | | só ×1; ×1,5 e ×2 recusados (preço desconhecido); EXP = nível × minutos por dedução |
 | Trégua (8562) | ❌ | | só zera e confirma |
@@ -106,9 +107,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
 | Cartas: bônus de coleção (4905) | 🟡 | | degraus por dedução; o bônus não entra na luta |
 | Cartas: ganho nas batalhas | 🟡 | | incompleto |
-| Estrelas: sortear (8269) | 🟡 | | chances por qualidade são atalho |
+| Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade são atalho |
 | Estrelas: recolher, vender, mover | ✅ | | |
-| Estrelas: compor (8331) | 🧪 | | textos de nível e EXP inventados (`handlers/stars.py:49`) |
+| Estrelas: compor (8331) | 🟡 | | textos e ordem do inglês (#19525, #6816, #13736); o 4484 do início sem gatilho conhecido |
 | Estrelas: travar, espaço, loja | ✅ | | |
 | Estrelas: login | ✅ |  | 4180 no login inglês, igual ao turco |
 
@@ -150,8 +151,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Títulos (4484/8597) | 🧪 | | condições de time, arena e labirinto zeradas (`titles.py:25,53`) |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |
-| Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 no inglês (231733 #1492); transformação e caixa de pedras do turco |
-| Forja: refino de atributos (8336/8339) | 🧪 | | sorteio uniforme; `forge.py:450` |
+| Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 e transformação 8538 no inglês (231733 #1492, 26/10 #10315, sem aviso); caixa de pedras do turco |
+| Forja: refino de atributos (8336/8339) | 🧪 | | ordem e "Refinement Complete!" do inglês (24/10 #8019-#8027); o sorteio continua inventado (`bag.roll_random_skill`) |
 | Forja: decomposição (8340) | ✅ | | ordem vista em 191924 #2259-#2278; recusa calada por dedução (o cliente limpa a bancada com qualquer 4260) |
 | Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
 | Equipamento do mascote na luta | 🟡 | | a luta não usa os atributos |
@@ -215,7 +216,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Terra secreta: árvore sagrada | 🧪 | | EXP do tique e energia inventados (`fam.py:33`) |
 | Anúncio de recrutamento | 🧪 | | canal e remetente inventados |
 | Correio de guilda | ✅ | | |
-| Guerra de guildas | 🟡 | | lista inventada; entrar e time recusados |
+| Guerra de guildas | 🟡 | | lista inventada; entrar e time recusados; a luta (4439-4462) está em 26/10 #2464-#5970 e falta o mapa de GvG |
 | Guerra entre servidores | ❌ | | |
 | Master Treasure Thief (8743) | ❌ | | |
 
@@ -243,7 +244,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem) |
 | Times (convite, capitão, sair) | 🟡 | | não persistem |
 | Link de sala no chat (9504) | ✅ | | |
-| Salas PvP (5023) | ❌ | | |
+| Salas PvP (5023, 5039, 8344, 8465) | 🟡 | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); a partida em si não |
 | Falas e câmera no meio da luta (171/142) | ❌ | | |
 | Pedágio (8752-8755) | ❌ | | fechado |
 
@@ -251,12 +252,14 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) 0 por atalho |
+| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) 0 por atalho; prêmio do reset sem captura |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
-| Andares 4 a 100: monstros, chefes, baús, drop | 🧪 | 🇹🇷 | só 2 andares vistos; o resto segue eles (`maze.py:48-215`) |
+| Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP |
+| Andares 26 em diante | 🧪 | | sem captura: repetem o monstro e a força do 25 (`content/maze_floors.json`) |
+| Aviso de respawn (4207) | ❌ | | visto ("25" #11400, "0" #13436), o servidor não manda |
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | 🧪 | | resposta inventada (`tower.py:207`) |
-| Varredura do labirinto (8528 tipo 2) | 🧪 | 🇹🇷 | só turco; dobrado inventado (`sweep.py:155`) |
+| Varredura do labirinto (8528 tipo 2) | 🧪 | 🇹🇷 | o inglês (25/10 #9643-#9650) dá fichas e as gemas dos baús; o servidor só dá GP; dobrado inventado (`sweep.py:155`) |
 | Necropolis (8101) | ❌ | | sem andares |
 | Guarda de batalha e gemas (8742/4631) | ❌ | 🇹🇷 | gemas não modeladas; o 4631 vazio no login (turco) |
 
@@ -286,13 +289,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Aceite, progresso, entrega e recompensas | ✅ | | |
 | Principais: recrutar, nível, tropa, construção | ✅ | | |
 | Segundo login, nível, eventos (39, 1, 40, 63, 66, 87) | ✅ | | |
+| Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 26 entregas registradas, nenhuma conferida (dependem de prédio, guilda, campo de batalha, war camp, Catacumbas, minas); subida de nível manda o 104 da fila do castelo |
 | Castelo e ocupação (7, 8) | 🟡 | | castelo de jogador sem alvo |
 | Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras sem nós |
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
 | Diárias e repetíveis | 🟡 | | repetível concluída não aparece no login |
 | Conversa com NPC (85) | 🟡 | | patrulhas travam |
 | Guilda (22, 29, 30, 51) | ❌ | | tipos não contados |
-| Arena e batalhas (16, 35, 41, 44, 45, 50, 79, 80, 93) | ❌ | | tipos não contados |
+| Chefe do mundo (40, 41) | ✅ | | entrar e dano total contados |
+| Arena e batalhas (16, 35, 44, 45, 50, 79, 80, 93) | ❌ | | 16 sem luta em grupo na arena; 44/45/50 com o campo de batalha |
 | Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ❌ | | tipos não contados |
 | Demais tipos (12, 21, 56-59, 61, 64, 65, 71, 74, 86, 89-91) | ❌ | | tipos não contados |
 | Janelas fechadas e Koyu Kristal | ❌ | | |
@@ -311,7 +316,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Grade, andar e exércitos | 🟡 | | exércitos alheios não aparecem |
-| Mudar o castelo de lugar (5176) | 🟡 | 🇹🇷 | ordem e energia no inglês (153200 #184-#187); ponto: o inglês caiu em 2468,2661 do mapa 1, aqui o centro |
+| Mudar o castelo de lugar (5176) | 🟡 | | ordem 140/152/140/105 e energia no inglês (24/10 #15689, 27/10 #18049); ponto de chegada: o inglês cai num ponto fixo, aqui o centro |
 | Minas de ouro (missão 60) | 🟡 | | perda de soldados na derrota e refresh com o jogador online sem captura |
 | Minas do mundo (mapas 1-5) | 🧪 | | grades não vistas inventadas (`mines.py:22`) |
 | Atacar mina de outro jogador | 🧪 | | cópia do herói inventada |
@@ -348,7 +353,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
 | Arena entre servidores (8590) | ❌ | | |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
-| Campo de batalha | ❌ | | |
+| Campo de batalha (4005/4007, mina 30000) | ❌ | | fluxo inteiro visto em 25-27/10 (entrada 8332, coleta e entrega, 4255, fim e prêmio); falta implementar, com outros servidores (serverName) e o movimento dos outros (4185) |
 | Ataque a castelo/exército de jogador | ❌ | | |
 | Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
 | Boss mundial: buff e dublê | ❌ | | |
@@ -358,7 +363,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Login diário e presente online | ✅ | | dias 1 a 4 do login acumulado no inglês (153200, 191924) |
-| Baú de atividade diária (8235) | ✅ | | ordem e texto do inglês (tutorial_en #1561) |
+| Baú de atividade diária (8235) | ✅ | | ordem e texto do inglês (tutorial_en #1561); mochila cheia: "Insufficient Inventory space." (27/10 #6040) |
 | Devoção (leeds) | 🟡 | 🇹🇷 | leed 8 no inglês (171155 #4955); 17 e 33 do turco; 13, 27, 28 sem gancho |
 | Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 nunca; login do turco |
 | Atividades por contador (SumActive) | 🟡 | | troca (tipo 10) vista (191924); vários tipos sem contador |
@@ -370,12 +375,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
 | Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); só a condição 5 (árvore de amigo) é contada, as outras e o 8729 dependem dos seus sistemas; texto do Daru inventado |
-| Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827); o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
+| Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
-| Pesca, caça ao tesouro, estrada dourada, quiz, minério | ❌ | | fechados |
+| Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |
+| Pesca, caça ao tesouro, quiz, minério | ❌ | | fechados; pesca (9507) só manda 4916/4918, as capturas não mostram resposta ao pedido |
 | Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
 | Campo minado, caixa de ano novo, história | ❌ | | |
-| Recuperar EXP (9503), corneta (passe), troca da sorte, 360 | ❌ | | |
+| Recuperar EXP (9503) | 🟡 | | 4912 e 109 no inglês (24/10 #9044, 26/10 #2207, 27/10 #745); resgate (tipo 1) sem captura |
+| Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
+| Corneta (passe), 360 | ❌ | | |
 
 ## VIP
 

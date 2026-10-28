@@ -149,4 +149,5 @@ async def test_missao_47_arita_conta_cada_sorteio(tmp_path: Path) -> None:
 
         g.client.send(8336, pb.SmithFreshReqMsg(lock=[False, False, False], payType=0))
         got = await g.until(112)
-        assert codes(got)[-2:] == [4258, 112] and _progress(got) == (769, 1)
+        # (visto) oficial_20261024-191924-1 #8019-#8027: 115 dos materiais e logo o 112 da missão
+        assert codes(got)[-2:] == [115, 112] and _progress(got) == (769, 1)
