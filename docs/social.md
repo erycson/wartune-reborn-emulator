@@ -69,7 +69,7 @@ A `key` precisa ser a da sessão HTTP do próprio `userId`.
 | 8205 | MailSendReqMsg `{sendType, receiverUserId[], title, contents}` | 148 MailMsg para o destinatário | pronto: jogador→jogador, 1 destinatário, assunto ≤ 15, texto ≤ 300, 100 de ouro, nível 6. Correio de guilda (sendType 2) recusado *(cliente)* |
 | 8206 | MailDelReqMsg `{delList}` | 4132 com os ids apagados | pronto; não apaga correio com item de verdade ainda não retirado (ele fica até o 5022) |
 | 5022 | MailMsg `{mailsIdArray, position}` (0 = todos) | 114 MailPickupRspMsg, 4131 ReceiveMailMsg, 115, 109/3 | pronto: atômico por correio; sem espaço = `result false`. Item de verdade (leilão, lance devolvido) vai para a mochila; diamante do anexo entra no `cash_ledger` (`reason` `mail`) |
-| 9591 | MailCheckMsg | 337 `state 0` | parcial: verificação de e-mail precisa de SMTP; nunca dá `mail_rewards` |
+| 9591 | MailCheckMsg | 337 `state 0` | parcial: verificação de e-mail precisa de SMTP; nunca dá `mail_rewards`. *(visto)* oficial_20261027-152321-1: op 1 gera 337 `state 1` + 111 "código enviado" (#7056-#7059); op 2 com o PIN certo gera 337 `state 2` + 111 + 3000 Balens (#7115-#7120); op 2 com PIN 0 não tem resposta (#7055). O 337 `state 4` (#7045) vem sem pedido antes; não se viu o gatilho, então não foi implementado |
 | — | | 148 | correio novo (online) |
 
 `game.mail.send_system_mail(ctx, receiver_id, título, texto, [(templateId, n), ...])` é o correio

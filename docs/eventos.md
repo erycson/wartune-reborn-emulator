@@ -261,7 +261,7 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 
 | Opcode | Comportamento / resposta | Fonte |
 |---|---|---|
-| login | 4224 e 4372 | (visto) login.json #9, #10 (turco; a inglesa não responde o 8320/8466 de #17-#18) |
+| login | 4224 e 4372 | (visto) oficial_20261027-152321-1 #8-#9 (nível 30, logo depois do 100); (visto) login.json #9, #10 (turco; a inglesa não responde o 8320/8466 de #17-#18) |
 | 8320 / 8466 | estado (4224 / 4372) | (cliente) |
 | 8321 | custo 0 no 1º uso do dia, depois `min(40 + 10 x usos, 200)` Balens não vinculados (só `point`); ouro = Town Hall(901).Property1 x 10 + Gold Refinery(101).Property1 x 5; 20 usos + privilégio VIP 8 | (cliente) AlchemyFrame |
 | 8467 | mesmo custo; alma = nível Barracks(402) x `RefiningSoul_ArmyHouseMut` + nível Cottage(1201) x `RefiningSoul_PeopleMut` (500 cada, como o SoulMakeFrame); nível mínimo `RefiningSoul_Grades`; `RefiningSoul_Count` + privilégio VIP 9 | (cliente) + (visto) login.json #10 (só turco) |

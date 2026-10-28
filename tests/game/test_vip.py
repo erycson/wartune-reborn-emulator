@@ -60,6 +60,20 @@ async def test_alchemy_and_soul_spend_diamonds(tmp_path: Path) -> None:
         assert saved.character.point == 10
 
 
+async def test_login_manda_4224_e_4372_a_partir_do_nivel(tmp_path: Path) -> None:
+    """(visto) oficial_20261027-152321-1 #8-#9: no login de nível 30 vêm o 4224 e o 4372; no nível 1 (tutorial_en)
+    nenhum dos dois."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        vip.login_push(s)
+        assert not {4224, 4372} & {p.code for p in await g.idle()}
+        _snap(g).character.grades = 30
+        vip.login_push(s)
+        codes = [p.code for p in await g.idle()]
+        assert 4224 in codes and 4372 in codes
+
+
 async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         c = _snap(g).character

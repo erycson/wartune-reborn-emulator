@@ -257,7 +257,7 @@ e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque =
 | 8717, 8720 | nada (o cliente não espera) | o 8720 só aparece depois de um 4533, nunca mandado |
 | 8979, 8975, 8976, 8981 | 4799 `{isOpen false, isSign false, isOver true}` | Senhores de casal; o botão já é escondido no cliente (`MATELORD`) |
 | 8337 | 4255 vazio | classificação do campo de batalha |
-| 8332, 8334, 8338, 8599 | nada | campo de batalha (campanhas 4001-4011, mapa com times): sem 125 o cliente não troca de cena. O 8599 (`CampaignReqMsg {paraInt1: campanha}`) é o `WarFightItem` pedindo entradas com `warFieldCount` <= 0: o login manda 2 e o botão só aparece no estado 0 |
+| 8332, 8334, 8338, 8599 | nada | campo de batalha (campanhas 4001-4011, mapa com times): sem 125 o cliente não troca de cena. O 8599 (`CampaignReqMsg {paraInt1: campanha}`) é o `WarFightItem` pedindo entradas com `warFieldCount` <= 0: o login manda 2 e o botão só aparece no estado 0. *(visto)* oficial_20261027-152321-1 #22504 (8599 `paraInt1` 4009) -> #22505 4493 `paraInt1` 4009, `paraBool1` false; o handler de 8599 (`warfield.closed`) só loga e não manda o 4493 (pendente: o arquivo está fora desta entrega) |
 | 8633 | nada | mina de ametista (campanha 30000): o botão só aparece com 4549/4422, nunca mandados |
 
 No login (8224 `sys`): 4776 com a agenda dos Senhores no passado (sem 4535, como a inglesa #104-#106) e o **4248

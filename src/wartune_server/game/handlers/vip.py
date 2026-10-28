@@ -562,8 +562,15 @@ async def trial_buy(s: GameSession, msg: pb.TrialInfoMsg) -> None:
 
 
 def login_push(s: GameSession) -> None:
-    """Estados que o oficial manda no login: 4434 (tutorial_en #58) e 4410 (#96). O 4224 e o 4372 não: o tutorial_en
-    (nível 1) não manda nenhum dos dois, nem em resposta ao 8320/8466 (#17-#18)."""
+    """Estados que o oficial manda no login: 4434 (tutorial_en #58), 4410 (#96) e, a partir dos mesmos níveis dos
+    pedidos, 4224 e 4372 logo depois do 100 (visto) oficial_20261027-152321-1 #8-#9; o mesmo nas capturas de 23 a 26/10.
+    O tutorial_en (nível 1) não manda nenhum dos dois (#17-#18).
+    shortcut: nenhuma captura de login entre o nível 14 e o 24 (só o nível 30 e o 1); se houver, conferir o limiar."""
     assert s.snapshot is not None
     send_king(s)
     send_vip(s)
+    snap = s.snapshot
+    if snap.character.grades >= ALCHEMY_GRADE:
+        s.send(S_LUCKY, _lucky_msg(s, snap))
+    if snap.character.grades >= _cfg(s, "RefiningSoul_Grades"):
+        s.send(S_SOUL, _soul_msg(s, snap))
