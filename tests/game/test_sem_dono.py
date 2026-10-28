@@ -106,6 +106,15 @@ async def test_soul_swap_sends_3_then_4372(tmp_path: Path) -> None:
         assert codes(got)[-2:] == [3, 4372]
 
 
+async def test_appraisal_refusal_sends_109_then_identification_failed(tmp_path: Path) -> None:
+    """(visto) 1026-225632-1 #2524: 109 e depois 111 "Identification Failed." logo após o 8781."""
+    async with logged_in(tmp_path, novice=30018) as g:
+        g.client.send(8781, pb.FashionMsg(templateId=1))
+        got = await g.until(111)
+        assert codes(got) == [109, 111]
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Identification Failed."
+
+
 async def test_recover_list_sends_4912_then_109(tmp_path: Path) -> None:
     """(visto) 191924-1 #9044, 1026 #2207 e 1027 #745: 4912 e depois 109 (lista de recuperação vazia)."""
     async with logged_in(tmp_path, novice=30016) as g:

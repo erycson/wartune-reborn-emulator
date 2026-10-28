@@ -9,12 +9,13 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
 from .. import bag, rules, space
 from ..builders.player import fashion_book
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .player import S_ITEMS, _army, _player
 from .shop import send
 
-S_APPEARANCE, S_FASHION_COMPOSE, S_FASHION_BOOK = 149, 4487, 4542
+S_APPEARANCE, S_FASHION_COMPOSE, S_FASHION_BOOK, S_ALERT = 149, 4487, 4542, 111
 HIDE, SHOW = 1, 2  # HeroHideFashionReqMsg.hide; 0 = só pedir a aparência (sendChangeHeroInfo)
 FASHION_SONS = (rules.WING, rules.HAT, rules.FASHION_CLOTH, rules.FASHION_ARM)
 
@@ -141,6 +142,10 @@ async def fashion_appraisal(s: GameSession, msg: pb.FashionMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     s.log.info("8781 recusado: tabela da avaliação desconhecida", modelo=msg.templateId)
+    # (visto) 1026-225632-1 #2524: 109 e depois 111 "Identification Failed." logo após o pedido. TODO(inventado):
+    # a sequência é de uma amostra só; o 109 sem gasto conhecido e a posição do 4542 não estão confirmados
+    castle_yield(s)
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Identification Failed."))
     send(s, S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
 
 
