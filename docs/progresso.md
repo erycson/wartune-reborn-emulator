@@ -32,18 +32,18 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
-| Labirinto (Forgotten Catacombs) | 2 | 1 | 4 | 3 | 4 |
+| Labirinto (Forgotten Catacombs) | 2 | 1 | 5 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 4 | 6 | 0 | 6 | 0 |
+| Missões | 5 | 6 | 0 | 6 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 2 |
+| Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
-| PvP e chefes | 1 | 1 | 2 | 5 | 2 |
+| PvP e chefes | 1 | 2 | 2 | 4 | 2 |
 | Atividades e eventos | 5 | 11 | 2 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **95** | **90** | **38** | **51** | **36** |
+| **Total** | **96** | **92** | **38** | **49** | **35** |
 
 ## Validação e base
 
@@ -254,12 +254,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) 0 por atalho; prêmio do reset sem captura |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
-| Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP |
+| Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
 | Andares 26 em diante | 🧪 | | sem captura: repetem o monstro e a força do 25 (`content/maze_floors.json`) |
-| Aviso de respawn (4207) | ❌ | | visto ("25" #11400, "0" #13436), o servidor não manda |
+| Aviso de respawn (4207) | 🧪 | | manda após a derrota (25/10 #10593); 1ª morte da entrada grátis é inferida de 4 casos; no oficial 150/100/4122 vêm antes do 140, aqui depois |
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | 🧪 | | resposta inventada (`tower.py:207`) |
-| Varredura do labirinto (8528 tipo 2) | 🧪 | 🇹🇷 | o inglês (25/10 #9643-#9650) dá fichas e as gemas dos baús; o servidor só dá GP; dobrado inventado (`sweep.py:155`) |
+| Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |
 | Necropolis (8101) | ❌ | | sem andares |
 | Guarda de batalha e gemas (8742/4631) | ❌ | 🇹🇷 | gemas não modeladas; o 4631 vazio no login (turco) |
 
@@ -289,7 +289,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Aceite, progresso, entrega e recompensas | ✅ | | |
 | Principais: recrutar, nível, tropa, construção | ✅ | | |
 | Segundo login, nível, eventos (39, 1, 40, 63, 66, 87) | ✅ | | |
-| Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 26 entregas registradas, nenhuma conferida (dependem de prédio, guilda, campo de batalha, war camp, Catacumbas, minas); subida de nível manda o 104 da fila do castelo |
+| Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 10 de 26 conferidas (prédios, 503, 623); faltam catacumbas (6), mina de Amethyst (86, sem gancho), 241/768 pelo handler e a ordem 52/83 em 5 subidas de nível |
 | Castelo e ocupação (7, 8) | 🟡 | | castelo de jogador sem alvo |
 | Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras sem nós |
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
@@ -297,7 +297,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Conversa com NPC (85) | 🟡 | | patrulhas travam |
 | Guilda (22, 29, 30, 51) | ❌ | | tipos não contados |
 | Chefe do mundo (40, 41) | ✅ | | entrar e dano total contados |
-| Arena e batalhas (16, 35, 44, 45, 50, 79, 80, 93) | ❌ | | 16 sem luta em grupo na arena; 44/45/50 com o campo de batalha |
+| Campo de batalha: entrar (44) | ✅ | | contado na entrada 8332 |
+| Arena e batalhas (16, 35, 45, 50, 79, 80, 93) | ❌ | | 16 sem luta em grupo na arena; 45/50 dependem do PvP do campo |
 | Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ❌ | | tipos não contados |
 | Demais tipos (12, 21, 56-59, 61, 64, 65, 71, 74, 86, 89-91) | ❌ | | tipos não contados |
 | Janelas fechadas e Koyu Kristal | ❌ | | |
@@ -323,7 +324,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Castelos NPC do mundo | 🧪 | | grades, saque e nomes inventados (`npc_castles.py`) |
 | Castelos-robô (missões 100, 411, 765) | 🧪 | | saque acima do grau 30 inventado |
 | Monstros dos Wilds e patrulha | 🟡 | | luta em grupo não existe |
-| Chefes do mapa (9525, 4938) | 🧪 | 🇹🇷 | relógio e lista conferidos no inglês (153200 #191); mapa 2 do turco; texto inglês do aviso de abate inventado |
+| Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista no inglês (153200 #191); luta: 4938 type 4 e herói do chefe da 157 do inglês (24/10 #16254-#16256); aviso de abate do inglês (26/10 #1106); falta luta em equipe, prêmio do abate e nome inglês ("Purgatory Lord", o catálogo turco dá "Balrog") |
 | Baús dos Wilds (9526) | ✅ | | |
 | Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
 | Mapa do tesouro (8744) | 🟡 | 🇹🇷 | só o bronze; ops 2-5 recusadas; login só turco; 8745 e 8535 dependem dos mapas de guilda e do chefe |
@@ -353,7 +354,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
 | Arena entre servidores (8590) | ❌ | | |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
-| Campo de batalha (4005/4007, mina 30000) | ❌ | | fluxo inteiro visto em 25-27/10 (entrada 8332, coleta e entrega, 4255, fim e prêmio); falta implementar, com outros servidores (serverName) e o movimento dos outros (4185) |
+| Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10); falta o PvP 8334 (alvo em outro servidor), honra e Amethyst sem moeda, perda de pontos por morte, 4269; nós, vencedor e constantes no código (sem `game_settings`) inventados |
 | Ataque a castelo/exército de jogador | ❌ | | |
 | Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
 | Boss mundial: buff e dublê | ❌ | | |
