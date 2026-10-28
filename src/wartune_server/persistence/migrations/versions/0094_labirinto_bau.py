@@ -4,8 +4,8 @@ A linha de 0087 guarda o baú inventado (2050201 x2). O baú visto nas capturas 
 2050701 x2 e 208009 x2; o ``maze.DEFAULT`` usa o mesmo para os andares sem captura. Os andares 5, 10, 15 e 20 têm o
 próprio baú em ``content/maze_floors.json``: esta linha só vale para os andares 25 em diante.
 
-Revision ID: 0097
-Revises: 0092
+Revision ID: 0094
+Revises: 0093
 Create Date: 2026-10-28 16:00:00.000000
 """
 
@@ -16,8 +16,8 @@ import json
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0097"
-down_revision = "0092"
+revision = "0094"
+down_revision = "0093"
 branch_labels = None
 depends_on = None
 
