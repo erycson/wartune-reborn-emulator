@@ -242,3 +242,26 @@ async def test_subir_andar_avanca_a_missao_38(tmp_path: Path, monkeypatch: pytes
         rows = tw.floor_entered(s, 8002)
         assert seen == [(rules.CATACOMBS_CONDITION, 8001, 1)]
         assert len(rows) == 1
+
+
+def test_hp_pct_escala_a_vida_do_andar() -> None:
+    """``hp_pct`` 100 é o oficial (10/28 #1369: 7680 no andar 26); 50 dá a metade."""
+    t = GameTemplates.parse(TEMPLATES.read_bytes())
+    full = mz.content(t, mz.DEFAULT)["battles"]["802602"]["soldiers"][0]["hp"]
+    half = mz.content(t, mz.DEFAULT | {"hp_pct": 50})["battles"]["802602"]["soldiers"][0]["hp"]
+    assert (full, half) == (7680, 3840)
+
+
+def test_ranking_por_andar_e_desempate_pelo_horario() -> None:
+    """(jogador 28/10) quem chegou mais alto vem antes; no mesmo andar, quem chegou primeiro."""
+    from datetime import datetime
+
+    from wartune_server.domain.models import EventState
+
+    def st(cid: int, rec: int, at: str) -> EventState:
+        return EventState(character_id=cid, key=mz.KEY, updated_at=datetime(2026, 10, 28),
+                          text=f'{{"record": {rec}, "record_at": "{at}"}}')  # fmt: skip
+
+    states = [st(1, 28, "2026-10-28T10:00"), st(2, 30, "2026-10-28T12:00"), st(3, 28, "2026-10-28T09:00")]
+    assert [mz.position(states, c) for c in (1, 2, 3)] == [3, 1, 2]
+    assert mz.position([*states, st(4, 0, "")], 4) == 0

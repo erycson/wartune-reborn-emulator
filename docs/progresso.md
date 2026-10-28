@@ -252,7 +252,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) 0 por atalho; prêmio do reset sem captura |
+| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) por andar e desempate pelo horário (jogador 28/10), calculado ao abrir; dificuldade em `game_settings.maze.hp_pct`; prêmio do reset sem captura |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
 | Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
 | Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante repete o 28 (`TODO(inventado)`) |

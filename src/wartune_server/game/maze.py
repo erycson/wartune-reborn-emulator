@@ -23,7 +23,7 @@ from importlib import resources
 from typing import Any
 
 from ..domain import gameday
-from ..domain.models import PlayerSnapshot
+from ..domain.models import EventState, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import events as ev
@@ -57,6 +57,9 @@ DEFAULT: dict[str, Any] = {
     "chest": [[2050501, 2], [208009, 2]],
     "chest_every": 5,
     "key": 208008,  # Crypt Key (sonType 297): o lucro dobrado (isDouble 2) gasta uma (cliente: MazeFrame)
+    # vida dos monstros e chefes em % do catálogo (PawnTempInfos/GameHeroTemp 7000+andar; 100 = o oficial, visto 10/28
+    # #1369 7680 = Live 768000 / 100): o único ajuste de dificuldade, o resto vem do catálogo do cliente
+    "hp_pct": 100,
     "revive": 25,  # (cliente) MazeRiverView.content01: "Reviving will consume 25 Balens"
     "sweep_from": 10,  # (cliente) "You may only blitz after completing level 10."
 }
@@ -79,6 +82,11 @@ class Tower:
     # o giftToken 2458 -> 2433 -> 2408 é do jogador, não entra aqui, ver 8300 em #1755/#1756)
     deaths: int = 0
     dead: bool = False  # morto sem reviver (4207 e sem 8300 depois): a saída manda 4419 e zera a corrida
+    record_at: str = ""  # quando o recorde subiu (ISO): o desempate do ranking
+
+    def raise_record(self, floor: int, now: datetime) -> None:
+        if floor > self.record:
+            self.record, self.record_at = floor, now.isoformat()
 
     def item_ids(self) -> str:
         return "|".join(f"{t},{n}" for t, n in self.items)  # (visto) "2050201,2|208009,2"
@@ -114,7 +122,20 @@ def record(snap: PlayerSnapshot) -> int:
     return int(json.loads(st.text).get("record", 0)) if st is not None and st.text else 0
 
 
-def info(tower: Tower, cfg: dict[str, Any], index: int = 0) -> pb.TowerInfoMsg:
+def position(states: list[EventState], character_id: int) -> int:
+    """``order``: 1 + quantos têm recorde maior ou o mesmo alcançado antes (jogador 28/10: andar, desempate pelo
+    horário); 0 ("None") sem recorde."""
+    runs = {s.character_id: json.loads(s.text) for s in states if s.key == KEY and s.text}
+    mine = runs.get(character_id, {})
+    me = (-int(mine.get("record", 0)), mine.get("record_at", ""))
+    if me[0] == 0:
+        return 0
+    return 1 + sum(
+        (-int(r.get("record", 0)), r.get("record_at", "")) < me for c, r in runs.items() if c != character_id
+    )
+
+
+def info(tower: Tower, cfg: dict[str, Any], index: int = 0, order: int = 0) -> pb.TowerInfoMsg:
     """4205. ``index`` é a aba do MazeFrame (0 Catacombs, 1 Necropolis). ``order`` 0: o cliente mostra "None"."""
     if index != 0:  # shortcut: a Necropolis (8101) não tem andares aqui; abre só com o recorde 100 da primeira
         return pb.TowerInfoMsg(index=index, campaignId=SECOND, freeEnterCount=cfg["free_enter"],
@@ -124,9 +145,7 @@ def info(tower: Tower, cfg: dict[str, Any], index: int = 0) -> pb.TowerInfoMsg:
         totalGp=tower.gp,
         towerIndex=tower.index,
         maxIndex=tower.record,
-        # shortcut: order (a posição no ranking do recorde, 5439 na captura) vai 0 ("None"); ligar quando houver o
-        # ranking do labirinto
-        order=0,
+        order=order,  # (visto 10/28 #985) 74
         maxEnterCount=cfg["max_enter"],
         itemTempIds=tower.item_ids(),
         freeEnterCount=cfg["free_enter"],
@@ -215,6 +234,11 @@ def _battle(templates: GameTemplates, cfg: dict[str, Any], floor: int) -> dict[s
         spec["heroes"] = [_hero(hero, battle)]
     elif (pawn := templates.get("PawnTempInfos", tid)) is not None:
         spec["soldiers"] = [_soldier(4 + i, pawn, p, battle) for i, p in enumerate((2, 3, 8, 9))]
+    pct = int(cfg["hp_pct"])
+    for unit in spec["heroes"] + spec["soldiers"]:
+        for k in ("maxHp", "initHp", "hp"):
+            if k in unit:
+                unit[k] = max(1, unit[k] * pct // 100)
     return spec
 
 

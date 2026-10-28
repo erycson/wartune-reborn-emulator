@@ -34,7 +34,7 @@ def _cfg(s: GameSession) -> dict[str, Any]:
 def tower_msg(s: GameSession, index: int = 0) -> pb.TowerInfoMsg:
     snap = s.snapshot
     assert snap is not None
-    return mz.info(mz.load(snap, s.ctx.clock.now()), _cfg(s), index)
+    return mz.info(mz.load(snap, s.ctx.clock.now()), _cfg(s), index, s.maze_order)
 
 
 def record(s: GameSession) -> int:
@@ -49,12 +49,17 @@ def login_list(s: GameSession) -> pb.TowerListMsg:
     tower = mz.load(snap, s.ctx.clock.now())
     if not tower.record and not tower.index:
         return pb.TowerListMsg()
-    return pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s))])
+    return pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s), order=s.maze_order)])
 
 
 @router.on(8297)
 async def tower_info(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
-    """Info de uma aba (4205)."""
+    """Info de uma aba (4205). O ``order`` é recalculado aqui (o cliente pede ao abrir o MazeFrame, 10/28 #984).
+    shortcut: o 4373 do login vai com order 0 até a primeira abertura."""
+    snap = s.snapshot
+    assert snap is not None
+    states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, mz.KEY))
+    s.maze_order = mz.position(states, s.player_id)
     s.send(S_TOWER_INFO, tower_msg(s, msg.index))
 
 
@@ -69,7 +74,7 @@ async def tower_reset(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
     if msg.index == 0 and s.campaign is None:
         tower.index, tower.gp, tower.items, tower.double = 0, 0, [], False
         await s.ctx.characters.save(mz.store(snap, tower, now))
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), msg.index))
+    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), msg.index, s.maze_order))
 
 
 @router.on(8296)
@@ -121,7 +126,7 @@ async def _enter(s: GameSession, tower: mz.Tower) -> None:
     templates = s.ctx.templates
     floor_map = mz.map_of(tower.index)
     full = mz.content(templates, _cfg(s))
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s)))
+    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
     ch._send(s, ch.S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
@@ -136,7 +141,7 @@ async def _enter(s: GameSession, tower: mz.Tower) -> None:
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]))
     systems.send_camp_buffs(s, systems.camp_type(ch._campaign_row(s, mz.CAMPAIGN)))
     ch._send(s, ch.S_NODES, c.node_list())
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s)))
+    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
     healed = rules.heal_hero(snap, templates, s.ctx.clock.now()) if snap.leader is not None else 0
     hp_pack(s, healed)  # (só turco: yeralti #39) "HP Paketi kullanılarak HP arttırıldı."
     if snap.leader is not None:
@@ -169,8 +174,8 @@ def floor_entered(s: GameSession, map_id: int) -> list[Any]:
     now = s.ctx.clock.now()
     tower = mz.load(snap, now)
     tower.index = mz.floor_of(map_id)
-    tower.record = max(tower.record, tower.index)  # (visto 10/28 #1672 maxIndex 28 antes de vencer o 28)
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s)))
+    tower.raise_record(tower.index, now)  # (visto 10/28 #1672 maxIndex 28 antes de vencer o 28)
+    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
     quests = rules.quest_event(snap, s.ctx.templates, rules.CATACOMBS_CONDITION, mz.CAMPAIGN, 1)
     send_quests(s, quests)
     return [mz.store(snap, tower, now), *quests]
@@ -184,8 +189,8 @@ def floor_won(s: GameSession, map_id: int, gp: int) -> Any:
     now = s.ctx.clock.now()
     tower = mz.load(snap, now)
     tower.gp += gp
-    tower.record = max(tower.record, mz.floor_of(map_id))
-    s.send(S_TOWER_LIST, pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s))]))
+    tower.raise_record(mz.floor_of(map_id), now)
+    s.send(S_TOWER_LIST, pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s), order=s.maze_order)]))
     return mz.store(snap, tower, now)
 
 
@@ -242,7 +247,7 @@ async def open_chest(s: GameSession, camp: int, goods: list[list[int]]) -> None:
         hev.send_titles(s)
     text = rewards.received(templates, got)
     ch._send(s, ch.S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s)))
+    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
     ch._send(s, ch.S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 

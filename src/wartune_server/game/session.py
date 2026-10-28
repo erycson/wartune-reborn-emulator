@@ -170,6 +170,7 @@ class GameSession:
         # item -> de onde o herói o mandou para a bancada (5005): tirar da bancada devolve lá
         # shortcut: só na memória da sessão (relogar ou reiniciar manda para a mochila); gravar se o oficial lembrar
         self.bench_from: dict[int, tuple[int, int, int]] = {}
+        self.maze_order = 0  # order do 4205: posição no recorde das Catacombs, calculada ao abrir (handlers.tower)
         self.gem_order = 0  # scoreOrder do labirinto de gemas, calculado no login e ao abrir (handlers.gemmaze)
         self.signin_sent: bytes | None = None  # último 513 mandado (handlers.minigames.refresh_signin)
         self.packet = Packet(0)  # o pedido em curso: o 9645 serve o minério e a super assinatura (extend1 35 / 38)
