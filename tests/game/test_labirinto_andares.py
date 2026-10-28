@@ -60,9 +60,9 @@ def test_baus_e_portais(content: dict) -> None:  # type: ignore[type-arg]
     assert 3 not in _nodes(content, 6)
     assert _nodes(content, 5)[4]["state"] == 16 and _nodes(content, 5)[4]["param1"] == 8006
     assert _nodes(content, 25)[4]["param1"] == 8026
-    assert content["maze_chests"]["800503"] == [[2050701, 2], [208009, 2]]
-    assert content["maze_chests"]["801003"] == [[2050101, 2], [208009, 4]]
-    assert content["maze_chests"]["802003"] == [[2050501, 2], [208009, 6]]
+    assert content["maze_chests"]["800503"] == [[2050501, 2], [208009, 2]]
+    assert content["maze_chests"]["801003"] == [[2050301, 2], [208009, 4]]
+    assert content["maze_chests"]["802003"] == [[2050101, 2], [208009, 6]]
 
 
 def test_layouts_por_faixa(content: dict) -> None:  # type: ignore[type-arg]
@@ -110,13 +110,13 @@ def _tower(g: object) -> mz.Tower:
 
 def test_bau_do_andar_so_nos_andares_de_cinco() -> None:
     """(visto) 10/25 #9409 e #9470: o baú sai nos andares 5, 10, 15 e 20 e a configuração guarda o que o oficial deu."""
-    assert mz.chest_goods(mz.DEFAULT, 5) == [[2050701, 2], [208009, 2]]
-    assert mz.chest_goods(mz.DEFAULT, 10) == [[2050101, 2], [208009, 4]]
+    assert mz.chest_goods(mz.DEFAULT, 5) == [[2050501, 2], [208009, 2]]
+    assert mz.chest_goods(mz.DEFAULT, 10) == [[2050301, 2], [208009, 4]]
 
 
 async def test_varredura_entrega_os_baus_dos_andares(tmp_path: Path) -> None:
-    """(visto) 10/25 #9409-#9568: a rodada do andar 5 leva o baú no 4425 (2050701 x2, 208009 x2), vai para a mochila
-    e para o 4205 do ``itemTempIds``; as rodadas sem baú saem sem item."""
+    """(visto) 10/25 #9394-#9510: a rodada do andar 5 leva o baú no 4425 (2050501 x2, 208009 x2), vai para a mochila
+    e para o 4205 do ``itemTempIds``; as rodadas sem baú saem sem item. A ordem é 115, 83 da EXP, 111, 4425, 83."""
     async with logged_in(tmp_path, novice=READY) as g:
         snap = g.server.online.get(g.user_id).snapshot  # type: ignore[union-attr]
         snap.character.gold, snap.character.point = 100_000, 100
@@ -124,13 +124,15 @@ async def test_varredura_entrega_os_baus_dos_andares(tmp_path: Path) -> None:
         g.client.send(8528, pb.CampaignSweepReq(sweepType=2, opType=1, campaignId=8001, eIndex=5, enterType=1))
         await g.until(4425)
         g.client.send(8528, pb.CampaignSweepReq(sweepType=2, opType=2, campaignId=8001, payType=1))
-        got = await g.until(83)
+        got = await g.until(4425)
+        got += await g.idle()
+        codes = [p.code for p in got]
         done = pb.CampaignSweepRsp.FromString(next(p.body for p in got if p.code == 4425))
         assert done.status == sw.DONE
         goods = {r.cIndex: [(i.templateId, i.count) for i in r.items] for r in done.result}
-        assert goods == {1: [], 2: [], 3: [], 4: [], 5: [(2050701, 2), (208009, 2)]}
-        assert 115 in [p.code for p in got]
-        assert _tower(g).items == [[2050701, 2], [208009, 2]]
+        assert goods == {1: [], 2: [], 3: [], 4: [], 5: [(2050501, 2), (208009, 2)]}
+        assert codes.index(115) < codes.index(4425) and codes.index(83) < codes.index(4425)
+        assert _tower(g).items == [[2050501, 2], [208009, 2]]
         assert sum(i.count for i in g.server.online.get(g.user_id).snapshot.items if i.template_id == 208009) == 2  # type: ignore[union-attr]
 
 

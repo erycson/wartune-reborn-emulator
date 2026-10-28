@@ -61,7 +61,7 @@ def test_os_andares_saem_dos_templates() -> None:
     assert (nodes[800304]["masterType"], nodes[800304]["state"], nodes[800304]["param1"]) == (62, 16, 8004)
     assert c["portals"]["800304"] == 8004 and c["battles"]["800302"]["gpBonus"] == 1200
     assert c["battles"]["800502"]["heroes"][0]["nickName"] == "Bloodthirsty Narosa"
-    assert c["maze_chests"]["800503"] == [[2050701, 2], [208009, 2]]
+    assert c["maze_chests"]["800503"] == [[2050501, 2], [208009, 2]]
     assert "800104" not in c["maps"]["8100"]["nodes"][1]["param4"] and "810004" not in c["portals"]
 
 
@@ -131,6 +131,6 @@ async def test_bau_do_chefe(tmp_path: Path) -> None:
         got = await g.until(83)
         codes = [p.code for p in got]
         assert codes[:2] == [128, 115] and codes[-3:] == [111, 4205, 83]
-        assert pb.TowerInfoMsg.FromString(got[-2].body).itemTempIds == "2050701,2|208009,2"
+        assert pb.TowerInfoMsg.FromString(got[-2].body).itemTempIds == "2050501,2|208009,2"
         assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg.startswith("Received")
-        assert {i.template_id for i in _snap(g).items if isinstance(i, Item)} >= {2050701, 208009}
+        assert {i.template_id for i in _snap(g).items if isinstance(i, Item)} >= {2050501, 208009}

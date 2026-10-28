@@ -28,7 +28,7 @@ def _send(s: GameSession, msg: pb.CampaignSweepRsp) -> None:
 
 async def _settle_maze(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> list[str]:
     """Andares vencidos da varredura do labirinto. (só turco: yeralti #7-#22) 3, 4540/4387 do mascote, 4476/4426;
-    o 4425 e o 83 da EXP de cada andar ficam com quem chama (devolve os textos)."""
+    o 4425 fica com quem chama, e o 83 dos textos devolvidos sai depois dele (a EXP sai antes só quando há baú)."""
     from . import pets as P  # pets importa shop, que importa este módulo
 
     snap = s.snapshot
@@ -51,11 +51,13 @@ async def _settle_maze(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False
     if pet is not None:
         P.send_gained(s, pet)
     texts = [rules.exp_text(*g) for g in got]
-    if changed:  # (visto) 10/25 #9630: o 115 dos baús; o aviso vai no 83 depois do 4425, como a EXP
+    if changed:  # (visto) 10/25 #9394-#9410: 115, 83 da EXP, 111 dos baús; depois o 4425 e o 83 dos itens
         s.send(S_ITEMS, rewards.items_msg(changed, s.player_id))
+        for text in texts:
+            s.send(S_CHAT, b.complete(pb.ChatChannelMsg(channel=3, encodeMsg=text)))
         text = rewards.received(s.ctx.templates, [g for r in sweep.rounds[done:] for g in r.items])
         alert(s, text)
-        texts.insert(0, text)
+        texts = [text]
     events.progress(s)
     if snap.character.grades > before:
         await push_level(s, before)

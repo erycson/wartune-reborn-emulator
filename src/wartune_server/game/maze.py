@@ -54,7 +54,7 @@ DEFAULT: dict[str, Any] = {
     # TODO(inventado) nada além disso; o Minor HP Pack x2 do turco (yeralti #69) não apareceu nas capturas novas.
     "drops": [],
     # baú dos andares não vistos (25 em diante): TODO(inventado) o do andar 5 (visto em content/maze_floors.json)
-    "chest": [[2050701, 2], [208009, 2]],
+    "chest": [[2050501, 2], [208009, 2]],
     "chest_every": 5,
     "key": 208008,  # Crypt Key (sonType 297): o lucro dobrado (isDouble 2) gasta uma (cliente: MazeFrame)
     "revive": 25,  # (cliente) MazeRiverView.content01: "Reviving will consume 25 Balens"
@@ -137,7 +137,9 @@ def floor_gp(cfg: dict[str, Any], floor: int) -> int:
 
 
 def chest_goods(cfg: dict[str, Any], floor: int) -> list[list[int]]:
-    """Baú do andar (``maze_chests``): o visto nos andares 5 a 20, o da configuração depois."""
+    """Baú do andar (``maze_chests``): o visto nos andares 5 a 20, o da configuração depois. (visto) a gema muda por
+    corrida (10/25 #9409, #9470, #9529; 10/26 #693; 10/27 #8677-#9041); cada andar guarda a de uma corrida
+    (TODO(inventado) qual). A quantidade de 208009 (Crypt Tokens) é a mesma nas três."""
     return list(_SEEN["chests"].get(str(floor), cfg["chest"]))
 
 
