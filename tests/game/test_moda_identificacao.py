@@ -155,3 +155,37 @@ async def test_composicao_com_curinga(tmp_path: Path, monkeypatch) -> None:  # t
         assert rsp.composeResult  # curinga + moda, sem o SonType 109 (asas) não pede 5 curingas
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved is not None and not [i for i in saved.items if i.bag_type == BagType.STORE]
+
+
+async def test_bonus_da_moda_identificada_soma_no_lider(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """(cliente FashionModel.getIdentityedProperties) o livro inteiro soma, vestida ou não."""
+    from wartune_server.game import rules
+
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        templates = s.ctx.templates
+        skill = next(k for k in range(5200, 5225) if templates.get("SkillPropertyTempInfos", k))
+        before = len(rules.equipment(snap, templates))
+        snap.fashions.append(FashionBook(g.user_id, BEACH, is_switch=True, appraisal_skill=skill))
+        rows = rules.equipment(snap, templates)
+        assert len(rows) == before + 1 and rows[-1] == templates.get("SkillPropertyTempInfos", skill)
+
+
+async def test_refino_troca_a_skill_e_gasta_os_nucleos(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """(cliente FashionSwitchItem) moda já identificada: o 8781 gasta ``Property2`` Fashion Cores e sorteia de novo."""
+    monkeypatch.setattr(fashion, "RNG", Fixed(0))
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        cores = int(s.ctx.templates.get("ItemTempInfos", BEACH)["Property2"])
+        book = FashionBook(g.user_id, BEACH, is_switch=True, appraisal_skill=5200)
+        await _prepare(g, [Item(g.user_id, WILDCARD, count=cores, pos=1)], [book], 0)
+        g.client.send(8781, pb.FashionMsg(templateId=BEACH))
+        got = await g.until(4542)
+        assert codes(got) == [115, 4542]
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved is not None
+        assert not any(i.template_id == WILDCARD for i in saved.items)
+        assert next(f.appraisal_skill for f in saved.fashions if f.template_id == BEACH) != 0

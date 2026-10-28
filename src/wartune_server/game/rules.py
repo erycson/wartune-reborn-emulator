@@ -103,6 +103,10 @@ def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
         for gem in item.joins:
             if gem > 0 and (stone := templates.get("ItemTempInfos", gem)) is not None:
                 rows.append(stone)
+    # moda identificada: o livro inteiro soma, vestida ou não (cliente FashionModel.getIdentityedProperties)
+    for book in snap.fashions if leader is not None else []:
+        if book.appraisal_skill and (bonus := templates.get("SkillPropertyTempInfos", book.appraisal_skill)):
+            rows.append(bonus)
     return rows
 
 

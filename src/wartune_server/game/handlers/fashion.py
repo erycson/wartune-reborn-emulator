@@ -197,9 +197,12 @@ async def fashion_appraisal(s: GameSession, msg: pb.FashionMsg) -> None:
     book = next((f for f in snap.fashions if f.template_id == msg.templateId), None)
     tr = int(row.get("TransformId") or -1)
     cost = int(row.get("Property1") or 0)
-    if not is_fashion(templates, msg.templateId) or book is None or book.appraisal_skill or c.grades < IDENTIFY_GRADE:
+    if not is_fashion(templates, msg.templateId) or book is None or c.grades < IDENTIFY_GRADE:
         s.log.info("8781 recusado", modelo=msg.templateId)
         send(s, S_FASHION_BOOK, fashion_book(snap, templates))
+        return
+    if book.appraisal_skill:
+        await _refresh(s, snap, book, int(row.get("Property2") or 0))
         return
     if not 0 <= tr < len(IDENTIFY_RATES) or c.gold < cost:
         s.log.info("8781 recusado: ouro ou taxa", modelo=msg.templateId, ouro=c.gold, custo=cost)
@@ -215,6 +218,22 @@ async def fashion_appraisal(s: GameSession, msg: pb.FashionMsg) -> None:
     castle_yield(s)
     if not won:
         send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Identification Failed."))
+    send(s, S_FASHION_BOOK, fashion_book(snap, templates))
+
+
+async def _refresh(s: GameSession, snap: PlayerSnapshot, book: FashionBook, cores: int) -> None:
+    """Refino da moda já identificada (cliente ``FashionSwitchItem``: "refreshContent", ``getCountForRefresh`` =
+    ``Property2`` Fashion Cores; com 5 estrelas, ``hasRefreshFull``, o cliente nem pede). Sorteia de novo a skill.
+    TODO(inventado): sempre acerta, a nova troca a antiga mesmo se for pior, e a resposta é só 115 e 4542."""
+    templates = s.ctx.templates
+    if _grade(templates, book.appraisal_skill) == 5 or cores <= 0 or bag.count_of(snap, WILDCARD) < cores:
+        s.log.info("8781 refino recusado", modelo=book.template_id, nucleos=cores)
+        send(s, S_FASHION_BOOK, fashion_book(snap, templates))
+        return
+    changed, gone = bag.take(snap, WILDCARD, cores)
+    book.appraisal_skill = _appraisal_skill(templates, _cfg(s))
+    await s.ctx.characters.save(*changed, book, delete=tuple(gone))
+    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     send(s, S_FASHION_BOOK, fashion_book(snap, templates))
 
 

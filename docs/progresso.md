@@ -157,7 +157,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
 | Equipamento do mascote na luta | 🟡 | | a luta não usa os atributos |
 | Moda: composição (8594) | 🧪 | | cliente dá custo (níveis x 10000 de ouro), charms e chance por diferença de nível (só o nome); inventado: % das chances, sorteio da moda, consumo na falha e dos 5 curingas (`game_settings["fashion"]`) |
-| Moda: avaliação (8781) | 🧪 | | cliente dá custo (Property1 em ouro), chance (TransformId) e skills; visto #2524 (109, 111, 4542); inventado: pesos das estrelas 1-5 e a família sorteada; sem aviso no sucesso |
+| Moda: avaliação (8781) | 🧪 | | cliente dá custo (Property1 em ouro), chance (TransformId) e skills; visto #2524 (109, 111, 4542); inventado: pesos das estrelas 1-5 e a família sorteada; sem aviso no sucesso; o bônus soma nos atributos do líder (livro inteiro, como o cliente); refino com Property2 Fashion Cores sempre acerta (inventado) |
 | Moda: livro, provador, esconder | ✅ | | |
 
 ## Lojas e mercado
