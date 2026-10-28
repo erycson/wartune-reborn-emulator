@@ -1212,6 +1212,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
         cs.settle(snap, templates, now)  # o ouro até agora sai com as minas
         released = mines.release(snap)
     moved_map = target != castle.map_id
+    if moved_map:  # (visto) 24/10 #15690 e 27/10 #18050: o castelo ainda no mapa velho, antes do 152 e do exército
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=2, baseCastle=b.complete(b.castle_msg(snap, castle))))
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
     if moved_map and mines.is_world(s.ctx.world, target):
         castle.mines_at = mines.world_cycle_start(s.ctx.world, now)  # as minas do mundo vivem no ciclo do mundo
@@ -1219,9 +1221,9 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     _stop_walk(s)
     s.outer_army = None
     await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests, delete=tuple(released))
-    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_brief(s)))
     if moved_map:
         s.send(S_POLITICS, politics_msg(snap, templates))
+    s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=3, army=_army_brief(s)))
     s.send(S_TRANSFER, pb.CastleReqMsg(magId=target, posX=spot[0], posY=spot[1], leftEnergy=castle.energy))
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
