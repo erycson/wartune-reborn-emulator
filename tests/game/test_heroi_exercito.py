@@ -566,7 +566,7 @@ async def test_star_compose_says_exp_and_level(tmp_path: Path) -> None:
         texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code in (111, 83)]
         name = g.server.services.templates.get("starTempInfos", 1503)["TemplateName"]
         level = f"Astral {name} has been upgraded to Lvl. 2"
-        assert texts == [f"Astral {name} gained 90 Astral EXP", level, level]  # (visto) EXP antes do nível (inglês)
+        assert texts == [level, f"Astral {name} gained 90 Astral EXP", level]  # composição: nível antes da EXP (visto)
         left = pb.StarRandRspMsg.FromString(got[3].body).starRand
         assert [(r.starInfo.templateId, r.starInfo.grade, r.starInfo.gp) for r in left] == [(1503, 2, 20)]
 

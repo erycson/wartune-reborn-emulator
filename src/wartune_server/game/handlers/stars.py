@@ -121,11 +121,12 @@ def eat_all(templates: GameTemplates, star: Star, gp: int) -> list[str]:
     return [LEVEL_TEXT.format(name, g) for g in range(before + 1, star.grade + 1)]
 
 
-def say_gain(s: GameSession, star: Star, gp: int, levels: list[str]) -> None:
-    """111 da EXP ganha e depois os 111 de nível. (visto) inglês 1026-225632-1 #13814 e 1025-232017-1 #6811: a EXP
-    vem primeiro. TODO(inventado): a turca (kader_sistemi #112-#113) mostra os níveis antes; ficou a inglesa."""
+def say_gain(s: GameSession, star: Star, gp: int, levels: list[str], exp_first: bool = False) -> None:
+    """111 da EXP ganha e os 111 de nível. Composição: níveis antes (visto 1024-191924-1 #19525, 1025 #6816, 1026
+    #13736). Devoração no movimento (8267): EXP antes (visto 1026-225632-1 #13814, 1025 #6811)."""
     name = star_tpl(s.ctx.templates, star).get("TemplateName", "")
-    for text in [EXP_TEXT.format(name, gp), *levels]:
+    exp = EXP_TEXT.format(name, gp)
+    for text in [exp, *levels] if exp_first else [*levels, exp]:
         s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
 
 
@@ -346,7 +347,7 @@ async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
     equip = StarBag.EQUIP in (msg.beginStarType, msg.endStarType)
     if deleted:
         assert dst is not None
-        say_gain(s, dst, gp, levels)
+        say_gain(s, dst, gp, levels, exp_first=True)
         if equip:
             _army(s)
         for change in changes:
