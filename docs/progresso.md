@@ -34,7 +34,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 5 | 6 | 0 | 6 | 0 |
+| Missões | 5 | 6 | 1 | 6 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **90** | **41** | **46** | **35** |
+| **Total** | **100** | **90** | **42** | **46** | **35** |
 
 ## Validação e base
 
@@ -298,7 +298,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Guilda (22, 29, 30, 51) | ❌ | | tipos não contados |
 | Chefe do mundo (40, 41) | ✅ | | entrar e dano total contados |
 | Campo de batalha: entrar (44) | ✅ | | contado na entrada 8332 |
-| Arena e batalhas (16, 35, 45, 50, 79, 80, 93) | ❌ | | 16 sem luta em grupo na arena; 45/50 dependem do PvP do campo |
+| Arena e batalhas (45, 50) | 🧪 | | 45 por vitória no PvP do campo (visto #11106); 50 no fim da partida (o time sempre vence: TODO) |
+| Arena e batalhas (16, 35, 79, 80, 93) | ❌ | | 16 sem luta em grupo na arena |
 | Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ❌ | | tipos não contados |
 | Demais tipos (12, 21, 56-59, 61, 64, 65, 71, 74, 86, 89-91) | ❌ | | tipos não contados |
 | Janelas fechadas e Koyu Kristal | ❌ | | |
