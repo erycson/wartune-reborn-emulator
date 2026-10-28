@@ -46,9 +46,9 @@ TICK = 120  # s por estamina (HookTimeView.updateTime)
 LORD_OF_TIME = 4  # KingContracts 4: o HookTimeView manda o 8293 sem perguntar o preço
 LEED = 22  # LeedTemp 22 "Enter the Altar of Ennoblement"
 KEY = "hangup"  # EventState diário: value = estamina ganha hoje
-# TODO(inventado): teto diário de estamina da sala (o cliente não traz o número; DataResetMsg.leftHangupWeary existe
-# mas ninguém lê)
-REST_HOUSE: dict[str, Any] = {"daily": 50}
+# teto diário de estamina da sala: RecoverInfos SonType 6 OneDayMax 60 (meditação é uma por dia; 3 unidades de 20
+# no Recuperar EXP, visto d27 #63)
+REST_HOUSE: dict[str, Any] = {"daily": 60}
 TITLE = "Divine Statue"  # HookAlertFrame.title (o quadro usa o texto do cliente; o 29 só abre)
 BODY = "Welcome to the land of ancient spirits! Here you can receive bonus Stamina, would you like to get started?"
 START = (36, 22)  # (dedução) o bloco de tiles valor 4 do maps/7001/7001.titles (35-38, 21-22): o ponto de entrada

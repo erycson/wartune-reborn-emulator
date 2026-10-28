@@ -104,6 +104,8 @@ def build(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> Even
             son = int(row["SonType"])
             if base(son, snap, templates) is not None:
                 n = int(row["OneDayMax"]) - _used_yesterday(snap, son, now)
+                if son == ALTAR:  # OneDayMax 60 é estamina; a unidade vale 20 (visto: d27 #63, num 3 -> 60)
+                    n //= STAMINA_PER[ALTAR]
                 if n > 0:
                     left[str(son)] = n
     st.value, st.text, st.updated_at = 0, json.dumps(left), now

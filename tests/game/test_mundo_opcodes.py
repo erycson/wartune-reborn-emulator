@@ -38,7 +38,7 @@ async def test_gancho_ressincroniza_sem_cobrar(tmp_path: Path) -> None:
         g.client.send(8293, pb.PayTypeMsg(payType=0))
         got = await g.until(4200)
         state = pb.HangupInfoMsg.FromString(got[-1].body)
-        assert (state.leftWeay, state.isStartHangup, state.addWeay) == (50, False, 0)  # sem meditar: nada cobrado
+        assert (state.leftWeay, state.isStartHangup, state.addWeay) == (60, False, 0)  # sem meditar: nada cobrado
         g.client.send(8525, pb.HangupAttackMsg(op=1, attackId=g.user_id, defenceId=99))  # convite sem batalha
         assert await g.idle() == []
 

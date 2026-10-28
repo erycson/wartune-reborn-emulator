@@ -205,7 +205,7 @@ async def test_gancho_pvp_e_transporte(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=clock) as a:
         a.client.send(8292)  # cancelar sem meditar: 4200 parado com o teto do dia (game_settings.rest_house)
         hang = _body(await a.idle(), HANGUP, pb.HangupInfoMsg)
-        assert (hang.isStartHangup, hang.leftWeay) == (False, 50)
+        assert (hang.isStartHangup, hang.leftWeay) == (False, 60)
         a.client.send(8295)  # salas do gancho (HookFrame): uma por campanha 7001-7009, livres
         rooms = _body(await a.idle(), HANGUP_ROOM, pb.HangupStateListMsg)
         assert rooms.maxCount > 0 and [(r.campaignId, r.curCount) for r in rooms.hangupState] == [

@@ -89,7 +89,7 @@ async def test_labirinto_altar_transbordo_chefe_e_cobranca(tmp_path: Path) -> No
         c, now = snap.character, clock.now()
         c.grades, c.point, c.gift_token = 29, 1000, 0
         ev.daily(snap, "leed:23", now).value = 1  # entrou nas Catacombs
-        ev.daily(snap, "hangup", now).value = 57  # meditou 57 de 60
+        ev.daily(snap, "hangup", now).value = 0  # não meditou: 60 de estamina = 3 unidades de 20
         c.weary, c.weary_limit = 170, 200  # a virada dá 100: 70 transbordam
         assert snap.castle is not None
         snap.castle.impose_used, snap.castle.imposed_at = 5, now  # as 5 cobranças

@@ -303,7 +303,7 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
   `isStartHangup`, 4206 para a sala). Cada 120 s: 4235 `addWeay` 1 e +1 de estamina (gravada).
 - 8292 cancela (paga os tiques vencidos), 8293 acelera `min(resta, limite - estamina)` × `HangupFastPoint` (10)
   Balens, grátis com o contrato 4 (Lord of Time). Sem meditação, os dois devolvem o 4200 parado.
-- Teto diário: `game_settings.rest_house.daily` (0061, padrão 50) **TODO(inventado)**.
+- Teto diário: `game_settings.rest_house.daily` (0096: 60 = RecoverInfos SonType 6 OneDayMax; Recuperar EXP 3 × 20).
 - **dedução**: a meditação para ao sair (5025) ou desconectar; o oficial pode seguir offline (sem fonte).
 - Falta: PK no mapa (8525 / 4421, BattleType 19).
 
