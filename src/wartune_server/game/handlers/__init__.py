@@ -12,6 +12,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     fam,
     farm,
     fashion,
+    fishing,
     forge,
     friends,
     gemmaze,

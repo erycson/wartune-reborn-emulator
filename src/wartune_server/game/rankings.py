@@ -22,6 +22,7 @@ from ..domain.repositories import UnitOfWork
 from ..services.characters import CharacterService
 from ..services.clock import Clock
 from . import events as ev
+from . import fishing as fs
 from . import gemmaze as gm
 from .guild import Guilds
 
@@ -166,6 +167,41 @@ async def gem_order(characters: CharacterService, guilds: Guilds, server_id: int
     return _xml("".join(rows), "GemMazeScores")
 
 
+async def fish_order(characters: CharacterService, guilds: Guilds, server_id: int, clock: Clock) -> bytes:
+    """``<FishScores><FishScore UserId NickName Job Grades FightingCapacity ConsortiaName IsVip VipType Order Score
+    FishGrades/></FishScores>`` como o ``fish.xml`` do espelho oficial (``FishControler.loadFishOrderData``);
+    ``Score`` são os pontos da semana. shortcut: só quem pontuou (o oficial lista também quem tem 0)."""
+
+    async def query(uow: UnitOfWork) -> tuple[list[tuple[int, fs.Fisher]], list[Character], list[EventState]]:
+        ranked = fs.weeks(await uow.events.by_prefix(server_id, fs.KEY), clock.now())[:GEM_TOP]
+        chars = await uow.characters.by_ids([c for c, _ in ranked])
+        return ranked, chars, await uow.events.by_prefix(server_id, VIP_KEY)
+
+    ranked, chars, vips = await characters.read(query)
+    by_id = {c.id: c for c in chars}
+    vip_of = vips_of(vips, clock)
+    rows = []
+    for pos, (cid, f) in enumerate(ranked, 1):
+        if (c := by_id.get(cid)) is None:
+            continue
+        vip, kind = vip_of(cid)
+        attrs = {
+            "UserId": cid,
+            "NickName": c.nickname or "",
+            "Job": c.job,
+            "Grades": c.grades,
+            "FightingCapacity": c.fighting_capacity,
+            "ConsortiaName": _guild_name(guilds, cid),
+            "IsVip": str(vip).lower(),
+            "VipType": kind,
+            "Order": pos,
+            "Score": f.score,
+            "FishGrades": f.level,
+        }
+        rows.append(_row("FishScore", attrs))
+    return _xml("".join(rows), "FishScores")
+
+
 def vips_of(vips: list[EventState], clock: Clock) -> Callable[[int], tuple[bool, int]]:
     """``(IsVip, VipType)`` por personagem: VIP vencido vai ``false`` e tipo 0."""
     now = clock.now()
@@ -206,7 +242,12 @@ async def run(
 ) -> None:
     """Loop dos rankings (``app.py`` cancela ao desligar). A primeira rodada sai já; um arquivo que falha é
     registrado sem impedir o outro, e a próxima rodada tenta de novo."""
-    files = (("challengeorder.xml", challenge_order), ("fight.xml", fight_order), ("gemmaze.xml", gem_order))
+    files = (
+        ("challengeorder.xml", challenge_order),
+        ("fight.xml", fight_order),
+        ("gemmaze.xml", gem_order),
+        ("fish.xml", fish_order),
+    )
     while True:
         for name, build in files:
             try:

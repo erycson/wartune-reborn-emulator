@@ -324,6 +324,7 @@ class BagType(IntEnum):
     MAIL = 10  # item anexado a um correio, esperando o 5022 (``BagType.mail`` do cliente)
     AUCTION = 11  # item à venda no mercado (``BagType.auction`` do cliente)
     BOTTLE = 22  # armazém da árvore dourada (8604) até tirar/vender; ``GoodsManager.isBottleBagGoods`` do cliente
+    FISH = 23  # cesto da pesca ("Fish Basket", 9507 op 2 tira tudo); ``GoodsManager.isFishBagGoods`` do cliente
     MAZE = 24  # prêmios do labirinto de gemas até o "receber tudo" (9517); ``BagType.Maze`` do cliente
     PET_EQUIP = 26  # equipamento vestido no mascote; ``object_id`` = id do mascote (``BagType.PetEquipment``)
 

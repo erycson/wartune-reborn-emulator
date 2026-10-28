@@ -39,11 +39,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 2 | 4 | 2 |
-| Atividades e eventos | 5 | 11 | 2 | 4 | 5 |
+| Atividades e eventos | 5 | 11 | 3 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **99** | **92** | **38** | **46** | **35** |
+| **Total** | **99** | **92** | **39** | **46** | **35** |
 
 ## Validação e base
 
@@ -379,7 +379,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |
-| Pesca, caça ao tesouro, quiz, minério | ❌ | | fechados; pesca (9507) só manda 4916/4918, as capturas não mostram resposta ao pedido |
+| Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
+| Caça ao tesouro, quiz, minério | ❌ | | fechados |
 | Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
 | Campo minado, caixa de ano novo, história | ❌ | | |
 | Recuperar EXP (9503) | 🟡 | | 4912 e 109 no inglês (24/10 #9044, 26/10 #2207, 27/10 #745); resgate (tipo 1) sem captura |

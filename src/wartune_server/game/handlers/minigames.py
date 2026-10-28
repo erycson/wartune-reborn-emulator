@@ -30,7 +30,7 @@ S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
 S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
 S_BUGLE_REQ, S_BUGLE_REWARD, S_SLOT = 4553, 4554, 4901
-S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
+S_QUIZ, S_RECOVER, S_SEEK = 4908, 4912, 4914  # a pesca (9507) está em handlers/fishing.py
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 # (visto) 1026-225632-1 #2454: 36 casas (itemID, count); -1 = casa vazia
 GOLDEN_BOARD = (
@@ -677,13 +677,6 @@ async def treasure_hunt(s: GameSession, _: object) -> None:
     msg = pb.PlayerSeekInfoMsg(op=1, seekCount=0, state=0)
     msg.seekNodeList.SetInParent()
     _send(s, S_SEEK, msg)
-
-
-@router.on(9507)
-async def fishing(s: GameSession, _: object) -> None:
-    """Pesca fechada: piscina vazia (4916) e sem peixes (4918). Os pesos de spawn não estão em lugar nenhum."""
-    _send(s, S_FISH_POOL, pb.FishPoolMsg())
-    _send(s, S_FISH_INFOS, pb.FishInfosMsg())
 
 
 @router.on(9520)

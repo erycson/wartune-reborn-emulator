@@ -372,7 +372,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 9500 | 4901 `open` falso | (visto) tutorial_en #87 |
 | 9501 | 4908 `sysState` 0 | (cliente) AnswerManager |
 | 9502 | 4914 `op` 1, `seekCount` 0, `seekNodeList` presente e vazio | (cliente) TreasureHuntControler |
-| 9507 | 4916 e 4918 vazios | (cliente) FishManager |
+| 9507 | pesca: ops em `handlers/fishing.py` (4916, 4917, 4918, 4919, 4920) | (visto) 26/10, 27/10, 28/10; (cliente) FishManager |
 | 9508 | 4922 com o tabuleiro (real, abaixo) | (visto) só turco: av_askeri #1, login da replay #10; (cliente) GemMazeManager |
 | 9509 | troca: cascata, 4923 por passo e 4924 (real, abaixo) | (visto) só turco: av_askeri #5-#56; (cliente) GemMazeView |
 | 9510 | ajuda de amigo: recusa com 4924 (sem amigos; o 4925 nunca sai) | (cliente) GemMazeManager |
@@ -459,9 +459,13 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   inglês "Monday, Wednesday, Friday 19:30-20:00", template `Dati_Day` 1,3,5,6 às `AnswerQuestionTime` 14:35.
   **Captura que falta**: uma rodada inteira (9501, 4907/4908/4909/4910): o 4909 com `answer` no estado 4 diz qual
   opção valeu; gravar várias perguntas para ver se a certa é fixa ou a mais votada.
-- **Pesca (9507):** `FishTemplateInfos` (13 peixes com prêmio) e `Fish_*` (20 tentativas, ajuda 15 diamantes)
-  existem; faltam o surgimento e a captura. **Captura que falta**: abrir a pesca (4916 piscina, 4918) e pescar
-  algumas vezes (o que o servidor manda por peixe, o 4917/resultado).
+- **Pesca (9507):** feita (`game/fishing.py`, `handlers/fishing.py`) com as capturas de 26/10, 27/10 e 28/10:
+  abrir (4 e 1 [10] → 4916, 4918), atualizar (1 → 4918), fisgar (11 [2, id], sem resposta), pescar (10 → 115 no cesto
+  bagType 23, 111, 4917, 4916, 4918, 83; errar → 4917 vazio, 4916, 4918), cesto (2 → 111 "Looted successfully!",
+  115, 115) e fechar (8). Cardume de 20 lugares por canal (3/5/5/5/2), travessia `(830 + Length) * 40 / Speed` ms,
+  cd +300 s por lançamento até 1800, nível pela `UpGradeTempInfos` tipo 40, ranking semanal no `fish.xml`.
+  **Captura que falta**: ⏩ (3), ferramentas (5), fúria e ajuda (6, 7, 9, 4919, 4920): respostas por dedução e
+  números inventados (`TODO(inventado)` em `game/fishing.py`).
 - **Caça ao tesouro (9502):** `treasure_*` (refresh 120 diamantes ou 8 itens, cavar já 25) existe; faltam os nós.
   **Captura que falta**: abrir o mapa (4914 com `seekNodeList`) e cavar um nó.
 - **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` 50 e o help ("Normal 1x, Double 2x, Quintuple 5x",
