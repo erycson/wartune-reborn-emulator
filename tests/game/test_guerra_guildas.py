@@ -2,11 +2,43 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
+import pytest
+
+from tests.game.harness import logged_in
+from tests.game.test_guild import _create, _session
+from tests.game.test_masmorra_1001 import back_to_map, codes
+from tests.test_end_to_end import TEMPLATES
+from wartune_server.domain.models import Consortia
 from wartune_server.game import guildwar as gw
+from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
 
 NOW = datetime(2026, 10, 26, 20, 0)
+
+
+@pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
+async def test_entrar_no_mapa_4501_recebe_placar_e_nos(tmp_path: Path) -> None:
+    clock = FakeClock(datetime(2026, 10, 26, 20, 1, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=33000, clock=clock) as g:
+        await _create(g)
+        guilds = _session(g).ctx.guilds
+        for i in range(4):  # a 5ª guilda (sem poder) é a adversária da 1ª
+            guilds.guilds[900 + i] = Consortia(id=900 + i, server_id=1, name=f"G{i}", creator_id=0, creator_name="",
+                                               chairman_id=0, created_at=clock.now())  # fmt: skip
+        g.client.send(8471)
+        got = await g.idle()
+        assert codes(got) == [125, 140, 21, 127, 4439, 4440]
+        assert pb.RoomCreatedMsg.FromString(got[0].body).room.campaignId == gw.WAR_MAP
+        score = pb.GuildWarInfoListMsg.FromString(got[4].body)
+        assert [x.consortiaId for x in score.guildWarInfos][1] == 903
+        got = await back_to_map(g)
+        assert {4450, 4462} <= set(codes(got))
+        hp = pb.NodeHpListMsg.FromString(next(p.body for p in got if p.code == 4450))
+        assert [n.currentHp for n in hp.nodeHp] == [gw.TOWER_HP, gw.TOWER_HP]
+        guilds.wars[903].ticker.cancel()
 
 
 def _war() -> gw.War:

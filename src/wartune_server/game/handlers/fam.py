@@ -351,8 +351,7 @@ async def callback(s: GameSession, camp: int, cmd: int) -> None:
 
 async def _collect(s: GameSession, camp: int, guild: Consortia) -> None:
     """Coleta da leva em curso: (visto) #6491-#6493 3, 111 "Successfully collected!" e 128 state 8; dá
-    ``fam_tree.collect_offer`` de contribuição. ponytail: o 164 que veio depois (#6495) não sai: não se sabe o que a
-    coleta muda na guilda."""
+    ``fam_tree.collect_offer`` de contribuição e o 164 da guilda depois (#6495)."""
     snap = s.snapshot
     assert snap is not None
     if fam.collect_batch(guild, s.ctx.clock.now()) is None:
@@ -363,6 +362,7 @@ async def _collect(s: GameSession, camp: int, guild: Consortia) -> None:
     await _push_player(s)
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=COLLECTED))
     _node_update(s, camp, DONE, fresh=True)
+    _push_info(s, guild)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
 

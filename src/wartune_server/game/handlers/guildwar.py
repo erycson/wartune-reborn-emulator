@@ -64,6 +64,7 @@ from .player import hero_after_fight, hp_pack
 
 S_SCORE, S_BUFFERS, S_HP, S_WOUND, S_COUNT, S_LEFT = 4439, 4440, 4450, 4460, 4462, 4457
 S_STATE, S_MOVE, S_HONOR_DAY, S_ITEMS, S_PLAYER = 4175, 4185, 4471, 115, 3
+S_ARMY_MOVED, S_ARMY_UPDATE = 4104, 131  # (visto #3335-#3336) o morto no acampamento
 TOWER_BATTLE = "450104"  # a luta da captura (#2945) serve às duas Ward Towers
 CONFIRM_MAP = 3644  # (visto #2774) CampaignConfirmMsg.mapId
 GONE = 8  # nodeState da barreira caída (#2589)
@@ -439,6 +440,38 @@ def moved(s: GameSession, msg: pb.PosMoveMsg) -> None:
         war.stop_defending(s.player_id)
         _alert(s, TOO_FAR)
         _to_all(s.ctx, war, S_STATE, _state(s.player_id, gw.ALIVE))
+
+
+def player_fight(s: GameSession, target: int) -> None:
+    """8548 (cliente ``checkGvgArmy``: exército perto no mapa; ``param1`` = userId). (visto 26/10 #2924-#3348): 14
+    pedidos contra a própria guilda (a adversária não entrou) e nenhuma resposta, então mesmo lado é ignorado.
+    TODO(inventado): contra o inimigo não há luta na captura; vence o de maior ``fightingCapacity`` (empate: quem
+    ataca) e o perdedor morre como na torre: 4175 state 1, 4104 e 131 no acampamento (a sequência de #3334-#3336)."""
+    found, other = war_of(s), s.ctx.online.get(target)
+    if found is None or other is None or other.campaign is None or not other.campaign.gvg:
+        return
+    war, me = found
+    if _side_of(s.ctx, war, target) in (0, me.side) or war.settled or not war.gates_open:
+        return
+    if {s.player_id, target} & war.dead or s.battle is not None or other.battle is not None:
+        return
+    power = {o: o.snapshot.character.fighting_capacity if o.snapshot else 0 for o in (s, other)}
+    loser = other if power[s] >= power[other] else s
+    _kill(loser, war)
+
+
+def _kill(o: GameSession, war: gw.War) -> None:
+    c = o.campaign
+    assert c is not None and c.content is not None
+    side = _side_of(o.ctx, war, o.player_id)
+    war.stop_defending(o.player_id)
+    war.dead.add(o.player_id)
+    x, y = c.content["starts"][str(side)]
+    c.pos = (int(x), int(y))
+    _to_all(o.ctx, war, S_STATE, _state(o.player_id, gw.DEAD))
+    _to_all(o.ctx, war, S_ARMY_MOVED, pb.ArmyPosUpdatedMsg(armyId=o.player_id, curPosX=c.pos[0], curPosY=c.pos[1]))
+    _to_all(o.ctx, war, S_ARMY_UPDATE, pb.ArmyArmyMsg(armyId=o.player_id, playerId=o.player_id, curPosX=c.pos[0],
+                                                      curPosY=c.pos[1], state=0))  # fmt: skip
 
 
 def _attack(s: GameSession, war: gw.War, me: gw.Side, camp: int) -> None:

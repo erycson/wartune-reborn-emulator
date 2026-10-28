@@ -198,8 +198,10 @@ async def player_grade_box(s: GameSession, msg: object) -> None:
 
 @router.on(8548)
 async def guild_war_player_fight(s: GameSession, msg: pb.GuildMsg) -> None:
-    """Ataque a jogador na guerra de guildas (gvgPlayerFight): depende de GvG e da batalha PvP."""
-    s.log.info("8548 sem guerra de guildas", pedido=str(msg))
+    """Ataque a jogador na guerra de guildas (gvgPlayerFight): ``handlers/guildwar.player_fight``."""
+    from .guildwar import player_fight  # guildwar importa login, que importa este módulo
+
+    player_fight(s, msg.param1)
 
 
 # --- runas ---------------------------------------------------------------------------------------

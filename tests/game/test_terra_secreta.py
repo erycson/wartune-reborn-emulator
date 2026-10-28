@@ -207,7 +207,7 @@ async def test_lider_invoca_energiza_compra_o_buff_e_ganha_exp(tmp_path: Path) -
         assert char.consortia_offer == 300
         g.client.send(5032, pb.CallBackReqMsg(mapId=7501, nodeId=COLLECT, cmd=2))
         got = await g.idle()
-        assert codes(got) == [3, 111, 128]  # #6491-#6493
+        assert codes(got) == [3, 111, 128, 164]  # #6491-#6495
         assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Successfully collected!"
         assert char.consortia_offer == 305  # TODO(inventado) fam_tree.collect_offer 5 (0074)
 
