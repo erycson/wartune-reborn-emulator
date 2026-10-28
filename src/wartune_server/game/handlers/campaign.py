@@ -65,6 +65,7 @@ from .login import army, player_info
 S_PLAYER, S_NOVICE, S_ARMY_PAWN = 3, 1, 100
 S_CHAT, S_ALERT = 83, 111
 S_ROOM_ENTER, S_ROOM_CREATED, S_NODES, S_NODE, S_FOG, S_ARMY_POS = 21, 125, 127, 128, 130, 131
+S_MOVE = 4185  # PosMoveMsg: o caminho de outro do mapa (U_C_ARMYPOS_BROAD)
 S_PLOT, S_MAP_SYNC, S_CAMERA, S_MOVIE, S_CAMPAIGN_FINISH = 138, 140, 142, 143, 134
 S_BATTLE_REPORT, S_NPC_CHASE, S_NPC_MOVE, S_ESCORT, S_PLAYER_MOVE = 4103, 4105, 4122, 4124, 4162
 S_BUFFERS, S_NODE_STAND, S_FIGHT_MOVIE = 4165, 4208, 4382
@@ -326,6 +327,8 @@ async def sync_pos(s: GameSession, msg: pb.PosMoveMsg) -> None:
             from .guildwar import moved  # guildwar importa este módulo
 
             moved(s, msg)
+        for mate in mates(s):  # (visto) 232017 #7875: 4185 com o caminho do outro da sala (armyId 10)
+            mate.send(S_MOVE, pb.PosMoveMsg(mapId=s.campaign.map_id, armyId=s.player_id, routes=msg.routes))
 
 
 @router.on(8196)
@@ -670,19 +673,41 @@ def _start_battle(s: GameSession, camp: int, over: Callable[[Battle, bool], Awai
     _send(s, S_ARMY_POS, _army_brief(s, ARMY_FIGHTING))
     _node_update(s, camp, FIGHTING, user=True)
 
+    team = [m for m in mates(s) if m.battle is None and m.campaign is not None and not m.campaign.fighting]
+    if team:
+        spec = _with_team(s, spec, team)
+        for m in team:  # (visto) 232017 #7911-#7913: o 128 em combate com o userId de quem atacou e o 157 para todos
+            assert m.campaign is not None
+            m.campaign.fighting = camp
+            _send(m, S_MAP_SYNC, map_sync(m, ARMY_FIGHTING))
+            node = m.campaign.node(camp)
+            if node is not None:
+                node["state"] = FIGHTING
+                _send(
+                    m, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=node["nodeId"], nodeState=FIGHTING, userId=s.player_id)
+                )
+
+    def send(code: int, msg: Message) -> None:
+        s.send(code, msg)
+        for m in team:
+            m.send(code, msg)
+
     async def finished(battle: Battle, won: bool) -> None:
         await (over(battle, won) if over is not None else _battle_over(s, battle, camp, won))
+        for m in team:  # (visto) 232017 #7928: o 4103 com a EXP também para quem não atacou
+            if m.snapshot is not None and m.campaign is not None:
+                await _battle_over(m, battle, camp, won, mate=True)
 
     s.battle = Battle(
         spec,
         player_hero(s, spec, boosted(s)),
         s.ctx.templates,
         s.ctx.clock,
-        s.send,
+        send if team else s.send,
         finished,
         settings=s.ctx.world.settings,
     )
-    s.log.info("batalha", nó=camp, battle=s.battle.id)
+    s.log.info("batalha", nó=camp, battle=s.battle.id, time=[m.player_id for m in team])
     s.battle.start()
 
 
@@ -715,6 +740,33 @@ async def special_boss(s: GameSession, _: object) -> None:
     s.battle.start()
 
 
+TEAM_POS = (
+    4,
+    7,
+    2,
+    5,
+    8,
+)  # TODO(inventado) lugares dos outros da sala no lado 1 (o 157 da captura não decodifica aqui)
+
+
+def _with_team(s: GameSession, spec: dict[str, Any], team: list[GameSession]) -> dict[str, Any]:
+    """Os outros da sala entram na luta como heróis do lado 1 (``arena.copy_hero``, com o ``userId`` deles: o
+    cliente de cada um acha o seu herói). Lutam sozinhos (automático): o 157 vai para todos, as ordens não."""
+    from .. import arena as A  # noqa: PLC0415  (arena importa handlers)
+
+    used = [u["livingId"] for k in ("soldiers", "heroes") for u in spec.get(k, [])]
+    used += [u["livingId"] for w in spec.get("reinforce", []) for u in w] + [spec["player"]["livingId"]]
+    taken = {u["pos"] for u in spec.get("soldiers", []) if u.get("side") == 1} | {spec["player"]["pos"]}
+    free = [p for p in TEAM_POS if p not in taken]
+    heroes = list(spec.get("heroes", []))
+    for i, m in enumerate(team[: len(free)]):
+        assert m.snapshot is not None
+        hero = A.copy_hero(m.snapshot, s.ctx.templates, s.ctx.clock.now())
+        hero.update(side=1, type=1, userId=m.player_id, heroId=m.player_id, livingId=max(used) + 1 + i, pos=free[i])
+        heroes.append(hero)
+    return spec | {"heroes": heroes}
+
+
 def _report(battle: Battle, won: bool, gp: int, strategy: int = 0) -> pb.BattleReportMsg:
     report = pb.BattleReportMsg(battleResult=WON if won else LOST, strategyBonus=strategy, gpBonus=gp)
     report.battleScene = int(battle.spec.get("battleScene", CAMPAIGN_SCENE))
@@ -722,10 +774,13 @@ def _report(battle: Battle, won: bool, gp: int, strategy: int = 0) -> pb.BattleR
     return report
 
 
-async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
+async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, mate: bool = False) -> None:
+    """``mate``: outro da sala que lutou junto (herói NPC na luta de quem atacou): ganha o mesmo, sem perder tropa
+    nem vida (o herói dele não é o ``battle.player``)."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    s.battle, s.hero_sp = None, battle.player_sp
+    if not mate:
+        s.battle, s.hero_sp = None, battle.player_sp
     gp = int(battle.spec.get("gpBonus", 0)) if won and _rewarded(s) else 0
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
@@ -741,12 +796,12 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     from . import pets as P  # noqa: PLC0415  (pets importa shop, que importa este módulo)
 
     # (só turco: peri_uyanis #73, #78) o mascote que lutou ganha a mesma EXP e o 4540 sai logo depois do 3
-    pet = P.share_gp(s, gp) if battle.pet_id else None
+    pet = P.share_gp(s, gp) if battle.pet_id and not mate else None
     loot = _Loot()
     dungeon = s.campaign is not None and s.campaign.dungeon
     # tropas mortas saem e a reserva repõe (visto #1466 -> #1511: a reserva 738 -> 650); a luta roteirizada não perde
     undying = bool(battle.spec.get("undying"))
-    hit = None if undying else outer_city.lose_troops(snap, s.ctx.templates, battle.troops())
+    hit = None if undying or mate else outer_city.lose_troops(snap, s.ctx.templates, battle.troops())
     # Daru = soldados perdidos, ganhando ou perdendo: (visto) inglesa #1466 (88 mortos, Wulfgar 88) e
     # oficial_20261023-153200-1 (a reserva cai 127, 98, 115, 121; derrotas 53, 202, 202 = o exército inteiro)
     strategy = hit[1] if hit is not None else int(battle.spec.get("strategyBonus", 0)) if won and undying else 0
@@ -757,7 +812,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
         outer_city.refill(*hit)
     from .player import hero_after_fight, hp_pack  # player importa login, que importa este módulo
 
-    healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
+    healed = hero_after_fight(s, battle.player.hp if battle.player is not None and not mate else None)
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
     if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win or hit:
@@ -1024,6 +1079,28 @@ async def _group_start(s: GameSession, room: Room, content: Mapping[str, Any], m
         await _group_enter(
             other, room, content, msg.paraInt2, not msg.paraBool1 if pid == room.master else pid in room.rewarded
         )
+    # (visto) 232017 #7687: depois da névoa, outro 21 com todos da sala no mapa (434 e 11)
+    inside = [o for p in room.members if (o := s.ctx.online.get(p)) is not None and o.campaign is not None]
+    for o in inside:
+        enter = _room_enter(o)
+        for mate in mates(o):
+            enter.player.append(_room_enter(mate).player[0])
+        _send(o, S_ROOM_ENTER, enter)
+
+
+def mates(s: GameSession) -> list[GameSession]:
+    """Os outros da sala em grupo no mesmo mapa da masmorra: o oficial divide o mapa (191924, 232017, 152321):
+    o caminho (4185), os nós (128) e as lutas (157 com o time) chegam a todos."""
+    c = s.campaign
+    room = s.ctx.rooms.of(s.player_id)
+    if c is None or c.run is None or room is None or room.state != PLAYING:
+        return []
+    out = []
+    for pid in room.members:
+        o = s.ctx.online.get(pid)
+        if o is not None and o is not s and o.campaign is not None and o.campaign.map_id == c.map_id:
+            out.append(o)
+    return out
 
 
 async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], cid: int, use: bool) -> None:

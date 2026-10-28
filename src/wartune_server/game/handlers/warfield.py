@@ -134,8 +134,8 @@ def _info(s: GameSession, field: bf.Field, stop: datetime) -> pb.WarFightInfoMsg
     """4252: o placar do jogador e do time (visto #14238). O time 1 não tem jogadores aqui (0)."""
     mine = field.mark(s.player_id)
     left = max(0, int((stop - s.ctx.clock.now()).total_seconds() * 1000))
-    return pb.WarFightInfoMsg(teamId=bf.TEAM, score=mine.score, order=1, geste=mine.honor, hitCount=mine.wins, leftTime=left,
-                              oneCount=len(field.marks), twoCount=0, oneScore=field.our_score(),
+    return pb.WarFightInfoMsg(teamId=bf.TEAM, score=mine.score, order=1, geste=mine.honor, hitCount=mine.wins,
+                              leftTime=left, oneCount=len(field.marks), twoCount=0, oneScore=field.our_score(),
                               twoScore=0)  # fmt: skip
 
 
@@ -243,7 +243,8 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
     found = _field(s)
     target = s.ctx.online.get(msg.userId)
     if (found is None or c is None or snap is None or s.battle is not None or target is None or target is s
-            or target.campaign is None or target.campaign.warfield != c.warfield or target.snapshot is None):  # fmt: skip
+            or target.campaign is None or target.campaign.warfield != c.warfield
+            or target.snapshot is None):  # fmt: skip
         s.log.info("8334 recusado", pedido=str(msg))
         return
     field = found[0]

@@ -24,6 +24,7 @@ Cada campanha gerada leva ``"inventado"`` com os mapas gerados: é a marca para 
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 import re
@@ -43,6 +44,7 @@ MIRROR = Path("D:/xampp/htdocs/wartune/mirror/res134-bmclas-sq.7road.net/maps")
 SINGLE = ("1104", ["1091"])  # planta de etapa de um mapa
 MULTI = ("1201", ["1291", "1292"])  # planta de etapa de vários mapas: meio (portal) e fim (chefe)
 LUCK_STONES = range(2040101, 2040110)
+SKELETON_KEY = 208005  # o baú VIP (0084/0100): a chave não é da história da planta
 TILE = 20  # fixX = posX * 20 + 9 (captura: 48 -> 969)
 GROUP = {
     "captured": VERSIONS / "0100_masmorras_grupo.json",
@@ -132,10 +134,8 @@ def _amf3(data: bytes) -> list[Any]:
 
 def walkable(map_id: int) -> list[tuple[int, int]]:
     raw = (MIRROR / str(map_id) / f"{map_id}.titles").read_bytes()
-    try:
+    with contextlib.suppress(zlib.error):
         raw = zlib.decompress(raw)
-    except zlib.error:
-        pass
     return [tuple(int(v) for v in k.split("_")) for k in _amf3(raw)[0]]  # type: ignore[misc]
 
 
@@ -146,6 +146,7 @@ def _near(tiles: list[tuple[int, int]], x: int, y: int) -> tuple[int, int]:
 class Gen:
     def __init__(self, t: GameTemplates, family: bool = False) -> None:
         self.t, self.family = t, family
+        self.rows = {int(r["CampaignId"]): r for r in t.rows("Campaigns")}
         self.level = {int(r["CampaignId"]): int(r["MinLevel"]) for r in t.rows("Campaigns")}
         self.pawns = {int(r["TemplateId"]): r for r in t.rows("PawnTempInfos")}
         self.monsters = [r for r in self.pawns.values() if r["MasterType"] == "101" and int(r["Live"]) > 0]
@@ -187,7 +188,7 @@ def _prize(drops: list[list[Any]], ratio: float) -> list[list[Any]]:
     for d in drops:
         if d[0] < 0:
             out.append([d[0], round(d[1] * ratio), *d[2:]])
-        elif d[0] in LUCK_STONES:
+        elif d[0] in LUCK_STONES or d[0] == SKELETON_KEY:
             out.append(list(d))
     return out
 
@@ -272,10 +273,31 @@ def stage(g: Gen, plan: dict[str, Any], plan_maps: list[str], maps: list[int], c
     return out
 
 
+def nightmare(content: dict[str, Any], row: dict[str, Any], normal: dict[str, Any]) -> None:
+    """Pesadelo (``DifficultyGrade`` 2): mesmo ``MinLevel`` da normal; (cliente) ``Campaigns`` traz o dano esperado
+    (``StandardDamage``, 1,5x na 9104) e a EXP (``BaseGp``, 1,2x). TODO(inventado) a vida dos monstros escala pelo
+    ``StandardDamage`` e o gpBonus pelo ``BaseGp`` da normal para o pesadelo."""
+    hp = int(row["StandardDamage"]) / int(normal["StandardDamage"])
+    gp = int(row["BaseGp"]) / int(normal["BaseGp"])
+    for b in content["battles"].values():
+        b["gpBonus"] = round(b.get("gpBonus", 0) * gp)
+        for u in b["soldiers"] + b["heroes"] + [s for w in b.get("reinforce", []) for s in w]:
+            for k in ("hp", "initHp", "maxHp"):
+                if k in u:
+                    u[k] = round(u[k] * hp)
+
+
 def main(cfg: dict[str, Any]) -> None:
     t = GameTemplates.parse(TEMPLATES.read_bytes())
     g = Gen(t, cfg["family"])
     captured = json.loads(cfg["captured"].read_text(encoding="utf-8"))
+    if cfg is GROUP:  # a semente que a 0100 grava (com as caixas dos baús VIP), não só o JSON da captura
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("m0100", VERSIONS / "0100_masmorras_grupo.py")
+        assert spec is not None and spec.loader is not None
+        spec.loader.exec_module(mod := importlib.util.module_from_spec(spec))
+        captured = mod.seed()
     result: dict[str, Any] = {}
     for row in t.rows("Campaigns"):
         cid = int(row["CampaignId"])
@@ -297,6 +319,8 @@ def main(cfg: dict[str, Any]) -> None:
                 content.setdefault(k, {}).update(v)
             content["stages"].append(maps)
             made += maps
+        if made and row.get("DifficultyGrade") == "2" and (normal := g.rows.get(cid - 100)):
+            nightmare(content, row, normal)
         if made:
             content["inventado"] = made
             result[str(cid)] = {k: v for k, v in content.items() if v != {}}

@@ -37,7 +37,6 @@ from ..session import GameContext, GameSession
 from .campaign import (
     ARMY_FIGHTING,
     ARMY_IDLE,
-    pvp_fight,
     ENTER,
     S_ARMY_PAWN,
     S_BATTLE_REPORT,
@@ -57,6 +56,7 @@ from .campaign import (
     exit_to_city,
     map_sync,
     player_hero,
+    pvp_fight,
 )
 from .guild.common import _alert, _mine, _push_info, _refuse
 from .guild.info import member_list

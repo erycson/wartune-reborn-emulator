@@ -7,8 +7,8 @@ from pathlib import Path
 
 from tests.game.harness import logged_in
 from wartune_server.domain.models import Item
-from wartune_server.game import events as ev
 from wartune_server.game import arena, rules
+from wartune_server.game import events as ev
 from wartune_server.game.builders import login as b
 from wartune_server.game.handlers import login, stars, warfield
 from wartune_server.game.rooms import PVE

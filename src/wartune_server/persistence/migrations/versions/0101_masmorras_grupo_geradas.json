@@ -2523,6 +2523,28 @@
     "drops": [],
     "notify": false
    },
+   "205108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 205108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "205207": {
     "confirm": {
      "title": "Activate Hints",
@@ -2536,6 +2558,28 @@
     "drops": [],
     "notify": false
    },
+   "205208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 205208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "205307": {
     "confirm": {
      "title": "Activate Hints",
@@ -2547,6 +2591,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "205308": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 205308,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -5732,6 +5798,28 @@
     "drops": [],
     "notify": false
    },
+   "207108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 207108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "207207": {
     "confirm": {
      "title": "Activate Hints",
@@ -5743,6 +5831,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "207208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 207208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    },
    "207307": {
@@ -5758,6 +5868,28 @@
     "drops": [],
     "notify": false
    },
+   "207308": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 207308,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "207407": {
     "confirm": {
      "title": "Activate Hints",
@@ -5769,6 +5901,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "207408": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 207408,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -7731,6 +7885,28 @@
     "drops": [],
     "notify": false
    },
+   "211108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 211108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "211207": {
     "confirm": {
      "title": "Activate Hints",
@@ -7742,6 +7918,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "211208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 211208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -9682,6 +9880,28 @@
     "drops": [],
     "notify": false
    },
+   "213108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 213108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "213207": {
     "confirm": {
      "title": "Activate Hints",
@@ -9693,6 +9913,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "213208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 213208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -11633,6 +11875,28 @@
     "drops": [],
     "notify": false
    },
+   "215108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 215108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "215207": {
     "confirm": {
      "title": "Activate Hints",
@@ -11644,6 +11908,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "215208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 215208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -13584,6 +13870,28 @@
     "drops": [],
     "notify": false
    },
+   "217108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 217108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "217207": {
     "confirm": {
      "title": "Activate Hints",
@@ -13595,6 +13903,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "217208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 217208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -15535,6 +15865,28 @@
     "drops": [],
     "notify": false
    },
+   "219108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 219108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "219207": {
     "confirm": {
      "title": "Activate Hints",
@@ -15546,6 +15898,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "219208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 219208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -18720,6 +19094,28 @@
     "drops": [],
     "notify": false
    },
+   "221108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 221108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "221207": {
     "confirm": {
      "title": "Activate Hints",
@@ -18731,6 +19127,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "221208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 221208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    },
    "221307": {
@@ -18746,6 +19164,28 @@
     "drops": [],
     "notify": false
    },
+   "221308": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 221308,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "221407": {
     "confirm": {
      "title": "Activate Hints",
@@ -18757,6 +19197,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "221408": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 221408,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -20719,6 +21181,28 @@
     "drops": [],
     "notify": false
    },
+   "223108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 223108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "223207": {
     "confirm": {
      "title": "Activate Hints",
@@ -20730,6 +21214,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "223208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 223208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -22670,6 +23176,28 @@
     "drops": [],
     "notify": false
    },
+   "225108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 225108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "225207": {
     "confirm": {
      "title": "Activate Hints",
@@ -22681,6 +23209,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "225208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 225208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -25004,8 +25554,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25021,8 +25571,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25038,8 +25588,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25055,8 +25605,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25073,7 +25623,7 @@
      "pos": 1
     },
     "map": 2081,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25088,8 +25638,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25105,8 +25655,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25129,9 +25679,9 @@
       "grade": 40,
       "side": 2,
       "pos": 5,
-      "maxHp": 146268,
-      "initHp": 146268,
-      "hp": 146268,
+      "maxHp": 219402,
+      "initHp": 219402,
+      "hp": 219402,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -25171,7 +25721,7 @@
      "pos": 1
     },
     "map": 2081,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25186,8 +25736,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25202,8 +25752,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25218,8 +25768,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25234,8 +25784,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25251,8 +25801,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25268,8 +25818,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25286,7 +25836,7 @@
      "pos": 1
     },
     "map": 2081,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25301,8 +25851,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25318,8 +25868,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25335,8 +25885,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25352,8 +25902,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25370,7 +25920,7 @@
      "pos": 1
     },
     "map": 2082,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25385,8 +25935,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25402,8 +25952,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25426,9 +25976,9 @@
       "grade": 40,
       "side": 2,
       "pos": 5,
-      "maxHp": 146268,
-      "initHp": 146268,
-      "hp": 146268,
+      "maxHp": 219402,
+      "initHp": 219402,
+      "hp": 219402,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -25468,7 +26018,7 @@
      "pos": 1
     },
     "map": 2082,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25483,8 +26033,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25499,8 +26049,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25515,8 +26065,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25531,8 +26081,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25548,8 +26098,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25565,8 +26115,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25583,7 +26133,7 @@
      "pos": 1
     },
     "map": 2082,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25598,8 +26148,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25615,8 +26165,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25632,8 +26182,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25649,8 +26199,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25667,7 +26217,7 @@
      "pos": 1
     },
     "map": 2083,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25682,8 +26232,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25699,8 +26249,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25723,9 +26273,9 @@
       "grade": 40,
       "side": 2,
       "pos": 5,
-      "maxHp": 146268,
-      "initHp": 146268,
-      "hp": 146268,
+      "maxHp": 219402,
+      "initHp": 219402,
+      "hp": 219402,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -25765,7 +26315,7 @@
      "pos": 1
     },
     "map": 2083,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25780,8 +26330,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25796,8 +26346,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25812,8 +26362,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25828,8 +26378,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25845,8 +26395,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25862,8 +26412,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25880,7 +26430,7 @@
      "pos": 1
     },
     "map": 2083,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25895,8 +26445,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25912,8 +26462,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25929,8 +26479,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25946,8 +26496,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25964,7 +26514,7 @@
      "pos": 1
     },
     "map": 2084,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -25979,8 +26529,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -25996,8 +26546,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26020,9 +26570,9 @@
       "grade": 40,
       "side": 2,
       "pos": 5,
-      "maxHp": 146268,
-      "initHp": 146268,
-      "hp": 146268,
+      "maxHp": 219402,
+      "initHp": 219402,
+      "hp": 219402,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -26062,7 +26612,7 @@
      "pos": 1
     },
     "map": 2084,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -26077,8 +26627,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26093,8 +26643,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26109,8 +26659,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26125,8 +26675,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26142,8 +26692,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26159,8 +26709,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -26177,7 +26727,7 @@
      "pos": 1
     },
     "map": 2084,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -26192,8 +26742,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -26208,8 +26758,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -26224,8 +26774,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -26239,8 +26789,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -26255,7 +26805,7 @@
      "pos": 1
     },
     "map": 2085,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -26270,8 +26820,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -26286,8 +26836,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -26302,8 +26852,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -26317,8 +26867,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -26333,7 +26883,7 @@
      "pos": 1
     },
     "map": 2085,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -26354,9 +26904,9 @@
       "grade": 40,
       "side": 2,
       "pos": 5,
-      "maxHp": 146268,
-      "initHp": 146268,
-      "hp": 146268,
+      "maxHp": 219402,
+      "initHp": 219402,
+      "hp": 219402,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -26396,7 +26946,7 @@
      "pos": 1
     },
     "map": 2085,
-    "gpBonus": 5880,
+    "gpBonus": 7056,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -26411,8 +26961,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -26426,8 +26976,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 12189,
-      "hp": 12189,
+      "initHp": 18284,
+      "hp": 18284,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -26449,9 +26999,9 @@
       "grade": 40,
       "side": 2,
       "pos": 5,
-      "maxHp": 146268,
-      "initHp": 146268,
-      "hp": 146268,
+      "maxHp": 219402,
+      "initHp": 219402,
+      "hp": 219402,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -26518,6 +27068,28 @@
     "drops": [],
     "notify": false
    },
+   "208108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 208108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "208207": {
     "confirm": {
      "title": "Activate Hints",
@@ -26529,6 +27101,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "208208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 208208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    },
    "208307": {
@@ -26544,6 +27138,28 @@
     "drops": [],
     "notify": false
    },
+   "208308": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 208308,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "208407": {
     "confirm": {
      "title": "Activate Hints",
@@ -26555,6 +27171,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "208408": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 208408,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -27597,8 +28235,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27614,8 +28252,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27631,8 +28269,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27648,8 +28286,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27666,7 +28304,7 @@
      "pos": 1
     },
     "map": 2121,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -27681,8 +28319,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27698,8 +28336,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27722,9 +28360,9 @@
       "grade": 45,
       "side": 2,
       "pos": 5,
-      "maxHp": 163225,
-      "initHp": 163225,
-      "hp": 163225,
+      "maxHp": 244838,
+      "initHp": 244838,
+      "hp": 244838,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -27764,7 +28402,7 @@
      "pos": 1
     },
     "map": 2121,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -27779,8 +28417,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27795,8 +28433,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27811,8 +28449,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27827,8 +28465,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27844,8 +28482,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27861,8 +28499,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27879,7 +28517,7 @@
      "pos": 1
     },
     "map": 2121,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -27894,8 +28532,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27911,8 +28549,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27928,8 +28566,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27945,8 +28583,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27963,7 +28601,7 @@
      "pos": 1
     },
     "map": 2122,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -27978,8 +28616,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -27995,8 +28633,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28019,9 +28657,9 @@
       "grade": 45,
       "side": 2,
       "pos": 5,
-      "maxHp": 163225,
-      "initHp": 163225,
-      "hp": 163225,
+      "maxHp": 244838,
+      "initHp": 244838,
+      "hp": 244838,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -28061,7 +28699,7 @@
      "pos": 1
     },
     "map": 2122,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -28076,8 +28714,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28092,8 +28730,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28108,8 +28746,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28124,8 +28762,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28141,8 +28779,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28158,8 +28796,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -28176,7 +28814,7 @@
      "pos": 1
     },
     "map": 2122,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -28191,8 +28829,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -28207,8 +28845,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -28223,8 +28861,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -28238,8 +28876,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -28254,7 +28892,7 @@
      "pos": 1
     },
     "map": 2124,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -28269,8 +28907,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -28285,8 +28923,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -28301,8 +28939,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -28316,8 +28954,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -28332,7 +28970,7 @@
      "pos": 1
     },
     "map": 2124,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -28353,9 +28991,9 @@
       "grade": 45,
       "side": 2,
       "pos": 5,
-      "maxHp": 163225,
-      "initHp": 163225,
-      "hp": 163225,
+      "maxHp": 244838,
+      "initHp": 244838,
+      "hp": 244838,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -28395,7 +29033,7 @@
      "pos": 1
     },
     "map": 2124,
-    "gpBonus": 6615,
+    "gpBonus": 7938,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -28410,8 +29048,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -28425,8 +29063,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 19414,
-      "hp": 19414,
+      "initHp": 29121,
+      "hp": 29121,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -28448,9 +29086,9 @@
       "grade": 45,
       "side": 2,
       "pos": 5,
-      "maxHp": 163225,
-      "initHp": 163225,
-      "hp": 163225,
+      "maxHp": 244838,
+      "initHp": 244838,
+      "hp": 244838,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -28517,6 +29155,28 @@
     "drops": [],
     "notify": false
    },
+   "212108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 212108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "212207": {
     "confirm": {
      "title": "Activate Hints",
@@ -28528,6 +29188,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "212208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 212208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -29548,8 +30230,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29565,8 +30247,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29582,8 +30264,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29599,8 +30281,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29617,7 +30299,7 @@
      "pos": 1
     },
     "map": 2141,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -29632,8 +30314,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29649,8 +30331,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29673,9 +30355,9 @@
       "grade": 50,
       "side": 2,
       "pos": 5,
-      "maxHp": 229656,
-      "initHp": 229656,
-      "hp": 229656,
+      "maxHp": 344484,
+      "initHp": 344484,
+      "hp": 344484,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -29715,7 +30397,7 @@
      "pos": 1
     },
     "map": 2141,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -29730,8 +30412,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29746,8 +30428,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29762,8 +30444,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29778,8 +30460,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29795,8 +30477,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29812,8 +30494,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29830,7 +30512,7 @@
      "pos": 1
     },
     "map": 2141,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -29845,8 +30527,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29862,8 +30544,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29879,8 +30561,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29896,8 +30578,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29914,7 +30596,7 @@
      "pos": 1
     },
     "map": 2142,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -29929,8 +30611,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29946,8 +30628,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -29970,9 +30652,9 @@
       "grade": 50,
       "side": 2,
       "pos": 5,
-      "maxHp": 229656,
-      "initHp": 229656,
-      "hp": 229656,
+      "maxHp": 344484,
+      "initHp": 344484,
+      "hp": 344484,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -30012,7 +30694,7 @@
      "pos": 1
     },
     "map": 2142,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -30027,8 +30709,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -30043,8 +30725,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -30059,8 +30741,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -30075,8 +30757,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -30092,8 +30774,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -30109,8 +30791,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -30127,7 +30809,7 @@
      "pos": 1
     },
     "map": 2142,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -30142,8 +30824,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -30158,8 +30840,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -30174,8 +30856,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -30189,8 +30871,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -30205,7 +30887,7 @@
      "pos": 1
     },
     "map": 2143,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -30220,8 +30902,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -30236,8 +30918,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -30252,8 +30934,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -30267,8 +30949,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -30283,7 +30965,7 @@
      "pos": 1
     },
     "map": 2143,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -30304,9 +30986,9 @@
       "grade": 50,
       "side": 2,
       "pos": 5,
-      "maxHp": 229656,
-      "initHp": 229656,
-      "hp": 229656,
+      "maxHp": 344484,
+      "initHp": 344484,
+      "hp": 344484,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -30346,7 +31028,7 @@
      "pos": 1
     },
     "map": 2143,
-    "gpBonus": 7350,
+    "gpBonus": 8820,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -30361,8 +31043,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -30376,8 +31058,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 22707,
-      "hp": 22707,
+      "initHp": 34060,
+      "hp": 34060,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -30399,9 +31081,9 @@
       "grade": 50,
       "side": 2,
       "pos": 5,
-      "maxHp": 229656,
-      "initHp": 229656,
-      "hp": 229656,
+      "maxHp": 344484,
+      "initHp": 344484,
+      "hp": 344484,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -30468,6 +31150,28 @@
     "drops": [],
     "notify": false
    },
+   "214108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 214108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "214207": {
     "confirm": {
      "title": "Activate Hints",
@@ -30479,6 +31183,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "214208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 214208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -31499,8 +32225,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31516,8 +32242,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31533,8 +32259,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31550,8 +32276,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31568,7 +32294,7 @@
      "pos": 1
     },
     "map": 2161,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -31583,8 +32309,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31600,8 +32326,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31624,9 +32350,9 @@
       "grade": 55,
       "side": 2,
       "pos": 5,
-      "maxHp": 328232,
-      "initHp": 328232,
-      "hp": 328232,
+      "maxHp": 492348,
+      "initHp": 492348,
+      "hp": 492348,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -31666,7 +32392,7 @@
      "pos": 1
     },
     "map": 2161,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -31681,8 +32407,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31697,8 +32423,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31713,8 +32439,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31729,8 +32455,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31746,8 +32472,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31763,8 +32489,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31781,7 +32507,7 @@
      "pos": 1
     },
     "map": 2161,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -31796,8 +32522,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31813,8 +32539,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31830,8 +32556,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31847,8 +32573,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31865,7 +32591,7 @@
      "pos": 1
     },
     "map": 2162,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -31880,8 +32606,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31897,8 +32623,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31921,9 +32647,9 @@
       "grade": 55,
       "side": 2,
       "pos": 5,
-      "maxHp": 328232,
-      "initHp": 328232,
-      "hp": 328232,
+      "maxHp": 492348,
+      "initHp": 492348,
+      "hp": 492348,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -31963,7 +32689,7 @@
      "pos": 1
     },
     "map": 2162,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -31978,8 +32704,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -31994,8 +32720,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -32010,8 +32736,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -32026,8 +32752,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -32043,8 +32769,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -32060,8 +32786,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -32078,7 +32804,7 @@
      "pos": 1
     },
     "map": 2162,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -32093,8 +32819,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -32109,8 +32835,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -32125,8 +32851,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -32140,8 +32866,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -32156,7 +32882,7 @@
      "pos": 1
     },
     "map": 2163,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -32171,8 +32897,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -32187,8 +32913,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -32203,8 +32929,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -32218,8 +32944,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -32234,7 +32960,7 @@
      "pos": 1
     },
     "map": 2163,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -32255,9 +32981,9 @@
       "grade": 55,
       "side": 2,
       "pos": 5,
-      "maxHp": 328232,
-      "initHp": 328232,
-      "hp": 328232,
+      "maxHp": 492348,
+      "initHp": 492348,
+      "hp": 492348,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -32297,7 +33023,7 @@
      "pos": 1
     },
     "map": 2163,
-    "gpBonus": 8085,
+    "gpBonus": 9702,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -32312,8 +33038,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -32327,8 +33053,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 24070,
-      "hp": 24070,
+      "initHp": 36105,
+      "hp": 36105,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -32350,9 +33076,9 @@
       "grade": 55,
       "side": 2,
       "pos": 5,
-      "maxHp": 328232,
-      "initHp": 328232,
-      "hp": 328232,
+      "maxHp": 492348,
+      "initHp": 492348,
+      "hp": 492348,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -32419,6 +33145,28 @@
     "drops": [],
     "notify": false
    },
+   "216108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 216108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "216207": {
     "confirm": {
      "title": "Activate Hints",
@@ -32430,6 +33178,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "216208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 216208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -33450,8 +34220,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33467,8 +34237,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33484,8 +34254,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33501,8 +34271,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33519,7 +34289,7 @@
      "pos": 1
     },
     "map": 2181,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -33534,8 +34304,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33551,8 +34321,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33575,9 +34345,9 @@
       "grade": 60,
       "side": 2,
       "pos": 5,
-      "maxHp": 400000,
-      "initHp": 400000,
-      "hp": 400000,
+      "maxHp": 600000,
+      "initHp": 600000,
+      "hp": 600000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -33617,7 +34387,7 @@
      "pos": 1
     },
     "map": 2181,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -33632,8 +34402,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33648,8 +34418,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33664,8 +34434,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33680,8 +34450,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33697,8 +34467,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33714,8 +34484,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33732,7 +34502,7 @@
      "pos": 1
     },
     "map": 2181,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -33747,8 +34517,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33764,8 +34534,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33781,8 +34551,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33798,8 +34568,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33816,7 +34586,7 @@
      "pos": 1
     },
     "map": 2182,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -33831,8 +34601,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33848,8 +34618,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33872,9 +34642,9 @@
       "grade": 60,
       "side": 2,
       "pos": 5,
-      "maxHp": 400000,
-      "initHp": 400000,
-      "hp": 400000,
+      "maxHp": 600000,
+      "initHp": 600000,
+      "hp": 600000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -33914,7 +34684,7 @@
      "pos": 1
     },
     "map": 2182,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -33929,8 +34699,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33945,8 +34715,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33961,8 +34731,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33977,8 +34747,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -33994,8 +34764,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -34011,8 +34781,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -34029,7 +34799,7 @@
      "pos": 1
     },
     "map": 2182,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -34044,8 +34814,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -34060,8 +34830,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -34076,8 +34846,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -34091,8 +34861,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -34107,7 +34877,7 @@
      "pos": 1
     },
     "map": 2183,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -34122,8 +34892,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -34138,8 +34908,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -34154,8 +34924,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -34169,8 +34939,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -34185,7 +34955,7 @@
      "pos": 1
     },
     "map": 2183,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -34206,9 +34976,9 @@
       "grade": 60,
       "side": 2,
       "pos": 5,
-      "maxHp": 400000,
-      "initHp": 400000,
-      "hp": 400000,
+      "maxHp": 600000,
+      "initHp": 600000,
+      "hp": 600000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -34248,7 +35018,7 @@
      "pos": 1
     },
     "map": 2183,
-    "gpBonus": 8820,
+    "gpBonus": 10584,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -34263,8 +35033,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -34278,8 +35048,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 30428,
-      "hp": 30428,
+      "initHp": 45642,
+      "hp": 45642,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -34301,9 +35071,9 @@
       "grade": 60,
       "side": 2,
       "pos": 5,
-      "maxHp": 400000,
-      "initHp": 400000,
-      "hp": 400000,
+      "maxHp": 600000,
+      "initHp": 600000,
+      "hp": 600000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -34370,6 +35140,28 @@
     "drops": [],
     "notify": false
    },
+   "218108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 218108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "218207": {
     "confirm": {
      "title": "Activate Hints",
@@ -34381,6 +35173,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "218208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 218208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -35401,8 +36215,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35418,8 +36232,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35435,8 +36249,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35452,8 +36266,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35470,7 +36284,7 @@
      "pos": 1
     },
     "map": 2201,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -35485,8 +36299,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35502,8 +36316,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35526,9 +36340,9 @@
       "grade": 65,
       "side": 2,
       "pos": 5,
-      "maxHp": 800000,
-      "initHp": 800000,
-      "hp": 800000,
+      "maxHp": 1200000,
+      "initHp": 1200000,
+      "hp": 1200000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -35568,7 +36382,7 @@
      "pos": 1
     },
     "map": 2201,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -35583,8 +36397,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35599,8 +36413,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35615,8 +36429,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35631,8 +36445,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35648,8 +36462,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35665,8 +36479,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35683,7 +36497,7 @@
      "pos": 1
     },
     "map": 2201,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -35698,8 +36512,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35715,8 +36529,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35732,8 +36546,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35749,8 +36563,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35767,7 +36581,7 @@
      "pos": 1
     },
     "map": 2202,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -35782,8 +36596,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35799,8 +36613,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35823,9 +36637,9 @@
       "grade": 65,
       "side": 2,
       "pos": 5,
-      "maxHp": 800000,
-      "initHp": 800000,
-      "hp": 800000,
+      "maxHp": 1200000,
+      "initHp": 1200000,
+      "hp": 1200000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -35865,7 +36679,7 @@
      "pos": 1
     },
     "map": 2202,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -35880,8 +36694,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35896,8 +36710,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35912,8 +36726,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35928,8 +36742,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35945,8 +36759,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35962,8 +36776,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -35980,7 +36794,7 @@
      "pos": 1
     },
     "map": 2202,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -35995,8 +36809,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -36011,8 +36825,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -36027,8 +36841,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -36042,8 +36856,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -36058,7 +36872,7 @@
      "pos": 1
     },
     "map": 2203,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -36073,8 +36887,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -36089,8 +36903,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -36105,8 +36919,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -36120,8 +36934,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -36136,7 +36950,7 @@
      "pos": 1
     },
     "map": 2203,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -36157,9 +36971,9 @@
       "grade": 65,
       "side": 2,
       "pos": 5,
-      "maxHp": 800000,
-      "initHp": 800000,
-      "hp": 800000,
+      "maxHp": 1200000,
+      "initHp": 1200000,
+      "hp": 1200000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -36199,7 +37013,7 @@
      "pos": 1
     },
     "map": 2203,
-    "gpBonus": 9555,
+    "gpBonus": 11466,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -36214,8 +37028,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -36229,8 +37043,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 38034,
-      "hp": 38034,
+      "initHp": 57051,
+      "hp": 57051,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -36252,9 +37066,9 @@
       "grade": 65,
       "side": 2,
       "pos": 5,
-      "maxHp": 800000,
-      "initHp": 800000,
-      "hp": 800000,
+      "maxHp": 1200000,
+      "initHp": 1200000,
+      "hp": 1200000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -36321,6 +37135,28 @@
     "drops": [],
     "notify": false
    },
+   "220108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 220108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "220207": {
     "confirm": {
      "title": "Activate Hints",
@@ -36332,6 +37168,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "220208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 220208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -37992,8 +38850,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38009,8 +38867,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38026,8 +38884,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38043,8 +38901,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38061,7 +38919,7 @@
      "pos": 1
     },
     "map": 2221,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38076,8 +38934,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38093,8 +38951,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38117,9 +38975,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2074074,
+      "initHp": 2074074,
+      "hp": 2074074,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -38159,7 +39017,7 @@
      "pos": 1
     },
     "map": 2221,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38174,8 +39032,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38190,8 +39048,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38206,8 +39064,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38222,8 +39080,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38239,8 +39097,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38256,8 +39114,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38274,7 +39132,7 @@
      "pos": 1
     },
     "map": 2221,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38289,8 +39147,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38306,8 +39164,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38323,8 +39181,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38340,8 +39198,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38358,7 +39216,7 @@
      "pos": 1
     },
     "map": 2222,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38373,8 +39231,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38390,8 +39248,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38414,9 +39272,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2074074,
+      "initHp": 2074074,
+      "hp": 2074074,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -38456,7 +39314,7 @@
      "pos": 1
     },
     "map": 2222,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38471,8 +39329,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38487,8 +39345,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38503,8 +39361,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38519,8 +39377,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38536,8 +39394,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38553,8 +39411,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38571,7 +39429,7 @@
      "pos": 1
     },
     "map": 2222,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38586,8 +39444,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38603,8 +39461,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38620,8 +39478,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38637,8 +39495,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38655,7 +39513,7 @@
      "pos": 1
     },
     "map": 2223,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38670,8 +39528,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38687,8 +39545,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38711,9 +39569,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2074074,
+      "initHp": 2074074,
+      "hp": 2074074,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -38753,7 +39611,7 @@
      "pos": 1
     },
     "map": 2223,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38768,8 +39626,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38784,8 +39642,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38800,8 +39658,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38816,8 +39674,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38833,8 +39691,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38850,8 +39708,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38868,7 +39726,7 @@
      "pos": 1
     },
     "map": 2223,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38883,8 +39741,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38900,8 +39758,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38917,8 +39775,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38934,8 +39792,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38952,7 +39810,7 @@
      "pos": 1
     },
     "map": 2224,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -38967,8 +39825,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -38984,8 +39842,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39008,9 +39866,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2074074,
+      "initHp": 2074074,
+      "hp": 2074074,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -39050,7 +39908,7 @@
      "pos": 1
     },
     "map": 2224,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -39065,8 +39923,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39081,8 +39939,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39097,8 +39955,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39113,8 +39971,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39130,8 +39988,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39147,8 +40005,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -39165,7 +40023,7 @@
      "pos": 1
     },
     "map": 2224,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -39180,8 +40038,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -39196,8 +40054,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -39212,8 +40070,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -39227,8 +40085,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -39243,7 +40101,7 @@
      "pos": 1
     },
     "map": 2225,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -39258,8 +40116,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -39274,8 +40132,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -39290,8 +40148,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -39305,8 +40163,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -39321,7 +40179,7 @@
      "pos": 1
     },
     "map": 2225,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -39342,9 +40200,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2074074,
+      "initHp": 2074074,
+      "hp": 2074074,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -39384,7 +40242,7 @@
      "pos": 1
     },
     "map": 2225,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -39399,8 +40257,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -39414,8 +40272,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 92034,
+      "hp": 92034,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -39437,9 +40295,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2074074,
+      "initHp": 2074074,
+      "hp": 2074074,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -39506,6 +40364,28 @@
     "drops": [],
     "notify": false
    },
+   "222108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 222108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "222207": {
     "confirm": {
      "title": "Activate Hints",
@@ -39517,6 +40397,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "222208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 222208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    },
    "222307": {
@@ -39532,6 +40434,28 @@
     "drops": [],
     "notify": false
    },
+   "222308": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 222308,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "222407": {
     "confirm": {
      "title": "Activate Hints",
@@ -39543,6 +40467,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "222408": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 222408,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -40585,8 +41531,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40602,8 +41548,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40619,8 +41565,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40636,8 +41582,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40654,7 +41600,7 @@
      "pos": 1
     },
     "map": 2241,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -40669,8 +41615,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40686,8 +41632,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40710,9 +41656,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2100000,
+      "initHp": 2100000,
+      "hp": 2100000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -40752,7 +41698,7 @@
      "pos": 1
     },
     "map": 2241,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -40767,8 +41713,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40783,8 +41729,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40799,8 +41745,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40815,8 +41761,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40832,8 +41778,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40849,8 +41795,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40867,7 +41813,7 @@
      "pos": 1
     },
     "map": 2241,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -40882,8 +41828,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40899,8 +41845,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40916,8 +41862,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40933,8 +41879,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40951,7 +41897,7 @@
      "pos": 1
     },
     "map": 2242,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -40966,8 +41912,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -40983,8 +41929,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41007,9 +41953,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2100000,
+      "initHp": 2100000,
+      "hp": 2100000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -41049,7 +41995,7 @@
      "pos": 1
     },
     "map": 2242,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -41064,8 +42010,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41080,8 +42026,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41096,8 +42042,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41112,8 +42058,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41129,8 +42075,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41146,8 +42092,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -41164,7 +42110,7 @@
      "pos": 1
     },
     "map": 2242,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -41179,8 +42125,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -41195,8 +42141,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -41211,8 +42157,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -41226,8 +42172,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -41242,7 +42188,7 @@
      "pos": 1
     },
     "map": 2243,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -41257,8 +42203,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -41273,8 +42219,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -41289,8 +42235,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -41304,8 +42250,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -41320,7 +42266,7 @@
      "pos": 1
     },
     "map": 2243,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -41341,9 +42287,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2100000,
+      "initHp": 2100000,
+      "hp": 2100000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -41383,7 +42329,7 @@
      "pos": 1
     },
     "map": 2243,
-    "gpBonus": 10290,
+    "gpBonus": 12348,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -41398,8 +42344,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -41413,8 +42359,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 53248,
-      "hp": 53248,
+      "initHp": 93184,
+      "hp": 93184,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -41436,9 +42382,9 @@
       "grade": 68,
       "side": 2,
       "pos": 5,
-      "maxHp": 1200000,
-      "initHp": 1200000,
-      "hp": 1200000,
+      "maxHp": 2100000,
+      "initHp": 2100000,
+      "hp": 2100000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -41505,6 +42451,28 @@
     "drops": [],
     "notify": false
    },
+   "224108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 224108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "224207": {
     "confirm": {
      "title": "Activate Hints",
@@ -41516,6 +42484,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "224208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 224208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },
@@ -42536,8 +43526,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42553,8 +43543,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42570,8 +43560,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42587,8 +43577,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42605,7 +43595,7 @@
      "pos": 1
     },
     "map": 2261,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -42620,8 +43610,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42637,8 +43627,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42661,9 +43651,9 @@
       "grade": 80,
       "side": 2,
       "pos": 5,
-      "maxHp": 4000000,
-      "initHp": 4000000,
-      "hp": 4000000,
+      "maxHp": 7000000,
+      "initHp": 7000000,
+      "hp": 7000000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -42703,7 +43693,7 @@
      "pos": 1
     },
     "map": 2261,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -42718,8 +43708,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42734,8 +43724,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42750,8 +43740,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42766,8 +43756,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42783,8 +43773,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42800,8 +43790,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42818,7 +43808,7 @@
      "pos": 1
     },
     "map": 2261,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -42833,8 +43823,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42850,8 +43840,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42867,8 +43857,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42884,8 +43874,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42902,7 +43892,7 @@
      "pos": 1
     },
     "map": 2262,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -42917,8 +43907,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42934,8 +43924,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -42958,9 +43948,9 @@
       "grade": 80,
       "side": 2,
       "pos": 5,
-      "maxHp": 4000000,
-      "initHp": 4000000,
-      "hp": 4000000,
+      "maxHp": 7000000,
+      "initHp": 7000000,
+      "hp": 7000000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -43000,7 +43990,7 @@
      "pos": 1
     },
     "map": 2262,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -43015,8 +44005,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -43031,8 +44021,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -43047,8 +44037,8 @@
       "type": 1,
       "side": 2,
       "pos": 5,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -43063,8 +44053,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -43080,8 +44070,8 @@
       "type": 1,
       "side": 2,
       "pos": 6,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -43097,8 +44087,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 5000,
       "skillId": [
@@ -43115,7 +44105,7 @@
      "pos": 1
     },
     "map": 2262,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -43130,8 +44120,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -43146,8 +44136,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -43162,8 +44152,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -43177,8 +44167,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -43193,7 +44183,7 @@
      "pos": 1
     },
     "map": 2263,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -43208,8 +44198,8 @@
       "type": 1,
       "side": 2,
       "pos": 2,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -43224,8 +44214,8 @@
       "type": 1,
       "side": 2,
       "pos": 8,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -43240,8 +44230,8 @@
       "type": 1,
       "side": 2,
       "pos": 3,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -43255,8 +44245,8 @@
       "type": 1,
       "side": 2,
       "pos": 9,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -43271,7 +44261,7 @@
      "pos": 1
     },
     "map": 2263,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -43292,9 +44282,9 @@
       "grade": 80,
       "side": 2,
       "pos": 5,
-      "maxHp": 4000000,
-      "initHp": 4000000,
-      "hp": 4000000,
+      "maxHp": 7000000,
+      "initHp": 7000000,
+      "hp": 7000000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -43334,7 +44324,7 @@
      "pos": 1
     },
     "map": 2263,
-    "gpBonus": 11760,
+    "gpBonus": 16464,
     "strategyBonus": 0,
     "battleScene": 3
    },
@@ -43349,8 +44339,8 @@
       "type": 1,
       "side": 2,
       "pos": 1,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 3000,
       "skillId": [
@@ -43364,8 +44354,8 @@
       "type": 1,
       "side": 2,
       "pos": 7,
-      "initHp": 100000,
-      "hp": 100000,
+      "initHp": 175000,
+      "hp": 175000,
       "qteTime": 0,
       "castTime": 4000,
       "skillId": [
@@ -43387,9 +44377,9 @@
       "grade": 80,
       "side": 2,
       "pos": 5,
-      "maxHp": 4000000,
-      "initHp": 4000000,
-      "hp": 4000000,
+      "maxHp": 7000000,
+      "initHp": 7000000,
+      "hp": 7000000,
       "hp2": 0,
       "sp": 0,
       "slotAvata": "",
@@ -43456,6 +44446,28 @@
     "drops": [],
     "notify": false
    },
+   "226108": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 226108,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
+    "notify": false
+   },
    "226207": {
     "confirm": {
      "title": "Activate Hints",
@@ -43467,6 +44479,28 @@
      "type": 0
     },
     "drops": [],
+    "notify": false
+   },
+   "226208": {
+    "confirm": {
+     "title": "Activate Hints",
+     "body": "Spend 3000 Kyanite to open chest?",
+     "mapId": 1874,
+     "nodeId": 226208,
+     "itemTempId": 0,
+     "itemCount": 1,
+     "type": 0
+    },
+    "cost": [
+     -600,
+     3000
+    ],
+    "drops": [
+     [
+      208005,
+      2
+     ]
+    ],
     "notify": false
    }
   },

@@ -31,6 +31,7 @@ SEED = Path(__file__).with_name("0100_masmorras_grupo.json")
 OLD = Path(__file__).with_name("0084_campanha_9001.json")
 SOURCE = "(visto) oficial_20261024-191924/20261025-232017/20261027-152321, tools/extract_dungeon.py"
 OLD_SOURCE = "(visto) captura turca exp_kitabi, tools/extract_dungeon.py (0084)"
+VIP = 2204  # sonType do VIP Bonus Chest (param1 -700, param2 = Kyanite)
 contents = sa.table("campaign_contents", sa.column("campaign_id"), sa.column("data"), sa.column("source"))
 
 
@@ -39,6 +40,16 @@ def seed() -> dict[str, dict]:
     old = json.loads(OLD.read_text(encoding="utf-8"))["9001"]
     for k, v in old.get("confirms", {}).items():
         data["9001"].setdefault("confirms", {}).setdefault(k, v)
+    vip = old["confirms"]["201110"]  # o baú VIP da 0084: cobra Kyanite (o param2 do nó) e dá as chaves
+    for content in data.values():
+        for m in content["maps"].values():
+            for n in m["nodes"]:
+                if n["sonType"] == VIP:
+                    box = content.setdefault("confirms", {}).setdefault(str(n["campDataId"]), {})
+                    box.setdefault("confirm", {**vip["confirm"], "body": n["param3"], "nodeId": n["campDataId"]})
+                    box.setdefault("cost", [vip["cost"][0], int(n["param2"])])
+                    box.setdefault("drops", vip["drops"])  # TODO(inventado) 209109/203108 não abertos: as da 201110
+                    box.setdefault("notify", False)
     return data
 
 

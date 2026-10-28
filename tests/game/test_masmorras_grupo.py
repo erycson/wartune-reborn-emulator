@@ -10,6 +10,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from tests.game.test_masmorra_1001 import battle, fast_battles  # noqa: F401  (fixture)
+from tests.game.test_masmorra_1001 import won as battle_won
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
@@ -125,3 +126,56 @@ def test_todas_9000_9112_tem_conteudo() -> None:
     assert sorted(captured) == ["9000", "9001", "9002"] and len(made) == 20
     assert not set(captured) & set(made) and all(c["inventado"] for c in made.values())
     assert made["9010"]["stages"] == [[2211, 2212, 2213, 2214, 2215]] and made["9013"]["stages"] == [[2271]]
+
+
+async def test_mapa_e_luta_divididos_pela_sala(tmp_path: Path) -> None:
+    """(visto) 232017 #7687/#7875/#7911-#7928: 21 com os dois, o caminho de a chega a b (4185), a luta de a leva o
+    herói de b no lado 1 (pos 7, ou o próximo livre), e b recebe o 157, o 4103 com EXP e o nó vencido."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("outro")
+        await _start(a, b, 9000)
+        await a.until(83)
+        got_b = await b.until(83) + await b.idle()
+        both = [p for p in got_b if p.code == 21][-1]
+        assert {p.playerId for p in pb.RoomEnterMsg.FromString(both.body).player} == {a.user_id, b.user_id}
+        a.client.send(5124, pb.PosMoveMsg(mapId=2091, armyId=a.user_id, routes=[pb.RouteMsg(x=1760, y=1360)]))
+        move = pb.PosMoveMsg.FromString(next(p.body for p in await b.idle() if p.code == 4185))
+        assert move.armyId == a.user_id and move.mapId == 2091
+        _weak(a, 209102)
+        a.client.send(5125, pb.CampaignReqMsg(paraInt1=209102, paraBool1=True))
+        prepare = pb.BattlePrepareMsg.FromString((await b.until(157))[-1].body)
+        mine = next(h for h in prepare.heros if h.userId == b.user_id)
+        assert mine.side == 1 and mine.pos in (7, 4)  # 7 se a tropa não estiver lá
+        await battle_won(a)
+        report = pb.BattleReportMsg.FromString((await b.until(4103))[-1].body)
+        assert report.battleResult == 1 and report.gpBonus > 0
+        sb = b.server.online.get(b.user_id)
+        assert sb is not None and sb.campaign is not None
+        node = sb.campaign.node(209102)
+        assert node is not None and node["state"] != 1 and not sb.campaign.fighting
+
+
+async def test_bau_vip_da_9000_cobra_kyanite(tmp_path: Path) -> None:
+    """209109 (VIP Bonus Chest, param2 2000): a caixa da 201110 da 0084 com o texto do nó."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("outro")
+        await _start(a, b, 9000)
+        await a.until(83)
+        s = a.server.online.get(a.user_id)
+        assert s is not None and s.snapshot is not None
+        s.snapshot.character.crystals = 5000
+        a.client.send(5125, pb.CampaignReqMsg(paraInt1=209109, paraBool1=True))
+        confirm = pb.CampaignConfirmMsg.FromString((await a.until(29))[-1].body)
+        assert confirm.body == "Spend 2000 Kyanite to open chest?"
+        a.client.send(5033, pb.CampaignReqMsg(paraInt1=confirm.mapId, paraInt2=209109, paraBool1=True))
+        await a.until(83)
+        assert s.snapshot.character.crystals == 3000
+
+
+def test_pesadelo_mais_forte_que_a_normal() -> None:
+    """(cliente) ``StandardDamage`` 390750/260500 na 9104 contra a 9004: vida 1,5x; EXP pelo ``BaseGp`` (1,2x)."""
+    made = json.loads((VERSIONS / "0101_masmorras_grupo_geradas.json").read_text(encoding="utf-8"))
+    normal, hard = made["9004"]["battles"]["207102"], made["9104"]["battles"]["208102"]
+    assert hard["soldiers"][0]["hp"] == round(normal["soldiers"][0]["hp"] * 1.5)
+    assert hard["gpBonus"] == round(normal["gpBonus"] * 1.2)
+
