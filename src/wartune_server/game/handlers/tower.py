@@ -22,6 +22,7 @@ S_TOWER_INFO, S_TOWER_LIST, S_BATTLEGUARD, S_ITEMS = 4205, 4373, 4631, 115
 CONTINUE, START = 0, 1  # EnterTowerInfoMsg.chooseIndex (MazeFrame: Continue / Start)
 DOUBLE = 2  # isDouble: lucro dobrado, gasta uma Crypt Key
 S_TOWER_DIED = 4207  # TowerDiedMsg "Respawn Note": o msg é o custo do reviver (``MazeRiverView.cost``, 0 = grátis)
+S_ALERT, S_DIE_STATE = 111, 4175
 S_TOWER_REPORT = 4419  # TowerInfoMsg só com itemTempIds: a saída morta, os itens da corrida (visto 10/28 #1840)
 RESPAWN_TITLE = "Respawn Note"
 MAZE_LEED = 23  # LeedTemp 23 "Enter Forgotten Catacombs"
@@ -254,9 +255,12 @@ async def open_chest(s: GameSession, camp: int, goods: list[list[int]]) -> None:
 @router.on(8300)
 async def tower_live(s: GameSession, msg: pb.PayTypeMsg) -> None:
     """Reviver no labirinto (``MazeRiverView``: "You are dead. Revive now?", 25 Balens; ``payType`` 0 aceita os
-    vinculados). TODO(inventado): a resposta (nenhuma captura): a vida do herói enche (3 e o 83 da poção)."""
+    vinculados). (visto 10/28) grátis #1134-#1137: 111 "Respawn Successful!" e 4175 estado 0; pago #1566-#1573 e
+    #1755-#1760: 3, 4152/83 da devoção (só o 1º gasto do dia), 150, 4434 e depois os mesmos 111 e 4175. A vida enche
+    sem o 83 da poção."""
+    from . import events
     from .campaign import _push_player
-    from .player import hp_pack
+    from .player import balens_changed
 
     snap = s.snapshot
     assert snap is not None
@@ -269,13 +273,18 @@ async def tower_live(s: GameSession, msg: pb.PayTypeMsg) -> None:
     if cost and paid is None:
         s.log.info("8300 sem Balens")
         return
-    healed = rules.heal_hero(snap, s.ctx.templates, now)
+    rules.heal_hero(snap, s.ctx.templates, now)
     tower.dead = False  # (visto 10/24 #13956-#13959) revivido, a saída depois não manda o 4419
     await s.ctx.characters.save(
         snap.character, snap.leader, mz.store(snap, tower, now), *([paid] if paid is not None else [])
     )
-    await _push_player(s)
-    hp_pack(s, healed)
+    if paid is not None:
+        await _push_player(s)
+        await events.leed_done(s, events.BALEN_LEED)
+        balens_changed(s)
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Respawn Successful!"))
+    alive = pb.WorldBossPlayerStateMsg(armyId=s.player_id, state=0, leftTime=0)
+    s.send(S_DIE_STATE, b.complete(pb.PlayerStateListMsg(playerState=[alive])))
 
 
 def guard_open(s: GameSession) -> bool:

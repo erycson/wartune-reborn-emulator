@@ -278,3 +278,20 @@ def test_poder_de_luta_sai_do_catalogo_em_todos_os_andares_vistos() -> None:
 def test_andar_29_usa_o_icone_do_mesmo_desenho(content: dict) -> None:  # type: ignore[type-arg]
     """O 29 tem o monster007C dos 26-28 (sonType 2121, 10/28 #1369)."""
     assert _nodes(content, 29)[2]["sonType"] == 2121
+
+
+async def test_reviver_gratis_manda_111_e_4175(tmp_path: Path) -> None:
+    """(visto 10/28 #1134-#1137) 1ª morte do dia: "Respawn Successful!" e 4175 estado 0, sem 3/150/83."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        _set(g, mz.Tower(index=20, record=20))
+        g.client.send(8296, pb.EnterTowerInfoMsg(campaignId=8001, chooseIndex=0))
+        await g.until(21)
+        await g.idle()
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        await s.ctx.characters.save(tw.died(s))
+        await g.idle()
+        g.client.send(8300, pb.PayTypeMsg(payType=0))
+        got = await g.until(4175)
+        assert [p.code for p in got if p.code in (3, 150, 83, 111, 4175)] == [111, 4175]
+        assert pb.ChatChannelMsg.FromString(got[-2].body).encodeMsg == "Respawn Successful!"
