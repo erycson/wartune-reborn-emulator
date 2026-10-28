@@ -35,12 +35,13 @@ async def _settle_maze(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False
     assert snap is not None
     now, before = s.ctx.clock.now(), snap.character.grades
     tower = mz.load(snap, now)
-    got = sw.settle_maze(
+    done = sweep.done
+    got, changed = sw.settle_maze(
         snap, s.ctx.templates, sweep, tower, mz.settings(s.ctx.world.settings), s.ctx.world.settings, now,
         all_now=all_now,
     )  # fmt: skip
     pet = P.share_gp(s, sum(gp for gp, _, _ in got))
-    rows = [*rewards.owners(snap), mz.store(snap, tower, now), sw.store(snap, sweep, now)]
+    rows = [*rewards.owners(snap), *changed, mz.store(snap, tower, now), sw.store(snap, sweep, now)]
     await s.ctx.characters.save(*rows, *([pet] if pet is not None else []))
     if not got:
         return []
@@ -49,10 +50,16 @@ async def _settle_maze(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False
     _player(s)
     if pet is not None:
         P.send_gained(s, pet)
+    texts = [rules.exp_text(*g) for g in got]
+    if changed:  # (visto) 10/25 #9630: o 115 dos baús; o aviso vai no 83 depois do 4425, como a EXP
+        s.send(S_ITEMS, rewards.items_msg(changed, s.player_id))
+        text = rewards.received(s.ctx.templates, [g for r in sweep.rounds[done:] for g in r.items])
+        alert(s, text)
+        texts.insert(0, text)
     events.progress(s)
     if snap.character.grades > before:
         await push_level(s, before)
-    return [rules.exp_text(*g) for g in got]
+    return texts
 
 
 async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> list[str]:

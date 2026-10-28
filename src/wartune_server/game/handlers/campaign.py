@@ -777,6 +777,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if dungeon:
         c.over = (gp, strategy)  # (visto) inglesa #1094-#1096: o 4382 sai na volta ao mapa (5035 state 4)
     if not won:
+        if maze:  # (visto) 10/25 #10600: o 140 e depois o 4207 (o msg é o custo do reviver)
+            await s.ctx.characters.save(tower.died(s))
         if dungeon:
             _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
         c.talked.discard(camp)  # tumba/caixa perdida: o 29 volta a perguntar (dedução, sem captura de derrota)
@@ -1043,10 +1045,12 @@ def _rewarded(s: GameSession) -> bool:
     return c is None or c.run is None or c.run.rewarded
 
 
-def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run: StageRun | None, created: int) -> Any:
-    """Entra num mapa da masmorra. No labirinto, pelo portal, devolve a linha da torre a gravar."""
+def _enter_dungeon(
+    s: GameSession, content: Mapping[str, Any], map_id: int, run: StageRun | None, created: int
+) -> list[Any]:
+    """Entra num mapa da masmorra. No labirinto, pelo portal, devolve as linhas a gravar (torre e missões)."""
     s.campaign = c = CampaignMap.enter_dungeon(content, map_id, run)
-    row = None
+    rows: list[Any] = []
     room = pb.RoomCreatedMsg(createdType=created)
     room.room.campaignId = map_id
     _send(s, S_ROOM_CREATED, room)
@@ -1062,7 +1066,7 @@ def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run:
         if mz.is_floor(map_id):
             from . import tower  # tower importa este módulo nas funções
 
-            row = tower.floor_entered(s, map_id)
+            rows = tower.floor_entered(s, map_id)
         _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
     else:
         _send(s, S_MAP_SYNC, map_sync(s, ARMY_IDLE))
@@ -1072,7 +1076,7 @@ def _enter_dungeon(s: GameSession, content: Mapping[str, Any], map_id: int, run:
         _send(s, S_MOVIE, pb.PlayerMovieMsg(movieTargetType=3, targetId=0, movieType="MOVIE_MAP_NAME", delay=0))
         if (plot := content["maps"][str(map_id)].get("plot")) is not None:
             _send_plot(s, plot)  # (visto) inglesa #850 (Dinah no 1011), #2317 (1131)
-    return row
+    return rows
 
 
 async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
@@ -1085,8 +1089,8 @@ async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> No
     if (target := c.part("portals", camp)) is not None:
         _send(s, S_NODE_STAND, pb.PlayerNodeStateMsg(mapId=c.map_id, nodeId=camp, isStand=True, armyId=s.player_id))
         assert c.content is not None
-        if (row := _enter_dungeon(s, c.content, int(target), c.run, PORTAL_ENTER)) is not None:
-            await s.ctx.characters.save(row)
+        if rows := _enter_dungeon(s, c.content, int(target), c.run, PORTAL_ENTER):
+            await s.ctx.characters.save(*rows)
     elif (plot := c.part("plots", camp)) is not None:
         _send_plot(s, plot)  # Karlan (#2666-#2667, um 138 por 5125); a luta vem no 5032 do fim do diálogo
     elif (switch := c.part("switches", camp)) is not None and node["state"] == NORMAL:

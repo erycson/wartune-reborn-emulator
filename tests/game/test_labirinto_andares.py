@@ -3,10 +3,18 @@ regras deduzidas batendo com eles. Os números do 127 estão em ``content/maze_f
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from tests.game.harness import logged_in
+from tests.game.test_labirinto import _set
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import maze as mz
+from wartune_server.game import rules
+from wartune_server.game import sweep as sw
+from wartune_server.game.handlers import tower as tw
+from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.templates.repository import GameTemplates
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -90,3 +98,68 @@ def test_ganho_do_andar_e_fog(content: dict) -> None:  # type: ignore[type-arg]
     assert content["battles"]["800502"]["gpBonus"] == 2000
     assert content["battles"]["802502"]["gpBonus"] == 10000
     assert content["maps"]["8005"]["fog"]["row"] == 18 and content["maps"]["8005"]["fog"]["col"] == 14
+
+
+READY = 19000  # novice_process de quem já fez o tutorial (como test_labirinto)
+
+
+def _tower(g: object) -> mz.Tower:
+    s = g.server.online.get(g.user_id)  # type: ignore[attr-defined]
+    return mz.load(s.snapshot, s.ctx.clock.now())
+
+
+def test_bau_do_andar_so_nos_andares_de_cinco() -> None:
+    """(visto) 10/25 #9409 e #9470: o baú sai nos andares 5, 10, 15 e 20 e a configuração guarda o que o oficial deu."""
+    assert mz.chest_goods(mz.DEFAULT, 5) == [[2050701, 2], [208009, 2]]
+    assert mz.chest_goods(mz.DEFAULT, 10) == [[2050101, 2], [208009, 4]]
+
+
+async def test_varredura_entrega_os_baus_dos_andares(tmp_path: Path) -> None:
+    """(visto) 10/25 #9409-#9568: a rodada do andar 5 leva o baú no 4425 (2050701 x2, 208009 x2), vai para a mochila
+    e para o 4205 do ``itemTempIds``; as rodadas sem baú saem sem item."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        snap = g.server.online.get(g.user_id).snapshot  # type: ignore[union-attr]
+        snap.character.gold, snap.character.point = 100_000, 100
+        _set(g, mz.Tower(index=1, record=60))
+        g.client.send(8528, pb.CampaignSweepReq(sweepType=2, opType=1, campaignId=8001, eIndex=5, enterType=1))
+        await g.until(4425)
+        g.client.send(8528, pb.CampaignSweepReq(sweepType=2, opType=2, campaignId=8001, payType=1))
+        got = await g.until(83)
+        done = pb.CampaignSweepRsp.FromString(next(p.body for p in got if p.code == 4425))
+        assert done.status == sw.DONE
+        goods = {r.cIndex: [(i.templateId, i.count) for i in r.items] for r in done.result}
+        assert goods == {1: [], 2: [], 3: [], 4: [], 5: [(2050701, 2), (208009, 2)]}
+        assert 115 in [p.code for p in got]
+        assert _tower(g).items == [[2050701, 2], [208009, 2]]
+        assert sum(i.count for i in g.server.online.get(g.user_id).snapshot.items if i.template_id == 208009) == 2  # type: ignore[union-attr]
+
+
+async def test_morte_no_labirinto_manda_o_custo_do_reviver(tmp_path: Path) -> None:
+    """(visto) 10/25 #10593 msg 0 e #11400 msg 25: a primeira morte da entrada sai grátis, a seguinte pede 25."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        _set(g, mz.Tower(index=3, record=60, enters=1))
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        await s.ctx.characters.save(tw.died(s))
+        assert pb.TowerDiedMsg.FromString((await g.until(4207))[-1].body).msg == "0"
+        await s.ctx.characters.save(tw.died(s))
+        died = pb.TowerDiedMsg.FromString((await g.until(4207))[-1].body)
+        assert (died.title, died.msg) == ("Respawn Note", "25")
+        assert _tower(g).deaths == 2
+
+
+async def test_subir_andar_avanca_a_missao_38(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(dedução) o portal para o andar seguinte conta a condição 38 (Para1 8001) uma vez."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        seen: list[tuple[int, int, int]] = []
+
+        def spy(snap: object, templates: object, kind: int, para1: int, value: int) -> list:  # type: ignore[type-arg]
+            seen.append((kind, para1, value))
+            return []
+
+        monkeypatch.setattr(rules, "quest_event", spy)
+        rows = tw.floor_entered(s, 8002)
+        assert seen == [(rules.CATACOMBS_CONDITION, 8001, 1)]
+        assert len(rows) == 1

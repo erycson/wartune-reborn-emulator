@@ -75,6 +75,7 @@ class Tower:
     enters: int = 0  # enterCount: Start do dia
     day: str = ""  # dia de jogo do ``enters``
     double: bool = False  # corrida com lucro dobrado (isDouble 2)
+    deaths: int = 0  # mortes desde a última entrada; a 1ª é grátis (4207 msg 0; TODO(inventado) a regra)
 
     def item_ids(self) -> str:
         return "|".join(f"{t},{n}" for t, n in self.items)  # (visto) "2050201,2|208009,2"
@@ -133,6 +134,11 @@ def info(tower: Tower, cfg: dict[str, Any], index: int = 0) -> pb.TowerInfoMsg:
 
 def floor_gp(cfg: dict[str, Any], floor: int) -> int:
     return int(cfg["gp_per_floor"]) * floor
+
+
+def chest_goods(cfg: dict[str, Any], floor: int) -> list[list[int]]:
+    """Baú do andar (``maze_chests``): o visto nos andares 5 a 20, o da configuração depois."""
+    return list(_SEEN["chests"].get(str(floor), cfg["chest"]))
 
 
 def map_of(floor: int) -> int:
@@ -268,7 +274,7 @@ def _content(templates: GameTemplates, cfg_json: str) -> dict[str, Any]:
             out["portals"][str(m * 100 + PORTAL)] = map_of(floor + 1)
         if floor % int(cfg["chest_every"]) == 0:
             # (visto) 5, 10, 15, 20: o baú de cada chefe (ganho do 4205); o resto é o ``chest`` da configuração
-            out["maze_chests"][str(m * 100 + CHEST)] = _SEEN["chests"].get(str(floor), cfg["chest"])
+            out["maze_chests"][str(m * 100 + CHEST)] = chest_goods(cfg, floor)
     return out
 
 

@@ -133,11 +133,12 @@ def maze_refusal(snap: PlayerSnapshot, templates: GameTemplates, tower: mz.Tower
 def settle_maze(
     snap: PlayerSnapshot, templates: GameTemplates, sweep: Sweep, tower: mz.Tower, cfg: dict[str, Any],
     world_settings: Any, now: datetime, *, all_now: bool = False,
-) -> list[tuple[int, int, int]]:  # fmt: skip
+) -> tuple[list[tuple[int, int, int]], list[Item]]:  # fmt: skip
     """Andares vencidos da varredura do labirinto. Cada um cobra 1000 de ouro e dá a EXP do andar com os bônus
     (só turco: yeralti #20-#22, andar 1: 8.800 = 400 + 4.000 do mundo + 4.400 descansada); o totalGp do 4205 sobe só a
     base (só turco: #26, 400) e o ``towerIndex`` vai ao andar seguinte. Sem ouro, para (``BROKEN``). Devolve
-    ``(total, mundo, descansada)`` de cada andar novo."""
+    ``(total, mundo, descansada)`` de cada andar novo. Os baús (``chest_goods``) dos andares 5, 10... vão para a
+    mochila e para a torre; devolve também os itens que entraram na mochila."""
     due = (
         sweep.count
         if all_now
@@ -145,6 +146,7 @@ def settle_maze(
     )
     due = min(due, sweep.count)
     out = []
+    changed: list[Item] = []
     c = snap.character
     while sweep.end == 0 and sweep.done < due:
         if c.gold < gold_cost(templates, MAZE):
@@ -157,11 +159,17 @@ def settle_maze(
         rules.add_gp(snap, templates, gp)
         tower.gp += base
         tower.index = floor + 1
-        sweep.rounds.append(Round(gp, [], floor))
+        got = [(int(t), int(n)) for t, n in mz.chest_goods(cfg, floor)] if floor % int(cfg["chest_every"]) == 0 else []
+        if got and not rewards.can_grant(snap, templates, got, now):
+            got = []  # (dedução) mochila cheia: o andar segue sem o baú
+        if got:
+            changed += rewards.grant(snap, templates, got)[0]
+            tower.add_items(got)
+        sweep.rounds.append(Round(gp, got, floor))
         out.append((gp, world, rested))
     if sweep.end == 0 and sweep.done >= sweep.count:
         sweep.end = DONE
-    return out
+    return out, changed
 
 
 def remaining(sweep: Sweep, templates: GameTemplates, now: datetime) -> int:
@@ -246,10 +254,11 @@ def settle(
 def _result(sweep: Sweep, index: int, time: int) -> pb.SweepResult:
     r = sweep.rounds[index]
     if sweep.kind == MAZE:  # (só turco: yeralti #20) type 1, gp, time, cIndex e eIndex (o último andar)
-        return pb.SweepResult(type=ROUND, gp=r.gp, time=time, cIndex=r.floor, eIndex=sweep.first + sweep.count - 1)
-    out = pb.SweepResult(
-        type=ROUND, gp=r.gp, campaignId=sweep.campaign_id, time=time, finishCount=index + 1, count=sweep.count
-    )
+        out = pb.SweepResult(type=ROUND, gp=r.gp, time=time, cIndex=r.floor, eIndex=sweep.first + sweep.count - 1)
+    else:
+        out = pb.SweepResult(
+            type=ROUND, gp=r.gp, campaignId=sweep.campaign_id, time=time, finishCount=index + 1, count=sweep.count
+        )
     for tid, n in r.items:
         out.items.add(templateId=tid, count=n)
     return out
