@@ -273,3 +273,16 @@ Verificado nesta rodada: o cliente decompilado (`D:\wartune\decompiled\m3\script
 | 86 Amethyst Rush | 503 (25) | pendente: gancho em outer_city/mines | `AMETHYST_CONDITION` |
 
 Constantes em `game/rules.py`; teste `test_tipos_sem_gancho_tem_o_numero_do_template` em `tests/game/test_missoes_condicoes.py`.
+
+## Verificação por captura: entregas até o nível 10
+
+Teste: tests/game/test_missoes_capturas.py (códigos S>C da entrega contra o oficial; o estado vem das condições da missão). Oficial: S\q\oficial.md. Personagem de teste no grau 60 (sem subida de nível).
+
+| id | estado | #idx (captura) | motivo |
+|---|---|---|---|
+| 380 | ok | 14667 | códigos iguais |
+| 440 | ok | 18290 | códigos iguais |
+| 470 | ok | 1784 | códigos iguais |
+| 590 | ok | 8417 | códigos iguais |
+| 310, 360, 400, 410, 420, 430, 450, 460, 480, 490, 500, 510, 520, 550, 560, 570, 600, 610 | pendente (xfail) | 8939, 11761, 15035, 17367, 17542, 19336, 20432, 20602, 3001, 3082, 5348, 7537, 7597, 8188, 12626, 12635, 14162, 13701 | falta 83 (texto do EXP) e/ou 115 (consumo de item) |
+| 580 | pendente (xfail) | 18069 | oficial não manda resposta; o servidor responde |
