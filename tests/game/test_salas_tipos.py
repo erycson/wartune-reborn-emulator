@@ -20,17 +20,19 @@ def _body[M: Message](packets: list[Packet], code: int, msg_type: type[M]) -> M:
     return msg_type.FromString(next(p.body for p in packets if p.code == code))
 
 
-async def test_sala_de_outro_tipo_nao_existe_aqui(tmp_path: Path):
+def _alerts(packets: list[Packet]) -> list[str]:
+    return [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in packets if p.code == 111]
+
+
+async def test_sala_de_outro_tipo_nao_se_mistura(tmp_path: Path):
     async with logged_in(tmp_path, novice=19000) as a:
         b = await a.join("outro")
-        a.client.send(5023, pb.RoomReqMsg(capacity=2, roomType=1))  # PvP: recusado, não vira sala PvE
-        assert ROOM_CREATED not in [p.code for p in await a.idle()]
         a.client.send(5023, pb.RoomReqMsg(capacity=2))  # PvE (tipo 0): cria
         room = _body(await a.idle(), ROOM_CREATED, pb.RoomMsg)
         b.client.send(5026, pb.RoomReqMsg(roomType=1))  # lista PvP: vazia, mesmo com sala PvE aberta
         assert list(_body(await b.idle(), ROOM_LIST, pb.RoomListRspMsg).room) == []
-        b.client.send(8465, pb.RoomReqMsg(roomType=1, roomId=room.roomId))
-        assert await b.idle() == []
+        b.client.send(8465, pb.RoomReqMsg(roomType=1, roomId=room.roomId))  # PvP procurando a sala PvE: não acha
+        assert _alerts(await b.idle()) == ["Room does not exist."]
         b.client.send(5024, pb.RoomReqMsg(roomId=room.roomId, roomType=1))  # entrar com tipo errado: recusado
         assert ROOM_CREATED not in [p.code for p in await b.idle()]
         b.client.send(5026, pb.RoomReqMsg(roomType=0))  # lista PvE: a sala está lá

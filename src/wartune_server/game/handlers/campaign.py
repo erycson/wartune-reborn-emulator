@@ -56,7 +56,7 @@ from ..campaign import (
     unlock_actions,
 )
 from ..castle import castle_yield
-from ..rooms import PLAYING, PVE, Room
+from ..rooms import PLAYING, PVE, PVP, Room
 from ..router import router
 from ..session import GameSession
 from . import pet_defend
@@ -906,6 +906,12 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         return
     if s.ctx.vehicles.queued(s.player_id) or s.ctx.vehicles.match_of(s.player_id):
         s.log.info("5039 recusado: na fila ou na batalha de veículos")
+        return
+    mine = s.ctx.rooms.of(s.player_id)
+    if msg.paraInt2 == 0 and mine is not None and mine.type == PVP and mine.master == s.player_id:
+        from .room import start_matching  # room importa este pacote
+
+        start_matching(s, mine)  # (visto) 27/10 #20230: 5039 com paraInt2 0 na sala PvP procura partida
         return
     c, snap = s.campaign, s.snapshot
     content = s.ctx.world.campaigns.get(msg.paraInt2)

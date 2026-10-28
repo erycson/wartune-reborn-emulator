@@ -246,8 +246,10 @@ async def test_clicar_numa_sala_da_lista_devolve_o_4370_e_a_lista_filtra_pela_ca
         assert _body(await b.idle(), 4370, pb.RoomMsg).roomId == room.roomId
         b.client.send(8465, pb.RoomReqMsg(roomId=0))  # entrada rápida: a primeira com lugar
         assert _body(await b.idle(), 4370, pb.RoomMsg).roomId == room.roomId
-        b.client.send(8465, pb.RoomReqMsg(roomId=999))
-        assert await b.idle() == []
+        b.client.send(8465, pb.RoomReqMsg(roomId=999))  # (visto) 27/10 #21046-#21047: sala que não existe
+        assert [p.body for p in await b.idle() if p.code == 111] == [
+            pb.ChatChannelMsg(channel=7, encodeMsg="Room does not exist.").SerializeToString()
+        ]
 
 
 async def test_convite_rapido_sai_no_mundo_como_link_da_sala(tmp_path: Path):

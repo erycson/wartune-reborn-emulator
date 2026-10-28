@@ -14,7 +14,7 @@ from google.protobuf.message import Message
 from ...protocol.messages import wartune_pb2 as pb
 from .. import rules, space
 from .. import vehicles as vh
-from ..rooms import IN_USE, MAX_SEATS, NAME_NEW, PVE, VEHICLE, Room
+from ..rooms import COMPETING, IN_USE, MAX_SEATS, NAME_NEW, PVE, PVP, VEHICLE, Room
 from ..router import router
 from ..session import GameSession
 
@@ -169,15 +169,16 @@ def leave_room(s: GameSession) -> None:
 
 @router.on(5023)
 async def create_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
-    if msg.roomType not in (PVE, VEHICLE):  # PvP (1) não tem sala aqui: recusa, sem criar sala de outro tipo
+    if msg.roomType not in (PVE, PVP, VEHICLE):
         s.log.info("5023 recusado: tipo de sala sem sistema", tipo=msg.roomType)
         return
     if s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5023 recusado: já está numa sala")
         return
     # o capacity do pedido não são lugares: o PVERoomListControler manda 1 e o oficial abre a sala com 4 (visto
-    # 191924 #3736-#3738); fechar lugares é o 5029
-    room = s.ctx.rooms.create(s.player_id, MAX_SEATS, msg.password, msg.roomType)
+    # 191924 #3736-#3738); fechar lugares é o 5029. PvP: o pedido de 3 abre com 3 (visto 24/10 #11536, 27/10 #20249)
+    seats = msg.capacity if msg.roomType == PVP and 2 <= msg.capacity <= MAX_SEATS else MAX_SEATS
+    room = s.ctx.rooms.create(s.player_id, seats, msg.password, msg.roomType)
     if room.type == VEHICLE:
         room.campaign = vh.CAMPAIGN  # a sala de veículo só leva à batalha de tanques
     s.send(S_ROOM, _room_msg(s, room))
@@ -216,11 +217,14 @@ async def list_rooms(s: GameSession, msg: pb.RoomReqMsg) -> None:
 async def find_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
     """Clicar numa sala da lista ou procurar pelo número (``PVERoomItem``, ``PVERoomSearchFrame``): 4370 com a sala,
     e o cliente manda o 5024 ou abre a senha. ``roomId`` 0 (entrada rápida do ``PVPPlayerListView``): a primeira com
-    lugar livre (*dedução*). Sala que não existe fica sem resposta (o oficial não foi capturado)."""
+    lugar livre (*dedução*). Sala que não existe: 111 "Cannot find a room." (visto 24/10 #11534)."""
     rooms = _of_type(msg, s.ctx.rooms.visible())
     room = next((r for r in rooms if r.id == msg.roomId or (not msg.roomId and len(r.members) < r.capacity)), None)
-    if room is None:
-        s.log.info("8465 sem sala", sala=msg.roomId)
+    if (
+        room is None
+    ):  # (visto) roomId 0: "Cannot find a room." (24/10 #11534); roomId 33: "Room does not exist." (27/10 #21047)
+        text = "Cannot find a room." if not msg.roomId else "Room does not exist."
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
         return
     s.send(S_FOUND, _room_msg(s, room))
 
@@ -290,6 +294,13 @@ async def room_password(s: GameSession, msg: pb.RoomEditMsg) -> None:
         return
     room.password = pwd
     _to_room(s, room, S_EDIT, _edit_msg(s, room))
+    # (visto) 27/10 #20271-#20272, #20280-#20281, #20285-#20286: 32 e depois 111 com o aviso, para o dono
+    s.send(
+        S_ALERT,
+        pb.ChatChannelMsg(
+            channel=7, encodeMsg="Room password has been set." if pwd else "Room password has been removed."
+        ),
+    )
 
 
 @router.on(5036)
@@ -310,6 +321,14 @@ async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
     else:
         room.rewarded.discard(s.player_id)
     _send_ready(s, room)
+
+
+def start_matching(s: GameSession, room: Room) -> None:
+    """Procurar partida na sala PvP (5039 com ``paraInt2`` 0 do dono): a sala vai a 2 (competindo) e quem pediu
+    recebe o aviso. (visto) 27/10 #20230-#20232, #20258-#20260; o 5037 state 1 cancela (25 com 1, #20233-#20235)."""
+    room.state = COMPETING
+    _to_room(s, room, S_STATE, pb.RoomStateRspMsg(roomState=COMPETING))
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Matching in progress, please be patient..."))
 
 
 def _send_ready(s: GameSession, room: Room) -> None:
