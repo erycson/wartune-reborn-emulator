@@ -314,3 +314,26 @@ Causas corrigidas no teste (o servidor já estava certo): 490 tinha um 109 do ci
 | 400, 430, 480, 570 | pendente (xfail) | 15035, 19336, 3001, 12635 | subida de nível (100/150): o 3 traz só o grau, não o EXP atual |
 
 Lotes 11 a 31: não feitos nesta rodada.
+
+## Verificação por captura: lote 11 a 20 (feat/missoes-3)
+
+Teste: tests/game/test_missoes_capturas.py (mesma tabela OFICIAL e GRAU, grau e janela do oficial como na rodada 3). Se o oficial traz 150, o EXP do personagem fica logo abaixo do limite do próximo grau (UpGradeTempInfos), para a recompensa forçar a subida.
+
+| id | nível | estado | #idx | motivo |
+|---|---|---|---|---|
+| 312, 350, 351, 391, 411, 421, 441, 461, 472 | 14 a 20 | ok | 8089, 7778, 8099, 8109, 5586, 20153, 9536, 9546, 9557 | códigos e textos do 83 iguais |
+| 412 | 17 | pendente (xfail) | 8996 | subida de nível: servidor reabastece o exército (104/110/152/4130) antes do 150 |
+| 223 | 20 | pendente (xfail) | 1759 | pacote inicial 4484/111 e 115 de itens: janela mistura outras áreas |
+| 241 | 20 | pendente (xfail) | 1965 | bênção do altar (tipo 30): 109 duplicado e 83 de devoção |
+| 271 | 12 | pendente (xfail) | 295 | árvore (tipo 20): 115 e 4476 fora da entrega |
+| 313 | 15 | pendente (xfail) | 14068 | tipo 31 (cena com 1 jogador): gancho em campaign.py |
+| 371 | 20 | pendente (xfail) | 8821 | tipo 31 (cena com 2 jogadores): 4484/111 do pacote de VIP |
+| 422 | 18 | pendente (xfail) | 20591 | arena (tipo 16): gancho em arena.py, 3 duplicado |
+| 761 | 20 | pendente (xfail) | 8530 | chefe mundial (tipo 40): gancho em worldboss.py |
+| 764 | 20 | pendente (xfail) | 11418 | tipo 3 e 10: depende do exército da captura |
+| 765 | 12 | pendente (xfail) | 1946 | atacar cidade (tipo 8): gancho em outer_city.py |
+| 768 | 19 | pendente (xfail) | 2274 | reciclagem (tipo 46): gancho em forge.py |
+| 769 | 19 | pendente (xfail) | 8028 | refino (tipo 47): gancho em forge.py |
+| 400, 430, 480, 570 | 10 | pendente (xfail) | 15035, 19336, 3001, 12635 | subida de nível: exército reabastecido antes do 150 |
+
+Lote 21 a 31: não feito.
