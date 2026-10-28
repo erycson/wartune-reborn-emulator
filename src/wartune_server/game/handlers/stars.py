@@ -121,10 +121,12 @@ def eat_all(templates: GameTemplates, star: Star, gp: int) -> list[str]:
     return [LEVEL_TEXT.format(name, g) for g in range(before + 1, star.grade + 1)]
 
 
-def say_gain(s: GameSession, star: Star, gp: int, levels: list[str]) -> None:
-    """(só turco: kader_sistemi #112-#113) os 111 de nível e depois o 111 com a EXP ganha."""
+def say_gain(s: GameSession, star: Star, gp: int, levels: list[str], exp_first: bool = False) -> None:
+    """111 da EXP ganha e os 111 de nível. Composição: níveis antes (visto 1024-191924-1 #19525, 1025 #6816, 1026
+    #13736). Devoração no movimento (8267): EXP antes (visto 1026-225632-1 #13814, 1025 #6811)."""
     name = star_tpl(s.ctx.templates, star).get("TemplateName", "")
-    for text in [*levels, EXP_TEXT.format(name, gp)]:
+    exp = EXP_TEXT.format(name, gp)
+    for text in [exp, *levels] if exp_first else [*levels, exp]:
         s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
 
 
@@ -196,6 +198,9 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     new: list[Star] = []
     settings = s.ctx.world.settings
     table, open_next = settings.get("star_weights") or WEIGHTS, float(settings.get("star_open_next", OPEN_NEXT))
+    paid = (
+        False  # o 109 só sai com ouro gasto: (visto) 191924-1 #19350, 1025 #6727, 1026 #13653: sorteio grátis sem 109
+    )
     while (pos := free_pos(snap, StarBag.TEMP, TEMP_MAX)) is not None:
         site = max(i for i, o in enumerate(opened) if o) if quick else msg.site
         free = sy.star_free > 0
@@ -205,6 +210,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
             sy.star_free -= 1
         else:
             c.gold -= SITE_COST[site]
+            paid = True
         sy.star_point += site + 1  # ponytail: o grátis do dia também dá ponto, o cliente não diz; mudar com captura
         tpl = roll(templates, c.grades, site, table)
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)
@@ -222,7 +228,8 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         return
     quests = rules.quest_event(snap, templates, RAND_QUEST, RAND_PARA1, len(new))
     await s.ctx.characters.save(c, sy, *new, *quests)
-    castle_yield(s)
+    if paid:
+        castle_yield(s)
     _player(s)
     from . import events  # handlers.events importa login, que importa player
 
@@ -340,16 +347,17 @@ async def star_move(s: GameSession, msg: pb.StarMoveReqMsg) -> None:
     equip = StarBag.EQUIP in (msg.beginStarType, msg.endStarType)
     if deleted:
         assert dst is not None
-        say_gain(s, dst, gp, levels)
+        say_gain(s, dst, gp, levels, exp_first=True)
         if equip:
             _army(s)
         for change in changes:
             s.send(S_MOVE, move_msg([change], s.player_id))
         say_levels(s, levels)
         return
-    s.send(S_MOVE, move_msg(changes, s.player_id))
-    if equip:
+    if equip:  # (visto) 1024-191924-1 #19445: 150 antes dos 4178
         _army(s)
+    for change in changes:  # (visto) um 4178 por casa: 1024-191924-1 #19445 e 1025-232017-1 #6811
+        s.send(S_MOVE, move_msg([change], s.player_id))
 
 
 def equip_ok(snap: PlayerSnapshot, templates: GameTemplates, star: Star, kind: int, leaving: Star | None) -> bool:

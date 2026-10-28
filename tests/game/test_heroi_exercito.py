@@ -236,7 +236,8 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         g.client.send(8269, pb.StarRandReqMsg(site=0))  # grátis do dia
         got = await g.until(83)
         # 4152/83: leed 17 "Capture an Astral" (só turco: kader_sistemi #1-#8), só no 1º sorteio do dia
-        assert codes(got) == [109, 3, 4152, 3, 4180, 83] and pb.PlayerMsg.FromString(got[1].body).startFree == 0
+        # (visto) inglês 191924-1 #19350 e 1025 #6727: sem 109. TODO(inventado): a turca mandava 109 aqui
+        assert codes(got) == [3, 4152, 3, 4180, 83] and pb.PlayerMsg.FromString(got[0].body).startFree == 0
         for _ in range(2):
             g.client.send(8269, pb.StarRandReqMsg(site=0))
             await g.until(4180)
@@ -258,7 +259,8 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         assert sorted((s.bag_type, s.pos) for s in snap.stars) == [(1, 0), (1, 1)]
 
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=0, endStarType=2, endPos=0))
-        assert codes(await g.until(150)) == [4178, 150]
+        assert codes(await g.until(4178)) == [150, 4178]  # (visto) 191924-1 #19445: 150 antes, um 4178 por casa
+        assert codes(await g.idle()) == [4178]
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=2))  # 2 espaços
         assert await g.idle() == []
         g.client.send(8267, pb.StarMoveReqMsg(beginStarType=1, beginPos=1, endStarType=2, endPos=0, eat=True))
@@ -564,7 +566,7 @@ async def test_star_compose_says_exp_and_level(tmp_path: Path) -> None:
         texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code in (111, 83)]
         name = g.server.services.templates.get("starTempInfos", 1503)["TemplateName"]
         level = f"Astral {name} has been upgraded to Lvl. 2"
-        assert texts == [level, f"Astral {name} gained 90 Astral EXP", level]
+        assert texts == [level, f"Astral {name} gained 90 Astral EXP", level]  # composição: nível antes da EXP (visto)
         left = pb.StarRandRspMsg.FromString(got[3].body).starRand
         assert [(r.starInfo.templateId, r.starInfo.grade, r.starInfo.gp) for r in left] == [(1503, 2, 20)]
 
