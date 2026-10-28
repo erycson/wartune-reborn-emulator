@@ -25,16 +25,18 @@ def boss_msg(
     map_id: int,
     killed: set[int],
     now: datetime,
+    fighting: int = 0,
 ) -> pb.MapBossMsg:
     """4938. ``count1`` a ``count3``: abates do dia que contaram (o cliente mostra "{0}/{1}" com o
     ``WorldMapKill``). Os chefes abatidos ficam na lista com ``type`` 0 ("(Killed)") e os em luta com 4
-    (language ``bossinfo.bossStatus0``/``bossStatus4``)."""
+    (language ``bossinfo.bossStatus0``/``bossStatus4``). ``fighting``: o id do chefe que entra em luta agora."""
     bosses = []
     for m in monsters.on_map(world, templates, map_id, now):
         if m.boss_type == monsters.CHIEF:
             row = templates.get("MapPhysicsTempInfos", m.template_id) or {}
             name, grade = row.get("MapPhysicsTempName", ""), int(row.get("Grades", 0))
-            bosses.append(pb.BossMsg(bossName=name, grade=grade, type=wilds.state(m, killed), x=m.x, y=m.y))
+            state = monsters.MONSTER_FIGHTING if m.id == fighting else wilds.state(m, killed)
+            bosses.append(pb.BossMsg(bossName=name, grade=grade, type=state, x=m.x, y=m.y))
     n, e, k = monsters.kills(c)
     return pb.MapBossMsg(
         count1=n,

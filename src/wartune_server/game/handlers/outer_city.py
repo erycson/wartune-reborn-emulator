@@ -180,12 +180,17 @@ async def _killed(s: GameSession, map_id: int, now: datetime) -> set[int]:
     return await s.ctx.characters.read(lambda uow: uow.wild_kills.in_cycle(map_id, cycle))
 
 
-async def _boss_info(s: GameSession, map_id: int) -> None:
+async def _boss_info(s: GameSession, map_id: int, fighting: int = 0) -> None:
+    """4938. ``fighting``: o chefe que está para entrar em luta (a batalha ainda não rodou, então ``Wilds.state``
+    o veria parado)."""
     assert s.snapshot is not None
     now = s.ctx.clock.now()
     killed = await _killed(s, map_id, now)
     ctx = s.ctx
-    s.send(S_MAP_BOSS, bosses.boss_msg(ctx.world, ctx.templates, ctx.wilds, s.snapshot.character, map_id, killed, now))
+    s.send(
+        S_MAP_BOSS,
+        bosses.boss_msg(ctx.world, ctx.templates, ctx.wilds, s.snapshot.character, map_id, killed, now, fighting),
+    )
 
 
 async def _opened(s: GameSession, map_id: int) -> set[tuple[int, datetime]]:
@@ -820,8 +825,8 @@ async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
     s.log.info("batalha com monstro", monstro=m.id, template=m.template_id, battle=s.battle.id)
     s.ctx.wilds.fighting[(m.map_id, m.id, m.born)] = s.battle
     _monster_sync(s, m, monsters.MONSTER_FIGHTING)  # como a mina: o 140 em luta antes da 157
-    if m.boss_type == monsters.CHIEF:  # (visto) #7421: o 4938 com o chefe em luta (type 4) antes da 157
-        await _boss_info(s, m.map_id)
+    if m.boss_type == monsters.CHIEF:  # (visto) 24/10 x_20261024-191924-1 #16254-#16256: 140, 4938 (type 4), 157
+        await _boss_info(s, m.map_id, m.id)
     s.battle.start()
 
 
@@ -864,11 +869,13 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
         await _boss_info(s, m.map_id)
 
 
-# (só turco: teknoloji_upgrade #1) o chefe morto sai no 83 canal 2 para o servidor inteiro, com o link 111 que abre o
-# painel dos chefes (ChatCellData.__outerCityBossClickHandler). TODO(inventado): o texto inglês, montado do turco
-# "Tebrikler, oyuncu X çevredeki BOSS Y öldürdü, ödül kazandınız" com "Wilds" do language.txt (outercity.helpContent)
-BOSS_KILLED = 'Congratulations! Player {} has killed the Wilds BOSS {} and won a reward<a t="111" name="{}"/>'
-BOSS_LINK = "Find the Wilds BOSS"
+# o chefe morto sai no 83 canal 2 para o servidor inteiro, com o link 111 que abre o painel dos chefes
+# (ChatCellData.__outerCityBossClickHandler). (visto) 26/10 x_20261026-225632-1 #1106: o texto é o da equipe, com
+# os nomes separados por "、"; aqui a luta é sozinha, então só o nome de quem abateu. ponytail: sem equipe.
+BOSS_KILLED = (
+    'Congratulations to {} for obtaining abundant rewards by defeating the Wilds BOSS {}!<a t="111" name="{}"/>'
+)
+BOSS_LINK = "Find BOSSes in the Wilds"
 
 
 def _boss_killed(s: GameSession, m: monsters.Monster) -> None:

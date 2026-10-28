@@ -824,6 +824,25 @@ async def test_chefe_abatido_fica_no_painel_como_morto(tmp_path: Path) -> None:
         assert [b.type for b in msg.bosslist] == [0, 1, 1, 1, 1]
 
 
+def test_chefe_que_entra_em_luta_aparece_com_type_4(monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) 24/10 x_20261024-191924-1 #16255: o 4938 que vem antes da 157 mostra o chefe com type 4, mesmo
+    sem a batalha ter começado (``Battle.running`` ainda é falso)."""
+    from types import SimpleNamespace
+
+    from wartune_server.game import bosses
+
+    now = datetime(2026, 5, 21, tzinfo=UTC)
+    chief = monsters.Monster(7, 2, 210115, monsters.CHIEF, 50, 50, now)
+    monkeypatch.setattr(monsters, "on_map", lambda *_: [chief])
+    monkeypatch.setattr(monsters, "refresh_left", lambda *_: 1)
+    templates = SimpleNamespace(get=lambda *_: {"MapPhysicsTempName": "Purgatory Lord", "Grades": "50"})
+    c = SimpleNamespace(kills_normal=0, kills_elite=0, kills_boss=0)
+    fight = bosses.boss_msg(None, templates, monsters.Wilds(), c, 2, set(), now, fighting=7)  # type: ignore[arg-type]
+    assert [(b.bossName, b.type) for b in fight.bosslist] == [("Purgatory Lord", monsters.MONSTER_FIGHTING)]
+    idle = bosses.boss_msg(None, templates, monsters.Wilds(), c, 2, set(), now)  # type: ignore[arg-type]
+    assert [b.type for b in idle.bosslist] == [monsters.MONSTER_ALIVE]
+
+
 async def test_bau_com_mochila_cheia_vai_pelo_correio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """9526 sem espaço: o baú some e o conteúdo chega como anexo no correio do jogo (148), 5 por carta."""
     from wartune_server.domain.models import WildBox
@@ -1022,5 +1041,5 @@ async def test_chefe_morto_e_anunciado_para_o_servidor(tmp_path: Path) -> None:
         mine, theirs = [pb.ChatChannelMsg.FromString((await c.until(83))[-1].body) for c in (g, other)]
         name = templates.get("MapPhysicsTempInfos", chief.template_id)["MapPhysicsTempName"]
         assert mine == theirs and mine.channel == 2
-        assert f"has killed the Wilds BOSS {name} and won a reward" in mine.encodeMsg
-        assert mine.encodeMsg.endswith('<a t="111" name="Find the Wilds BOSS"/>')
+        assert f"for obtaining abundant rewards by defeating the Wilds BOSS {name}!" in mine.encodeMsg
+        assert mine.encodeMsg.endswith('<a t="111" name="Find BOSSes in the Wilds"/>')
