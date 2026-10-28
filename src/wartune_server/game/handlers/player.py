@@ -367,20 +367,24 @@ async def quest_finish(s: GameSession, msg: pb.QuestFinishedReqMsg) -> None:
         s.send(S_ITEMS, bag.moved(_unique(taken), s.player_id, empty=gone))
     s.send(S_PLAYER, before)
     s.send(S_QUESTS, quest_update(refresh, rules.quest_bitmap(snap)))  # concluída
-    if snap.character.strategy != strategy:  # (visto #1573, #2183) um 3 só com a RewardStrategy, o EXP vem no seguinte
-        paid = pb.PlayerMsg()
-        paid.CopyFrom(before)
-        paid.strategy = snap.character.strategy
-        s.send(S_PLAYER, paid)
     if int(row.get("RewardGold", 0)) or int(row.get("RewardCrystal", 0)):  # o 109 leva ouro e cristais
         castle_yield(s)
+    # (visto oficial_20261026-225632-1 #8531-#8534, 761: 3, 112, 109, 3 com a Daru nova, 52): o 3 da RewardStrategy
+    # sai depois do 109. Sem EXP, ele é o 3 final e o de depois não repete (761, 764)
+    paid = snap.character.strategy != strategy
+    if paid:
+        strategy_msg = pb.PlayerMsg()
+        strategy_msg.CopyFrom(before)
+        strategy_msg.strategy = snap.character.strategy
+        s.send(S_PLAYER, strategy_msg)
     if snap.character.grades > grades:
         await push_level(s, grades)
     from . import events  # events importa este módulo
 
     if q.template_id == events.SERVEN_QUEST:  # tutorial_en #3192-#3194: o 4638 entre o 150 e o 3
         events.send_serven(s)
-    _player(s)
+    if not (paid and not gp):
+        _player(s)
     if pet is not None:
         from .pets import send_gained  # noqa: PLC0415
 

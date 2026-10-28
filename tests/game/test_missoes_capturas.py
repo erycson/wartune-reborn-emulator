@@ -153,8 +153,6 @@ PENDENTES = {
     313: "tipo 31 (cena com 1 jogador): janela só com 4594 de evento; gancho em campaign.py, não reproduzido",
     371: "tipo 31 (cena com 2 jogadores): janela com 4484/111 do pacote de VIP; gancho em campaign.py",
     422: "arena (tipo 16): gancho em arena.py; 3 duplicado na janela, causa não confirmada",
-    761: "chefe mundial (tipo 40): gancho em worldboss.py, não reproduzido no teste",
-    764: "missão de duas condições (3 e 10): depende do exército da captura",
     765: "atacar cidade (tipo 8): gancho em outer_city.py, não reproduzido no teste",
     768: "reciclagem (tipo 46): gancho em forge.py; a janela tem 4484/4260/111 de outras ações",
     769: "refino (tipo 47): gancho em forge.py; oficial sem 83 da EXP, causa não confirmada",
