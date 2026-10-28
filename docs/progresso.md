@@ -28,7 +28,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Herói e exército | 13 | 14 | 0 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 6 | 2 | 2 |
-| Lojas e mercado | 5 | 4 | 0 | 3 | 1 |
+| Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **98** | **92** | **38** | **47** | **35** |
+| **Total** | **99** | **92** | **38** | **46** | **35** |
 
 ## Validação e base
 
@@ -169,7 +169,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loja misteriosa (8483/8482) | ✅ | | |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
 | Compra coletiva (8645) | ❌ | | nenhuma oferta tipo 3 |
-| Presente a outro jogador e mochila cheia pelo correio | ❌ | | `receiveId`, VIP 8513, contrato 8540: exige gravar outro personagem; mochila cheia recusa (oficial: correio, resultado 12) |
+| Presente a outro jogador e mochila cheia pelo correio | ✅ | | loja, ofertas e misteriosa: `receiveId` de outro (id pelo 8223/4148) cobra quem compra e manda pelo correio do sistema; mochila cheia paga e o que não cabe vai pelo correio (item com vínculo e validade). VIP e contrato a amigo seguem abaixo |
 | Lojas de honra, glória, ametista | ✅ | | |
 | Loja do labirinto (ShopType 4) | ✅ | 🇹🇷 | compra do turco; a Necropolis é outro sistema |
 | Leilão: anunciar, lance, comprar, cancelar, buscar | 🟡 | | regras do cliente, sem captura; ordenação (8450/8457) ignorada, cancelar parte não reempilha |
@@ -391,9 +391,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Estado e nível (4410) | 🟡 | | vipGp diário simplificado |
-| Compra (8513) | 🟡 | | presente a amigo recusado |
+| Compra (8513) | 🟡 | | presente a amigo recusado: VIP não é item, não vai pelo correio (e o inglês não manda o 8513) |
 | Presente semanal, cartão de teste, roleta | ✅ | | |
-| Contrato do rei: compra | 🟡 | | presente a amigo recusado |
+| Contrato do rei: compra | 🟡 | | presente a amigo recusado: contrato não é item, não vai pelo correio |
 | Contrato do rei: efeitos | 🧪 | | cura e varredura (`rules.py:210`, `sweep.py:40`) |
 | Privilégios extras (montaria, missões, cornetas) | ❌ | | lista em [eventos.md](eventos.md) |
 | Loja do teste (8582) | ❌ | | |

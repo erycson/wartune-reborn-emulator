@@ -16,16 +16,21 @@ from typing import Any
 from google.protobuf.message import Message
 
 from ...domain import gameday
-from ...domain.models import CashLedger, Item, MysteryShop, PlayerSnapshot, Purchase, ShopBuy
+from ...domain.models import CashLedger, Character, Item, Mail, MysteryShop, PlayerSnapshot, Purchase, ShopBuy
+from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import Row
 from .. import bag, rules, titles
 from ..builders import login as b
 from ..castle import castle_yield
+from ..mail import MAX_ANNEXES
+from ..mail import notify as notify_mail
+from ..mail import stage as stage_mail
 from ..router import router
 from ..session import GameSession
 from .guild import shop_buy as guild_shop_buy
+from .guild.box import _letter
 from .player import _army, _player, hp_pack
 from .tower import record as maze_record
 
@@ -93,8 +98,9 @@ def charge(snap: PlayerSnapshot, column: str, total: int, pay_type: int, ref: st
     return None  # ConsortiaOffer: o mercado da guilda paga pelo guild.shop_buy (5154)
 
 
-def check(s: GameSession, row: Row | None, count: int) -> int:
-    """Validações do ``BuyFrameI``/servidor antes de cobrar. Devolve OK ou o código de recusa."""
+def check(s: GameSession, row: Row | None, count: int, space: bool = True) -> int:
+    """Validações do ``BuyFrameI``/servidor antes de cobrar. Devolve OK ou o código de recusa. ``space`` False:
+    mochila cheia não recusa (a loja manda pelo correio, ``place``); a semente da fazenda ainda recusa."""
     snap = s.snapshot
     assert snap is not None
     c = snap.character
@@ -124,8 +130,9 @@ def check(s: GameSession, row: Row | None, count: int) -> int:
     if limit != -1 and today_count(snap, int(row["Id"]), s.ctx.clock.now()) + count > limit:
         return LIMIT
     now, column = s.ctx.clock.now(), price(row)[0]  # type: ignore[index]
-    if not bag.fits(snap, s.ctx.templates, [(int(row["ItemId"]), count)], now, valid_minutes(row), binds(column)):
-        return FAIL  # o oficial manda pelo correio (12); aqui não há correio
+    goods = [(int(row["ItemId"]), count)]
+    if space and not bag.fits(snap, s.ctx.templates, goods, now, valid_minutes(row), binds(column)):
+        return FAIL
     return OK
 
 
@@ -169,6 +176,63 @@ def purchase(
     return Purchase(snap.character.id or 0, source, good_id, template_id, count, currency, total, now)
 
 
+Letter = tuple[Mail, list[tuple[int, int]], list[Item]]
+
+
+def place(
+    s: GameSession,
+    snap: PlayerSnapshot,
+    receiver: int,
+    goods: list[tuple[int, int]],
+    now: datetime,
+    valid: int = 0,
+    binds: bool = False,
+) -> tuple[list[Item], list[Letter]]:
+    """Item comprado vai para a mochila; se não couber, ou se é presente (``receiver`` outro), vai pelo correio
+    do sistema (o mesmo ``_letter`` do baú da guilda), já criado, com vínculo e validade da loja."""
+    templates, got, posted = s.ctx.templates, [], []
+    for tid, n in goods:
+        if receiver == s.player_id and bag.fits(snap, templates, [(tid, n)], now, valid, binds):
+            got += bag.add(snap, templates, tid, n, now, valid, binds)
+            continue
+        top = bag.max_count(templates, tid)
+        while n > 0:  # uma pilha por anexo, como na mochila
+            item = bag.new_item(snap, templates, tid, min(top, n), binds)
+            if valid:
+                item.valid_date, item.begin_date = valid, now.replace(microsecond=0)
+            n -= item.count
+            posted.append(item)
+    chunks = [posted[i : i + MAX_ANNEXES] for i in range(0, len(posted), MAX_ANNEXES)]
+    return got, [(_letter(s, receiver, chunk[0].template_id, now), [], chunk) for chunk in chunks]
+
+
+async def save_with_mail(
+    s: GameSession, letters: list[Letter], *entities: object, delete: tuple[object, ...] = ()
+) -> None:
+    """Grava a compra e os correios numa transação; o 148 vai depois do commit."""
+
+    async def change(uow: UnitOfWork) -> None:
+        for entity in delete:
+            await uow.delete(entity)
+        for entity in entities:
+            await uow.save(entity)
+        for letter, goods, items in letters:
+            await stage_mail(uow, letter, goods, items)
+
+    await s.ctx.characters.write(change)
+    for letter, _, _ in letters:
+        notify_mail(s.ctx.online, letter)
+
+
+async def receiver_of(s: GameSession, receive_id: int) -> int | None:
+    """``BuyInfo.receiveId``: 0 ou o próprio = para si; outro personagem existente = presente (o cliente
+    pega o id pelo 8223/4148, ``ShopManager.sendPresent``). None = não existe (NO_PLAYER)."""
+    if receive_id in (0, s.player_id):
+        return s.player_id
+    other = await s.ctx.characters.read(lambda uow: uow.characters.get(receive_id))
+    return receive_id if isinstance(other, Character) else None
+
+
 def send_charge(s: GameSession, paid: Charge) -> None:
     if paid.ledger is not None:
         _player(s)
@@ -196,12 +260,13 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     now, templates = s.ctx.clock.now(), s.ctx.templates
     if info.isDiscount:
         return await buy_offer(s, info, pay_type)
-    if info.receiveId not in (0, s.player_id):  # ponytail: presente depende do correio
+    receiver = await receiver_of(s, info.receiveId)
+    if receiver is None:
         return NO_PLAYER
     row = templates.get("ShopTempInfos", info.goodId, key="Id")
     if row is not None and row.get("ShopType") == MYSTERY:  # só pelo 8482
         row = None
-    if (code := check(s, row, info.count)) != OK:
+    if (code := check(s, row, info.count, space=False)) != OK:
         return code
     assert row is not None
     column, unit = price(row)  # type: ignore[misc]
@@ -209,14 +274,15 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     if paid is None:
         return NO_MONEY
     tid = int(row["ItemId"])
-    got = bag.add(snap, templates, tid, info.count, now, valid_minutes(row), binds(column))
+    got, letters = place(s, snap, receiver, [(tid, info.count)], now, valid_minutes(row), binds(column))
     rec = count_buy(snap, info.goodId, info.count, now)
     extra = [paid.ledger] if paid.ledger else []
     bought = purchase(snap, "shop", info.goodId, tid, info.count, column, unit * info.count, now)
-    await s.ctx.characters.save(snap.character, *paid.changed, *got, rec, *extra, bought, delete=tuple(paid.gone))
+    await save_with_mail(s, letters, snap.character, *paid.changed, *got, rec, *extra, bought, delete=tuple(paid.gone))
 
     send_charge(s, paid)
-    send(s, S_ITEMS, bag.moved(got, s.player_id))
+    if got:
+        send(s, S_ITEMS, bag.moved(got, s.player_id))
     _gained(s)
     alert(s, bought_text(bag.name(templates, tid), info.count))
     return OK
@@ -296,8 +362,11 @@ async def buy_offer(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     offer = next((o for o in offers(s) if o["id"] == info.goodId), None)
     if offer is None or not _offer_time(str(offer["beginDate"])) <= now or int(offer.get("price", 0)) <= 0:
         return GONE
-    if not 1 <= info.count <= MAX_COUNT or info.receiveId not in (0, s.player_id):
+    if not 1 <= info.count <= MAX_COUNT:
         return NO_ITEM
+    receiver = await receiver_of(s, info.receiveId)
+    if receiver is None:
+        return NO_PLAYER
     if int(offer.get("vip", 0)) > 0:
         from .vip import is_vip, vip_grade  # vip -> player -> ... -> shop
 
@@ -309,25 +378,26 @@ async def buy_offer(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     sold = (await _sold(s)).get(info.goodId, 0)
     if int(offer.get("maxCount", -1)) != -1 and sold + info.count > int(offer["maxCount"]):
         return LIMIT  # MainShopInfo.canTotalCount; todas as do 0053 têm -1
-    goods = [(tid, n * info.count) for _, tid, n in offer_goods(offer)]
-    if not bag.fits(snap, templates, goods, now, binds=False):
-        return FAIL
     total = int(offer["price"]) * info.count
     paid = charge(snap, "Point", total, pay_type, f"offer:{info.goodId} x{info.count}", now)
     if paid is None:
         return NO_MONEY
     got: list[Item] = []
+    letters: list[Letter] = []
     for shop_id, tid, n in offer_goods(offer):
         row = templates.get("ShopTempInfos", shop_id, key="Id")
-        got += bag.add(snap, templates, tid, n * info.count, now, valid_minutes(row) if row else 0, False)
+        more, posted = place(s, snap, receiver, [(tid, n * info.count)], now, valid_minutes(row) if row else 0)
+        got += more
+        letters += posted
     rec = count_buy(snap, offer_key(info.goodId), info.count, now)
     tid = int(offer["templateId"])
     bought = purchase(snap, "offer", info.goodId, tid, info.count, "Point", total, now)
     extra = [paid.ledger] if paid.ledger else []
-    await s.ctx.characters.save(snap.character, *got, rec, *extra, bought)
+    await save_with_mail(s, letters, snap.character, *got, rec, *extra, bought)
 
     send_charge(s, paid)
-    send(s, S_ITEMS, bag.moved(got, s.player_id))
+    if got:
+        send(s, S_ITEMS, bag.moved(got, s.player_id))
     _gained(s)
     alert(s, bought_text(offer["names"], info.count))
     # 4375 para todos: a oferta inteira com o currentCount novo (oficial_encantar #2640-#2666, compras de outros)
@@ -564,8 +634,6 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
         result = GONE
     elif shop.buy_count >= _mystery_max(s):
         result = LIMIT
-    elif not bag.fits(snap, templates, [(int(row["ItemId"]), 1)], now, binds=binds(p[0])):
-        result = FAIL
     elif (paid := charge(snap, p[0], p[1], msg.payType, f"mystery:{msg.itemId}", now)) is None:
         result = NO_MONEY
     if result != OK or paid is None:
@@ -576,15 +644,16 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
     cost = price(row)
     assert cost is not None  # cobrado acima: tem preço
     tid = int(row["ItemId"])
-    got = bag.add(snap, templates, tid, 1, now, binds=binds(cost[0]))
+    got, letters = place(s, snap, s.player_id, [(tid, 1)], now, binds=binds(cost[0]))
     shop.bought = ",".join(map(str, [*bought, msg.index]))
     shop.buy_count += 1
     extra = [paid.ledger] if paid.ledger else []
     record = purchase(snap, "mystery", msg.itemId, tid, 1, cost[0], cost[1], now)
-    await s.ctx.characters.save(snap.character, shop, *paid.changed, *got, *extra, record, delete=tuple(paid.gone))
+    await save_with_mail(s, letters, snap.character, shop, *paid.changed, *got, *extra, record, delete=tuple(paid.gone))
 
     send_charge(s, paid)
-    send(s, S_ITEMS, bag.moved(got, s.player_id))
+    if got:
+        send(s, S_ITEMS, bag.moved(got, s.player_id))
     _gained(s)
     alert(s, bought_text(bag.name(templates, tid), 1))
     send(s, S_MYSTERY_BUY, pb.ShopItemBuyRspMsg(result=OK, buyCount=shop.buy_count, score=0))
