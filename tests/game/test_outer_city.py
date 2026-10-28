@@ -127,7 +127,10 @@ async def test_move_castle_to_another_map_spends_energy_and_answers_105(tmp_path
         g.client.send(5176, pb.CastleReqMsg(magId=other, posX=0, posY=0, payType=1))
         got = await g.until(105)
         # (visto) oficial_20261023-153200-1 #185-#187: a mina se solta e o 152 vem sem wildYield
-        assert [p.code for p in got] == [140, 152, 105]
+        # (visto) 24/10 #15690-#15693 e 27/10 #18050-#18053: 140 do castelo (updatedType 2), 152, 140 do exército, 105
+        assert [p.code for p in got] == [140, 152, 140, 105]
+        assert pb.MapUpdatedMsg.FromString(got[0].body).updatedType == 2
+        assert pb.MapUpdatedMsg.FromString(got[2].body).updatedType == 3
         assert not pb.CastleYieldMsg.FromString(got[1].body).wildYield and snap.wild_lands == []
         assert (await g.server.services.characters.snapshot(g.user_id)).wild_lands == []
         moved = pb.CastleReqMsg.FromString(got[-1].body)
@@ -522,11 +525,8 @@ async def test_castelo_robo_so_existe_na_instancia_do_castelo(tmp_path: Path) ->
         snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
         castle.energy = 500
         g.client.send(5176, pb.CastleReqMsg(magId=1, posX=0, posY=0, payType=1))
-        assert [p.code for p in await g.until(105)] == [
-            140,
-            152,
-            105,
-        ]  # mudou de mapa: o 152 (oficial_20261023-153200-1 #186)
+        # mudou de mapa: 140 do castelo, o 152 (oficial_20261023-153200-1 #186) e o 140 do exército (24/10 #15690-#15693)
+        assert [p.code for p in await g.until(105)] == [140, 152, 140, 105]
         assert castle.map_id == 1
 
         got = await _grid(g, "0_0")
