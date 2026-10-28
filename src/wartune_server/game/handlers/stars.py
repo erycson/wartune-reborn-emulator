@@ -430,6 +430,8 @@ async def star_lock(s: GameSession, msg: pb.StarLockReqMsg) -> None:
         from .army import send_quests
 
         send_quests(s, quests)
+    if star.locked:  # (visto) 20261024-191924-1 #20257: 4178, 112 e 111 "Astral Locked!"; sem captura de destravar
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Astral Locked!"))
 
 
 @router.on(8270)
