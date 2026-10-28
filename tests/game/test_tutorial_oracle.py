@@ -33,13 +33,13 @@ LOGIN_TAIL = range(99, 116)  # fim do login do oficial (4471 .. 4685): chega dep
 TIMING = {153, 75, 156, 69, 4122}
 # diferenças conhecidas (docs/tutorial.md, "Diferenças conhecidas"); #N = tools/dump_capture.py da inglesa.
 # A última é do servidor, dentro do tutorial; as outras, ritmo ou outros jogadores:
-# - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793) e 4248 (#133, estado da guerra 4008): do
-#   servidor, não respostas;
+# - 11 ×5 (salas de outros jogadores: #629, #649, #651, #757, #793): do servidor, não respostas;
+#   o 4248 do #133 (estado da guerra 4008) já sai: warfield.push_states manda o 4248 quando um campo muda;
 # - 140 ×2 da chegada do exército (#776-#777): o timer é de 2,4 s reais e o próximo pacote chega antes;
 # O 8586 do #678 (login de 7 dias, dia 1) vai com o GUID do nosso pacote do mesmo tipo e ordem (_official_packages).
 # 83: #664, chat do mundo de outro jogador (canal 10, "~" de Moondust); antes casava por acaso com o anúncio
 # deduzido das 01:30 UTC, desativado na 0057
-KNOWN_GAPS = Counter({11: 5, 140: 2, 4248: 1, 83: 1})
+KNOWN_GAPS = Counter({11: 5, 140: 2, 83: 1})
 # Sobrando: 109 e 3 nas duas minas (#742, #796). O guarda do oficial bateu no herói (#736) e ninguém morreu; o nosso
 # mira o menor livingId (a tropa) e mata soldados, e a perda manda 109 e 3 (o Daru). O oficial escolhe o alvo ao
 # acaso entre os vivos (tropas e herói, nas duas capturas inglesas)
