@@ -116,7 +116,10 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
         assert [p.code for p in await g.idle()] == [4428]
 
         g.client.send(9520)
-        assert [p.code for p in await g.idle()] == [300]  # só o quadro da estrada dourada fecha
+        # (visto) 1026-225632-1 #2453: 4933 com o tabuleiro de 36 casas, sem 300 (ver minigames.golden_road)
+        got = await g.idle()
+        assert [p.code for p in got] == [4933]
+        assert len(pb.GoldenRoadMsg.FromString(got[0].body).cellInfo) == 36
 
         g.client.send(8750)
         assert pb.LotteryMsg.FromString(_body(await g.idle(), 4637)).isOpen is False

@@ -32,6 +32,45 @@ S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
 S_BUGLE_REQ, S_BUGLE_REWARD, S_SLOT = 4553, 4554, 4901
 S_QUIZ, S_RECOVER, S_SEEK, S_FISH_POOL, S_FISH_INFOS = 4908, 4912, 4914, 4916, 4918
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
+# (visto) 1026-225632-1 #2454: 36 casas (itemID, count); -1 = casa vazia
+GOLDEN_BOARD = (
+    (3020010, 10),
+    (2120043, 6),
+    (21260907, 1),
+    (-1, 0),
+    (21260907, 1),
+    (-1, 0),
+    (3020010, 2),
+    (208023, 5),
+    (208014, 2),
+    (21260907, 5),
+    (3020010, 3),
+    (2031003, 1),
+    (21260907, 1),
+    (208017, 5),
+    (3040001, 3),
+    (21260907, 2),
+    (2131057, 2),
+    (2060014, 2),
+    (2131057, 4),
+    (-1, 0),
+    (-1, 0),
+    (2120043, 6),
+    (21260907, 1),
+    (-1, 0),
+    (208014, 10),
+    (21260907, 3),
+    (208017, 2),
+    (21260907, 1),
+    (2131057, 3),
+    (-1, 0),
+    (21260907, 2),
+    (2031003, 1),
+    (2030102, 1),
+    (2030202, 1),
+    (-1, 0),
+    (2030202, 1),
+)
 S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
 S_ORE, S_TOP_TOOL, S_SIGNIN, S_SIGNIN_TEMP = 190, 4590, 513, 514
 SUPER_SIGNIN = 2059  # 4590 param1 da super assinatura (SuperSigninCardManager)
@@ -649,8 +688,14 @@ async def fishing(s: GameSession, _: object) -> None:
 
 @router.on(9520)
 async def golden_road(s: GameSession, _: object) -> None:
-    """Estrada dourada fechada: 300 fecha o quadro (só o GoldRoadManager escuta o 300)."""
-    s.send(S_GOLDEN_CLOSE)
+    """Tabuleiro da estrada dourada (4933, GoldRoadManager.getOrRefreshGoldInfo -> __goldRoadInfoHandler).
+    (visto) 1026-225632-1 #2453 e 1027-152321-1 #1353: 4933 e nada do 300 (o 300 só fecha o quadro se estiver
+    aberto, GoldRoadManager.__closeGoldRoadFrameHanlder). O tabuleiro é o mesmo nas duas capturas (#2454, #1354).
+    TODO(inventado): fixo porque não há outra captura para mostrar como o tabuleiro muda."""
+    msg = pb.GoldenRoadMsg(playerStatue=0, score=0)
+    for item_id, count in GOLDEN_BOARD:
+        msg.cellInfo.add(itemID=item_id, count=count)
+    _send(s, S_GOLDEN, msg)
 
 
 @router.on(9523)

@@ -540,6 +540,7 @@ async def soul(s: GameSession, _: object) -> None:
     counted = ev.count(snap, s.ctx.events, ev.REFINE_SOUL, now)  # atividade "Daru Alchemy" (tipo 22)
     await s.ctx.characters.save(snap.character, st, *([spent] if spent else []), *counted)
     granted(s, [], [], "", chat=False)
+    _player(s)  # (visto) 191924-1 #17038, 1025 #9226, 1026 #626, 1027 #158: 3 e depois 4372 nas quatro amostras
     s.send(S_SOUL, _soul_msg(s, snap))
 
 
