@@ -9,7 +9,7 @@ import pytest
 
 from tests.game.harness import logged_in
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import ArenaRank
+from wartune_server.domain.models import ArenaRank, Star
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -51,3 +51,18 @@ async def test_disband_refunds_daru_and_sends_capture_sequence(tmp_path: Path) -
         assert codes(got) == [3, 109, 111, 100]
         assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Disband Successful. You gained 20 Daru."
         assert snap.character.strategy == before + 20
+
+
+async def test_lock_star_sends_astral_locked_text(tmp_path: Path) -> None:
+    """(visto) 191924-1 #20257: 4178, 112 e 111 "Astral Locked!". Sem a missão 53 aceita não há 112 aqui."""
+    async with logged_in(tmp_path, novice=30013) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap = session.snapshot
+        star = Star(snap.character.id or 0, 1, bag_type=1, pos=0)
+        snap.stars.append(star)
+        await g.server.services.characters.save(star)
+        g.client.send(8330, pb.StarLockReqMsg(starType=1, pos=0))
+        got = await g.until(111)
+        assert codes(got) == [4178, 111]
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Astral Locked!"
