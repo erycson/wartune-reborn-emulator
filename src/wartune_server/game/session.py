@@ -22,6 +22,7 @@ from ..templates.repository import GameTemplates
 from . import events as ev
 from . import timebox
 from .announcements import Announcer
+from .battlefield import WarFields
 from .boss_fight import Bosses
 from .events import EventCatalog
 from .guild import Guilds
@@ -60,6 +61,7 @@ class GameContext:
     world: World = World()  # catálogo do mundo (minas, robôs, chefes), do banco
     wilds: Wilds = field(default_factory=Wilds)  # névoa e monstros em luta (game/monsters.py)
     bosses: Bosses = field(default_factory=Bosses)  # chefe do mundo: vida compartilhada (game/boss_fight.py)
+    warfields: WarFields = field(default_factory=WarFields)  # campo de batalha e mina (game/battlefield.py)
     announcer: Announcer = field(default_factory=Announcer)  # anúncios agendados (game/announcements.py)
     # árvore dourada: andares e sorte por edição (handlers/gold_tree.py)
     gold_tree: dict[str, Any] = field(default_factory=dict)
@@ -159,6 +161,7 @@ class GameSession:
         self.vehicle_open: bool | None = None  # último 4512 mandado (o 20008 manda de novo se mudou)
         self.match_open: bool | None = None  # último estado do PvP (4201); o 20008 manda quando muda
         self.boss_states: dict[int, int] | None = None  # último 4182 mandado (o 20008 manda de novo se mudou)
+        self.war_states: tuple[tuple[int, int], ...] | None = None  # último 4248 (campos; o 20008 manda se mudou)
         self.pet_defend_map: int | None = None  # mapId do último 4686 (handlers.pet_defend.push_state)
         self.pet_defend_nodes: tuple[datetime, bool] | None = None  # (janela, chefe à vista) dos nós 1003
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
@@ -255,12 +258,13 @@ class GameSession:
             self.npc_patrol.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
-            from .handlers import events, hangup, room, team, vehicle, worldboss  # idem
+            from .handlers import events, hangup, room, team, vehicle, warfield, worldboss  # idem
 
             try:  # sala e time antes do unbind: quem fica ainda recebe a saída
                 room.leave_room(self)
                 team.leave_team(self)
                 worldboss.leave_boss(self)
+                warfield.leave_field(self)
                 await hangup.leave_room(self, back=False)
                 await vehicle.leave_vehicle(self)
             except Exception:

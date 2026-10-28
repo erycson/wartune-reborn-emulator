@@ -224,6 +224,8 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     monstros da cidade externa que ele está vendo e o ciclo das minas (``outer_city.refresh`` com ``push``), e solta
     os anúncios agendados (``game/announcements.py``)."""
     from .outer_city import refresh, roll_monsters  # outer_city importa events, que importa este módulo
+    from .warfield import clock as field_clock  # warfield importa este módulo
+    from .warfield import push_states as push_fields
     from .worldboss import boss_clock, close_windows, push_states  # worldboss importa este módulo
 
     now = s.ctx.clock.now()
@@ -245,8 +247,10 @@ async def synchronized_time(s: GameSession, _: object) -> None:
 
     await boss_clock(s)
     await close_windows(s)
+    await field_clock(s)
     await push_fam(s)
     push_states(s)
+    push_fields(s)
     push_state(s)
     push_defend(s)
     push_match(s)

@@ -430,7 +430,7 @@ async def test_closed_events_and_battle_extras(tmp_path: Path) -> None:
         await g.until(4531)
         g.client.send(8337)
         await g.until(4255)
-        for code in (8332, 8334, 8338, 8599, 8633, 8717, 8720, 8635, 10015, 8282, 8283, 10003):
+        for code in (8334, 8717, 8720, 8635, 10015, 8282, 8283, 10003):
             g.client.send(code)
         assert await g.idle() == []
         g.client.send(8590)

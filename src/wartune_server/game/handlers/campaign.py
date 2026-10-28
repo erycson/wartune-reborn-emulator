@@ -318,6 +318,10 @@ async def sync_pos(s: GameSession, msg: pb.PosMoveMsg) -> None:
     if s.campaign is not None and msg.routes:
         last = msg.routes[-1]
         s.campaign.pos = (last.x // TILE, last.y // TILE)
+        if s.campaign.is_warfield:
+            from .warfield import broadcast_move  # warfield importa este módulo
+
+            broadcast_move(s, msg)
 
 
 @router.on(8196)
@@ -355,6 +359,11 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
         await boss_attack(s, node)
         return
+    if c.is_warfield:
+        from .warfield import arrive as field_arrive  # warfield importa este módulo
+
+        await field_arrive(s, camp, node)
+        return
     if c.content is not None:
         await _dungeon_arrive(s, camp, node)
         return
@@ -385,6 +394,11 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
     if c is None or c.node(msg.nodeId) is None:
         return
     camp = msg.nodeId
+    if c.is_warfield:
+        from .warfield import callback as field_callback  # warfield importa este módulo
+
+        await field_callback(s, msg)
+        return
     if c.content is not None:
         await _dungeon_callback(s, camp)
         return
@@ -1234,6 +1248,11 @@ async def campaign_confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         from .hangup import confirm  # idem
 
         await confirm(s, msg)
+        return
+    if c is not None and snap is not None and c.is_warfield:
+        from .warfield import confirm as field_confirm  # warfield importa este módulo
+
+        await field_confirm(s, msg)
         return
     if c is None or snap is None or not c.dungeon or not msg.paraBool1 or c.fighting:
         return
