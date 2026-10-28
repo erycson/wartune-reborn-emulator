@@ -163,8 +163,8 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
     s.campaign = CampaignMap(cid, bf.field_nodes(cid), bf.START, warfield=cid)
     room = pb.RoomCreatedMsg(createdType=ROOM_ENTER, isCross=True)
     room.room.campaignId = cid
+    s.send(S_MAP, map_sync(s, ARMY_IDLE))  # (visto #14232 e #9475): 140 vem antes do 125 no campo
     s.send(S_ROOM_CREATED, room)
-    s.send(S_MAP, map_sync(s, ARMY_IDLE))
     me = space.room_player(snap, ctx.templates, s.campaign.pos, cid, now)
     others = on_map(s, cid)
     players = [space.room_player(o.snapshot, ctx.templates, o.campaign.pos, cid, now)  # type: ignore[arg-type,union-attr]
@@ -303,6 +303,7 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
         if left > 0:
             s.send(S_ALERT, _chat(f"Collection complete. ({left} / {bf.PICKS_PER_CART}) collections remaining.", 7))
         else:  # carrinho cheio: descarrega; o Amethyst não é creditado (não há moeda para ele; TODO)
+            # TODO(visto): o texto veio com 200 (#2079, #2304) e com 100 (#2234); aqui vai sempre 200
             s.ctx.warfields.carts.pop(s.player_id, None)
             s.send(S_CHAT, _chat("Minecart dumped; you gained 200 Amethyst.", 3))
             s.send(S_MINE, _mine_msg(s))
@@ -349,14 +350,15 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     new: list[Item] = []
     if rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         new, _ = rewards.grant(snap, s.ctx.templates, drops)
+    # ordem da captura (visto #14391-#14418): 4175, 4252, 115, 111, 83
+    s.send(S_PLAYER_STATE, _state_msg(s.player_id, 0))
+    s.send(S_WAR_INFO, _info(s, field, stop))
     await s.ctx.characters.save(snap.character, *new)
     if new:
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
     text = bf.turn_in_text(quality, pts, honor, shards)
     s.send(S_ALERT, _chat(text, 7))
     s.send(S_CHAT, _chat(text, 3))
-    s.send(S_PLAYER_STATE, _state_msg(s.player_id, 0))
-    s.send(S_WAR_INFO, _info(s, field, stop))
 
 
 def leave_field(s: GameSession) -> bool:
@@ -404,7 +406,13 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
     for o in players_on(ctx, field.campaign_id):
         snap = o.snapshot
         assert snap is not None
-        o.send(S_CHAT, _chat(END_TEXT, tip=True))
+        o.send(S_CHAT, _chat(END_TEXT, tip=True))  # ordem da captura (visto #16358-#16364): texto, 4254, 22
+        report = pb.WarReportListMsg(oneTeamId=bf.TEAM, twoTeamId=bf.ENEMY, oneScore=field.our_score(), twoScore=0)
+        report.info.extend(_ranking(field, snap.server.name, snap.character.nickname or "", o.player_id))
+        o.send(S_WAR_REPORT, report)
+        o.campaign = None
+        o.send(S_EXIT, pb.CampaignExitMsg(result=1, playerId=o.player_id, armyId=o.player_id,
+                                          serverName=snap.server.name))  # fmt: skip
         # TODO(inventado): a regra de vencedor; sem outro time aqui, a nossa equipe vence (visto a vitória #16396)
         drops = [(bf.INSIGNIA, bf.WIN_INSIGNIA)]
         new: list[Item] = []
@@ -413,12 +421,6 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
         await ctx.characters.save(snap.character, *new)
         if new:
             o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
-        o.send(S_CHAT, _chat(bf.win_text()))
-        report = pb.WarReportListMsg(oneTeamId=bf.TEAM, twoTeamId=bf.ENEMY, oneScore=field.our_score(), twoScore=0)
-        report.info.extend(_ranking(field, snap.server.name, snap.character.nickname or "", o.player_id))
-        o.send(S_WAR_REPORT, report)
-        o.campaign = None
-        o.send(S_EXIT, pb.CampaignExitMsg(result=1, playerId=o.player_id, armyId=o.player_id,
-                                          serverName=snap.server.name))  # fmt: skip
+        o.send(S_CHAT, _chat(bf.win_text()))  # o prêmio chega depois da saída (visto #16396)
     for o in ctx.online.sessions():
         push_states(o)
