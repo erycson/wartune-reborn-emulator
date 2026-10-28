@@ -777,7 +777,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool) -> 
     if dungeon:
         c.over = (gp, strategy)  # (visto) inglesa #1094-#1096: o 4382 sai na volta ao mapa (5035 state 4)
     if not won:
-        if maze:  # (visto) 10/25 #10600: o 140 e depois o 4207 (o msg é o custo do reviver)
+        if maze:  # (visto) 10/25 #10587 derrota, #10592 140 e #10593 4207 (o msg é o custo do reviver)
             await s.ctx.characters.save(tower.died(s))
         if dungeon:
             _send(s, S_ARMY_POS, _army_brief(s, ARMY_IDLE))
