@@ -93,6 +93,19 @@ async def test_equip_move_sends_150_then_one_4178_per_slot(tmp_path: Path) -> No
         assert got == [150, 4178, 4178]
 
 
+async def test_soul_swap_sends_3_then_4372(tmp_path: Path) -> None:
+    """(visto) 191924-1 #17038 (e 1025 #9226, 1026 #626, 1027 #158): 3 e depois 4372 no 8467."""
+    async with logged_in(tmp_path, novice=30017) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        snap = session.snapshot
+        snap.character.grades, snap.character.point = 60, 100000
+        await g.server.services.characters.save(snap.character)
+        g.client.send(8467)
+        got = await g.until(4372)
+        assert codes(got)[-2:] == [3, 4372]
+
+
 async def test_recover_list_sends_4912_then_109(tmp_path: Path) -> None:
     """(visto) 191924-1 #9044, 1026 #2207 e 1027 #745: 4912 e depois 109 (lista de recuperação vazia)."""
     async with logged_in(tmp_path, novice=30016) as g:
