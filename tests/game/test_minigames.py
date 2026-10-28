@@ -224,7 +224,8 @@ async def test_recover_list_is_empty_and_refuses_any_recover(tmp_path: Path) -> 
         for kind in (0, 1):  # 0 pede a lista; 1 tenta resgatar: a lista continua vazia
             g.client.send(9503, pb.RecoverReqMsg(type=kind, count=1, way=1))
             got = await g.idle()
-            assert [p.code for p in got] == [4912]
+            # (visto) 191924-1 #9044 e 1027 #745: 109 depois do 4912 só na lista (type 0)
+            assert [p.code for p in got] == ([4912, 109] if kind == 0 else [4912])
             assert list(pb.RecoverInfosMsg.FromString(got[-1].body).recoverInfos) == []
 
 

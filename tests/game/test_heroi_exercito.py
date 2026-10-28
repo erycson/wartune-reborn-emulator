@@ -236,7 +236,7 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
         g.client.send(8269, pb.StarRandReqMsg(site=0))  # grátis do dia
         got = await g.until(83)
         # 4152/83: leed 17 "Capture an Astral" (só turco: kader_sistemi #1-#8), só no 1º sorteio do dia
-        # (visto) inglês 191924-1 #19350 e 1025 #6727: sem 109. TODO(inventado): a turca mandava 109 aqui
+        # (visto) inglês 191924-1 #19350 e 1025 #6727: sem 109. (visto) turca kader_sistemi #1-#8 mandava 109 aqui: segue a inglesa
         assert codes(got) == [3, 4152, 3, 4180, 83] and pb.PlayerMsg.FromString(got[0].body).startFree == 0
         for _ in range(2):
             g.client.send(8269, pb.StarRandReqMsg(site=0))
