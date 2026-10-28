@@ -10,12 +10,12 @@ from __future__ import annotations
 import itertools
 from dataclasses import dataclass, field
 
-PVE, VEHICLE = 0, 2  # RoomMsg.roomType das salas de campanha e de veículo (PvP, 1, não tem sala aqui)
+PVE, PVP, VEHICLE = 0, 1, 2  # RoomMsg.roomType: campanha, PvP (sala de 2 a 4, visto 24/10 #11536) e veículo
 MAX_SEATS = 4  # o oficial tem 4 lugares (visto: ek sahne, capacity 4)
 NAME_NEW = "Select a campaign."  # nome de sala sem campanha escolhida (visto: 191924 #3737, #3739)
 OPEN, CLOSED = 0, -1  # valor de um lugar livre aberto ou fechado (PlaceStateRspMsg); userId = ocupado
 # RoomState do cliente: 0 sem uso, 1 em uso (esperando), 2 competindo, 3 jogando. O PVERoomItem só entra com 1.
-IN_USE, PLAYING = 1, 3  # (só turco: exp_kitabi #25) o 125 do começo da campanha leva o 3
+IN_USE, COMPETING, PLAYING = 1, 2, 3  # (só turco: exp_kitabi #25) o 125 do começo da campanha leva o 3
 
 
 @dataclass
