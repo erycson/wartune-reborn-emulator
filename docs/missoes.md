@@ -337,3 +337,13 @@ Teste: tests/game/test_missoes_capturas.py (mesma tabela OFICIAL e GRAU, grau e 
 | 400, 430, 480, 570 | 10 | pendente (xfail) | 15035, 19336, 3001, 12635 | subida de nível: exército reabastecido antes do 150 |
 
 Lote 21 a 31: não feito.
+
+## Verificação por captura: lote 21 a 31 (feat/missoes-4)
+
+Teste: tests/game/test_missoes_capturas.py (tabela OFICIAL e GRAU gerada de S\q\lote3.txt, janela e grau como nos lotes anteriores). Os 26 casos do lote estão em xfail (strict), cada um com o motivo na PENDENTES. Nenhum passou nesta rodada.
+
+| id | nível | estado | #idx | motivo (resumo) |
+|---|---|---|---|---|
+| 3, 6, 224, 370, 390, 501, 502, 503, 530, 551, 581, 621, 623, 681, 711, 721, 731, 751, 758, 759, 762, 766, 767, 818, 846, 847 | 23 a 31 | pendente (xfail) | ver tests/game/test_missoes_capturas.py | prédio (2) sem nível montado; gancho de outro sistema (campanha 38, mapa 37, battleground 44/45, war camp 50, mines 86, worldboss 40/41, stars 53); guilda (22/29/49) sem montagem; janela com 4484/4594 de outras áreas |
+
+Causa de cada um: não diagnosticada individualmente (janela e estado). O motivo é por tipo de condição, não por diferença medida.
