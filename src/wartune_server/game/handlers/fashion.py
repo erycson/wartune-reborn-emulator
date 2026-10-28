@@ -4,7 +4,10 @@ de moda (8592) fica na loja. Ver ``docs/itens.md``.
 
 from __future__ import annotations
 
-from ...domain.models import BagType, FashionBook, PlayerSnapshot
+import random
+from typing import Any
+
+from ...domain.models import BagType, FashionBook, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
 from .. import bag, rules, space
@@ -18,6 +21,21 @@ from .shop import send
 S_APPEARANCE, S_FASHION_COMPOSE, S_FASHION_BOOK, S_ALERT = 149, 4487, 4542, 111
 HIDE, SHOW = 1, 2  # HeroHideFashionReqMsg.hide; 0 = só pedir a aparência (sendChangeHeroInfo)
 FASHION_SONS = (rules.WING, rules.HAT, rules.FASHION_CLOTH, rules.FASHION_ARM)
+WILDCARD, CHARM = 208020, 208021  # "Fashion Core" (curinga) e "Good Luck Charm" (ItemTempInfos)
+IDENTIFY_RATES = (0, 20, 30, 40, 50, 60)  # (cliente) FashionModel.getSuccessRateForIdentityBook, por TransformId
+IDENTIFY_GRADE = 27  # (cliente) FashionSwitchItem: "BattleGuardView.needGrade" 27
+COMPOSE_GOLD = 10000  # (cliente) FashionComposeView.needGold: (nível1 + nível2) x 10000
+# SkillTempInfos de atributo da moda identificada (SkillPropertyTempInfos AddType true): Strength (Power),
+# Intellect, Endurance (Physique) e Armor (Agility). Cada família tem 5 faixas de 5 estrelas (Grades 1 a 5)
+APPRAISAL_BASES = (5200, 5250, 5300, 5350)
+# TODO(inventado): valores sem captura nem cliente; ficam em game_settings["fashion"] e podem ser trocados
+DEFAULT_FASHION: dict[str, Any] = {
+    "identify_stars": [40, 30, 15, 10, 5],  # pesos das estrelas 1 a 5 sorteadas na identificação
+    "compose_rates": [60, 40, 20, 5],  # % de acerto da composição pela diferença de nível: 0, 1, 2 e 3+
+    "compose_charm_rate": 100,  # % com a Good Luck Charm (o cliente só diz "Excellent")
+}
+# sorteio do servidor (testes trocam por valor fixo)
+RNG = random.Random()
 
 
 def is_fashion(templates: GameTemplates, template_id: int) -> bool:
@@ -135,23 +153,163 @@ async def fashion_special(s: GameSession, msg: pb.FashionMsg) -> None:
     send(s, S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
 
 
+def _cfg(s: GameSession) -> dict[str, Any]:
+    return DEFAULT_FASHION | dict(s.ctx.world.settings.get("fashion") or {})
+
+
+def _grade(templates: GameTemplates, skill: int) -> int | None:
+    row = templates.get("SkillTempInfos", skill)
+    return int(row["Grades"]) if row else None
+
+
+def _son(templates: GameTemplates, template_id: int) -> str | None:
+    return (templates.get("ItemTempInfos", template_id) or {}).get("SonType")
+
+
+def _level(templates: GameTemplates, item: Item) -> int:
+    """(cliente) FashionComposeView.getFashionLevelByInfo: Grades do randomSkill1, ou do primeiro DefaultSkill."""
+    if item.template_id == WILDCARD:
+        return 1
+    grade = _grade(templates, item.random_skill)
+    if grade is None:
+        row = templates.get("ItemTempInfos", item.template_id) or {}
+        grade = _grade(templates, int((row.get("DefaultSkill") or "0").split(",")[0]))
+    return grade or 0
+
+
+def _appraisal_skill(templates: GameTemplates, cfg: dict[str, Any]) -> int:
+    """Uma skill de atributo: estrelas pelos pesos, família de atributo e faixa ao acaso."""
+    stars = RNG.choices(range(1, 6), weights=cfg["identify_stars"])[0]
+    base = RNG.choice(APPRAISAL_BASES)
+    return RNG.choice([t for t in range(base, base + 25) if _grade(templates, t) == stars])
+
+
 @router.on(8781)
 async def fashion_appraisal(s: GameSession, msg: pb.FashionMsg) -> None:
-    # a avaliação sorteia o appraisalSkill da moda (5211, 5260; só turco: login.json #44) por uma tabela que não
-    # está nos templates: recusa e reenvia o livro como está
+    """Identificação (``FashionSwitchItem.indentityCallBack``): gasta o ouro da moda (``ItemTempInfos.Property1``,
+    "Spend {0} Gold"), que só some quando a moda está no livro e ainda não tem skill. A chance é a da tabela do
+    cliente pelo ``TransformId``. (visto) 1026-225632-1 #2524: 109 (600000 gold da moda 1100303), 111 "Identification
+    Failed." e 4542. Sucesso: 109 e 4542 (sem texto no cliente: TODO(inventado) nenhum aviso)."""
     snap = s.snapshot
-    assert snap is not None
-    s.log.info("8781 recusado: tabela da avaliação desconhecida", modelo=msg.templateId)
-    # (visto) 1026-225632-1 #2524: 109 e depois 111 "Identification Failed." logo após o pedido. TODO(inventado):
-    # a sequência é de uma amostra só; o 109 sem gasto conhecido e a posição do 4542 não estão confirmados
+    assert snap is not None and snap.leader is not None
+    templates, c = s.ctx.templates, snap.character
+    row = templates.get("ItemTempInfos", msg.templateId) or {}
+    book = next((f for f in snap.fashions if f.template_id == msg.templateId), None)
+    tr = int(row.get("TransformId") or -1)
+    cost = int(row.get("Property1") or 0)
+    if not is_fashion(templates, msg.templateId) or book is None or book.appraisal_skill or c.grades < IDENTIFY_GRADE:
+        s.log.info("8781 recusado", modelo=msg.templateId)
+        send(s, S_FASHION_BOOK, fashion_book(snap, templates))
+        return
+    if not 0 <= tr < len(IDENTIFY_RATES) or c.gold < cost:
+        s.log.info("8781 recusado: ouro ou taxa", modelo=msg.templateId, ouro=c.gold, custo=cost)
+        send(s, S_FASHION_BOOK, fashion_book(snap, templates))
+        return
+    c.gold -= cost
+    won = RNG.randrange(100) < IDENTIFY_RATES[tr]
+    if won:
+        book.appraisal_skill = _appraisal_skill(templates, _cfg(s))
+        await s.ctx.characters.save(c, book)
+    else:
+        await s.ctx.characters.save(c)
     castle_yield(s)
-    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Identification Failed."))
-    send(s, S_FASHION_BOOK, fashion_book(snap, s.ctx.templates))
+    if not won:
+        send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Identification Failed."))
+    send(s, S_FASHION_BOOK, fashion_book(snap, templates))
+
+
+def _compose_plan(
+    s: GameSession, snap: PlayerSnapshot, a: Item, b: Item, use_charm: bool
+) -> tuple[int, int, int] | None:
+    """(ouro, Good Luck Charms, % de acerto) para compor ``a`` e ``b`` na bancada, ou None (recusa). Regras do
+    cliente (``FashionComposeView.doCompose``): moda registrada ou curinga, nível > 0, mesmo SonType (curinga
+    serve para qualquer), dois curingas não, e 5 curingas para SonType 109 (asas)."""
+    templates, c = s.ctx.templates, snap.character
+    if a.template_id == b.template_id == WILDCARD:
+        return None
+    for item in (a, b):
+        if item.template_id != WILDCARD and not (
+            is_fashion(templates, item.template_id) and any(f.template_id == item.template_id for f in snap.fashions)
+        ):
+            return None
+    fashions = [i for i in (a, b) if i.template_id != WILDCARD]
+    son = _son(templates, fashions[0].template_id)
+    if any(_son(templates, i.template_id) != son for i in fashions):
+        return None
+    wild = [i for i in (a, b) if i.template_id == WILDCARD]
+    if wild and son == rules.WING and wild[0].count < 5:
+        return None
+    levels = (_level(templates, a), _level(templates, b))
+    gold = (levels[0] + levels[1]) * COMPOSE_GOLD
+    if 0 in levels or c.gold < gold:
+        return None
+    # (cliente) calculateNeedLuckyCharmCount: só a peça da 1ª célula conta, e asas custam 5 vezes
+    charms = 2 ** (levels[0] - 2) * (5 if _son(templates, a.template_id) == rules.WING else 1) if levels[0] > 1 else 0
+    if use_charm and bag.count_of(snap, CHARM) < charms:
+        return None
+    diff = abs(levels[0] - levels[1])
+    cfg = _cfg(s)
+    if use_charm:
+        rate = cfg["compose_charm_rate"]
+    elif diff == 0 and levels[0] == 1:
+        rate = 100  # (cliente) setRateText: nível 1 com diferença 0 é 100%
+    else:
+        rate = cfg["compose_rates"][min(diff, 3)]
+    return gold, charms if use_charm else 0, rate
 
 
 @router.on(8594)
 async def fashion_compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
-    # compor moda na bancada (duas do mesmo SonType ou com o curinga 208020) dá uma moda por uma regra
-    # que não está no cliente decompilado: composeResult false (o FashionBag ignora e não mexe em nada)
-    s.log.info("8594 recusado: regra da composição de moda desconhecida", pedido=str(msg))
-    send(s, S_FASHION_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))
+    """Composição na bancada (``FashionComposeView.doCompose``; 8594 sem peças: as posições 0 e 1 da bancada,
+    ``BagType.STORE``, como a forja). Custo: ouro pelos níveis e, com ``operate`` (Good Luck Charm), as charms.
+    Sucesso: uma moda aleatória do mesmo SonType, preferindo as que o herói veste (``bag.fits_hero``).
+    TODO(inventado): o que acontece na falha (aqui: as peças e o ouro somem, composeResult false) e o consumo de 5
+    curingas (o cliente só exige 5 na célula)."""
+    snap = s.snapshot
+    assert snap is not None and snap.leader is not None
+    c, templates, now = snap.character, s.ctx.templates, s.ctx.clock.now()
+    a, b = bag.at(snap, BagType.STORE, 0, 0), bag.at(snap, BagType.STORE, 0, 1)
+    plan = _compose_plan(s, snap, a, b, msg.operate) if a is not None and b is not None else None
+    if plan is None or a is None or b is None:
+        # o cliente só não mexe se composeResult for false; a mensagem dele para cada recusa não é conhecida
+        s.log.info("8594 recusado", pedido=str(msg))
+        send(s, S_FASHION_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))
+        return
+    gold, charms, rate = plan
+    c.gold -= gold
+    changed: list[Item] = []
+    gone: list[Item] = []
+    fashion_son = _son(templates, next(i.template_id for i in (a, b) if i.template_id != WILDCARD))
+    for item in (a, b):
+        count = (5 if fashion_son == rules.WING else 1) if item.template_id == WILDCARD else 1
+        (gone if bag.take_one(snap, item, count) else changed).append(item)
+    charm_changed, charm_gone = bag.take(snap, CHARM, charms) if charms else ([], [])
+    won = RNG.randrange(100) < rate
+    got: list[Item] = []
+    product = -1
+    if won:
+        pool = [
+            r for r in templates.rows("ItemTempInfos") if r.get("MasterType") == "1" and r.get("SonType") == fashion_son
+        ]
+        fit = [r for r in pool if bag.fits_hero(snap, r, rules.job_type(c.job), c.sex)]
+        product = int(RNG.choice(fit or pool)["TemplateId"])
+        got = bag.add(snap, templates, product, 1, now)
+    book = register(snap, templates, product) if won and got and got[0].is_binds else None
+    await s.ctx.characters.save(
+        c, *changed, *got, *charm_changed, *([book] if book else []), delete=tuple(gone + charm_gone)
+    )
+    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone + charm_gone))
+    castle_yield(s)
+    if won:
+        send(s, S_ITEMS, bag.moved(got, s.player_id))
+    send(
+        s,
+        S_FASHION_COMPOSE,
+        pb.StoreRspMsg(
+            composeResult=won,
+            pos=got[0].pos if won else 0,
+            objectId=got[0].object_id if won else 0,
+            bagType=BagType.BAG if won else BagType.STORE,
+            composeTemplateId=product,
+        ),
+    )

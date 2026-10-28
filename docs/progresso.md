@@ -27,12 +27,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Castelo | 10 | 4 | 4 | 2 | 3 |
 | Herói e exército | 13 | 14 | 0 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
-| Itens | 12 | 6 | 4 | 4 | 2 |
+| Itens | 12 | 6 | 6 | 2 | 2 |
 | Lojas e mercado | 5 | 4 | 0 | 3 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 8 | 4 | 5 | 4 |
-| Labirinto (Forgotten Catacombs) | 3 | 1 | 4 | 2 | 3 |
+| Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 0 | 6 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **97** | **92** | **37** | **49** | **35** |
+| **Total** | **98** | **92** | **38** | **47** | **35** |
 
 ## Validação e base
 
@@ -156,8 +156,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Forja: decomposição (8340) | ✅ | | ordem vista em 191924 #2259-#2278; recusa calada por dedução (o cliente limpa a bancada com qualquer 4260) |
 | Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
 | Equipamento do mascote na luta | 🟡 | | a luta não usa os atributos |
-| Moda: composição (8594) | ❌ | | regra não está no cliente |
-| Moda: avaliação (8781) | ❌ | | tabela desconhecida |
+| Moda: composição (8594) | 🧪 | | cliente dá custo (níveis x 10000 de ouro), charms e chance por diferença de nível (só o nome); inventado: % das chances, sorteio da moda, consumo na falha e dos 5 curingas (`game_settings["fashion"]`) |
+| Moda: avaliação (8781) | 🧪 | | cliente dá custo (Property1 em ouro), chance (TransformId) e skills; visto #2524 (109, 111, 4542); inventado: pesos das estrelas 1-5 e a família sorteada; sem aviso no sucesso |
 | Moda: livro, provador, esconder | ✅ | | |
 
 ## Lojas e mercado
@@ -258,7 +258,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante a luta e o poder do nó saem do catálogo (fórmula que reproduz os 28 vistos); o ícone (sonType) vem do desenho já visto (29), do 30 em diante falta captura |
 | Aviso de respawn (4207) | ✅ | | manda após a derrota: 0 grátis e 25 depois (28/10 #1105, #1547, #1742, #1827). Morto e sem reviver, a saída (5025) manda 4419 com os itens e zera a corrida (25/10 #11411, 26/10 #13469, 28/10 #1839-#1854); revivido (8300) ou vivo, sai sem 4419 e a corrida continua (24/10 #13956-#13965) |
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
-| Reviver (8300) | 🧪 | | resposta inventada (`tower.py:207`) |
+| Reviver (8300) | ✅ | | grátis: 111 "Respawn Successful!" e 4175; pago: 3, devoção, 150, 4434 antes (28/10 #1134, #1566, #1755) |
 | Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |
 | Necropolis (8101) | ❌ | | sem andares |
 | Guarda de batalha e gemas (8742/4631) | ❌ | 🇹🇷 | gemas não modeladas; o 4631 vazio no login (turco) |
