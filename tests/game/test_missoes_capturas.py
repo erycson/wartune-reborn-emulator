@@ -53,6 +53,41 @@ OFICIAL: dict[int, tuple[int, list[int], list[str]]] = {
     590: (8417, [3, 112, 109, 3, 52, 83], ['"Received 72,000 EXP "']),
     600: (14162, [3, 112, 109, 3, 52, 83], ['"Received 72,000 EXP "']),
     610: (13701, [115, 3, 112, 109, 3, 52, 83], ['"Received 72,000 EXP "']),
+    223: (
+        1759,
+        [4484, 4484, 111, 2, 3, 83, 112, 3, 112, 3, 115, 4476, 4426, 4484, 4484, 4484],
+        [
+            '"Received: Bloodforged Staff x1, Dakan Walker\\\'s Robe x1, Spirit Covenant x1, Lvl. 25 Starter Pack x1, Minor HP Pack x5"'
+        ],
+    ),
+    241: (
+        1965,
+        [3, 112, 109, 109, 3, 83, 4152, 52, 83],
+        ['"Received 12,000 EXP "', '"Your devotion level has increased to 38."'],
+    ),
+    271: (295, [3, 112, 109, 3, 115, 4476], []),
+    312: (8089, [112, 3, 112, 109, 3, 52, 83], ['"Received 10,000 EXP "']),
+    313: (14068, [4594], []),
+    350: (7778, [3, 112, 109, 3, 52, 83], ['"Received 15,000 EXP "']),
+    351: (8099, [112, 3, 112, 109, 3, 52, 83], ['"Received 10,000 EXP "']),
+    371: (
+        8821,
+        [4484, 4484, 4484, 4484, 4484, 111, 52, 83, 3, 112, 83],
+        ['"Received: VIP Token x30"', '"Received 28,500 EXP "'],
+    ),
+    391: (8109, [112, 3, 112, 109, 3, 52, 83], ['"Received 10,000 EXP "']),
+    411: (5586, [3, 112, 109, 3, 52, 83], ['"Received 10,000 EXP "']),
+    412: (8996, [112, 3, 112, 109, 100, 150, 3, 83], ['"Received 10,000 EXP "']),
+    421: (20153, [3, 112, 109, 3, 52, 83], ['"Received 8,000 EXP "']),
+    422: (20591, [3, 112, 109, 3, 3, 115, 4476, 4426, 4484, 4484, 4484, 4484, 4484, 4484, 4484, 4484, 4484, 4484], []),
+    441: (9536, [112, 3, 112, 109, 3, 52, 83], ['"Received 10,000 EXP "']),
+    461: (9546, [112, 3, 112, 109, 3, 52, 83], ['"Received 5,000 EXP "']),
+    472: (9557, [112, 3, 112, 109, 3, 52, 83], ['"Received 10,000 EXP "']),
+    761: (8530, [3, 112, 109, 3, 52], []),
+    764: (11418, [112, 3, 112, 3, 52], []),
+    765: (1946, [3, 112, 3, 3, 4152, 52, 83], ['"Received 14,000 EXP "']),
+    768: (2274, [4484, 4260, 111, 83, 3, 112, 109, 52], ['"Recycling Succeeded!"']),
+    769: (8028, [3, 112, 109, 52], []),
 }
 
 # grau do personagem antes do 5014 (3 da captura)
@@ -80,15 +115,49 @@ GRAU: dict[int, int] = {
     590: 30,
     600: 30,
     610: 30,
+    223: 20,
+    241: 20,
+    271: 25,
+    312: 22,
+    313: 23,
+    350: 22,
+    351: 22,
+    371: 27,
+    391: 22,
+    411: 26,
+    412: 22,
+    421: 31,
+    422: 31,
+    441: 23,
+    461: 23,
+    472: 23,
+    761: 28,
+    764: 23,
+    765: 20,
+    768: 20,
+    769: 22,
 }
+
+EXERC = "subida de nível: o servidor reabastece o exército (104/110/152/4130) antes do 150; o oficial não manda. Teste monta exército de novato, estado da captura não reproduzido"
 
 PENDENTES = {
     310: "recompensa com atividades 4484/111/114/4131/149 de outras áreas fora da entrega de missão",
-    # subida de nível: o 3 da captura traz só o grau, não o EXP atual; sem ele o servidor não sobe de nível igual ao oficial
-    400: "subida de nível (100/150): EXP atual do personagem não está no 3 decodificado, só o grau",
-    430: "subida de nível (100/150): EXP atual do personagem não está no 3 decodificado, só o grau",
-    480: "subida de nível (100/150): EXP atual do personagem não está no 3 decodificado, só o grau",
-    570: "subida de nível (100/150): EXP atual do personagem não está no 3 decodificado, só o grau",
+    400: EXERC,
+    412: EXERC,
+    430: EXERC,
+    480: EXERC,
+    570: EXERC,
+    223: "recompensa com 4484/111 (pacote inicial) e 115 de itens: janela mistura outras áreas",
+    241: "bênção do altar (tipo 30): 109 duplicado e 83 de devoção; ordem não conferida, gancho em altar.py",
+    271: "árvore (tipo 20): 115 e 4476 fora da entrega; o teste não monta a árvore regada",
+    313: "tipo 31 (cena com 1 jogador): janela só com 4594 de evento; gancho em campaign.py, não reproduzido",
+    371: "tipo 31 (cena com 2 jogadores): janela com 4484/111 do pacote de VIP; gancho em campaign.py",
+    422: "arena (tipo 16): gancho em arena.py; 3 duplicado na janela, causa não confirmada",
+    761: "chefe mundial (tipo 40): gancho em worldboss.py, não reproduzido no teste",
+    764: "missão de duas condições (3 e 10): depende do exército da captura",
+    765: "atacar cidade (tipo 8): gancho em outer_city.py, não reproduzido no teste",
+    768: "reciclagem (tipo 46): gancho em forge.py; a janela tem 4484/4260/111 de outras ações",
+    769: "refino (tipo 47): gancho em forge.py; oficial sem 83 da EXP, causa não confirmada",
 }
 CASOS = [
     pytest.param(k, marks=pytest.mark.xfail(reason=PENDENTES[k], strict=True)) if k in PENDENTES else k
@@ -106,6 +175,8 @@ async def test_entrega_ate_nivel_10_bate_com_o_oficial(tmp_path: Path, template_
         assert session is not None and session.snapshot is not None
         snap = session.snapshot
         snap.character.grades = GRAU[template_id]
+        if 150 in codigos:  # subida de nível no oficial: EXP logo abaixo do limite do próximo grau (UpGradeTempInfos)
+            snap.character.total_gp = dict(rules.grade_steps(templates))[GRAU[template_id] + 1] - 1
         q = Quest(g.user_id, template_id, now)
         snap.quests.append(q)
         for row in rules.conditions(templates, template_id):
