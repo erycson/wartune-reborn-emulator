@@ -197,6 +197,9 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
     new: list[Star] = []
     settings = s.ctx.world.settings
     table, open_next = settings.get("star_weights") or WEIGHTS, float(settings.get("star_open_next", OPEN_NEXT))
+    paid = (
+        False  # o 109 só sai com ouro gasto: (visto) 191924-1 #19350, 1025 #6727, 1026 #13653: sorteio grátis sem 109
+    )
     while (pos := free_pos(snap, StarBag.TEMP, TEMP_MAX)) is not None:
         site = max(i for i, o in enumerate(opened) if o) if quick else msg.site
         free = sy.star_free > 0
@@ -206,6 +209,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
             sy.star_free -= 1
         else:
             c.gold -= SITE_COST[site]
+            paid = True
         sy.star_point += site + 1  # ponytail: o grátis do dia também dá ponto, o cliente não diz; mudar com captura
         tpl = roll(templates, c.grades, site, table)
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)
@@ -223,7 +227,8 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         return
     quests = rules.quest_event(snap, templates, RAND_QUEST, RAND_PARA1, len(new))
     await s.ctx.characters.save(c, sy, *new, *quests)
-    castle_yield(s)
+    if paid:
+        castle_yield(s)
     _player(s)
     from . import events  # handlers.events importa login, que importa player
 
