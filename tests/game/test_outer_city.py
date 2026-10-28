@@ -843,6 +843,27 @@ def test_chefe_que_entra_em_luta_aparece_com_type_4(monkeypatch: pytest.MonkeyPa
     assert [b.type for b in idle.bosslist] == [monsters.MONSTER_ALIVE]
 
 
+async def test_chefe_atacado_manda_4938_em_luta_antes_da_157(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) 24/10 x_20261024-191924-1 #16254-#16256: 140 em luta, 4938 com o chefe type 4, 157. Pelo handler."""
+    monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
+    clock = FakeClock(datetime(2026, 5, 21, 17, 39, 31, tzinfo=UTC))
+    async with logged_in(tmp_path, novice=22500, clock=clock) as g:
+        snap = _snap(g)
+        snap.pawns.append(Pawn(g.user_id, 10101, army_count=150))
+        templates, world = g.server.services.templates, g.server.services.world
+        chief = next(x for x in monsters.on_map(world, templates, 2, clock.now()) if x.boss_type == monsters.CHIEF)
+        g.client.send(8201, pb.PhysicUpdateReqMsg(mapId=2, reqGrid=oc.grid_of(chief.x, chief.y)))
+        await g.until(169)
+        g.client.send(5160, pb.MapPhysicAttackMsg(mapId=2, posX=chief.x, posY=chief.y))
+        got = await g.until(157)
+        assert [p.code for p in got][-2:] == [4938, 157]
+        info = pb.MapBossMsg.FromString(got[-2].body)
+        assert [b.type for b in info.bosslist if (b.x, b.y) == (chief.x, chief.y)] == [monsters.MONSTER_FIGHTING]
+        prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        hero = next(h for h in prepare.heros if h.side == 2)  # (visto) #16256: o chefe é herói 3, captain 3
+        assert (hero.heroId, hero.type, hero.captain, hero.res, hero.castTime) == (1300000000, 3, 3, "boss001", 6000)
+
+
 async def test_bau_com_mochila_cheia_vai_pelo_correio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """9526 sem espaço: o baú some e o conteúdo chega como anexo no correio do jogo (148), 5 por carta."""
     from wartune_server.domain.models import WildBox

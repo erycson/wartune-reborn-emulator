@@ -249,9 +249,11 @@ def battle(snap: PlayerSnapshot, world: World, templates: GameTemplates, m: Mons
     else:
         row = templates.get("GameHeroTemp", unit.hero_id) or {}
         hp = max(1, int(row.get("Live") or 1))
+        # (visto) x_20261024-191924-1 #16256: HeroType 3, Captain 3, ResPath e castTime 6000 (o labirinto faz igual)
         heroes.append(npc_hero(livingId=1, side=2, pos=5, tempId=unit.hero_id, nickName=row.get("TemplateName", ""),
-                               grade=int(row.get("Grades") or 0), maxHp=hp, initHp=hp, hp=hp,
-                               fightCapacity=0))  # fmt: skip
+                               grade=int(row.get("Grades") or 0), maxHp=hp, initHp=hp, hp=hp, fightCapacity=0,
+                               type=int(row.get("HeroType") or 2), captain=int(row.get("Captain") or 0),
+                               res=row.get("ResPath", ""), castTime=6000))  # fmt: skip
     return {
         "battleType": BATTLE_TYPE,
         "mapTempId": m.map_id,
