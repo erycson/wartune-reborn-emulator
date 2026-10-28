@@ -108,7 +108,7 @@ UPDATE game_settings SET value = '0.5' WHERE key = 'star_open_next';
 | `game_settings` | o quê |
 |---|---|
 | `farm_steal_percent` | % do `rewardCount` que um amigo leva por roubo (10, internet) |
-| `tree_fruit` | colheita da árvore (5178): `{"daru": [base, por nível], "kyanite": [base, por nível]}` pelo grau da fazenda acima do 1 (3800/3800 e 1000/100, internet) |
+| `tree_fruit` | colheita da árvore (5178): `{"<grau>": {"daru", "kyanite", "gold"}}` pelo grau da fazenda; migração 0093 com os graus 6 e 10 vistos nas capturas, o resto é reta entre eles (TODO(inventado)) |
 | `friend_grade_step` | pontos de amizade por grau: grau = 1 + pontos // passo (10, dedução) |
 | `powcard_suite_slots` | degraus do bônus da coleção de cartas: `[[cartas, grau mínimo], ...]` (`[[4, 1], [4, 3], [4, 8]]`) |
 

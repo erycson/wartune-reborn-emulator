@@ -285,6 +285,8 @@ async def test_daru_harvest_says_received_after_the_land(tmp_path: Path) -> None
         got += await g.idle()
         assert [p.code for p in got][:5] == [3, 111, 4387, 4152, 83]
         assert pb.ChatChannelMsg.FromString(got[4].body).encodeMsg == "Received: 12,000 Daru"
+        # (visto) oficial_20261024-191924-1 #221: o 4387 da colheita leva a quantidade colhida
+        assert pb.FarmInfoRspMsg.FromString(got[2].body).farmLandInfo[0].rewardCount == 12000
 
 
 async def test_tree_water_has_a_cooldown_and_only_the_own_tree(tmp_path: Path) -> None:
@@ -358,10 +360,14 @@ async def test_land_upgrade_open_lands_and_the_tree_fruit(tmp_path: Path) -> Non
         tree = pb.TreeUpdateRsp.FromString((await g.until(147))[-1].body).tree[0]
         assert (tree.waterCount, tree.fruitCount) == (30, 1)
         g.client.send(5178, pb.BuildingReqMsg(index=0))
-        got = await g.until(147)
-        assert [p.code for p in got][:2] == [106, 4189]
-        assert list(pb.TreeUpdateRsp.FromString(got[0].body).pickMsg) == ["Daru + 114,000", "Kyanite + 3,900"]
-        tree = pb.TreeUpdateRsp.FromString(got[-1].body).tree[0]
+        got = await g.until(147) + await g.idle()
+        # (visto) oficial_20261025-232017-1 #218-#227 e oficial_20261027-152321-1 #5075-#5086: 109, 3, 111 (Kyanite
+        # antes do Daru), 109, 4189, 4152 (leed 25), 147, 147, 106, 83
+        assert [p.code for p in got][:8] == [109, 3, 111, 109, 4189, 4152, 147, 147]
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Received: 8,400 Kyanite, 44,500 Daru"
+        assert pb.TreeUpdateRsp.FromString(got[4].body).harvestMsg == ["Gold +1,000", "Tree of the Ancients EXP +1"]
+        assert [list(pb.TreeUpdateRsp.FromString(p.body).pickMsg) for p in got if p.code == 106] == [[""]]
+        tree = pb.TreeUpdateRsp.FromString([p for p in got if p.code == 147][-1].body).tree[0]
         assert (tree.waterCount, tree.fruitCount, tree.leftPickTime) == (0, 0, 86400)
         assert tree.nextPickTime == "2026-01-02 00:00:00"
         g.client.send(5178, pb.BuildingReqMsg(index=0))
@@ -369,8 +375,60 @@ async def test_land_upgrade_open_lands_and_the_tree_fruit(tmp_path: Path) -> Non
 
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.castle is not None and saved.castle.land_grade == 2
-        assert (saved.character.gift_token, saved.character.strategy) == (0, snap.character.strategy)
-        assert saved.character.strategy >= 114000 and saved.character.crystals >= 3900
+        assert saved.character.gift_token == 0
+        assert saved.character.strategy >= 44500 and saved.character.crystals >= 8400 and saved.character.gold >= 1000
+
+
+async def test_plant_buys_the_seed_pack_when_the_slot_is_empty(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #347-#353: 15044 plantar com o slot vazio compra o pacote (goodId 2000, 9 de
+    600 de ouro) e planta; a ordem é 111, 83, 90, 115 e o 4387. Sem ouro, o 4387 vem com falha."""
+    async with logged_in(tmp_path, novice=READY) as g:
+        await _set(g, gold=5400)
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=0, bagPos=33, templateId=SEED))
+        got = await g.until(4387)
+        assert [p.code for p in got] == [111, 83, 90, 115, 115, 4387]
+        assert pb.BuyInfo.FromString(got[2].body).count == 9
+        land = pb.FarmInfoRspMsg.FromString(got[-1].body).farmLandInfo[0]
+        assert (land.pos, land.itemTemplateId, land.rewardCount, land.result) == (0, SEED, 2400, 0)
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert saved.character.gold == 0 and [(i.template_id, i.count) for i in saved.items] == [(SEED, 8)]
+
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=1, pos=1, bagPos=34, templateId=SEED))
+        assert pb.FarmInfoRspMsg.FromString((await g.until(4387))[-1].body).farmLandInfo[0].result == 1
+        assert [p.code for p in await g.idle()] == []  # sem ouro: nada comprado, nada plantado
+
+
+async def test_own_farm_state_reports_reap_worm_and_grass(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #215: a própria com colheita pronta vem isReap true; isRevive nunca vem true
+    na própria (oficial_20261027-152321-1 #5065: isWorm e isGrass com a terra própria)."""
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=READY, clock=clock) as g:
+        snap = _snap(g)
+        now = clock.now()
+        land = FarmLand(g.user_id, 0, SEED, now - timedelta(hours=2), now - timedelta(minutes=1), 2400)
+        snap.lands.append(land)
+        await g.server.services.characters.save(land)
+        g.client.send(8231, pb.FriendUserIdsMsg(friendId=[g.user_id]))
+        own = pb.LoadFarmRsp.FromString((await g.until(4190))[-1].body).friendFarmState[0]
+        assert (own.userId, own.isReap, own.isRevive, own.isWorm, own.isGrass) == (g.user_id, True, False, False, False)
+
+        land.mature_at = now + timedelta(minutes=30)  # ainda verde: não colhe
+        land.planted_at = now - timedelta(hours=1)
+        land.worm = 1  # o inseto aparece aos 40% do ciclo (WORM_AT)
+        await g.server.services.characters.save(land)
+        g.client.send(8231, pb.FriendUserIdsMsg(friendId=[g.user_id]))
+        own = pb.LoadFarmRsp.FromString((await g.until(4190))[-1].body).friendFarmState[0]
+        assert (own.isReap, own.isWorm) == (False, True)
+
+
+def test_tree_reward_interpolates_the_two_seen_grades() -> None:
+    """(visto) grau 6: 6.100 Daru, 2.400 Kyanite, 160 de ouro; grau 10: 12.500, 3.400, 300. O resto é reta
+    (TODO(inventado)): no meio, a média; fora, a reta dos dois graus mais perto."""
+    assert farm.tree_reward(farm.TREE_FRUIT, 6) == (6100, 2400, 160)
+    assert farm.tree_reward(farm.TREE_FRUIT, 10) == (12500, 3400, 300)
+    assert farm.tree_reward(farm.TREE_FRUIT, 8) == (9300, 2900, 230)
+    assert farm.tree_reward(farm.TREE_FRUIT, 30) == (44500, 8400, 1000)
+    assert farm.tree_reward(farm.TREE_FRUIT, 1) == (0, 1150, 0)
 
 
 async def _friends(g: Game, other: Game, gp: int = 0) -> None:

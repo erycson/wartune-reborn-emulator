@@ -37,8 +37,11 @@ OWN_TREE_DAILY, FRIEND_TREE_DAILY = 3, 200
 # wartune.fandom.com/wiki/Farm; a página não abriu): o amigo leva uma pequena parte (10%) do valor, até 3 vezes.
 # Configurável em game_settings farm_steal_percent
 STEAL_PERCENT = 10
-# game_settings tree_fruit (0041, internet: wiki Farm): [base, por nível acima do 1] de Daru e Kyanite
-TREE_FRUIT = {"daru": [3800, 3800], "kyanite": [1000, 100]}
+# game_settings tree_fruit (migração 0093): Daru, Kyanite e ouro da colheita, por grau da fazenda. Só dois graus
+# vistos: (visto) oficial_20261025-232017-1 #218-#227 (grau 6: 6.100 Daru, 2.400 Kyanite, 160 de ouro) e
+# oficial_20261027-152321-1 #5075-#5086 (grau 10: 12.500, 3.400, 300). O resto é reta entre eles (TODO(inventado)).
+# O "3800 por nível" da internet (0041) não bate com a captura.
+TREE_FRUIT = {"6": {"daru": 6100, "kyanite": 2400, "gold": 160}, "10": {"daru": 12500, "kyanite": 3400, "gold": 300}}
 
 
 def open_lands(farm_grade: int) -> int:
@@ -64,11 +67,17 @@ def tree_charge(castle: Castle, templates: GameTemplates) -> None:
         castle.tree_fruit = 1
 
 
-def tree_reward(config: Mapping[str, Any], farm_grade: int) -> tuple[int, int]:
-    """Daru e Kyanite da colheita da árvore no grau da fazenda (a árvore sobe junto com a fazenda, wiki)."""
-    up = farm_grade - 1
-    (daru, daru_step), (kyanite, kyanite_step) = config["daru"], config["kyanite"]
-    return int(daru) + int(daru_step) * up, int(kyanite) + int(kyanite_step) * up
+def tree_reward(config: Mapping[str, Mapping[str, Any]], farm_grade: int) -> tuple[int, int, int]:
+    """Daru, Kyanite e ouro da colheita no grau da fazenda: reta pelos dois graus da configuração mais perto. Fora
+    deles é extrapolação (TODO(inventado): falta a tabela real)."""
+    pts = sorted((int(g), v) for g, v in config.items())
+    i = min(max(next((k for k, (g, _) in enumerate(pts) if g >= farm_grade), len(pts)) - 1, 0), len(pts) - 2)
+    (g1, a), (g2, b_) = pts[i], pts[i + 1]
+
+    def at(key: str) -> int:
+        return max(0, round(int(a[key]) + (int(b_[key]) - int(a[key])) * (farm_grade - g1) / (g2 - g1)))
+
+    return at("daru"), at("kyanite"), at("gold")
 
 
 def next_pick(picked_at: datetime) -> datetime:
@@ -288,15 +297,27 @@ def waters_today(castle: Castle, now: datetime) -> tuple[int, int]:
     return (castle.tree_water_today, castle.tree_friend_today) if castle.farm_day == gameday.today(now) else (0, 0)
 
 
-def own_state(snap: PlayerSnapshot, now: datetime) -> pb.FriendFarmStateMsg:
-    """O 4190 do oficial começa pelo próprio jogador: ``isChargeEnergy`` libera regar a própria árvore."""
+def own_state(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> pb.FriendFarmStateMsg:
+    """O 4190 do oficial começa pelo próprio jogador: ``isChargeEnergy`` libera regar a própria árvore; ``isReap``,
+    ``isWorm`` e ``isGrass`` seguem as terras. (visto) oficial_20261024-191924-1 #215 (colheita pronta, isReap),
+    oficial_20261027-152321-1 #5065 (praga e mato, sem colheita); ``isRevive`` nunca vem true na própria (22 amostras
+    de 4190 com o 434, nas 4 capturas): a planta morta só se revive pelo amigo."""
     assert snap.castle is not None
     can_water = (
         tree_left(snap.castle, now) <= 0
         and snap.castle.tree_fruit == 0
         and waters_today(snap.castle, now)[0] < OWN_TREE_DAILY
     )
-    return pb.FriendFarmStateMsg(userId=snap.character.id or 0, isChargeEnergy=can_water)
+    rows = [(land, seed(templates, land.item_template_id)) for land in snap.lands]
+    return pb.FriendFarmStateMsg(
+        userId=snap.character.id or 0,
+        isReap=any(is_alive_mature(land, row, now) for land, row in rows),
+        isChargeEnergy=can_water,
+        isRevive=False,
+        isWorm=any(has_worm(land, now) for land, _ in rows),
+        isGrass=any(has_grass(land, now) for land, _ in rows),
+        isFeed=False,
+    )
 
 
 def friend_state(
