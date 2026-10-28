@@ -86,7 +86,7 @@ log = structlog.get_logger(__name__)
 UNAVAILABLE = "This action is not available now."  # reviver e buff: o cliente só pede dentro do mapa do chefe
 S_QUESTS = 112
 S_GUILDWAR, S_LOTTERY, S_UNKNOWN_462, S_CROSS_ICON, S_CROSS_STATE, S_CROSS_FIRST = 4451, 4637, 462, 4741, 4683, 4685
-QUEST_JOIN, QUEST_INSTANT = 40, 66  # QuestCondictionInfos: lutar no chefe, luta imediata paga (8264)
+QUEST_JOIN, QUEST_INSTANT, QUEST_DAMAGE = 40, 66, 41  # QuestCondictionInfos: lutar, luta paga (8264), dano total
 
 
 @router.on(8535)
@@ -408,6 +408,8 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
     ch.strategy += reward  # daru = "strategy" (como o strategyBonus da masmorra)
     # missão tipo 40 "Participate in a World BOSS Battle" (759 x10, 761 x1): uma por luta (dedução: luta, não entrada)
     quests = rules.quest_event(snap, s.ctx.templates, QUEST_JOIN, 0, 1)
+    # tipo 41 "Total Damage Dealt" (762: 50000): o dano de cada luta soma
+    quests += [q for q in rules.quest_event(snap, s.ctx.templates, QUEST_DAMAGE, 0, link.dealt) if q not in quests]
     rows: list[object] = [ch, *quests]
     if (wound := pool.wounds.get(s.player_id)) is not None:
         rows.append(wound)

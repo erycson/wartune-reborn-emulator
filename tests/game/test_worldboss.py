@@ -223,8 +223,9 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         ch.grades, ch.point, ch.gift_token = 20, 20, 0
         # 759 "Participate in a World BOSS Battle" (tipo 40) e 183 "Instant Battle" (tipo 66, o 8264 pago)
         join, instant = Quest(g.user_id, 759, datetime.now(UTC)), Quest(g.user_id, 183, datetime.now(UTC))
-        session.snapshot.quests.extend([join, instant])
-        await g.server.services.characters.save(join, instant)
+        damage = Quest(g.user_id, 762, datetime.now(UTC))  # tipo 41 "Total Damage Dealt"
+        session.snapshot.quests.extend([join, instant, damage])
+        await g.server.services.characters.save(join, instant, damage)
         await g.idle()
         g.client.send(8258, pb.WorldBossMsg(param1=5001))
         await g.idle()
@@ -237,6 +238,7 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         [dead] = [pb.PlayerStateListMsg.FromString(p.body) for p in got if p.code == 4175]
         assert (dead.playerState[0].state, dead.playerState[0].leftTime) == (1, 30_000)
         assert 112 in [p.code for p in got] and (join.progress, instant.progress) == (1, 0)  # a luta conta o tipo 40
+        assert damage.progress > 0  # o dano da luta conta o tipo 41
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=500102))  # morto: sem luta
         assert [p.code for p in await g.idle()] == [4175]
