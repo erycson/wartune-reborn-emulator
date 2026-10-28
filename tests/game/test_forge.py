@@ -130,8 +130,8 @@ async def test_compose_and_transform(tmp_path: Path) -> None:
         assert await g.idle() == []
 
         g.client.send(8538, pb.StoreReqMsg(srcItemid=ATTACK_1, desItemid=MAGIC_1, count=2))
-        got = await g.until(83)
-        assert codes(got) == [115, 109, 115, 4476] + [4484] * 9 + [111, 83] and c.gold == 20000
+        got = await g.idle()  # (visto) 109, 115, 115, 4476, 4484s, e nenhum aviso
+        assert codes(got) == [109, 115, 115, 4476] + [4484] * 9 and c.gold == 20000
         assert {(i.template_id, i.count) for i in me(g).items} >= {(ATTACK_1, 1), (MAGIC_1, 2)}
         g.client.send(8538, pb.StoreReqMsg(srcItemid=ATTACK_1, desItemid=ATTACK_2, count=1))  # nível diferente
         assert await g.idle() == []
@@ -155,11 +155,14 @@ async def test_refine_needs_replace_to_apply(tmp_path: Path) -> None:
         g.client.send(8336, pb.SmithFreshReqMsg(lock=[True, False, False], bindType=2, payType=1))
         got = await g.until(4258)
         skills = list(pb.SmithFreshRspMsg.FromString(got[-1].body).randomSkill)
-        assert codes(got) == [115, 3, 4258] and len(skills) == 3 and skills[0] == 70302
+        # (visto) #8019-#8027: 115 dos materiais, 115 do equipamento, 3 (Balens), 111 "Refinement Complete!", 4258
+        assert codes(got) == [115, 115, 3, 111, 4258] and len(skills) == 3 and skills[0] == 70302
+        assert pb.ChatChannelMsg.FromString(got[3].body).encodeMsg == "Refinement Complete!"
         assert sword.random_skills == [70302, 70407, 0, 0, 0]  # ainda não trocou
         assert free not in me(g).items and bound.count == 2 and not sword.is_binds
         assert c.point == 0  # o cadeado sem Refinement Lock custa 45 Balens
-        assert 4152 in codes(await g.idle())  # gasto de Balens (leed), depois da resposta
+        after = codes(await g.idle())  # o 83 do refino, depois o gasto de Balens (leed)
+        assert after[0] == 83 and 4152 in after
 
         g.client.send(8339)
         got = await g.until(115)

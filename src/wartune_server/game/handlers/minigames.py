@@ -666,8 +666,14 @@ async def icon_numbers(s: GameSession, _: object) -> None:
 async def lucky_exchange(s: GameSession, msg: pb.LuckExchangeOpMsg) -> None:
     """Troca da sorte (``LuckyExchangeManager.OperateLuckyExchange``: ``exchangeId`` x ``exchangeCount``). Sem edição
     vigente: no tutorial_en (#88, #102) "Little Windmill" terminou em 2026-10-14 e "Nostalgic Times Exchange" só começa
-    em 2026-10-23, e o servidor não tem tabela das edições (o login manda as listas vazias): recusa, só log."""
+    em 2026-10-23, e o servidor não tem tabela das edições (o login manda as listas vazias): recusa sempre.
+    ``(visto) oficial_20261027-152321-1 #11765-#11767``: a recusa do oficial é "Insufficient exchange items." e um 4247
+    zerado. (dedução) o servidor não sabe o que a troca pede, então toda recusa diz isso."""
+    from .events import send_empty_rate  # noqa: PLC0415  (events importa este módulo)
+
     s.log.info("9610 recusado: sem troca da sorte", troca=msg.exchangeId, vezes=msg.exchangeCount)
+    alert(s, "Insufficient exchange items.")
+    send_empty_rate(s)
 
 
 @router.on(9638)

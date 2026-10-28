@@ -139,7 +139,11 @@ async def test_sell_lock_and_buy_bag_rows(tmp_path: Path) -> None:
         g.client.send(5010, pb.PayTypeMsg(payType=1, property1=2))  # 10 + 20 elmas: só tem 25
         assert await g.idle() == []
         g.client.send(5010, pb.PayTypeMsg(payType=1, property1=1))
-        assert pb.PlayerMsg.FromString((await g.until(3))[-1].body).bagCount == 7
+        got = await g.until(3)  # (visto) #3916-#3921: 3, 150, 4434, 111 "Successfully unlocked 1 inventory row(s).", 3
+        assert pb.PlayerMsg.FromString(got[-1].body).bagCount == 7
+        got = await g.idle()  # o 4152 e o 83 vêm do leed "Consume Balens" do dia (oficial #6051/#6056 de c4)
+        assert codes(got)[:4] == [150, 4434, 111, 3]
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Successfully unlocked 1 inventory row(s)."
         with sqlite3.connect(tmp_path / "game.db") as db:
             assert list(db.execute("SELECT delta_point, reason FROM cash_ledger")) == [(-10, "bag")]
 

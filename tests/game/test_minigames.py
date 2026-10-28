@@ -103,8 +103,11 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
         got = await g.idle()
         assert [p.code for p in got] == [190] and pb.SimplePropertyMsg.FromString(got[0].body).param7 is False
 
-        g.client.send(9610, pb.LuckExchangeOpMsg(exchangeId="x", exchangeCount=1))  # sem edição: só log
-        assert await g.idle() == []
+        g.client.send(9610, pb.LuckExchangeOpMsg(exchangeId="x", exchangeCount=1))  # sem edição: recusa
+        got = await g.idle()  # (visto) #11765-#11767: 111 "Insufficient exchange items." e o 4247 zerado
+        assert [p.code for p in got] == [111, 4247]
+        assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg == "Insufficient exchange items."
+        assert [r.rate for r in pb.RateUpdateReqMsg.FromString(got[1].body).rateInfo] == [0]  # linha zerada, sem evento
 
         g.client.send(8703)
         assert pb.DepositActiveMsg.FromString(_body(await g.idle(), 4612)).activeType == 0

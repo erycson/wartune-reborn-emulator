@@ -156,6 +156,20 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         assert ev.peek(saved, "relogin").value == 1  # type: ignore[union-attr]
 
 
+async def test_leed_box_sem_espaco_manda_111_e_4150_falso(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) oficial_20261027-152321-1 #6040-#6042: baú com a atividade cumprida e sem espaço na mochila: 111
+    "Insufficient Inventory space." e depois o 4150 com result false. O teste força a atividade e o espaço (não enche
+    a mochila)."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        monkeypatch.setattr(hev, "_leeds", lambda s, now: (0, 10))
+        monkeypatch.setattr("wartune_server.game.rewards.can_grant", lambda *a, **k: False)
+        g.client.send(8235, pb.LeedFinishedReqMsg(site=1))
+        got = await g.until(4150)
+    assert [p.code for p in got] == [111, 4150]
+    assert _alerts(got) == ["Insufficient Inventory space."]
+    assert pb.LeedFinishedRspMsg.FromString(got[-1].body).result is False
+
+
 def test_exp_rate_window_is_whole_days_in_game_time() -> None:
     rate = ExpRate(100, "2026-10-08 00:00:00", "2026-10-21 00:00:00", 0, 86399, 0)  # tutorial_en #45
     begin, end = ev.rate_window(rate)

@@ -46,6 +46,7 @@ RESOLVE_STONES = {2: 1, 3: 4, 4: 18, 5: 18}
 PET_STONES = RESOLVE_STONES | {6: 24}  # PetEquipRefineryView.getNeedPro (outro Profile: 100)
 LOCK_ITEM, LOCK_PRICE = 208027, 45  # RefreshView.REFRESHLOCK_TEMPID; cada cadeado: 1 Refinement Lock ou 45 Balens
 UNBOUND_ONLY = 2  # SmithFreshReqMsg.bindType: 0 = vinculado primeiro ("Use bound material first"), 2 = só livre
+REFINED = "Refinement Complete!"  # (visto) oficial_20261024-191924-1 #8023 (111) e #8025 (83)
 
 # ponytail: o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar)
 _pending: dict[int, list[int]] = {}
@@ -468,8 +469,9 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
         item.is_binds = True
         changed.append(item)
     # TODO(inventado): o refino sorteia como o item novo (``bag.roll_random_skill``: faixa do nível do item, tipos
-    # distintos dos travados e dos já sorteados); falta captura 8336 -> 4258 para conferir. Mascote: uniforme entre
-    # todos os atributos com Grades > 0
+    # distintos dos travados e dos já sorteados). (visto) os valores do 4258 (c1 #8024 70206, c2 #6323 70410) não
+    # dizem a regra; a regra não está no cliente (RefreshView só mostra o 4258). Mascote: uniforme entre todos os
+    # atributos com Grades > 0
     need, rng, pool = int(row.get("NeedGrades") or 0), random.Random(), bag.random_skill_pool(s.ctx.templates)
     skills = [cur if locks[i] else 0 for i, cur in enumerate(item.random_skills[:slots])]
     for i, cur in enumerate(skills):
@@ -483,12 +485,17 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
     quests = rules.quest_event(snap, s.ctx.templates, REFINE, 0, 1)
     await s.ctx.characters.save(c, *changed, *quests, *([ledger] if ledger else []), delete=tuple(gone))
 
-    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
-    if ledger is not None:
-        _player(s)
-    send(s, S_REFRESH, pb.SmithFreshRspMsg(randomSkill=skills))
+    # (visto) oficial_20261024-191924-1 #8019-#8027 (payType 0) e #6319-#6324 (payType 1): 115 dos materiais, 112 da
+    # missão, 115 do equipamento, 111, 4258 e 83, os dois com "Refinement Complete!"
+    send(s, S_ITEMS, bag.moved([i for i in changed if i is not item], s.player_id, empty=gone))
     if quests:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    send(s, S_ITEMS, bag.moved([item], s.player_id))
+    if ledger is not None:
+        _player(s)
+    send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg=REFINED))
+    send(s, S_REFRESH, pb.SmithFreshRspMsg(randomSkill=skills))
+    send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=REFINED))
 
 
 @router.on(8339)
@@ -596,12 +603,12 @@ async def transform(s: GameSession, msg: pb.StoreReqMsg) -> None:
     got = bag.add(snap, templates, msg.desItemid, n, now)
     await s.ctx.characters.save(c, *changed, *got, delete=tuple(gone))
 
-    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    # (visto) oficial_20261026-225632-1 #10315-#10320 e oficial_20261024-191924-1 #14119-#14126: 109, 115 da pedra
+    # gasta, 115 da nova, 4476, 4426 e os 4484; o oficial não manda aviso de conversão
     castle_yield(s)
+    send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     send(s, S_ITEMS, bag.moved(got, s.player_id))
-    _gained(s)  # (só turco: degerli_tas_nitelik_sistemi #6-#7)
-    # texto deduzido (sem fonte no cliente/captura); termo conversion do language.txt
-    alert(s, "Conversion successful")
+    _gained(s)
 
 
 def mould_rate(item: Item) -> int:
