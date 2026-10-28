@@ -187,6 +187,12 @@ PvE de `game/battle.py` com esses nós; sem eles o cliente carregaria um mapa va
   e depois, o 45 e o 4143. Sem isso, a tabela e a forma da resposta do x10 não saem de lugar nenhum.
 - **Guerra entre servidores (4601)**: só se o evento reabrir (inscrição 8779 e a resposta 4682 com
   `info`, depois o time 8778 e a entrada 8783).
+- **Guerra de guildas, família 4439-4462 (mapa de campanha 101932, nós 450102/450104...)**: não implementada. Vista
+  nas capturas de 23 a 27/10: 4439 (`guildWarInfos` com `score`) e 4441 (grupo), 4450 (`nodeHp` do campo, 60000000
+  de HP por nó), 4453, 4457, 4458 (`fightPower`), 4460 (`woundInfo` de cada jogador), 4462 (`redCount` x `blueCount`).
+  Disparada por 5008 e 5006 (*visto* oficial_20261026-225632-1 #5834 `5008 -> 4439, 4460`; #5970 `5006 -> 113, 4439,
+  4460, 4450`). Depende do mapa do GvG (`CampaignInfo` tipo 9, ver [diversos.md](diversos.md)): sem ele o nó e o
+  placar não têm onde existir.
 
 **Fechado pelo template**: `CrossGuild_TimeOutDate` é 2025-11-14 (fim do ícone) e a inscrição
 (`GuildSignOpen`/`GuildSignStop`) foi de 2025-09-16 a 2025-09-20. A guerra entre servidores está

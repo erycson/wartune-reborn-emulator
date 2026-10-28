@@ -75,6 +75,8 @@ Pacotes extras do login, conferidos com `captures/tutorial_en.json` (conta nova)
 - Mandados: 4434 (vazio sem contrato comprado, como o oficial), 83 (devoção, #16), 100 (tropas do castelo, logo
   depois do 150, mesmo vazio: #37-#39), 4544 (destino, vazio no nível 1: #42), 4590 e 514 (super assinatura, `param1`
   2059, com as datas da edição do `game_settings.super_signin`: tutorial_en #110-#111, oficial_encantar #118-#119), 4922 (só com tabuleiro gravado) e as respostas a 8530, 8218, 8209, 8625 e 8322.
-- Não mandados, como o oficial: 4224/4372 (alquimia e alma: o 8320/8466 do nível 1 fica sem resposta, #17-#18; o
-  cliente pede de novo no nível 14 e no 24), 4905 (cartas, só com carta), 4535 (Senhores, #104-#106) e 4900
+- Mandados a partir dos níveis dos pedidos: 4224 (alquimia, nível 14) e 4372 (alma, `RefiningSoul_Grades` 24), logo
+  depois do 100 (*visto* oficial_20261027-152321-1 #8-#9, nível 30; o mesmo em 23 a 26/10). O nível 1 (tutorial_en)
+  não manda, e o 8320/8466 dele fica sem resposta (#17-#18). Limiar do login não verificado entre 14 e 24.
+- Não mandados, como o oficial: 4905 (cartas, só com carta), 4535 (Senhores, #104-#106) e 4900
   `KingTowerInfoMsg {0, 0}` (#100), que só leva o padrão do protobuf (a torre do rei não existe aqui).
