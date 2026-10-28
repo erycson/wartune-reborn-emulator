@@ -15,8 +15,8 @@ import pytest
 
 from tests.game.harness import logged_in
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import Quest
-from wartune_server.game import bag, rules
+from wartune_server.domain.models import Building, Pawn, Quest
+from wartune_server.game import bag, castle, rules
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
@@ -177,17 +177,28 @@ GRAU: dict[int, int] = {
     765: 20,
     768: 20,
     769: 22,
+    501: 24,
+    502: 24,
+    503: 25,
+    530: 31,
+    551: 24,
+    581: 24,
+    621: 24,
+    623: 25,
+    681: 25,
+    711: 26,
+    721: 29,
+    731: 29,
+    751: 29,
 }
-
-EXERC = "subida de nível: o servidor reabastece o exército (104/110/152/4130) antes do 150; o oficial não manda. Teste monta exército de novato, estado da captura não reproduzido"
 
 PENDENTES = {
     310: "recompensa com atividades 4484/111/114/4131/149 de outras áreas fora da entrega de missão",
-    400: EXERC,
-    412: EXERC,
-    430: EXERC,
-    480: EXERC,
-    570: EXERC,
+    400: "subida 23 -> 24 (refinaria e tecnologia): o oficial manda 109 e 152 e põe o 83 da EXP no meio; o servidor põe no fim",
+    412: "subida 22 -> 23: o servidor manda 52 que o oficial não manda, e o 83 da EXP no fim (ordem do oficial no meio)",
+    430: "subida 24 -> 25: o oficial põe o 83 da EXP antes do 100; o servidor manda 52 e o 83 no fim",
+    480: "subida 25 -> 26: o oficial põe o 83 da EXP antes do 100; o servidor manda 52 e o 83 no fim",
+    570: "subida 28 -> 29: o servidor manda 52 que o oficial não manda; o 83 da EXP no fim",
     223: "recompensa com 4484/111 (pacote inicial) e 115 de itens: janela mistura outras áreas",
     241: "bênção do altar (tipo 30): 109 duplicado e 83 de devoção; ordem não conferida, gancho em altar.py",
     271: "árvore (tipo 20): 115 e 4476 fora da entrega; o teste não monta a árvore regada",
@@ -198,22 +209,12 @@ PENDENTES = {
     768: "reciclagem (tipo 46): gancho em forge.py; a janela tem 4484/4260/111 de outras ações",
     769: "refino (tipo 47): gancho em forge.py; oficial sem 83 da EXP, causa não confirmada",
     3: "Astro (tipo 36, stars.py): janela do oficial traz 109 e 3 da Daru; a contagem de 36 não é reproduzida no teste",
-    6: "Forgotten Catacombs (tipo 38): gancho em campaign.py (masmorra), não reproduzido no teste",
+    6: "Forgotten Catacombs (tipo 38): gancho em tower.py:172 existe; janela com 4484/4426/4476 de recompensa não reproduzida",
     224: "guilda (tipo 22/29, oferta de guilda): o teste não monta guilda com contribuição",
     370: "item de bolsa (tipo 28) com 4476/4426/4484 de outras áreas na janela",
     390: "mapa (tipo 37): o personagem precisa estar no mapa da condição, não montado",
-    501: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
-    502: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
-    503: "Amethyst Rush (tipo 86): gancho em outer_city/mines, não reproduzido",
     530: "campanha (tipo 14, boss 9002): janela com 4484 de outras áreas",
-    551: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
-    581: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
     621: "prédio (tipo 2): janela com 4594 de outras áreas",
-    623: "estrela travada (tipo 53, stars.py): gancho do dono de stars, não reproduzido",
-    681: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
-    711: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
-    721: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
-    731: "prédio (tipo 2): nível do prédio do castelo não montado no teste",
     751: "prédio (tipo 2) e 4638 da missão 130: janela com 100/150 de subida de nível",
     758: "battleground (tipo 44): sistema inexistente",
     759: "chefe mundial (tipo 40, 10 batalhas): gancho em worldboss.py, não reproduzido",
@@ -241,6 +242,14 @@ async def test_entrega_ate_nivel_10_bate_com_o_oficial(tmp_path: Path, template_
         assert session is not None and session.snapshot is not None
         snap = session.snapshot
         snap.character.grades = GRAU[template_id]
+        snap.character.novice_process = castle.CASTLE_READY  # o castelo já está pronto (8281 feito), como no oficial
+        castle.ensure(snap, g.server.services.templates, now)  # o castelo já montado no login: filas e prédios do nível
+        # exército cheio (o oficial não manda 139 "Insufficient Troops"): o líder sobe de nível na entrega, então o
+        # limite do nível seguinte não é conhecido aqui; um número acima dele basta
+        pawn = rules.army_pawn(snap) or Pawn(g.user_id, 10101)
+        if pawn not in snap.pawns:
+            snap.pawns.append(pawn)
+        pawn.army_count = 100000
         if 150 in codigos:  # subida de nível no oficial: EXP logo abaixo do limite do próximo grau (UpGradeTempInfos)
             snap.character.total_gp = dict(rules.grade_steps(templates))[GRAU[template_id] + 1] - 1
         q = Quest(g.user_id, template_id, now)
@@ -254,6 +263,14 @@ async def test_entrega_ate_nivel_10_bate_com_o_oficial(tmp_path: Path, template_
                 assert snap.castle is not None
                 snap.castle.map_id = para2
                 rules.update_state_quests(snap, templates, [q])
+            elif kind == rules.BUILDING_CONDITION:  # o prédio já está no nível pedido (update_building_quests)
+                row = next(
+                    r
+                    for r in templates.find("BuildingTempInfos", SonType=row["Para1"])
+                    if int(r["BuildingGrade"]) == para2
+                )
+                snap.buildings.append(Building(snap.character.id or 0, int(row["TemplateId"])))
+                rules.update_building_quests(snap, templates)
             else:
                 rules.quest_event(snap, templates, kind, para1, para2 or 1)
         await g.server.services.characters.save(*snap.items)  # o item da bolsa precisa existir no banco (como no jogo)
@@ -261,5 +278,5 @@ async def test_entrega_ate_nivel_10_bate_com_o_oficial(tmp_path: Path, template_
         got = await g.idle(0.5)
         # texto do 83 entre aspas, como na tabela (o encodeMsg cru do pacote)
         textos = [f'"{pb.ChatChannelMsg.FromString(p.body).encodeMsg}"' for p in got if p.code == 83]
-        assert [p.code for p in got] == codigos
+        assert [p.code for p in got] == codigos, " ".join(str(p.code) for p in got)
         assert textos == textos_83

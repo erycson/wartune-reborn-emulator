@@ -347,3 +347,18 @@ Teste: tests/game/test_missoes_capturas.py (tabela OFICIAL e GRAU gerada de S\q\
 | 3, 6, 224, 370, 390, 501, 502, 503, 530, 551, 581, 621, 623, 681, 711, 721, 731, 751, 758, 759, 762, 766, 767, 818, 846, 847 | 23 a 31 | pendente (xfail) | ver tests/game/test_missoes_capturas.py | prédio (2) sem nível montado; gancho de outro sistema (campanha 38, mapa 37, battleground 44/45, war camp 50, mines 86, worldboss 40/41, stars 53); guilda (22/29/49) sem montagem; janela com 4484/4594 de outras áreas |
 
 Causa de cada um: não diagnosticada individualmente (janela e estado). O motivo é por tipo de condição, não por diferença medida.
+
+### Rodada 5 (missões: subida de nível, prédios, lote 21-31)
+
+O teste agora monta o castelo como no login (`castle.ensure`: filas, prédios do nível, produção), com `novice_process` no `CASTLE_READY` e exército cheio (tropa 10101 com `army_count` acima do limite do líder). Prédio (tipo 2) entra no `snap.buildings` no nível da condição e vale `rules.update_building_quests`. Grau das entregas novas vem do 3 antes do 5014 na captura (`x_20261024-191924-1` a `x_20261027-152321-1`).
+
+| id | nível | estado | #idx | motivo (resumo) |
+|---|---|---|---|---|
+| 501, 502, 551, 581, 681, 711, 721, 731 | 24 a 29 | passa (xfail tirado) | 15323, 15335, 15345, 15355, 20221, 4305, 13191, 487 | prédio (tipo 2) no nível da condição |
+| 400, 412, 430, 480, 570 | 22 a 28 | pendente (xfail) | 15035, 17367, 19336, 3001, 12635 | subida de nível: a fila de cobrança e o exército agora estão montados; falta a ordem do 83 da EXP (oficial no meio) e o 52 que o servidor manda a mais, além de 152/109 da subida 23 -> 24 |
+| 6 | 23 | pendente (xfail) | 12125 | catacumbas: gancho em tower.py:172 existe; a janela tem 4484/4426/4476 de recompensa não reproduzida |
+| 241 | 20 | pendente (xfail) | 1965 | bênção do altar: não foi refeita pelo handler 5145 nesta rodada (precisa de guilda com altar e a ordem da janela não confere) |
+| 768 | 20 | pendente (xfail) | 2274 | reciclagem: não foi refeita pelo handler 8340 nesta rodada (precisa de equipamento na bolsa e a janela tem 4484/4260/111) |
+| 86 (503) | 23 | pendente (xfail) | 1931 | Amethyst Rush: `AMETHYST_CONDITION` não tem gancho no servidor |
+
+Dos 26 casos do lote, 8 passaram (acima). Os outros continuam em xfail, cada um com o motivo na PENDENTES do teste (ver a tabela da rodada 4 para a causa de cada tipo).
