@@ -68,8 +68,15 @@ def handled() -> dict[int, tuple[str, str]]:
 
 def main() -> None:
     paths = [Path(a) for a in sys.argv[1:]] or [p for p in DEFAULT if p.exists()]
-    c2s, where, _ = seen(paths)
+    c2s, where, s2c = seen(paths)
     hs = handled()
+    src = "\n".join(p.read_text(encoding="utf-8") for p in (ROOT / "src").rglob("*.py"))
+    nums = {int(n) for n in re.findall(r"\b(\d{2,5})\b", src)}
+    print("## Mensagens do oficial (S>C) que o servidor nunca manda")
+    for code, n in s2c.most_common():
+        if code not in nums:
+            print(f"{code}\t{n}x")
+    print()
     print("## Pedidos vistos sem handler")
     for code, n in c2s.most_common():
         if code not in hs:
