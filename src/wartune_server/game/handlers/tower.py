@@ -118,13 +118,12 @@ async def _enter(s: GameSession, tower: mz.Tower) -> None:
     templates = s.ctx.templates
     floor_map = mz.map_of(tower.index)
     full = mz.content(templates, _cfg(s))
-    content = {**full, "maps": {**full["maps"], str(floor_map): mz.from_town(full["maps"][str(floor_map)])}}
     s.send(S_TOWER_INFO, mz.info(tower, _cfg(s)))
     ch._send(s, ch.S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
-    s.campaign = c = CampaignMap.enter_dungeon(content, floor_map)
-    c.content = full  # pelo portal, o início dos outros andares é o 40
+    s.campaign = c = CampaignMap.enter_dungeon(full, floor_map)
+    c.content = full
     created = pb.RoomCreatedMsg(createdType=ch.ENTER)
     created.room.campaignId = floor_map
     ch._send(s, ch.S_ROOM_CREATED, created)

@@ -313,7 +313,7 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 - **Progresso de campanha e mapa 2011**: o estado dos nós da masmorra não é salvo (só a etapa da vez, a melhor nota, a carta e as missões). A varredura (8528) precisa do progresso. Ver [mundo-compartilhado.md](mundo-compartilhado.md).
 - **Lista de soldados por mapa (5038)**: as campanhas no banco levam a sua (`maps[mapa].army`, inglesa
   #924, #1524, #2513); fora delas só o 2011 (só turco: peri_uyanis). Os demais mapas precisam de captura do 5038 de cada um.
-- **Labirinto**: o Necropolis (8101, segunda aba) não tem andares (shortcut). Os números dos andares acima do 3 (força, drop, baú) seguem os dois vistos (**TODO(inventado)** em `game/maze.py`).
+- **Labirinto**: o Necropolis (8101, segunda aba) não tem andares (shortcut). Os andares 1 a 25 estão vistos nas capturas de 24 a 27/10 (`content/maze_floors.json`: nós, monstro, força, baú dos 5, 10, 15 e 20). Do 26 em diante é dedução: o sonType e a força são chutes (**TODO(inventado)**), o baú do 25 não foi visto, e o drop de monstro (2090101 x2) não foi conferido. As capturas param no 25: o 30 que se fala ainda não tem prova. Os baús têm uma gema de nível 1 que varia (2050101, 2050501, 2050701 nos vistos), e a da varredura não foi confirmada.
 - **Gemas da guarda de batalha**: `WorldBossHelper.checkMaze` pede inventário de gemas do labirinto. O
   login oficial manda o 4631 com `watchInfo`; falta captura de jogador sem gema e com gema, e saber o que
   `jion1` (3120101) é.

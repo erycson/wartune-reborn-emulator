@@ -4,11 +4,11 @@ Fontes (docs/salas-campanha.md): (só turco: yeralti_labirenti_ve_ilk_mob, labir
 varredura do andar 1, a entrada no 8002, a luta e o portal para o 8003; (cliente) ``MazeFrame``,
 ``MazeMopupPrepareFrame``, ``MazeMopupIngFrame``, ``PosType`` (40 início, 42 monstro, 62 portal).
 
-Andar ``k`` = mapa ``8000 + k`` (``MapInfos`` 8001-8100) com o monstro de TemplateId ``7000 + k``: (visto, só turco)
-8002 "Acımasız Kurt" = PawnTemp 7002 "Vixar Worg", 8003 "Öfkeli Kurt" = 7003 "Rage Worg". Os templates vão até
-7100, e a cada 5 o 7000+k é um GameHeroTemp ("Crypt Guardian"): (dedução) andar de chefe. Cada andar tem três nós
-(o captado): o início ``mapa*100+1``, o monstro ``+2`` (``param3`` ele mesmo, ``param4`` o portal) e o portal ``+4``
-(state 16 até o monstro cair, ``param1`` o próximo mapa).
+Andar ``k`` = mapa ``8000 + k`` (``MapInfos`` 8001-8100) com o monstro de TemplateId ``7000 + k``. Os andares 1 a 25
+foram vistos nas capturas e estão em ``content/maze_floors.json`` (nós, monstro, poder de luta, baús); o resto é
+regra deduzida. Os nós de cada andar (127): o início ``mapa*100+1``, o monstro ``+2`` (``param3`` ele mesmo, ``param4``
+o portal), o baú ``+3`` (só a cada 5 andares, visível) e o portal ``+4`` (state 16 até o monstro cair, ``param1`` o
+próximo mapa). Nos andares de chefe (5, 10, ...) o monstro tem ``heroTempId`` = ``7000 + k``.
 
 Estado em ``EventState`` ``maze`` (``text`` JSON). Regras em ``game_settings.maze`` (migração 0087).
 """
@@ -19,6 +19,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import lru_cache
+from importlib import resources
 from typing import Any
 
 from ..domain import gameday
@@ -38,17 +39,19 @@ START, MONSTER, PORTAL, CHEST = 1, 2, 4, 3  # campDataId = mapa * 100 + isto
 NODE_START, NODE_MONSTER, NODE_SEND, NODE_HANDLER = 40, 42, 62, 61
 HIDDEN_PORTAL = 16  # (visto) o portal até o monstro cair; o 128 depois da vitória leva 1
 FOG_ROWS, FOG_COLS = 18, 14  # (visto) 130 do 8003: tudo visível
+# (visto) layouts por faixa de andar, nós dos andares 1-25 e baús dos chefes vistos (5, 10, 15, 20)
+_SEEN: dict[str, Any] = json.loads(
+    resources.files("wartune_server.content").joinpath("maze_floors.json").read_text(encoding="utf-8")
+)
 DEFAULT: dict[str, Any] = {
     "floors": 100,  # MapInfos 8001-8100 e os monstros 7001-7100
-    # (só turco) base 400 no andar 1 (4205 totalGp 400 depois da varredura) e 800 no 2 (17.600 = 800 + 8.000 do mundo
-    # + 8.800 descansada); o totalGp 123.600 no andar 5 fecha com 400 * k (400 + 17.600 + 26.400 + 35.200 + 44.000)
+    # (visto) 4205 totalGp = 200 * k * (k + 1) depois de vencer o andar k (400, 1200, ... 76000, 84000, 120000)
     "gp_per_floor": 400,
     "free_enter": 1,  # (visto, só turco) freeEnterCount 1, maxEnterCount 1 em todos os 4205
     "max_enter": 1,
     "drops": [[2090101, 2, 1.0]],  # (só turco: yeralti #69) Minor HP Pack x2 no 8002; TODO(inventado) o mesmo em todos
-    # (só turco: labirent_sandik #2, #16) o baú do andar 5: Lvl. 1 Physical Defense Gem x2 e Crypt Tokens x2;
-    # TODO(inventado) o mesmo baú depois de cada chefe (a cada ``chest_every`` andares)
-    "chest": [[2050201, 2], [208009, 2]],
+    # baú dos andares não vistos (25 em diante): TODO(inventado) o do andar 5 (visto em content/maze_floors.json)
+    "chest": [[2050701, 2], [208009, 2]],
     "chest_every": 5,
     "key": 208008,  # Crypt Key (sonType 297): o lucro dobrado (isDouble 2) gasta uma (cliente: MazeFrame)
     "revive": 25,  # (cliente) MazeRiverView.content01: "Reviving will consume 25 Balens"
@@ -197,31 +200,52 @@ def _battle(templates: GameTemplates, cfg: dict[str, Any], floor: int) -> dict[s
     return spec
 
 
+def _layout(floor: int) -> dict[str, Any]:
+    """(visto) as posições mudam em 11 e em 21; o andar 1-25 cai numa das três faixas."""
+    key = max(int(k) for k in _SEEN["layouts"] if int(k) <= floor)
+    return dict(_SEEN["layouts"][str(key)])
+
+
 def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) -> dict[str, Any]:
     m = map_of(floor)
     camp = m * 100
-    start = _node(camp + START, NODE_START, 2301, 2, (25, 20), (509, 409))
+    lay = _layout(floor)
+    seen = _SEEN["floors"].get(str(floor))
+    last = _SEEN["floors"][str(max(int(k) for k in _SEEN["floors"]))]
+    # (visto) 1-25: o início é 40 com state 2 nos andares ímpares e 62 com state 1 nos pares (8001 #12046 é 40/2, 8002
+    # #12116 é 62/1). Causa não achada; por isso o from_town saiu.
+    odd = floor % 2 == 1
+    start = _node(camp + START, NODE_START if odd else NODE_SEND, 2301, 2 if odd else 1, lay["start"][:2],
+                  lay["start"][2:4])  # fmt: skip
     tid = MONSTER_BASE + floor
     hero = templates.get("GameHeroTemp", tid)
-    name = (hero or {}).get("TemplateName") or (templates.get("PawnTempInfos", tid) or {}).get("PawnName", "")
-    monster = _node(camp + MONSTER, NODE_MONSTER, 2116, 1, (37, 32), (748, 649))
-    after = [str(camp + PORTAL)] if floor < top else []  # o último andar não tem portal
-    chest = None
-    if floor % int(cfg["chest_every"]) == 0:
-        # TODO(inventado): o nó do baú (a captura só tem o 128 dele): COPY_HANDLER escondido até o chefe cair
-        chest = _node(camp + CHEST, NODE_HANDLER, 2336, HIDDEN_PORTAL, (43, 38), (868, 759))
-        after.insert(0, str(camp + CHEST))
-    # (visto) nameColor 5, toward 180, resource 1, handlerRange 2; o sonType 2116 é o desenho do lobo: TODO(inventado)
-    # o mesmo nos outros andares; fightCapaity 1003 no 8002 e 1074 no 8003: TODO(inventado) +71 por andar
+    pawn = templates.get("PawnTempInfos", tid)
+    name = (seen or {}).get("name") or (hero or {}).get("TemplateName") or (pawn or {}).get("PawnName", "")
+    # TODO(inventado) andares 26+: o sonType 2116 e o poder de luta do último andar visto (25) são chutes
+    monster = _node(camp + MONSTER, NODE_MONSTER, (seen or {}).get("son", 2116), 1, lay["monster"][:2],
+                    lay["monster"][2:4])  # fmt: skip
     monster |= {
         "nodeName": name, "nameColor": 5, "toward": 180, "resource": 1, "handlerRange": 2,
-        "fightCapaity": 1003 + 71 * (floor - 2), "param3": str(camp + MONSTER), "param4": "|".join(after),
+        "heroTempId": tid if hero is not None else -1, "fightCapaity": (seen or last)["fight"],
+        "param3": str(camp + MONSTER), "param4": str(camp + PORTAL) if floor < top else "",
     }  # fmt: skip
-    portal = _node(camp + PORTAL, NODE_SEND, 2336, HIDDEN_PORTAL, (49, 43), (988, 869))
-    portal |= {"resetX": 47, "resetY": 41, "param1": map_of(floor + 1) if floor < top else 0}
-    nodes = [start, monster, portal] + ([chest] if chest else [])
+    portal = _node(camp + PORTAL, NODE_SEND, 2336, HIDDEN_PORTAL, lay["portal"][:2], lay["portal"][2:4])
+    portal |= {
+        "resetX": lay["portal"][4],
+        "resetY": lay["portal"][5],
+        "param1": map_of(floor + 1) if floor < top else 0,
+    }
+    nodes = [start, monster, portal]
+    if floor % int(cfg["chest_every"]) == 0:
+        # (visto) o baú é visível (state 1, nameColor 4) e não vai no param4; o sonType alterna 2202 (5, 15, 25) e 2203
+        # (10, 20): TODO(inventado) para os andares 26 em diante
+        cx = lay["chest"]
+        chest = _node(camp + CHEST, NODE_HANDLER, 2202 if floor % 10 == 5 else 2203, 1, cx[:2], cx[2:4])
+        chest |= {"nodeName": "Treasure Chest", "nameColor": 4, "resetX": cx[4], "resetY": cx[5]}
+        nodes.append(chest)
     zero = "00" * FOG_COLS
-    return {"start": [25, 20], "nodes": nodes, "fog": {"row": FOG_ROWS, "col": FOG_COLS, "forArray": [zero] * FOG_ROWS}}
+    return {"start": lay["start"][:2], "nodes": nodes,
+            "fog": {"row": FOG_ROWS, "col": FOG_COLS, "forArray": [zero] * FOG_ROWS}}  # fmt: skip
 
 
 @lru_cache(maxsize=4)
@@ -238,20 +262,11 @@ def _content(templates: GameTemplates, cfg_json: str) -> dict[str, Any]:
         if floor < top:
             out["portals"][str(m * 100 + PORTAL)] = map_of(floor + 1)
         if floor % int(cfg["chest_every"]) == 0:
-            out["maze_chests"][str(m * 100 + CHEST)] = cfg["chest"]
+            # (visto) 5, 10, 15, 20: o baú de cada chefe (ganho do 4205); o resto é o ``chest`` da configuração
+            out["maze_chests"][str(m * 100 + CHEST)] = _SEEN["chests"].get(str(floor), cfg["chest"])
     return out
 
 
 def content(templates: GameTemplates, cfg: dict[str, Any]) -> dict[str, Any]:
     """Os andares todos, no formato do ``campaign_contents`` (``CampaignMap.enter_dungeon``)."""
     return _content(templates, json.dumps(cfg, sort_keys=True))
-
-
-def from_town(floor_map: dict[str, Any]) -> dict[str, Any]:
-    """(visto, só turco: yeralti #37) entrando da cidade (8296) o nó do início é 62 com state 1; pelo portal (#84) é
-    o 40 com state 2."""
-    out = dict(floor_map)
-    out["nodes"] = [
-        n | {"masterType": NODE_SEND, "state": 1} if n["campDataId"] % 100 == START else n for n in floor_map["nodes"]
-    ]
-    return out

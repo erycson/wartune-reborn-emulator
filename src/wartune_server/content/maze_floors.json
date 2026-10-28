@@ -1,0 +1,41 @@
+{
+  "fonte": "(visto) capturas 24/10 #12046-#13771 (andares 1-20), 25/10 #9658-#10906 (andares 20-25), 26/10 #13286 (andar 25); os nós do 127 de cada andar; os baús pelo ganho do itemTempIds do 4205 depois de vencer o andar",
+  "layouts": {
+    "1": {"start": [25, 20, 509, 409], "monster": [37, 32, 748, 649], "portal": [49, 43, 988, 869, 47, 41], "chest": [42, 38, 848, 769, 40, 36]},
+    "11": {"start": [25, 20, 509, 409], "monster": [35, 31, 709, 629], "portal": [49, 42, 989, 849, 47, 40], "chest": [43, 36, 869, 729, 41, 34]},
+    "21": {"start": [26, 23, 529, 470], "monster": [37, 33, 749, 669], "portal": [52, 37, 1049, 749, 49, 37], "chest": [43, 37, 868, 749, 41, 36]}
+  },
+  "floors": {
+    "1": {"son": 2116, "name": "Tenacor Worg", "fight": 929},
+    "2": {"son": 2116, "name": "Vixar Worg", "fight": 1003},
+    "3": {"son": 2116, "name": "Rage Worg", "fight": 1074},
+    "4": {"son": 2116, "name": "Berserker Worg", "fight": 1148},
+    "5": {"son": 2146, "name": "Bloodthirsty Narosa", "fight": 2883},
+    "6": {"son": 2109, "name": "Tenacor Guardian", "fight": 1292},
+    "7": {"son": 2109, "name": "Vixar Guardian", "fight": 1364},
+    "8": {"son": 2109, "name": "Rage Guardian", "fight": 1437},
+    "9": {"son": 2109, "name": "Berserker Guardian", "fight": 1509},
+    "10": {"son": 2137, "name": "Lawrence the Wretched", "fight": 3662},
+    "11": {"son": 2104, "name": "Tenacor Eidolon", "fight": 2234},
+    "12": {"son": 2104, "name": "Vixar Eidolon", "fight": 2372},
+    "13": {"son": 2104, "name": "Rage Eidolon", "fight": 2579},
+    "14": {"son": 2104, "name": "Berserker Eidolon", "fight": 2667},
+    "15": {"son": 2142, "name": "Faen the Cursed", "fight": 4821},
+    "16": {"son": 2107, "name": "Tenacor Warrior", "fight": 3542},
+    "17": {"son": 2107, "name": "Vixar Warrior", "fight": 3630},
+    "18": {"son": 2107, "name": "Rage Warrior", "fight": 3717},
+    "19": {"son": 2107, "name": "Berserker Warrior", "fight": 3806},
+    "20": {"son": 2401, "name": "Rontao the Bastille", "fight": 10446},
+    "21": {"son": 2105, "name": "Tenacor Rogue", "fight": 5364},
+    "22": {"son": 2105, "name": "Vixar Rogue", "fight": 5466},
+    "23": {"son": 2105, "name": "Rage Rogue", "fight": 5566},
+    "24": {"son": 2105, "name": "Berserker Rogue", "fight": 5667},
+    "25": {"son": 2143, "name": "Kelon the Insane", "fight": 15938}
+  },
+  "chests": {
+    "5": [[2050701, 2], [208009, 2]],
+    "10": [[2050101, 2], [208009, 4]],
+    "15": [[2050101, 2], [208009, 2]],
+    "20": [[2050501, 2], [208009, 6]]
+  }
+}

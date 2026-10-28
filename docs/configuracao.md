@@ -90,7 +90,7 @@ código usa o mesmo padrão.
 | `game_settings` `star_weights` | estrelas (8269): `{"<Profile>": [peso no cristal 0, 1, 2, 3, 4]}`; Profile fora do JSON não sai |
 | `game_settings` `star_open_next` | chance (0 a 1) de um sorteio de estrela acender o cristal seguinte (0.3) |
 | `game_settings` `vehicle_tech` | tecnologia de tanque do 4501 (`NeedGrades` dos veículos 365/915); padrão 218 (visto no inglês; o turco manda 18218), sem regra conhecida |
-| `game_settings` `maze` | Forgotten Catacombs (0087, `game/maze.py` `DEFAULT`): `floors`, `gp_per_floor`, `free_enter`/`max_enter`, `drops`, `chest`/`chest_every`, `key` (Crypt Key), `revive` (Balens), `sweep_from` |
+| `game_settings` `maze` | Forgotten Catacombs (0087, `game/maze.py` `DEFAULT`): `floors`, `gp_per_floor`, `free_enter`/`max_enter`, `drops`, `chest` (fallback dos andares sem baú visto; o do andar 5 é 2050701 x2 + 208009 x2, migração 0097), `chest_every`, `key` (Crypt Key), `revive` (Balens), `sweep_from` |
 | `game_settings` `campaign_sweep` | varredura de campanha (0085): `round_gold` por campanha (`{"1007": 6000}`) |
 | `game_settings` `gem_maze_reward_weights` | labirinto de gemas, um peso por prêmio na ordem 2060008 x1, 208027 x1, 208014 x2 (`[1, 1, 1]`) |
 | `game_settings` `mall_daily_limit` | limite diário de compra no leilão, em diamante, por nível: `{"bands": [[nível abaixo de, limite], ...], "top": limite}`. Sem a linha (padrão, como a ajuda inglesa): sem limite. Recusa com -52 |
