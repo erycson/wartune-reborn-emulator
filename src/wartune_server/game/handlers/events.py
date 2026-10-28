@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import calendar
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 
 from ...domain import gameday
 from ...domain.models import BagType, EventState, PlayerSnapshot, Quest, StarBag
@@ -109,19 +109,34 @@ def send_rate(s: GameSession) -> None:
 
     O multiplicador não é aplicado aqui: a captura (tutorial_en #45) foi feita com o evento ativo, e o EXP das lutas
     e do fim da masmorra já vem dela (630 = BaseGp 600 x 1,05, sem dobrar)."""
-    rates = ev.running_rates(s.ctx.world, s.ctx.clock.now())
-    if rates:
-        msg = pb.RateUpdateReqMsg()
-        for r in rates:
-            msg.rateInfo.add(
-                rate=r.rate,
-                beginTime=r.begin_time,
-                endTime=r.end_time,
-                beginDay=r.begin_day,
-                endDay=r.end_day,
-                bufferType=r.buffer_type,
-            )
-        s.send(S_RATE, msg)
+    msg = pb.RateUpdateReqMsg()
+    for r in ev.running_rates(s.ctx.world, s.ctx.clock.now()):
+        msg.rateInfo.add(
+            rate=r.rate,
+            beginTime=r.begin_time,
+            endTime=r.end_time,
+            beginDay=r.begin_day,
+            endDay=r.end_day,
+            bufferType=r.buffer_type,
+        )
+    s.send(S_RATE, msg)  # (visto) sem evento vai vazio: o login das 7 capturas de 23-24/10 (113904 #47 ... 191924 #43)
+
+
+RATE_PHASE = 0.0  # segundos depois do múltiplo de 300; o oficial usa ~114,2 (todas as capturas de 23-24/10)
+
+
+def rate_refresh(s: GameSession, now: datetime) -> None:
+    """4247 uma vez por janela de 5 min, com uma linha zerada (``beginDay`` = a época no fuso do servidor,
+    "1969-12-31 16:00:00"): (visto) 113904, 153200, 171155, 215937, 231733, 121659 e 191924, sempre sem evento de
+    EXP. (dedução) só sem evento: a tutorial_en, com evento (#45), não tem periódico em 40 min. Vai no 20008."""
+    tick = int((now.timestamp() - RATE_PHASE) // 300)
+    if s.rate_tick is None or tick == s.rate_tick:
+        s.rate_tick = tick
+        return
+    s.rate_tick = tick
+    if not ev.running_rates(s.ctx.world, now):
+        epoch = b.fmt_time(gameday.local(datetime.fromtimestamp(0, UTC)))
+        s.send(S_RATE, pb.RateUpdateReqMsg(rateInfo=[pb.RateUpdate(beginDay=epoch, endDay=epoch)]))
 
 
 async def leave(s: GameSession) -> None:

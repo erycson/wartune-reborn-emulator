@@ -245,6 +245,43 @@ async def use_trial_card(s: GameSession, item: Item, row: Mapping[str, str], n: 
     return True
 
 
+async def use_covenant(s: GameSession, item: Item, row: Mapping[str, str], n: int) -> bool:
+    """Spirit Covenant (SonType 203, ``Property1`` 13): os contratos 1-6 por ``Property2`` horas cada unidade,
+    somadas ao que falta. (visto) oficial_20261024-191924-1 #1791-#1801: 115, um 4434 a cada contrato (1, 1-2, 1-3,
+    150, 1-4, 1-5, 1-6), 111 "Spirit Covenant activation successful." e 3."""
+    from .player import _army
+
+    snap = s.snapshot
+    assert snap is not None
+    hours = int(row.get("Property2") or 0) * n
+    if hours <= 0:
+        return False
+    now = s.ctx.clock.now()
+    gone = bag.take_one(snap, item, n)  # antes de qualquer await
+    changed = []
+    for cid in KING_ALL:
+        st = ev.state(snap, f"king:{cid}", now)
+        st.text, st.updated_at = b.fmt_time(max(now, ev.contract_end(snap, cid) or now) + timedelta(hours=hours)), now
+        changed.append(st)
+    if gone:
+        await s.ctx.characters.save(*changed, delete=(item,))
+    else:
+        await s.ctx.characters.save(*changed, item)
+    s.send(S_ITEMS, bag.moved([] if gone else [item], s.player_id, empty=[item] if gone else []))
+    for k, cid in enumerate(KING_ALL):
+        msg = pb.KingContractMsg()
+        for prev in KING_ALL[: k + 1]:
+            end = ev.contract_end(snap, prev)
+            assert end is not None
+            msg.kingContractInfos.add(contractId=prev, endData=b.fmt_time(end))
+        s.send(S_KING, msg)
+        if cid == 3:  # (visto) o 150 depois do 3º (Power of Healing); (dedução) o HP do herói
+            _army(s)
+    alert(s, "Spirit Covenant activation successful.")
+    _player(s)
+    return True
+
+
 def _wheel_taken(snap: PlayerSnapshot) -> list[int]:
     st = ev.peek(snap, WHEEL)
     return list(json.loads(st.text)) if st and st.text else []

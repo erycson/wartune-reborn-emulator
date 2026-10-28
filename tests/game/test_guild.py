@@ -1,6 +1,7 @@
 from datetime import timedelta
 from pathlib import Path
 
+import pytest
 from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
@@ -9,6 +10,7 @@ from wartune_server.game import bag, rules
 from wartune_server.game import events as ev
 from wartune_server.game import guild as gd
 from wartune_server.game.handlers import guild as handlers
+from wartune_server.game.handlers.guild import altar
 from wartune_server.game.session import GameSession
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -354,7 +356,13 @@ async def test_guild_market_counts_bought_bag_slots(tmp_path: Path) -> None:
         assert [i.pos for i in snap.items if i.pos >= 42] == [42]
 
 
-async def test_altar_bless_and_take(tmp_path: Path) -> None:
+def _prize(monkeypatch: pytest.MonkeyPatch, site: int, pick: int = 0) -> None:
+    """Força a casa e a opção ``pick`` da lista de prêmios dela."""
+    monkeypatch.setattr(altar._rng, "choice", lambda xs: site)
+    monkeypatch.setattr(altar._rng, "choices", lambda xs, weights: [xs[pick]])
+
+
+async def test_altar_bless_and_take(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         c = _char(a)
@@ -365,25 +373,70 @@ async def test_altar_bless_and_take(tmp_path: Path) -> None:
         _guild(a).altar_level = 1
         a.client.send(8217)
         sites = _one(await a.idle(), 4144, pb.ConsortiaInfoMsg).site
-        assert sorted(sites) == list(range(1, 11))  # oficial #5151: as 10 casas embaralhadas
+        assert sorted(sites) == list(range(1, 11)) and sites[:2] == [2, 1]  # (visto) Strength e Shop Item fixas
+        _prize(monkeypatch, altar.SHOP_SITE)
         a.client.send(5145, pb.SimplePropertyMsg(param1=1))
         got = await a.idle()
         bless = _one(got, 45, pb.ConsortiaMsg)
         codes = [p.code for p in got]
         assert codes.index(4152) < codes.index(45)  # oficial_20261024-121659-1 #549-#552: 3, 4152, 45
         assert sites[bless.blessSite] == 1 and bless.blessLeftTime == 1 and c.consortia_offer == 80
-        shout = _one(got, 83, pb.ChatChannelMsg)  # (visto) oficial_encantar #1749: o prêmio para o servidor
-        assert shout.channel == 2 and shout.encodeMsg.startswith(f'Congratulations to <a t="1" id="{c.id}"')
-        assert f'tempid="{bless.blessTempId}"' in shout.encodeMsg and shout.encodeMsg.endswith(
-            " x1 from Guild Blessing!"
-        )
+        assert not [
+            p for p in got if p.code == 83 and pb.ChatChannelMsg.FromString(p.body).channel == 2
+        ]  # comum: sem 83
 
         a.client.send(8216)
         got = await a.idle()
+        codes = [p.code for p in got]
+        assert codes[0] == 115 and codes[-3:] == [111, 4143, 83]  # (visto) 191924 #1418-#1435
+        name = bag.name(_session(a).ctx.templates, bless.blessTempId)
+        assert _one(got, 111, pb.ChatChannelMsg).encodeMsg == f"Received: {name} x1"
         assert _one(got, 4143, pb.ConsortiaMsg).result
-        assert [p for p in got if p.code == 115]
+        a.client.send(8216)  # (visto) #1488: sem prêmio, só 4143 falso
+        assert [(p.code, pb.ConsortiaMsg.FromString(p.body).result) for p in await a.idle()] == [(4143, False)]
         a.client.send(8215)
         assert _one(await a.idle(), 4141, pb.ConsortiaMsg).blessLeftTime == 1
+
+
+async def test_altar_currency_and_rare_prizes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """(visto) 191924 #1498-#1504: Bound Balens com 3, 150, 4434, 111, 4143 e 83 "Received:  2 Bound Balens";
+    #1540-#1544: ouro com 109. Os raros (113904 #1749 Crypt Key) vão para o servidor no 83 canal 2."""
+    async with logged_in(tmp_path, novice=19000) as a:
+        await _create(a)
+        c = _char(a)
+        _guild(a).altar_level = 1
+        c.consortia_offer, gift = 1000, c.gift_token
+        _prize(monkeypatch, 9)
+        a.client.send(5145, pb.SimplePropertyMsg(param1=1))
+        bless = _one(await a.idle(), 45, pb.ConsortiaMsg)
+        assert (bless.blessTempId, bless.blessCount) == (-500, 2)
+        a.client.send(8216)
+        got = await a.idle()
+        assert [p.code for p in got] == [3, 150, 4434, 111, 4143, 83]
+        assert _one(got, 111, pb.ChatChannelMsg).encodeMsg == "Received:  2 Bound Balens"
+        assert c.gift_token == gift + 2
+        async with a.server.services.database.sessions() as db:
+            ledger = (await db.execute(select(CashLedger))).scalars().all()
+        assert [(e.delta_gift_token, e.reason) for e in ledger if e.reason == "altar"] == [(2, "altar")]
+
+        _prize(monkeypatch, 6)
+        a.client.send(5145, pb.SimplePropertyMsg(param1=1))
+        await a.idle()
+        a.client.send(8216)  # ouro no teto (1.000.000 do _rich): o prêmio espera
+        assert [(p.code, pb.ConsortiaMsg.FromString(p.body).result) for p in await a.idle()] == [(4143, False)]
+        c.gold = 0
+        a.client.send(8216)
+        got = await a.idle()
+        assert [p.code for p in got] == [109, 111, 4143, 83]
+        assert _one(got, 111, pb.ChatChannelMsg).encodeMsg == "Received: 5,000 Gold"
+
+        _prize(monkeypatch, 8, 1)
+        a.client.send(5145, pb.SimplePropertyMsg(param1=1))
+        shout = next(
+            m for p in await a.idle() if p.code == 83 and (m := pb.ChatChannelMsg.FromString(p.body)).channel == 2
+        )
+        assert shout.encodeMsg.startswith(f'Congratulations to <a t="1" id="{c.id}"')
+        assert 'tempid="208008"' in shout.encodeMsg and shout.encodeMsg.endswith(" x1 from Guild Blessing!")
 
 
 async def test_altar_open_needs_level_5_and_tells_members(tmp_path: Path) -> None:
@@ -427,8 +480,9 @@ async def test_guild_creation_saves_guild_member_and_event_together(tmp_path: Pa
         assert [e.consortia_id for e in events] == [guild.id]
 
 
-async def test_altar_prize_is_saved_on_the_member(tmp_path: Path) -> None:
+async def test_altar_prize_is_saved_on_the_member(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """O prêmio da bênção fica na linha do membro: recarregar a guilda do banco (reinício) o devolve."""
+    _prize(monkeypatch, altar.SHOP_SITE)
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         s, c = _session(a), _char(a)
@@ -444,8 +498,9 @@ async def test_altar_prize_is_saved_on_the_member(tmp_path: Path) -> None:
         assert _one(await a.idle(), 4142, pb.ItemInfoMsg).templateId == member.bless_item
 
 
-async def test_altar_prize_waits_for_a_free_bag_slot(tmp_path: Path) -> None:
+async def test_altar_prize_waits_for_a_free_bag_slot(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Mochila cheia não perde o prêmio: ele espera um espaço, e o espaço comprado conta."""
+    _prize(monkeypatch, altar.SHOP_SITE)
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         s, c = _session(a), _char(a)
@@ -559,9 +614,10 @@ async def test_guild_mail_from_the_chairman_costs_175_balens(tmp_path: Path) -> 
         assert not [p for p in await a.idle() if p.code == 148] and _char(b).point == 1000  # membro comum
 
 
-async def test_altar_bless_with_a_prize_waiting_abandons_it(tmp_path: Path) -> None:
+async def test_altar_bless_with_a_prize_waiting_abandons_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """ConsortiaAltarHelper.canBless: com prêmio por pegar o cliente pergunta e só manda o 5145 se o jogador
     abandonar; o prêmio novo toma o lugar."""
+    _prize(monkeypatch, altar.SHOP_SITE)
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         s, c = _session(a), _char(a)

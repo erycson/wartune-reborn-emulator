@@ -164,8 +164,9 @@ def test_exp_rate_window_is_whole_days_in_game_time() -> None:
 
 
 async def test_exp_rate_4247_only_inside_the_window(tmp_path: Path) -> None:
-    clock = FakeClock(datetime(2026, 10, 9, tzinfo=UTC))  # dentro da linha semeada na 0033
-    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+    clock = FakeClock(datetime(2026, 10, 9, 12, tzinfo=UTC))  # dentro da linha semeada na 0033
+    # fuso do oficial inglês: a época sai "1969-12-31 16:00:00"
+    async with logged_in(tmp_path, novice=19000, clock=clock, timezone="America/Los_Angeles") as g:
         s = _session(g)
         await g.idle()
         [rate] = s.ctx.world.exp_rates
@@ -174,8 +175,21 @@ async def test_exp_rate_4247_only_inside_the_window(tmp_path: Path) -> None:
         [p] = await g.idle()
         info = pb.RateUpdateReqMsg.FromString(p.body).rateInfo[0]
         assert (p.code, info.rate, info.beginDay, info.endTime) == (4247, 100, rate.begin_day, 86399)
+        hev.rate_refresh(s, s.ctx.clock.now())  # com evento: sem periódico (tutorial_en)
+        clock.advance(300)
+        hev.rate_refresh(s, s.ctx.clock.now())
+        assert await g.idle() == []
+
         clock.advance((end - clock.now()).total_seconds() + 1)
-        hev.send_rate(s)
+        hev.send_rate(s)  # (visto) sem evento o login manda vazio (191924 #43)
+        [p] = await g.idle()
+        assert (p.code, p.body) == (4247, b"")
+        clock.advance(300)  # (visto) 191924 #209, #402: uma linha zerada a cada janela de 5 min
+        hev.rate_refresh(s, s.ctx.clock.now())
+        [p] = await g.idle()
+        info = pb.RateUpdateReqMsg.FromString(p.body).rateInfo[0]
+        assert (info.rate, info.beginTime, info.beginDay, info.endDay) == (0, 0, "1969-12-31 16:00:00", info.beginDay)
+        hev.rate_refresh(s, s.ctx.clock.now())  # mesma janela: nada
         assert await g.idle() == []
 
 

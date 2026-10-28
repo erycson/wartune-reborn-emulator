@@ -23,6 +23,7 @@ from .space import talk
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_EFFECT, S_POLITICS, S_BUILDINGS = 110, 152, 4130
+S_MAP_SYNC, MAP_CASTLE = 140, 2  # MapUpdatedMsg.updatedType 2 = baseCastle
 S_CHAT, S_ALERT, S_FAST_KEY, S_TIME, S_RESET = 83, 111, 64, 4234, 4202
 S_SHORT, S_CASTLE_PAWNS, S_ORDER_ADD = (
     139,
@@ -92,6 +93,11 @@ async def push_level(s: GameSession, before: int) -> None:
     if (order := impose_order(snap, s.ctx.clock.now())) is not None:
         s.send(S_ORDER_ADD, order_info(order, s.ctx.clock.now()))
     await _level_buildings(s)
+    # (visto) só a subida 19 -> 20 (191924 #1728) manda o 140 do castelo no mapa (``grade`` novo); as dez de 10 -> 11
+    # a 18 -> 19 não. TODO(inventado): a cada múltiplo de 10 (o visual do castelo no mapa)
+    if snap.castle is not None and snap.character.grades // 10 > before // 10:
+        own = b.complete(b.castle_msg(snap, snap.castle))
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=own))
     pawns = castle_pawns(snap, templates)
     # os prédios do oficial nascem no 8281 (EN #578, antes o 4154 do login vem vazio); aqui nascem com o personagem,
     # então "castelo aberto" é a produção já iniciada pelo 8281
@@ -222,7 +228,10 @@ async def synchronized_time(s: GameSession, _: object) -> None:
 
     now = s.ctx.clock.now()
     if s.snapshot is not None:
+        from .events import rate_refresh  # events importa este módulo
+
         _army_refresh(s, now)
+        rate_refresh(s, now)
     s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(now)))
     roll_monsters(s)
     if s.snapshot is not None and s.snapshot.castle is not None:

@@ -193,8 +193,9 @@ async def test_resolve_turns_equipment_into_refinement_crystals(tmp_path: Path) 
 
         c.gold = 3000
         g.client.send(8340)
-        got = await g.until(4260)
-        assert codes(got) == [115, 109, 4260] and pb.SmithResolveRspMsg.FromString(got[-1].body).result
+        got = await g.idle()  # (visto) 191924 #2259-#2278: bancada, 109, pedras, 4476..., 4260, 111 e 83
+        assert codes(got)[:3] == [115, 109, 115] and codes(got)[-3:] == [4260, 111, 83]
+        assert pb.SmithResolveRspMsg.FromString(next(p for p in got if p.code == 4260).body).result
         assert c.gold == 0 and not [i for i in me(g).items if i.bag_type == 0]
         # Profile 3 = 4 pedras (mateMaterial), separadas pelo vínculo do equipamento (helpContent05)
         crystals = sorted((i.is_binds, i.count) for i in me(g).items if i.template_id == CRYSTAL)

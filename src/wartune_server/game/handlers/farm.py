@@ -230,7 +230,7 @@ def _tell_pest(s: GameSession, owner: GameSession, target: PlayerSnapshot, land:
 
 
 def _payout(
-    s: GameSession, snap: PlayerSnapshot, reward: int, count: int, ref: str
+    s: GameSession, snap: PlayerSnapshot, reward: int, count: int, ref: str, reason: str = "farm_pick"
 ) -> tuple[list[object], Item | None, int] | None:
     """Dá ``count`` de ``reward`` (moeda < 0, EXP -700 ou item) a quem colhe ou rouba. ``None`` = não cabe: ouro no
     teto (FarmLandItem.checkGoldLimit, o cliente também bloqueia), mochila cheia ou item sem template."""
@@ -260,7 +260,7 @@ def _payout(
         setattr(c, field, getattr(c, field) + count)
         if field in ("point", "gift_token"):
             delta = (count, 0) if field == "point" else (0, count)
-            changed.append(record_cash(c, *delta, reason="farm_pick", ref=ref, now=now))
+            changed.append(record_cash(c, *delta, reason=reason, ref=ref, now=now))
     return changed, item, gained
 
 

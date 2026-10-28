@@ -27,6 +27,7 @@ S_WAITING = 11  # RoomPlayerListMsg: PlayerManager.watingList, a lista de jogado
 LEFT, JOINED = 0, 1  # state do 11: 1 entra na lista, 0 sai (PlayerManager.__playerListHandler)
 ONLINE = 1  # playerState da aba Hall: o cliente só lista com state != 0 (SimplePlayerInfo.isOnline)
 S_REFUSE_INVITE = 4194  # RefuseFriendRspMsg: estado da recusa de convites (8286)
+S_ALERT = 111
 S_ROOM_STATE = 4913  # SimplePropertyMsg: sala do link no chat (9504), BaseManager.__mulityCampaignRequestHandler
 # playerState/readyState: 0 sem "pronto" (o RoomRightView mostra o botão Ready), 1 pronto (5036 state 1; o
 # PVPRoomPlayerFigure desenha 0 e 1), 2 o dono (só turco, #20)
@@ -34,12 +35,19 @@ NOT_READY, READY, OWNER = 0, 1, 2
 PASSWORD_MAX = 6  # RoomPasswordFrame: maxChars 6, restrict "0-9"
 
 
-def _room_msg(room: Room) -> pb.RoomMsg:
+def _name(s: GameSession, room: Room) -> str:
+    """Nome da sala: o ``CampaignName`` da campanha escolhida (visto 191924 #3746 e #3762 "Nether Forest"), ou
+    NAME_NEW antes da escolha (#3737)."""
+    row = s.ctx.templates.get("Campaigns", room.campaign, key="CampaignId") if room.campaign else None
+    return row["CampaignName"] if row else NAME_NEW
+
+
+def _room_msg(s: GameSession, room: Room) -> pb.RoomMsg:
     return pb.RoomMsg(
         roomId=room.id,
         campaignId=room.campaign,
         masterId=room.master,
-        name=NAME_NEW,  # o nome da campanha escolhida só aparece quando a escolha existir (dependência)
+        name=_name(s, room),
         count=len(room.members),
         capacity=room.capacity,
         roomType=room.type,
@@ -48,8 +56,8 @@ def _room_msg(room: Room) -> pb.RoomMsg:
     )
 
 
-def _list_msg(rooms: list[Room]) -> pb.RoomListRspMsg:
-    return pb.RoomListRspMsg(room=[_room_msg(r) for r in rooms])
+def _list_msg(s: GameSession, rooms: list[Room]) -> pb.RoomListRspMsg:
+    return pb.RoomListRspMsg(room=[_room_msg(s, r) for r in rooms])
 
 
 def _of_type(msg: pb.RoomReqMsg, rooms: list[Room]) -> list[Room]:
@@ -82,7 +90,7 @@ def _members_msg(s: GameSession, room: Room) -> pb.RoomPlayerListMsg:
     return out
 
 
-def _edit_msg(room: Room) -> pb.EditRoomRspMsg:
+def _edit_msg(s: GameSession, room: Room) -> pb.EditRoomRspMsg:
     return pb.EditRoomRspMsg(
         roomId=room.id,
         startCampaignId=room.campaign,
@@ -90,7 +98,7 @@ def _edit_msg(room: Room) -> pb.EditRoomRspMsg:
         count=len(room.members),
         capacity=room.capacity,
         passWord=room.password,
-        roomName=NAME_NEW,
+        roomName=_name(s, room),
     )
 
 
@@ -107,7 +115,7 @@ def _to_room(s: GameSession, room: Room, code: int, msg: Message) -> None:
 def _sync(s: GameSession, room: Room) -> None:
     """Estado da sala para quem está nela: lugares, dono/senha e jogadores."""
     place = pb.PlaceStateRspMsg(placeState=room.seats)
-    edit = _edit_msg(room)
+    edit = _edit_msg(s, room)
     members = _members_msg(s, room)
     for pid in room.members:
         other = s.ctx.online.get(pid)
@@ -167,12 +175,17 @@ async def create_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
     if s.ctx.rooms.of(s.player_id) is not None:
         s.log.info("5023 recusado: já está numa sala")
         return
-    capacity = msg.capacity if msg.HasField("capacity") else MAX_SEATS
-    room = s.ctx.rooms.create(s.player_id, capacity, msg.password, msg.roomType)
+    # o capacity do pedido não são lugares: o PVERoomListControler manda 1 e o oficial abre a sala com 4 (visto
+    # 191924 #3736-#3738); fechar lugares é o 5029
+    room = s.ctx.rooms.create(s.player_id, MAX_SEATS, msg.password, msg.roomType)
     if room.type == VEHICLE:
         room.campaign = vh.CAMPAIGN  # a sala de veículo só leva à batalha de tanques
-    s.send(S_ROOM, _room_msg(room))
+    s.send(S_ROOM, _room_msg(s, room))
     _sync(s, room)
+    if room.type == PVE:
+        from .army import S_TEAM_POS, team_pos  # army importa player, que importa este módulo
+
+        s.send(S_TEAM_POS, team_pos(s))  # (visto) #3741: 4186 depois do 120
 
 
 @router.on(5024)
@@ -187,7 +200,7 @@ async def enter_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
     if not s.ctx.rooms.join(room, s.player_id):  # sala cheia
         s.log.info("5024 sala cheia", sala=msg.roomId)
         return
-    s.send(S_ROOM, _room_msg(room))
+    s.send(S_ROOM, _room_msg(s, room))
     _sync(s, room)
 
 
@@ -196,7 +209,7 @@ async def list_rooms(s: GameSession, msg: pb.RoomReqMsg) -> None:
     """``nameKey`` é a campanha do filtro da lista (``RoomListSocketOutManager.requestRoomList``; "0" = todas)."""
     key = int(msg.nameKey) if msg.nameKey.isdigit() else 0
     rooms = [r for r in _of_type(msg, s.ctx.rooms.visible()) if not key or r.campaign == key]
-    s.send(S_ROOM_LIST, _list_msg(rooms))
+    s.send(S_ROOM_LIST, _list_msg(s, rooms))
 
 
 @router.on(8465)
@@ -209,7 +222,7 @@ async def find_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
     if room is None:
         s.log.info("8465 sem sala", sala=msg.roomId)
         return
-    s.send(S_FOUND, _room_msg(room))
+    s.send(S_FOUND, _room_msg(s, room))
 
 
 @router.on(5029)
@@ -262,7 +275,8 @@ async def edit_room(s: GameSession, msg: pb.RoomReqMsg) -> None:
         s.log.info("5034 recusado", sala=msg.roomId, campanha=msg.campaignId)
         return
     room.campaign = msg.campaignId
-    _to_room(s, room, S_EDIT, _edit_msg(room))
+    _to_room(s, room, S_EDIT, _edit_msg(s, room))
+    _send_ready(s, room)  # (visto) #3746-#3747: 32 e o 24 com o estado de cada um (o dono 2)
 
 
 @router.on(8344)
@@ -275,7 +289,7 @@ async def room_password(s: GameSession, msg: pb.RoomEditMsg) -> None:
         s.log.info("8344 recusado", sala=msg.roomId)
         return
     room.password = pwd
-    _to_room(s, room, S_EDIT, _edit_msg(room))
+    _to_room(s, room, S_EDIT, _edit_msg(s, room))
 
 
 @router.on(5036)
@@ -295,6 +309,10 @@ async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
         room.rewarded.add(s.player_id)
     else:
         room.rewarded.discard(s.player_id)
+    _send_ready(s, room)
+
+
+def _send_ready(s: GameSession, room: Room) -> None:
     states = [pb.PlayerreadyrspmsgPlayerReady(playerId=pid, readyState=_ready_state(room, pid)) for pid in room.members]
     _to_room(s, room, S_READY, pb.PlayerReadyRspMsg(readyState=states))
 
@@ -319,12 +337,23 @@ async def invite(s: GameSession, msg: pb.RoomReqMsg) -> None:
     """Convite para a sala (``InviteItem``/``InviteItemButton`` -> ``sendRoomInvite(userId)``): o convidado recebe o 16
     (``BaseManager.__roomInviteHandler``). ``signStr`` é a senha que o aceite manda no 5024 (``InviteFrame``); ``name``
     a campanha escolhida (vazio: o cliente põe o texto padrão); ``tempId`` a campanha (aviso de estamina). Quem está
-    offline, já numa sala ou recusa convites (8286) não recebe."""
+    offline, já numa sala ou recusa convites (8286) não recebe.
+
+    Quem convida recebe um 111 (visto 191924 #3769-#3806): "Player is in another room." com o alvo numa sala,
+    "Invitation sent." ou "Invitations have been sent". (dedução) o primeiro quando o convite chega ao alvo e o segundo
+    quando não chega: só o 191 recebeu o primeiro, e os outros (110, 216, 331, 6) nunca entraram.
+    """
     room = s.ctx.rooms.of(s.player_id)
+    if room is None:
+        s.log.info("5028 recusado: sem sala", alvo=msg.userId)
+        return
+    if s.ctx.rooms.of(msg.userId) is not None:
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Player is in another room."))
+        return
     other = s.ctx.online.get(msg.userId)
     target = other.snapshot.character if other is not None and other.snapshot is not None else None
-    if room is None or target is None or s.ctx.rooms.of(msg.userId) is not None or target.refuse_invite:
-        s.log.info("5028 recusado", alvo=msg.userId)
+    if target is None or target.refuse_invite:
+        s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Invitations have been sent"))
         return
     assert other is not None and s.snapshot is not None
     row = s.ctx.templates.get("Campaigns", room.campaign, key="CampaignId") if room.campaign else None
@@ -333,6 +362,7 @@ async def invite(s: GameSession, msg: pb.RoomReqMsg) -> None:
         name=(row or {}).get("CampaignName", ""), signStr=room.password, roomType=room.type, tempId=room.campaign,
         position=0,
     ))  # fmt: skip
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Invitation sent."))
 
 
 @router.on(5120)

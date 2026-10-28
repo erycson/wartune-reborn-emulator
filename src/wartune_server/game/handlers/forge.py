@@ -26,7 +26,7 @@ S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89
 S_REFRESH, S_REPLACE, S_RESOLVE, S_REFRESH_PROPERTY = 4258, 4259, 4260, 4368
 S_MOULD = 4558  # StoreRspMsg.strengResult do 8644 (PetEquipStrengView.__mouldResult)
 S_QUESTS = 112  # QuestUpdatedRspMsg
-STRENGTHEN, GEM_INLAY, GEM_COMPOSE, REFINE = 17, 18, 19, 47  # QuestCondictionInfos.CondictionType
+STRENGTHEN, GEM_INLAY, GEM_COMPOSE, REFINE, RECYCLE = 17, 18, 19, 47, 46  # QuestCondictionInfos.CondictionType
 MOSAIC_PARA1 = 1  # (visto) tempinfos: 281 Para1 1; Detail "Socket any gem" = qualquer pedra
 LUCK, GEM, DRILL = "204", "205", 208004  # SonType da pedra da sorte e das pedras; Socketing Rod
 # equipamento de mascote (PetEquipGodHeadView/GodHeadItemView): Divinity Soul e Soul Socketing Rod
@@ -550,11 +550,20 @@ async def resolve(s: GameSession, _: object) -> None:
         snap.items.remove(item)
     c.gold -= gold
     got = [i for tid, n, binds in goods for i in bag.add(snap, templates, tid, n, now, binds=binds)]
-    await s.ctx.characters.save(c, *got, delete=tuple(equips))
+    quests = rules.quest_event(snap, templates, RECYCLE, 0, len(equips))  # 768 "Recycle a Piece of Equipment"
+    await s.ctx.characters.save(c, *got, *quests, delete=tuple(equips))
 
-    send(s, S_ITEMS, bag.moved(got, s.player_id, empty=equips))
+    # (visto) oficial_20261024-191924-1 #2259-#2278: 115 da bancada vazia, 109, 112, 115 da pedra, 4476/4426/4484,
+    # 4260, 111 e 83 "Recycling Succeeded!"
+    send(s, S_ITEMS, bag.moved([], s.player_id, empty=equips))
     castle_yield(s)
+    if quests:
+        send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    if got:
+        send(s, S_ITEMS, bag.moved(got, s.player_id))
+        _gained(s)
     send(s, S_RESOLVE, pb.SmithResolveRspMsg(result=True))
+    alert(s, "Recycling Succeeded!")
 
 
 # --- conversão de pedras ---

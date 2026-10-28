@@ -27,11 +27,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Castelo | 10 | 5 | 2 | 2 | 4 |
 | Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
-| Itens | 11 | 7 | 4 | 4 | 3 |
+| Itens | 12 | 6 | 4 | 4 | 2 |
 | Lojas e mercado | 5 | 4 | 0 | 3 | 1 |
-| Chat e social | 4 | 6 | 0 | 2 | 1 |
-| Clã / Guilda | 9 | 5 | 5 | 2 | 1 |
-| Campanhas e masmorras | 6 | 6 | 4 | 7 | 6 |
+| Chat e social | 4 | 5 | 1 | 2 | 1 |
+| Clã / Guilda | 9 | 4 | 6 | 2 | 1 |
+| Campanhas e masmorras | 6 | 7 | 4 | 6 | 4 |
 | Labirinto (Forgotten Catacombs) | 1 | 1 | 4 | 2 | 5 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 3 | 5 | 0 | 6 | 0 |
@@ -42,8 +42,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Atividades e eventos | 5 | 9 | 1 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
-| Conta e segurança | 2 | 1 | 1 | 2 | 1 |
-| **Total** | **91** | **89** | **33** | **52** | **42** |
+| Conta e segurança | 3 | 1 | 1 | 2 | 1 |
+| **Total** | **93** | **87** | **35** | **51** | **39** |
 
 ## Validação e base
 
@@ -140,10 +140,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | randomSkill dos itens novos | 🧪 | | tipo 701 e peso dentro da faixa inventados |
 | Teto diário de Beden e EXP vindos de itens | ❌ | | sem teto |
 | Vínculo de itens | ✅ | | |
-| Uso de recurso (203: ouro, Balens, EXP, Daru) | ✅ | | texto e ordem do inglês (231733) |
+| Uso de recurso (203: ouro, Balens, EXP, Daru, Spirit Covenant) | ✅ | | texto e ordem do inglês (231733; EXP Book e Spirit Covenant em 191924) |
 | Caixas de pedra (206) e outras caixas | 🟡 | | caixa com conteúdo só na descrição é recusada |
 | Poção de HP e reserva de vida (209) | 🧪 | | "HP Pack has been exhausted." e a cura ao evoluir tropa vistos (171155, 231733); contrato de cura (`rules.py:210`) |
-| Pergaminhos de EXP, ouro e população | ✅ | 🇹🇷 | do turco |
+| Pergaminhos de EXP, ouro e população | ✅ | | ordem vista em 191924 (#1737, #2241, #3379) |
 | Pergaminhos de outros efeitos | 🟡 | | ícone e tempo ligam; o efeito não existe |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
 | Cristal, guilda e Token de proteção (5006) | ❌ | | recusados |
@@ -152,7 +152,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |
 | Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 no inglês (231733 #1492); transformação e caixa de pedras do turco |
 | Forja: refino de atributos (8336/8339) | 🧪 | | sorteio uniforme; `forge.py:450` |
-| Forja: decomposição (8340) | 🟡 | | ordem e recusa por dedução |
+| Forja: decomposição (8340) | ✅ | | ordem vista em 191924 #2259-#2278; recusa calada por dedução (o cliente limpa a bancada com qualquer 4260) |
 | Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
 | Equipamento do mascote na luta | 🟡 | | a luta não usa os atributos |
 | Moda: composição (8594) | ❌ | | regra não está no cliente |
@@ -183,14 +183,14 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat: mundo, cena, guilda, privado, corneta | ✅ | | cota VIP de cornetas sem fonte (padrão 0) |
 | Chat: time e sala (canal 6) | ❌ | | recusado até existir time |
 | Corneta entre servidores (8623) | 🟡 | | só eco local |
-| Convite rápido de sala (8353) | 🟡 | | formato sem captura; casamento recusado |
+| Convite rápido de sala (8353) | 🟡 | | formato visto em 191924 (corneta sem 4500, uma tag `<a t="6">` por linha, leed 16 e 83); casamento recusado |
 | Amigos: pedir, aceitar, grupos, busca, lista negra, recomendados | ✅ | | |
 | Amizade: grau (friend_gp) | 🟡 | 🇹🇷 | grau 1 no inglês bate com 1 + gp/10; graus acima só no turco (dedução da tabela) |
 | Nome, ficha e busca de jogador | ✅ | | |
 | Casamento: pedido, noivado, divórcio | ✅ | | |
 | Casamento: cerimônia | 🟡 | | cobra e casa direto, sem sala |
 | Casamento: sala (8760) e jogo do coração (8802) | ❌ | | só log |
-| Casamento: árvore e missões do casal | 🟡 | | parcial |
+| Casamento: árvore e missões do casal | 🧪 | | árvore do casal (8773/4678 e `marriageTree` no 4386) pelo cliente (MarryTreeView/MarryTreeFosterFrame) e 191924 #1249; chance de mato/praga e quantidade de Rose Hazel inventadas; missões do casal (8774) ainda vazias |
 | Casamento: loja do altar (9611) | 🟡 | | compra recusada sem pontos |
 
 ## Clã / Guilda
@@ -208,7 +208,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mercado da guilda | ✅ | 🇹🇷 | ordem da compra do turco |
 | Baú da guilda (distribuir) | ✅ | | correio de mochila cheia por dedução |
 | Baú de prêmios | 🟡 | | nada enche o baú |
-| Altar: bênção | 🟡 | | ordem e posição conferidas (121659); prêmio sem tabela (2 amostras); ×10 recusada |
+| Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 recusada |
 | Altar do demônio (boss de guilda) | 🟡 | | entrada 8542 recusada |
 | Terra secreta: entrada e saída | ✅ | | |
 | Terra secreta: invasores | 🧪 | | só em memória; contribuição inventada (0073) |
@@ -229,7 +229,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
 | 1004 Temple of Ibalize (Inner) | ✅ | | |
 | 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | escolta da Elise vista (231733); luta do elite 115116 inventada (0075) |
-| 1007 Camp Calorn | ❌ | 🇹🇷 | sem nós; só a varredura, com o ouro do turco |
+| 1007 Camp Calorn | 🟡 | | 1ª etapa (1171 → 1172) vista em 191924 #2345-#3706 (migração 0090), chefe Viscount Remus sem vitória: fim da etapa sem captura; 2ª etapa (1181/1182) não jogada; Mystery Box por dedução (0062) |
 | 9001 Claristun (em grupo) | 🧪 | 🇹🇷 | só a etapa 2011; chefe 201106 inventado (0084) |
 | Masmorras solo 1101-1602 | ❌ | | só drops |
 | Masmorras em grupo 9000-9112 | ❌ | | só drops |
@@ -240,7 +240,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Varredura / Blitz (8528) | 🧪 | 🇹🇷 | baú de prata e caixa misteriosa inventados (`sweep.py:40`); ouro só da 1007 turca |
 | Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga tratada como grátis |
 | Relatório da etapa (137) | 🟡 | | curva por nível falta |
-| Salas de campanha (criar, entrar, senha, convite...) | ✅ | 🇹🇷 | playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem) |
+| Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem) |
 | Times (convite, capitão, sair) | 🟡 | | não persistem |
 | Link de sala no chat (9504) | ✅ | | |
 | Salas PvP (5023) | ❌ | | |
@@ -287,7 +287,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Principais: recrutar, nível, tropa, construção | ✅ | | |
 | Segundo login, nível, eventos (39, 1, 40, 63, 66, 87) | ✅ | | |
 | Castelo e ocupação (7, 8) | 🟡 | | castelo de jogador sem alvo |
-| Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 e masmorras sem nós |
+| Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras sem nós |
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
 | Diárias e repetíveis | 🟡 | | repetível concluída não aparece no login |
 | Conversa com NPC (85) | 🟡 | | patrulhas travam |
@@ -408,4 +408,5 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anti-vício (AAS) | ❌ | | desligado |
 | Captcha, SMS, celular | ❌ | | |
 | Login: ordem dos pacotes | ✅ | 🇹🇷 | conta até o nível 16 conferida no inglês; nível alto (4631/4633/4555/4495) só no turco |
+| Taxa de EXP periódica (4247) | ✅ | | sem evento: vazio no login e uma linha zerada (época no fuso do servidor) a cada 5 min, visto nas 7 capturas de 23-24/10; fase do tick (~114,2 s) na constante `RATE_PHASE` (0 aqui) |
 | Login: 363/364 (troca da sorte) | 🟡 | | diferenças contra a inglesa ([tutorial.md](tutorial.md)) |

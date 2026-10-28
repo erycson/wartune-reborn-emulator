@@ -146,6 +146,7 @@ class GameSession:
         self.hangup: Any = None  # meditação na sala do gancho (``handlers.hangup.Cultivation``)
         self.outer_fight_over = False  # luta da cidade externa acabou: 4382 na volta (5035 state 3)
         self.army_tick: int | None = None  # janela de 5 min do último 150/4434 (handlers.player._army_refresh)
+        self.rate_tick: int | None = None  # janela de 5 min do último 4247 (handlers.events.rate_refresh)
         self.balen_leed_sent = False  # o handler já contou o leed 15 do gasto de diamante deste pedido
         self.fam_paid_at: datetime | None = None  # último tique de EXP da árvore pago a esta sessão
         self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)

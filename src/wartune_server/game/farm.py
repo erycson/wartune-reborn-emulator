@@ -16,6 +16,7 @@ from ..domain import gameday
 from ..domain.models import Castle, FarmLand, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates, Row
+from . import marriage_tree
 from .builders import login as b
 
 SEED = "216"
@@ -277,6 +278,8 @@ def farm_info(
     )
     if guard is not None:
         msg.guardPetInfo.CopyFrom(guard)
+    if (tree := marriage_tree.view(snap.marriage, now)) is not None:  # (visto) 191924 #1249: casado, nas duas fazendas
+        msg.marriageTree.CopyFrom(tree)
     return msg
 
 

@@ -104,15 +104,17 @@ def free_bugles(s: GameSession) -> int:
     return max(0, quota - c.bugle_free_used)
 
 
-async def _pay_bugle(s: GameSession, template_id: int, *, free: bool = False) -> bool:
-    """Gasta uma corneta (grátis primeiro, se ``free``) antes de qualquer await; grava e avisa."""
+async def _pay_bugle(s: GameSession, template_id: int, *, free: bool = False, notify: bool = True) -> bool:
+    """Gasta uma corneta (grátis primeiro, se ``free``) antes de qualquer await; grava e avisa (4500 da cota grátis
+    só com ``notify``)."""
     snap = s.snapshot
     assert snap is not None
     c = snap.character
     if free and free_bugles(s) > 0:
         c.bugle_free_used += 1
         await s.ctx.characters.save(c)
-        s.send(S_FREE_BUGLES, pb.CampaignReqMsg(paraInt1=free_bugles(s)))
+        if notify:
+            s.send(S_FREE_BUGLES, pb.CampaignReqMsg(paraInt1=free_bugles(s)))
         return True
     item: Item | None = items.bag_item(snap, template_id=template_id)
     if item is None:
@@ -253,19 +255,32 @@ async def user_info(s: GameSession, msg: pb.InfoReqMsg) -> None:
 async def quick_invite(s: GameSession, msg: pb.CaptainSpeakMsg) -> None:
     """ "Fast Invite" (``QuickInviteFrame``): o texto vai quebrado em linhas (``inviteContent``) e custa 1 Bullhorn
     (Small), com a cota grátis antes ("First 10 Attempts are Free", a mesma do 8198). Sai no canal mundo como link de
-    sala (``ChatChannelMsg.type`` 4): o texto inteiro é o ``name`` da tag, e o clique manda o 9504 com o ``id``.
-    ``position`` 0 é sala trancada (``RoomInfo.isLock``). ponytail: formato montado do cliente (sem captura do
-    oficial); o tipo 1 (casamento) fica de fora porque a sala de casamento não existe (``marriage.py``)."""
+    sala (``ChatChannelMsg.type`` 4), uma tag ``<a t="6" .../>`` por linha (visto 191924 #3763-#3766), e o clique
+    manda o 9504 com o ``id``. ``position`` 0 é sala trancada (``RoomInfo.isLock``, o cliente só lê ele e o ``name``);
+    (dedução) ``islock`` vai igual ao ``position``: a única amostra é sala sem senha, com os dois "1". Depois o leed 16
+    ("Speak in world chat") e o 83 da devoção; o oficial não mandou o 4500 da cota. O tipo 1 (casamento) fica de fora
+    porque a sala de casamento não existe (``marriage.py``)."""
     room = s.ctx.rooms.of(s.player_id)  # qualquer membro, com lugar livre (RoomRightView._inviteClick)
     if msg.type != INVITE_ROOM or room is None or rooms.OPEN not in room.seats:
         s.log.info("8353 sem sala", tipo=msg.type, sala=room.id if room else None)
         return
-    text = _text(s, "".join(msg.inviteContent), WORLD, COOLDOWN[WORLD])
-    if text is None or not await _pay_bugle(s, SMALL_BUGLE, free=True):
+    if _text(s, "".join(msg.inviteContent), WORLD, COOLDOWN[WORLD]) is None:
         s.log.info("8353 recusado", tamanho=sum(map(len, msg.inviteContent)))
         return
-    attrs = {"id": room.id, "campaignId": room.campaign, "roomType": rooms.PVE, "position": int(not room.password)}
-    link = "<room " + " ".join(f"{k}={quoteattr(str(v))}" for k, v in attrs.items()) + f" name={quoteattr(text)}/>"
+    lines = [_TAG.sub("", line) for line in msg.inviteContent]  # sem strip: o oficial manteve o espaço do fim
+    if not await _pay_bugle(s, SMALL_BUGLE, free=True, notify=False):
+        s.log.info("8353 sem corneta")
+        return
+    unlocked = int(not room.password)
+    attrs = {"campaignId": room.campaign, "islock": unlocked, "position": unlocked, "roomType": rooms.PVE}
+    tail = " ".join(f"{k}={quoteattr(str(v))}" for k, v in attrs.items())
+    link = "".join(f'<a t="6" id="{room.id}" name={quoteattr(t)} {tail}/>' for t in lines)
     out = _channel_msg(s, WORLD, link)
     out.type = ROOM_LINK
     _broadcast(s, S_CHAT, out)
+    from . import events  # events importa login, que importa este módulo
+
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.WORLD_CHAT_LEED, say=False)
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)

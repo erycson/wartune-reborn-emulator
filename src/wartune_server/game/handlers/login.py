@@ -224,8 +224,10 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
             s.send(S_DRAGON, dragon)
     # (visto) a ordem do oficial, que não segue a dos campos: 171155 #18-#63, 215937 #19-#64, 231733 #20-#67
     if msg.tree:
+        from .marriage import ensure_tree  # marriage importa este módulo
         from .pets import guard_msg  # (só turco: login #49) o guarda, sem ``pos``
 
+        await ensure_tree(s.ctx, snap)  # casado de antes da 0091 ganha a árvore do casal
         guard = guard_msg(snap, s.ctx.templates)
         _send(s, S_FARM, pb.LoadFarmRsp(farm=farm.farm_info(snap, now, s.ctx.templates, own=True, guard=guard)))
     if msg.star:

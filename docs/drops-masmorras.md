@@ -139,6 +139,12 @@ fora do `Campaigns.Item`; a tabela `campaign_cards` leva as quatro com o mesmo p
 | 1080112 | Abyssal Necklace | mago | 1 |  |
 | 2040101 | Lvl. 1 Luck Stone | todas | 0 |  |
 
+Ligada no servidor (migração 0090, `oficial_20261024-191924-1` #2345-#3706), só a 1ª etapa (1171 → 1172). Vistos: a
+tumba 117106 deu 5,000 Daru (#2594, pelo `param5`), a Traveler's Coin Purse 117205 1,000 Gold (#2958), a Pandora 117107
+Rage Boost (#2574) e a Mystery Box 117206 (Skeleton Key) Lvl. 2 Luck Stone x2 (#2789; sorteio da 103108 por dedução).
+As lutas venceram com 280/252, 280/290, 266/290 e 266/290 de EXP/Daru; o chefe Viscount Remus (117204, herói 1071)
+ganhou as 4 (#3132-#3692), então o fim da etapa e as cartas não foram vistos (as cartas vêm da 0085).
+
 ## 1101 Bretheran Abyss (Lv 20, solo)
 
 | Item | Nome | Classe | Atributos | Visto em |

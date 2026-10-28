@@ -13,22 +13,32 @@ quem aceita a oferta já sai casado.
 
 from __future__ import annotations
 
+import json
+import random
 from datetime import datetime, timedelta
+from typing import Any
 
-from ...domain.models import BagType, Character, Item, Marriage, MarriageState
+from ...domain.models import BagType, Character, Item, Marriage, MarriageState, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
-from .. import rules, social
+from .. import castle as cs
+from .. import marriage_tree as tree
+from .. import rewards, rules, social
 from ..builders import login as b
+from ..builders.player import item_moved
 from ..mail import send_system_mail
 from ..router import router
 from ..session import GameContext, GameSession
 from .hero import send_items
 from .login import player_info
-from .player import alert
+from .player import alert, granted
 
 S_PROPOSALS, S_QUALITY, S_LOVER, S_ROOMS, S_TASKS = 4656, 4658, 4659, 4662, 4675
 S_DEAL_DIVORCE, S_MATES, S_MATE_SHOP, S_PLAYER = 358, 359, 365, 3
+S_TREE, S_ITEMS = 4678, 115
+TREE_WATER, TREE_CULTIVATE, TREE_CLEAR, TREE_HARVEST, TREE_REFRESH = 1001, 1002, 1003, 1004, 1005
+ROSE = 208034  # Rose Hazel: MarryTreeView, recompensa da colheita
+CHESTS = ((200, 2060475), (tree.TREE_MAX, 2060476), (tree.TREE_MAX + 1, 2060477))  # MarryTreeView: por status
 PROPOSE, ANSWER, QUALITY_ANSWER, DIVORCE, PROPOSE_INFO, ROOM_LIST = 1, 3, 5, 8, 9, 10
 CANCEL, FREE_DIVORCE, CONSULT, AGREE, FIND_MATES = 14, 15, 16, 17, 20
 POINT = 1  # payType 1 = só diamante (DivorceAlert confere ``point``); 0 = vinculados primeiro
@@ -308,6 +318,7 @@ async def _quality_answer(s: GameSession, accept: bool) -> None:
     if entry is None:
         return
     await _couple(s, MarriageState.MARRIED, spec_id, paid=payer.snapshot.character, entry=entry)
+    await ensure_tree(s.ctx, snap)  # a árvore do casal nasce com o casamento (os dois estão online)
     goods = [(int(t), int(n)) for t, n in (part.split(",") for part in spec["Rewards"].split("|") if part)]
     for cid in (s.player_id, payer_id):  # presentes do casamento pelo correio (até 5 por correio)
         for i in range(0, len(goods), 5):
@@ -321,11 +332,166 @@ async def wedding_campaign(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     s.log.info("cerimônia de casamento sem suporte", op=msg.opType)
 
 
+async def ensure_tree(ctx: GameContext, snap: PlayerSnapshot) -> None:
+    """Casado sem árvore: copia a do cônjuge ou planta uma nova nas duas linhas (o 4386 é montado sem ``await``)."""
+    m = snap.marriage
+    if m is None or m.state != MARRIED or m.tree:
+        return
+    mate = await _row(ctx, m.mate_id)
+    if mate is not None and mate.tree:
+        m.tree = mate.tree
+        await ctx.characters.save(m)
+        return
+    other = (await social.characters(ctx, [m.mate_id])).get(m.mate_id)
+    if other is None or mate is None:
+        return
+    m.tree = mate.tree = json.dumps(tree.new(snap.character, other, ctx.templates, ctx.clock.now()))
+    await ctx.characters.save(m, mate)
+
+
+async def _store(s: GameSession, t: dict[str, Any], *extra: object, delete: tuple[object, ...] = ()) -> None:
+    """Grava ``t`` nas duas linhas (com ``extra``) e manda o 4678 a quem do casal estiver online."""
+    snap = s.snapshot
+    assert snap is not None and snap.marriage is not None
+    m = snap.marriage
+    mate = await _row(s.ctx, m.mate_id)
+    rows = [m, *([mate] if mate is not None else [])]
+    shown = tree.msg(t)
+    t["feedUser"] = 0  # só o 4678 da rega leva quem regou (o cliente toca o efeito): não repete no próximo
+    for row in rows:
+        row.tree = json.dumps(t)
+    await s.ctx.characters.save(*rows, *extra, delete=delete)
+    for row in rows:
+        if (session := s.ctx.online.get(row.character_id)) is not None:
+            session.send(S_TREE, shown)
+
+
+def _side(t: dict[str, Any], cid: int) -> str:
+    return "A" if t["userIdA"] == cid else "B"
+
+
+def _water(s: GameSession, t: dict[str, Any], now: datetime) -> bool:
+    if t["start"] or t["feedCount"] >= _config(s.ctx, "mar_feed_count", 2):
+        return False
+    start, end = now.timestamp(), now.timestamp() + _config(s.ctx, "mar_tree_time", 300) * 60
+    t |= {"start": start, "end": end, "startTime": tree.stamp(start), "endTime": tree.stamp(end), "stateValue": 0,
+          "feedCount": t["feedCount"] + 1, "feedUser": s.player_id, "treeState": tree.pests(),
+          "isGetA": False, "isGetB": False}  # fmt: skip
+    return True
+
+
+def _growing(t: dict[str, Any], now: datetime) -> bool:
+    return bool(t["start"]) and now.timestamp() < t["end"]
+
+
+async def _cultivate(s: GameSession, t: dict[str, Any], now: datetime) -> bool:
+    """MarryTreeFosterFrame: os itens com ``Feed`` da bancada (0-9) somam ``Feed`` × quantidade, em dobro no item
+    sorteado do lado; saem todos."""
+    snap = s.snapshot
+    assert snap is not None
+    side = _side(t, s.player_id)
+    count = f"train{side}Count"
+    if not _growing(t, now) or t["stateValue"] >= tree.TREE_MAX:
+        return False
+    if t[count] >= _config(s.ctx, "mar_tree_train_count", 10):
+        return False
+    bench = [i for i in snap.items if i.bag_type == BagType.STORE and 0 <= i.pos < tree.BENCH]
+    fed = [(i, int((s.ctx.templates.get("ItemTempInfos", i.template_id) or {}).get("Feed") or 0)) for i in bench]
+    fed = [(i, f) for i, f in fed if f > 0]
+    if not fed:
+        return False
+    gain = sum(f * i.count * (2 if i.template_id == t[f"train{side}Type"] else 1) for i, f in fed)
+    t["stateValue"] = min(tree.TREE_MAX, t["stateValue"] + gain)
+    t[count] += 1
+    for i, _ in fed:
+        snap.items.remove(i)
+    await _store(s, t, delete=tuple(i for i, _ in fed))
+    for i, _ in fed:
+        s.send(S_ITEMS, item_moved(BagType.STORE, 0, i.pos, None, s.player_id))
+    return True
+
+
+def _clear(t: dict[str, Any], now: datetime) -> bool:
+    """Tira o mato e a praga que já chegaram (as horas por vir continuam no ``treeState``)."""
+    states = t["treeState"].split(",")
+    reached = tree.passed(t, now)
+    if not _growing(t, now) or all(x == "0" for x in states[:reached]):
+        return False
+    t["stateValue"] = tree.value(t, now)  # o desconto das que ficaram até agora vira definitivo
+    t["treeState"] = ",".join("0" if n < reached else x for n, x in enumerate(states))
+    return True
+
+
+def _chest(value: int) -> int:
+    return next(chest for cut, chest in CHESTS if value < cut)
+
+
+async def _harvest(s: GameSession, t: dict[str, Any], now: datetime) -> bool:
+    snap = s.snapshot
+    assert snap is not None
+    got = f"isGet{_side(t, s.player_id)}"
+    if not t["start"] or now.timestamp() < t["end"] or t[got]:
+        return False
+    value = tree.value(t, now)
+    # TODO(inventado): quantidade de Rose Hazel (o cliente só lista o item na recompensa)
+    drops = [(ROSE, 1 + value // 100), (_chest(value), 1)]
+    if not rewards.can_grant(snap, s.ctx.templates, drops, now):
+        return False
+    new, text = rewards.grant(snap, s.ctx.templates, drops)
+    t[got] = True
+    if t["isGetA"] and t["isGetB"]:  # "Can be energized again once your spouse harvests it"
+        t |= {"start": 0, "end": 0, "startTime": "", "endTime": "", "stateValue": 0, "treeState": tree.NO_PESTS,
+              "isGetA": False, "isGetB": False}  # fmt: skip
+    await _store(s, t, *rewards.owners(snap), *new)
+    granted(s, drops, new, text)
+    return True
+
+
+async def _refresh(s: GameSession, t: dict[str, Any], now: datetime) -> bool:
+    """Troca o item em dobro do lado por ouro (``fresh_martree_item``)."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    cost = _config(s.ctx, "fresh_martree_item", 100000)
+    cs.settle(snap, s.ctx.templates, now)
+    kind = f"train{_side(t, s.player_id)}Type"
+    pool = [x for x in tree.feed_items(s.ctx.templates) if x != t[kind]]
+    if snap.character.gold < cost or not pool:
+        return False
+    snap.character.gold -= cost
+    t[kind] = random.choice(pool)
+    await _store(s, t, snap.character, snap.castle)
+    cs.castle_yield(s)
+    return True
+
+
 @router.on(8773)
 async def marriage_tree(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     """Árvore do casal na fazenda (1001 regar, 1002 cultivar, 1003 limpar, 1004 colher, 1005 trocar o item;
-    MarryTreeView/MarryTreeFosterFrame, resposta 4678): ainda não implementada."""
-    s.log.info("árvore do casamento sem suporte", op=msg.opType)
+    MarryTreeView/MarryTreeFosterFrame, resposta 4678; regras em ``game/marriage_tree.py``)."""
+    snap = s.snapshot
+    assert snap is not None
+    await ensure_tree(s.ctx, snap)
+    now = s.ctx.clock.now()
+    t = tree.fresh(tree.load(snap.marriage), now) if snap.marriage and snap.marriage.state == MARRIED else {}
+    ok = False
+    if not t:
+        pass
+    elif msg.opType == TREE_WATER:
+        ok = _water(s, t, now)
+        if ok:
+            await _store(s, t)
+    elif msg.opType == TREE_CULTIVATE:
+        ok = await _cultivate(s, t, now)
+    elif msg.opType == TREE_CLEAR:
+        ok = _clear(t, now)
+        if ok:
+            await _store(s, t)
+    elif msg.opType == TREE_HARVEST:
+        ok = await _harvest(s, t, now)
+    elif msg.opType == TREE_REFRESH:
+        ok = await _refresh(s, t, now)
+    if not ok:
+        s.log.info("8773 recusado", op=msg.opType)
 
 
 @router.on(8774)

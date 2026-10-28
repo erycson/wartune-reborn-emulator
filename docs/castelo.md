@@ -59,7 +59,7 @@ nossa onde nem captura nem cliente dizem. Código: `game/castle.py`, `game/farm.
 | 15044 op 2/3 (amigo) | tira inseto/mato da terra do amigo; EXP `FarmCrop_Operate_GP` para quem ajuda, dentro do teto do dia `Farm_TodayFromFriend_GP` (200; no teto a ação vale e rende 0, como `expByOper`) | 4387 com o `userId` do dono | cliente |
 | 15044 op 5 | rouba da terra madura e viva do amigo (`canBeStolen`): uma vez por ladrão, até 3 ladrões (`MAX_STOLEN_COUNT`), produção ≥ 10; até `Farm_TodayStolen_Count` (200) por dia. Leva `farm_steal_percent` % (10, visto: 191924 #248 e #253) do `rewardCount`, que sai do dono; grava `stolen_by`. Sem EXP da fazenda. Missão 60 Para1 1 | moeda: 109, 111 e 83 "Received: 400 Kyanite", 4387 (`stolenCount`, `stolenUsers`); EXP: 111, 3, 83 "Received 2,800 EXP ", 4387 | visto (191924 #244-#263) |
 | 15044 op 6 | revive a planta morta do amigo: `matureTime` = agora − 1 min, o resto igual; EXP `FarmCrop_Operate_GP` (teto do dia) | 4387 | visto (só turco: ciftlik #88–#105) |
-| 15044 op 7 | acelera (35 Balens `Farm_Accelerate_Point`, `payType` 0 = vinculado primeiro): corta pela metade o que falta, uma vez por plantio ("50% maturity speed-up will consume {0} Balens", `farm.view.FarmOperMenu.accelerateTip`; "already on a speed-up", `hasAccelerateTip`) | 3, 4387 | cliente |
+| 15044 op 7 | acelera (35 Balens `Farm_Accelerate_Point`, `payType` 0 = vinculado primeiro): corta pela metade o que falta, uma vez por plantio ("50% maturity speed-up will consume {0} Balens", `farm.view.FarmOperMenu.accelerateTip`; "already on a speed-up", `hasAccelerateTip`) | 3, 4152, 150, 4434, 4387, 83 | cliente; metade vista (121659 #204-#210: 3533 s → 08:47:22) |
 | 15044 op 8 | limpa a terra | 4387 | cliente |
 | 15044 op 9 | melhora as terras (`FarmBuildLayer`, `FarmSocketSendManager.sendLandUp`): fazenda no nível 30+ ("Once your farm reaches level 30"), terra até o 10; custo n(n+1)(n+2)/2 + 15 Balens do nível n (18, 27, 45… igual à wiki Farm), `payType` 0 = vinculado primeiro. Falha: só log (um 4387 de falha apagaria a terra 0 no cliente) | 3, 4386 (o 4387 não lê `landGrades`) | cliente |
 | 15044 outros | pets (10–16), ops do dono na terra do amigo e qualquer op em quem não é amigo: recusados | 4387 `result` 1 com o `userId` do dono da terra | — |
@@ -110,4 +110,5 @@ cliente fica nulo e a fazenda quebra); o 4195 não sai (nenhuma captura o tem): 
 ### Captura que falta (revisão do m7 inglês)
 
 Cultivo e guarda de mascote na fazenda (15044 ops 10-16), pontos ganhos na loja misteriosa, texto do registro da
-rega (145), compradores da sorte (4470) e a árvore do casal (chance de praga, valor do cultivo).
+rega (145), compradores da sorte (4470) e a árvore do casal (chance de mato/praga e quantidade de Rose Hazel, inventadas; ver
+`docs/social.md`, 8773).

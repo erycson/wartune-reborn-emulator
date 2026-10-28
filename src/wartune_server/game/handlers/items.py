@@ -63,9 +63,10 @@ BINDS_ON_EQUIP = (BagType.HERO, BagType.RUNE, BagType.PET_EQUIP)
 USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bound Balens"), 5: ("weary", "Stamina")}
 # Honor Certificate (2030601-3, "Provides an honor increase"): a honra do cliente é o geste (thane.honer = geste em
 # PlayerManager e ThaneInfoHelper; a loja confere NeedGeste com ela); repute é outro valor
-USE_KINDS |= {6: ("geste", "Honor"), 7: ("gp", "EXP"), 10: ("strategy", "Daru")}
+USE_KINDS |= {6: ("geste", "Honor"), 7: ("gp", "Hero EXP"), 10: ("strategy", "Daru")}  # 191924 #1721
 USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (2032101): +1 entrada de campanha em grupo
 VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
+COVENANT = 13  # Spirit Covenant (2031301): Property2 = horas dos contratos 1-6 (handlers/vip.use_covenant)
 # Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,
 # porque o nome depende do idioma ("Lvl. N Gem Pack" no inglês). O 2060006 fica de fora de propósito: são duas
 # pedras Lv.3 e chance de Lv.4.
@@ -351,6 +352,10 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
         from . import vip  # vip -> player -> login; aqui evita o ciclo na carga dos handlers
 
         return await vip.use_trial_card(s, item, row, n)
+    if int(row.get("Property1") or 0) == COVENANT:
+        from . import vip
+
+        return await vip.use_covenant(s, item, row, n)
     kind = USE_KINDS.get(int(row.get("Property1") or 0))
     amount = int(row.get("Property2") or 0) * n
     if kind is None or amount <= 0:
@@ -381,12 +386,13 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     _send_items(s, changed, gone)
     if field == "gold":
         castle_yield(s)
+    if gained:  # (visto) 191924 #1725: 115, 83 da EXP, o nível (140, 100, 150), 111 e 3
+        send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
+        await push_level(s, c.grades - gained)
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Received:{label} x{amount}"))
     _player(s)
-    if field == "gp":
+    if field == "gp" and not gained:  # (visto) 191924 #1720: 115, 111 "Received:Hero EXP x1000", 3 e 83
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
-        if gained:
-            await push_level(s, c.grades - gained)  # (dedução) a ordem da entrega de missão (5014)
     return True
 
 
@@ -521,9 +527,9 @@ def send_buffers(s: GameSession, states: list[EventState]) -> None:
 
 async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
     """Pergaminho de efeito (SonType 201): Property1 = EffectTempInfo, Property2 = minutos, Property3 = grau
-    (``game/buffs.py``). (visto, só turco: ``exp_kitabi_kullanim...`` #2-#10) 2013002 (Lvl. 2 Bonus EXP Scroll):
-    115, 110 ``{propertyType 30 (PropertyType1 do 2030), value 100}``, 4188 ``{2030, validityDate 60, grade 100, type 2,
-    typeTemplateid 2013002}`` e 3, sem texto (o 4902/150/4434 no meio são de outros sistemas)."""
+    (``game/buffs.py``). 2013002 (Lvl. 2 Bonus EXP Scroll): 110 ``{propertyType 30 (PropertyType1 do 2030), value
+    100}``, 4188 ``{2030, validityDate 60, grade 100, type 2, typeTemplateid 2013002}``, sem texto (turco
+    ``exp_kitabi_kullanim`` #2-#10 e 191924 #2241)."""
     snap = s.snapshot
     assert snap is not None
     effect, minutes, level = (int(row.get(f"Property{i}") or 0) for i in (1, 2, 3))
@@ -535,15 +541,18 @@ async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
     changed, gone = _consume(snap, item, n)  # antes de qualquer await
     await s.ctx.characters.save(st, *changed, delete=tuple(gone))
 
+    # (visto) oficial_20261024-191924-1 #1737 (Crit Scroll): 115, 150, 4434, 110, 150, 4188, 150, 3; #2241 (Lvl. 2
+    # Bonus EXP Scroll): 115, 150, 4434, 110, 4188, 150, 3. O 110 dos atributos o cliente ignora (PlayerEffectHelper):
+    # o 150 leva os total* novos. (#3379, Magic Defense Scroll, tem dois 150 antes do 4188; aqui um)
     _send_items(s, changed, gone)
+    balens_changed(s)
     send(s, S_EFFECT, pb.PropertyUpdatedMsg(propertyType=_effect_type(s, effect), value=level))
+    if effect not in (buffs.EXP_BOOST, buffs.GOLD_MAX, buffs.POPULATION):  # (dedução) ouro/população como o EXP
+        _army(s)
     send_buffers(s, [st])
     if effect in (buffs.GOLD_MAX, buffs.POPULATION):
         castle_yield(s)  # (dedução) teto do armazém/população novos na barra
-    if _effect_type(s, effect) in buffs.STATS or effect == buffs.EXP_BOOST:
-        # poção de atributo: o 110 desses tipos o cliente ignora (PlayerEffectHelper); o 150 leva os total* novos.
-        # O pergaminho de EXP também (só turco: exp_kitabi #7-#10: 4188, 4902, 150, 3)
-        _army(s)
+    _army(s)
     _player(s)
     return True
 

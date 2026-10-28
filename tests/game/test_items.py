@@ -85,7 +85,8 @@ async def test_using_resources_potions_and_gem_boxes(tmp_path: Path) -> None:
 
         g.client.send(5006, pb.ItemUseMsg(pos=1, count=1, bagType=1))
         got = await g.until(83)
-        assert codes(got)[:4] == [115, 111, 3, 83] and c.total_gp == gp + 500
+        assert codes(got)[:4] == [115, 111, 3, 83] and c.total_gp == gp + 500  # (visto) 191924 #1720
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Received:Hero EXP x500"
 
         honor = Item(g.user_id, HONOR_CERT, pos=10)
         snap.items.append(honor)
@@ -233,3 +234,21 @@ async def test_unequipping_lowers_hp_and_sends_extra_troops_home(tmp_path: Path)
         assert [(p.army_count, p.castle_count) for p in saved.pawns if p.template_id == LANCER] == [
             (stats["ConatArmy"] - 6, 106)
         ]
+
+
+async def test_exp_book_level_up_order(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #1725 (Lvl. 3 EXP Book, subiu de nível): 115, 83, 140, 100, 150, 111, 3."""
+    async with logged_in(tmp_path, novice=11000) as g:
+        snap = me(g)
+        need = dict(rules.grade_steps(g.server.services.templates))[20]
+        snap.character.grades, snap.character.total_gp = 19, need - 1  # (visto) 19 -> 20 como no #1725
+        grades = snap.character.grades
+        book = Item(g.user_id, 2030703, pos=0)
+        snap.items.append(book)
+        await g.server.services.characters.save(book)
+        g.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))
+        got = await g.until(3)
+        assert snap.character.grades > grades
+        seq = [x for x in codes(got) if x != 104]  # 104: a fila de cobrança que nasce no 14 (o oficial já tinha)
+        assert seq[:2] == [115, 83] and 140 in seq and seq[-3:] == [150, 111, 3]  # 110/104 do nível 14-20 do teste
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Received 5,000 EXP "

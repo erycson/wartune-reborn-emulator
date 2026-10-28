@@ -53,10 +53,12 @@ async def test_sala_criar_entrar_expulsar_sair(tmp_path: Path):
     async with logged_in(tmp_path, novice=19000) as a:
         b = await a.join("outro")
 
-        a.client.send(5023, pb.RoomReqMsg(capacity=3))
+        a.client.send(5023, pb.RoomReqMsg(capacity=1))  # o PVERoomListControler sempre manda 1
         got_a = await a.idle()
+        # (visto) 191924 #3736-#3741: 12, 17, 32, 120 e 4186; 4 lugares e "Select a campaign."
+        assert [p.code for p in got_a if p.code != 11] == [ROOM_CREATED, PLACE, EDIT, MEMBERS, 4186]  # 11: o "outro"
         room = _body(got_a, ROOM_CREATED, pb.RoomMsg)
-        assert room.masterId == a.user_id and room.capacity == 3
+        assert (room.masterId, room.capacity, room.name) == (a.user_id, 4, "Select a campaign.")
         assert _ids(_body(got_a, MEMBERS, pb.RoomPlayerListMsg)) == [a.user_id]
         room_id = room.roomId
 
@@ -158,9 +160,10 @@ async def test_dono_escolhe_a_campanha_e_todos_recebem_o_32(tmp_path: Path):
         a.client.send(5034, pb.RoomReqMsg(roomId=room_id, dungeonId=1, campaignId=9001))  # InstanceSelectFrame
         for g in (a, b):
             got = await g.idle()
-            assert [p.code for p in got] == [EDIT]
+            assert [p.code for p in got] == [EDIT, 24]  # (visto) 191924 #3746-#3747
             edit = pb.EditRoomRspMsg.FromString(got[0].body)
             assert (edit.roomId, edit.startCampaignId, edit.masterId, edit.count) == (room_id, 9001, a.user_id, 2)
+            assert edit.roomName == "Claristun"  # o CampaignName (oficial: "Nether Forest" na 9000)
 
 
 async def test_pronto_senha_estado_e_convite_da_sala(tmp_path: Path):
@@ -173,6 +176,7 @@ async def test_pronto_senha_estado_e_convite_da_sala(tmp_path: Path):
         a.client.send(5028, pb.RoomReqMsg(userId=b.user_id))  # InviteItem
         invite = _body(await b.idle(), 16, pb.RoomInviteMsg)
         assert (invite.roomId, invite.playerId, invite.nickName, invite.roomType) == (room_id, a.user_id, "Maga", 0)
+        assert _body(await a.idle(), 111, pb.ChatChannelMsg).encodeMsg == "Invitation sent."  # (visto) 191924 #3774
 
         b.client.send(5024, pb.RoomReqMsg(roomId=room_id, isInvite=True))
         members = _body(await b.idle(), MEMBERS, pb.RoomPlayerListMsg)
@@ -197,9 +201,11 @@ async def test_pronto_senha_estado_e_convite_da_sala(tmp_path: Path):
             assert _body(await g.idle(), 25, pb.RoomStateRspMsg).roomState == 1
 
         a.client.send(5028, pb.RoomReqMsg(userId=b.user_id))  # já está numa sala
+        assert _body(await a.idle(), 111, pb.ChatChannelMsg).encodeMsg == "Player is in another room."  # #3770
         c.client.send(8286)  # recusa convites
         await c.idle()
         a.client.send(5028, pb.RoomReqMsg(userId=c.user_id))
+        assert _body(await a.idle(), 111, pb.ChatChannelMsg).encodeMsg == "Invitations have been sent"  # #3776
         assert 16 not in [p.code for p in await b.idle()] and 16 not in [p.code for p in await c.idle()]
 
 
@@ -245,8 +251,8 @@ async def test_clicar_numa_sala_da_lista_devolve_o_4370_e_a_lista_filtra_pela_ca
 
 
 async def test_convite_rapido_sai_no_mundo_como_link_da_sala(tmp_path: Path):
-    """8353 (QuickInviteFrame): corneta grátis primeiro (4500) e o 83 canal 10 ``type`` 4 com a tag que o
-    ChatFormat.createRoomCellData lê; sem sala não sai nada."""
+    """8353 (QuickInviteFrame): o 83 canal 10 ``type`` 4 com uma tag por linha (o ChatFormat.createRoomCellData lê
+    ``position`` e ``name``), o leed 16 e a devoção, sem 4500 (visto 191924 #3763-#3766); sem sala não sai nada."""
     import xml.etree.ElementTree as ET
 
     async with logged_in(tmp_path, novice=19000) as a:
@@ -265,15 +271,17 @@ async def test_convite_rapido_sai_no_mundo_como_link_da_sala(tmp_path: Path):
         a.client.send(5034, pb.RoomReqMsg(roomId=room_id, dungeonId=1, campaignId=9001))
         await a.idle()
         a.client.send(8353, pb.CaptainSpeakMsg(inviteContent=lines, type=0))
-        mine = await a.idle()
-        assert 4500 in [p.code for p in mine]
+        mine = [p.code for p in await a.idle()]
+        assert mine == [83, 4152, 83] and 4500 not in mine
         chat = _body(await b.idle(), 83, pb.ChatChannelMsg)
         assert (chat.channel, chat.type, chat.otherId) == (10, 4, a.user_id)
-        tag = ET.fromstring(chat.encodeMsg)
-        assert tag.attrib == {
+        tags = list(ET.fromstring(f"<x>{chat.encodeMsg}</x>"))
+        assert [(t.tag, t.attrib["name"]) for t in tags] == [("a", lines[0]), ("a", lines[1])]
+        assert {k: v for k, v in tags[0].attrib.items() if k != "name"} == {
+            "t": "6",
             "id": str(room_id),
             "campaignId": "9001",
+            "islock": "0",
+            "position": "0",  # com senha: trancada
             "roomType": "0",
-            "position": "0",
-            "name": "Thrills await you in [x] room 1. Join now!",
         }

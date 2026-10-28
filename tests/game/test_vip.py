@@ -140,6 +140,25 @@ async def test_vip_trial_card_extends_and_marks_type_2(tmp_path: Path) -> None:
         assert all(i.template_id != TRIAL_CARD for i in saved.items)
 
 
+async def test_spirit_covenant_grants_contracts_1_to_6(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #1791-#1801: 115, um 4434 por contrato (150 depois do 3º), 111 e 3."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = _snap(g)
+        covenant = Item(g.user_id, 2031301, pos=0)
+        snap.items.append(covenant)
+        await g.server.services.characters.save(covenant)
+        g.client.send(5006, pb.ItemUseMsg(pos=0, count=1, bagType=1))
+        got = await g.idle()
+        assert [p.code for p in got] == [115, 4434, 4434, 4434, 150, 4434, 4434, 4434, 111, 3]
+        kings = [pb.KingContractMsg.FromString(p.body).kingContractInfos for p in got if p.code == 4434]
+        assert [[k.contractId for k in m] for m in kings] == [list(range(1, n + 1)) for n in range(1, 7)]
+        [end] = {datetime.fromisoformat(k.endData).replace(tzinfo=UTC) for k in kings[-1]}
+        assert abs(end - (_now(g) + timedelta(hours=24))) < timedelta(seconds=3)
+        assert pb.ChatChannelMsg.FromString(got[-2].body).encodeMsg == "Spirit Covenant activation successful."
+        saved = await g.server.services.characters.snapshot(g.user_id)
+        assert all(i.template_id != 2031301 for i in saved.items)
+
+
 async def test_vip_wheel_opens_18_prizes_and_quick_spins_while_tokens_last(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         g.client.send(8521)  # sem VIP: 4414 vazio, o cliente ignora

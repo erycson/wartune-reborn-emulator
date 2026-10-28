@@ -63,8 +63,8 @@ async def test_exp_scroll_packets_double_the_battle_exp_and_survive_restart(tmp_
     async with logged_in(tmp_path, novice=11000, clock=FakeClock(START)) as g:
         await _give(g, EXP_LV2)
         got = await _use(g)
-        assert codes(got) == [115, 110, 4188, 150, 3]  # visto: 115, 110, 4188, 4902/150, 3 (sem texto)
-        effect = pb.PropertyUpdatedMsg.FromString(got[1].body)
+        assert codes(got) == [115, 150, 4434, 110, 4188, 150, 3]  # (visto) 191924 #2241, sem texto
+        effect = pb.PropertyUpdatedMsg.FromString(got[3].body)
         assert (effect.propertyType, effect.value) == (30, 100)
         data = _buffer(got)
         assert (data.templateId, data.validityDate, data.grade, data.type, data.typeTemplateid) == (
@@ -103,7 +103,7 @@ async def test_same_grade_adds_time_weaker_is_refused_and_stop_clears(tmp_path: 
 
         g.client.send(5006, pb.ItemUseMsg(pos=1, count=1, bagType=1))  # 50% sobre 100%: recusa, sem resposta
         got = await _use(g, pos=2)
-        assert codes(got) == [115, 110, 4188, 150, 3] and weak.count == 1
+        assert codes(got) == [115, 150, 4434, 110, 4188, 150, 3] and weak.count == 1
         assert (_buffer(got).grade, _buffer(got).validityDate) == (200, 60)  # maior substitui grau e tempo
 
         g.client.send(8283, pb.EffectRemoveReqMsg(templateId=2030))
@@ -118,8 +118,8 @@ async def test_power_potion_raises_total_power_until_it_ends(tmp_path: Path) -> 
         me(g).character.grades = 20  # NeedGrades 10
         await _give(g, 2013502)
         got = await _use(g)
-        assert codes(got) == [115, 110, 4188, 150, 3]
-        on = pb.ArmyArmyMsg.FromString(got[3].body).simpleHeroInfo
+        assert codes(got) == [115, 150, 4434, 110, 150, 4188, 150, 3]  # (visto) 191924 #1737: atributo, 150 a mais
+        on = pb.ArmyArmyMsg.FromString(got[4].body).simpleHeroInfo
         assert on.totalPower == on.basePower + 40
 
         g.client.send(8283, pb.EffectRemoveReqMsg(templateId=2135))
@@ -133,5 +133,12 @@ async def test_gold_scroll_raises_the_warehouse_cap(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=11000, clock=FakeClock(START)) as g:
         await _give(g, GOLD_SCROLL)
         got = await _use(g)
-        assert codes(got) == [115, 110, 4188, 109, 3]
-        assert pb.CastleYieldMsg.FromString(got[3].body).goldMax == 12500  # 10000 sem armazém (nasce no 9) + 25%
+        assert codes(got) == [115, 150, 4434, 110, 4188, 109, 150, 3]
+        assert pb.CastleYieldMsg.FromString(got[5].body).goldMax == 12500  # 10000 sem armazém (nasce no 9) + 25%
+
+
+async def test_crit_scroll_sends_the_extra_army(tmp_path: Path) -> None:
+    """(visto) oficial_20261024-191924-1 #1737 (Crit Scroll, efeito 2047): 115, 150, 4434, 110, 150, 4188, 150, 3."""
+    async with logged_in(tmp_path, novice=11000, clock=FakeClock(START)) as g:
+        await _give(g, 2014701)
+        assert codes(await _use(g)) == [115, 150, 4434, 110, 150, 4188, 150, 3]

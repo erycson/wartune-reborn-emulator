@@ -609,6 +609,7 @@ marriages = Table(
     _int("spec_id"),
     Column("since", UTCDateTime, nullable=False),
     Column("married_at", UTCDateTime),
+    Column("tree", Text, nullable=False, default="", server_default=""),
 )
 
 
