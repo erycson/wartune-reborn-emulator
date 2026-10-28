@@ -95,6 +95,13 @@ class WorldBoss:
     battle_cap: int
     last_hit_gold: int
     last_hit_daru: int
+    gate_x: int = 0  # barreira (masterType 53): antes do chefe nascer, empurra para gate_back
+    gate_y: int = 0
+    gate_back_x: int = 0
+    gate_back_y: int = 0
+    portal_x: int = 0  # portal (masterType 61)
+    portal_y: int = 0
+    fight_capacity: int = 0
 
 
 @dataclass(frozen=True, slots=True)

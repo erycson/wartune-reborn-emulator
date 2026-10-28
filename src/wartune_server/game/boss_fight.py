@@ -38,6 +38,11 @@ def job_class(job: int) -> int:
     return job % 3
 
 
+# (visto) o 83 do fim por classe (#3236-#3239: job 1 Knight, 2 Archer, 3 Mage; o Dragonhuntr de job 6 é Mage)
+CLASS_NAMES = {1: "Knight", 2: "Archer", 0: "Mage"}
+CLASS_JOB = {1: 1, 2: 2, 0: 3}  # job_class -> o ``job`` do 83
+
+
 @dataclass
 class Pool:
     """Uma janela aberta de um chefe."""
@@ -48,6 +53,8 @@ class Pool:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)  # gravar e pagar o fim, um de cada vez
     dead: dict[int, datetime] = field(default_factory=dict)  # personagem -> quando revive
     timers: dict[int, asyncio.TimerHandle] = field(default_factory=dict)
+    told_inspire: int = 0  # o último grau de moral anunciado
+    ticker: asyncio.Task[None] | None = None  # o 4174 a cada 8 s para quem está no mapa
 
     @property
     def hp(self) -> int:
@@ -88,14 +95,13 @@ class Pool:
         """Ouro (e o mesmo de daru) de uma luta: o dano // ``damage_per_gold``, até ``battle_cap``."""
         return min(self.boss.battle_cap, wound // max(1, self.boss.damage_per_gold))
 
-    def info(self, templates: GameTemplates, character_id: int, now: datetime) -> pb.WorldBossInfoMsg:
-        """4174: vida, participantes, os 30 primeiros, o dano de quem recebe e a moral."""
-        hero = templates.get("GameHeroTemp", self.boss.hero_id) or {}
+    def info(self, character_id: int, present: int, now: datetime) -> pb.WorldBossInfoMsg:
+        """4174: vida, quantos estão no mapa (``present``; visto #1415 1 ao entrar, #1434 2), os 30 primeiros, o
+        dano de quem recebe e a moral. (visto) sem ``grades``."""
         mine = self.wounds.get(character_id)
         msg = pb.WorldBossInfoMsg(
-            curHp=self.hp, totalNum=sum(w.wound > 0 for w in self.wounds.values()),
-            campaignId=self.boss.campaign_id, totalHp=self.fight.total_hp, myWound=mine.wound if mine else 0,
-            grades=int(hero.get("Grades") or 0), currentMillis=int(now.timestamp() * 1000), bufferGrade=self.inspire(),
+            curHp=self.hp, totalNum=present, campaignId=self.boss.campaign_id, totalHp=self.fight.total_hp,
+            myWound=mine.wound if mine else 0, currentMillis=int(now.timestamp() * 1000), bufferGrade=self.inspire(),
         )  # fmt: skip
         for w in self.ranking()[:RANKED]:
             msg.woundInfo.add(userId=w.character_id, nickName=w.nickname, wound=w.wound, woundAddation=0, job=w.job)
@@ -105,50 +111,55 @@ class Pool:
 def next_hp(boss: WorldBoss, fight: WorldBossFight) -> int:
     """Vida cheia da próxima janela: cresce se morreu rápido, cai se não morreu (internet: a wiki; % dedução)."""
     if fight.killed_at is not None:
-        fast = (fight.killed_at - fight.opened_at).total_seconds() < boss.fast_seconds
+        # "under 10 minutes" conta do nascimento; ``opened_at`` é o mapa aberto, ``SPAWN_GAP`` antes
+        fast = (fight.killed_at - fight.opened_at - worldboss.SPAWN_GAP).total_seconds() < boss.fast_seconds
         return fight.total_hp * (100 + boss.grow_pct) // 100 if fast else fight.total_hp
     return max(boss.min_hp, fight.total_hp * (100 - boss.shrink_pct) // 100)
 
 
-def end_rewards(world: World, pool: Pool) -> dict[int, tuple[int, int]]:
-    """Ouro e daru do fim por personagem: Ares (top 10 da classe), Warrior (o maior degrau da fração do dano) e
-    Lucky (o último golpe); somam (guia da Koram "Players can acquire Beating Reward as well as other rewards").
-    Só com o chefe morto ("Defeating the World Boss earns", help do cliente): a janela que fecha no ``StopTime``
-    fica só com o ouro e o Daru de cada golpe."""
-    out: dict[int, tuple[int, int]] = {}
+@dataclass(frozen=True)
+class Prize:
+    """Um prêmio do fim, um correio cada (visto: #3260, Apollo e Warrior em correios separados)."""
+
+    character_id: int
+    kind: str  # "apollo" (top 10 da classe), "warrior" (fração do dano), "lucky" (último golpe)
+    gold: int
+    daru: int
+    rank: int = 0  # apollo: a posição na classe
+    cls: int = 0  # apollo: job_class
+
+
+def end_prizes(world: World, pool: Pool) -> list[Prize]:
+    """Os prêmios do fim: Apollo (top 10 da classe), Warrior (o maior degrau da fração do dano) e Lucky (o último
+    golpe); somam (guia da Koram "Players can acquire Beating Reward as well as other rewards"). Só com o chefe
+    morto ("Defeating the World Boss earns", help do cliente): a janela que fecha no ``StopTime`` fica só com o ouro
+    e o Daru de cada golpe. (visto) #3260: 3º Mage = 240k/240k, 1,22% do dano = 180k/180k."""
     if not pool.fight.killer_id:
-        return out
+        return []
+    out: list[Prize] = []
     total = sum(w.wound for w in pool.wounds.values())
-
-    def add(character_id: int, gold: int, daru: int) -> None:
-        g, d = out.get(character_id, (0, 0))
-        out[character_id] = (g + gold, d + daru)
-
     ranking = pool.ranking()
-    for cls in {job_class(w.job) for w in ranking}:
+    for cls in sorted({job_class(w.job) for w in ranking}):
         for rank, w in enumerate((w for w in ranking if job_class(w.job) == cls), 1):
             for r in world.world_boss_rewards:
                 if r.kind == "rank" and r.rank_from <= rank <= r.rank_to:
-                    add(w.character_id, r.gold, r.daru)
+                    out.append(Prize(w.character_id, "apollo", r.gold, r.daru, rank, cls))
     shares = sorted((r for r in world.world_boss_rewards if r.kind == "share"), key=lambda r: r.share)
     for w in ranking:
         best = [r for r in shares if total and w.wound / total >= r.share]
         if best:
-            add(w.character_id, best[-1].gold, best[-1].daru)
-    add(pool.fight.killer_id, pool.boss.last_hit_gold, pool.boss.last_hit_daru)
+            out.append(Prize(w.character_id, "warrior", best[-1].gold, best[-1].daru))
+    out.append(Prize(pool.fight.killer_id, "lucky", pool.boss.last_hit_gold, pool.boss.last_hit_daru))
     return out
 
 
-def milestones(world: World, pool: Pool, character_id: int) -> pb.WorldBossWoundRewardListMsg:
-    """4369: os degraus da fração do dano (o cliente tem 3 ícones, ``core.WorldBossReward1..3``)."""
-    total, mine = pool.fight.total_hp, pool.wounds.get(character_id)
-    msg = pb.WorldBossWoundRewardListMsg()
-    shares = sorted((r for r in world.world_boss_rewards if r.kind == "share"), key=lambda r: r.share)
-    for i, r in enumerate(shares, 1):
-        reached = mine is not None and total > 0 and mine.wound / total >= r.share
-        msg.rewardinfo.add(campaignId=pool.boss.campaign_id, rewardid=i, woundmsg=f"Deal {r.share:.1%} of total damage",
-                           rewardmsg=f"{r.gold:,} Gold and {r.daru:,} Daru", state=int(reached))  # fmt: skip
-    return msg
+def end_rewards(world: World, pool: Pool) -> dict[int, tuple[int, int]]:
+    """Ouro e daru do fim somados por personagem."""
+    out: dict[int, tuple[int, int]] = {}
+    for p in end_prizes(world, pool):
+        g, d = out.get(p.character_id, (0, 0))
+        out[p.character_id] = (g + p.gold, d + p.daru)
+    return out
 
 
 class Bosses:
@@ -158,6 +169,7 @@ class Bosses:
         self.pools: dict[int, Pool] = {}
         self._lock = asyncio.Lock()
         self.checked_at: datetime | None = None  # última busca de janelas sem fim pago no banco
+        self.told_at: datetime | None = None  # última conferência dos avisos e do nascimento (``boss_clock``)
 
     async def pool(
         self, world: World, templates: GameTemplates, characters: CharacterService, campaign_id: int, now: datetime

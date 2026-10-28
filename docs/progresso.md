@@ -38,12 +38,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 3 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
-| PvP e chefes | 1 | 2 | 1 | 5 | 2 |
+| PvP e chefes | 1 | 1 | 2 | 5 | 2 |
 | Atividades e eventos | 5 | 9 | 1 | 4 | 5 |
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 1 | 2 | 1 |
-| **Total** | **93** | **87** | **35** | **51** | **39** |
+| **Total** | **93** | **86** | **36** | **51** | **39** |
 
 ## Validação e base
 
@@ -350,7 +350,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha | ❌ | | |
 | Ataque a castelo/exército de jogador | ❌ | | |
-| Boss mundial: agenda e luta | 🟡 | | números da internet e dedução; a vida não segue o nível; 4435 não vai |
+| Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
 | Boss mundial: buff e dublê | ❌ | | |
 
 ## Atividades e eventos

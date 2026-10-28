@@ -353,7 +353,7 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if c.world_boss:
         from .worldboss import boss_attack  # worldboss importa este módulo
 
-        await boss_attack(s)
+        await boss_attack(s, node)
         return
     if c.content is not None:
         await _dungeon_arrive(s, camp, node)
@@ -850,6 +850,10 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
         _send(s, S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=s.battle_gp, gold=0, strategy=0))
         s.battle_gp = 0
     c = s.campaign
+    if msg.state == BACK_TO_MAP and c is not None and c.world_boss:
+        from .worldboss import scene_loaded  # worldboss importa este módulo
+
+        await scene_loaded(s)
     if msg.state == BACK_TO_MAP:
         start_talk(s)
         start_patrol(s)

@@ -24,6 +24,11 @@ async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     #922 -> #924 ... #1518 -> #1524). Responder logo a cada 5038; o cliente remove o
     listener do 20 depois do primeiro (``PreLoadNextCampaign``, linhas 46 e 80).
     """
+    c = s.campaign
+    if c is not None and c.world_boss and (boss := s.ctx.world.world_bosses.get(c.map_id)) is not None:
+        # (visto) #1408-#1409 e depois de cada morte (#1734): o herói do chefe
+        s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg(heroTemplated=[boss.hero_id]))
+        return
     key = str(msg.paraInt1)
     data = next((c["maps"][key] for c in s.ctx.world.campaigns.values() if key in c["maps"]), None)
     heroes: list[int] = []

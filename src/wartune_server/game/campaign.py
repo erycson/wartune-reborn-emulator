@@ -100,7 +100,7 @@ class CampaignMap:
     fallen: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # baús da luta por signId (5129)
     hook: bool = False  # sala do gancho (7001-7009): estátuas, em ``handlers/hangup.py``
     fam: bool = False  # terra secreta da guilda (7501): Invasores, em ``handlers/fam.py``
-    ready: bool = False  # terra secreta: a sala (127, 4432 ...) já saiu no 1º 5035 state 4
+    ready: bool = False  # o 1º 5035 state 4 já foi tratado (terra secreta: a sala; chefe do mundo: 4371 e 4413)
 
     @classmethod
     def enter(cls, map_id: int, novice: int) -> CampaignMap:

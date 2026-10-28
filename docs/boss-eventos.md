@@ -32,31 +32,64 @@ inglesa #103); da batalha do chefe não há nenhuma.
 - **O servidor empurra a mudança:** no relógio (20008, ~60 s) cada sessão recebe o 4182 de novo quando um
   estado muda (abriu, fechou ou o chefe morreu). Um chefe morto na janela de hoje aparece como 2.
 - Fuso do jogo: `game_timezone`. Código: `game/worldboss.py`.
-- O **4381** (pré-carregamento) não é mandado.
+- **Hora do mapa e do chefe** *(visto: oficial_20261027-152321-1 #583-#1670 para o 5001, oficial_20261026-225632-1
+  #7393-#8453 para o 5003; a hora do servidor é a da captura + ~6 s, pelo `sendDate` do correio)*:
+
+  | Momento | O que o oficial manda |
+  |---|---|
+  | nascimento − 14, − 9 e − 4 min | **4381** `{campaignId, leftTime}` com 15, 10 e 5, a todos os online |
+  | nascimento − 4 min (com o 4381 de 5) | o mapa abre: 4182 `state` 0 e 83 canal 12 "The World Boss battle is now open, enter to participate in the battle!" (destaque) |
+  | nascimento − 3, − 2 e − 1 min | 111 e 83 canal 3 "World Boss {nome} will appear in N minutes! Get ready for the battle of a lifetime!" a quem está no mapa |
+  | `OpenTime` + 1 min | o chefe nasce: 128 da barreira (`nodeState` 8) e 83 canal 12 "World Boss {nome} has spawned!" (destaque) |
+  | `StopTime` ou a morte | 4182 `state` 2 |
+
+  Código: `game/worldboss.py` (`spawn_at`, `events`, `state`) e `handlers/worldboss.py` (`boss_clock`, no 20008,
+  uma vez por servidor; marco perdido há mais de 2 min não sai).
 
 ### Implementação (`game/boss_fight.py`, `game/handlers/worldboss.py`)
 
-**Config no banco (migração 0031).** `world_bosses` tem uma linha por chefe com a fonte de cada valor em
-`source`: herói, `sonType` do avatar, posição do nó e do jogador, vida inicial e mínima, regra de
-crescimento (morto em menos de `fast_seconds`: +`grow_pct`%; não morto: −`shrink_pct`%, sem passar de
-`min_hp`), `kill_turn` (6), `revive_seconds` (30), `damage_per_gold` (5), `battle_cap` (10M) e o último
-golpe (1,5M de ouro). `world_boss_rewards` tem o top 10 da classe (300k/270k/240k/180k de ouro e daru) e os
-degraus da fração do dano (0,3%/0,5%/0,8%: 60k/120k/180k). Os números vêm da Internet.
+**Config no banco (migrações 0031 e 0092).** `world_bosses` tem uma linha por chefe com a fonte de cada valor em
+`source`:
+- *(visto, 0092)* herói (2002 Bloodfang, 2003 Redoga Drake), `sonType` (2411, 2176), a posição do chefe, da
+  entrada, do portal (o ponto de transferência, `sonType` 2336: botão no minimapa, `CampaignMapFrame`) e da
+  barreira (e para onde ela empurra), a força do nó (441705) e o último golpe (800 mil e 1 milhão de ouro);
+- *(visto, 0092)* **a vida**: começa no `Live` do herói (2 000 000) e sobe **50% a cada abate**, em qualquer tempo
+  dentro da janela. As duas vidas da captura são potências exatas: 15 187 500 = 2M × 1,5⁵ (5001, 27/10) e
+  34 171 875 = 2M × 1,5⁷ (5003, 26/10). Não é o nível nem a quantidade de jogadores: com 7 jogadores (27/10) ou 16
+  (26/10) o número é sempre 2M × 1,5ⁿ. É assim que o chefe acompanha um servidor forte (abate todo dia = +50% por
+  dia). Os abates vistos (16,5, 18,6, 20 e 23 min) cresceram todos;
+- *(visto)* o **último golpe é fixo por chefe**: 800 mil no Bloodfang (quem matou com nível 60 em 23/10 e 48 em
+  27/10) e 1 milhão no Redoga (nível 36 em 25/10 e 52 em 26/10). Vai **direto** a quem deu o golpe (3 com o ouro
+  novo), e depois sai o 83 para o servidor. Só por correio se ele saiu do jogo antes do fim pago;
+- *(internet, 0031)* a vida cair sem abate (−`shrink_pct`% = 10%, sem passar de `min_hp`), `kill_turn` (6),
+  `revive_seconds` (30, *visto* #1725 → #1762), `damage_per_gold` (5,
+  *visto*: ouro da luta = dano ÷ 5 em todas as 16 lutas) e `battle_cap` (10M).
+
+`world_boss_rewards` tem o top 10 da classe (300k/270k/240k/180k de ouro e daru) e os degraus da fração do dano
+(0,3%/0,5%/0,8%: 60k/120k/180k). *(visto #3260)*: o 3º Mage recebeu 240k/240k e 1,22% do dano recebeu 180k/180k.
 
 **Estado.** `world_boss_fights` guarda uma linha por janela (vida cheia, quem matou e quando, `settled`,
 `next_hp`) e `world_boss_wounds` o dano de cada personagem. A vida atual é a vida cheia menos a soma dos
 danos. Em memória fica o `Pool` da janela aberta (`ctx.bosses`). Um restart perde só as lutas em curso.
 
-**Entrar (8258).** Valida id, janela, nível 20 e se o jogador está fora de batalha ou campanha, e se o
-chefe ainda está vivo. Resposta: 125, **4369** (os 3 degraus, antes da view; o cliente só tem
-`core.WorldBossReward1..3`), 21 (todos no mapa), 127, 130, 4174 e, se o jogador estiver morto, 4175. Quem
-já está no mapa recebe o 21 de quem entrou.
+**Entrar (8258)** *(visto #1395-#1409, #8267-#8281)*. Chefe fechado: sem resposta (#1386). Valida id, nível 20,
+se o jogador está fora de batalha ou campanha e se o chefe está vivo. Resposta: 125, 140, 21 (todos no mapa),
+127, 4165 (os buffs: a moral, se houver) e 150; se o jogador estiver morto, 4175. Quem já está no mapa recebe o
+21 de quem entrou. Quando a cena carrega (5035 `state` 4): **4371** `{isAdd, secondCount}` (o `syncErrorTime` do
+contador do cliente, em segundos: mandamos 0) e 4413 vazio. O 5038 recebe o 20 com o herói do chefe (também
+depois de cada morte).
 
-O nó tem `nodeId` 1 e `campDataId` = campanha × 100 + 1, e copia o modelo do chefe da masmorra
-(102109): `masterType` 41, `heroTempId` 2001, `resource` 1. O avatar `swf/npc/<sonType>.bswf` (2145) é
-dedução.
+**Os 4 nós (127)**, `campDataId` = campanha × 100 + n: 1 entrada (masterType 40, estado 2), 2 o chefe (42, com
+`heroTempId`, `handlerRange` 6, `sizeType` 2), 3 o portal (61) e 4 a barreira (53, com `resetX/resetY`). A ordem
+do 127 varia no oficial.
 
-**Atacar (5125).** Luta com `battleType` 17. O chefe é herói `type` 3, `livingId` 4, com a vida que resta
+**O 4174** vai a cada 8 s a quem está no mapa (*visto* #1415, #1420, #1430), e no fim de cada luta. `totalNum` é
+quantos estão no mapa; sem `grades`.
+
+**Antes do nascimento.** O 5125 na barreira ou no chefe responde 111 "The current battle hasn't started yet." e
+4126 com o exército de volta em `gate_back` (*visto* #1411-#1414, #8284-#8286).
+
+**Atacar (5125 no chefe).** Luta com `battleType` 17. O chefe é herói `type` 3, `livingId` 4, com a vida que resta
 (`maxHp` = cheia). Ao lado do jogador vão as tropas e o herói.
 - **Concorrência:** a vida do chefe na luta é um `SharedHp`. Antes de cada ação ela vem do pool, e o dano
   nele passa pelo pool dentro do próprio golpe (`Battle._act`, sem await). Assim, dois golpes nunca
@@ -67,11 +100,14 @@ dedução.
   - ouro e daru = dano da luta ÷ 5 (teto de 10M), gravados junto com o dano;
   - o jogador recebe 3, 4103 (`goldBonus`/`strategyBonus`), 150 e 140;
   - o 4174 vai a todos no mapa, cada um com o seu `myWound`.
+- **Moral** *(visto #1867-#1871)*: quando o maior dano passa de mais 500 mil, todos no mapa recebem o 4165 com o
+  buff 700 + grau, e o 111/83 canal 3 "{link} has dealt {N}k in total damage! All players have been granted lvl.
+  {grau} Inspiration!" (com 6 tabs e um espaço no fim, como o oficial).
 
-**Morte.** Quem perde fica morto 30 s. O 4175 (`state` 1, `leftTime` em ms) vai a todos no mapa, e o
-jogador revive sozinho com um 4175 `state` 0. Enquanto estiver morto, o 5125 só devolve o 4175.
-O **8264** revive na hora, cobrando `Live_Fight_Pay`: com payType 0 gasta primeiro o vinculado, com 1
-só diamante.
+**Morte.** Quem perde fica morto 30 s. O 4175 (`state` 1, `leftTime` em ms, sem `serverName`) vai a todos no mapa,
+e o jogador revive sozinho com um 4175 `state` 0. Enquanto estiver morto, o 5125 só devolve o 4175. O **8264**
+revive na hora, cobrando `Live_Fight_Pay` (com payType 0 gasta primeiro o vinculado, com 1 só diamante), e a luta
+começa na hora: 3, 150, 4434, 4175 vivo, 140 e 157 (*visto* oficial_20261026-225632-1 #8629-#8638).
 
 **Missões.** Tipo 40 ("Participate in a World BOSS Battle": 759 ×10, 761 ×1) conta 1 no fim de cada luta no
 chefe (*dedução*: luta e não entrada; com entrada, a 759 pediria 10 entradas). Tipo 66 (183 "Spend Balens to begin
@@ -81,19 +117,29 @@ the battle instantly ... 3 times") conta 1 em cada 8264 pago com sucesso. As dua
 (`exitBack`).
 
 **Fim da janela (chefe morto ou `StopTime`).** É pago uma vez só, sob o lock do pool.
-- Os prêmios do fim vão pelo **correio do jogo** e somam (guia da Koram), só com o chefe morto
-  ("Defeating the World Boss earns", help do cliente): Ares Prize (top 10 da classe, `job % 3`), Warrior Prize
-  (o maior degrau da fração do dano) e Lucky Prize (o último golpe). No `StopTime` com o chefe vivo, só o ouro e
-  o Daru de cada golpe.
+- Os prêmios do fim vão pelo **correio do jogo**, um correio por prêmio (*visto* #3260, `sendType` 4, Daru no
+  anexo 1 e ouro no 2), e somam, só com o chefe morto ("Defeating the World Boss earns", help do cliente):
+  - "World Boss Award: Apollo Prize" (top 10 da classe): "You received {classe} damage in battle! Your stunning
+    performance has earned you {posição} and bonus rewards!";
+  - "World Boss Award: Warrior Prize" (o maior degrau da fração do dano): "Your stellar performance in the World
+    Boss battle has earned you a bonus reward!";
+  - o último golpe vai direto (acima); o correio "World Boss Award: Lucky Prize" só se quem deu o golpe saiu
+    antes do fim pago: **TODO(inventado)** título e texto.
+  No `StopTime` com o chefe vivo, só o ouro e o Daru de cada golpe.
 - Na mesma transação gravam-se `settled`, `next_hp` e o dano de todos.
-- Quem está no mapa recebe o **4203** (posição, ouro, daru e dano total) e o 22. Quem está em luta recebe
-  os dois no fim dela.
+- Com o chefe morto *(visto #3218-#3239, #10868-#10900)*: 4182 `state` 2 a todos, 128 do chefe (`nodeState` 8) a
+  quem está no mapa, e os 83 canal 12 a todos: "{link} struck the final blow to defeat the World Boss {nome} and
+  has been rewarded with {ouro} Gold!" (destaque), "The top 3 players in terms of total damage dealt to Boss {nome}
+  are:{link}(xx.xx%),..." e um por classe "{Knight|Archer|Mage}The top 3 players to deal the most damage to the
+  BOSS are:..." (`job` 1, 2 e 3).
+- Quem está no mapa sai: 22, 4165 vazio e o **4203** (posição no dano, o ouro e o Daru de todas as lutas = dano
+  total ÷ 5, *visto* #3251 185 775 → 37 155, e o dano total). Quem está em luta, no fim dela.
 - O relógio (20008, uma vez por minuto no servidor) paga as janelas que passaram do `StopTime`,
   inclusive as que ficaram no banco sem pagamento depois de um restart.
 
 **Fora do escopo:** o buff comprado (8470, removido no 5.5) e o dublê (8526) continuam recusados, e o
-4435 (barra de HP na luta) não é mandado. A vida do chefe não acompanha o nível dos jogadores: cresce ou
-cai conforme a última janela.
+4435 (barra de HP na luta) não é mandado. O 4369 (degraus do dano) não é mandado: o oficial não manda. O movimento dos outros
+jogadores no mapa (4185) é do mundo compartilhado (`docs/mundo-compartilhado.md`).
 
 ## Regras pela Internet (pesquisa de 2026-10-18)
 
@@ -139,29 +185,18 @@ https://wartune.dolygames.com (posts citados abaixo).
 
 ## Captura que falta
 
-Cada item diz o que gravar no `captures/` (ou no relay) e o que fazer no jogo. Todos com um
-personagem de nível 20 ou mais, sem batalha e sem campanha abertas, no horário da janela
-(fuso do jogo). Os pacotes esperados estão entre parênteses.
+Já capturado (27/10 e 26/10): agenda aberta, entrada, ataque, morte, reviver pago, moral, fim com ranking e
+correio. Falta, com um personagem de nível 20 ou mais:
 
-1. **Estado aberto da agenda.** Entrar entre 11:35 e 12:35 (ou 21:00–22:00) e logar. Gravar o 4182
-   (esperado: 5001=0 ou 5003=0; hoje só vimos 1 e 2). Confirma o 0 do cliente.
-2. **Entrada no chefe.** Clicar no chefe com a janela aberta. Gravar 8258, 125 (mapa 5001 ou
-   5003), 130 (lista de nós, com o nó do chefe), 4174 (HP cheio e `woundInfo` vazio), 4182 e 157
-   (`battleType` e herói do chefe).
-3. **Ataque.** Andar até o nó e atacar. Gravar 5125 (`paraInt1` = nodeId), 157, 153, 156, 154, 4103,
-   4174 depois de cada golpe (`curHp`, `woundInfo`, `myWound`), 4435 se o servidor mandar.
-4. **Morte e entrada paga.** Morrer no chefe e clicar em entrar pagando (vinculado e diamante).
-   Gravar 4175 (`leftTime`), 8264 (`payType` 0 e 1) e a resposta com o saldo.
-5. **Buff.** Comprar o buff do chefe (`Types=4`) dentro do mapa (8470 `type` 1 e 2). Gravar 8470 e 4165
-   (`bufferTempId`, `leftTime`) e o saldo antes e depois.
-6. **Dublê.** Comprar e cancelar o dublê na tela de dublê (`BuyAvatarFrame`, onde ela abrir) (8526 `op` 1 e 2). Gravar 8526, 4424 e 4423.
-7. **Fim.** Deixar a janela fechar (depois de 12:35) com a sessão aberta. Gravar 4203
-   (`order`, `gold`, `strengy`, `totalWound`) e 4369 (marcos de dano e estado de cada um).
-8. **Ranking com dois jogadores.** Dois personagens no mesmo chefe, cada um com dano. Gravar os dois
-   4174 para confirmar a ordem do `woundInfo` e o `myWound` de cada um.
-
-O servidor já faz tudo isso (ver *Implementação*), com o que falta das capturas tirado do cliente e da
-Internet; as capturas confirmariam o nó, a ordem dos pacotes e os números.
+1. **Último golpe.** Dar o golpe que mata o chefe. Gravar o correio do Lucky Prize (título, texto e anexos) e se
+   os 800 mil vêm pelo correio ou direto.
+2. **Janela que fecha com o chefe vivo.** Ficar no mapa até o `StopTime` sem o chefe morrer. Gravar o 4182, os 83,
+   o 4203 e se há correio.
+3. **Buff.** Comprar o buff do chefe (`Types=4`) dentro do mapa (8470 `type` 1 e 2), se ainda existir. Gravar 8470
+   e 4165 e o saldo antes e depois.
+4. **Dublê.** Comprar e cancelar o dublê (8526 `op` 1 e 2). Gravar 8526, 4424 e 4423.
+5. **Ponto de transferência (masterType 61, `sonType` 2336).** No mapa do chefe, o NPC embaixo, que tem o botão
+   de transferência no minimapa: clicar nele e gravar o que o cliente manda e o que volta.
 
 ## Boss de guilda
 

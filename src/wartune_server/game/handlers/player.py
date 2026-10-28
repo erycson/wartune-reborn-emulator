@@ -224,7 +224,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     monstros da cidade externa que ele está vendo e o ciclo das minas (``outer_city.refresh`` com ``push``), e solta
     os anúncios agendados (``game/announcements.py``)."""
     from .outer_city import refresh, roll_monsters  # outer_city importa events, que importa este módulo
-    from .worldboss import close_windows, push_states  # worldboss importa este módulo
+    from .worldboss import boss_clock, close_windows, push_states  # worldboss importa este módulo
 
     now = s.ctx.clock.now()
     if s.snapshot is not None:
@@ -243,6 +243,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     from .pet_defend import push_state as push_defend
     from .vehicle import push_state  # vehicle importa este módulo
 
+    await boss_clock(s)
     await close_windows(s)
     await push_fam(s)
     push_states(s)

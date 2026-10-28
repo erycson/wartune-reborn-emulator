@@ -2,10 +2,13 @@ import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import logged_in
 from wartune_server.domain.models import Quest, WorldBossFight
 from wartune_server.domain.world import WorldBoss
 from wartune_server.game import boss_fight, worldboss
+from wartune_server.game.handlers import worldboss as wb
 from wartune_server.game.router import router
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -15,6 +18,12 @@ WORLD_BOSS_OPCODES = (8258, 8259, 8264, 8271, 8470)
 ALERT = 111
 BEFORE_OPEN = datetime(2026, 5, 21, 12, 20, tzinfo=UTC)  # 12:20 (testes em UTC): 5001 aberto (11:35-12:35), 5003 não
 OPEN_5001 = datetime(2026, 5, 21, 11, 40, tzinfo=UTC)  # 11:40: 5001 aberto (abre 11:35 no inglês)
+
+
+@pytest.fixture(autouse=True)
+def _no_info_tick(monkeypatch: pytest.MonkeyPatch) -> None:
+    """O 4174 de 8 s (relógio de verdade) não entra nas listas exatas de pacotes."""
+    monkeypatch.setattr(wb, "INFO_EVERY", 3600)
 
 
 def _states(msg: pb.WorldBossStateMsg) -> list[tuple[int, int]]:
@@ -37,8 +46,15 @@ def test_window_uses_the_game_timezone_and_edges() -> None:
     assert _states(worldboss.states_msg(templates, datetime(2026, 5, 21, 20, 6, tzinfo=UTC))) == [(5001, 2), (5003, 1)]
     row = worldboss.boss(templates, 5001)
     assert row is not None
-    assert worldboss.state(row, datetime(2026, 5, 21, 11, tzinfo=UTC)) == worldboss.OPEN  # 11:00
-    assert worldboss.state(row, datetime(2026, 5, 21, 10, 59, tzinfo=UTC)) == worldboss.BEFORE
+    # visto 27/10 e 26/10: o mapa abre 4 min antes de nascer, e nasce 1 min depois do OpenTime
+    assert worldboss.state(row, datetime(2026, 5, 21, 10, 57, tzinfo=UTC)) == worldboss.OPEN
+    assert worldboss.state(row, datetime(2026, 5, 21, 10, 56, 59, tzinfo=UTC)) == worldboss.BEFORE
+    assert not worldboss.spawned(row, datetime(2026, 5, 21, 11, 0, 59, tzinfo=UTC))
+    assert worldboss.spawned(row, datetime(2026, 5, 21, 11, 1, tzinfo=UTC))
+    since, now = datetime(2026, 5, 21, 10, 40, tzinfo=UTC), datetime(2026, 5, 21, 11, 1, tzinfo=UTC)
+    assert worldboss.events(row, since, now) == [("notice", 15), ("notice", 10), ("notice", 5), ("countdown", 3),
+                                                 ("countdown", 2), ("countdown", 1), ("spawn", 0)]  # fmt: skip
+    assert worldboss.events(row, now, now) == []
     assert worldboss.state(row, datetime(2026, 5, 21, 11, 59, tzinfo=UTC)) == worldboss.OPEN  # 11:59
     assert worldboss.state(row, datetime(2026, 5, 21, 12, tzinfo=UTC)) == worldboss.CLOSED  # 12:00
     assert worldboss.boss(templates, 4602) is None  # Types 16 não é chefe do mundo
@@ -51,9 +67,9 @@ async def test_agenda_e_recusas_com_o_relogio_da_captura(tmp_path: Path) -> None
         [state] = [pb.WorldBossStateMsg.FromString(p.body) for p in await g.idle() if p.code == 4182]
         assert _states(state) == [(5001, 0), (5003, 1)]  # 5001 já abriu às 11:35 no inglês (fecha 12:35)
 
-        c.send(8258, pb.WorldBossMsg(param1=5003))  # fora da janela: aviso, sem 125
+        c.send(8258, pb.WorldBossMsg(param1=5003))  # fora da janela: o oficial não responde (#1386)
         c.send(8258, pb.WorldBossMsg(param1=4602))  # não é chefe do mundo
-        assert [p.code for p in await g.idle()] == [ALERT, ALERT]
+        assert [p.code for p in await g.idle()] == [ALERT]
 
         session = g.server.online.get(g.user_id)
         assert session is not None and session.snapshot is not None
@@ -78,12 +94,26 @@ async def test_entrar_e_sair_do_chefe_com_dois_jogadores(tmp_path: Path) -> None
         await g.idle()  # a cidade do céu mostra o outro chegando
         g.client.send(8258, pb.WorldBossMsg(param1=5001))
         got = await g.idle()
-        assert [p.code for p in got] == [125, 4369, 21, 127, 130, 4174]
+        assert [p.code for p in got] == [125, 140, 21, 127, 4165, 150]  # visto #1396-#1404
         [nodes] = [pb.CampaignNodeListMsg.FromString(p.body) for p in got if p.code == 127]
-        assert [(n.masterType, n.heroTempId, n.state) for n in nodes.node] == [(41, 2001, 1)]
-        [info] = [pb.WorldBossInfoMsg.FromString(p.body) for p in got if p.code == 4174]
-        assert (info.curHp, info.totalHp, info.campaignId) == (2_000_000, 2_000_000, 5001)
-        assert len(pb.WorldBossWoundRewardListMsg.FromString(got[1].body).rewardinfo) == 3
+        # entrada, o Bloodfang, o portal e a barreira (já nasceu às 11:36: some)
+        assert sorted((n.campDataId, n.masterType, n.heroTempId, n.state) for n in nodes.node) == [
+            (500101, 40, -1, 2), (500102, 42, 2002, 1), (500103, 61, -1, 1), (500104, 53, -1, 8)]  # fmt: skip
+        [boss] = [n for n in nodes.node if n.masterType == 42]
+        assert boss.nodeName == "Bloodfang" and (boss.posX, boss.fixX) == (51, 1029)
+        g.client.send(5035, pb.LoginStateMsg(state=4))
+        got = await g.idle()
+        assert [p.code for p in got] == [4371, 4413]
+        [click] = pb.ClickDatasRspMsg.FromString(got[1].body).info  # #1407: o contador do dia do chefe
+        assert (click.keys, click.keyData) == ("5001", 1)
+        g.client.send(5035, pb.LoginStateMsg(state=4))  # a volta de cada luta não responde (#1731)
+        assert [p.code for p in await g.idle()] == []
+        g.client.send(5038, pb.CampaignReqMsg(paraInt1=5001))
+        [army] = [pb.SystemArmyMsg.FromString(p.body) for p in await g.idle() if p.code == 20]
+        assert list(army.heroTemplated) == [2002]
+        ctx = g.server.online.get(g.user_id).ctx  # type: ignore[union-attr]
+        info = ctx.bosses.pools[5001].info(g.user_id, 1, OPEN_5001)
+        assert (info.curHp, info.totalHp, info.totalNum, info.grades) == (2_000_000, 2_000_000, 1, 0)  # Live do herói
 
         await b.idle()
         b.client.send(8258, pb.WorldBossMsg(param1=5001))
@@ -116,7 +146,7 @@ async def test_dois_jogadores_batem_no_mesmo_chefe_e_um_so_da_o_ultimo_golpe(tmp
         pool.fight.total_hp = 150  # morre em poucos golpes
 
         async def fight(game: object) -> list[object]:
-            game.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))  # type: ignore[attr-defined]
+            game.client.send(5125, pb.CampaignReqMsg(paraInt1=500102))  # type: ignore[attr-defined]
             got = await game.until(157)  # type: ignore[attr-defined]
             prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
             assert prepare.battleType == 17
@@ -136,20 +166,30 @@ async def test_dois_jogadores_batem_no_mesmo_chefe_e_um_so_da_o_ultimo_golpe(tmp
         fight_row, wounds = await ctx.characters.read(stored)
         assert fight_row.killer_id == pool.fight.killer_id  # type: ignore[attr-defined]
         assert sum(w.wound for w in wounds) == 150  # type: ignore[attr-defined]
-        assert fight_row.settled and fight_row.next_hp == 180  # type: ignore[attr-defined]  # morreu em 5 min: +20%
+        assert fight_row.settled and fight_row.next_hp == 225  # type: ignore[attr-defined]  # morreu: +50%
 
         for game, got in zip((g, b), reports, strict=True):
-            codes = [p.code for p in [*got, *await game.idle()]]  # type: ignore[attr-defined]
-            assert codes.count(4203) == 1 and codes.index(4203) < len(codes) - 1 and codes[-1] == 22, codes
+            got = [*got, *await game.idle()]  # type: ignore[attr-defined]
+            codes = [p.code for p in got]  # type: ignore[attr-defined]
+            assert codes.count(4203) == 1 and codes[-1] == 4203 and codes[-3:-1] == [22, 4165], codes  # #3241-#3251
+            texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 83]  # type: ignore[attr-defined]
+            assert any("struck the final blow to defeat the World Boss Bloodfang" in t and "800,000 Gold!" in t
+                       for t in texts)  # fmt: skip
+            assert any(t.startswith("The top 3 players in terms of total damage dealt to Boss Bloodfang are:")
+                       for t in texts)  # fmt: skip
 
         killer = pool.fight.killer_id
 
-        async def mail_gold(uow: object) -> int:
+        async def killer_mails(uow: object) -> tuple[list[str], int]:
             mails = await uow.mails.by_receiver(killer)  # type: ignore[attr-defined]
             annexes = await uow.mails.annexes([m.id for m in mails])  # type: ignore[attr-defined]
-            return sum(a.count for a in annexes if a.template_id == -100)
+            return [m.title for m in mails], sum(a.count for a in annexes if a.template_id == -100)
 
-        assert await ctx.characters.read(mail_gold) >= 1_500_000  # último golpe somado ao resto
+        titles, _ = await ctx.characters.read(killer_mails)
+        # um correio por prêmio (#3260); o último golpe (800 mil no 5001, #3234) vai direto, sem correio
+        assert "World Boss Award: Apollo Prize" in titles and "World Boss Award: Lucky Prize" not in titles
+        killer_session = next(x for x in sessions if x is not None and x.player_id == killer)
+        assert killer_session.snapshot is not None and killer_session.snapshot.character.gold >= 800_000
 
         g.client.send(8258, pb.WorldBossMsg(param1=5001))  # morto: não entra mais hoje
         assert [p.code for p in await g.idle()] == [ALERT]
@@ -172,7 +212,7 @@ async def test_janela_fecha_no_relogio_e_tira_todos(tmp_path: Path) -> None:
         codes = [p.code for p in await g.idle()]
         assert 4203 in codes and 22 in codes and session.campaign is None
         pool = session.ctx.bosses.pools[5001]
-        assert pool.fight.settled and pool.fight.next_hp == 2_000_000  # não morreu: -10%, mas não abaixo do mínimo
+        assert pool.fight.settled and pool.fight.next_hp == 2_000_000  # não morreu: -10%, mas não abaixo do Live
 
 
 async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
@@ -188,7 +228,7 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         await g.idle()
         g.client.send(8258, pb.WorldBossMsg(param1=5001))
         await g.idle()
-        g.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=500102))
         prepare = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
         got = await g.fight(prepare)
         got += await g.idle()
@@ -198,7 +238,7 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         assert (dead.playerState[0].state, dead.playerState[0].leftTime) == (1, 30_000)
         assert 112 in [p.code for p in got] and (join.progress, instant.progress) == (1, 0)  # a luta conta o tipo 40
 
-        g.client.send(5125, pb.CampaignReqMsg(paraInt1=500101))  # morto: sem luta
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=500102))  # morto: sem luta
         assert [p.code for p in await g.idle()] == [4175]
 
         g.client.send(8264, pb.PayTypeMsg(payType=1))
@@ -206,6 +246,8 @@ async def test_morre_no_sexto_golpe_e_revive_pagando(tmp_path: Path) -> None:
         [alive] = [pb.PlayerStateListMsg.FromString(p.body) for p in got if p.code == 4175]
         assert alive.playerState[0].state == 0 and ch.point == 5
         assert 112 in [p.code for p in got] and instant.progress == 1  # o reviver pago conta o tipo 66
+        codes = [p.code for p in got]
+        assert codes.index(4434) < codes.index(4175) < codes.index(157)  # #8629-#8638: a luta começa na hora
         g.client.send(8264, pb.PayTypeMsg(payType=1))  # vivo: aviso, nada cobrado
         assert [p.code for p in await g.idle()] == [ALERT] and ch.point == 5 and instant.progress == 1
 
@@ -253,21 +295,66 @@ async def test_janela_do_chefe_vida_compartilhada_e_premios(tmp_path: Path) -> N
         assert pool is not None and pool.fight.id is not None
         assert pool is await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, 5001, now)  # a mesma janela
         assert await ctx.bosses.pool(ctx.world, ctx.templates, ctx.characters, 5003, now) is None  # fechado
-        assert pool.hp == pool.fight.total_hp == 2_000_000
+        assert pool.hp == pool.fight.total_hp == 2_000_000  # o Live do herói 2002
 
         assert pool.hit(1, "A", 6, 1_500_000, now) == 1_500_000
         assert pool.inspire() == 3
         assert pool.hit(2, "B", 7, 900_000, now) == 500_000  # só o que resta
         assert pool.hit(1, "A", 6, 10, now) == 0  # morto
         assert (pool.hp, pool.fight.killer_id) == (0, 2)
-        assert boss_fight.next_hp(pool.boss, pool.fight) == 2_400_000  # morreu em menos de 10 min: +20%
+        assert boss_fight.next_hp(pool.boss, pool.fight) == 3_000_000  # morreu: +50%
+        # visto: 5 abates = 2M x 1,5^5 = 15.187.500 (5001, 27/10); 7 = 34.171.875 (5003, 26/10)
+        hp, five = 2_000_000, False
+        for _ in range(7):
+            pool.fight.total_hp = hp
+            hp = boss_fight.next_hp(pool.boss, pool.fight)
+            if hp == 15_187_500:
+                five = True
+        assert five and hp == 34_171_875
 
         got = boss_fight.end_rewards(ctx.world, pool)
         # classes diferentes (6 % 3, 7 % 3): os dois são o 1º da classe; 75% e 25% passam do maior degrau
         assert got[1] == (300_000 + 180_000, 300_000 + 180_000)
-        assert got[2] == (300_000 + 180_000 + 1_500_000, 300_000 + 180_000)
+        assert got[2] == (300_000 + 180_000 + 800_000, 300_000 + 180_000)
+        kinds = [(p.character_id, p.kind) for p in boss_fight.end_prizes(ctx.world, pool)]
+        assert kinds == [(1, "apollo"), (2, "apollo"), (1, "warrior"), (2, "warrior"), (2, "lucky")]
         pool.fight.killer_id = 0
         assert boss_fight.end_rewards(ctx.world, pool) == {}  # "Defeating the World Boss earns": vivo, nada
+
+
+async def test_barreira_antes_de_nascer_e_o_nascimento_no_relogio(tmp_path: Path) -> None:
+    """Visto #1411-#1414 e #1669-#1670: antes de nascer, a barreira responde 111 e empurra (4126); no nascimento, a
+    barreira some (128) e o 83 vai a todos."""
+    clock = FakeClock(datetime(2026, 5, 21, 11, 33, tzinfo=UTC))  # o mapa abriu 11:32, nasce 11:36
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None and session.snapshot is not None
+        session.snapshot.character.grades = 20
+        await g.idle()
+        g.client.send(8258, pb.WorldBossMsg(param1=5001))
+        [nodes] = [pb.CampaignNodeListMsg.FromString(p.body) for p in await g.idle() if p.code == 127]
+        assert [n.state for n in nodes.node if n.campDataId == 500104] == [1]  # a barreira ainda está lá
+        for camp in (500104, 500102):
+            g.client.send(5125, pb.CampaignReqMsg(paraInt1=camp))
+            got = await g.idle()
+            assert [p.code for p in got] == [ALERT, 4126]
+            assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg == "The current battle hasn't started yet."
+            stand = pb.StandPosMsg.FromString(got[1].body)
+            assert (stand.posX, stand.posY) == (45, 46)
+
+        clock.advance(3 * 60 + 30)  # 11:36:30
+        g.client.send(20008)
+        got = await g.idle()
+        chat = [pb.ChatChannelMsg.FromString(p.body) for p in got if p.code == 83]
+        assert "World Boss Bloodfang will appear in 1 minutes! Get ready for the battle of a lifetime!" in [
+            m.encodeMsg for m in chat]  # fmt: skip
+        [spawn] = [m for m in chat if m.encodeMsg == "World Boss Bloodfang has spawned!"]
+        assert spawn.channel == 12 and spawn.isCenterTip and spawn.isBigTip
+        [gate] = [pb.CampaignNodeUpdateMsg.FromString(p.body) for p in got if p.code == 128]
+        assert (gate.nodeId, gate.nodeState) == (4, 8)
+        assert session.campaign is not None and session.campaign.nodes[500104]["state"] == 8
+        g.client.send(20008)  # o mesmo marco não sai duas vezes
+        assert 128 not in [p.code for p in await g.idle()]
 
 
 def test_vida_cai_se_o_chefe_nao_morre() -> None:

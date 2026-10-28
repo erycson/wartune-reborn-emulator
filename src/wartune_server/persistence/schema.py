@@ -751,6 +751,13 @@ world_bosses = Table(
             "battle_cap",
             "last_hit_gold",
             "last_hit_daru",
+            "gate_x",  # 0092: a barreira (some quando o chefe nasce), para onde ela empurra, o portal e a força
+            "gate_y",
+            "gate_back_x",
+            "gate_back_y",
+            "portal_x",
+            "portal_y",
+            "fight_capacity",
         )
     ),  # fmt: skip
     Column("source", String(1000), server_default="", nullable=False),

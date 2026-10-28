@@ -388,8 +388,9 @@ async def test_castelo_de_outro_jogador_num_mapa_compartilhado(tmp_path: Path) -
         assert [(c.occupyPlayerId, c.occupyPlayerName, c.posX) for c in page.baseCastle][1:] == [
             (other.user_id, "Outro", 2110)
         ]
-        # minas do mundo (geradas: o mapa 2 não tem captura) e o Treasure Cache (22), que nasce num tile sorteado pela hora
-        assert {w.type for w in page.wildLand} <= {20, 22}
+        # minas do mundo (geradas: o mapa 2 não tem captura), os monstros dos Wilds (21) e o Treasure Cache (22), que
+        # nascem em tiles sorteados pela hora
+        assert {w.type for w in page.wildLand} <= {20, 21, 22}
 
 
 async def test_castelos_robo_na_grade_da_instancia(tmp_path: Path) -> None:
