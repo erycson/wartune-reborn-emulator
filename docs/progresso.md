@@ -31,7 +31,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
-| Campanhas e masmorras | 6 | 9 | 4 | 4 | 4 |
+| Campanhas e masmorras | 6 | 9 | 5 | 4 | 4 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 1 | 6 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **91** | **42** | **45** | **35** |
+| **Total** | **100** | **91** | **43** | **45** | **35** |
 
 ## Validação e base
 
@@ -232,7 +232,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | escolta da Elise vista (231733); luta do elite 115116 inventada (0075) |
 | 1007 Camp Calorn | 🟡 | | 1ª etapa (1171 → 1172) vista em 191924 #2345-#3706 (migração 0090), chefe Viscount Remus sem vitória: fim da etapa sem captura; 2ª etapa (1181/1182) não jogada; Mystery Box por dedução (0062) |
 | 9001 Claristun (em grupo) | 🧪 | 🇹🇷 | só a etapa 2011; chefe 201106 inventado (0084) |
-| Masmorras solo 1101-1602 | 🟡 | | 1101, 1103, 1104, 1105, 1107 jogáveis; 1102, 1106, 1201 só a 1ª etapa (migração 0098, das capturas); 1202-1602 sem captura de nós: fechadas |
+| Masmorras solo capturadas (1101-1107, 1201) | 🟡 | | 1101, 1103, 1104, 1105, 1107 e a 1ª etapa de 1102, 1106, 1201 das capturas (migração 0098) |
+| Masmorras solo geradas (1202-1602 e 2ª etapa de 1102, 1106, 1201) | 🧪 | | TODO(inventado) tools/gera_masmorras.py (migração 0099): planta das capturadas, mapas/casas/monstros do cliente; chave `inventado` marca o que trocar |
 | Masmorras em grupo 9000-9112 | ❌ | | só drops |
 | Torres 8200-8204 (Tower of Kings, Spire) | ❌ | | só drops |
 | Pedreira 6001 | ✅ | | |
