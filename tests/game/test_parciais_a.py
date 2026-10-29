@@ -119,3 +119,17 @@ async def test_fund_harvest_items_are_bound(tmp_path: Path) -> None:
         await g.idle()
         got = [i for i in s.snapshot.items if i.template_id == 208017]
         assert got and all(i.is_binds for i in got)
+
+
+def test_vice_reset_days_from_taxas() -> None:
+    """0134: o prazo do reset da senha secundária vem de ``taxas.vp_reset_days``."""
+    from datetime import UTC, datetime, timedelta
+
+    from wartune_server.domain.models import Character
+    from wartune_server.game.handlers import account
+
+    now = datetime(2026, 10, 29, tzinfo=UTC)
+    c = Character(account_id=1, server_id=1, created_at=now)
+    c.vice_password, c.vice_reset_at = "135790", now - timedelta(days=2)
+    assert not account.expire_vice_reset(c, now, {"taxas": {"vp_reset_days": 3}})
+    assert account.expire_vice_reset(c, now, {"taxas": {"vp_reset_days": 1}}) and c.vice_password == ""

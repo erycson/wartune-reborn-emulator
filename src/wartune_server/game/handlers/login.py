@@ -303,7 +303,7 @@ def switches_msg(s: GameSession) -> pb.SwitchInfoListMsg:
 async def _login_state(s: GameSession) -> None:
     # recarrega: o noviceProcess pode ter mudado via HTTP (updateplayernovice) depois do 20001
     s.snapshot = snap = await s.ctx.characters.snapshot(s.player_id)
-    if account.expire_vice_reset(snap.character, s.ctx.clock.now()):
+    if account.expire_vice_reset(snap.character, s.ctx.clock.now(), s.ctx.world.settings):
         await s.ctx.characters.save(snap.character)
     if gone := expire_items(snap, s.ctx.clock.now()):  # vencidos somem antes do 115 (dedução)
         await s.ctx.characters.save(delete=tuple(gone))

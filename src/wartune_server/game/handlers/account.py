@@ -8,12 +8,14 @@ from __future__ import annotations
 import hashlib
 import re
 import time
+from collections.abc import Mapping
 from datetime import datetime, timedelta
+from typing import Any
 
 from ...domain.models import Character, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import events as gev
-from .. import rewards, rules, space
+from .. import rewards, rules, space, taxas
 from ..router import router
 from ..session import GameSession
 from .chat import scene_key
@@ -23,7 +25,7 @@ S_CHAT, S_ALERT, S_ITEMS = 83, 111, 115
 VP_CHECK, VP_SET, VP_CHANGE, VP_RESET = 1, 2, 3, 4  # VicePasswordMsg.opType (VicePasswordUtil.as)
 VP_FIRST = 6  # opType 6: result 1 = a recompensa da primeira senha ainda está lá (PlayerInfo.needShowReward)
 FIRST_KEY = "vice_reward"  # event_states: a recompensa da primeira senha já saiu
-VP_RESET_DAYS = 3  # ponytail: prazo do reset não está no cliente nem nas capturas; ajustar se aparecer
+
 ACCELERATOR_PERIOD = 60  # s: o cliente manda 20010 a cada 60 ticks do relógio local
 ACCELERATOR_SLACK = 0.8  # abaixo de 80% do período conta como relógio acelerado
 PIN = re.compile(r"\d{6}")
@@ -41,9 +43,9 @@ def _valid_password(p: str) -> bool:
     return steps not in ({1}, {-1})
 
 
-def expire_vice_reset(c: Character, now: datetime) -> bool:
-    """Reset pedido há ``VP_RESET_DAYS``: apaga a senha. True se mudou (gravar)."""
-    if c.vice_reset_at is None or now - c.vice_reset_at < timedelta(days=VP_RESET_DAYS):
+def expire_vice_reset(c: Character, now: datetime, settings: Mapping[str, Any]) -> bool:
+    """Reset pedido há ``taxas.vp_reset_days`` (0134, TODO(inventado)): apaga a senha. True se mudou (gravar)."""
+    if c.vice_reset_at is None or now - c.vice_reset_at < timedelta(days=int(taxas.get(settings, "vp_reset_days"))):
         return False
     c.vice_password, c.vice_reset_at = "", None
     return True
@@ -91,7 +93,7 @@ async def vice_password(s: GameSession, msg: pb.VicePasswordMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     c, now = snap.character, s.ctx.clock.now()
-    changed = expire_vice_reset(c, now)
+    changed = expire_vice_reset(c, now, s.ctx.world.settings)
     ok = False
     if msg.opType == VP_CHECK:
         ok = bool(c.vice_password) and _hash(c, msg.inputPass) == c.vice_password

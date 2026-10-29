@@ -52,7 +52,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Conta nova até o castelo no Flash Player projector | 🟡 | | pelo portal, acompanhando `logs/packets.log`; ainda não validado |
 | Tutorial no cliente real | 🟡 | | o oráculo bate com a tutorial_en sem exclusões (só ritmo, [tutorial.md](tutorial.md)); falta jogar no cliente |
 | Cobertura de opcodes (`scan_opcodes.py`, C>S, classes novas) | ✅ | | os 438 C→S do cliente têm handler (o 20001 é o login da sessão) |
-| `shortcut:`/`ponytail:` do código | 🟡 | | classificar: comportamento faltando (implementar), dado inventado (`TODO(inventado)`), atalho (fica) |
+| `shortcut:`/`ponytail:` do código | 🟡 | | classificados: taxas foram para `game_settings` (0124 montaria/destino/mascote/estrelas/painel, 0130 luta e veículo, 0134 runa 2x-20x e prazo da senha); comportamento feito (troca da sorte, pet livre, fundo vinculado, cartas na luta); atalho legítimo fica (memória/desempenho: guild 50 eventos, farm snapshots, mall lock, rules busca linear, rankings, login 1 exército, chat 1 s); `TODO(inventado)` sem fonte: mall arredondamento e taxa sem devolução (language auction.view.AuctionHelp não diz), timebox, gemmaze 5+ em linha, guild box isReceived |
 
 ## Castelo
 
@@ -92,7 +92,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Herói: resetar skills e 2º conjunto | ✅ | | |
 | Herói: redistribuir atributos (5170) | ✅ | | `*_point` voltam a `remain_point`; sem custo: no inglês nenhuma tela nem item chama o 5170 e a resposta 66 não tem handler |
 | Subida de nível (139, 100, 150, 4640) | 🟡 | | vista na missão; por batalha, coliseu, fazenda e livro de EXP por dedução |
-| Runas (8605) | 🟡 | 🇹🇷 | reforço sem o bônus 2x-20x; o 4495 do login do turco |
+| Runas (8605) | 🟡 | 🇹🇷 | bônus 2x-20x com pesos em `taxas.rune_diamond_multiplier` (0134, `TODO(inventado)`); o 4495 do login do turco |
 | Montaria: lista (8530) | ✅ |  | o 4426 junto do 4427 no inglês (231733 #11-#14), igual ao turco |
 | Montaria: treinar, montar, ativar, voo | ✅ | | |
 | Montaria: carta (5006, SonType 218) | ✅ | | |
@@ -146,7 +146,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Poção de HP e reserva de vida (209) | 🧪 | | "HP Pack has been exhausted." e a cura ao evoluir tropa vistos (171155, 231733); contrato de cura (`rules.py:210`) |
 | Pergaminhos de EXP, ouro e população | ✅ | | ordem vista em 191924 (#1737, #2241, #3379) |
 | Pergaminhos de outros efeitos | 🧪 | | % de ataque/defesa/vida/crítico e tropa (46) na luta, honra (48) no campo; 2000 Camouflage é só aparência (4188) |
-| Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
+| Poções de atributo | 🟡 | | ordem do inglês: 115, 150, 4434, 110, 150, 4188, 150, 3 (191924 #1737, Crit Scroll) e sem o 1º 150 no EXP (#2241); o cliente não define ordem (PlayerEffectHelper ignora o 110). Sem captura: ouro/população e o 8283 |
 | Cristal, guilda e Token de proteção (5006) | 🧪 | | 203 tipo 11 (Kyanite Pack -> cristais) e tipo 8 (Contribution Badge -> contribuição), texto "Received:" TODO(inventado); o City Protection Token já ia (`items.py` PROTECTION, Trégua); 203 tipo 9 (soldados do PawnTempInfos Property3 no castelo, sem conferir população TODO(inventado)), 14 (um contrato do rei por Property2 horas, `vip.use_covenant`) e 16 (Medallion: +500 de honra) |
 | Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); rankings de honra, charme, força da montaria e Sylph (pontuação `rank:*` gravada no login/8597; Sylph pelo nível do pet, inventado), golpe final no chefe do mundo e líder da guilda vencedora da guerra; sem sistema: guerra de classes, arena de Sylph, Hero Returns, guerra entre servidores e monstros dos Wilds |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |

@@ -3,12 +3,14 @@ Ver ``docs/heroi-exercito.md``."""
 
 from __future__ import annotations
 
+import random
+
 from ...domain.models import BagType, Hero, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates, Row
 from .. import events as ev
-from .. import rules
+from .. import rules, taxas
 from ..arena import RUNE_POINT_KEY, rune_point_times
 from ..builders import login as b
 from ..builders.player import item_moved, quest_update
@@ -342,10 +344,12 @@ async def _rune_upgrade(
             now=s.ctx.clock.now(),
         )
     ) is not None:
-        # ponytail: sem o bônus 2x/5x/10x/20x da DiamondTipTxt (o cliente não diz a chance); mudar com captura
+        # bônus 2x/5x/10x/20x da DiamondTipTxt: pesos em ``taxas.rune_diamond_multiplier`` (0134, TODO(inventado))
+        mult = taxas.get(s.ctx.world.settings, "rune_diamond_multiplier")
+        times = int(random.choices(list(mult), weights=list(mult.values()))[0])
         used = ev.daily(snap, RUNE_POINT_KEY, s.ctx.clock.now())
         used.value, used.updated_at = used.value + 1, s.ctx.clock.now()
-        gain, changed, deleted, extra = RUNE_DIAMOND_EXP, [], [], [used, spent]
+        gain, changed, deleted, extra = RUNE_DIAMOND_EXP * times, [], [], [used, spent]
     else:
         rune_reply(s, hero, 2, False)
         return

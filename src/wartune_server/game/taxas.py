@@ -17,6 +17,9 @@ DEFAULTS: dict[str, Any] = {
     "pet_mould_bless_reset": True,
     "offer_quality_weights": [40, 30, 15, 10, 5],
     "star_free_point": True,
+    # 0134
+    "rune_diamond_multiplier": {"1": 85, "2": 8, "5": 4, "10": 2, "20": 1},
+    "vp_reset_days": 3,
 }
 
 
