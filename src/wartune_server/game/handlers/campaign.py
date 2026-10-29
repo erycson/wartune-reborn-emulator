@@ -725,7 +725,8 @@ async def player_reinforce(s: GameSession, msg: pb.CampaignNodeMsg) -> None:
     node = c.by_runtime(msg.campDataId) if c is not None else None
     camp = int(node["campDataId"]) if node is not None else 0
     owner = next((m for m in mates(s) if m.battle is not None and m.campaign and m.campaign.fighting == camp), None)
-    if c is None or owner is None or s.battle is not None or c.fighting or owner.battle is None:
+    solo = c is None or c.run is None or int(_campaign_row(s, c.run.campaign_id).get("Capacity") or 0) <= 1
+    if solo or c is None or owner is None or s.battle is not None or c.fighting or owner.battle is None:
         s.log.info("8255 reforço recusado", node=msg.campDataId)
         return
     if not owner.battle.join(team_hero(s, s), s):

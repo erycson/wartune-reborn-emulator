@@ -93,3 +93,50 @@ async def test_reforco_do_tesouro_luta_e_leva_o_premio(tmp_path: Path, monkeypat
         await o.idle()
         assert mate.snapshot is not None
         assert sum(i.count for i in mate.snapshot.items if i.template_id == T.SHARD) == 9  # o prêmio junto
+
+
+async def test_8255_da_campanha_em_grupo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sala de 2 na 9000: a ataca o 209102 sem b (b ocupado); b clica no nó em luta (8255) e entra como reforço."""
+    from tests.game.test_masmorras_grupo import _start, _weak
+    from wartune_server.game.handlers import campaign as ch
+
+    monkeypatch.setattr(bt, "FRAME_SECONDS", 0.004)
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("outro")
+        fora = await a.join("fora")
+        await _start(a, b, 9000)
+        await a.until(83)
+        await b.until(83)
+        await b.idle()
+        sb: GameSession = b.server.online.get(b.user_id)  # type: ignore[assignment]
+        assert sb.campaign is not None
+        node = sb.campaign.node(209102)
+        assert node is not None
+        reforco = pb.CampaignNodeMsg(campDataId=node["nodeId"])
+        b.client.send(8255, reforco)  # nó sem luta
+        assert await b.idle() == []
+        _weak(a, 209102)
+        sb.campaign.fighting = 1  # ocupado: a luta começa sem ele
+        a.client.send(5125, pb.CampaignReqMsg(paraInt1=209102, paraBool1=True))
+        prepare = pb.BattlePrepareMsg.FromString((await a.until(157))[-1].body)
+        assert b.user_id not in [h.userId for h in prepare.heros]
+        await b.idle()
+        sb.campaign.fighting = 0
+        fora.client.send(8255, reforco)  # fora da sala
+        assert await fora.idle() == []
+        with monkeypatch.context() as mp:  # Capacity 1: o cliente nem manda; o servidor recusa
+            mp.setattr(ch, "_campaign_row", lambda *_: {"Capacity": 1})
+            b.client.send(8255, reforco)
+            assert await b.idle() == []
+        b.client.send(8255, reforco)
+        got = await b.idle()
+        joined = pb.BattlePrepareMsg.FromString(next(p.body for p in got if p.code == 157))
+        assert b.user_id in [h.userId for h in joined.heros if h.side == 1]
+        assert {ch.S_MAP_SYNC, ch.S_NODE} <= {p.code for p in got}
+        upd = pb.CampaignNodeUpdateMsg.FromString(next(p.body for p in got if p.code == ch.S_NODE))
+        assert (upd.nodeState, upd.userId) == (ch.FIGHTING, a.user_id)
+        assert bt.S_REINFORCE in {p.code for p in await a.fight(prepare) + await a.idle()}
+        report = pb.BattleReportMsg.FromString((await b.until(4103))[-1].body)
+        assert report.battleResult == 1 and report.gpBonus > 0  # o prêmio junto
+        await b.idle()
+        assert not sb.campaign.fighting
