@@ -618,19 +618,19 @@ async def challenge_pet(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         s.log.info("8724 recusado", motivo=reason or "em batalha", alvo=target)
         _cool(s, A.PETS)
         return
-    me = s.player_id
+    me, cfg, t = s.player_id, s.ctx.world.settings.get("fairy_battle"), s.ctx.templates
     units = [
-        A.pet_unit(p.template, p.grade, p.quality, i + 1, 1, p.slot + 1, me, p.id, s.ctx.templates, p.skills)
+        A.pet_unit(p.template, p.grade, p.quality, i + 1, 1, p.slot + 1, me, p.id, t, p.skills, cfg)
         for i, p in enumerate(mine)
     ]
     if other is not None and other.arena is not None:
         theirs = [
-            A.pet_unit(p.template, p.grade, p.quality, len(units) + i + 1, 2, i + 3, 0, 0, s.ctx.templates, p.skills)
+            A.pet_unit(p.template, p.grade, p.quality, len(units) + i + 1, 2, i + 3, 0, 0, t, p.skills, cfg)
             for i, p in enumerate(A.formation(other.arena, other))
         ]
         name = other.character.nickname or ""
     else:
-        theirs = A.pet_robot_units(s.ctx.templates, len(units) + 1)
+        theirs = A.pet_robot_units(t, len(units) + 1, cfg)
         name = A.Robot(target, A.PET_ROBOT_GRADE).name
     spec = A.pet_spec(units, theirs)
     arena.pet_count += 1  # o gasto só depois de montar a luta: um erro antes não come a tentativa
@@ -656,7 +656,8 @@ async def _pet_over(s: GameSession, won: bool, target: int, name: str) -> None:
     snap, arena, now = s.snapshot, _arena(s), s.ctx.clock.now()
     assert snap is not None and snap.character.id is not None
     s.battle = None
-    delta = A.PET_WIN_SCORE if won else -A.PET_LOSE_SCORE
+    fairy = A.FAIRY | dict(s.ctx.world.settings.get("fairy_battle") or {})
+    delta = int(fairy["win_score"]) if won else -int(fairy["lose_score"])
     arena.pet_score = max(0, arena.pet_score + delta)
     arena.pet_cool_until = A.cool_until(now, A.PET_COOL)
     me, c = snap.character.id, snap.character

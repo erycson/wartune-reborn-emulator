@@ -118,12 +118,20 @@ FORMULA: dict[str, float] = {
     "awake_max": 3000,
     "awake_gain": 250,
     "awake_cost": 150,
+    # (cliente) PetFrame.help01: abaixo do nível 55 o despertar sobe devagar; TODO(inventado) quanto (a metade)
+    "awake_level": 55,
+    "awake_gain_low": 250,
     # TODO(inventado): resistência elemental. O cliente não calcula dano (só repassa fireResi..reduceResi no
     # HeroMsg/DebugBattleCreater); dedução: golpe de elemento × (1 - (resistência do alvo - ReduceResi do autor) /
     # resist_div), com o fator entre resist_min e resist_max (template: mascote 200 no próprio, -200 na fraqueza)
     "resist_div": 1000,
     "resist_min": 0.5,
     "resist_max": 1.5,
+    # alvo e iniciativa: o cliente só reproduz o 153 (DebugBattleCreater e BattleModel.attackOrders não decidem nada;
+    # nenhum XML/texto do mirror fala de ordem ou alvo). TODO(inventado): target_random = chance de o golpe de alvo
+    # único ir num inimigo vivo sorteado (senão o de menor livingId); hero_first 1 põe o herói no início da rodada
+    "target_random": 0.0,
+    "hero_first": 0.0,
 }
 # PetTempInfos.PetType (= Property1 das gemas da guarda) -> coluna de resistência (conferido nos templates:
 # Lvl. 1 Fire Resistance Crystal 101 FireResi; Pan 104 com WindResi 200)
@@ -338,6 +346,9 @@ class Battle:
         if player is not None and self.player is not None:
             self._passives(self.player, [*player.msg.skillId, *player.passives])
         self.awake = player.msg.awake if player is not None else 0
+        # PetFrame.help01 (cliente): "Before Lvl. 55, sylph awakening points increase slowly, after Lvl. 55 ... faster"
+        low = player is not None and player.msg.grade < self.formula["awake_level"]
+        self._awake_gain = int(self.formula["awake_gain_low" if low else "awake_gain"])
         self.morphed = False
         self._hit_awake = False  # já ganhou pelo golpe levado desde a última ação do herói
         self._hero_skills = list(self.player.skills) if self.player is not None else []
@@ -702,7 +713,8 @@ class Battle:
         allies = [u for u in self.units if u.side == PLAYER_SIDE and not u.is_player]
         enemies = [u for u in self.units if u.side != PLAYER_SIDE]
         hero = [self.player] if self.player is not None else []
-        return sorted(allies, key=lambda u: u.living_id) + sorted(enemies, key=lambda u: u.living_id) + hero
+        others = sorted(allies, key=lambda u: u.living_id) + sorted(enemies, key=lambda u: u.living_id)
+        return hero + others if self.formula["hero_first"] else others + hero
 
     async def _fight(self) -> bool:
         start, end, side = 0, FIRST_ACTION - NEXT_GAP, 0
@@ -817,6 +829,8 @@ class Battle:
         foes = sorted((u for u in self.units if u.alive and u.side != unit.side), key=lambda u: u.living_id)
         if not foes or row.get("AcceptObject") == ALL_ENEMIES:
             return foes
+        if self.formula["target_random"] and self.rng.random() < self.formula["target_random"]:
+            return [self.rng.choice(foes)]
         return [foes[0]]
 
     # -- buffers ----------------------------------------------------------------------------
@@ -1019,10 +1033,10 @@ class Battle:
             if self.morphed:
                 self.awake -= int(f["awake_cost"])
             elif skill != UNMORPH:
-                self.awake += int(f["awake_gain"])
+                self.awake += self._awake_gain
             self._hit_awake = False
         elif hero in targets and unit.side != hero.side and not self.morphed and not self._hit_awake:
-            self.awake += int(f["awake_gain"])
+            self.awake += self._awake_gain
             self._hit_awake = True
         self.awake = max(0, min(int(f["awake_max"]), self.awake))
         if self.awake == old:

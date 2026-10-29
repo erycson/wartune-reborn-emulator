@@ -18,10 +18,11 @@ import itertools
 import json
 import math
 import random
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import structlog
 from google.protobuf.message import Message
@@ -59,23 +60,35 @@ S_NODES, S_JOIN, S_END, S_LIST, S_DETAIL, S_MOVE, S_ATTACK, S_SKILL, S_BUFF, S_E
 MAP_FILE = Path("data/vehicle_map_3001.json")  # tools/extract_vehicle_map.py do maps/3001/3001.titles
 CENTER = (75, 75)  # meio do mapa 3001 (MapInfo 3000 × 3000 px)
 
-# ponytail: regras do servidor oficial que o cliente não tem; trocar quando houver captura de uma partida
-MIN_PLAYERS = 2  # fila: abre uma partida com 1 de cada lado (com um lado vazio ela acabaria na hora)
-BOXES = 12  # caixas no mapa (renovadas a cada REFRESH_EVERY)
-BOX_SKILLS = (2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13)  # skills de caixa: as de ataque e de apoio, sem a do chefe (8)
+# game_settings.vehicle_match (0130): regras do servidor oficial que o cliente não tem (procurado: vehicle.helpTxt01,
+# VehicleAccountBottomView, VehicleSkillTempInfo, VehicleObjectTempInfo); TODO(inventado) até haver captura de partida.
+# min_players: abre uma partida com 1 de cada lado; boxes: caixas no mapa; box_skills: as de ataque e de apoio, sem a
+# do chefe (8); score_*: 1 ponto a cada score_damage de dano, abate, chefe; boss_every_s: golpe do chefe; runestones:
+# Small Runestone de quem fica sem pacote; exp_*: Tank EXP do fim = base + 1 a cada exp_per_score pontos
+MATCH_RULES: dict[str, Any] = {
+    "min_players": 2,
+    "boxes": 12,
+    "box_skills": [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
+    "score_damage": 10,
+    "score_kill": 100,
+    "score_boss": 1000,
+    "boss_every_s": 5,
+    "runestones": 3,
+    "exp_win": 100,
+    "exp_loss": 50,
+    "exp_per_score": 10,
+}
 BOX_SON_TYPE = 5000  # sonType = 5000 + skill (os mapmaterial/build/5001-5018.swf da CDN)
 SLACK = 2  # tiles de folga no alcance (o cliente manda a posição de onde atirou, com atraso)
 CD_SLACK = timedelta(milliseconds=300)  # folga na recarga, pelo mesmo motivo
-SCORE_DAMAGE, SCORE_KILL, SCORE_BOSS = 10, 100, 1000  # 1 ponto a cada 10 de dano, abate, chefe
-BOSS_EVERY, BOSS_WARN = timedelta(seconds=5), timedelta(seconds=2)  # o 4524 mostra o círculo por 2 s
+BOSS_WARN = timedelta(seconds=2)  # o 4524 mostra o círculo por 2 s
 TRAP_DAMAGE = 300  # VehicleSkillTempInfo 7: "When trap activates, deals 300 damage."
 TRAP_REACH = 10  # tiles até onde a armadilha (AttackRange 0) pode ser posta
 MISS, IMMUNE, ABSORBED = -1, -2, -3  # quadros especiais do HurtNumberAction (o significado de cada um é dedução)
 VICTORY, FAILURE = 2131009, 2131010  # Victory Chest / Failure Chest (ItemTempInfo; vehicle.AccountBottomView)
 RANK_PACKS = (2131015, 2131014, 2131013, 2131012, 2131011)  # Diamond, Gold, Silver, Bronze, Iron Runestone Pack
-RUNESTONE, RUNESTONES = 3020010, 3  # Small Runestone (o _templateId3 do VehicleAccountBottomView), quantos
+RUNESTONE = 3020010  # Small Runestone (o _templateId3 do VehicleAccountBottomView)
 LOW_SCORE, LOW_RANK = 200, 8  # VehicleAccountBottomView.getRunking: menos de 200 pontos conta como 8º
-EXP_WIN, EXP_LOSS, EXP_PER_SCORE = 100, 50, 10  # Tank EXP do fim: base + 1 a cada 10 pontos
 
 
 def _config(templates: GameTemplates, name: str, default: str) -> str:
@@ -261,8 +274,10 @@ class Match:
         *,
         rnd: random.Random | None = None,
         tiles: TankMap | None = None,
+        rules: Mapping[str, Any] | None = None,
     ) -> None:
         self.templates, self.start, self.end, self.deliver = templates, start, end, deliver
+        self.rules = MATCH_RULES | dict(rules or {})
         self.rnd = rnd or random.Random()
         self.tiles = tiles
         self.seats: dict[int, int] = {}  # player_id -> time (reservado na fila, antes de entrar)
@@ -564,8 +579,9 @@ class Match:
                 continue
             won = win in (t.team, BOTH)
             rank = LOW_RANK if t.score < LOW_SCORE else index + 1
-            pack = (RANK_PACKS[rank - 1], 1) if rank <= len(RANK_PACKS) else (RUNESTONE, RUNESTONES)
-            exp = (EXP_WIN if won else EXP_LOSS) + t.score // EXP_PER_SCORE
+            pack = (RANK_PACKS[rank - 1], 1) if rank <= len(RANK_PACKS) else (RUNESTONE, int(self.rules["runestones"]))
+            r = self.rules
+            exp = int(r["exp_win"] if won else r["exp_loss"]) + t.score // int(r["exp_per_score"])
             rewards[t.player_id] = Reward(t.player_id, t.score, exp, ((VICTORY if won else FAILURE, 1), pack))
             rewarded.add(t.player_id)
         lines = []
@@ -636,7 +652,7 @@ class Match:
         target.hp = max(0, target.hp - dmg)
         self._hp.add(target.player_id)
         if src is not None and src.team != target.team:
-            self._points(src, dmg // SCORE_DAMAGE + (SCORE_KILL if not target.alive else 0))
+            self._points(src, dmg // self.rules["score_damage"] + (self.rules["score_kill"] if not target.alive else 0))
         if not target.alive:
             for b in list(target.buffs.values()):  # o cliente limpa os buffs sozinho com a vida em 0
                 del target.buffs[b.id]
@@ -648,7 +664,7 @@ class Match:
         dmg = min(dmg, n.hp)
         n.hp -= dmg
         if src is not None:
-            self._points(src, dmg // SCORE_DAMAGE + (SCORE_BOSS if n.hp <= 0 else 0))
+            self._points(src, dmg // self.rules["score_damage"] + (self.rules["score_boss"] if n.hp <= 0 else 0))
         if n.hp <= 0:
             self._remove_node(n)
         else:
@@ -742,15 +758,15 @@ class Match:
         return next((n for n in self.nodes.values() if n.type == NODE_BOSS), None)
 
     def _refresh_boxes(self) -> None:
-        """Caixas a cada 180 s ("Skills Refresh"): completa até ``BOXES`` nos pontos marcados do mapa."""
+        """Caixas a cada 180 s ("Skills Refresh"): completa até ``boxes`` nos pontos marcados do mapa."""
         props = [n for n in self.nodes.values() if n.type == NODE_PROP]
         taken = [(n.x, n.y) for n in props]
-        for _ in range(BOXES - len(props)):
+        for _ in range(int(self.rules["boxes"]) - len(props)):
             x, y = self._free_spot(taken)
             if (x, y) in taken:
                 break
             taken.append((x, y))
-            sid = self.rnd.choice(BOX_SKILLS)
+            sid = int(self.rnd.choice(self.rules["box_skills"]))
             row = self.templates.get("VehicleSkillTempInfos", sid)
             self._add_node(Node(next(self._ids), NODE_PROP, x, y, skill=sid, name=(row or {}).get("TemplateName", ""),
                                 son_type=BOX_SON_TYPE + sid))  # fmt: skip
@@ -769,7 +785,7 @@ class Match:
                         hero=BOSS_TEMPLATE, resource=NPC_AVATAR, attack=_int(row, "Attack"),
                         defence=_int(row, "Defence"), dodge=_int(row, "Dodge"))  # fmt: skip
             self._add_node(spawn)
-            self.boss_next = now + BOSS_EVERY
+            self.boss_next = now + timedelta(seconds=self.rules["boss_every_s"])
         boss = self.boss()
         if boss is None:
             return
@@ -790,7 +806,7 @@ class Match:
                     )
             self.all(S_ATTACK, rsp)
         if self.boss_next is not None and now >= self.boss_next and self.strike is None:
-            self.boss_next = now + BOSS_EVERY
+            self.boss_next = now + timedelta(seconds=self.rules["boss_every_s"])
             reach = _int(skill, "AttackRange") / TILE
             near = [t for t in self.tanks.values() if t.alive and _dist((t.x, t.y), (boss.x, boss.y)) <= reach]
             if near:
@@ -857,9 +873,10 @@ class Arena:
         *,
         rnd: random.Random | None = None,
         tiles: TankMap | None = None,
+        rules: Mapping[str, Any] | None = None,
     ) -> list[tuple[Match, list[int], int]]:
         """Encaixa a fila: primeiro nas partidas desta janela com lugar no time mais vazio; o resto abre uma partida
-        nova quando dá um lado contra o outro (``MIN_PLAYERS``). Os lugares ficam reservados (``Match.seats``)."""
+        nova quando dá um lado contra o outro (``min_players``). Os lugares ficam reservados (``Match.seats``)."""
         placed: list[tuple[Match, list[int], int]] = []
         for group in list(self.queue):
             for m in self.matches:
@@ -878,8 +895,8 @@ class Arena:
             if size[team] + len(group) <= TEAM_SIZE:
                 sides[team].append(group)
         total = sum(len(g) for gs in sides.values() for g in gs)
-        if sides[RED] and sides[BLUE] and total >= MIN_PLAYERS:
-            m = Match(templates, now, window[1], deliver, rnd=rnd, tiles=tiles)
+        if sides[RED] and sides[BLUE] and total >= int((MATCH_RULES | dict(rules or {}))["min_players"]):
+            m = Match(templates, now, window[1], deliver, rnd=rnd, tiles=tiles, rules=rules)
             self.matches.append(m)
             for team, groups in sides.items():
                 for group in groups:

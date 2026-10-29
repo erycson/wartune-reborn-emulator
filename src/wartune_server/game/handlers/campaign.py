@@ -1894,7 +1894,7 @@ async def _dungeon_end(s: GameSession) -> None:
     run, quests, now = c.run, c.ending, s.ctx.clock.now()
     c.ending, c.finished = None, True
     row = _campaign_row(s, run.campaign_id)
-    report = cm.report(run, row, now)
+    report = cm.report(run, row, now, s.ctx.world.settings.get("stage_report"), snap.leader.grades)
     # EXP Boost: "Increases EXP received from instances by N%, ... only takes effect in campaigns and MP dungeons"
     # (cliente, ItemTempInfo 2013001-4). (dedução) o grau vai no propJoin (o "prop" do CampaignResultView)
     report.propJoin = buffs.grade(snap, buffs.EXP_BOOST, now)

@@ -379,10 +379,15 @@ PET_NOTICE_FRAME, PET_DAMAGE_IMPROVE = 1500, 50  # 4361 aos 60 s: dano +50%
 PET_WIN_SCORE, PET_LOSE_SCORE = 5, 0  # "Points +5" (só turco: torneio); ponytail: perda não vista, não tira pontos
 
 
-def pet_hp(template: int, grade: int, templates: GameTemplates) -> int:
-    # ponytail: fórmula de vida do pet desconhecida; MaxHp + nível × GrowthRate / 9 dá ~5% da captura (só turco)
+# game_settings.fairy_battle (0130): vida = MaxHp + nível × GrowthRate / hp_growth_div (dá ~5% da captura turca; o
+# cliente só recebe o growthRate no PetInfoMsg, sem conta), ataque = vida / attack_div (golpe ≈ vida/40, sem defesa)
+FAIRY: dict[str, int] = {"hp_growth_div": 9, "attack_div": 20, "win_score": PET_WIN_SCORE, "lose_score": PET_LOSE_SCORE}
+
+
+def pet_hp(template: int, grade: int, templates: GameTemplates, cfg: Mapping[str, Any] | None = None) -> int:
     row = templates.get("PetTempInfos", template) or {}
-    return int(row.get("MaxHp", 1000)) + grade * int(row.get("GrowthRate", 600)) // 9
+    div = int((FAIRY | dict(cfg or {}))["hp_growth_div"])
+    return int(row.get("MaxHp", 1000)) + grade * int(row.get("GrowthRate", 600)) // div
 
 
 def pet_unit(
@@ -396,11 +401,12 @@ def pet_unit(
     pet_id: int,
     templates: GameTemplates,
     skills: str = "",
+    cfg: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Pet no ``BattlePrepareMsg.pets`` (só turco: captura do torneio de fadas #7). ``userId`` = dono no lado do jogador
     (o cliente acha "os meus" por ele; sem nenhum a batalha não inicializa) e 0 nos robôs."""
     row = templates.get("PetTempInfos", template) or {}
-    hp = pet_hp(template, grade, templates)
+    hp = pet_hp(template, grade, templates, cfg)
     return {
         "livingId": living,
         "userId": user_id,
@@ -421,8 +427,7 @@ def pet_unit(
         "serverName": "",
         "livingId2": 0,
         "petQuality": quality,
-        # ponytail: ~ o dano da captura turca do torneio (golpe básico ≈ vida/40): sem defesa, (A - 0) × 0,5 = vida/40
-        "attack": hp // 20,
+        "attack": hp // int((FAIRY | dict(cfg or {}))["attack_div"]),
         "defaultSkill": int(row.get("DefaultSkills", 0) or 0),
     }
 
@@ -457,9 +462,11 @@ def pet_spec(mine: list[dict[str, Any]], theirs: list[dict[str, Any]]) -> dict[s
     }
 
 
-def pet_robot_units(templates: GameTemplates, first_living: int) -> list[dict[str, Any]]:
+def pet_robot_units(
+    templates: GameTemplates, first_living: int, cfg: Mapping[str, Any] | None = None
+) -> list[dict[str, Any]]:
     return [
-        pet_unit(t, PET_ROBOT_GRADE, PET_ROBOT_QUALITY, first_living + i, 2, pos, 0, 0, templates)
+        pet_unit(t, PET_ROBOT_GRADE, PET_ROBOT_QUALITY, first_living + i, 2, pos, 0, 0, templates, cfg=cfg)
         for i, (t, pos) in enumerate(zip(PET_ROBOT_PETS, (4, 3, 9), strict=True))
     ]
 

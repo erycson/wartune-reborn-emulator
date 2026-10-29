@@ -254,21 +254,29 @@ def total_gp(base_gp: int) -> int:
     return int(_f32(_f32(base_gp) * _f32(GP_BONUS)))
 
 
-def grades(run: StageRun, row: Mapping[str, Any]) -> tuple[int, int, int, int]:
-    """Notas (1 = D ... 5 = S): dano causado, dano sofrido, derrotas e a total."""
-    dealt = run.wound / max(1, int(row.get("StandardDamage") or 0))
-    taken = run.hurt / max(1, int(row.get("StandardHurt") or 0))
-    wound = 1 + sum(dealt >= s for s in WOUND_STEPS)
-    hurt = 5 - sum(taken > s for s in HURT_STEPS)
+def grades(
+    run: StageRun, row: Mapping[str, Any], cfg: Mapping[str, Any] | None = None, level: int = 0
+) -> tuple[int, int, int, int]:
+    """Notas (1 = D ... 5 = S): dano causado, dano sofrido, derrotas e a total. ``cfg``: ``game_settings.stage_report``
+    (degraus e ``level_scale``: o padrão do template cresce essa fração por nível do herói acima do ``MinLevel``; o
+    cliente, CampaignResultView, só mostra as notas)."""
+    cfg = cfg or {}
+    scale = 1 + float(cfg.get("level_scale", 0)) * max(0, level - int(row.get("MinLevel") or 0))
+    dealt = run.wound / max(1.0, int(row.get("StandardDamage") or 0) * scale)
+    taken = run.hurt / max(1.0, int(row.get("StandardHurt") or 0) * scale)
+    wound = 1 + sum(dealt >= s for s in cfg.get("wound_steps", WOUND_STEPS))
+    hurt = 5 - sum(taken > s for s in cfg.get("hurt_steps", HURT_STEPS))
     failed = max(1, 5 - run.lost)
     return wound, hurt, failed, int((wound + hurt + failed) / 3 + 0.5)
 
 
-def report(run: StageRun, row: Mapping[str, Any], now: datetime) -> pb.CampaignReportMsg:
+def report(
+    run: StageRun, row: Mapping[str, Any], now: datetime, cfg: Mapping[str, Any] | None = None, level: int = 0
+) -> pb.CampaignReportMsg:
     """137 calculado. ``time``: segundos desde o 125 da etapa (visto: 143,7 -> 143 ... 177,3 -> 177).
     ponytail: ``StandSecond`` não entra em nota nenhuma do 137 (não há campo de tempo avaliado); time/friend/vip
     join ficam 0 (jogo solo, sem VIP na captura)."""
-    wound, hurt, failed, total = grades(run, row)
+    wound, hurt, failed, total = grades(run, row, cfg, level)
     return pb.CampaignReportMsg(
         time=int((now - run.started).total_seconds()), woundValue=run.wound, hurtValue=run.hurt,
         failedCount=run.lost, woundAppraisal=wound, hurtAppraisal=hurt, failedAppraisal=failed,

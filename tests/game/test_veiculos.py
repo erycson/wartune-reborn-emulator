@@ -97,7 +97,7 @@ def test_protection_cooldown_and_damage() -> None:
     [rsp] = [msg for p, c, msg in sent if p == 2 and c == 4520]
     assert isinstance(rsp, pb.VehicleAttackRspMsg)
     assert [(h.affecteId, h.value) for h in rsp.playerHurtDataList] == [(2, HIT)]
-    assert m.scores[vh.RED] == HIT // vh.SCORE_DAMAGE
+    assert m.scores[vh.RED] == HIT // vh.MATCH_RULES["score_damage"]
     assert not m.cast(1, _shoot(2), OPEN + timedelta(seconds=1))  # recarga de 3 s
     assert m.cast(1, _shoot(2), OPEN + timedelta(seconds=3))
     assert not m.cast(2, _shoot(2), OPEN + timedelta(seconds=3))  # no próprio time
@@ -109,7 +109,7 @@ def test_kill_reborn_time_and_revive() -> None:
     assert m.cast(1, _shoot(2), OPEN)
     [hp] = [v for p, c, msg in sent if p == 1 and c == 4513 for v in msg.vehicles if v.playerId == 2]  # type: ignore[attr-defined]
     assert (hp.hp, hp.rebornTime) == (0, 30)  # revivalTime 30
-    assert m.scores[vh.RED] == HIT // vh.SCORE_DAMAGE + vh.SCORE_KILL
+    assert m.scores[vh.RED] == HIT // vh.MATCH_RULES["score_damage"] + vh.MATCH_RULES["score_kill"]
     assert not m.cast(1, _shoot(2), OPEN + timedelta(seconds=3))  # morto não é alvo
     m.tick(OPEN + timedelta(seconds=29))
     assert not m.tanks[2].alive
@@ -171,7 +171,7 @@ def test_end_and_one_reward_per_window() -> None:
     rewarded: set[int] = set()
     rewards = {r.player_id: r for r in m.finish(rewarded)}
     assert rewards[1].items == ((vh.VICTORY, 1), (vh.RANK_PACKS[0], 1))
-    assert rewards[2].items == ((vh.FAILURE, 1), (vh.RUNESTONE, vh.RUNESTONES))  # menos de 200 pontos
+    assert rewards[2].items == ((vh.FAILURE, 1), (vh.RUNESTONE, vh.MATCH_RULES["runestones"]))  # menos de 200 pontos
     [end] = [msg for p, c, msg in sent if p == 1 and c == 4514]
     assert isinstance(end, pb.VehicleCampaignDetailMsg) and end.winner == vh.RED
     assert [line.awardPropId for line in end.scroeList] == [vh.VICTORY, vh.FAILURE]
@@ -225,7 +225,10 @@ async def test_quick_play_enters_the_tank_scene(tmp_path: Path) -> None:
         assert ctx.vehicles.matches == []
         mails = await ctx.characters.read(lambda uow: uow.mails.by_receiver(b.user_id))
         annexes = await ctx.characters.read(lambda uow: uow.mails.annexes([m.id or 0 for m in mails]))
-        assert {(x.template_id, x.count) for x in annexes} == {(vh.VICTORY, 1), (vh.RUNESTONE, vh.RUNESTONES)}
+        assert {(x.template_id, x.count) for x in annexes} == {
+            (vh.VICTORY, 1),
+            (vh.RUNESTONE, vh.MATCH_RULES["runestones"]),
+        }
         task = ctx.vehicles.task
         if task is not None:
             task.cancel()  # type: ignore[attr-defined]

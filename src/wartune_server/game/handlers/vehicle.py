@@ -219,7 +219,9 @@ async def match_up(ctx: GameContext) -> None:
     if win is None:
         _drop_queue(ctx)
         return
-    for match, group, team in arena.place(ctx.templates, win, now, _deliver(ctx), tiles=vh.tank_map()):
+    for match, group, team in arena.place(
+        ctx.templates, win, now, _deliver(ctx), tiles=vh.tank_map(), rules=ctx.world.settings.get("vehicle_match")
+    ):
         room = ctx.rooms.of(group[0])
         if room is not None:  # a fila só tem grupo de sala vindo da sala de veículo (5039)
             _room_state(ctx, group, ROOM_PLAYING)

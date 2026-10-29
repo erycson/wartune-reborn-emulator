@@ -126,7 +126,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Aprender skill (op 5) | 🟡 | | lógica do cliente; peso de cada skill no aleatório (padrão 1) em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
 | Crescimento e treino do mascote (fazenda 15044 ops 12-15) | 🧪 | | `handlers/farm_pets.py`: 2 terras, nível 50, 10 partes e 5 comidas do cliente (`FarmLandLayer`, `PetLandInfo.canFeed`); horas, EXP/h e % por comida TODO(inventado) `farm_pet_practice` (0118). Comida do amigo: `isFeed` no 4190 e aviso ao dono online (145 + 4387; texto inventado); o cliente não tem prêmio para quem alimenta. Resistência (8621 op 8, `trainResistance`) sem chamador no cliente inglês: bloqueio |
 | Fusão de dois pets (op 15) | ❌ | | sem template |
-| Mascote em batalha (EXP, despertar 4600) | 🟡 | 🇹🇷 | do turco; +250 por golpe e gasto 150 por dedução |
+| Mascote em batalha (EXP, despertar 4600) | 🟡 | 🇹🇷 | do turco; ganho, gasto, teto e o despertar lento abaixo do nível 55 (cliente PetFrame.help01) em `battle_formula` (0130); quanto mais lento é TODO(inventado) |
 | Guarda da fazenda é o mascote | ✅ | 🇹🇷 | op 16 (`FarmPetSelectMeun`) escolhe o guarda; sem escolha, o de batalha (turco). Ops 10 (GIVE_POWER) e 11 (TREE_PICK, vai pelo 5178) sem `sendFarmOper` no cliente |
 
 ## Itens
@@ -241,7 +241,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Patrulha dos monstros (4122) | 🧪 | | pontos vistos (0079); agressivo sem captura anda 4 tiles em volta da origem (`npc_patrol.guess_step`, 0117, TODO(inventado)) |
 | Varredura / Blitz (8528) | 🧪 | 🇹🇷 | baú de prata e caixa misteriosa inventados (`sweep.py:40`); ouro só da 1007 turca |
 | Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga não existe no cliente inglês (isPay só no autoChest; payCardCount sem leitor) |
-| Relatório da etapa (137) | 🟡 | | curva por nível falta |
+| Relatório da etapa (137) | 🟡 | | degraus e curva por nível (`level_scale` sobre StandardDamage/StandardHurt acima do MinLevel) em `game_settings.stage_report` (0130, curva TODO(inventado); CampaignResultView só mostra) |
 | Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem); 5024 recusado (senha, cheia) devolve o 4270 da sala (225632 #12656) |
 | Times (convite, capitão, sair) | 🧪 | | membros, capitão, posições e ausência em `server_states` (0109); quem cai fica no time e o login manda o 4624 (dedução: sem captura de relogar em time) |
 | Link de sala no chat (9504) | ✅ | | |
@@ -253,7 +253,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) por andar e desempate pelo horário (jogador 28/10), calculado no 8297 e no 4373 do login; dificuldade em `game_settings.maze.hp_pct`; prêmio do reset sem captura |
+| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) por andar e desempate pelo horário (jogador 28/10), calculado no 8297 e no 4373 do login; dificuldade em `game_settings.maze.hp_pct`; reset sem prêmio pelo cliente (maze.MazeFrame.content: "forfeit all progress") |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
 | Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
 | Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante a luta e o poder do nó saem do catálogo (fórmula que reproduz os 28 vistos); o ícone (sonType) vem do desenho já visto (29), do 30 em diante falta captura |
@@ -271,9 +271,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Fluxo, relógio e quadros | ✅ | | |
 | Fórmula de dano | ✅ | | |
 | Alvos, morte e reposição de tropas | ✅ | | |
-| Alvo aleatório | 🟡 | | ordem do oficial não decifrada |
+| Alvo aleatório | 🟡 | | alvo único sorteado entre os inimigos vivos com chance `game_settings.battle_formula.target_random` (0130, TODO(inventado)); o cliente só reproduz o 153 (DebugBattleCreater, BattleModel.attackOrders) |
 | Reforços (ondas novas) | ✅ | | ordem das ondas sorteada e um 4149 por onda (171155, 231733) |
-| Iniciativa (ordem das unidades) | 🟡 | | ordem fixa, sem dado |
+| Iniciativa (ordem das unidades) | 🟡 | | aliados, inimigos e herói; `battle_formula.hero_first` (0130) põe o herói no início; nenhuma regra no cliente nem no language.txt |
 | Crítico e bloqueio | 🟡 | | ganhos por dedução; chances da internet |
 | Skills, buffs e controle | 🟡 | | atordoado sem captura |
 | Passivas, talento, runas e destino | 🟡 | | runas e destino por dedução |
@@ -356,7 +356,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Janela do PvP | ✅ | | |
 | Coliseu | 🧪 | 🇹🇷 | EXP 180/120 por nível, 157, 4176 e o VIP Token no inglês; Luck Stone do turco; prêmios por posição inventados (`arena.py:347`) |
-| Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
+| Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida, ataque e pontos do pet em `game_settings.fairy_battle` (0130, divisores TODO(inventado); o cliente só recebe o growthRate) |
 | Arena entre servidores (8590) | 🧪 | | fila local; 4482 com pontos, Warrior's Mark com 1000 pontos e o título Road Warrior (AppellInfos 25) concedido ao top 20 com o 4484; a marca é a Insignia 208001 TODO(inventado) (0121); 1x/semana |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); PvP 8334 entre jogadores locais (157 battleType 32 contra a cópia do alvo, 4494 state 2/0, 4104/4175 com o perdedor em 179,75 por 25 s, 4103, 4388 tipo 4, 4269 de ganho e perda; perda de 15% e ganho igual, inventados); missões 45 (abate no PvP, 767 vista #11106) e 50 (vitória da partida, posição do 112 inventada); honra e Amethyst sem moeda; nós, vencedor e constantes no código (sem `game_settings`) inventados |
@@ -415,7 +415,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Fila, sala e entrada | ✅ | | |
 | Garagem e ativação | ✅ | | tecnologia 218 do inglês (`game_settings.vehicle_tech`) |
-| Partida (dano, pontos, chefe, prêmios) | 🟡 | | sem captura de partida |
+| Partida (dano, pontos, chefe, prêmios) | 🟡 | | sem captura de partida; pontos, caixas, chefe, Tank EXP, runestones e mínimo da fila em `game_settings.vehicle_match` (0130, TODO(inventado)) |
 | Login (4512/4515/4516/4501) | ✅ | 🇹🇷 | a partir do nível 35 (`OpenGradesII.VEHICLE`): o turco de nível 56 manda, os ingleses de 1-16 não; janela 4512 no inglês |
 | Veículos nos mapas de guerra | ✅ | | não existe no cliente inglês: a cena VEHICLE só abre no campaignId 3001 (único mapa 30xx no mirror) |
 
