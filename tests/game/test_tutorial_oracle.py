@@ -57,14 +57,14 @@ pytestmark = [
 def fast_battles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     monkeypatch.setattr(player_mod, "ARMY_PHASE", 181.9)  # a fase do 150/4434 dos 5 min nesta captura (#365, #855)
-    # o oráculo reenvia as ordens (10008) da captura, em número fixo: sem sorteio (±8%, crítico, bloqueio)
+    # o oráculo reenvia as ordens (10008) da captura, em número fixo: sem sorteio (±8%, crítico, bloqueio, alvo)
     # cada luta dura as mesmas ações do herói que no oficial
     # depois do __init__: o banco (game_settings.battle_formula, migração 0039) sobrepõe o FORMULA
     init = battle_mod.Battle.__init__
 
     def fixed(self: battle_mod.Battle, *args: Any, **kwargs: Any) -> None:
         init(self, *args, **kwargs)
-        self.formula |= {"spread": 0.0, "crit_base": 1.0, "block_base": 1.0}
+        self.formula |= {"spread": 0.0, "crit_base": 1.0, "block_base": 1.0, "target_random": 0.0}
 
     monkeypatch.setattr(battle_mod.Battle, "__init__", fixed)
 
