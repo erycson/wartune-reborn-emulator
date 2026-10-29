@@ -67,7 +67,7 @@ async def test_melhora_direto_a_lendaria_gasta_vinho_e_balens(tmp_path: Path) ->
         await g.server.services.characters.save(wine)
         state = await _estado(g, 2, refreshType=True, payType=1)
         assert (state.index, state.isFirstQuest) == (T.TOP, True)
-        assert s.snapshot.character.point == 100 - (8 - 3) * 5  # treasure_refresh_item 8: 3 vinhos + 25 Balens
+        assert s.snapshot.character.point == 100 - (8 - 3) * 15  # treasure_refresh_item 8: 3 vinhos + 75 Balens
         assert not any(i.template_id == T.WINE for i in s.snapshot.items)
         assert (await _estado(g, 2, refreshType=False, payType=1)).index == T.TOP  # já no topo: nada muda
         assert (await _estado(g, 1)).index == 0  # recebe a lendária e recomeça da primeira

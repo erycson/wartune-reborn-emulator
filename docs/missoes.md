@@ -259,7 +259,7 @@ total (`petGpBonus` = `gpBonus`) e o 4540 sai logo depois do 3. O `leaveGp` cres
 
 ## Tipos pendentes (até o nível 31)
 
-Verificado nesta rodada: o cliente decompilado (`D:\wartune\decompiled\m3\scripts`, 514 arquivos) não tem nenhuma referência a mini-client nem a celular/verificação (grep `miniclient`, `cellphone`, `bindPhone`, `VerifyCode`). A condição 33 e a 48 não aparecem em nenhum `switch` de `TaskTemplate`. As 4 capturas novas (`x_20261024-191924-1`, `x_20261025-232017-1`, `x_20261026-225632-1`, `x_20261027-152321-1`) não têm texto nem pacote de mini-client. (visto) a 816 (celular, nível 25) é aceita no 5012 em quase todos os lotes, mas nunca recebe 5014 nas capturas.
+Verificado nesta rodada: o cliente inglês decompilado (`D:\xampp\htdocs\wartune\decomp`, todos os módulos) não tem nenhuma referência a mini-client nem a celular/verificação (grep `miniclient`, `cellphone`, `bindPhone`, `VerifyCode`). A condição 33 e a 48 não aparecem em nenhum `switch` de `TaskTemplate`. As 4 capturas novas (`x_20261024-191924-1`, `x_20261025-232017-1`, `x_20261026-225632-1`, `x_20261027-152321-1`) não têm texto nem pacote de mini-client. (visto) a 816 (celular, nível 25) é aceita no 5012 em quase todos os lotes, mas nunca recebe 5014 nas capturas.
 
 | Tipo | Missões (nível) | Estado | Gancho |
 |---|---|---|---|
