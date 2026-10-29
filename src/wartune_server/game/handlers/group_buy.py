@@ -27,10 +27,12 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from .. import bag
 from ..builders import login as b
+from ..mail import MAX_ANNEXES
 from ..router import router
 from ..session import GameSession
 from . import group_draw
 from . import minijogo as mj
+from .guild.box import _letter
 from .shop import (
     S_ITEMS,
     Charge,
@@ -79,11 +81,21 @@ def unit_price(offer: dict[str, Any], sold: int) -> int:
     return p
 
 
+def sold_key(offer: dict[str, Any]) -> str:
+    return f"{offer['beginDate']}|{offer['id']}"
+
+
 async def sold(s: GameSession, offer: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    """Estado do servidor: ``counts`` por edição+oferta (as últimas 8, para o acerto automático de quem voltou
+    depois da edição). shortcut: quem fica mais de 8 edições fora acerta com 0 comprador (preço cheio)."""
     data = await mj.shared(s, SOLD)
-    if data.get("edition") != offer["beginDate"] or data.get("id") != offer["id"]:
-        data = {"rev": data.get("rev", 0), "edition": offer["beginDate"], "id": offer["id"], "sold": 0}
-    return data, int(data["sold"])
+    return data, int(data.get("counts", {}).get(sold_key(offer), 0))
+
+
+def bump(data: dict[str, Any], offer: dict[str, Any]) -> dict[str, Any]:
+    counts = dict(data.get("counts", {}))
+    counts[sold_key(offer)] = counts.get(sold_key(offer), 0) + 1
+    return {**data, "counts": dict(sorted(counts.items())[-8:])}
 
 
 def mine(snap: PlayerSnapshot, offer: dict[str, Any]) -> dict[str, Any]:
@@ -110,6 +122,7 @@ def state_msg(offer: dict[str, Any], st: dict[str, Any], n: int, today: int) -> 
 async def groupon(s: GameSession, msg: pb.ShopMsg) -> None:
     snap, now = s.snapshot, s.ctx.clock.now()
     assert snap is not None
+    await settle_overdue(s)
     offer = current(s, now)
     if offer is None or msg.buyInfo.goodId != int(offer["id"]):
         s.log.info("8645 recusado: oferta fora da edição", pedido=str(msg))
@@ -138,17 +151,18 @@ async def _buy(
     now: datetime,
 ) -> None:
     key, front = offer_key(int(offer["id"])), int(offer["frontMoney"])
+    sold_now = int(shared.get("counts", {}).get(sold_key(offer), 0))
     if not mj.at(offer, "beginDate") <= now < mj.at(offer, "endDate"):
         return s.log.info("8645 compra fora da fase de compra")
-    if int(offer["maxCount"]) != -1 and int(shared["sold"]) >= int(offer["maxCount"]):
+    if int(offer["maxCount"]) != -1 and sold_now >= int(offer["maxCount"]):
         return alert(s, "The group buy is sold out.")  # TODO(inventado) texto (cliente: funny.groupbuy.error2)
     if int(offer["oneDayCount"]) != -1 and today_count(snap, key, now) >= int(offer["oneDayCount"]):
         return alert(s, "Daily purchase limit reached.")  # TODO(inventado) texto (cliente: funny.groupbuy.error1)
     ledger = cash.pay(snap.character, front, 1, "shop", f"groupon:{offer['id']}", now, gift_ok=False)
     if ledger is None:
         return alert(s, "Insufficient Balens")
-    st = {**st, "buy": st["buy"] + 1, "paid": st["paid"] + front}
-    shared = mj.store_shared(snap, SOLD, {**shared, "sold": int(shared["sold"]) + 1}, now)
+    st = {**st, "buy": st["buy"] + 1, "paid": st["paid"] + front, "offer": offer}
+    shared = mj.store_shared(snap, SOLD, bump(shared, offer), now)
     rec = count_buy(snap, key, 1, now)
     bought = purchase(snap, "groupon", int(offer["id"]), int(offer["templateId"]), 1, "Point", front, now)
     chance = group_draw.add_chance(snap, now)
@@ -178,3 +192,40 @@ async def _settle(
     if got:
         s.send(S_ITEMS, bag.moved(got, s.player_id))
     s.send(S_CHECK, b.complete(pb.GrouponShopMsg(buyCount=st["buy"], totalPoint=final, param1=max(0, -diff))))
+
+
+async def settle_overdue(s: GameSession) -> None:
+    """Acerto automático (login e 8645): quem comprou e não acertou até ``sendDate`` recebe os itens e a devolução
+    (-400 Balens) pelo correio. Se o preço final passou do sinal, cobra a diferença; sem saldo, devolve o sinal todo
+    e não entrega (TODO(inventado): o oficial não mostra o caso; com ``frontMoney`` = preço cheio nunca acontece)."""
+    snap, now = s.snapshot, s.ctx.clock.now()
+    assert snap is not None
+    st = mj.load(snap, KEY)
+    offer = st.get("offer")
+    if not offer or st.get("settled") or st.get("buy", 0) <= 0 or now < mj.at(offer, "sendDate"):
+        return
+    async with mj.lock(s, SOLD):
+        _, n = await sold(s, offer)
+        final = st["buy"] * unit_price(offer, n)
+        diff, ref, extra = final - st["paid"], f"groupon:{offer['id']} acerto automático", []
+        goods = [(tid, count * st["buy"]) for _, tid, count in offer_goods(offer)]
+        if diff > 0:
+            ledger = cash.pay(snap.character, diff, 1, "shop", ref, now, gift_ok=False)
+            if ledger is None:
+                goods, diff, final = [], -st["paid"], 0
+            else:
+                extra = [ledger]
+        if diff < 0:
+            goods.append((-400, -diff))
+        letters = [
+            (
+                _letter(s, s.player_id, goods[i][0] if goods[i][0] > 0 else int(offer["templateId"]), now),
+                goods[i : i + MAX_ANNEXES],
+                [],
+            )
+            for i in range(0, len(goods), MAX_ANNEXES)
+        ]
+        st = {**st, "paid": final, "settled": True}
+        await save_with_mail(s, letters, snap.character, *extra, mj.store(snap, KEY, st, now))
+        if extra:
+            send_charge(s, Charge(ledger=extra[0]))

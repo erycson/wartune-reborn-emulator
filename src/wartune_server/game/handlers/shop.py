@@ -347,6 +347,7 @@ async def send_offers(s: GameSession) -> None:
     cfg = s.ctx.world.settings.get("shop_offers") or {}
     from . import group_buy  # group_buy importa este módulo
 
+    await group_buy.settle_overdue(s)  # login: acerto automático da edição passada
     live, sold = offers(s), await _sold(s)
     if (group := group_buy.current(s, s.ctx.clock.now())) is not None:  # type 3: compra coletiva da edição
         live, sold = [*live, group], {**sold, int(group["id"]): (await group_buy.sold(s, group))[1]}

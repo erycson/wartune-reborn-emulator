@@ -168,7 +168,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loja de moda (8592) e poção (5633) | ✅ | | |
 | Loja misteriosa (8483/8482) | ✅ | | 4470 vazio depois de cada 4384 (232017 #3057); quem entra na lista de sortudos, sem captura |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
-| Compra coletiva (8645) | 🟡 | | ligada por padrão (migração 0104, `game_settings.group_buy` com `source`): oferta `type` 3 no 4238 em rodízio por edição, preço cai em 3 degraus pelos compradores do servidor, sinal + limite do dia, acerto cobra/devolve a diferença e entrega (4559/4560), 1 sorteio de grupo por compra (`group_buy.py`, pelo cliente); catálogo/preços inventados |
+| Compra coletiva (8645) | 🟡 | | ligada por padrão (migração 0104, `game_settings.group_buy` com `source`): oferta `type` 3 no 4238 em rodízio por edição, preço cai em 3 degraus pelos compradores do servidor, sinal + limite do dia, acerto cobra/devolve a diferença e entrega (4559/4560); sem acerto até `sendDate`, acerto automático pelo correio no login/8645 (8645/4559/4560 ausentes das capturas decodificadas), 1 sorteio de grupo por compra (`group_buy.py`, pelo cliente); catálogo/preços inventados |
 | Presente a outro jogador e mochila cheia pelo correio | ✅ | | loja, ofertas e misteriosa: `receiveId` de outro (id pelo 8223/4148) cobra quem compra e manda pelo correio do sistema; mochila cheia paga e o que não cabe vai pelo correio (item com vínculo e validade). VIP e contrato a amigo seguem abaixo |
 | Lojas de honra, glória, ametista | ✅ | | |
 | Loja do labirinto (ShopType 4) | ✅ | 🇹🇷 | compra do turco; a Necropolis é outro sistema |

@@ -90,3 +90,26 @@ async def test_group_buy_price_falls_limit_settles_and_wins_draw(tmp_path: Path)
         g.client.send(9523, pb.LeadRewardMsg(op=1))
         draw = pb.LeadRewardMsg.FromString(_last(await g.idle(), 4936))
         assert draw.templateId != 0 and draw.leadExtractTimes == 1
+
+
+async def test_group_buy_auto_settles_by_mail_after_the_edition(tmp_path: Path) -> None:
+    from wartune_server.game.handlers import shop
+
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        cfg = g.server.services.world.settings["group_buy"]
+        _set(g, offers=[dict(cfg["offers"][0], level1=1)])
+        snap = _snap(g)
+        snap.character.point = 1000
+        await _send(g, 9601, 1)  # 1 comprador: preço final 349, sinal 389
+        g.server.services.clock.advance(7 * 86400)  # type: ignore[attr-defined]  # passou do sendDate sem acertar
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        await shop.send_offers(s)  # o login acerta
+        await g.idle()
+        chars = s.ctx.characters
+        mails = await chars.read(lambda uow: uow.mails.by_receiver(g.user_id))
+        annexes = await chars.read(lambda uow: uow.mails.annexes([m.id or 0 for m in mails]))
+        assert sorted((x.template_id, x.count) for x in annexes) == [(-400, 40), (208028, 300)]
+        await shop.send_offers(s)
+        await g.idle()
+        assert len(await chars.read(lambda uow: uow.mails.by_receiver(g.user_id))) == len(mails)  # uma vez só
