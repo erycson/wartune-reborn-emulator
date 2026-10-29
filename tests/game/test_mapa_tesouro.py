@@ -83,14 +83,13 @@ async def test_melhora_sem_saldo_e_recusada(tmp_path: Path) -> None:
 
 async def test_reforco_sem_grupo_ou_de_si_mesmo_e_recusado(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
-        T._digs[g.user_id] = T.Dig(1, 2190001)
-        try:
-            for alvo in (g.user_id, 999):
-                g.client.send(8745, pb.GuildMsg(param1=alvo))
-                assert await g.idle() == []
-            assert T._digs[g.user_id].mates == []
-        finally:
-            T._digs.pop(g.user_id, None)
+        s = _session(g)
+        await T.save_dig(s, T.Dig(1, 2190001))
+        for alvo in (g.user_id, 999):
+            g.client.send(8745, pb.GuildMsg(param1=alvo))
+            assert await g.idle() == []
+        dig = T.dig_of(s)
+        assert dig is not None and dig.mates == []
 
 
 async def test_longe_do_tesouro_nao_luta(tmp_path: Path) -> None:
@@ -130,9 +129,14 @@ async def test_escava_vence_e_leva_o_premio(tmp_path: Path, monkeypatch: pytest.
         codes = [p.code for p in await g.fight(prepare) + await g.idle()]
         assert codes.index(4103) < codes.index(4634)
         assert s.snapshot is not None and m in s.snapshot.items  # o mapa só some no 4 com isReward
+        # "reinício": a sessão passa a usar o snapshot do banco; o tesouro achado continua lá
+        s.snapshot = await g.server.services.characters.snapshot(g.user_id)
+        dig = T.dig_of(s)
+        assert dig is not None and (dig.pos, dig.won) == (m.pos, True)
         state = await _estado(g, 4, index=m.pos, isReward=True)
         assert state.rewardCount == 1
-        assert m not in s.snapshot.items
+        assert not any(i.template_id == m.template_id for i in s.snapshot.items)
+        assert T.dig_of(s) is None
         shards = [i for i in s.snapshot.items if i.template_id == T.SHARD]
         assert sum(i.count for i in shards) == 9  # Property6 do Uncommon
         assert all(i.is_binds for i in shards)  # idioma: "Rewards are bound"
@@ -159,5 +163,5 @@ async def test_escavar_ja_cobra_e_derrota_guarda_o_mapa(tmp_path: Path, monkeypa
         assert s.snapshot is not None and s.snapshot.character.point == 5  # treasure_imm_battle 25
         await g.fight(prepare)
         await g.idle()
-        assert m in s.snapshot.items and T._digs.get(g.user_id) is None
+        assert m in s.snapshot.items and T.dig_of(s) is None
         assert (await _estado(g, 4, index=m.pos, isReward=True)).rewardCount == 0

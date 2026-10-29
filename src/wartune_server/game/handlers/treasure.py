@@ -22,7 +22,7 @@ de primeira vez).
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -63,7 +63,17 @@ class Dig:
     won: bool = False
 
 
-_digs: dict[int, Dig] = {}  # userId do dono -> escavação
+def dig_of(s: GameSession) -> Dig | None:
+    """A escavação gravada no ``EventState`` (chave ``dig``): sobrevive a reinício e desconexão."""
+    raw = _data(s).get("dig")
+    return Dig(**raw) if raw else None
+
+
+async def save_dig(s: GameSession, dig: Dig | None) -> None:
+    assert s.snapshot is not None
+    d = _data(s)
+    d["dig"] = asdict(dig) if dig is not None else None
+    await s.ctx.characters.save(mj.store(s.snapshot, KEY, d, s.ctx.clock.now()))
 
 
 def _config(s: GameSession, name: str) -> int:
@@ -116,6 +126,9 @@ def login(s: GameSession) -> None:
     need = int((s.ctx.templates.get("ItemTempInfos", _maps(s)[0]) or {}).get("NeedGrades", 0))
     if snap.character.grades >= need:
         s.send(S_TREASURE, _state(s, _book(s, s.ctx.clock.now())))
+        dig = dig_of(s)
+        if dig is not None and dig.won:  # (dedução) tesouro achado antes de cair: o aviso volta
+            s.send(S_FOUND)
 
 
 def _spot(s: GameSession) -> tuple[int, int, int]:
@@ -241,7 +254,8 @@ async def _dig(s: GameSession, book: TreasureMap, item: Item) -> None:
     team = _team(s)
     if team:
         spec = _with_team(s, spec, team)
-    dig = _digs[s.player_id] = Dig(item.pos, item.template_id, [m.player_id for m in team])
+    dig = Dig(item.pos, item.template_id, [m.player_id for m in team])
+    await save_dig(s, dig)
 
     def send(code: int, msg: Any) -> None:
         s.send(code, msg)
@@ -253,11 +267,13 @@ async def _dig(s: GameSession, book: TreasureMap, item: Item) -> None:
         healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
         send(S_BATTLE_REPORT, _report(battle, won, 0))
         hp_pack(s, healed)
-        dig.won = won
-        if won:  # TipTxt1: "You found the treasure!"; o 4 com isReward responde
+        now_dig = dig_of(s)  # relido: o 8745 pode ter somado reforços durante a luta
+        if won and now_dig is not None:  # TipTxt1: "You found the treasure!"; o 4 com isReward responde
+            now_dig.won = True
+            await save_dig(s, now_dig)
             s.send(S_FOUND)
         else:  # idioma: "if you are defeated, the map will not be lost"
-            _digs.pop(s.player_id, None)
+            await save_dig(s, None)
 
     s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, send if team else s.send, finished,
                       settings=s.ctx.world.settings)  # fmt: skip
@@ -313,18 +329,14 @@ async def _claim(s: GameSession, book: TreasureMap, msg: pb.PlayerTreasureMsg) -
     """Op 4. ``isReward``: o mapa some e cada um leva o prêmio (o dono do lendário, ``legendaryBonus`` % a mais:
     idioma). Quem já usou os prêmios do dia luta mas não leva (idioma helpContent). (dedução) sem ``isReward`` o
     tesouro fica por ora: o mapa continua na mochila."""
-    dig = _digs.get(s.player_id)
+    dig = dig_of(s)
     if dig is None or not dig.won or dig.pos != msg.index:
         s.log.info("8744 sem tesouro achado", pos=msg.index)
         return
-    if not msg.isReward:
-        _digs.pop(s.player_id)
-        return
+    await save_dig(s, None)  # (o _pay_out grava o resto; o EventState já sem a escavação)
     item = _map_at(s, dig.pos)
-    if item is None or item.template_id != dig.template_id:
-        _digs.pop(s.player_id)
+    if not msg.isReward or item is None or item.template_id != dig.template_id:
         return
-    _digs.pop(s.player_id)
     snap, now = s.snapshot, s.ctx.clock.now()
     assert snap is not None
     row = s.ctx.templates.get("ItemTempInfos", dig.template_id) or {}
@@ -377,18 +389,23 @@ async def reinforce_treasure(s: GameSession, msg: pb.GuildMsg) -> None:
     """Reforço (``checkReinforce``): quem é do mesmo grupo de ``param1`` entra na escavação em curso dele e leva o
     prêmio junto. shortcut: a luta não ganha o herói no meio (``Battle`` não aceita unidade nova depois do 157); o
     reforço só entra na partilha e na missão 89. Mudar quando a luta aceitar reforço de jogador."""
-    team, dig = s.ctx.teams.of(s.player_id), _digs.get(msg.param1)
+    team, owner = s.ctx.teams.of(s.player_id), s.ctx.online.get(msg.param1)
+    dig = dig_of(owner) if owner is not None and owner.snapshot is not None else None
+    mine = dig_of(s)
     if (
         team is None
-        or msg.param1 == s.player_id
+        or owner is None
+        or owner is s
         or msg.param1 not in team.members
         or dig is None
         or dig.won
+        or owner.battle is None  # escavação gravada sem luta (reinício no meio): nada a reforçar
         or s.player_id in dig.mates
         or s.battle is not None
-        or s.player_id in _digs
+        or (mine is not None and not mine.won)
     ):
         s.log.info("8745 reforço recusado", alvo=msg.param1)
         return
     dig.mates.append(s.player_id)
+    await save_dig(owner, dig)
     await count_quest(s, rules.LOST_TREASURE_CONDITION)
