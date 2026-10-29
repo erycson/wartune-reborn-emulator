@@ -610,7 +610,8 @@ def _alchemy_gold(s: GameSession, snap: PlayerSnapshot) -> int:
 def _lucky_msg(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerLuckyMsg:
     used = ev.daily(snap, "alchemy", s.ctx.clock.now()).value
     left = max(0, ALCHEMY_COUNT + vip_right(s, snap, ALCHEMY_RIGHT) - used)
-    return pb.PlayerLuckyMsg(luckyCount=used, remainCount=left, point=_cost(used), gold=_alchemy_gold(s, snap))
+    # point: (visto) 2 com 0 usos e 4 com 1 (oficial_encantar #7, 215937 #12); o cliente não lê, o custo é ``_cost``
+    return pb.PlayerLuckyMsg(luckyCount=used, remainCount=left, point=2 * (used + 1), gold=_alchemy_gold(s, snap))
 
 
 @router.on(8320)
@@ -626,14 +627,15 @@ async def alchemy_info(s: GameSession, _: object) -> None:
 async def alchemy(s: GameSession, _: object) -> None:
     """Troca Balens (não vinculados) por ouro: o custo é ``_cost``, a mesma conta que o cliente faz com o ``luckyCount``
     (``AlchemyFrame``: 40 + 10 x usos); o ``AlchemyManager`` não lê o ``point``. O inglês manda ``point`` 2 com 0 usos e
-    4 com 1 (oficial_encantar #7, 215937 #12), regra desconhecida: aqui vai o custo."""
+    4 com 1 (oficial_encantar #7, 215937 #12): vai 2 x (usos + 1)."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
     info = _lucky_msg(s, snap)
-    spent = ledger.spend(snap.character, info.point, "alchemy", now, bound=False) if info.point else None
-    if not info.remainCount or (info.point and spent is None):
-        s.log.info("8321 recusado", restam=info.remainCount, custo=info.point)
+    cost = _cost(info.luckyCount)
+    spent = ledger.spend(snap.character, cost, "alchemy", now, bound=False) if cost else None
+    if not info.remainCount or (cost and spent is None):
+        s.log.info("8321 recusado", restam=info.remainCount, custo=cost)
         s.send(S_LUCKY, info)
         return
     st = ev.daily(snap, "alchemy", now)

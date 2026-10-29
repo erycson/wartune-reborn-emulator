@@ -35,18 +35,23 @@ async def test_alchemy_and_soul_spend_diamonds(tmp_path: Path) -> None:
         c.grades = 14  # MainToolBar pede de novo no 14
         g.client.send(8320)
         lucky = pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body)
-        assert (lucky.luckyCount, lucky.remainCount, lucky.point) == (0, 20, 0) and lucky.gold > 0
+        assert (lucky.luckyCount, lucky.remainCount, lucky.point) == (
+            0,
+            20,
+            2,
+        )  # point 2 com 0 usos (oficial_encantar #7)
+        assert lucky.gold > 0
 
         c.point, c.gift_token, gold = 0, 100, c.gold
         g.client.send(8321, pb.PlayerLuckyMsg())  # AlchemyFrame: o 1º do dia é grátis
         after = pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body)
-        assert (after.luckyCount, after.point) == (1, 50) and c.gold == gold + lucky.gold
+        assert (after.luckyCount, after.point) == (1, 4) and c.gold == gold + lucky.gold
         g.client.send(8321, pb.PlayerLuckyMsg())  # 50 Balens que não tem (vinculado não paga): só devolve o estado
         assert pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body).luckyCount == 1
         c.point = 60
         g.client.send(8321, pb.PlayerLuckyMsg())
         after = pb.PlayerLuckyMsg.FromString((await g.until(4224))[-1].body)
-        assert (after.luckyCount, after.point) == (2, 60) and (c.point, c.gift_token) == (10, 100)
+        assert (after.luckyCount, after.point) == (2, 6) and (c.point, c.gift_token) == (10, 100)
         assert await _ledger(g) == [(-50, 0, "alchemy")]
 
         g.client.send(8467, pb.PlayerRefiningSoulMsg())  # nível < RefiningSoul_Grades (24)
