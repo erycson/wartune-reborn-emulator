@@ -362,16 +362,17 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 8534 | 4428 vazio (igual ao login, tutorial_en #57) | (visto) |
 | login | 4461 do Recharge Gift Pack (`game_settings.rebate`, 0055) na janela; fora dela `id` vazio esconde o botão | (visto) oficial_encantar #61; tutorial_en #59 (vazio) |
 | 8574 `RebateOpMsg` | `op` 1: 4463 `{id, userid, point, type, packagestates}` com `point` = Balens recarregados na janela (`cash_ledger` `reason='recharge'`, gravado pelo portal); `op` 2 `packageid`: resgata quando `point` >= o do pacote e ainda não resgatado (itens e 4463 de novo). Fora da janela: 4461 vazio | (visto) oficial_encantar #62 (op 1), #76 (4463); (cliente) `FeedBackManager`, `FeedBackItem`; (dedução) o resgate, sem amostra |
-| 8629, 8630, 8634, 8638, 8748 | sem resposta (nunca 4546 nem 4550) | (cliente) TimeStoryFrame, TopToolsBar, SinglePass, LotteryManager |
+| 8629, 8630, 8634, 8638 | sem resposta (nunca 4546 nem 4550) | (cliente) TimeStoryFrame, TopToolsBar, SinglePass |
+| 8748 | loteria: gira (4642 `param1` TemplateId de uma casa, `param2` restantes, `param3` quantidade; sem tentativa `param1` 0). `handlers/lottery.py` | (cliente) LotteryManager, LotteryFrame; TODO(inventado) sorteio |
 | 8639 / 8640 | 4554 / 4553 vazios (corneta sem item) | (cliente) SinglePassManager |
 | 8722 / 8723 | 4543 vazio: botão só com `isIn360Agent` (plataforma 360) | (cliente) Bag360Manager |
-| 8750 | 4637 `isOpen` falso | (cliente) LotteryManager |
+| 8750 | loteria (`game_settings.lottery`; sem ela 4637 falso, como no login): 4637, 4636 (gasto de hoje, tentativas `min(dayMaxCount, gasto // onceNeedPoint)` por dia pelo `cash_ledger`), 4641 casas, 4639 últimos prêmios | (visto) 4637 falso em todas; (cliente) LotteryManager; idioma `lottery.LotteryFrame.describe` |
 | 8866 | 4745 zerado | (cliente) ExchargeRankManager |
 | 9602 | 345 zerado | (cliente) CrossCostController |
 | 8994 | sem resposta fora do evento (o 4811 seria a lista de nós) | *(visto)* oficial_20261023-215937-1 #751, #973, #1189, #1300; (cliente) StoreSocketOutManager |
-| 9500 | 4901 `open` falso | (visto) tutorial_en #87 |
-| 9501 | 4908 `sysState` 0 | (cliente) AnswerManager |
-| 9502 | 4914 `op` 1, `seekCount` 0, `seekNodeList` presente e vazio | (cliente) TreasureHuntControler |
+| 9500 | caça-níquel (`game_settings.slot_machine`; sem ela 4901 `open` falso): ops 1/2/11/3, `slot` com dígitos, `*`, `+`, `-`, resgate do número na moeda. `handlers/slot.py` | (visto) tutorial_en #87 (fechado); (cliente) SlotManager, SlotFrame; idioma `slot.slotHelpFrame.describe` |
+| 9501 | quiz (`game_settings.quiz`; sem ela 4908 `sysState` 0): agenda seg/qua/sex 19:30, 4908 estados 1-5, 4909 pergunta e `answer`, 4907, 4910, EXP no fim. `handlers/quiz.py` | (cliente) AnswerManager, AnswerModel; idioma `answer.view.helpHtmlTxt`; banca TODO(inventado) |
+| 9502 | caça ao tesouro (nível 32): ops 1-7, 4914 com os nós, 4915 diário, troca 100 shards -> Master Summoner's Kit. `handlers/treasure_hunt.py` | (cliente) TreasureHuntManager/Controler/Frame, SeekType; idioma `hunt.*`; nós e achados TODO(inventado) |
 | 9507 | pesca: ops em `handlers/fishing.py` (4916, 4917, 4918, 4919, 4920) | (visto) 26/10, 27/10, 28/10; (cliente) FishManager |
 | 9508 | 4922 com o tabuleiro (real, abaixo) | (visto) só turco: av_askeri #1, login da replay #10; (cliente) GemMazeManager |
 | 9509 | troca: cascata, 4923 por passo e 4924 (real, abaixo) | (visto) só turco: av_askeri #5-#56; (cliente) GemMazeView |
@@ -382,12 +383,12 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 9517 | receber tudo: bolsa 24 vai para a mochila, 111 "Reward retrieval successful!" (texto inglês do baú online, #2114) | (visto) só turco: av_askeri #60-#62 |
 | 9521, 9522 | sem resposta | (cliente) |
 | 9520 | 300 (fecha o quadro; só o GoldRoadManager escuta) | (cliente) GoldRoadManager |
-| 9523 | 4936 `leadExtractTimes` 0 | (cliente) FunnyControler |
+| 9523 | sorteio de grupo: op 3 -> 338 (roleta), op 1 -> 4936 (prêmio e restantes), op 2 sem resposta; casas em `game_settings.group_draw`, sorteios ganhos na compra coletiva (ainda inexistente). `handlers/group_draw.py` | (cliente) GroupBuyView, FunnyControler, GroupLuckFrame; idioma `GroupLuckFrameWarn` |
 | 9550 | 4980 lista vazia | (cliente) InfoTipsManager |
 | 9610 `LuckExchangeOpMsg` | é a troca (`exchangeId` x `exchangeCount`), não um pedido: sem edição vigente, recusa sempre (sem tabela das edições), com 111 "Insufficient exchange items." e um 4247 com a linha zerada. As listas (363, 364) vão vazias no login, sem pedido | (cliente) LuckyExchangeManager + (visto) tutorial_en #88, #102; (visto) oficial_20261027-152321-1 #11765-#11767 |
-| 9638 | 414 `param7` falso; 415 vazio (obrigatório se a tela abrir) | (visto) tutorial_en #112 (414); 415 só turco: login #127 |
+| 9638 | cadeiras (`game_settings.chairs`; sem ela 414 falso e 415 vazio): op 1 abre, op 2 resgata; cadeiras por recarga, sortudos pelo total do servidor. `handlers/chairs.py` | (visto) tutorial_en #112 (414 fechado); (cliente) PublicChairsManager/Frame; regra TODO(inventado) |
 | 8604 | árvore dourada, real (acima); sem a linha no banco: 295 `open` falso e 4526 `openView` falso | (visto) tutorial_en #71-#72 + (cliente) BottleManager, BottleFrame |
-| 9645 `extend1` 35 | minério: 190 fechado | (visto) tutorial_en #109 |
+| 9645 `extend1` 35 | minério de Stokes (`game_settings.stokes_ore`; sem ela 190 fechado): op 3 -> 188/189/187, op 1/2 golpes -> 187/189, veio do servidor com andares especiais. `handlers/ore.py` | (visto) tutorial_en #109 (fechado); (cliente) StokesOreManager/Model/Frame; números TODO(inventado) |
 | 9645 `extend1` 38 `SuperSigninCardReqMsg` | super assinatura: `opType` 2 compra (500 Balens livres, nível 6, uma por edição), 3 recebe o dia `date` (estado 1), 4 assina o dia perdido (estado 3, 10 Balens); responde 513 com os 7 estados (0 ainda não, 1 recebe, 2 recebido, 3 perdido). O login manda 4590 (datas da edição) e 514 (preços e prêmios), e o 513 só com cartão; quem está no jogo assina o dia (o 513 vai de novo depois de qualquer pedido quando muda, como na virada da meia-noite) | (visto) oficial_encantar #118-#119 (`game_settings.super_signin`, 0054); regras: `SuperSigninCardFrame`/`Item` e o `language.txt` inglês; (dedução) o 513 de cada operação, sem amostra |
 
 **Labirinto de gemas (9508–9517, real)**: `handlers/gemmaze.py`; a regra da troca e da cascata está em
@@ -454,11 +455,10 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   limita). Tudo isso dá também os pesos, se forem muitas ativações.
 
 **Dependências (sistema fechado, com o motivo e o que capturar):**
-- **Quiz (9501):** `HeartTempInfos` são perguntas de personalidade ("which finger will you wear it on?"), sem
-  resposta certa em lugar nenhum (`QuestionReplyInfoResolve` é o atendimento, não o quiz). Agenda em conflito: help
-  inglês "Monday, Wednesday, Friday 19:30-20:00", template `Dati_Day` 1,3,5,6 às `AnswerQuestionTime` 14:35.
-  **Captura que falta**: uma rodada inteira (9501, 4907/4908/4909/4910): o 4909 com `answer` no estado 4 diz qual
-  opção valeu; gravar várias perguntas para ver se a certa é fixa ou a mais votada.
+- **Quiz (9501):** feito (`handlers/quiz.py`), aberto por `game_settings.quiz`. `HeartTempInfos` são perguntas de
+  personalidade, sem resposta certa (e a internet não tem a banca): banca inventada com a `Option1` certa (o cliente
+  embaralha). Agenda do help inglês (seg/qua/sex 19:30-20:00; o template `Dati_Day` 1,3,5,6 às 14:35 é o chinês).
+  **Captura que falta**: uma rodada inteira (9501, 4907/4908/4909/4910) para a banca, os pontos e a EXP.
 - **Pesca (9507):** feita (`game/fishing.py`, `handlers/fishing.py`) com as capturas de 26/10, 27/10 e 28/10:
   abrir (4 e 1 [10] → 4916, 4918), atualizar (1 → 4918), fisgar (11 [2, id], sem resposta), pescar (10 → 115 no cesto
   bagType 23, 111, 4917, 4916, 4918, 83; errar → 4917 vazio, 4916, 4918), cesto (2 → 111 "Looted successfully!",
@@ -466,19 +466,20 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   cd +300 s por lançamento até 1800, nível pela `UpGradeTempInfos` tipo 40, ranking semanal no `fish.xml`.
   **Captura que falta**: ⏩ (3), ferramentas (5), fúria e ajuda (6, 7, 9, 4919, 4920): respostas por dedução e
   números inventados (`TODO(inventado)` em `game/fishing.py`).
-- **Caça ao tesouro (9502):** `treasure_*` (refresh 120 diamantes ou 8 itens, cavar já 25) existe; faltam os nós.
-  **Captura que falta**: abrir o mapa (4914 com `seekNodeList`) e cavar um nó.
+- **Caça ao tesouro (9502):** feita (`handlers/treasure_hunt.py`) pelo cliente e o idioma; nós, achados, intervalo
+  e preço do "+" inventados. **Captura que falta**: abrir o mapa (4914 com `seekNodeList`) e cavar um nó.
 - **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` 50 e o help ("Normal 1x, Double 2x, Quintuple 5x",
   casas "?", 100 pontos) existem; as casas (4933 `cellInfo`) e o custo de cada dado vêm do servidor. **Captura que
   falta**: abrir (4933) e jogar o dado nos três modos (4934 `CastDiceMsg`), mais o "refresh".
-- **Minério (9645):** `MineOfActiveTime`, `Mine_Level`, `FreshManDepositCost` existem; sem tabela de
-  recompensa da mineração (op 1/2). **Super assinatura** (9645 `extend1` 38): feita (ver a tabela).
+- **Minério de Stokes (9645 `extend1` 35):** feito (`handlers/ore.py`) pelo cliente; preços, limites, andares,
+  achados e textos inventados (`MineOfActiveTime`/`Mine_Level` são do campo de minas). **Super assinatura**
+  (9645 `extend1` 38): feita (ver a tabela).
 - **Corneta (8638..8640):** `SinglePass_Count` existe; sem item nem tabela do passe.
-- **Loteria (8748/8750), caça-níquel (9500), cadeiras (9638), recompensa de grupo (9523), caixa de
-  ano novo (8994), história (8629/8630):** sem template nem config no servidor; a captura inglesa só os mostra
-  fechados (4637 #107, 4901 #87, 414 #112). O caça-níquel tem regra no help (`slot.slotHelpFrame.describe`: um
-  dígito por dia, prêmio no último dia), mas não a tabela de prêmios. **Captura que falta**: cada um num dia em que
-  o oficial o abre (o 4637/4901/414 com `true`), abrir a tela e jogar uma vez.
+- **Loteria (8748/8750), caça-níquel (9500), cadeiras (9638), sorteio de grupo (9523):** feitos
+  (`handlers/lottery.py`, `slot.py`, `chairs.py`, `group_draw.py`), abertos por `game_settings` (as capturas só os
+  mostram fechados: 4637 #107, 4901 #87, 414 #112). Sorteios, padrões e a regra das cadeiras inventados; o sorteio de
+  grupo depende da compra coletiva (8645). **Captura que falta**: cada um num dia em que o oficial o abre.
+- **Caixa de ano novo (8994), história (8629/8630):** sem template nem config no servidor.
 - **360 (8722/8723):** `PrivilegeDrops` existe, mas o cliente só mostra com `isIn360Agent`.
 - **Recuperação (9503):** lista vazia porque nenhum sistema conta as atividades perdidas (campanha,
   arena, boss, imposto; `RecoverInfos` tem 10 linhas). **depende de** cada sistema gravar a participação do dia;

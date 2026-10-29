@@ -39,11 +39,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 2 | 4 | 2 |
-| Atividades e eventos | 5 | 10 | 4 | 4 | 5 |
+| Atividades e eventos | 5 | 11 | 10 | 2 | 5 |
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **92** | **46** | **41** | **34** |
+| **Total** | **100** | **93** | **52** | **39** | **34** |
 
 ## Validação e base
 
@@ -382,8 +382,13 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |
 | Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
-| Caça ao tesouro, quiz, minério | ❌ | | fechados |
-| Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
+| Caça ao tesouro (9502) | 🧪 | | ops 1-7, 10 explorações com recarga, diálogo, achado e troca de 100 shards pelo cliente e idioma (`treasure_hunt.py`); nós, achados, 30 min e preço do "+" inventados |
+| Quiz (9501) | 🧪 | | agenda, tempos, pontos e EXP do top 10 pelo idioma; estados, 4907-4910 e ajudas pelo cliente (`quiz.py`, `game_settings.quiz`); banca (Option1 certa), pontos e EXP inventados |
+| Minério de Stokes (9645/35) | 🧪 | | 187-190 e ops pelo cliente, veio do servidor com andares especiais (`ore.py`, `game_settings.stokes_ore`); preços, limites, achados e textos inventados, veio só na memória |
+| Caça-níquel (9500) | 🧪 | | regras da ajuda inglesa e do cliente (`slot.py`, `game_settings.slot_machine`); dígito uniforme e padrões inventados |
+| Loteria (8750/8748) | 🧪 | | tentativas pelo gasto de Balens no `cash_ledger` (idioma) e mensagens do cliente (`lottery.py`, `game_settings.lottery`); sorteio, padrões e texto do 4639 inventados |
+| Cadeiras (9638) | 🧪 | | mensagens do cliente (`chairs.py`, `game_settings.chairs`); regra inteira inventada (cadeira por recarga, sortudos pelo total) |
+| Sorteio de grupo (9523) | 🟡 | | roleta 338/4936 pelo cliente (`group_draw.py`); depende da compra coletiva (8645) para ganhar sorteios; sorteio inventado |
 | Campo minado, caixa de ano novo, história | ❌ | | |
 | Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
