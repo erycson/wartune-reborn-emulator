@@ -7,6 +7,7 @@ dias recebe a stamina de cada dia que passou."""
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from ..domain import gameday
 from ..domain.models import PlayerSnapshot
@@ -21,11 +22,11 @@ POTION_DAY = 300  # stamina por poção no dia (cliente: 300 - wearyLimit)
 BLESS_BASE, BLESS_LEVEL = 10, 41
 
 
-def roll(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> list[object]:
+def roll(snap: PlayerSnapshot, templates: GameTemplates, now: datetime, world_settings: Any = None) -> list[object]:
     """Aplica as viradas pendentes. Devolve o que mudou (para gravar e mandar o 4202), ou vazio."""
     c, changed = snap.character, list[object]()
     if days := gameday.days_between(c.reset_day, now):
-        changed.append(recover.build(snap, templates, now))  # antes de zerar: lê os contadores de ontem
+        changed.append(recover.build(snap, templates, now, world_settings))  # antes de zerar: lê os contadores de ontem
         c.reset_day, c.weary_potions = gameday.today(now), 0
         c.kills_normal = c.kills_elite = c.kills_boss = 0  # monstros dos Wilds: "reset at 5 a.m." (help)
         c.weary = max(c.weary, min(c.weary_limit, c.weary + WEARY_DAILY * days))

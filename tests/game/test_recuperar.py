@@ -50,9 +50,19 @@ async def test_lista_de_ontem_resgate_e_virada(tmp_path: Path) -> None:
         assert codes == [4912, 109]
         # (visto) d27 #63, nível 29: as linhas 1 e 4 iguais às do oficial
         assert (rows[1].num, rows[1].itemCost, rows[1].itemReward, rows[1].goldCost, rows[1].goldReward) == (
-            1, 3, 160320, 100000, 80160)
+            1,
+            3,
+            160320,
+            100000,
+            80160,
+        )
         assert (rows[4].num, rows[4].itemCost, rows[4].itemReward, rows[4].goldCost, rows[4].goldReward) == (
-            10, 10, 334080, 200000, 111360)
+            10,
+            10,
+            334080,
+            200000,
+            111360,
+        )
         assert (rows[8].num, rows[8].itemReward, rows[8].goldCost) == (10, 100, 0)
 
         g.client.send(9503, pb.RecoverReqMsg(type=1, count=2, way=2))  # grupo, tudo, com ouro

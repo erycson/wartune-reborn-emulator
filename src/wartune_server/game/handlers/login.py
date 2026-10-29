@@ -153,7 +153,7 @@ async def socket_login(s: GameSession, msg: pb.LoginReqMsg) -> None:
     changed = castle.ensure(snap, s.ctx.templates, now)
     # o dia vira antes do PlayerMsg (stamina, energia e attackLeftCount já do dia) e grava junto: senão o 8224
     # recarrega o arena do banco com o dia de ontem
-    changed.extend(daily.roll(snap, s.ctx.templates, now))
+    changed.extend(daily.roll(snap, s.ctx.templates, now, s.ctx.world.settings))
     s.snapshot, s.login_key = snap, msg.key
     s.connection.client_id = s.player_id
     s.ctx.online.bind(s.player_id, s)  # antes do primeiro await: o segundo 20001 junto já vê a sessão

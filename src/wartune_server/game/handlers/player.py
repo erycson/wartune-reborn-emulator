@@ -254,7 +254,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     push_state(s)
     push_defend(s)
     push_match(s)
-    if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now)):
+    if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now, s.ctx.world.settings)):
         await s.ctx.characters.save(*changed)
         s.send(S_RESET, data_reset(s.snapshot, now))
         _player(s)

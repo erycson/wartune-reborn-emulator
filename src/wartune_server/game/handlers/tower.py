@@ -38,7 +38,7 @@ def _kind(s: GameSession) -> mz.Kind:
 
 
 def _info(s: GameSession, tower: mz.Tower, kind: mz.Kind) -> pb.TowerInfoMsg:
-    return mz.info(tower, _cfg(s, kind), kind, s.maze_order.get(kind.key, 0))
+    return mz.info(tower, _cfg(s, kind), kind, s.maze_order.get(kind.key, 0), s.maze_first.get(kind.key, (0, "")))
 
 
 def tower_msg(s: GameSession, index: int = 0) -> pb.TowerInfoMsg:
@@ -74,6 +74,9 @@ async def tower_info(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
     kind = mz.KINDS[msg.index] if 0 <= msg.index < len(mz.KINDS) else mz.CATACOMBS
     states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, kind.key))
     s.maze_order[kind.key] = mz.position(states, s.player_id, kind)
+    if first := mz.first_kill(states, kind):
+        who = await s.ctx.characters.read(lambda uow: uow.characters.get(first))
+        s.maze_first[kind.key] = (first, who.nickname if who is not None else "")
     s.send(S_TOWER_INFO, tower_msg(s, msg.index))
 
 

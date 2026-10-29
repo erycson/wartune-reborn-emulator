@@ -17,7 +17,7 @@ from wartune_server.services.clock import FakeClock
 
 TRIAL_CARD = 2031201
 IN_4005 = datetime(2026, 10, 27, 15, 10, tzinfo=UTC)
-IN_4007 =datetime(2026, 10, 27, 17, 10, tzinfo=UTC)
+IN_4007 = datetime(2026, 10, 27, 17, 10, tzinfo=UTC)
 IN_MINE = datetime(2026, 10, 27, 19, 45, tzinfo=UTC)  # carrinho: 19:30 a 20:00
 
 

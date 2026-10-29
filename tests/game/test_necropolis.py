@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -109,3 +109,34 @@ async def test_recuperar_conta_as_entradas_de_ontem(tmp_path: Path) -> None:
         assert recover._used_yesterday(snap, recover.NECROPOLIS, now) == 0
         _set(g, mz.Tower(enters=1, day=gameday.today(now - timedelta(days=1))))
         assert recover._used_yesterday(snap, recover.NECROPOLIS, now) == 1
+        # open_at vem do game_settings como o resto
+        assert recover._used_yesterday(snap, recover.NECROPOLIS, now, {"necropolis": {"open_at": 101}}) == 1 << 30
+
+
+def test_primeiro_abate_e_o_primeiro_do_ranking() -> None:
+    from wartune_server.domain.models import EventState
+
+    def st(c: int, rec: int, at: str) -> EventState:
+        return EventState(
+            character_id=c,
+            key=N.key,
+            updated_at=datetime(2026, 10, 28),
+            text=f'{{"record": {rec}, "record_at": "{at}"}}',
+        )
+
+    states = [st(1, 20, "b"), st(2, 20, "a"), st(3, 9, "0"), st(4, 0, "")]
+    assert mz.first_kill(states, N) == 2 and mz.first_kill(states) == 0
+    cfg = mz.settings(None, N)
+    msg = mz.info(mz.Tower(), cfg, N, first=(2, "Bia"))
+    assert (msg.firstHitId, msg.firstHitName) == (2, "Bia")
+    assert mz.info(mz.Tower(), cfg | {"first_kill": False}, N, first=(2, "Bia")).firstHitId == 0
+
+
+async def test_info_manda_o_primeiro_abate(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=READY) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        await s.ctx.characters.save(mz.store(_snap(g), mz.Tower(record=3, record_at="x"), s.ctx.clock.now(), N))
+        g.client.send(8297, pb.TowerInfoReqMsg(index=1))
+        info = pb.TowerInfoMsg.FromString((await g.until(4205))[-1].body)
+        assert info.firstHitId == g.user_id and info.firstHitName == _snap(g).character.nickname

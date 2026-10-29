@@ -70,6 +70,10 @@ DEFAULT: dict[str, Any] = {
     "hp_pct": 100,
     "revive": 25,  # (cliente) MazeRiverView.content01: "Reviving will consume 25 Balens"
     "sweep_from": 10,  # (cliente) "You may only blitz after completing level 10."
+    # primeiro abate (cliente: TowerInfo.firstBloodId/Name <- firstHitId/Name; MazeView mostra só na Necropolis e só com
+    # ConfigManager.info.MAZE_FIRST_KILL, que nenhum 4422 deste cliente liga). TODO(inventado): o dono é o 1º do
+    # ranking da torre (o primeiro a chegar ao andar mais alto); false desliga
+    "first_kill": True,
 }
 
 
@@ -176,7 +180,16 @@ def position(states: list[EventState], character_id: int, kind: Kind = CATACOMBS
     )
 
 
-def info(tower: Tower, cfg: dict[str, Any], kind: Kind = CATACOMBS, order: int = 0) -> pb.TowerInfoMsg:
+def first_kill(states: list[EventState], kind: Kind = CATACOMBS) -> int:
+    """Personagem do primeiro abate da torre (0 sem ninguém): o 1º do ``position``."""
+    runs = [(-int(r.get("record", 0)), r.get("record_at", ""), s.character_id)
+            for s in states if s.key == kind.key and s.text and (r := json.loads(s.text)).get("record")]  # fmt: skip
+    return min(runs)[2] if runs else 0
+
+
+def info(
+    tower: Tower, cfg: dict[str, Any], kind: Kind = CATACOMBS, order: int = 0, first: tuple[int, str] = (0, "")
+) -> pb.TowerInfoMsg:
     """4205. ``index`` é a aba do MazeFrame (0 Catacombs, 1 Necropolis); o cliente escolhe a torre pelo
     ``campaignId``. ``order`` 0: o cliente mostra "None"."""
     return pb.TowerInfoMsg(
@@ -190,6 +203,7 @@ def info(tower: Tower, cfg: dict[str, Any], kind: Kind = CATACOMBS, order: int =
         freeEnterCount=cfg["free_enter"],
         campaignId=kind.campaign,
         index=kind.index,
+        **({"firstHitId": first[0], "firstHitName": first[1]} if cfg["first_kill"] and first[0] else {}),
     )
 
 

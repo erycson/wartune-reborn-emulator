@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
+from typing import Any
 
 from ..domain import gameday
 from ..domain.models import EventState, PlayerSnapshot
@@ -76,7 +77,7 @@ def drops(son: int, template_id: int, reward: int) -> list[rewards.Drop]:
     return [(GOLD, reward), (DARU, reward)] if son == BOSS else [(template_id, reward)]
 
 
-def _used_yesterday(snap: PlayerSnapshot, son: int, now: datetime) -> int:
+def _used_yesterday(snap: PlayerSnapshot, son: int, now: datetime, world_settings: Any = None) -> int:
     yesterday = gameday.game_day(now) - timedelta(days=1)
     c = snap.character
     if son == GROUP and c.multi_copy_day == yesterday.isoformat():
@@ -92,7 +93,7 @@ def _used_yesterday(snap: PlayerSnapshot, son: int, now: datetime) -> int:
     if son == SPILL:  # a virada dá 100 (daily.WEARY_DAILY = OneDayMax) até o teto: o que cabe não transborda
         return max(0, c.weary_limit - c.weary)
     if son == NECROPOLIS:
-        if not maze.is_open(snap, maze.settings(None, maze.NECROPOLIS)):
+        if not maze.is_open(snap, maze.settings(world_settings, maze.NECROPOLIS)):
             return 1 << 30  # fechada: nada a recuperar
         st = ev.peek(snap, maze.NECROPOLIS.key)
         run = json.loads(st.text) if st is not None and st.text else {}
@@ -100,7 +101,7 @@ def _used_yesterday(snap: PlayerSnapshot, son: int, now: datetime) -> int:
     return 0
 
 
-def build(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> EventState:
+def build(snap: PlayerSnapshot, templates: GameTemplates, now: datetime, world_settings: Any = None) -> EventState:
     """Monta a lista de hoje (chame na virada, antes de zerar). Personagem novo (sem dia anterior): vazia."""
     st = ev.state(snap, KEY, now)
     left: dict[str, int] = {}
@@ -108,7 +109,7 @@ def build(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> Even
         for row in templates.rows("RecoverInfos"):
             son = int(row["SonType"])
             if base(son, snap, templates) is not None:
-                n = int(row["OneDayMax"]) - _used_yesterday(snap, son, now)
+                n = int(row["OneDayMax"]) - _used_yesterday(snap, son, now, world_settings)
                 if son == ALTAR:  # OneDayMax 60 é estamina; a unidade vale 20 (visto: d27 #63, num 3 -> 60)
                     n //= STAMINA_PER[ALTAR]
                 if n > 0:

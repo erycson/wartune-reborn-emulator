@@ -178,4 +178,3 @@ def test_pesadelo_mais_forte_que_a_normal() -> None:
     normal, hard = made["9004"]["battles"]["207102"], made["9104"]["battles"]["208102"]
     assert hard["soldiers"][0]["hp"] == round(normal["soldiers"][0]["hp"] * 1.5)
     assert hard["gpBonus"] == round(normal["gpBonus"] * 1.2)
-

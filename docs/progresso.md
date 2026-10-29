@@ -261,7 +261,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | ✅ | | grátis: 111 "Respawn Successful!" e 4175; pago: 3, devoção, 150, 4434 antes (28/10 #1134, #1566, #1755) |
 | Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |
-| Necropolis (8101) | 🧪 | | 30 andares pelo cliente/templates (mapas 8101-8130, chefes GameHeroTemp 8001-8030 "Level k Guardian", `checkMaze2`/`towerInfo2`, varredura até 29), abre com o recorde 100 das Catacombs; mesma torre do labirinto (`maze.Kind`): entrada diária, morte/reviver, baús, ranking, varredura. Sem captura: EXP (400 x (100+k)), baús, sonType dos nós e varredura a partir do 10 inventados (`maze.py` NECROPOLIS) |
+| Necropolis (8101) | 🧪 | | 30 andares pelo cliente/templates (mapas 8101-8130, chefes GameHeroTemp 8001-8030 "Level k Guardian", `checkMaze2`/`towerInfo2`, varredura até 29), abre com o recorde 100 das Catacombs; mesma torre do labirinto (`maze.Kind`): entrada diária, morte/reviver, baús, ranking, varredura, primeiro abate no 4205 (firstHit = 1º do ranking, inventado; `first_kill` desliga; o cliente só mostra com MAZE_FIRST_KILL, que nenhum 4422 liga). Sem captura: EXP (400 x (100+k)), baús, sonType dos nós e varredura a partir do 10 inventados (`maze.py` NECROPOLIS) |
 | Guarda de batalha e gemas (8742/4631) | ❌ | 🇹🇷 | gemas não modeladas; o 4631 vazio no login (turco) |
 
 ## Batalha
