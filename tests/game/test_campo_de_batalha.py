@@ -157,3 +157,23 @@ async def test_4185_leva_o_caminho_a_quem_esta_no_mesmo_mapa(tmp_path: Path) -> 
         got = await other.idle()
         sent = [pb.PosMoveMsg.FromString(p.body) for p in got if p.code == 4185]
         assert sent and sent[0].armyId == g.user_id and sent[0].serverName
+
+
+def test_pvp_perde_15_por_cento_e_ganha_20_mais_1_a_cada_20() -> None:
+    # (visto 152321) 100->15/25, 115->18/25, 127->20/26; 30->21 e 72->23 de ganho
+    assert [bf.pvp_loss(n) for n in (100, 115, 127, 110)] == [15, 18, 20, 17]
+    assert [bf.pvp_gain(n) for n in (100, 115, 127, 30, 72)] == [25, 25, 26, 21, 23]
+
+
+def test_4002_tem_guardioes_vivos_do_time_2_e_o_4005_nao() -> None:
+    alive = {n % 1000 for n, node in bf.field_nodes(4002).items() if node["masterType"] == 42 and node["state"] == 1}
+    assert alive == {13, 14, 15, 16, 17, 18}
+    assert not [n for n in bf.field_nodes(4005).values() if n["masterType"] == 42 and n["state"] == 1]
+
+
+def test_lados_e_vencedor_pelos_pontos_do_lado() -> None:
+    field = bf.Field(4005, IN_4005)
+    assert [field.mark(i).team for i in (1, 2, 3)] == [2, 1, 2]
+    assert field.mark(1).score == bf.START_SCORE and field.score(2) == 0  # entrar não soma ao lado
+    field.gain(1, 30)
+    assert field.winner() == 1

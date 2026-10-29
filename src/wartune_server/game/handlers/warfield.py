@@ -21,6 +21,7 @@ from ...templates.repository import GameTemplates
 from .. import arena_grupo, buffs, rewards, rules, space, taxas, titles, worldboss
 from .. import battlefield as bf
 from .. import events as ev
+from ..battle import Battle
 from ..builders import login as b
 from ..campaign import CampaignMap
 from ..router import router
@@ -626,6 +627,102 @@ def broadcast_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
     move = pb.PosMoveMsg(mapId=c.warfield, armyId=s.player_id, routes=msg.routes, serverName=snap.server.name)
     for other in on_map(s, c.warfield):
         other.send(S_MOVE, move)
+    guardian_chase(s)
+
+
+S_CHASE, S_NODE, S_NPC_MOVE = 4105, 128, 4122  # NPCChaseMsg, CampaignNodeUpdateMsg, NPCMoveMsg
+FIGHTING_NODE, ALIVE_NODE, DOWN_NODE = 4, 1, 8  # 128 nodeState na luta e de volta (visto #10210, #10341)
+
+
+def guardian_chase(s: GameSession) -> bool:
+    """Um guardião vivo do outro lado (``bf.ALIVE_GUARDIANS``) a até ``taxas.field_guardian_range`` casas persegue e
+    puxa luta. Ordem (visto 121453 #10205-#10211): 4105 (nó, exército e a posição do jogador), 4494 (state 2),
+    128 nodeState 4 (userId, param1 = lado do guardião) e o 157."""
+    c, snap = s.campaign, s.snapshot
+    found = _field(s)
+    if c is None or snap is None or found is None or s.battle is not None:
+        return False
+    field = found[0]
+    mark = field.mark(s.player_id)
+    if mark.dead or mark.fighting:
+        return False
+    reach = int(taxas.get(s.ctx.world.settings, "field_guardian_range"))
+    x, y = c.pos
+    for camp, node in c.nodes.items():
+        n = camp - c.warfield * 1000
+        if (n in bf.ALIVE_GUARDIANS.get(c.warfield, ()) and camp not in field.busy and node["param1"] != mark.team
+                and max(abs(node["posX"] - x), abs(node["posY"] - y)) <= reach):  # fmt: skip
+            _guardian_fight(s, field, camp, node)
+            return True
+    return False
+
+
+def _guardian_fight(s: GameSession, field: bf.Field, camp: int, node: dict[str, Any]) -> None:
+    from .campaign import player_hero  # campaign importa este módulo
+    from .singlepass import boss_spec
+
+    c, mark = s.campaign, field.mark(s.player_id)
+    assert c is not None
+    field.busy.add(camp)
+    mark.fighting = True
+    side = int(node["param1"])
+    _to_map(s.ctx, c.warfield, S_CHASE, pb.NPCChaseMsg(nodeId=camp, armyId=s.player_id, curPosX=c.pos[0],
+                                                       curPosY=c.pos[1], serverName=mark.server))  # fmt: skip
+    _to_map(s.ctx, c.warfield, S_CROSS, _cross((s, c.pos, 2)))
+    _to_map(s.ctx, c.warfield, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=FIGHTING_NODE,
+                                                                userId=s.player_id, param1=side))  # fmt: skip
+    hero = s.ctx.templates.get("GameHeroTemp", int(node["heroTempId"])) or {}
+    spec = boss_spec(s, hero, max(1, int(hero.get("Live") or 1)), bf.GUARDIAN_BATTLE)
+    spec["battleScene"] = PVP_SCENE
+
+    async def finished(battle: Battle, won: bool) -> None:
+        s.battle, s.hero_sp = None, battle.player_sp
+        await _guardian_over(s, field, camp, node, won)
+
+    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished,
+                      settings=s.ctx.world.settings)  # fmt: skip
+    s.battle.start()
+
+
+async def _guardian_over(s: GameSession, field: bf.Field, camp: int, node: dict[str, Any], won: bool) -> None:
+    """Fim da luta com o guardião. Derrota (visto 121453 #10335-#10364): 4104 para o acampamento, 4103, 4122 do
+    guardião de volta ao ponto, 4175 morto, 128 nodeState 1, 4494 state 0, 4269 e "You lost: N Points."
+    (``taxas.field_guardian_loss``). TODO(inventado): a vitória (não vista) derruba o guardião (128 nodeState 8) e
+    não dá pontos."""
+    mark = field.mark(s.player_id)
+    mark.fighting = False
+    field.busy.discard(camp)
+    cid, ctx, c = field.campaign_id, s.ctx, s.campaign
+    here = c is not None and c.warfield == cid and not field.settled
+    if won:
+        s.send(S_REPORT, pb.BattleReportMsg(battleResult=1, battleScene=PVP_SCENE))
+        if c is not None and here:
+            c.nodes.pop(camp, None)
+            _to_map(ctx, cid, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=DOWN_NODE,
+                                                               param1=int(node["param1"])))  # fmt: skip
+            _to_map(ctx, cid, S_CROSS, _cross((s, c.pos, 0)))
+        return
+    home = bf.CAMP[mark.team]
+    if c is not None and here:
+        c.pos = home
+        _to_map(ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=s.player_id, curPosX=home[0], curPosY=home[1],
+                                                           serverName=mark.server))  # fmt: skip
+    s.send(S_REPORT, pb.BattleReportMsg(battleResult=2, battleScene=PVP_SCENE))
+    if not here:
+        return
+    _to_map(ctx, cid, S_NPC_MOVE, pb.NPCMoveMsg(id=camp, curPosX=int(node["posX"]), curPosY=int(node["posY"])))
+    mark.dead = True
+    dead = DEAD_CARRYING if mark.carry else DEAD
+    _to_map(ctx, cid, S_PLAYER_STATE, _state_msg(s.player_id, dead, mark.server, RESPAWN_MS))
+    asyncio.get_running_loop().call_later(RESPAWN_MS / 1000, _revive, ctx, field, s.player_id)
+    _to_map(ctx, cid, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=ALIVE_NODE, param1=int(node["param1"])))
+    _to_map(ctx, cid, S_CROSS, _cross((s, home, 0)))
+    lost = min(mark.score, int(taxas.get(ctx.world.settings, "field_guardian_loss")))
+    mark.score -= lost
+    _push_info(ctx, field)
+    s.send(S_WAR_MOVIE, pb.WarMovieMsg(score=lost, geste=0, isAdd=False, userId=s.player_id, serverName=mark.server))
+    s.send(S_ALERT, _chat(LOSE_TEXT.format(lost), 7))
+    s.send(S_CHAT, _chat(LOSE_TEXT.format(lost), 3))
 
 
 async def clock(s: GameSession) -> None:

@@ -16,7 +16,7 @@ from ..domain import gameday
 from ..templates.repository import GameTemplates, Row
 from .campaign import NORMAL
 
-FIELDS = (4005, 4007)  # Campaigns Types 5 com OpenTime/StopTime (visto #9474 e #14230)
+FIELDS = (4002, 4005, 4007)  # Campaigns Types 5 com OpenTime/StopTime (visto 152321 #9474, #14230; 121453 #8285)
 MINE = 30000  # Campaigns Types 11, sem janela no template (visto #1917)
 TEAM = 2  # o primeiro a entrar (visto 152321 #9477 e #14234 teamId 2)
 ENEMY = 1
@@ -40,6 +40,10 @@ QUALITIES = ("superior", "normal", "inferior")
 COLLECT = (5, 6, 7, 8, 9)  # nós 91/2380 (visto #9478)
 DELIVER = {1: 11, 2: 12}  # "Resource Recovery Officer" de cada lado (param1 = time, visto #9478)
 CAMP = {1: (179, 75), 2: (17, 76)}  # nascer e renascer: nós 001/002 (param1 = time); visto #9477, #9795, #9653
+# guardiões vivos (state 1) na entrada: no 4002 os do time 2 (13-18, visto 121453 #8292); no 4005/4007 todos 8
+# (152321 #9478, #14235). Um vivo persegue o inimigo que chega perto e puxa luta (visto #10205-#10341).
+ALIVE_GUARDIANS: dict[int, tuple[int, ...]] = {4002: (13, 14, 15, 16, 17, 18)}
+GUARDIAN_BATTLE = 32  # 157 battleType 32 e 4103 battleScene 11, como o PvP (visto #10211, #10336)
 EXIT_GATES = (121, 122)  # morto não sai (visto #9840 "You cannot leave camp when dead!")
 # mina (visto #1923-#2312): o carrinho sai no nó 3, a coleta é o nó 6 e o minério é o nó 9
 CART_NODE, PICK_NODE, ORE_NODE = 3, 6, 9
@@ -93,6 +97,7 @@ class Field:
     opened: datetime
     marks: dict[int, Mark] = field(default_factory=dict)
     points: dict[int, int] = field(default_factory=lambda: dict.fromkeys(SIDES, 0))
+    busy: set[int] = field(default_factory=set)  # guardiões numa luta (128 nodeState 4)
     settled: bool = False
 
     def mark(self, player_id: int) -> Mark:
@@ -219,7 +224,9 @@ def field_nodes(campaign_id: int) -> dict[int, dict[str, Any]]:
     19791-19817, e o cliente só os cruza entre si)."""
     base = campaign_id * 1000
     out = {}
+    alive = ALIVE_GUARDIANS.get(campaign_id, ())
     for n, name, master, son, st, x, y, res, hero, rng, p1, p2, attack, color, toward, rx, ry, fx, fy in FIELD_NODES:
+        st = 1 if n in alive else st
         out[base + n] = {
             "nodeId": base + n, "campDataId": base + n, "nodeName": name, "masterType": master, "sonType": son,
             "preNodeIds": "0", "nextNodeIds": "", "state": st, "refreshSpeed": 1, "posX": x, "posY": y,

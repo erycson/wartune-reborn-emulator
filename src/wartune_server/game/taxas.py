@@ -31,6 +31,9 @@ DEFAULTS: dict[str, Any] = {
     "card_burn_gp": 1,
     # 0140: peso de cada qualidade do minério da coleta do campo de batalha
     "field_ore_weights": {"superior": 12, "normal": 5, "inferior": 9},
+    # 0141: guardião do campo: distância (em casas) em que persegue e os pontos perdidos para ele
+    "field_guardian_range": 26,
+    "field_guardian_loss": 150,
 }
 
 
