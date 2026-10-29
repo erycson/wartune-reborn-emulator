@@ -6,6 +6,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     campaign,
     campaign_map,
     castle,
+    chairs,
     chat,
     dungeon,
     events,

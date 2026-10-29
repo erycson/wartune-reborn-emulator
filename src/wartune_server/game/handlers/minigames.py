@@ -25,7 +25,7 @@ from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from . import gemmaze, gold_tree, slot
+from . import chairs, gemmaze, gold_tree, slot
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
@@ -328,7 +328,7 @@ def login_push(s: GameSession) -> None:
     _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
     _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
     signin_login(s)
-    _send(s, S_CHAIRS_OPEN, pb.SimplePropertyMsg(param7=False))
+    s.send(S_CHAIRS_OPEN, chairs.open_msg(s))
 
 
 def fund_opened(s: GameSession, before: int) -> None:
@@ -752,13 +752,6 @@ async def lucky_exchange(s: GameSession, msg: pb.LuckExchangeOpMsg) -> None:
     s.log.info("9610 recusado: sem troca da sorte", troca=msg.exchangeId, vezes=msg.exchangeCount)
     alert(s, "Insufficient exchange items.")
     send_empty_rate(s)
-
-
-@router.on(9638)
-async def chairs(s: GameSession, _: object) -> None:
-    """Cadeiras fechadas: 414 falso esconde o ícone; 415 vazio (obrigatório se a tela abrir)."""
-    _send(s, S_CHAIRS_OPEN, pb.SimplePropertyMsg(param7=False))
-    _send(s, S_CHAIRS, pb.ChairsListMsg())
 
 
 @router.on(9645)

@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from tests.game.harness import Game, logged_in
-from wartune_server.domain.models import PlayerSnapshot
+from wartune_server.domain.models import CashLedger, PlayerSnapshot
 from wartune_server.game.handlers import group_draw
 from wartune_server.game.handlers import slot as slot_mod
 from wartune_server.protocol import Packet
@@ -143,3 +143,39 @@ async def test_group_draw_spends_chances_won_by_group_buys(tmp_path: Path) -> No
         got = pb.LeadRewardMsg.FromString(_last(await g.idle(), 4936))
         assert (got.templateId, got.count, got.leadExtractTimes) == (208009, 2, 0)
         assert sum(i.count for i in snap.items if i.template_id == 208009) == 2
+
+
+# ---------------------------------------------------------------- cadeiras
+
+
+CHAIRS = {
+    "begin": "2026-10-20 05:00:00",
+    "end": "2026-10-23 05:00:00",
+    "chairsNeedPoints": 100,
+    "rewardNeedChairs": 2,
+    "luckyCount": 1,
+    "comfortItems": ["208009|1"],
+    "luckyItems": ["-100|1000"],
+}
+
+
+async def test_chairs_turn_recharges_into_comfort_rewards_and_the_lucky_one(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        g.client.send(9638, pb.ChairsListMsg(op=1))
+        got = await g.idle()
+        assert [p.code for p in got] == [414, 415] and pb.SimplePropertyMsg.FromString(got[0].body).param7 is False
+        _open(g, "chairs", CHAIRS)
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        await session.ctx.characters.save(CashLedger(g.user_id, 250, 0, 250, 0, "recharge", "teste", NOW))
+        g.client.send(9638, pb.ChairsListMsg(op=1))
+        got = await g.idle()
+        assert pb.SimplePropertyMsg.FromString(_last(got, 414)).param7 is True
+        info = pb.ChairsListMsg.FromString(_last(got, 415))
+        assert (info.currentChairs, info.rewardCounts, info.leftPoint, info.totalChairsCount) == (2, 2, 50, 2)
+        assert list(info.luckyNickName) == ["Maga"]
+        gold = _snap(g).character.gold
+        g.client.send(9638, pb.ChairsListMsg(op=2))
+        info = pb.ChairsListMsg.FromString(_last(await g.idle(), 415))
+        assert info.rewardCounts == 0 and _snap(g).character.gold == gold + 1000
+        assert sum(i.count for i in _snap(g).items if i.template_id == 208009) == 2

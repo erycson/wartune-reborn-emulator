@@ -38,7 +38,11 @@ def left_ms(c: Mapping[str, Any], now: datetime) -> int:
 
 def load(snap: PlayerSnapshot, key: str) -> dict[str, Any]:
     st = ev.peek(snap, key)
-    data: dict[str, Any] = json.loads(st.text) if st is not None and st.text else {}
+    return load_text(st.text if st is not None else "")
+
+
+def load_text(text: str | None) -> dict[str, Any]:
+    data: dict[str, Any] = json.loads(text) if text else {}
     return data
 
 
