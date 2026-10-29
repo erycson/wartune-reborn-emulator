@@ -21,7 +21,7 @@ from ...domain.world import WorldBoss
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import Row
-from .. import boss_fight, rules, space, worldboss
+from .. import boss_fight, rules, space, titles, worldboss
 from .. import events as ev
 from .. import mail as mailbox
 from .. import outer_city as oc
@@ -415,7 +415,7 @@ async def _boss_over(s: GameSession, battle: Battle, won: bool, pool: boss_fight
     if (wound := pool.wounds.get(s.player_id)) is not None:
         rows.append(wound)
     if pool.fight.killer_id == s.player_id:
-        rows.append(pool.fight)
+        rows += [pool.fight, titles.count(snap, titles.BOSS_BLOW, s.ctx.clock.now())]  # título "Mortal Blow"
     async with pool.lock:
         await s.ctx.characters.save(*rows)
     # só agora: durante a gravação o último golpe de outro jogador roda o ``settle``, que tira (4203, 22) quem está

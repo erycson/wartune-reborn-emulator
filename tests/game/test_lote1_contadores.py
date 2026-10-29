@@ -236,3 +236,39 @@ def test_14_cartas_ganhas_entram_na_colecao() -> None:
     assert systems.cards(sy)[10001] == [1, 0, 0]  # a primeira cópia abre a carta
     assert systems.gain_cards(sy, templates, [again]) == [again]
     assert systems.cards(sy)[10001] == [1, 3, 0]  # as outras viram EXP (gp) da carta
+
+
+async def test_15_titulos_de_ranking_proprio_chefe_e_lider(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(NOW)) as g:
+        s = _s(g)
+        snap = _snap(s)
+        rows = {(r["CondtionType"], r["Para"]): int(r["TemplateId"]) for r in s.ctx.templates.rows("AppellInfos")}
+        honor, charm, blow, master = (
+            rows[("13", "1")],
+            rows[("20", "1")],
+            rows[("11", "5001,5002,5003")],
+            rows[("12", "1")],
+        )
+        await hev.title_ranks(s)
+        assert {honor, charm, blow, master} & _got(hev.titles_msg(s)) == set()  # 0 pontos não entra no ranking
+        snap.character.geste = 10
+        titles.count(snap, titles.BOSS_BLOW, NOW)
+        await hev.title_ranks(s)
+        guild = SimpleNamespace(chairman_id=g.user_id)
+        ctx = SimpleNamespace(guilds=SimpleNamespace(guilds={7: guild}), online=s.ctx.online, clock=s.ctx.clock)
+        [st] = await guildwar._champion(ctx, 7)  # type: ignore[arg-type]
+        assert st.value == 1
+        got = _got(hev.titles_msg(s))
+        assert {honor, blow, master} <= got and charm not in got
+        assert ev.peek(snap, titles.RANK_KEYS[titles.HONOR_RANK]).value == 10  # type: ignore[union-attr]
+
+
+async def test_16_apprehend_abre_a_luta_com_o_npc(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(NOW)) as g:
+        s = _s(g)
+        g.client.send(8298, pb.RewardArrestMsg(condictionType=offer.CAPTURE, param1=1))  # herói fora das condições
+        await g.idle()
+        assert s.battle is None
+        g.client.send(8298, pb.RewardArrestMsg(condictionType=offer.CAPTURE, param1=20000))  # Claren the Swordsman
+        got = await g.until(157)
+        assert s.battle is not None and got[-1].code == 157

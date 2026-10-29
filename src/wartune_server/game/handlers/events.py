@@ -249,6 +249,14 @@ async def title_ranks(s: GameSession) -> None:
     snap = s.snapshot
     assert snap is not None
     server, me, now = snap.character.server_id, s.player_id, s.ctx.clock.now()
+    mine = []
+    for kind, value in titles.scores(snap, s.ctx.templates).items():
+        st = ev.state(snap, titles.RANK_KEYS[kind], now)
+        if st.value != value or st.id is None:
+            st.value, st.updated_at = value, now
+            mine.append(st)
+    if mine:
+        await s.ctx.characters.save(*mine)
 
     async def query(uow):  # type: ignore[no-untyped-def]
         strong = await uow.characters.strongest(server, rankings.FIGHT_TOP)
@@ -257,9 +265,10 @@ async def title_ranks(s: GameSession) -> None:
             await uow.events.by_prefix(server, ag.KEY),
             await uow.events.by_prefix(server, fs.KEY),
             (await uow.events.by_prefix(server, rankings.GEM_KEY)),
+            await uow.events.by_prefix(server, "rank:"),
         )
 
-    strong, cross, fish, gems = await s.ctx.characters.read(query)
+    strong, cross, fish, gems, ranks = await s.ctx.characters.read(query)
     job = rules.job_type(snap.character.job)
     same = [c.id for c in strong if rules.job_type(c.job) == job]
     gem_ids = [c for c, g in rankings.gem_weeks(gems, now) if g.week > 0]
@@ -272,6 +281,11 @@ async def title_ranks(s: GameSession) -> None:
         titles.GEMS: _pos(gem_ids, me),
     }
     pos |= dict.fromkeys((titles.POWER_ARCHER, titles.POWER_KNIGHT, titles.POWER_MAGE), _pos(same, me))
+    for kind, key in titles.RANK_KEYS.items():  # 0 pontos não entra no ranking; empate pelo id (o mais antigo)
+        rows = sorted(
+            (st for st in ranks if st.key == key and st.value > 0), key=lambda st: (-st.value, st.character_id)
+        )
+        pos[kind] = _pos([st.character_id for st in rows], me)
     s.title_ranks = pos
 
 

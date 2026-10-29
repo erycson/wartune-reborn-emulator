@@ -148,7 +148,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pergaminhos de outros efeitos | 🟡 | | ícone e tempo ligam; o efeito não existe |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
 | Cristal, guilda e Token de proteção (5006) | ❌ | | recusados |
-| Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); sem sistema: honra, charme, montaria, chefe mundial, guerra de classes, sylph e líder de guilda |
+| Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); rankings de honra, charme, força da montaria e Sylph (pontuação `rank:*` gravada no login/8597; Sylph pelo nível do pet, inventado), golpe final no chefe do mundo e líder da guilda vencedora da guerra; sem sistema: guerra de classes, arena de Sylph, Hero Returns, guerra entre servidores e monstros dos Wilds |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |
 | Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 e transformação 8538 no inglês (231733 #1492, 26/10 #10315, sem aviso); caixa de pedras do turco |
@@ -373,14 +373,14 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Devoção (leeds) | 🟡 | 🇹🇷 | leed 8 no inglês (171155 #4955); 17 e 33 do turco; 13 (arena em grupo), 27 (entrar no campo, 8332) e 28 (Spire) ligadas |
 | Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 nunca; login do turco |
 | Atividades por contador (SumActive) | 🟡 | | troca (tipo 10) vista (191924); painel conta match, reward, vehicle e minefield |
-| Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | torneio de fadas (turco); match (arena em grupo), reward (entrega do bounty), vehicle (fim do veículo) e minefield (entrada na mina) contam com 4413; 5001-5003 sem sistema |
+| Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | torneio de fadas (turco); match (arena em grupo), reward (entrega do bounty), vehicle (fim do veículo) e minefield (entrada na mina) contam com 4413; 5001-5003 são os chefes do mundo, contados na entrada (visto #1407) |
 | Fundo de novato e fundo normal | 🟡 | | janelas por dedução; compra e resgate do fundo normal sem captura |
 | Árvore dourada (8604) | 🟡 | | pesos, início da edição e "uma vez por dia" por dedução |
 | Labirinto de gemas (9508-9517) | 🧪 | 🇹🇷 | maxExp inventado (`gemmaze.py:29`); ajuda de amigo recusada |
 | Roda do destino | 🟡 | | tipos 2100/2200 nunca abrem |
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
-| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend) sem luta de NPC; texto do Daru inventado |
+| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend): o 8298 abre a luta com o herói NPC do Para1 e conta na vitória (battleType e cena do mundo, inventados); texto do Daru inventado |
 | Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |

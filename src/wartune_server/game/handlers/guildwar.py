@@ -24,7 +24,7 @@ from typing import Any
 
 import structlog
 
-from ...domain.models import Item
+from ...domain.models import EventState, Item
 from ...protocol.messages import wartune_pb2 as pb
 from .. import boss_fight, outer_city, rewards, space, titles
 from .. import events as ev
@@ -619,8 +619,24 @@ async def settle(ctx: GameContext, war: gw.War) -> None:
         present[side] = present.get(side, 0) + 1
         leave_war(o)
         await _prize(o, side == war.winner)
-    await ctx.characters.save(*_treasures(ctx, war, present))
+    await ctx.characters.save(*_treasures(ctx, war, present), *await _champion(ctx, win.guild_id))
     log.info("guerra de guildas: fim", vencedora=win.guild_id, placar=(win.score, lose.score))
+
+
+async def _champion(ctx: GameContext, guild_id: int) -> list[Any]:
+    """Título "Balenor's No. 1 Guild Master" (AppellInfos 28, CondtionType 12): o líder da guilda vencedora, online
+    ou não. shortcut: o título fica com ele depois que outra guilda vence; tirar quando houver o ranking da guerra."""
+    guild = ctx.guilds.guilds.get(guild_id)
+    if guild is None:
+        return []
+    cid, key, now = guild.chairman_id, titles.KEYS[titles.GUILD_MASTER], ctx.clock.now()
+    if (o := ctx.online.get(cid)) is not None and o.snapshot is not None:
+        st = ev.state(o.snapshot, key, now)
+    else:
+        rows = await ctx.characters.read(lambda uow: uow.events.by_character(cid))
+        st = next((e for e in rows if e.key == key), None) or EventState(cid, key, now)
+    st.value, st.updated_at = 1, now
+    return [st]
 
 
 def _treasures(ctx: GameContext, war: gw.War, present: Mapping[int, int]) -> list[Any]:

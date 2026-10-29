@@ -25,18 +25,50 @@ HONOR, GUILD_OFFER, OWN_ITEM = "7", "10", "22"  # AppellInfos.CondtionType
 # contadores (Descript do template: "Accumulated 1000 Arena wins", "Cleared Lvl. 100 of the Forgotten Catacombs"...):
 # o progresso é o número e o título sai com ``progress >= Para``
 ARENA_WINS, FIELD_KILLS, GUILD_WAR_FIRST, ASTRAL_10, CATACOMBS, NECROPOLIS = "2", "3", "4", "6", "8", "9"
-COUNTED = (HONOR, GUILD_OFFER, ARENA_WINS, FIELD_KILLS, GUILD_WAR_FIRST, ASTRAL_10, CATACOMBS, NECROPOLIS)
+COUNTED = (HONOR, GUILD_OFFER, ARENA_WINS, FIELD_KILLS, GUILD_WAR_FIRST, ASTRAL_10, CATACOMBS, NECROPOLIS, "12")
 # posições de ranking ("#1 in Battle Rating Rankings", "Top 10 in Arena Rankings", "#2 in Fishing Points Ranking"): o
 # progresso é a posição (0 = fora) e o título sai com ``0 < posição <= Para``; 26/40/41 pedem a posição exata (1, 2, 3)
 POWER, POWER_ARCHER, POWER_KNIGHT, POWER_MAGE, ARENA_RANK, CROSS = "15", "16", "17", "18", "14", "21"
 FISH, GEMS = "40", "41"
-RANKED = (POWER, POWER_ARCHER, POWER_KNIGHT, POWER_MAGE, ARENA_RANK, CROSS)
+HONOR_RANK, MOUNT_RANK, CHARM_RANK, SYLPH_RANK = "13", "19", "20", "25"
+RANKED = (
+    POWER,
+    POWER_ARCHER,
+    POWER_KNIGHT,
+    POWER_MAGE,
+    ARENA_RANK,
+    CROSS,
+    HONOR_RANK,
+    MOUNT_RANK,
+    CHARM_RANK,
+    SYLPH_RANK,
+)
+# rankings sem xml próprio: cada jogador grava a sua pontuação em ``rank:*`` (``scores``) no login e no 8597, e a
+# posição sai de todas as linhas do servidor. shortcut: quem não entra fica com a última pontuação gravada
+RANK_KEYS = {HONOR_RANK: "rank:honor", CHARM_RANK: "rank:charm", MOUNT_RANK: "rank:mount", SYLPH_RANK: "rank:sylph"}
+BOSS_BLOW, GUILD_MASTER = "11", "12"  # "Struck the fatal blow to the World BOSS"; líder da guilda vencedora da guerra
 EXACT = (FISH, GEMS)
 OWN_ONE = ("39", "202")  # ter o item/montaria ``Para`` ("Collect the mount Kitty UFO to activate the title")
 OWN_SET = (OWN_ITEM, "203")  # ter todos os itens de ``Para``
 # eventos dos contadores sem coluna própria (EventState.value, para sempre)
 GUILD_WAR_WINS, GUILD_WAR_LOSSES = "guildwar:win", "guildwar:lose"  # matchWin/matchFailed da lista de membros
-KEYS = {ARENA_WINS: "title:arena_wins", FIELD_KILLS: "title:field_kills", GUILD_WAR_FIRST: GUILD_WAR_WINS}
+KEYS = {
+    ARENA_WINS: "title:arena_wins",
+    FIELD_KILLS: "title:field_kills",
+    GUILD_WAR_FIRST: GUILD_WAR_WINS,
+    BOSS_BLOW: "title:boss_blow",
+    GUILD_MASTER: "title:guild_master",
+}
+
+
+def scores(snap: PlayerSnapshot, templates: GameTemplates) -> dict[str, int]:
+    """As pontuações dos rankings ``RANK_KEYS``: honra (geste), charme, força da montaria em uso (soma dos 4
+    atributos, ``rules.mount_stats``) e o melhor Sylph. TODO(inventado): o Sylph pelo nível do melhor pet (o cliente
+    não mostra a fórmula do ranking)."""
+    c = snap.character
+    sylph = max((p.grade for p in snap.pets), default=0)
+    mount = sum(rules.mount_stats(snap, templates).values())
+    return {HONOR_RANK: c.geste, CHARM_RANK: c.charm, MOUNT_RANK: mount, SYLPH_RANK: sylph}
 
 
 def count(snap: PlayerSnapshot, kind: str, now: datetime, n: int = 1) -> EventState:
@@ -55,8 +87,8 @@ def counters(snap: PlayerSnapshot) -> dict[str, int]:
 
 
 def _progress(c: Character, row: Row, extra: Mapping[str, int]) -> int:
-    """TODO(inventado): as condições sem contador aqui (Honor/Charm/montaria em ranking, chefe do mundo, guerra de
-    classes, Sylph...) vão 0; o inglês só mostrou o valor da contribuição."""
+    """As condições sem contador (guerra de classes 24, arena de Sylph 26, Hero Returns 27, guerra entre servidores
+    29, monstros dos Wilds 100) vão 0; o inglês só mostrou o valor da contribuição."""
     if row["CondtionType"] == HONOR:
         return c.geste
     if row["CondtionType"] == GUILD_OFFER:
@@ -69,6 +101,8 @@ def _got(row: Row, progress: int, owned: Collection[int]) -> bool:
     of more than 100,000"), a posição máxima nos rankings ("Top 10") e, no 22, os itens que é preciso ter ("Has both
     Lover's Hat and Lover's Gown")."""
     para, kind = row.get("Para") or "", row["CondtionType"]
+    if kind == BOSS_BLOW:  # Para = os chefes (5001,5002,5003): qualquer um deles
+        return progress >= 1
     if kind in COUNTED:
         return progress >= int(para)
     if kind in RANKED:

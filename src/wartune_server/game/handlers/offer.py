@@ -335,10 +335,39 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
 
 @router.on(8298)
 async def offer_arrest(s: GameSession, msg: pb.RewardArrestMsg) -> None:
-    """ "Capturar" o NPC ``param1`` da condição tipo 14: é uma batalha (o cliente já mostrou o aviso).
+    """ "Capturar" o NPC ``param1`` da condição tipo 14 ("Apprehend Claren the Swordsman": Para1 20000 é o herói
+    NPC do ``GameHeroTemp``): luta só do herói do jogador contra ele, como o chefe dos Wilds (``monsters.battle``);
+    vencendo, a condição conta. TODO(inventado): battleType/cena do mundo (3841/5) e o mapa 0; sem captura."""
+    from ..arena import npc_hero
+    from ..battle import Battle
+    from .campaign import player_hero  # campaign importa player, que importa este módulo
 
-    ponytail: depende do sistema de batalha abrir a luta com o NPC da tarefa; só registra."""
-    s.log.info("8298 captura sem batalha", tipo=msg.condictionType, npc=msg.param1)
+    snap, npc = s.snapshot, msg.param1
+    # só os NPCs de alguma condição 14 (o cliente não escolhe herói qualquer); a contagem vale para a tarefa aceita
+    wanted = next(s.ctx.templates.find("RewardCondictionInfos", CondictionType=str(CAPTURE), Para1=str(npc)), None)
+    row = s.ctx.templates.get("GameHeroTemp", npc) if wanted else None
+    if snap is None or row is None or s.battle is not None or msg.condictionType != CAPTURE:
+        s.log.info("8298 captura recusada", tipo=msg.condictionType, npc=npc)
+        return
+    hp = max(1, int(row.get("Live") or 1))
+    spec = {
+        "battleType": 3841, "mapTempId": 0, "attackModel": 2, "battleScene": 5, "soldiers": [],
+        "heroes": [npc_hero(livingId=1, side=2, pos=5, tempId=npc, nickName=row.get("TemplateName", ""),
+                            grade=int(row.get("Grades") or 0), maxHp=hp, initHp=hp, hp=hp, fightCapacity=0,
+                            type=int(row.get("HeroType") or 2), captain=int(row.get("Captain") or 0),
+                            res=row.get("ResPath", ""), castTime=6000)],
+        "player": {"livingId": 2, "pos": 1, "pawnTempId": 0},
+    }  # fmt: skip
+
+    async def finished(battle: Battle, won: bool) -> None:
+        s.battle, s.hero_sp = None, battle.player_sp
+        if won:
+            await progress(s, CAPTURE, 1, npc)
+
+    s.battle = Battle(
+        spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
+    )
+    s.battle.start()
 
 
 # ---------------------------------------------------------------- tarefas em anel
