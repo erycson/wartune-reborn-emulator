@@ -1,22 +1,25 @@
 """Forgotten Catacombs e Tormented Necropolis (8296/8297/8299/8300, 4205/4373) e guarda de batalha (8742).
 
 Andares e estado em ``game/maze.py``; a luta, o portal e a varredura passam pela masmorra (``handlers/campaign.py``,
-``handlers/dungeon.py``). Fontes em docs/salas-campanha.md. As gemas da guarda não são modeladas.
+``handlers/dungeon.py``). Fontes em docs/salas-campanha.md. Guarda de batalha: encaixes e gemas em
+``PlayerSystems.battle_guard`` (``rules.guard``); as resistências somam no herói por ``rules.equipment``.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from ...domain.models import Item
+from ...domain.models import BagType, Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
+from .. import bag, rewards, rules, titles
 from .. import maze as mz
-from .. import rewards, rules, titles
 from ..builders import login as b
 from ..campaign import DONE, CampaignMap
 from ..router import router
 from ..session import GameSession
+from .army import count_quest
+from .player import _army
 
 S_TOWER_INFO, S_TOWER_LIST, S_BATTLEGUARD, S_ITEMS = 4205, 4373, 4631, 115
 CONTINUE, START = 0, 1  # EnterTowerInfoMsg.chooseIndex (MazeFrame: Continue / Start)
@@ -319,15 +322,128 @@ def guard_open(s: GameSession) -> bool:
     return bool(rows) and snap.character.grades >= min(int(r["Grades"]) for r in rows)
 
 
+def guard_msg(s: GameSession) -> pb.HeroWatchMsg:
+    """4631 com todos os encaixes abertos (o cliente só sobrescreve: a gema tirada precisa ir como 0)."""
+    assert s.snapshot is not None
+    out = pb.HeroWatchMsg(userId=s.player_id)
+    for (kind, pos), gems in sorted(rules.guard(rules.systems(s.snapshot)).items()):
+        out.watchInfo.add(gridType=kind, gridPos=pos, jion1=gems[0], jion2=gems[1], jion3=gems[2])
+    return out
+
+
 def login_guard(s: GameSession) -> None:
-    """4631 do login (só turco: login.json #35, nível 56, com uma gema; o inglês até o 16 não manda).
-    shortcut: sem gemas modeladas vai vazio; preencher quando o 8742 existir."""
+    """4631 do login a partir do nível da guarda (só turco: login.json #35, nível 56, ``watchInfo`` {gridType 2,
+    gridPos 1, jion1 3120101}: só o encaixe aberto vai; o inglês até o 16 não manda)."""
     if guard_open(s):
-        s.send(S_BATTLEGUARD, pb.HeroWatchMsg(userId=s.player_id))
+        s.send(S_BATTLEGUARD, guard_msg(s))
+
+
+GUARD_TYPE = "28"  # UpGradeTempInfos.Types da guarda: ActiveObject = gridPos do entalhe, 7 = Willpower
+OPEN, SOCKET, UNSOCKET = (
+    1,
+    2,
+    3,
+)  # HeroWatchOpMsg.opType (PlayerManager.sendOpenBattleItem/AddBattleGem/RemoveBattleGem)
+WILL_OBJECT, CLOSED_OBJECT = 7, 6  # BattleGuardView.activeItem: o 6º entalhe é "public.unopen" (nunca abre)
+WILL_GEM, NOTCH_GEMS = "100", {"101", "102", "103", "104", "105", "106"}  # PlayerManager.sendAddBattleGem
+
+
+def guard_resists(s: GameSession, slots: dict[tuple[int, int], list[int]]) -> list[int]:
+    """As 6 resistências dos entalhes + as do mascote em luta (``BattleGuardView.activeItem``, ``getAllPoint``)."""
+    snap, templates = s.snapshot, s.ctx.templates
+    assert snap is not None
+    pet = next((p for p in snap.pets if p.is_fight), None)
+    pet_row = (templates.get("PetTempInfos", pet.template_id) or {}) if pet is not None else {}
+    gems = [
+        templates.get("ItemTempInfos", g) or {}
+        for (k, _), js in slots.items()
+        if k == rules.GUARD_NOTCH
+        for g in js
+        if g > 0
+    ]
+    return [sum(int(r.get(col) or 0) for r in [*gems, pet_row]) for col in rules.RESISTS]
+
+
+def _guard_open(s: GameSession, slots: dict[tuple[int, int], list[int]], kind: int, pos: int) -> list[Item] | None:
+    """Abre o encaixe (op 1): nível ``Grades``; ``TemplateId`` > 0 gasta 1 do item (Kingdom Mark nos 3 a 5); a
+    Willpower pede ``Data`` de resistência somada e ``TemplateId`` na maior (cliente). Devolve os itens gastos."""
+    snap, templates = s.snapshot, s.ctx.templates
+    assert snap is not None
+    obj = WILL_OBJECT if kind == rules.GUARD_WILL else pos
+    row = next(templates.find("UpGradeTempInfos", Types=GUARD_TYPE, ActiveObject=obj), None)
+    if row is None or obj == CLOSED_OBJECT or (kind, pos) in slots or snap.character.grades < int(row["Grades"]):
+        return None
+    need, item = int(row.get("Data") or 0), int(row.get("TemplateId") or 0)
+    if obj == WILL_OBJECT:
+        points = guard_resists(s, slots)
+        return [] if sum(points) >= need and max(points) >= item else None
+    if item > 0 and bag.count_of(snap, item) < 1:
+        return None
+    changed, gone = bag.take(snap, item, 1) if item > 0 else ([], [])
+    return changed + gone
 
 
 @router.on(8742)
 async def battleguard_op(s: GameSession, msg: pb.HeroWatchOpMsg) -> None:
-    """Gemas da guarda de batalha (4631). Sem inventário de gemas, a operação é recusada e volta o estado vazio."""
-    s.log.info("8742 recusado (gemas não modeladas)", op=msg.opType)
-    s.send(S_BATTLEGUARD, pb.HeroWatchMsg(userId=s.player_id))
+    """Guarda de batalha: abrir encaixe (1), encaixar gema da mochila (2, a do lugar volta) e tirar (3).
+    A gema que sai vai para a mochila; cheia, pelo correio. Responde 115, o 4631 inteiro e o herói (150) com as
+    resistências; o pedido inválido só manda o 4631 de agora."""
+    from .shop import place, save_with_mail  # shop importa este módulo
+
+    snap, templates, now = s.snapshot, s.ctx.templates, s.ctx.clock.now()
+    assert snap is not None
+    sy = rules.systems(snap)
+    slots, kind, pos, j = rules.guard(sy), msg.gridType, msg.gridPos, msg.jionPos - 1
+    valid = (kind, pos) == (rules.GUARD_WILL, 1) or (kind == rules.GUARD_NOTCH and 1 <= pos <= rules.GUARD_NOTCHES)
+    changed: list[Item] = []
+    gone: list[Item] = []
+    back: list[Item] = []
+    letters: list[Any] = []
+    notch_gem = False
+    if valid and msg.opType == OPEN and guard_open(s):
+        spent = _guard_open(s, slots, kind, pos)
+        valid = spent is not None
+        if spent is not None:
+            gone = [i for i in spent if i not in snap.items]
+            changed = [i for i in spent if i in snap.items]
+            slots[kind, pos] = [0] * rules.GUARD_JOINS
+    elif valid and msg.opType in (SOCKET, UNSOCKET) and (kind, pos) in slots and 0 <= j < rules.GUARD_JOINS:
+        gems = slots[kind, pos]
+        old, stone, row = gems[j], None, None
+        if msg.opType == SOCKET:
+            stone = bag.at(snap, BagType.BAG, 0, msg.itemPos)
+            row = templates.get("ItemTempInfos", stone.template_id) if stone is not None else None
+            prop = row.get("Property1") if row is not None and row.get("SonType") == rules.GUARD_GEM else None
+            others = {
+                (templates.get("ItemTempInfos", g) or {}).get("Property1") for n, g in enumerate(gems) if g and n != j
+            }
+            allowed = prop == WILL_GEM if kind == rules.GUARD_WILL else prop in NOTCH_GEMS
+            valid = allowed and prop not in others  # existSameGoods: uma de cada resistência por encaixe
+        else:
+            valid = old > 0
+        if valid:
+            if old > 0:
+                # TODO(inventado): a gema tirada volta vinculada (o cliente não diz; evita trocar gema usada)
+                back, letters = place(s, snap, s.player_id, [(old, 1)], now, binds=True)
+            if stone is not None:
+                (gone if bag.take_one(snap, stone, 1) else changed).append(stone)
+                notch_gem = kind == rules.GUARD_NOTCH
+            gems[j] = stone.template_id if stone is not None else 0
+    else:
+        valid = False
+    if not valid:
+        s.log.info("8742 recusado", pedido=str(msg))
+        s.send(S_BATTLEGUARD, guard_msg(s))
+        return
+    rules.set_guard(sy, slots)
+    await save_with_mail(s, letters, sy, *changed, *back, delete=tuple(gone))
+
+    # TODO(inventado): a ordem da resposta (sem captura do 8742): 115 dos itens, 4631, 150 do herói, 112
+    if changed or gone:
+        s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    if back:
+        s.send(S_ITEMS, bag.moved(back, s.player_id))
+    s.send(S_BATTLEGUARD, guard_msg(s))
+    _army(s)
+    if notch_gem:
+        await count_quest(s, rules.RESIST_CRYSTAL_CONDITION)

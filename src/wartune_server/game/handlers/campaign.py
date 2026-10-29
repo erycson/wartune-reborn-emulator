@@ -587,6 +587,8 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
         mateId=0,
         curturn=0,
     )
+    for name, value in stats.resists.items():  # gemas da guarda de batalha (HeroMsg.fireResi..reduceResi)
+        setattr(msg, name, value)
     msg.skillId.extend(int(x) for x in leader.skill_script.split(",") if x)
     runes = rune_skills(leader.rune_key, s.ctx.templates)
     msg.skillId.extend(runes)

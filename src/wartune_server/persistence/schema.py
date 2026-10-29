@@ -1086,6 +1086,7 @@ player_systems = Table(
     _str("mount_expiry", 1024),
     _str("mount_fly", 1024),
     _str("mount_stars", 1024),
+    _str("battle_guard", 255),
     _int("dragon_type"),
     _int("dragon_grade"),
     _int("dragon_gp"),

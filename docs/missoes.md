@@ -214,7 +214,7 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 86 | Join the Amethyst Rush | 0 / 1 | 1 (503) | `checkCount` | sim | warfield.callback, coleta na pilha da mina (5032 cmd 2) | posição do 112 TODO(inventado) | eu |
 | 87 | Join the Sylph Arena | 0 / 1 | 1 (504) | `checkCount` | sim | arena._pet_over (`QUEST_PET_TOURNAMENT`): cada luta do torneio de mascotes conta, ganhando ou não | — | outra equipe |
 | 89 | Participate in the Lost Treasure | 0 / 1 | 1 (925) | `checkCount` | sim | treasure.py, 8744 op 3/5 ao entrar na luta (dono e grupo) e reforço 8745 (LOST_TREASURE_CONDITION) | posição do 112 TODO(inventado) | eu |
-| 90 | Socket Resistance Crystal | 0 / 1 | 1 (926) | `checkCount` | não | — | TODO(90) em rules.py: engastar Resistance Crystal; viverá no 8742 (handlers/tower.py, hoje recusa) | eu |
+| 90 | Socket Resistance Crystal | 0 / 1 | 1 (926) | `checkCount` | sim | tower.battleguard_op, 8742 op 2 com gema 101..106 num entalhe (RESIST_CRYSTAL_CONDITION; a Will Crystal não conta) | posição do 112 TODO(inventado) | eu |
 | 91 | Go on an Exploration | 0 / 1 | 1 (930) | `checkCount` | sim | treasure_hunt.py, 9502 op 3 (EXPLORE_CONDITION) | posição do 112 TODO(inventado) | eu |
 | 93 | Win a Sky Trail Battle | 0 / 1 | 1 (932) | `checkCount` | não | — | TODO(93) em rules.py: Sky Trail (General William) sem sistema identificado; candidato (dedução) SinglePass 8753/8755 (handlers/singlepass.py) | eu |
 

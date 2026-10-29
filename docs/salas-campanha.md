@@ -90,7 +90,7 @@ Tipo de sala (`RoomReqMsg.roomType`): o cliente usa 0 para campanha (PvE), 1 par
 | 8739 | KICK_TEAM_MEMBER | completo | cliente (4630, 4625) | Só o capitão. Com dois membros sobrando o time acaba (4625). |
 | 8740 | C_LEAVE_TEAM_FOR_NOW | completo | dedução (`sendAFK` sem chamador) | Alterna "sair por ora": o jogador fica no time, com `hasLeftForNow` no 4624. Responde 4621 (o cliente só atualiza a tela) e 4624. |
 | 8741 | C_QUIT_TEAM | completo | cliente (`FreedomTeamManageFrame`, sair com confirmação) | Sai de vez. Quem sai recebe 4625 (o time acaba) ou 4629 com o próprio id, e o cliente limpa o time. Ver Times. |
-| 8742 | BATTLEGUARD_OP | parcial | cliente (4631), captura (só turco: login.json #35; a inglesa não tem 4631 no login) | Operação recusada, responde 4631 vazio. O login oficial manda 4631 com `watchInfo` {gridType 2, gridPos 1, jion1 3120101}; o servidor ainda não manda isso no login. Depende do inventário de gemas. |
+| 8742 | BATTLEGUARD_OP | parcial | cliente (4631), captura (só turco: login.json #35; a inglesa não tem 4631 no login) | Op 1 abre o encaixe (UpGradeTempInfos tipo 28: nível, Kingdom Mark nos entalhes 3-5, o 6 nunca abre, Willpower com 300 de resistência somada com a do mascote), op 2 encaixa gema SonType 312 da mochila (100 na Willpower, 101..106 nos entalhes, uma de cada por encaixe; a do lugar volta), op 3 tira (mochila ou correio). Responde 115, 4631 inteiro e 150 (ordem inventada); o login manda o estado gravado como o turco ({gridType 2, gridPos 1, jion1 3120101}). |
 | 8746 | C_TEAM_REFUSE | completo | cliente (`sendRefuseTeamInvite`, 4635) | Alterna "recusar convites de time". Com ele ligado, o 8738 não chega ao alvo. Responde 4635. |
 | 8752 | TOLLGATE_GET_REWARD | parcial | cliente (4645) | Responde evento fechado. Não há agenda do evento. |
 | 8753 | TOLLGATE_REQUEST | parcial | cliente (4645) | Idem. |
@@ -314,9 +314,9 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 - **Lista de soldados por mapa (5038)**: as campanhas no banco levam a sua (`maps[mapa].army`, inglesa
   #924, #1524, #2513); fora delas só o 2011 (só turco: peri_uyanis). Os demais mapas precisam de captura do 5038 de cada um.
 - **Labirinto**: o Necropolis (8101, segunda aba) não tem andares (shortcut). Os andares 1 a 25 estão vistos nas capturas de 24 a 27/10 (`content/maze_floors.json`: nós, monstro, força, baú dos 5, 10, 15 e 20). Do 26 em diante é dedução: o sonType e a força são chutes (**TODO(inventado)**), o baú do 25 não foi visto, e o drop de monstro: nenhum nos andares 1 a 15 (o 4103 dá só EXP); o 21 e o 22 têm loot que não dá para atribuir a um monstro. A varredura não entrega o baú dos andares 5, 10, 15 e 20 que a captura de 25/10 mostrou (#9650), e o 4207 "Respawn Note" não é enviado pelo servidor. As capturas param no 25: o 30 que se fala ainda não tem prova. Os baús têm uma gema de nível 1 que varia (2050101, 2050501, 2050701 nos vistos), e a da varredura não foi confirmada.
-- **Gemas da guarda de batalha**: `WorldBossHelper.checkMaze` pede inventário de gemas do labirinto. O
-  login oficial manda o 4631 com `watchInfo`; falta captura de jogador sem gema e com gema, e saber o que
-  `jion1` (3120101) é.
+- **Gemas da guarda de batalha**: modeladas pelo cliente (`BattleGuardView`, `PlayerManager.sendAddBattleGem`);
+  `jion1` 3120101 é a Lvl. 1 Fire Resistance Crystal. Falta captura do 8742 (ordem da resposta, vínculo da gema
+  devolvida: **TODO(inventado)**). A batalha do servidor ainda não aplica as resistências (só vão no 150/HeroMsg).
 - **Pedágio**: sem agenda do evento. O template tem a configuração (`tollgate_count` 5 tentativas base,
   `tollgate_attack_count` 10 (desafio com diamantes), `tollgate_add_count` 1000 de limite de compras extras) e as tabelas
   `ScoreRewards` (28), `BossRewards` (370), `AreaRewards` (30) e `LuckyRewards`, que o parser descarta

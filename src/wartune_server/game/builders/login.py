@@ -6,6 +6,7 @@ Valores fixos vêm do que o servidor oficial manda para um personagem novo, conf
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -61,12 +62,18 @@ ITEM_BONUS = {
 }
 
 
+# colunas de resistência do ItemTempInfos (gemas da guarda de batalha); o campo do proto é a mesma com minúscula
+RESIST_COLS = ("FireResi", "WaterResi", "WindResi", "ElectResi", "LightResi", "DarkResi", "ReduceResi")
+
+
 @dataclass(frozen=True, slots=True)
 class HeroStats:
     """Atributos ``base*`` (herói + atributos dos equipamentos) e ``total*`` (+ bônus fixos dos itens)."""
 
     base: dict[str, int]
     total: dict[str, int]
+    # resistências das gemas da guarda de batalha (campo do SimpleHeroInfoMsg -> valor; só as que não são 0)
+    resists: dict[str, int] = dataclasses.field(default_factory=dict)
 
     @property
     def live(self) -> int:
@@ -110,7 +117,8 @@ class HeroStats:
             "Live": tpl.live + 20 * attrs["Physique"] + 10 * hero.grades,
         }
         total = {k: v + sum(int(r.get(ITEM_BONUS[k], 0)) for r in bonuses) for k, v in derived.items()}
-        return cls(own | derived, attrs | total)
+        resists = {col[0].lower() + col[1:]: sum(int(r.get(col) or 0) for r in bonuses) for col in RESIST_COLS}
+        return cls(own | derived, attrs | total, {k: v for k, v in resists.items() if v})
 
 
 def hero_hp(hero: Hero, live: int) -> int:
@@ -155,6 +163,8 @@ def hero_info(hero: Hero, player_id: int, stats: HeroStats, talent_point: int = 
         setattr(msg, "base" + name, value)
     for name, value in stats.total.items():
         setattr(msg, "total" + name, value)
+    for name, value in stats.resists.items():
+        setattr(msg, name, value)
     return msg
 
 

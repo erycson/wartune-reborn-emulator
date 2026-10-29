@@ -171,7 +171,7 @@ a partir do nível 55, dragão do 40), 4495 depois do 4686 (#40; runas do `OpenR
 
 | Pacote | Diferença | Por quê |
 |---|---|---|
-| 4631 | vai sem `watchInfo` (o turco tinha uma gema, 3120101) | shortcut: as gemas da guarda (8742) não são modeladas |
+| 4631 | `watchInfo` com os encaixes abertos e as gemas (o turco tinha uma, 3120101) | estado em `player_systems.battle_guard` (8742, `handlers/tower.py`) |
 | 4501 | `param1` de `game_settings.vehicle_tech` (218, o do inglês); o turco manda 18218 | a regra da tecnologia de tanque não está no cliente |
 | 109 do fim (#133) | resposta ao 5015 do cliente, como no inglês (#123→#124) | o pedido não aparece (a captura turca só tem S>C) |
 | 462 | corpo `3800`, igual ao oficial | sem nome no `opcodes.json` |

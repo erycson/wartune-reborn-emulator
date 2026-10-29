@@ -964,6 +964,8 @@ class PlayerSystems:
     mount_expiry: str = ""  # as temporárias (carta com Property2 dias): "1107:<fim em segundos Unix>"
     mount_fly: str = ""  # voo comprado com Flystone (op 13, AvatarInfoMsg.isBuyFly): "1001,1002"
     mount_stars: str = ""  # estrela e bênção de cada montaria (op 6, AvatarInfoMsg.starLevel/blessing): "1000:2:30"
+    # guarda de batalha (8742/4631): encaixes abertos "gridType:gridPos:j1:j2:j3" (gema ou 0), separados por ","
+    battle_guard: str = ""
     dragon_type: int = 0  # 101 alma do dragão, 102 depois da transferência
     dragon_grade: int = 0
     dragon_gp: int = 0

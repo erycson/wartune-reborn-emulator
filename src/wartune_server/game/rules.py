@@ -26,7 +26,7 @@ from ..domain.models import (
 from ..templates.repository import GameTemplates, Row
 from . import buffs
 from . import events as ev
-from .builders.login import QUEST_SITE_LEN, HeroStats, hero_hp
+from .builders.login import QUEST_SITE_LEN, RESIST_COLS, HeroStats, hero_hp
 
 PLAYER_GRADE = "3"  # UpGradeTempInfo.Types do nível do jogador; Data = EXP do nível anterior até este
 NOVICE_CONDITION = 23  # QuestConditionInfo: noviceProcess > Para1
@@ -107,7 +107,30 @@ def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
     for book in snap.fashions if leader is not None else []:
         if book.appraisal_skill and (bonus := templates.get("SkillPropertyTempInfos", book.appraisal_skill)):
             rows.append(bonus)
+    # gemas da guarda de batalha: as resistências (FireResi..DarkResi, ReduceResi) do template de cada uma
+    for gems in guard(snap.systems).values() if leader is not None and snap.systems is not None else []:
+        rows += [row for gem in gems if gem > 0 and (row := templates.get("ItemTempInfos", gem)) is not None]
     return rows
+
+
+# guarda de batalha (cliente BattleGuardInfo): gridType 1 = Willpower (1 encaixe, gema Property1 100), 2 = os 6
+# entalhes de resistência (Property1 101..106); 3 gemas por encaixe (BattleGuardSocketInfo length 3)
+GUARD_WILL, GUARD_NOTCH, GUARD_JOINS, GUARD_NOTCHES = 1, 2, 3, 6
+GUARD_GEM = "312"  # SonType das gemas da guarda (Will Crystal e Resistance Crystal)
+RESISTS = RESIST_COLS[:6]  # as 6 resistências (sem ReduceResi, a da Willpower)
+
+
+def guard(sy: PlayerSystems) -> dict[tuple[int, int], list[int]]:
+    """Encaixes abertos -> as 3 gemas (0 = vazio)."""
+    out = {}
+    for entry in filter(None, sy.battle_guard.split(",")):
+        kind, pos, *gems = (int(x) for x in entry.split(":"))
+        out[kind, pos] = gems
+    return out
+
+
+def set_guard(sy: PlayerSystems, slots: dict[tuple[int, int], list[int]]) -> None:
+    sy.battle_guard = ",".join(f"{k}:{p}:" + ":".join(map(str, g)) for (k, p), g in sorted(slots.items()))
 
 
 def avatar(snap: PlayerSnapshot, templates: GameTemplates, son_type: str) -> str:
@@ -459,14 +482,13 @@ SPIRE_CONDITION = 74  # 799 "Enter [The Spire]": entrada que gasta a vez do dia 
 TANK_JOIN_CONDITION = 79  # 912 (Para1 0) e 914 (Para1 3001): entrar na batalha de tanques (vehicle.match_up)
 TANK_WIN_CONDITION = 80  # 913 e 915: vencer a batalha de tanques (vehicle.settle; empate BOTH conta para os dois)
 EXPLORE_CONDITION = 91  # 930 "Click Explore -> Go on an exploration": 9502 op 3 (treasure_hunt)
+RESIST_CRYSTAL_CONDITION = 90  # 926 "Socket Resistance Crystal": gema 101..106 na guarda de batalha (tower, 8742)
 LOST_TREASURE_CONDITION = 89  # 925 "Lost Treasure": entrar na luta do mapa do tesouro (8744 op 3/5, reforço 8745)
 # Sem a ação no servidor (contam quando ela existir):
 # TODO(16): "Arena (Party)" 421/422: a sala PvP só procura partida (room.start_matching), não há luta
 ARENA_PARTY_CONDITION = 16
 # TODO(58): "Soul Engraving" 858: o cliente decompilado só tem GoodsSonType SOUL_CRYSTAL 293, sem tela nem pacote
 ENGRAVE_CONDITION = 58
-# TODO(90): "Socket a Resistance Crystal" 926: as gemas da guarda de batalha (8742, handlers/tower.py) são recusadas
-RESIST_CRYSTAL_CONDITION = 90
 # TODO(93): "Win a Sky Trail battle" 932 (General William, Cloud City): sistema não identificado; (dedução) candidato
 # as fases do SinglePass (8753/8755), que não existem (handlers/singlepass.py)
 SKY_TRAIL_CONDITION = 93

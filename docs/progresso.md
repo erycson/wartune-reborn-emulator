@@ -32,7 +32,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 10 | 6 | 2 | 3 |
-| Labirinto (Forgotten Catacombs) | 4 | 1 | 4 | 1 | 3 |
+| Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 9 | 6 | 1 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **104** | **93** | **54** | **35** | **34** |
+| **Total** | **104** | **93** | **55** | **34** | **34** |
 
 ## Validação e base
 
@@ -262,7 +262,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Reviver (8300) | ✅ | | grátis: 111 "Respawn Successful!" e 4175; pago: 3, devoção, 150, 4434 antes (28/10 #1134, #1566, #1755) |
 | Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |
 | Necropolis (8101) | 🧪 | | 30 andares pelo cliente/templates (mapas 8101-8130, chefes GameHeroTemp 8001-8030 "Level k Guardian", `checkMaze2`/`towerInfo2`, varredura até 29), abre com o recorde 100 das Catacombs; mesma torre do labirinto (`maze.Kind`): entrada diária, morte/reviver, baús, ranking, varredura, primeiro abate no 4205 (firstHit = 1º do ranking, inventado; `first_kill` desliga; o cliente só mostra com MAZE_FIRST_KILL, que nenhum 4422 liga). Sem captura: EXP (400 x (100+k)), baús, sonType dos nós e varredura a partir do 10 inventados (`maze.py` NECROPOLIS) |
-| Guarda de batalha e gemas (8742/4631) | ❌ | 🇹🇷 | gemas não modeladas; o 4631 vazio no login (turco) |
+| Guarda de batalha e gemas (8742/4631) | 🧪 | 🇹🇷 | pelo cliente: abrir encaixe (nível, Kingdom Mark, 300 de resistência na Willpower), encaixar/trocar/tirar gema (volta à mochila ou correio), resistências no herói (150/HeroMsg), login 4631 com o estado (turco #35), missão 926; compor/subir nível pelo 5153 (Types 6). Sem captura do 8742: ordem da resposta e gema devolvida vinculada inventadas; a batalha não usa as resistências |
 
 ## Batalha
 
