@@ -115,5 +115,5 @@ async def give(
     got, letters = place(s, snap, s.player_id, [d for d in drops if d[0] > 0], now)
     await save_with_mail(s, letters, *rewards.owners(snap), *got, *entities, delete=delete)
     text = rewards.text(templates, drops)
-    granted(s, drops, got, text, chat=chat)
+    await granted(s, drops, got, text, chat=chat)
     return text

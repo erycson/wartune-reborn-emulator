@@ -6,12 +6,14 @@ precisa do chefe mundial (docs/boss-eventos.md).
 
 from __future__ import annotations
 
+import random
+
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
+from .. import bag, rewards, rules, titles
 from .. import events as gev
 from .. import maze as mz
-from .. import rewards, rules, titles
 from .. import sweep as sw
 from ..builders import login as b
 from ..castle import castle_yield
@@ -84,8 +86,16 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     changed, gone = sw.settle(
         snap, s.ctx.templates, sweep, now, vip_exp=exp, table=table, all_now=all_now, round_gold=gold
     )
+    from .shop import place, save_with_mail  # shop importa este módulo
+
+    got_now, letters = place(s, snap, s.player_id, sweep.mailed, now)  # mochila cheia: as cartas vão pelo correio
+    changed += got_now
+    for _, _, items in letters:
+        for item in items:
+            item.random_skills = bag.roll_random_skills(s.ctx.templates, item.template_id, random.Random())
+    sweep.mailed = []
     st = sw.store(snap, sweep, now)
-    await s.ctx.characters.save(*rewards.owners(snap), st, *changed, delete=tuple(gone))
+    await save_with_mail(s, letters, *rewards.owners(snap), st, *changed, delete=tuple(gone))
     if sweep.done == done and not changed:
         return []
     castle_yield(s)

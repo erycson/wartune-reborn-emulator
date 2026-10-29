@@ -28,7 +28,9 @@ INV = "TODO(inventado)"
 KEY = "group_buy"
 
 
-def _offer(id_: int, shop: int, tid: int, counts: int, names: str, price: int, levels: list[int], prices: list[int]):
+def _offer(
+    id_: int, shop: int, tid: int, counts: int, names: str, price: int, levels: list[int], prices: list[int]
+) -> dict[str, Any]:
     return {
         "id": id_,
         "shopId": shop,

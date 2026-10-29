@@ -233,7 +233,7 @@ async def offer_refresh(s: GameSession, msg: pb.RewardFreshReqMsg) -> None:
     if changed:
         await s.ctx.characters.save(*changed)
     if snap.character in changed:
-        granted(s, [], [], "", chat=False)
+        await granted(s, [], [], "", chat=False)
     _send_board(s, snap, now)
 
 
@@ -457,8 +457,10 @@ async def ring_finish_now(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     gone: tuple[object, ...] = ()
     if spent:
         extra.append(spent)
+    elif used and used[1]:
+        gone = (used[0],)
     elif used:
-        gone, extra = ((used[0],), []) if used[1] else ((), [used[0]])
+        extra.append(used[0])
     await _ring_done(s, st, tid, drops, extra, gone, used)
 
 
@@ -481,7 +483,7 @@ async def _ring_done(
         s.send(S_ITEMS, rewards.taken_msg(used[0], used[1], s.player_id))
     _send_ring(s, snap, s.ctx.clock.now(), complete=tid)
     alert(s, text)
-    granted(s, drops, new, text)
+    await granted(s, drops, new, text)
     await progress(s, CIRCUIT)  # "Complete Circuit Quests" do painel
 
 

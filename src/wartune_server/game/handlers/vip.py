@@ -8,9 +8,11 @@ import json
 import random
 from collections.abc import Collection, Mapping, Sequence
 from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from ...domain import gameday
-from ...domain.models import EventState, Item, PlayerSnapshot
+from ...domain.errors import NotFoundError
+from ...domain.models import EventState, Item, Mail, MailType, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import bag, rewards, rules
@@ -18,9 +20,13 @@ from .. import events as ev
 from .. import guild as gd
 from ..builders import login as b
 from ..castle import castle_yield
+from ..mail import SYSTEM_SENDER
 from ..router import router
 from ..session import GameSession, OnlinePlayers
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
+
+if TYPE_CHECKING:
+    from .shop import Letter
 
 S_VIP, S_ROULETTE, S_VIP_TIPS, S_KING = 4410, 4414, 4416, 4434
 S_LUCKY, S_SOUL = 4224, 4372
@@ -211,34 +217,66 @@ async def vip_open(s: GameSession, msg: pb.VipOpenInfoMsg) -> None:
     """Abre/renova o VIP por ``days`` (31/93/186) pelo preço One/Three/Six_MonthPoint (só Balens livres).
     *(cliente)* o inglês não manda o 8513: os botões do ``OpenSelfView`` vão para a página de pagamento
     (``__joinVipHandler``; o ``__openVipHandler`` não está ligado) e o ``VIPFrame`` não cria o ``OpenFriendView``.
-    Fica para o GM e os testes."""
+    Fica para o GM e os testes. Com ``isFriend`` o VIP vai para ``friendId`` (online ou offline), pago por quem dá;
+    o amigo recebe uma carta do sistema avisando."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
     key = VIP_DAYS.get(msg.days)
-    if key is None or msg.isFriend:
-        # ponytail: presentear um amigo exige gravar o snapshot de outro personagem (o inglês nem tem a tela)
-        s.log.info("8513 recusado", dias=msg.days, amigo=msg.isFriend)
+    found = await _gift_target(s, msg.friendId if msg.isFriend else 0)
+    if key is None or found is None:
+        s.log.info("8513 recusado", dias=msg.days, amigo=msg.friendId)
         return
+    target, other = found
     spent = ledger.spend(snap.character, _cfg(s, key), "vip", now, bound=False, ref=str(msg.days))
     if spent is None:
         s.log.info("8513 sem diamante", dias=msg.days)
         return
-    accrue_gp(s, snap, now)  # os dias do VIP pago anterior antes de mudar o fim
-    st = ev.state(snap, "vip", now)
-    start = max(now, _vip_expiry(snap) or now)
+    accrue_gp(s, target, now)  # os dias do VIP pago anterior antes de mudar o fim
+    st = ev.state(target, "vip", now)
+    start = max(now, _vip_expiry(target) or now)
     end = start + timedelta(days=msg.days)
     st.text, st.updated_at = b.fmt_time(end), now
-    mark = ev.state(snap, VIP_GP_DAY, now)
+    mark = ev.state(target, VIP_GP_DAY, now)
     last, paid_end = _gp_mark(mark)
     if paid_end is None or paid_end <= now:  # VIP pago novo: o dia da compra conta
         last = gameday.game_day(now) - timedelta(days=1)
     mark.text, mark.updated_at = f"{last.isoformat()}|{b.fmt_time(end)}", now
-    accrue_gp(s, snap, now)
-    await s.ctx.characters.save(snap.character, st, mark, spent)
-    granted(s, [], [], "", chat=False)
-    vip_changed(s)
-    s.send(S_VIP_TIPS)
+    accrue_gp(s, target, now)
+    text = f"{snap.character.nickname} gave you {msg.days} days of VIP."  # TODO(inventado): texto do oficial
+    await _gift_save(s, target, text, snap.character, st, mark, spent)
+    await granted(s, [], [], "", chat=False)
+    if other is not None:
+        vip_changed(other)
+    if target is snap:
+        s.send(S_VIP_TIPS)
+
+
+async def _gift_target(s: GameSession, friend_id: int) -> tuple[PlayerSnapshot, GameSession | None] | None:
+    """Quem recebe o VIP/contrato: o próprio (0 ou o próprio id), o amigo online (pela sessão dele, para não
+    sobrescrever o snapshot em memória) ou o offline (do banco). None = não existe."""
+    if friend_id in (0, s.player_id):
+        assert s.snapshot is not None
+        return s.snapshot, s
+    online = s.ctx.online.get(friend_id)
+    if online is not None and online.snapshot is not None:
+        return online.snapshot, online
+    try:
+        snap = await s.ctx.characters.snapshot(friend_id)
+    except NotFoundError:
+        return None
+    return (snap, None) if snap.character.active else None
+
+
+async def _gift_save(s: GameSession, target: PlayerSnapshot, text: str, *entities: object) -> None:
+    """Grava a compra; presente a outro leva a carta do sistema (o 148 sai depois do commit)."""
+    from .shop import save_with_mail  # shop importa player, que este módulo também importa
+
+    letters: list[Letter] = []
+    if target is not s.snapshot:
+        letters.append((Mail(target.character.id or 0, s.ctx.clock.now(), text, text,
+                             mail_type=MailType.SYSTEM, send_type=SYSTEM_SENDER), [], []))  # fmt: skip
+    await save_with_mail(s, letters, *entities)
 
 
 @router.on(8505)
@@ -262,7 +300,7 @@ async def vip_gift(s: GameSession, _: object) -> None:
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
         events.items_gained(s)  # (visto) tutorial_en #3268
     if any(t < 0 for t, _ in drops):  # ponytail: a captura só tem itens; moeda vai como nas outras recompensas
-        granted(s, [(t, n) for t, n in drops if t < 0], [], text, chat=False)
+        await granted(s, [(t, n) for t, n in drops if t < 0], [], text, chat=False)
     alert(s, text)
     send_vip(s)
     s.send(S_VIP_FIRST)
@@ -300,7 +338,7 @@ async def use_trial_card(s: GameSession, item: Item, row: Mapping[str, str], n: 
         send_mount(s)
     alert(s, f"Your VIP service has been extended {hours} hours; new expiration date is {end:%Y-%m-%d}.")
     vip_changed(s)
-    granted(s, [], [], "", chat=False)
+    await granted(s, [], [], "", chat=False)
     return True
 
 
@@ -506,11 +544,11 @@ async def king_contract(s: GameSession, msg: pb.KingContractBuyMsg) -> None:
         send_king(s)
         return
     ids = sorted(set(msg.ids))
-    own = msg.friendId in (0, s.player_id)
-    if not ids or not own or any(i not in rows or i == KING_BUFF for i in ids):
-        # ponytail: presente para amigo (friendId de outro) igual ao VIP: precisa gravar outro personagem
+    found = await _gift_target(s, msg.friendId)  # friendId de outro: presente, pago por quem dá
+    if not ids or found is None or any(i not in rows or i == KING_BUFF for i in ids):
         s.log.info("8540 recusado", ids=ids, amigo=msg.friendId)
         return
+    target, other = found
     cost = _cfg(s, "All_KingContract") if tuple(ids) == KING_ALL else sum(int(rows[i]["NeedPoint"]) for i in ids)
     spent = ledger.spend(snap.character, cost, "king_contract", now, bound=False, ref=",".join(map(str, ids)))
     if spent is None:
@@ -518,13 +556,16 @@ async def king_contract(s: GameSession, msg: pb.KingContractBuyMsg) -> None:
         return
     changed = []
     for i in ids:
-        st = ev.state(snap, f"king:{i}", now)
-        start = max(now, ev.contract_end(snap, i) or now)  # renovar soma ao que falta
+        st = ev.state(target, f"king:{i}", now)
+        start = max(now, ev.contract_end(target, i) or now)  # renovar soma ao que falta
         st.text, st.updated_at = b.fmt_time(start + timedelta(minutes=int(rows[i]["Duration"]))), now
         changed.append(st)
-    await s.ctx.characters.save(snap.character, spent, *changed)
-    granted(s, [], [], "", chat=False)
-    send_king(s)
+    names = ", ".join(str(rows[i].get("Name") or i) for i in ids)
+    text = f"{snap.character.nickname} gave you the King's Contract: {names}."  # TODO(inventado): texto do oficial
+    await _gift_save(s, target, text, snap.character, spent, *changed)
+    await granted(s, [], [], "", chat=False)
+    if other is not None:
+        send_king(other)
 
 
 # ---------------------------------------------------------------- alquimia (8320/8321) e alma (8466/8467)
@@ -622,7 +663,7 @@ async def soul(s: GameSession, _: object) -> None:
     snap.character.strategy += info.soul
     counted = ev.count(snap, s.ctx.events, ev.REFINE_SOUL, now)  # atividade "Daru Alchemy" (tipo 22)
     await s.ctx.characters.save(snap.character, st, *([spent] if spent else []), *counted)
-    granted(s, [], [], "", chat=False)
+    await granted(s, [], [], "", chat=False)
     _player(s)  # (visto) 191924-1 #17038, 1025 #9226, 1026 #626, 1027 #158: 3 e depois 4372 nas quatro amostras
     s.send(S_SOUL, _soul_msg(s, snap))
     await _count(s, rules.DARU_ALCHEMY_CONDITION)  # TODO(inventado): a posição do 112 (nenhuma captura com a 185)

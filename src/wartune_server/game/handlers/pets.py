@@ -21,7 +21,7 @@ from ..builders.login import complete
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from .player import _army, _player
+from .player import _army, _player, snapshot_of
 from .shop import send
 from .vip import vip_right
 
@@ -715,8 +715,8 @@ async def pet_op(s: GameSession, msg: pb.PlayerPetOpMsg) -> None:
 @router.on(8702)
 async def other_pets(s: GameSession, msg: pb.PlayerPetOpMsg) -> None:
     """Ficha dos pets de outro jogador (``petId`` = userId) -> 4608."""
-    other = s.ctx.online.get(msg.petId)  # ponytail: só jogador online
-    if other is None or other.snapshot is None:
-        s.log.info("8702 recusado: jogador offline", pedido=str(msg))
+    other = await snapshot_of(s, msg.petId)  # online: a sessão; offline: o banco
+    if other is None:
+        s.log.info("8702 recusado: jogador não existe", pedido=str(msg))
         return
-    s.send(S_OTHER_PETS, pets_msg(other.snapshot, s.ctx.templates))
+    s.send(S_OTHER_PETS, pets_msg(other, s.ctx.templates))

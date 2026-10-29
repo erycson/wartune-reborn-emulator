@@ -6,7 +6,8 @@ from collections.abc import Iterable, Sequence
 from dataclasses import replace
 from datetime import datetime
 
-from ...domain.models import Consortia, Item
+from ...domain.errors import NotFoundError
+from ...domain.models import Consortia, Item, PlayerSnapshot
 from ...domain.world import Announcement
 from ...protocol.messages import wartune_pb2 as pb
 from .. import bag, daily, rewards, rules
@@ -140,7 +141,7 @@ async def _level_buildings(s: GameSession) -> None:
     s.send(S_BUILDINGS, b.buildings_msg(snap, templates, born, used))
 
 
-def granted(
+async def granted(
     s: GameSession,
     drops: Sequence[rewards.Drop],
     new: list[Item],
@@ -149,13 +150,18 @@ def granted(
     player: bool | None = True,
 ) -> None:
     """Depois de um ``rewards.grant`` gravado: 3 (moedas), 150 (EXP), 109 (ouro e cristais), 115 (itens) e o 83.
-    ``player=False``: o 3 vai depois dos itens, logo antes do 83 (login acumulado); ``None``: sem o 3."""
+    ``player=False``: o 3 vai depois dos itens, logo antes do 83 (login acumulado); ``None``: sem o 3. EXP que subiu
+    o nível manda o pacote completo do ``push_level`` (139/100/150/4640) no lugar do 150."""
     if player:
         _player(s)
-    if any(t == rewards.EXP for t, _ in drops):
-        # ponytail: só o 150; quem chama não passa o nível antigo, então sem o 139/100/4640 do push_level
-        # (o exército já foi completado em rules.add_gp). Passar o nível antigo se um pacote com EXP subir alguém.
-        _army(s)
+    if exp := sum(n for t, n in drops if t == rewards.EXP):
+        assert s.snapshot is not None
+        old = s.snapshot.character.total_gp - exp  # o nível antes do grant: a EXP somada é exatamente esta
+        before = max((g for g, need in rules.grade_steps(s.ctx.templates) if old >= need), default=1)
+        if s.snapshot.character.grades > before:
+            await push_level(s, before)
+        else:
+            _army(s)
     if any(t in (-100, -600) for t, _ in drops):  # o 109 leva ouro e cristais
         castle_yield(s)
     if new:
@@ -167,6 +173,17 @@ def granted(
         _player(s)
     if chat:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+async def snapshot_of(s: GameSession, player_id: int) -> PlayerSnapshot | None:
+    """Snapshot de outro jogador: o da sessão se online (a sessão é dona dele), senão do banco. None = não existe."""
+    other = s.ctx.online.get(player_id)
+    if other is not None and other.snapshot is not None:
+        return other.snapshot
+    try:
+        return await s.ctx.characters.snapshot(player_id)
+    except NotFoundError:
+        return None
 
 
 def alert(s: GameSession, text: str) -> None:

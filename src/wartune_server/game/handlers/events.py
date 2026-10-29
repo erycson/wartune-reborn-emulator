@@ -456,7 +456,7 @@ async def sum_active(s: GameSession, msg: pb.SumActiveGetPackageMsg) -> None:
 
     # ordem do oficial (tutorial_en #2753-#2772): 3, 109, 115, 4476 de todas (o granted manda depois do 115), 111,
     # 4476 só desta e o 83; sem moeda no pacote, sem o 3 (só turco: online_odul #23-#41, ouro e itens)
-    granted(s, p.items, new, text, chat=False, player=_coins(p.items))
+    await granted(s, p.items, new, text, chat=False, player=_coins(p.items))
     if not new:
         _sum_data(s, listed)
     alert(s, GIFT_OK)
@@ -498,7 +498,9 @@ async def _exchange(s: GameSession, a: ev.Active, msg: pb.SumActiveGetPackageMsg
     await s.ctx.characters.save(*rewards.owners(snap), mark, *changed, *new, delete=tuple(gone))
 
     s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
-    granted(s, drops, new, text, chat=False, player=_coins(drops))  # (só turco: online_odul #64-#82) 115, 115, 4476
+    await granted(
+        s, drops, new, text, chat=False, player=_coins(drops)
+    )  # (só turco: online_odul #64-#82) 115, 115, 4476
     alert(s, GIFT_OK)
     _sum_data(s, [a])
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
@@ -545,7 +547,7 @@ async def _sign(s: GameSession, auto: bool) -> None:
     s.send(S_SIGN, pb.PlayerSignRspMsg(signDate=b.fmt_time(now), signTimes=times, signSite=st.value))
     if drops:
         alert(s, text)
-        granted(s, drops, new, text)
+        await granted(s, drops, new, text)
 
 
 # ---------------------------------------------------------------- login acumulado (8496)
@@ -581,7 +583,7 @@ async def relogin_reward(s: GameSession, msg: pb.TakeLoginReward) -> None:
     shown = sorted(drops, key=lambda d: (son[d[0]] != WORN_SON, d[0]))
     if any(t in rewards.CURRENCIES and t not in (-100, -600) for t, _ in drops):
         _player(s)
-    granted(s, drops, new, rewards.text(s.ctx.templates, shown, "plain"), player=False)
+    await granted(s, drops, new, rewards.text(s.ctx.templates, shown, "plain"), player=False)
 
 
 # ---------------------------------------------------------------- atividade diária (leed)
@@ -708,7 +710,7 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
     # (visto) tutorial_en #1561-#1565, oficial_encantar #1586-#1590 (50.000 de ouro): 109, 111 "Received: 50,000
     # Gold", 4150 e o 83, sem o 3; (só turco: login.json #134-#150, um item) 115, 4476 e os 4484 antes do 111
     coins = any(t < 0 and t != -100 for t, _ in drops)  # (dedução) moeda além do ouro manda o 3
-    granted(s, drops, new, text, chat=False, player=True if coins else None)
+    await granted(s, drops, new, text, chat=False, player=True if coins else None)
     alert(s, text)
     s.send(S_LEED_RECEIVE, pb.LeedFinishedRspMsg(result=True, site=msg.site, leedProcess=box.value))
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
@@ -893,4 +895,4 @@ async def serven_reward(s: GameSession, msg: pb.GetRewardMsg) -> None:
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
     alert(s, text)
     send_serven(s)
-    granted(s, drops, new, text)
+    await granted(s, drops, new, text)

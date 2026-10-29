@@ -22,6 +22,7 @@ de primeira vez).
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
@@ -162,7 +163,7 @@ async def _receive(s: GameSession, book: TreasureMap) -> None:
     for item in got + [i for _, _, chunk in letters for i in chunk]:
         item.random_skill, item.random_skill_2, item.random_skill_3 = spot
     await save_with_mail(s, letters, *got, book, mj.store(snap, KEY, d, now))
-    granted(s, [(tid, 1)], got, rewards.text(s.ctx.templates, [(tid, 1)]))
+    await granted(s, [(tid, 1)], got, rewards.text(s.ctx.templates, [(tid, 1)]))
 
 
 async def _refresh(s: GameSession, book: TreasureMap, msg: pb.PlayerTreasureMsg) -> None:
@@ -205,7 +206,7 @@ def _map_at(s: GameSession, pos: int) -> Item | None:
     return item if row is not None and row.get("SonType") == MAP_SON_TYPE else None
 
 
-def _thief(s: GameSession) -> dict[str, Any]:
+def _thief(s: GameSession) -> Mapping[str, Any]:
     """O ladrão de tesouro do nível do jogador: o de maior ``Grades`` até o nível dele (o primeiro abaixo de todos)."""
     assert s.snapshot is not None
     rows = [s.ctx.templates.get("GameHeroTemp", h) or {} for h in mj.cfg(s, KEY)["thieves"]]
@@ -362,7 +363,7 @@ async def _pay_out(s: GameSession, book: TreasureMap, count: int, delete: tuple[
         drops = [(SHARD, count)]  # idioma helpContent: "Rewards are bound"
         got, letters = place(s, snap, s.player_id, drops, s.ctx.clock.now(), binds=True)
         await save_with_mail(s, letters, *got, book, delete=delete)
-        granted(s, drops, got, rewards.text(s.ctx.templates, drops))
+        await granted(s, drops, got, rewards.text(s.ctx.templates, drops))
     elif delete:
         await s.ctx.characters.save(delete=delete)
 

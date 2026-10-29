@@ -86,7 +86,7 @@ async def refresh_rank(s: GameSession, kind: mz.Kind) -> None:
     s.maze_order[kind.key] = mz.position(states, s.player_id, kind)
     if first := mz.first_kill(states, kind):
         who = await s.ctx.characters.read(lambda uow: uow.characters.get(first))
-        s.maze_first[kind.key] = (first, who.nickname if who is not None else "")
+        s.maze_first[kind.key] = (first, (who.nickname if who is not None else None) or "")
 
 
 @router.on(8299)

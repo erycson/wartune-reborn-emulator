@@ -24,6 +24,15 @@ def pool(templates: GameTemplates, campaign_id: int) -> list[int]:
     return [t for t in (int(x) for x in str(row.get("Item", "")).split(",") if x) if t > 0]
 
 
+def draw(
+    templates: GameTemplates, campaign_id: int, rng: random.Random, table: Sequence[tuple[int, float]] = ()
+) -> int:
+    """Sorteia o template da carta sem tocar na mochila (0 = campanha sem lista)."""
+    items = [t for t, _ in table] or pool(templates, campaign_id)
+    weights = [w for _, w in table] if sum(w for _, w in table) > 0 else None  # tudo 0 no banco: uniforme
+    return rng.choices(items, weights)[0] if items else 0
+
+
 def card(
     snap: PlayerSnapshot,
     templates: GameTemplates,
@@ -43,9 +52,8 @@ def card(
     # Job 1,2; o inglês só deu 1080012, Job 3); peso = vezes visto na captura inglesa,
     # amostra pequena (docs/drops-masmorras.md); cartas em grupo (9000+) precisam de mais capturas ou vídeos
     rng = rng or random.Random()
-    items = [t for t, _ in table] or pool(templates, campaign_id)
-    weights = [w for _, w in table] if sum(w for _, w in table) > 0 else None  # tudo 0 no banco: uniforme
-    drop = [(rng.choices(items, weights)[0], 1)] if items else []
+    tid = draw(templates, campaign_id, rng, table)
+    drop = [(tid, 1)] if tid else []
     if not drop or not rewards.can_grant(snap, templates, drop, now):
         return None
     new, _ = rewards.grant(snap, templates, drop)

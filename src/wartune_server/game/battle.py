@@ -144,7 +144,7 @@ ON_ACTION, ON_HIT, ON_DEALT, AT_ONCE = 1, 2, 3, 4
 CHANCE = re.compile(r"(\d+)% chance")
 
 
-def _parse(data: dict[str, Any], msg: Message) -> Message:
+def _parse[M: Message](data: dict[str, Any], msg: M) -> M:
     # as specs levam chaves só do servidor ("attack", "stats", "defaultSkill"), fora do protobuf
     return ParseDict(data, msg, ignore_unknown_fields=True)
 
@@ -553,8 +553,12 @@ class Battle:
                 if self._usable(skill):
                     msg.coolDown.add(templatedId=skill, coolDown=0, coolType=1, appearCoolDown=0)
         hp = {u.living_id: max(0, u.hp) for u in self.units}  # quem chega no meio (``join``) vê a vida de agora
-        for entry in (*msg.soldiers, *msg.heros, *msg.pets):
-            entry.hp = hp.get(entry.livingId, entry.hp)
+        for soldier in msg.soldiers:
+            soldier.hp = hp.get(soldier.livingId, soldier.hp)
+        for hero in msg.heros:
+            hero.hp = hp.get(hero.livingId, hero.hp)
+        for pet in msg.pets:
+            pet.hp = hp.get(pet.livingId, pet.hp)
         return msg
 
     # -- comandos do cliente ----------------------------------------------------------------

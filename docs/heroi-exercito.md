@@ -100,7 +100,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8529 op 1 treinar | 115, 3, 150, 4426 | visto | `propertyType` 0 força, 2 int., 5 físico, 1 agilidade (PropertyInfo); `param1` unidades: chicotes 208017 primeiro, o resto Mount_Point (35) diamantes cada, `payType` 0 aceita vinculados (`MountsFrame` inglês, `mounts.tips02`); 10 de EXP cada; teto = grau levelMax |
 | 8529 op 2 escolher | 4426, 150 | cliente | precisa possuir |
 | 8529 op 3 montar/descansar | 150 | cliente inglês | `MountsFrame` Mount (`param1` 1) / Rest (0); descansando o 150 vai com `mountTempId` 0 explícito (`hasMountTempId`); guardado em `events` `mount:rest` |
-| 8529 op 5 ver de outro | 4459 | cliente | só jogador online |
+| 8529 op 5 ver de outro | 4459 | cliente | online pela sessão, offline pelo banco |
 | 8529 op 4 ativar | 115, 3, 4427 | cliente inglês | `WildSoulFrame`: só `MountType` 1, 2 e 4 trancadas e com `NeedMountGrade` ≤ Beast Soul Lvl (tabela 19 de `UpGradeTempInfos`: maior `Grades` com `Data` ≤ `mountTotalGp`, `MountInfo.growExp`). Com a carta (`NeedItemId`; o tipo 4 usa `mount_king_active_item` "2131500,1") gasta a carta e vale os dias dela (`Property2`, −1 = permanente); sem a carta, `Property1` Balens, permanente (`payType` 0 aceita vinculados) |
 | 8529 op 13 voo | 115, 4427 | cliente inglês | `MountsFrame.notFlyMountBtn`: montaria possuída, `IsFly` 0 e sem voo comprado; gasta 1 Flystone (208131); vai no `AvatarInfoMsg.isBuyFly` |
 | 5006 carta de montaria (SonType 218) | 115, 4427 | cliente inglês | `Property1` montaria, `Property2` dias (−1 permanente), `Property3` Beast Soul Lvl. Temporária soma dias; já permanente recusa |
@@ -137,7 +137,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8621 op 5 aprender skill | 4540 (+115, 3) | cliente inglês | `PetLearnSkillView`. `value` 1: `skillId` de um livro (SonType 303, `Property1`); com o livro gasta o livro, sem ele paga a loja de livros (`ShopTempInfos` Area 7, Point + GiftToken). `value` 2: sorteio entre as skills dos livros (uniforme, **ponytail**), grátis a cada `pet_learn_random_skill_interval` (480) minutos menos o VIP 205, senão `pet_learn_random_skill` (100) Balens; `lastFreeSkillLearnTime` no 3 (`player_systems.pet_free_skill_at`). Skill do tipo do pet ou 107, `NeedPlayerGrade` até o herói, não aprendida. 5 ativas e 3 passivas; cheio troca uma do mesmo tipo sorteada no mesmo lugar (os `chaSkillIndexs` valem); o `fastKey` leva o SonType de toda ativa |
 | 8621 ops 8, 15 | — | **sem tela** | 8 (`trainResistance`) e 15 (`mixDoublePet`) não têm chamador no cliente inglês. Esquecer skill e renomear não usam o 8621 (esquecer não existe no build; renomear é HTTP + AMF `renamePet`) |
 | 8726 skills do torneio | 4540 | cliente inglês | `chaSkillIndexs`: 3 índices em `changeSkills` (−1 vazio), sem repetir (`PetChallengeTeamItemView`); gravado em `pets.cha_skills` |
-| 8702 pets de outro | 4608 | cliente | só jogador online |
+| 8702 pets de outro | 4608 | cliente | online pela sessão, offline pelo banco |
 | login (8224 `army`) | 4540 | visto (só turco: login.json #30) | só quando há pet |
 
 Atributos do pet (cliente inglês `PetData`): template + ⌊(nível − 1) × growthRate / 80⌋ + pontos; HP =

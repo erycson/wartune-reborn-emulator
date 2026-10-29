@@ -192,7 +192,7 @@ def info(
 ) -> pb.TowerInfoMsg:
     """4205. ``index`` é a aba do MazeFrame (0 Catacombs, 1 Necropolis); o cliente escolhe a torre pelo
     ``campaignId``. ``order`` 0: o cliente mostra "None"."""
-    return pb.TowerInfoMsg(
+    out = pb.TowerInfoMsg(
         enterCount=tower.enters,
         totalGp=tower.gp,
         towerIndex=tower.index,
@@ -203,8 +203,10 @@ def info(
         freeEnterCount=cfg["free_enter"],
         campaignId=kind.campaign,
         index=kind.index,
-        **({"firstHitId": first[0], "firstHitName": first[1]} if cfg["first_kill"] and first[0] else {}),
     )
+    if cfg["first_kill"] and first[0]:
+        out.firstHitId, out.firstHitName = first
+    return out
 
 
 def floor_gp(cfg: dict[str, Any], floor: int) -> int:

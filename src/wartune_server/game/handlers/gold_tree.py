@@ -293,7 +293,7 @@ async def _count_box(s: GameSession, snap: PlayerSnapshot, cfg: Mapping[str, Any
     st.text, st.updated_at = ",".join(marks), s.ctx.clock.now()
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new)
-    granted(s, drops, new, text)
+    await granted(s, drops, new, text)
     _send(s, S_RESULT, _score_msg(st))
 
 
@@ -316,7 +316,7 @@ async def _floor_box(
     f.claimed = True
     new, text = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), mark, *new)
-    granted(s, drops, new, text)
+    await granted(s, drops, new, text)
     _send(s, S_FLOORS, _floors_msg(cfg, sh))
 
 

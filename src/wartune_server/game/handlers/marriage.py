@@ -443,7 +443,7 @@ async def _harvest(s: GameSession, t: dict[str, Any], now: datetime) -> bool:
         t |= {"start": 0, "end": 0, "startTime": "", "endTime": "", "stateValue": 0, "treeState": tree.NO_PESTS,
               "isGetA": False, "isGetB": False}  # fmt: skip
     await _store(s, t, *rewards.owners(snap), *new)
-    granted(s, drops, new, text)
+    await granted(s, drops, new, text)
     return True
 
 

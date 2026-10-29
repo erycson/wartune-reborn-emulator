@@ -90,6 +90,6 @@ async def pick(s: GameSession, msg: pb.ArmyBoxMsg) -> None:
         # Stone x1, 10,000 Daru, 10,000 Gold" (itens primeiro, as moedas do fim da tabela para o começo); sem 4940
         shown = [d for d in drops if d[0] > 0] + [d for d in reversed(drops) if d[0] < 0]
         text = SLAYER + rewards.text(s.ctx.templates, shown).removeprefix("Received: ")
-        granted(s, drops, new, "", chat=False)
+        await granted(s, drops, new, "", chat=False)
         alert(s, text)
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

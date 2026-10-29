@@ -23,7 +23,7 @@ from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
 from .hero import send_items
-from .player import _army, _player
+from .player import _army, _player, snapshot_of
 
 S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER, S_MOUNT_STAR = 4427, 4426, 4459, 4679
 S_FATE, S_FATE_TURN, S_DRAGON, S_TRANSFER, S_TRANSFER_GRADE = 4544, 4545, 4555, 4556, 4557
@@ -336,8 +336,8 @@ async def mount_edit(s: GameSession, msg: pb.MountEditMsg) -> None:
     assert snap is not None
     sy = rules.systems(snap)
     if msg.op == MOUNT_INFO:
-        other = s.ctx.online.get(msg.param1)  # ponytail: só jogador online; offline precisa do banco
-        info = mount_info(other.snapshot, templates) if other and other.snapshot else None
+        other = await snapshot_of(s, msg.param1)  # online: a sessão; offline: o banco
+        info = mount_info(other, templates) if other is not None else None
         if info is not None:
             s.send(S_MOUNT_OTHER, info)
         return

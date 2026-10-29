@@ -36,6 +36,7 @@ from .guild.box import _letter
 from .shop import (
     S_ITEMS,
     Charge,
+    Letter,
     alert,
     count_buy,
     offer_goods,
@@ -153,7 +154,8 @@ async def _buy(
     key, front = offer_key(int(offer["id"])), int(offer["frontMoney"])
     sold_now = int(shared.get("counts", {}).get(sold_key(offer), 0))
     if not mj.at(offer, "beginDate") <= now < mj.at(offer, "endDate"):
-        return s.log.info("8645 compra fora da fase de compra")
+        s.log.info("8645 compra fora da fase de compra")
+        return
     if int(offer["maxCount"]) != -1 and sold_now >= int(offer["maxCount"]):
         return alert(s, "The group buy is sold out.")  # TODO(inventado) texto (cliente: funny.groupbuy.error2)
     if int(offer["oneDayCount"]) != -1 and today_count(snap, key, now) >= int(offer["oneDayCount"]):
@@ -162,11 +164,11 @@ async def _buy(
     if ledger is None:
         return alert(s, "Insufficient Balens")
     st = {**st, "buy": st["buy"] + 1, "paid": st["paid"] + front, "offer": offer}
-    shared = mj.store_shared(snap, SOLD, bump(shared, offer), now)
+    sold_st = mj.store_shared(snap, SOLD, bump(shared, offer), now)
     rec = count_buy(snap, key, 1, now)
     bought = purchase(snap, "groupon", int(offer["id"]), int(offer["templateId"]), 1, "Point", front, now)
     chance = group_draw.add_chance(snap, now)
-    await save_with_mail(s, [], snap.character, ledger, rec, bought, mj.store(snap, KEY, st, now), shared, chance)
+    await save_with_mail(s, [], snap.character, ledger, rec, bought, mj.store(snap, KEY, st, now), sold_st, chance)
     send_charge(s, Charge(ledger=ledger))
 
 
@@ -174,7 +176,8 @@ async def _settle(
     s: GameSession, snap: PlayerSnapshot, offer: dict[str, Any], st: dict[str, Any], n: int, now: datetime
 ) -> None:
     if not mj.at(offer, "endDate") <= now < mj.at(offer, "sendDate") or st["settled"] or st["buy"] <= 0:
-        return s.log.info("8645 acerto recusado", estado=str(st))
+        s.log.info("8645 acerto recusado", estado=str(st))
+        return
     final = st["buy"] * unit_price(offer, n)
     diff = final - st["paid"]  # > 0 cobra, < 0 devolve
     ref = f"groupon:{offer['id']} acerto"
@@ -217,7 +220,7 @@ async def settle_overdue(s: GameSession) -> None:
                 extra = [ledger]
         if diff < 0:
             goods.append((-400, -diff))
-        letters = [
+        letters: list[Letter] = [
             (
                 _letter(s, s.player_id, goods[i][0] if goods[i][0] > 0 else int(offer["templateId"]), now),
                 goods[i : i + MAX_ANNEXES],

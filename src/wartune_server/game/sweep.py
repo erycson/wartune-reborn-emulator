@@ -60,6 +60,7 @@ class Sweep:
     secret: bool = False
     rounds: list[Round] = field(default_factory=list)
     sent: int = 0  # rodadas já mandadas ao cliente
+    mailed: list[tuple[int, int]] = field(default_factory=list)  # cartas sem lugar na mochila: vão pelo correio
     end: int = 0  # 0 varrendo, DONE ou BROKEN
     kind: int = CAMPAIGN  # sweepType
     first: int = 0  # labirinto: o primeiro andar (o ``towerIndex`` do começo)
@@ -196,8 +197,11 @@ def _round_drops(
     got: list[tuple[int, int]] = []
     for _ in range(pulls):
         card = drops.card(snap, templates, sweep.campaign_id, 0, rng, table, now=now)
-        if card is None:
-            break  # mochila cheia: a rodada segue sem item (TODO(inventado): o mailIn do oficial manda pelo correio)
+        if card is None:  # mochila cheia: a carta vai pelo correio (o mailIn do oficial) e a rodada segue
+            if tid := drops.draw(templates, sweep.campaign_id, rng, table):
+                sweep.mailed.append((tid, 1))
+                got.append((tid, 1))
+            continue
         changed.append(card[0])
         got.append((card[0].template_id, card[0].count))
     return got, changed, gone

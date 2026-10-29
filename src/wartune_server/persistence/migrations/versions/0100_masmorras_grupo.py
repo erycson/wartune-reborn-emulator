@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import sqlalchemy as sa
 from alembic import op
@@ -35,8 +36,8 @@ VIP = 2204  # sonType do VIP Bonus Chest (param1 -700, param2 = Kyanite)
 contents = sa.table("campaign_contents", sa.column("campaign_id"), sa.column("data"), sa.column("source"))
 
 
-def seed() -> dict[str, dict]:
-    data = json.loads(SEED.read_text(encoding="utf-8"))
+def seed() -> dict[str, dict[str, Any]]:
+    data: dict[str, dict[str, Any]] = json.loads(SEED.read_text(encoding="utf-8"))
     old = json.loads(OLD.read_text(encoding="utf-8"))["9001"]
     for k, v in old.get("confirms", {}).items():
         data["9001"].setdefault("confirms", {}).setdefault(k, v)

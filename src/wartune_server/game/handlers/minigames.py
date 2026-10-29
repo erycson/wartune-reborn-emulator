@@ -264,7 +264,7 @@ async def _buy(s: GameSession, snap: PlayerSnapshot, fund: Fund, cfg: Mapping[st
     st = ev.state(snap, _key(fund, cfg), now)
     st.value, st.text, st.updated_at = level, b.fmt_time(now), now
     await s.ctx.characters.save(snap.character, st, spent)
-    granted(s, [], [], "", chat=False)
+    await granted(s, [], [], "", chat=False)
     _send_fund(s, snap, fund)
 
 
@@ -302,7 +302,7 @@ async def _harvest(s: GameSession, snap: PlayerSnapshot, fund: Fund, cfg: Mappin
     refund = ledger.record_cash(snap.character, diamonds, gifts, _reason(fund), f"harvest:{times}", now)
     await s.ctx.characters.save(*rewards.owners(snap), mark, refund, *new)
     alert(s, text)
-    granted(s, drops, new, text)
+    await granted(s, drops, new, text)
     _send_fund(s, snap, fund)
 
 
@@ -471,7 +471,7 @@ async def _signin_buy(s: GameSession, snap: PlayerSnapshot, cfg: Mapping[str, An
     card.text = _signin_day(now).isoformat()
     _sign_today(cfg, card, now)
     await s.ctx.characters.save(snap.character, card, spent)
-    granted(s, [], [], "", chat=False)
+    await granted(s, [], [], "", chat=False)
     _send_signin(s, card)
 
 
@@ -495,7 +495,7 @@ async def signin_op(s: GameSession, msg: pb.SuperSigninCardReqMsg) -> None:
             card.value |= 1 << msg.date
             card.updated_at = now
             await s.ctx.characters.save(snap.character, card, spent)
-            granted(s, [], [], "", chat=False)
+            await granted(s, [], [], "", chat=False)
     elif card is not None and msg.opType == SIGNIN_RECEIVE and state == READY:
         drops = _signin_items(cfg, msg.date)
         if not rewards.can_grant(snap, s.ctx.templates, drops, now):
@@ -506,7 +506,7 @@ async def signin_op(s: GameSession, msg: pb.SuperSigninCardReqMsg) -> None:
             new, text = rewards.grant(snap, s.ctx.templates, drops)
             await s.ctx.characters.save(*rewards.owners(snap), card, *new)
             alert(s, text)
-            granted(s, drops, new, text)
+            await granted(s, drops, new, text)
     else:
         s.log.info("super assinatura: pedido recusado", op=msg.opType, dia=msg.date, estado=state)
     _send_signin(s, card)
@@ -658,7 +658,7 @@ async def rebate(s: GameSession, msg: pb.RebateOpMsg) -> None:
             new, text = rewards.grant(snap, s.ctx.templates, drops)
             await s.ctx.characters.save(*rewards.owners(snap), st, *new)
             alert(s, text)
-            granted(s, drops, new, text)
+            await granted(s, drops, new, text)
             info.packagestates[i].isget = True
     elif msg.op != REBATE_INFO:
         s.log.info("rebate: op desconhecida", op=msg.op)

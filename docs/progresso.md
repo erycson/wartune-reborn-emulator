@@ -40,10 +40,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 2 | 4 | 2 |
 | Atividades e eventos | 5 | 11 | 10 | 2 | 5 |
-| VIP | 1 | 2 | 3 | 1 | 0 |
+| VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **108** | **86** | **60** | **33** | **34** |
+| **Total** | **108** | **84** | **62** | **33** | **34** |
 
 ## Validação e base
 
@@ -402,9 +402,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Estado e nível (4410) | 🧪 | | vipGp: `Vip_DailyAddGp` por dia de VIP pago, somado no login, na compra e na virada do dia online (agendador); o dia da compra conta (dedução); VIP que vence online avisa a guilda (4455) |
-| Compra (8513) | 🟡 | | presente a amigo recusado: VIP não é item, não vai pelo correio (e o inglês não manda o 8513) |
+| Compra (8513) | 🧪 | | presente a amigo (online pela sessão dele, offline pelo banco), pago por quem dá, com carta do sistema ao amigo (texto inventado); o inglês não manda o 8513 |
 | Presente semanal, cartão de teste, roleta | ✅ | | |
-| Contrato do rei: compra | 🟡 | | presente a amigo recusado: contrato não é item, não vai pelo correio |
+| Contrato do rei: compra | 🧪 | | presente a amigo como o VIP: 4434 ao amigo online, banco se offline, carta do sistema (texto inventado) |
 | Contrato do rei: efeitos | 🧪 | | cura e varredura (`rules.py:210`, `sweep.py:40`) |
 | Privilégios extras (montaria, missões, cornetas) | ❌ | | lista em [eventos.md](eventos.md); só o aviso 4610 da montaria VIP (cartão e primeiro login vencido) |
 | Loja do teste (8582) | 🧪 | | é a loja da Spire: ver Torres 8200-8204 |
