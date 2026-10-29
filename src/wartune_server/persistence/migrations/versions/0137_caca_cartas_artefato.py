@@ -65,6 +65,9 @@ def value() -> dict[str, Any]:
     v["addItem"] = 2131022
     v["addOkText"] = "Treasure Hunt attempts increased!"
     v["addNoItemText"] = "Not enough Exploration Artifact!"
+    # "+" com 10: o cliente manda sem conferir (TreasureHuntFrame._addSeekCountClick); idioma huntcountFull
+    v["fullText"] = "You’ve reached your Treasure Hunt limit. (Max hunts cumulative 10 times)"
+    v["source"]["fullText"] = "idioma hunt.TreasureHuntFrame.huntcountFull; cliente TreasureHuntFrame"
     v["source"].pop("eventDescs/goldCost", None)
     v["source"] |= {
         "eventDescs": CAP + " #453, #506, #550, #2810 (ouro, 109 #508/#2812) e #2837 (Daru, 3 #2839)",
