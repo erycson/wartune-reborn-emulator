@@ -32,7 +32,7 @@ async def test_virada_das_5h_online_enche_energia_e_da_stamina(tmp_path: Path) -
         g.client.send(20008)
         # 150/4434 dos 5 min (handlers.player._army_refresh); o PvP aberto às 12h (game_settings.pvp_match) fechou
         # 4247: a taxa zerada da janela nova; 4248: um campo da invasão das 04:00 mudou de estado (warfield.push_states)
-        assert codes(await g.idle()) == [150, 4434, 4247, 4234, 4248, 4201]
+        assert codes(await g.idle()) == [4902, 150, 4434, 4247, 4234, 4248, 4201]  # 4902 antes do 150 do nível 32+
 
         clock.advance(61 * 60)  # 05:00 (a invasão das 04:00 já fechou)
         g.client.send(20008)

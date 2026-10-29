@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import pytest
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import PlayerSnapshot
 from wartune_server.game import bag
+from wartune_server.game.events import EventCatalog
 from wartune_server.game.handlers import treasure_hunt
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -51,6 +53,9 @@ async def test_hunt_open_explore_and_treasure_follow_the_capture(tmp_path: Path,
         assert _codes(await _seek(g, 1)) == [111]  # abaixo do 32
         snap = _snap(g)
         snap.character.grades, snap.character.gold = 32, 100000
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        session.ctx = replace(session.ctx, events=EventCatalog.load(Path("data/events.json")))  # a do d29
         info = pb.PlayerSeekInfoMsg.FromString(_body(await _seek(g, 1), 4914))  # d29 #448
         assert (info.op, info.seekCount, info.nextAddTime, info.state, info.curNodeId) == (1, 3, 21600, 0, 7)
         nodes = info.seekNodeList.seekNode
@@ -198,7 +203,7 @@ async def test_expert_kits_give_one_card_each_and_cards_enter_the_collection(tmp
         g.client.send(5006, pb.ItemUseMsg(pos=kits[0].pos, count=5, bagType=1))  # d31 #4024-#4040
         got = await g.idle()
         assert _codes(got) == [115, 115, 4476, 111, 3, 83]
-        cards = [i for i in bag.in_bag(snap) if 6000001 <= i.template_id <= 6000021]
+        cards = [i for i in bag.in_bag(snap) if templates.get("ItemTempInfos", i.template_id).get("SonType") == "600"]
         assert sum(i.count for i in cards) == 5
         assert all(templates.get("ItemTempInfos", i.template_id)["Profile"] in ("2", "3") for i in cards)
 

@@ -479,7 +479,7 @@ def test_bonus_da_colecao_reproduz_o_login_76() -> None:
 
     snap = PlayerSnapshot.__new__(PlayerSnapshot)
     object.__setattr__(snap, "systems", PlayerSystems(1, powcards=",".join(f"{t}:{g}:0:0" for t, g in seen.items())))
-    object.__setattr__(snap, "character", SimpleNamespace(id=7))
+    object.__setattr__(snap, "character", SimpleNamespace(id=7, grades=31))  # abaixo do 32: sem cartas, None
     add = fight_add_msg(snap, templates)
     assert add is not None
     assert [(a.op, a.userid, a.campType, a.add) for a in add.singlefightadd] == [
