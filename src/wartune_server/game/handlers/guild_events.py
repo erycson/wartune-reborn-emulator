@@ -2,10 +2,11 @@
 guerra entre servidores.
 
 Todas acontecem em mapas próprios (7601 altar, 7501 terra secreta, 4501 guerra, 4601 entre
-servidores) que o cliente abre com o 125 ``RoomCreatedMsg``. A terra secreta está em ``handlers/fam.py`` e a guerra
-de guildas (entrar, lista de participantes, buffs e o mapa) em ``handlers/guildwar.py``; as outras entradas ficam
-recusadas e os pacotes de dentro do mapa só registram no log. O que tem estado fora do mapa (abrir o altar, listas
-vazias, os grupos da guerra) está aqui. Dependências em docs/guilda.md.
+servidores) que o cliente abre com o 125 ``RoomCreatedMsg``. A terra secreta está em ``handlers/fam.py``, o altar em
+``handlers/altar.py`` e a guerra de guildas (entrar, lista de participantes, buffs e o mapa) em
+``handlers/guildwar.py``; a entre servidores fica recusada e os pacotes de dentro do mapa só registram no
+log. O que tem estado fora do mapa (abrir o altar, listas vazias, os grupos da guerra) está aqui.
+Dependências em docs/guilda.md.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from .. import guildwar as gw
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
-from .guild.common import _can, _char, _mine, _now, _push_info, _refuse
+from .guild.common import _can, _char, _now, _push_info, _refuse
 
 S_ALTAR_OPEN, S_GVG_TEAM, S_GVG_CHALLENGE, S_GVG_LIST, S_CROSS_GROUP = 4436, 4441, 4377, 4379, 4682
 S_GVG_ORDER = 4458
@@ -62,31 +63,7 @@ async def altar_open(s: GameSession, msg: pb.ConsortiaAltarOpenReqMsg) -> None:
     _push_info(s, guild)
 
 
-@router.on(8542)
-async def altar_enter(s: GameSession, _: object) -> None:
-    """Entrar no altar: o cliente espera o 125 do mapa 7601.
-
-    ponytail: falta o sistema de mapas de campanha (só existe o do tutorial) e as ondas de
-    monstros; a luta usaria o fluxo PvE de ``game/battle.py``.
-    """
-    mine = _mine(s)
-    state = gd.altar_state(mine[0], _now(s)) if mine else gd.ALTAR_CLOSED
-    _refuse(s, 8542, "mapa do altar (7601) não implementado", estado=state)
-
-
-@router.on(8549)
-async def altar_arrive(s: GameSession, msg: pb.ArriveAltarReqMsg) -> None:
-    _refuse(s, 8549, "fora do mapa do altar", no=msg.nodeId)
-
-
-@router.on(8550)
-async def altar_buff(s: GameSession, _: object) -> None:
-    _refuse(s, 8550, "fora do mapa do altar")
-
-
-@router.on(8593)
-async def altar_skill(s: GameSession, msg: pb.ConsortiaAltarOpenReqMsg) -> None:
-    _refuse(s, 8593, "fora do mapa do altar", tipo=msg.altarType)
+# entrada (8542), o mapa 7601 e o que se faz lá dentro (8549, 8550, 8593): ``handlers/altar.py``
 
 
 # ---- guerra de guildas -----------------------------------------------------------------------

@@ -368,6 +368,11 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
         await fam.arrive(s, camp, node)
         return
+    if c.altar:
+        from .altar import attack as altar_attack  # altar importa worldboss, que importa este módulo
+
+        await altar_attack(s, node)
+        return
     if c.world_boss:
         from .worldboss import boss_attack  # worldboss importa este módulo
 

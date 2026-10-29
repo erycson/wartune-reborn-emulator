@@ -97,7 +97,7 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
 def team_members(s: GameSession) -> list[GameSession]:
     """Canal 6: o time livre (``FreedomTeam``) ou, sem time, a sala (``ChatHelper.checkTeamChatScene``); online."""
     group = s.ctx.teams.of(s.player_id) or s.ctx.rooms.of(s.player_id)
-    ids = group.members if group is not None else []
+    ids = group.members if group is not None else [s.player_id]  # sem grupo (veículo): só o eco
     return [o for i in ids if (o := s.ctx.online.get(i)) is not None]
 
 
@@ -107,10 +107,13 @@ def scene_key(s: GameSession) -> tuple[object, ...]:
     TODO(inventado): a cidade (castelo) como uma cena só; o cliente deixa falar nela (``checkSceneType``)."""
     c = s.campaign
     if c is not None:
-        if c.fam:
-            mine = s.ctx.guilds.of(s.player_id)
-            return ("map", c.map_id, mine[0].id if mine is not None else -s.player_id)
-        if c.world_boss or c.gvg or c.is_warfield or c.hook:
+        mine = s.ctx.guilds.of(s.player_id)
+        guild_id = (mine[0].id or 0) if mine is not None else -s.player_id
+        if c.fam or c.altar:  # um mapa por guilda
+            return ("map", c.map_id, guild_id)
+        if c.gvg:  # as duas guildas do par (``guildwar.players_on``)
+            return ("map", c.map_id, id(s.ctx.guilds.wars.get(guild_id)))
+        if c.world_boss or c.is_warfield or c.hook:
             return ("map", c.map_id)
         room = s.ctx.rooms.of(s.player_id)
         return ("map", c.map_id, ("sala", room.id) if room is not None else -s.player_id)

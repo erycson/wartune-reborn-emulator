@@ -648,11 +648,13 @@ def _refusal(s: GameSession, campaign_id: int) -> str | None:
 async def revive_or_fight(s: GameSession, msg: pb.PayTypeMsg) -> None:
     """Reviver já e voltar à luta, pagando (``Live_Fight_Pay``, 15 nos templates EN; payType 0 = vinculado
     primeiro, 1 = só diamante). O botão existe na ``RiverView`` tipo 1, depois de morrer no chefe. ``Live_Pay``
-    (2) não tem botão no chefe. Fora do mapa do chefe ou vivo: aviso, nada cobrado.
-
-    ponytail: o mesmo 8264 é o reviver do altar de guilda (``RiverView`` tipo 2, paga em contribuição);
-    quem fizer o mapa do altar tem de separar pelo mapa do jogador.
+    (2) não tem botão no chefe. Fora do mapa do chefe ou vivo: aviso, nada cobrado. No altar da guilda o mesmo 8264
+    (``RiverView`` tipo 2) paga em contribuição: ``altar.revive_paid``.
     """
+    from .altar import revive_paid  # altar importa este módulo
+
+    if await revive_paid(s):
+        return
     ctx, c, snap = s.ctx, s.campaign, s.snapshot
     pool = ctx.bosses.pools.get(c.map_id) if c is not None and c.world_boss else None
     if pool is None or snap is None or not pool.is_dead(s.player_id, ctx.clock.now()):

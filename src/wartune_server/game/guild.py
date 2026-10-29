@@ -97,10 +97,13 @@ SPEAK_PER_DAY = 5
 
 
 def altar_state(guild: Consortia, now: datetime) -> int:
-    """Calculado na hora: aberto por 21 min, encerrado até o fim do dia, fechado no dia seguinte."""
+    """Calculado na hora: aberto por 21 min (ou até o altar cair, ``ALTAR_ENDED`` gravado), encerrado até o fim do
+    dia, fechado no dia seguinte."""
     at = guild.altar_at
     if at is None or guild.altar_state == ALTAR_CLOSED or not gameday.same_day(at, now):
         return ALTAR_CLOSED
+    if guild.altar_state == ALTAR_ENDED:
+        return ALTAR_ENDED
     return ALTAR_OPEN if (now - at).total_seconds() < ALTAR_SECONDS else ALTAR_ENDED
 
 
@@ -120,6 +123,7 @@ class Guilds:
     invasions: dict[int, Any] = field(default_factory=dict)  # guilda -> ``fam.Invasion`` (Invasores do 7501)
     wars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``guildwar.War`` de hoje (as duas do par)
     election_at: datetime | None = None  # última conferência das eleições (``handlers.guild.election.clock``)
+    altars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``handlers.altar.Run`` do altar aberto
 
     @classmethod
     async def load(cls, characters: CharacterService, server_id: int) -> Guilds:

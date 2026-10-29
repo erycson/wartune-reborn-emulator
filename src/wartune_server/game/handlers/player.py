@@ -257,6 +257,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
         await refresh(s, push=True)
     for a in s.ctx.announcer.tick(s.ctx.world.announcements, now):
         _announce(s, a)
+    from .altar import clock as altar_clock  # altar importa este módulo
     from .arena import push_match  # arena importa este módulo
     from .fam import push_state as push_fam  # fam importa este módulo
     from .guild.election import clock as election_clock  # guild importa este módulo
@@ -266,6 +267,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     await boss_clock(s)
     await close_windows(s)
     await election_clock(s)
+    await altar_clock(s)
     await field_clock(s)
     await push_fam(s)
     push_states(s)

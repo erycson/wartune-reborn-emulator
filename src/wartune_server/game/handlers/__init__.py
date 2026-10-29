@@ -1,5 +1,6 @@
 from . import (  # noqa: F401  (registra os handlers no router)
     account,
+    altar,
     arena,
     army,
     battle,

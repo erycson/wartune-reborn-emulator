@@ -29,6 +29,11 @@ async def system_army(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         # (visto) #1408-#1409 e depois de cada morte (#1734): o herói do chefe
         s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg(heroTemplated=[boss.hero_id]))
         return
+    if c is not None and c.altar:  # o herói da onda do altar (como o do chefe)
+        from .altar import cfg  # altar importa campaign, que importa este módulo
+
+        s.send(S_SYSTEM_ARMY, pb.SystemArmyMsg(heroTemplated=[int(cfg(s.ctx)["hero"])]))
+        return
     key = str(msg.paraInt1)
     data = next((c["maps"][key] for c in s.ctx.world.campaigns.values() if key in c["maps"]), None)
     heroes: list[int] = []
