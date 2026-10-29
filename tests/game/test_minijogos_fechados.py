@@ -11,7 +11,7 @@ import pytest
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, PlayerSnapshot
 from wartune_server.game import bag
-from wartune_server.game.handlers import group_draw, treasure_hunt
+from wartune_server.game.handlers import group_draw, minigames, ore, treasure_hunt
 from wartune_server.game.handlers import slot as slot_mod
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -219,3 +219,44 @@ async def test_treasure_hunt_explores_opens_recharges_and_exchanges(
         await g.server.services.characters.save(*shards)
         await _seek(g, 6)
         assert bag.count_of(snap, treasure_hunt.MASTER_KIT) == 1 and bag.count_of(snap, treasure_hunt.SHARD) == 0
+
+
+# ---------------------------------------------------------------- minério de Stokes
+
+
+ORE = {
+    "begin": "2026-10-20 05:00:00",
+    "end": "2026-10-23 05:00:00",
+    "dailyTurns": 12,
+    "finds": [[208009, 1, 1]],
+    "special": [[2, [[208014, 3]]], [4, [[208017, 1]]], [6, [[208017, 1]]], [8, [[3020010, 1]]]],
+}
+
+
+async def _ore(g: Game, op: int, prop: bool = False) -> list[Packet]:
+    g.client.send(9645, pb.OreActiveClientOpMsg(opType=op, isUseProp=prop), extend1=minigames.ORE_OP)
+    return await g.idle()
+
+
+async def test_stokes_ore_mines_the_shared_vein_with_special_floors(tmp_path: Path) -> None:
+    ore._veins.clear()
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        _open(g, "stokes_ore", ORE)
+        got = await _ore(g, 3)
+        assert [p.code for p in got] == [188, 189, 187]
+        base = pb.OreActiveBaseInfoMsg.FromString(_last(got, 188))
+        assert [r.specialFloorNum for r in base.rewards] == [0, 2, 4, 6, 8]
+        snap = _snap(g)
+        snap.character.point = 1000
+        got = await _ore(g, 2)
+        mine = pb.OreMineRespMsg.FromString(_last(got, 187))
+        assert (mine.passType, mine.count, list(mine.floors)) == (1, 8, [2, 4, 6])  # 3 especiais por dia
+        window = pb.OreWindowMsg.FromString(_last(got, 189))
+        assert (window.curSeq, window.todayRemainTurns, window.spRewardRemainTimes, window.countDown) == (8, 4, 0, 60)
+        assert snap.character.point == 1000 - 80 and bag.count_of(snap, 208014) == 3
+        assert pb.OreWindowMsg.FromString(_last(await _ore(g, 1), 189)).todayRemainTurns == 4  # veio esgotado: espera
+        g.server.services.clock.advance(61)  # type: ignore[attr-defined]
+        got = await _ore(g, 1)
+        assert pb.OreWindowMsg.FromString(_last(got, 189)).curSeq == 1
+        luck = pb.OreMineRespMsg.FromString(_last(await _ore(g, 3), 187))
+        assert luck.passType == 2 and "Maga reached floor 6" in luck.infos[0]

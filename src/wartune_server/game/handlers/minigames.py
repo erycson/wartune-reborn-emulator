@@ -25,7 +25,7 @@ from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from . import chairs, gemmaze, gold_tree, slot
+from . import chairs, gemmaze, gold_tree, ore, slot
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
@@ -326,7 +326,7 @@ def login_push(s: GameSession) -> None:
     gold_tree.login_push(s)
     _send(s, S_LUCKY_TEMP, pb.LuckExchangeTempListMsg())
     _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
-    _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
+    s.send(S_ORE, ore.open_msg(s))
     signin_login(s)
     s.send(S_CHAIRS_OPEN, chairs.open_msg(s))
 
@@ -747,11 +747,13 @@ async def lucky_exchange(s: GameSession, msg: pb.LuckExchangeOpMsg) -> None:
 
 @router.on(9645)
 async def ore_or_super_signin(s: GameSession, _: object) -> None:
-    """O mesmo código para o minério (``extend1`` 35, fechado: 190 falso) e a super assinatura (38). O corpo é relido
+    """O mesmo código para o minério (``extend1`` 35, ``handlers/ore.py``) e a super assinatura (38). O corpo é relido
     do pacote: o registro decodifica como ``OreActiveClientOpMsg``, cujo campo 2 é bool (o ``date`` viraria 1)."""
     if s.packet.extend1 == SIGNIN_OP:
         await signin_op(s, pb.SuperSigninCardReqMsg.FromString(s.packet.body))
         return
     if s.packet.extend1 != ORE_OP:
         s.log.info("9645 com extend1 desconhecido", extend1=s.packet.extend1)
-    _send(s, S_ORE, pb.SimplePropertyMsg(param7=False))
+        s.send(S_ORE, ore.open_msg(s))
+        return
+    await ore.operate(s, pb.OreActiveClientOpMsg.FromString(s.packet.body))
