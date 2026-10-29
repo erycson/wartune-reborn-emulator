@@ -7,6 +7,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import logged_in
 from wartune_server.game import battlefield as bf
 from wartune_server.game.handlers import warfield
@@ -66,7 +68,8 @@ async def test_8332_fora_da_janela_ou_do_nivel_nao_responde(tmp_path: Path) -> N
         assert s.campaign is None
 
 
-async def test_coleta_e_entrega_do_minerio_no_campo(tmp_path: Path) -> None:
+async def test_coleta_e_entrega_do_minerio_no_campo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(bf.random, "choice", lambda sides: sides[-1])  # o lado sorteado: 2, dono dos nós abaixo
     async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4007)) as g:
         await _at_field(g, 4007)
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=4007006, paraBool1=True))  # nó de coleta (superior)
