@@ -340,7 +340,8 @@ async def _quality_answer(s: GameSession, accept: bool) -> None:
 @router.on(8760)
 async def wedding_campaign(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     """Sala da cerimônia (101 alianças, 102-109 bolo/champanhe/doces/buquê/fogos, 104/112 presentes, 105 senha,
-    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame). Pendente: o cliente (m3 MarryUIMediator/MarryWeddingDialogFrame, m9\n    marry/room) usa a sala do RoomManager; os mapas 4301-4303 não têm nós. Sem a sala, o 8353 tipo 1 fica sem destino.
+    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame). Pendente: o cliente (m3
+    MarryUIMediator/MarryWeddingDialogFrame, m9 marry/room) usa a sala do RoomManager; os mapas 4301-4303 não têm nós. Sem a sala, o 8353 tipo 1 fica sem destino.
     Quem aceita a oferta já sai casado (presentes pelo correio)."""
     s.log.info("cerimônia de casamento sem suporte", op=msg.opType)
 
