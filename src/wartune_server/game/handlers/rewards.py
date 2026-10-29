@@ -1,4 +1,4 @@
-"""Caixa por tempo (5019), recompensa offline (8287) e reforço em batalha (8255). Ver docs/castelo.md."""
+"""Caixa por tempo (5019) e recompensa offline (8287). Ver docs/castelo.md. (O 8255 está em campaign.py.)"""
 
 from __future__ import annotations
 
@@ -119,10 +119,3 @@ async def take_offline_reward(s: GameSession, msg: pb.OfflineRewardMsg) -> None:
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if gained:
         await push_level(s, c.grades - gained)  # (dedução) como na entrega de missão
-
-
-@router.on(8255)
-async def player_reinforce(s: GameSession, msg: pb.CampaignNodeMsg) -> None:
-    # entrar como reforço numa batalha em curso num nó do mapa (estado 4): é do sistema de
-    # batalha/campanha multijogador, que ainda não existe aqui
-    s.log.info("8255 recusado", motivo="sem batalha em grupo", node=msg.campDataId)

@@ -24,7 +24,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
-| Castelo | 10 | 4 | 4 | 2 | 3 |
+| Castelo | 10 | 4 | 5 | 1 | 3 |
 | Herói e exército | 13 | 14 | 0 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 6 | 2 | 2 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **104** | **93** | **53** | **36** | **34** |
+| **Total** | **104** | **93** | **54** | **35** | **34** |
 
 ## Validação e base
 
@@ -77,7 +77,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Caixa por tempo (5019) | ✅ | | reset diário de uma amostra só |
 | Recompensa offline (8287) | 🟡 | | só ×1; ×1,5 e ×2 recusados (preço desconhecido); EXP = nível × minutos por dedução |
 | Trégua (8562) | ❌ | | só zera e confirma |
-| Reforço em batalha (8255) | ❌ | | depende de batalha em grupo |
+| Reforço em batalha (8255) | 🧪 | | pelo cliente (`CampaignArmyViewHelper`, `ReinforceHandler`): `Battle.join` põe o herói (cópia) numa posição livre do lado 1, 72 para os de dentro, 157 com o estado atual para quem chega, luta o resto e leva o prêmio (`_battle_over` mate); também no 8745 do tesouro. Nenhuma captura de 8255: ordem dos pacotes e posições (`TEAM_POS`) inventadas |
 
 ## Herói e exército
 
@@ -331,7 +331,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista no inglês (153200 #191); luta: 4938 type 4 e herói do chefe da 157 do inglês (24/10 #16254-#16256); aviso de abate do inglês (26/10 #1106); falta luta em equipe, prêmio do abate e nome inglês ("Purgatory Lord", o catálogo turco dá "Balrog") |
 | Baús dos Wilds (9526) | ✅ | | |
 | Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
-| Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço só entra na partilha (a luta não aceita herói no meio); login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
+| Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço entra na luta em curso (`Battle.join`), na partilha e na missão 89; login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
 | PK no campo de animais (8525) | ❌ | | |
 | Passe de progresso (8636/8637) | ❌ | | |

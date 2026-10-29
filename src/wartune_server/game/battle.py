@@ -90,6 +90,7 @@ PASSIVE = "2"  # SkillTempInfo.UseWay: passiva (vira buffer no 157, não se usa)
 MAGIC = "2"  # SkillTempInfo.CountWay: 2 mágico (maga 30000/30711/30811), 1 e 3 físico (visto tutorial_en)
 PLAYER_SIDE = 1
 AUTO = 1  # AttackModeMsg.mode / BattlePrepareMsg.attackModel
+TEAM_POS = (4, 7, 2, 5, 8)  # TODO(inventado) lugares dos outros jogadores no lado 1 (o 157 da captura não decodifica)
 ORDER_TIMEOUT = 112  # PvP: espera a ordem até 4,5 s (castTime do herói) antes de agir sozinho
 # HeroOrderMsg.castTime do herói inimigo, fixo por skill (visto: tutorial_en #1662, #1675, #1689 e os coliseus
 # turcos 171155/215937/231733). Não sai dos frames do ActionTempInfos (33 frames -> 3500, 23 -> 4500, 27 -> 4900)
@@ -278,7 +279,8 @@ class Battle:
         self.templates, self.clock = templates, clock
         self.formula = FORMULA | dict((settings or {}).get("battle_formula") or {})
         self.rng = rng or random.Random()
-        self._send, self._on_end = send, on_end
+        self._out, self._on_end = send, on_end
+        self.joined: list[Any] = []  # reforços de jogador (``join``, 8255/8745): sessões que recebem o resto da luta
         self._t0: float | None = None  # time.monotonic() do 156
         self._paused_at: float | None = None
         self._paused_total = 0.0
@@ -319,6 +321,12 @@ class Battle:
         pet = player.pet if player is not None else None
         self._morph_passives = [s for s in (pet or {}).get("change", []) if not self._usable(s)]
         self._on_awake = player.on_awake if player is not None else None
+
+    def send(self, code: int, msg: Message) -> None:
+        """Para quem já estava na luta e para os reforços (``joined``)."""
+        self._out(code, msg)
+        for viewer in self.joined:
+            viewer.send(code, msg)
 
     @property
     def player_sp(self) -> int:
@@ -382,16 +390,8 @@ class Battle:
         """Soldados, heróis NPC e pets da spec, mais o herói do jogador. Atributos do template; ``stats`` e
         ``attack``/``defaultSkill`` na spec valem mais (cópia de jogador, robô, pet)."""
         units = [self._soldier(s) for s in self.spec["soldiers"]]
-        for kind, category in (("heroes", "GameHeroTemp"), ("pets", "PetTempInfos")):
-            for h in self.spec.get(kind, []):
-                row = self.templates.get(category, h["tempId"]) or {}
-                default = int(h.get("defaultSkill") or row.get("DefaultSkill") or row.get("DefaultSkills") or 0)
-                skills = list(h.get("follow") or h.get("skillId", [])) or [default]
-                hp = int(h["hp"])
-                reject = frozenset(int(x) for x in str(row.get("RejectType", "")).split(",") if x)
-                unit = Unit(h["livingId"], h["side"], hp, skills, default, _stats(row, h), int(h.get("maxHp") or hp))
-                unit.hero, unit.reject = kind == "heroes", reject
-                units.append(unit)
+        for kind in ("heroes", "pets"):
+            units += [self._npc(kind, h) for h in self.spec.get(kind, [])]
         if player is not None:
             m = player.msg
             stats = {k: int(player.stats.get(k, 0)) for k in STATS}
@@ -401,6 +401,16 @@ class Battle:
                 )
             )
         return units
+
+    def _npc(self, kind: str, h: Mapping[str, Any]) -> Unit:
+        row = self.templates.get("GameHeroTemp" if kind == "heroes" else "PetTempInfos", h["tempId"]) or {}
+        default = int(h.get("defaultSkill") or row.get("DefaultSkill") or row.get("DefaultSkills") or 0)
+        skills = list(h.get("follow") or h.get("skillId", [])) or [default]
+        hp = int(h["hp"])
+        reject = frozenset(int(x) for x in str(row.get("RejectType", "")).split(",") if x)
+        unit = Unit(h["livingId"], h["side"], hp, skills, default, _stats(row, h), int(h.get("maxHp") or hp))
+        unit.hero, unit.reject = kind == "heroes", reject
+        return unit
 
     def _soldier(self, s: Mapping[str, Any]) -> Unit:
         row = self.templates.get("PawnTempInfos", s["tempId"]) or {}
@@ -419,7 +429,7 @@ class Battle:
             entry = res.loadRes.add(armyId=next(_WAVE_IDS))
             entry.soldierTempId.extend(int(s["tempId"]) for s in wave)
             entry.soldierSkill.extend(int(k) for s in wave for k in s.get("skillId", []))
-            self._send(S_LOAD_RES, res)
+            self.send(S_LOAD_RES, res)
 
     def _reinforce(self) -> bool:
         """O lado inimigo caiu e a luta tem outra onda (``reinforce``, os 72 da captura): (visto) oficial_20261023-
@@ -442,7 +452,31 @@ class Battle:
         if self.layer:  # (cliente) ReinforceHandler: trialLayer = reinforceWave
             self.layer += 1
             msg.reinforceWave = self.layer
-        self._send(S_REINFORCE, msg)
+        self.send(S_REINFORCE, msg)
+        return True
+
+    def join(self, hero: dict[str, Any], viewer: Any) -> bool:
+        """Reforço de jogador (8255, 8745): o herói (cópia, ``arena.copy_hero``) entra no lado 1 numa posição livre
+        e age a partir da próxima rodada (``_round_order`` relê ``units``). Os de dentro recebem o 72 com o herói
+        (cliente ``ReinforceHandler``: ``hero`` vira papel novo); ``viewer`` (quem tem ``send``) recebe o 157 com o
+        estado atual e daí o resto da luta. TODO(inventado): nenhuma captura tem o 8255; a ordem (72 para os de
+        dentro, 157 para quem chega) e as posições são deduções."""
+        if not self.running or self._skip or not (self._side_alive(True) and self._side_alive(False)):
+            return False
+        spec = self.spec
+        taken = {u["pos"] for k in ("soldiers", "heroes") for u in spec.get(k, []) if u.get("side") == PLAYER_SIDE}
+        if self._player_msg is not None:
+            taken.add(self._player_msg.pos)
+        free = [p for p in TEAM_POS if p not in taken]
+        if not free:
+            return False
+        used = [u.living_id for u in self.units] + [self.pet_id] + [s["livingId"] for w in self._waves for s in w]
+        hero = hero | {"side": PLAYER_SIDE, "pos": free[0], "livingId": max(used) + 1}
+        spec["heroes"] = [*spec.get("heroes", []), hero]
+        self.units.append(self._npc("heroes", hero))
+        self.send(S_REINFORCE, _parse({"side": PLAYER_SIDE, "hero": [hero]}, pb.ReinforceMsg()))
+        viewer.send(S_PREPARE, self.prepare_msg())
+        self.joined.append(viewer)
         return True
 
     def _passives(self, unit: Unit, skills: Iterable[int]) -> None:
@@ -487,12 +521,15 @@ class Battle:
             for skill in self._player_msg.skillId:
                 if self._usable(skill):
                     msg.coolDown.add(templatedId=skill, coolDown=0, coolType=1, appearCoolDown=0)
+        hp = {u.living_id: max(0, u.hp) for u in self.units}  # quem chega no meio (``join``) vê a vida de agora
+        for entry in (*msg.soldiers, *msg.heros, *msg.pets):
+            entry.hp = hp.get(entry.livingId, entry.hp)
         return msg
 
     # -- comandos do cliente ----------------------------------------------------------------
 
     def start(self) -> None:
-        self._send(S_PREPARE, self.prepare_msg())
+        self.send(S_PREPARE, self.prepare_msg())
         self._task = asyncio.create_task(self._run(), name=f"battle-{self.id}")
 
     def cancel(self) -> None:
@@ -505,7 +542,7 @@ class Battle:
     def pause(self) -> None:
         if self._paused_at is None:
             self._paused_at = time.monotonic()
-        self._send(S_STOP, pb.UserStopMsg(type=1, order=0))
+        self.send(S_STOP, pb.UserStopMsg(type=1, order=0))
 
     def resume(self) -> None:
         if self._paused_at is None:
@@ -555,7 +592,7 @@ class Battle:
         reply = pb.HeroOrderMsg(battleId=self.id, heroIndexId=living_id, skillId=skill_id, result=0 if ok else 1)
         reply.castTime, reply.qteTime = 0, 0
         reply.targetIndexs.extend(targets)
-        self._send(S_ORDER, reply)
+        self.send(S_ORDER, reply)
         if ok:
             self._order = (skill_id, self.frame)
 
@@ -565,7 +602,7 @@ class Battle:
         await asyncio.sleep(FRAME_SECONDS)
         if self._notice is not None and self.frame >= self._notice:
             self._notice, self._improve = None, int(self.spec.get("damageImprove", 0))
-            self._send(
+            self.send(
                 S_NOTICE, pb.BattleNoticeMsg(battleId=self.id, countDown=COUNTDOWN_MS, damageImprove=self._improve)
             )
 
@@ -578,14 +615,14 @@ class Battle:
             while not self.loaded or self.paused:  # noqa: ASYNC110  (dois sinalizadores; 40 ms não importam)
                 await asyncio.sleep(FRAME_SECONDS)
             self._t0 = time.monotonic()
-            self._send(S_START, pb.BattleStartMsg(frame=0, mainType=self.spec["battleType"], countDown=COUNTDOWN_MS))
+            self.send(S_START, pb.BattleStartMsg(frame=0, mainType=self.spec["battleType"], countDown=COUNTDOWN_MS))
             self._preload_waves()
             won = await self._fight()
             winners = [u for u in self.units if u.alive and (u.side == PLAYER_SIDE) == won]
             over = pb.PrepareOverMsg(frame=self.frame)
             for u in winners:
                 over.prepareOverLivings.add(calcType=VICTORY, livingId=u.living_id, sp=u.sp)
-            self._send(S_OVER, over)
+            self.send(S_OVER, over)
             await self._on_end(self, won)
         except asyncio.CancelledError:
             raise
@@ -647,7 +684,7 @@ class Battle:
         msg = pb.HeroOrderMsg(battleId=self.id, heroIndexId=unit.living_id, skillId=skill, result=0)
         msg.castTime, msg.qteTime = ENEMY_CAST_MS.get(skill, DEFAULT_CAST_MS), 0
         msg.targetIndexs.extend(t.living_id for t in self._targets(unit, skill))
-        self._send(S_ORDER, msg)
+        self.send(S_ORDER, msg)
 
     async def _player_skill(self, due: int) -> int:
         assert self.player is not None
@@ -896,7 +933,7 @@ class Battle:
         sent = {id(b) for b in listed}  # o removido sai depois de ir num 153 (o do atordoado espera o próximo)
         self.buffs = [b for b in self.buffs if b.active or id(b) not in sent]
         if not self._skip:
-            self._send(S_ATTACK, msg)
+            self.send(S_ATTACK, msg)
         self._awaken(unit, skill, targets)
         return frames
 
@@ -929,7 +966,7 @@ class Battle:
         if self._on_awake is not None:
             self._on_awake(self.awake)
         if not self._skip:
-            self._send(S_AWAKE, pb.AwakeMsg(awake=[pb.AwakeInfoMsg(livingId=hero.living_id, awake=self.awake)]))
+            self.send(S_AWAKE, pb.AwakeMsg(awake=[pb.AwakeInfoMsg(livingId=hero.living_id, awake=self.awake)]))
 
     def _morph_buffs(self, hero: Unit, on: bool) -> None:
         """Passivas do modo mascote (731201 Breath Shield): buffer permanente ao transformar, sai ao desfazer

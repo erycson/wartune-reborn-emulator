@@ -26,7 +26,7 @@ from ...templates.repository import GameTemplates
 from .. import bag, buffs, drops, events, outer_city, rewards, rules, space, torres
 from .. import campaign as cm
 from .. import maze as mz
-from ..battle import STATS, Battle, PlayerHero
+from ..battle import STATS, TEAM_POS, Battle, PlayerHero
 from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import item_moved, quest_update
@@ -699,7 +699,7 @@ def _start_battle(s: GameSession, camp: int, over: Callable[[Battle, bool], Awai
 
     async def finished(battle: Battle, won: bool) -> None:
         await (over(battle, won) if over is not None else _battle_over(s, battle, camp, won))
-        for m in team:  # (visto) 232017 #7928: o 4103 com a EXP também para quem não atacou
+        for m in [*team, *battle.joined]:  # (visto) 232017 #7928: o 4103 com a EXP também para quem não atacou
             if m.snapshot is not None and m.campaign is not None:
                 await _battle_over(m, battle, camp, won, mate=True)
 
@@ -708,12 +708,34 @@ def _start_battle(s: GameSession, camp: int, over: Callable[[Battle, bool], Awai
         player_hero(s, spec, boosted(s)),
         s.ctx.templates,
         s.ctx.clock,
-        send if team else s.send,
+        send,
         finished,
         settings=s.ctx.world.settings,
     )
     s.log.info("batalha", nó=camp, battle=s.battle.id, time=[m.player_id for m in team])
     s.battle.start()
+
+
+@router.on(8255)
+async def player_reinforce(s: GameSession, msg: pb.CampaignNodeMsg) -> None:
+    """Reforço (cliente ``CampaignArmyViewHelper``: nó em luta, estado 4, numa campanha com ``Capacity`` > 1): o
+    herói entra na luta de quem está no nó (``Battle.join``), luta o resto e leva o prêmio (``_battle_over`` com
+    ``mate``) como os que entraram no começo."""
+    c = s.campaign
+    node = c.by_runtime(msg.campDataId) if c is not None else None
+    camp = int(node["campDataId"]) if node is not None else 0
+    owner = next((m for m in mates(s) if m.battle is not None and m.campaign and m.campaign.fighting == camp), None)
+    if c is None or owner is None or s.battle is not None or c.fighting or owner.battle is None:
+        s.log.info("8255 reforço recusado", node=msg.campDataId)
+        return
+    if not owner.battle.join(team_hero(s, s), s):
+        s.log.info("8255 reforço recusado", node=msg.campDataId, motivo="luta acabando ou sem lugar")
+        return
+    c.fighting = camp  # como os do time em ``_start_battle``: o 128 em combate com o userId de quem atacou
+    _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
+    assert node is not None
+    node["state"] = FIGHTING
+    _send(s, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=node["nodeId"], nodeState=FIGHTING, userId=owner.player_id))
 
 
 @router.on(8251)
@@ -745,30 +767,27 @@ async def special_boss(s: GameSession, _: object) -> None:
     s.battle.start()
 
 
-TEAM_POS = (
-    4,
-    7,
-    2,
-    5,
-    8,
-)  # TODO(inventado) lugares dos outros da sala no lado 1 (o 157 da captura não decodifica aqui)
+def team_hero(s: GameSession, m: GameSession) -> dict[str, Any]:
+    """O herói de ``m`` na luta de outro: cópia (``arena.copy_hero``) com o ``userId`` dele, que o cliente de cada um
+    usa para achar o seu herói. Luta sozinho (automático)."""
+    from .. import arena as A  # noqa: PLC0415  (arena importa handlers)
+
+    assert m.snapshot is not None
+    hero = A.copy_hero(m.snapshot, s.ctx.templates, s.ctx.clock.now())
+    hero.update(side=1, type=1, userId=m.player_id, heroId=m.player_id)
+    return hero
 
 
 def _with_team(s: GameSession, spec: dict[str, Any], team: list[GameSession]) -> dict[str, Any]:
     """Os outros da sala entram na luta como heróis do lado 1 (``arena.copy_hero``, com o ``userId`` deles: o
     cliente de cada um acha o seu herói). Lutam sozinhos (automático): o 157 vai para todos, as ordens não."""
-    from .. import arena as A  # noqa: PLC0415  (arena importa handlers)
-
     used = [u["livingId"] for k in ("soldiers", "heroes") for u in spec.get(k, [])]
     used += [u["livingId"] for w in spec.get("reinforce", []) for u in w] + [spec["player"]["livingId"]]
     taken = {u["pos"] for u in spec.get("soldiers", []) if u.get("side") == 1} | {spec["player"]["pos"]}
     free = [p for p in TEAM_POS if p not in taken]
     heroes = list(spec.get("heroes", []))
     for i, m in enumerate(team[: len(free)]):
-        assert m.snapshot is not None
-        hero = A.copy_hero(m.snapshot, s.ctx.templates, s.ctx.clock.now())
-        hero.update(side=1, type=1, userId=m.player_id, heroId=m.player_id, livingId=max(used) + 1 + i, pos=free[i])
-        heroes.append(hero)
+        heroes.append(team_hero(s, m) | {"livingId": max(used) + 1 + i, "pos": free[i]})
     return spec | {"heroes": heroes}
 
 

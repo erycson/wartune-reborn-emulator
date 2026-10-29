@@ -38,7 +38,7 @@ from ..router import router
 from ..session import GameSession
 from . import minijogo as mj
 from .army import count_quest
-from .campaign import S_BATTLE_REPORT, _report, _with_team, player_hero
+from .campaign import S_BATTLE_REPORT, _report, _with_team, player_hero, team_hero
 from .player import S_ITEMS, granted, hero_after_fight, hp_pack
 from .shop import Charge, place, save_with_mail, send_charge
 
@@ -265,7 +265,7 @@ async def _dig(s: GameSession, book: TreasureMap, item: Item) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         s.battle, s.hero_sp = None, battle.player_sp
         healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
-        send(S_BATTLE_REPORT, _report(battle, won, 0))
+        battle.send(S_BATTLE_REPORT, _report(battle, won, 0))  # o time e os reforços (``join``)
         hp_pack(s, healed)
         now_dig = dig_of(s)  # relido: o 8745 pode ter somado reforços durante a luta
         if won and now_dig is not None:  # TipTxt1: "You found the treasure!"; o 4 com isReward responde
@@ -275,7 +275,7 @@ async def _dig(s: GameSession, book: TreasureMap, item: Item) -> None:
         else:  # idioma: "if you are defeated, the map will not be lost"
             await save_dig(s, None)
 
-    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, send if team else s.send, finished,
+    s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, send, finished,
                       settings=s.ctx.world.settings)  # fmt: skip
     s.log.info("batalha do mapa do tesouro", mapa=item.template_id, battle=s.battle.id, time=dig.mates)
     s.battle.start()
@@ -387,8 +387,7 @@ async def treasure_map(s: GameSession, msg: pb.PlayerTreasureMsg) -> None:
 @router.on(8745)
 async def reinforce_treasure(s: GameSession, msg: pb.GuildMsg) -> None:
     """Reforço (``checkReinforce``): quem é do mesmo grupo de ``param1`` entra na escavação em curso dele e leva o
-    prêmio junto. shortcut: a luta não ganha o herói no meio (``Battle`` não aceita unidade nova depois do 157); o
-    reforço só entra na partilha e na missão 89. Mudar quando a luta aceitar reforço de jogador."""
+    prêmio junto: o herói dele entra na luta em curso (``Battle.join``), e ele na partilha e na missão 89."""
     team, owner = s.ctx.teams.of(s.player_id), s.ctx.online.get(msg.param1)
     dig = dig_of(owner) if owner is not None and owner.snapshot is not None else None
     mine = dig_of(s)
@@ -405,6 +404,10 @@ async def reinforce_treasure(s: GameSession, msg: pb.GuildMsg) -> None:
         or (mine is not None and not mine.won)
     ):
         s.log.info("8745 reforço recusado", alvo=msg.param1)
+        return
+    assert owner.battle is not None
+    if not owner.battle.join(team_hero(owner, s), s):
+        s.log.info("8745 reforço recusado", alvo=msg.param1, motivo="luta acabando ou sem lugar")
         return
     dig.mates.append(s.player_id)
     await save_dig(owner, dig)
