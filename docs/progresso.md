@@ -28,7 +28,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Herói e exército | 14 | 9 | 5 | 1 | 4 |
 | Pets | 5 | 4 | 1 | 1 | 2 |
 | Itens | 13 | 2 | 11 | 0 | 2 |
-| Lojas e mercado | 7 | 4 | 1 | 0 | 1 |
+| Lojas e mercado | 8 | 3 | 1 | 0 | 1 |
 | Chat e social | 6 | 1 | 5 | 0 | 1 |
 | Clã / Guilda | 10 | 0 | 11 | 0 | 1 |
 | Campanhas e masmorras | 7 | 7 | 9 | 1 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 6 | 0 | 0 |
 | Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **120** | **59** | **96** | **12** | **34** |
+| **Total** | **121** | **58** | **96** | **12** | **34** |
 
 ## Validação e base
 
@@ -105,7 +105,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Dragão: alimentar (8641) | ✅ | | |
 | Dragão: transferência (8643) | 🧪 | | vocação sobe pela comida na tabela 107 (dedução) e dá % de ataque por grau na luta (`game_settings.dragon_vocation_bonus`, 0116, TODO(inventado)) |
 | Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
-| Cartas: bônus de coleção (4905) | 🟡 | | degraus por dedução; o bônus não entra na luta |
+| Cartas: bônus de coleção (4905) | 🟡 | | degraus em `powcard_suite_slots` (0037) por dedução; o bônus entra na luta (campaign.player_hero → camp_stats) |
 | Cartas: ganho nas batalhas | 🧪 | | carta do saque da campanha entra na coleção (`systems.gain_cards`, item 600): a 1ª abre no grau 1, as outras viram +1 gp cada (inventado); usar a carta da mochila faz o mesmo |
 | Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade em `star_weights` (0035) e o ponto do grátis em `game_settings.taxas` (0124), `TODO(inventado)`; 4388 (SNS) na estrela de qualidade 4 com md5 inventado |
 | Estrelas: recolher, vender, mover | ✅ | | |
@@ -167,13 +167,13 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loja comum (5154) | ✅ | | lojas 8/15 pela essência (NeedItem/Score), 11 pela Amethyst, 20 pelo Venus Crystal (4725 masterType 12; ganho local: missão do casal, `venus_crystal_sources` 0118 TODO(inventado)); a 13 não tem linha em nenhum template |
 | Loja de moda (8592) e poção (5633) | ✅ | | |
 | Loja misteriosa (8483/8482) | ✅ | | 4470 vazio depois de cada 4384 (232017 #3057); quem entra na lista de sortudos, sem captura |
-| Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
+| Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; o 8632 manda só o `refreshDate`, como o oficial (#1633): rodízio sem lista no inglês |
 | Compra coletiva (8645) | 🟡 | | ligada por padrão (migração 0104, `game_settings.group_buy` com `source`): oferta `type` 3 no 4238 em rodízio por edição, preço cai em 3 degraus pelos compradores do servidor, sinal + limite do dia, acerto cobra/devolve a diferença e entrega (4559/4560); sem acerto até `sendDate`, acerto automático pelo correio no login/8645 (8645/4559/4560 ausentes das capturas decodificadas), 1 sorteio de grupo por compra (`group_buy.py`, pelo cliente); catálogo/preços inventados |
 | Presente a outro jogador e mochila cheia pelo correio | ✅ | | loja, ofertas e misteriosa: `receiveId` de outro (id pelo 8223/4148) cobra quem compra e manda pelo correio do sistema; mochila cheia paga e o que não cabe vai pelo correio (item com vínculo e validade). VIP e contrato a amigo seguem abaixo |
 | Lojas de honra, glória, ametista | ✅ | | |
 | Loja do labirinto (ShopType 4) | ✅ | 🇹🇷 | compra do turco; a Necropolis é outro sistema |
 | Leilão: anunciar, lance, comprar, cancelar, buscar | 🟡 | | regras do cliente, sem captura; 8450 ordena; cancelar reempilha na pilha incompleta |
-| Leilão: venda de pet | 🟡 | | pet livre sem fonte |
+| Leilão: venda de pet | ✅ | | o pet nasce livre e se vincula pelo uso (language `PetAdvancedView.useBindPointTip`/`useBindGoodsTip`, `PetBagCellDropMediator.prompt02`) |
 | Correio: envio, retirada, lista | ✅ | | carta não vence |
 | Correio: verificação de e-mail (9591) | 🧪 | | estados 0-3 do `MailCheckFrame`; sem SMTP o PIN vai por correio do jogo e o prêmio `mail_rewards` (-500 x3000) também, uma vez (EventState `mail_check`, 337 estado 2 no login) TODO(inventado) |
 
@@ -343,7 +343,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Presença (11) e falas dos NPCs (4163) | 🟡 | | chance das falas e corte do 4595 em 30000 por dedução |
+| Presença (11) e falas dos NPCs (4163) | 🟡 | | repertório, chance e ritmo em `game_settings.npc_chat` (0076); corte do 4595 em 30000 por dedução |
 | Cidade do céu: presença e visual (4606/4607, 149) | ✅ | 🇹🇷 | 4606/4607 e o 149 de quem chega no inglês (215937 #826-#830) |
 | Cidade do céu: nós e NPCs | ✅ | | |
 | Ilha dos pets (127, patrulha) | ✅ | 🇹🇷 | sequência do turco |
@@ -371,17 +371,17 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Login diário e presente online | ✅ | | dias 1 a 4 do login acumulado no inglês (153200, 191924) |
 | Baú de atividade diária (8235) | ✅ | | ordem e texto do inglês (tutorial_en #1561); mochila cheia: "Insufficient Inventory space." (27/10 #6040) |
 | Devoção (leeds) | 🟡 | 🇹🇷 | leed 8 no inglês (171155 #4955); 17 e 33 do turco; 13 (arena em grupo), 27 (entrar no campo, 8332) e 28 (Spire) ligadas |
-| Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 nunca; login do turco |
+| Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 (entrar na Spire, `torres.SPIRE_TOTAL`) feita; login do turco |
 | Atividades por contador (SumActive) | 🟡 | | troca (tipo 10) vista (191924); painel conta match, reward, vehicle e minefield |
 | Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | torneio de fadas (turco); match (arena em grupo), reward (entrega do bounty), vehicle (fim do veículo) e minefield (entrada na mina) contam com 4413; 5001-5003 são os chefes do mundo, contados na entrada (visto #1407) |
-| Fundo de novato e fundo normal | 🟡 | | janelas por dedução; compra e resgate do fundo normal sem captura |
+| Fundo de novato e fundo normal | 🟡 | | compra e resgate pelo cliente (FundManager); itens do resgate vinculados (language `fund.FundFrame.helpFrame.helpContent`); janelas do banco por dedução |
 | Árvore dourada (8604) | 🟡 | | pesos, início da edição e "uma vez por dia" por dedução |
 | Labirinto de gemas (9508-9517) | 🧪 | 🇹🇷 | maxExp inventado (`gemmaze.py:29`); ajuda de amigo recusada |
 | Roda do destino | 🧪 | | 2100/2200 abrem pelo nível (0116, TODO(inventado)) |
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
 | Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend): o 8298 abre a luta com o herói NPC do Para1 e conta na vitória (battleType e cena do mundo, inventados); texto do Daru inventado; vagas extras (4360 `rewardCount`) ficam 0: o cliente não tem pacote de compra |
-| Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
+| Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` do 4224 = 2 x (usos + 1) como no inglês (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |
 | Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ranking semanal lista também quem tem 0 pontos (no fim); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
@@ -394,7 +394,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sorteio de grupo (9523) | 🟡 | | ligados por padrão (migração 0103, toda regra em `game_settings` com `source`); roleta 338/4936 pelo cliente (`group_draw.py`); cada compra coletiva (8645, `group_buy.py`) dá 1 sorteio; sorteio inventado |
 | Campo minado (atividade 111), caixa de ano novo (8994), história (8629/8630) | 🧪 | | 111 = participar da Amethyst Mine (cada 8633 conta no período); caixa: nós 30001-30020 (MasterType 300) do 10000, 8994 param1 3/1/2 com 4811 e 143 COLLECTION; história: ovo 4546 no `TimeStoryFrame`, 8630 dá ouro; janela, prêmios e 5 ovos/dia TODO(inventado) (0123) |
 | Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
-| Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
+| Troca da sorte (9610) | 🟡 | | edições do 363 do tutorial_en #88 em `game_settings.lucky_exchange` (0132), 364 com a sorte, +1 por troca, raro com a sorte cheia (language `luckyexchange.*`); recusa e 4247 do inglês (27/10 #11765); `percentChance` e `weights` `TODO(inventado)` |
 | Corneta (passe), 360 | ❌ | | |
 
 ## VIP
