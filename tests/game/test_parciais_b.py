@@ -4,16 +4,22 @@ from __future__ import annotations
 
 import random
 from datetime import UTC, datetime
+from pathlib import Path
 
+from tests.game.harness import logged_in
 from tests.game.test_batalha import _battle, _templates, needs_templates
+from tests.game.test_masmorra_1001 import enter, fast_battles
 from tests.game.test_veiculos import HIT, OPEN, _duel, _shoot
 from wartune_server.game import arena as A
 from wartune_server.game import battle as bt
+from wartune_server.game import events
 from wartune_server.game import vehicles as vh
 from wartune_server.game.campaign import StageRun, grades
+from wartune_server.game.handlers.campaign import STAGE_KEY
 from wartune_server.protocol.messages import wartune_pb2 as pb
 
 pytestmark = needs_templates
+__all__ = ["fast_battles"]  # fixture autouse
 
 
 def test_alvo_sorteado_e_heroi_primeiro_pela_config() -> None:
@@ -70,3 +76,19 @@ def test_pontos_do_veiculo_pela_config() -> None:
     arena.enqueue([2])
     [(match, _, _), _] = arena.place(_templates(), win, OPEN, lambda *_: None, rules={"boxes": 1})
     assert match.rules["boxes"] == 1
+
+
+async def test_1007_segunda_etapa_gerada(tmp_path: Path) -> None:
+    """0131: a 2ª etapa da Camp Calorn (1181 -> 1182) abre depois da 1ª, com lutas no mapa."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.snapshot is not None
+        got = await enter(g, 1007)
+        assert pb.RoomCreatedMsg.FromString(next(p.body for p in got if p.code == 125)).room.campaignId == 1171
+        s.campaign = None
+        events.state(s.snapshot, STAGE_KEY.format(1007), s.ctx.clock.now()).value = 1
+        got = await enter(g, 1007)
+        assert pb.RoomCreatedMsg.FromString(next(p.body for p in got if p.code == 125)).room.campaignId == 1181
+        c = s.campaign
+        assert c is not None and c.content is not None
+        assert any(b["map"] == 1182 for b in c.content["battles"].values())

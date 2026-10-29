@@ -225,12 +225,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Entrada (5039) e estamina | ✅ | | sem estamina entra sem prêmio (EXP, drop, carta) e sem gastar, com "Insufficient Stamina" (cliente); sem captura |
-| 1001 Worg Lair | 🟡 | 🇹🇷 | cartas 1080012 e 1080002 no inglês, 1080013 no turco; Pandora só dá o buff; progresso salvo falta |
+| 1001 Worg Lair | 🟡 | 🇹🇷 | cartas 1080012 e 1080002 no inglês, 1080013 no turco; Pandora só dá o buff; sair no meio recomeça o mapa, como o cliente avisa (mainBar.MainToolBar.campaignMsg: sair sem completar não dá prêmio); a etapa vencida fica em `campaign_stage` |
 | 1002 Baylon Plains | ✅ | | caixa do caçador com uma amostra |
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
 | 1004 Temple of Ibalize (Inner) | ✅ | | |
 | 1005 Orc Plains e 1006 Tribal Plateau | 🧪 | | escolta da Elise vista (231733); luta do elite 115116 inventada (0075) |
-| 1007 Camp Calorn | 🟡 | | 1ª etapa (1171 → 1172) vista em 191924 #2345-#3706 (migração 0090), chefe Viscount Remus sem vitória: fim da etapa sem captura; 2ª etapa (1181/1182) não jogada; Mystery Box por dedução (0062) |
+| 1007 Camp Calorn | 🟡 | | 1ª etapa (1171 → 1172) vista em 191924 #2345-#3706 (migração 0090), chefe Viscount Remus sem vitória: fim da etapa igual ao das outras masmorras; 2ª etapa (1181 → 1182) gerada por `tools/gera_masmorras.py 1007` (migração 0131, TODO(inventado)); Mystery Box por dedução (0062) |
 | Masmorras solo capturadas (1101-1107, 1201) | 🟡 | | 1101, 1103, 1104, 1105, 1107 e a 1ª etapa de 1102, 1106, 1201 das capturas (migração 0098) |
 | Masmorras solo geradas (1202-1602 e 2ª etapa de 1102, 1106, 1201) | 🧪 | | TODO(inventado) tools/gera_masmorras.py (migração 0099): planta das capturadas, mapas/casas/monstros do cliente; chave `inventado` marca o que trocar |
 | Masmorras em grupo capturadas (9000, 9001, 9002) | 🟡 | | das capturas inglesas 191924, 232017, 152321 (migração 0100); entrada do dia (`paraBool1` = isNoGet) e o texto do 83 vistos; mapa dividido pela sala (21 com todos, 4185 do caminho, a luta de um leva os outros no lado 1 e todos ganham o 4103 e o nó); os outros lutam no automático (ordens só de quem atacou) e o lugar do 3º/4º é inventado; baús VIP 209109/203108 com a caixa da 201110 (prêmio TODO(inventado)) |

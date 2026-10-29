@@ -20,6 +20,7 @@ Cada campanha gerada leva ``"inventado"`` com os mapas gerados: é a marca para 
 
     uv run python tools/gera_masmorras.py
     uv run python tools/gera_masmorras.py grupo
+    uv run python tools/gera_masmorras.py 1007  # 2ª etapa da Camp Calorn (migração 0131)
     uv run python tools/gera_masmorras.py torres  # 8200-8204 (migração 0102, ver TOWERS)
     uv run python tools/gera_masmorras.py casamento  # salões 4301-4303 (migração 0112, ver WEDDING_NPCS)
 """
@@ -55,6 +56,16 @@ GROUP = {
     "single": ("9002", ["2033"]),  # 9013 (um mapa): o fim da 9002, com o chefe e as cartas
     "multi": ("9002", ["2031", "2033"]),  # o 2032 é cheio de nós da história (catacumbas, invocador)
     "family": True,  # monstros 4xxx e chefes 3xxx só das em grupo (os solo têm outra vida)
+}
+# 1007 Camp Calorn (migração 0131): a 1ª etapa capturada (0090) e a 2ª (1181/1182) gerada pela planta da 1201
+CAMP_CALORN = {
+    "captured": CAPTURED,
+    "base": VERSIONS / "0090_campanha_1007.json",
+    "out": VERSIONS / "0131_campanha_1007_etapa2.json",
+    "ids": range(1007, 1008),
+    "single": SINGLE,
+    "multi": MULTI,
+    "family": False,
 }
 SOLO = {"captured": CAPTURED, "out": OUT, "ids": range(1101, 1603), "single": SINGLE, "multi": MULTI, "family": False}
 # Torres (Tower of Kings 8200/8202-8204 e The Spire 8201, migração 0102): em grupo (Capacity 4, sala), um mapa cada
@@ -365,6 +376,8 @@ def main(cfg: dict[str, Any]) -> None:
     if cfg is TOWERS:
         for cid in cfg["ids"]:
             g.level[cid] += TOWER_STEP * (int(g.rows[cid]["DifficultyGrade"]) - 1)
+    if "base" in cfg:
+        captured = json.loads(cfg["base"].read_text(encoding="utf-8")) | captured
     result: dict[str, Any] = {}
     for row in t.rows("Campaigns"):
         cid = int(row["CampaignId"])
@@ -437,4 +450,8 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["casamento"]:
         wedding()
         sys.exit()
-    main({"grupo": GROUP, "torres": TOWERS, "floresta": FOREST}.get(sys.argv[1] if sys.argv[1:] else "", SOLO))
+    main(
+        {"grupo": GROUP, "torres": TOWERS, "floresta": FOREST, "1007": CAMP_CALORN}.get(
+            sys.argv[1] if sys.argv[1:] else "", SOLO
+        )
+    )
