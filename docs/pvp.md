@@ -277,8 +277,12 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 1214
 - **PvP (8334)**: o alvo recebe 111 "X is attacking you!" e 83 com o link; perdedor perde `ceil(15%)`, vencedor
   ganha `20 + pontos do perdedor // 20`, 10 de honra e 10 pontos de PvP entre servidores (texto ", Cross-server PvP
   points +10"). O perdedor vai ao acampamento, 4175 state 1 (3 se carrega; o minério fica) por 25 s e renasce
-  (4175 state 0/2). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!").
-- **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141) persegue: 4105, 4494,
+  (4175 state 0/2) na próxima onda de `taxas.field_respawn_period` s desde a abertura (vistos 0 a 30 s).
+  Frases a todos (111 e 83 com link): primeiro sangue, sequência sem morrer (`taxas.field_streaks`: 3 spree,
+  4 dominating, 5-6 unstoppable, 7 god, 8+ Grimm Reaper) e "has put a stop to X's domination!" (sequência >=
+  `field_streak_stop`). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!").
+- **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141) da posição real (o trecho do
+  5124 andado a `taxas.field_move_speed` casas/s, 0142) persegue: 4105, 4494,
   128 nodeState 4, 157 tipo 32; na derrota 4104, 4103, 4122 de volta ao ponto, 4175 morto, 128 nodeState 1, 4494,
   4269 e "You lost: 150 Points." (`taxas.field_guardian_loss`). Vitória não vista (*inventado*: cai, nodeState 8).
 - **Fim** (StopTime): 4248 state 2, 83, 4254 (`oneTeamId` = vencedor, como o cliente lê em
@@ -289,8 +293,7 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 1214
 - **8338**: 200 Star Points (idioma `PvpMapRightView.reset`); cheio: "You already have full HP..." (#15796).
 - **Mina**: na abertura 4549 true e 83 "It's Amethyst Double Time!..." (191924 #14217-#14218).
 
-Ainda inventado: o lado de quem entra, o empate, o renascer fixo em 25 s (vistos 5 a 30 s), o alcance e a perda
-do guardião (um caso), a vitória contra o guardião, o 4388 `data`, o 4549 no login dentro da janela, as frases de
-sequência de abates ("first blood", "killing spree"...; não implementadas) e a honra/pontos extras de abate (visto
-11 e 12 uma vez, 121453 #9800).
+Ainda inventado: o lado de quem entra, o empate, a origem da onda de renascer, o passo do exército (~10 casas/s
+de um caso), o alcance e a perda do guardião (um caso), a vitória contra o guardião, o 4388 `data`, o 4549 no login
+dentro da janela, o limite do "stop" (um caso) e a honra/pontos extras de abate (11 e 12 uma vez, 121453 #9800).
 cruzados (Senhores).

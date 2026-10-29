@@ -84,6 +84,9 @@ class Mark:
     team: int = TEAM  # lado no campo (teamId do 4252/4255)
     fighting: bool = False  # numa luta do 8334 (4494 state 2)
     dead: bool = False  # esperando renascer (4175 state 1/3)
+    streak: int = 0  # abates desde a última morte (as frases de sequência)
+    path: tuple[tuple[int, int], ...] = ()  # o último trecho do 5124 (casas) e quando chegou
+    path_at: float = 0.0
     name: str = ""  # nickName do 4255/4254 (visto #9632: todos com nome)
     server: str = ""
 
@@ -98,6 +101,7 @@ class Field:
     marks: dict[int, Mark] = field(default_factory=dict)
     points: dict[int, int] = field(default_factory=lambda: dict.fromkeys(SIDES, 0))
     busy: set[int] = field(default_factory=set)  # guardiões numa luta (128 nodeState 4)
+    first_blood: bool = False  # o primeiro abate da partida já saiu
     settled: bool = False
 
     def mark(self, player_id: int) -> Mark:
@@ -268,3 +272,36 @@ def turn_in_text(quality: str, points: int, honor: int, shards: int) -> str:
 
 def win_text(insignia: int = WIN_INSIGNIA, honor: int = WIN_HONOR) -> str:
     return f"The battle has ended! You received Insignia x{insignia} and honor x{honor}! "
+
+
+# frases de sequência de abates (texto do servidor, visto 152321 e 121453; vão no 111 e no 83 a todos no campo)
+FIRST_BLOOD = "{} has spilled the first blood!"  # 121453 #8665
+STOP_TEXT = "{} has put a stop to {}'s domination!"  # 152321 #10966-#10970
+STREAK_TEXTS = {
+    "spree": "{} is on a killing spree!",  # #9968
+    "dominating": "{} is dominating the field!",  # #10068
+    "unstoppable": "{} is unstoppable!",  # #10225
+    "god": "{} is close to a god! Someone stop him/her!",  # #11022
+    "reaper": "{} has killed more souls than the Grimm Reaper!",  # #11460
+}
+
+
+def streak_text(streak: int, table: list[list[Any]]) -> str | None:
+    """A frase do abate número ``streak`` sem morrer: a da maior marca de ``taxas.field_streaks`` alcançada."""
+    hit = [name for at, name in table if streak >= int(at)]
+    return STREAK_TEXTS.get(hit[-1]) if hit else None
+
+
+def respawn_ms(opened: datetime, now: datetime, period_s: int) -> int:
+    """Renascer em onda: no próximo múltiplo de ``period_s`` desde a abertura (vistos 0, 5, 10, 20, 25 e 30 s)."""
+    if period_s <= 0:
+        return 0
+    elapsed = (now - opened).total_seconds()
+    return int(round((period_s - elapsed % period_s) * 1000))
+
+
+def position_at(path: tuple[tuple[int, int], ...], elapsed: float, speed: float) -> tuple[int, int] | None:
+    """A casa do caminho depois de ``elapsed`` s andando a ``speed`` casas/s (o fim, se já chegou)."""
+    if not path:
+        return None
+    return path[min(len(path) - 1, max(0, int(elapsed * speed)))]

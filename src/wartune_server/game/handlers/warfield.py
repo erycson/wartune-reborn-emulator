@@ -11,6 +11,7 @@ Missões: 44 na entrada, 45 (abates) a cada vitória no PvP e 50 (vitória no ca
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import datetime
 from typing import Any
 
@@ -40,10 +41,10 @@ S_WAR_MOVIE, S_HONOR = 4269, 4471  # WarMovieMsg (U_C_WARMOVIE), SimplePropertyM
 S_CROSS, S_ARMY_POS, S_SNS, S_REPORT = 4494, 4104, 4388, 4103  # CrossArmyListMsg, ArmyPosUpdatedMsg, SnsRspMsg
 PVP_TYPE, PVP_SCENE, SNS_PVP = 32, 11, 4  # 157 do 8334 (visto #9662, #11103); 4388 type 4 na vitória (#11111)
 KILL_QUEST, WIN_QUEST = 45, 50  # "Battleground Kills" (missão 767 sobe no #11106) e "Obtain Victory in War Camp"
-# o perdedor volta ao acampamento do lado (``bf.CAMP``) morto por 25 s (visto #9797 e #10273 com o nosso jogador;
-# outros vieram com 5, 10 e 30 s, #9655, #9969, #9775: parece uma onda de renascer, TODO(inventado) fixo em 25 s);
-# morto carregando minério é o state 3 e o minério fica (visto #10273 state 3, #10384 state 2, entrega #10406)
-RESPAWN_MS, DEAD, DEAD_CARRYING = 25000, 1, 3
+# o perdedor volta ao acampamento do lado (``bf.CAMP``) e espera a onda de renascer (``bf.respawn_ms``: vistos 0, 5,
+# 10, 20, 25 e 30 s, #10534, #9655, #9969, 121453 #9015, #9797, #9775); morto carregando minério é o state 3 e o
+# minério fica (visto #10273 state 3, #10384 state 2, entrega #10406)
+DEAD, DEAD_CARRYING = 1, 3
 CROSS_POINTS = 10  # (visto #11130) ", Cross-server PvP points +10" (pvpHeroHelperFrame: abates no campo dão pontos)
 WIN_TEXT = "You received: {} Points and {} Honor., Cross-server PvP points +{}"
 LOSE_TEXT = "You lost: {} Points."
@@ -362,19 +363,24 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
     lm.score -= lost
     wm.score, wm.honor, wm.wins = wm.score + gained, wm.honor + bf.KILL_HONOR, wm.wins + 1
     field.gain(wm.team, gained)
+    wm.streak += 1
+    texts = _streak_texts(ctx, field, winner, loser, wm, lm)
+    lm.streak = 0
     here = [o for o in (winner, loser) if o.campaign is not None and o.campaign.warfield == cid]
     if loser in here:
         camp = bf.CAMP[lm.team]
         loser.campaign.pos = camp  # type: ignore[union-attr]
-        lm.dead = True
         _to_map(ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=loser.player_id, curPosX=camp[0], curPosY=camp[1],
                                                            serverName=lm.server))  # fmt: skip
-        dead = DEAD_CARRYING if lm.carry else DEAD
-        _to_map(ctx, cid, S_PLAYER_STATE, _state_msg(loser.player_id, dead, lm.server, RESPAWN_MS))
-        asyncio.get_running_loop().call_later(RESPAWN_MS / 1000, _revive, ctx, field, loser.player_id)
+    for text in texts:  # (visto #10963-#10970): 111 logo depois do 4104, 83 depois do 4494; os dois com link
+        _to_map(ctx, cid, S_ALERT, _chat(text, 7))
+    if loser in here:
+        _die(ctx, field, loser.player_id)
     _push_info(ctx, field)
     rows = [(o, o.campaign.pos, 0) for o in here]  # type: ignore[union-attr]
     _to_map(ctx, cid, S_CROSS, _cross(*rows))
+    for text in texts:
+        _to_map(ctx, cid, S_CHAT, _chat(text, 3))
     s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))  # (visto) #11103
     saves = add_honor(winner, bf.KILL_HONOR) if winner.snapshot is not None else []
     await _quest(winner, KILL_QUEST)  # (visto #11106): 112 da 767 depois do 4471/3
@@ -397,6 +403,34 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
         o.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=honor, isAdd=add, userId=o.player_id, serverName=name))
         o.send(S_ALERT, _chat(text, 7))
         o.send(S_CHAT, _chat(text, 3))
+
+
+def _streak_texts(
+    ctx: GameContext, field: bf.Field, winner: GameSession, loser: GameSession, wm: bf.Mark, lm: bf.Mark
+) -> list[str]:
+    """As frases do abate (``wm.streak`` já com este): primeiro sangue da partida, a da sequência
+    (``taxas.field_streaks``) e o "pôs fim" a quem estava em sequência de ``taxas.field_streak_stop``."""
+    out = []
+    win, lose = _link(winner), _link(loser)
+    if not field.first_blood:
+        field.first_blood = True
+        out.append(bf.FIRST_BLOOD.format(win))
+    if (line := bf.streak_text(wm.streak, taxas.get(ctx.world.settings, "field_streaks"))) is not None:
+        out.append(line.format(win))
+    if lm.streak >= int(taxas.get(ctx.world.settings, "field_streak_stop")):
+        out.append(bf.STOP_TEXT.format(win, lose))
+    return out
+
+
+def _die(ctx: GameContext, field: bf.Field, player_id: int) -> None:
+    """Morto até a próxima onda (``bf.respawn_ms``, ``taxas.field_respawn_period``): 4175 state 1, ou 3 carregando."""
+    mark = field.marks[player_id]
+    mark.dead, mark.streak = True, 0
+    now = ctx.clock.now()
+    left = bf.respawn_ms(field.opened, now, int(taxas.get(ctx.world.settings, "field_respawn_period")))
+    dead = DEAD_CARRYING if mark.carry else DEAD
+    _to_map(ctx, field.campaign_id, S_PLAYER_STATE, _state_msg(player_id, dead, mark.server, left))
+    asyncio.get_running_loop().call_later(left / 1000, _revive, ctx, field, player_id)
 
 
 def _revive(ctx: GameContext, field: bf.Field, player_id: int) -> None:
@@ -627,7 +661,30 @@ def broadcast_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
     move = pb.PosMoveMsg(mapId=c.warfield, armyId=s.player_id, routes=msg.routes, serverName=snap.server.name)
     for other in on_map(s, c.warfield):
         other.send(S_MOVE, move)
-    guardian_chase(s)
+    found = _field(s)
+    if found is None:
+        return
+    mark = found[0].mark(s.player_id)
+    mark.path = tuple((r.x // bf.TILE, r.y // bf.TILE) for r in msg.routes)
+    mark.path_at = time.monotonic()
+    _watch_path(s, found[0], mark.path_at)
+
+
+def _watch_path(s: GameSession, field: bf.Field, started: float) -> None:
+    """Segue o trecho andado (``taxas.field_move_speed`` casas/s) e chama ``guardian_chase`` na casa em que o jogador
+    entra no alcance; um 5124 novo troca o trecho e este para."""
+    mark = field.mark(s.player_id)
+    if mark.path_at != started or s.campaign is None or not s.campaign.is_warfield:
+        return
+    speed = float(taxas.get(s.ctx.world.settings, "field_move_speed"))
+    elapsed = time.monotonic() - started
+    pos = bf.position_at(mark.path, elapsed, speed)
+    if pos is None:
+        return
+    s.campaign.pos = pos
+    if guardian_chase(s) or pos == mark.path[-1]:
+        return
+    asyncio.get_running_loop().call_later(1 / speed, _watch_path, s, field, started)
 
 
 S_CHASE, S_NODE, S_NPC_MOVE = 4105, 128, 4122  # NPCChaseMsg, CampaignNodeUpdateMsg, NPCMoveMsg
@@ -711,10 +768,7 @@ async def _guardian_over(s: GameSession, field: bf.Field, camp: int, node: dict[
     if not here:
         return
     _to_map(ctx, cid, S_NPC_MOVE, pb.NPCMoveMsg(id=camp, curPosX=int(node["posX"]), curPosY=int(node["posY"])))
-    mark.dead = True
-    dead = DEAD_CARRYING if mark.carry else DEAD
-    _to_map(ctx, cid, S_PLAYER_STATE, _state_msg(s.player_id, dead, mark.server, RESPAWN_MS))
-    asyncio.get_running_loop().call_later(RESPAWN_MS / 1000, _revive, ctx, field, s.player_id)
+    _die(ctx, field, s.player_id)
     _to_map(ctx, cid, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=ALIVE_NODE, param1=int(node["param1"])))
     _to_map(ctx, cid, S_CROSS, _cross((s, home, 0)))
     lost = min(mark.score, int(taxas.get(ctx.world.settings, "field_guardian_loss")))

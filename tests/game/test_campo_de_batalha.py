@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from tests.game.harness import logged_in
@@ -177,3 +177,16 @@ def test_lados_e_vencedor_pelos_pontos_do_lado() -> None:
     assert field.mark(1).score == bf.START_SCORE and field.score(2) == 0  # entrar não soma ao lado
     field.gain(1, 30)
     assert field.winner() == 1
+
+
+def test_frases_de_sequencia_onda_de_renascer_e_posicao_no_caminho() -> None:
+    table = [[3, "spree"], [4, "dominating"], [5, "unstoppable"], [7, "god"], [8, "reaper"]]
+    assert [bf.streak_text(n, table) for n in (2, 3, 6, 9)] == [
+        None,
+        bf.STREAK_TEXTS["spree"],
+        bf.STREAK_TEXTS["unstoppable"],
+        bf.STREAK_TEXTS["reaper"],
+    ]
+    assert bf.respawn_ms(IN_4005, IN_4005 + timedelta(seconds=65), 30) == 25000
+    path = ((10, 10), (11, 10), (12, 10))
+    assert bf.position_at(path, 0.15, 10) == (11, 10) and bf.position_at(path, 9, 10) == (12, 10)

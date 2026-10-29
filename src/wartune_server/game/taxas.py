@@ -34,6 +34,11 @@ DEFAULTS: dict[str, Any] = {
     # 0141: guardião do campo: distância (em casas) em que persegue e os pontos perdidos para ele
     "field_guardian_range": 26,
     "field_guardian_loss": 150,
+    # 0142: frases de sequência de abates, onda de renascer e passo do exército no campo
+    "field_streaks": [[3, "spree"], [4, "dominating"], [5, "unstoppable"], [7, "god"], [8, "reaper"]],
+    "field_streak_stop": 4,
+    "field_respawn_period": 30,
+    "field_move_speed": 10,
 }
 
 
