@@ -477,7 +477,8 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 - **Corneta (8638..8640):** `SinglePass_Count` existe; sem item nem tabela do passe.
 - **Loteria (8748/8750), caça-níquel (9500), cadeiras (9638), sorteio de grupo (9523):** feitos
   (`handlers/lottery.py`, `slot.py`, `chairs.py`, `group_draw.py`), abertos por `game_settings` (as capturas só os
-  mostram fechados: 4637 #107, 4901 #87, 414 #112). Sorteios, padrões e a regra das cadeiras inventados; o sorteio de
+  mostram fechados: 4637 #107, 4901 #87, 414 #112). Os sete minijogos vêm ligados pela migração 0103, com todos os
+  parâmetros em `game_settings` (cada valor com `source`); veio do minério e avisos da loteria gravados no banco. Sorteios, padrões e a regra das cadeiras inventados; o sorteio de
   grupo depende da compra coletiva (8645). **Captura que falta**: cada um num dia em que o oficial o abre.
 - **Caixa de ano novo (8994), história (8629/8630):** sem template nem config no servidor.
 - **360 (8722/8723):** `PrivilegeDrops` existe, mas o cliente só mostra com `isIn360Agent`.

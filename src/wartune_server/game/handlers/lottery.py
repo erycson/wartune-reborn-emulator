@@ -1,6 +1,6 @@
-"""Loteria, "Wheel of Prosperity" (8750 abrir, 8748 girar). Edição em ``game_settings.lottery`` (``begin``/``end``
-em hora do jogo, ``onceNeedPoint``, ``dayMaxCount``, ``items`` [[TemplateId, quantidade], ...] até 16 e ``weights``
-opcional); sem ela, fechada (4637 ``isOpen`` falso, como em todas as capturas).
+"""Loteria, "Wheel of Prosperity" (8750 abrir, 8748 girar). Regras em ``game_settings.lottery`` (migração 0103: edição
+``begin``/``cycleDays``, ``onceNeedPoint``, ``dayMaxCount``, ``items`` [[TemplateId, quantidade], ...] até 16,
+``weights``, ``noticeText``, ``notices``); sem ela, fechada (4637 ``isOpen`` falso, como em todas as capturas).
 
 Cliente (``LotteryManager``, ``LotteryFrame``) e idioma (``lottery.LotteryFrame.describe``: "cumulatively consumes
 {0} Balens to obtain a Lucky Draw attempt", "a maximum of {1} Lucky Draw attempts daily"):
@@ -12,7 +12,7 @@ Cliente (``LotteryManager``, ``LotteryFrame``) e idioma (``lottery.LotteryFrame.
   que sobram; ``param3`` quantidade). O cliente põe "Obtained {0}x{1}" no chat sozinho.
 
 As tentativas saem do ``cash_ledger``: por dia do jogo, ``min(dayMaxCount, gasto // onceNeedPoint)``.
-TODO(inventado): sorteio pelos ``weights`` (uniforme sem eles), padrões 100 Balens e 5 por dia, texto do 4639.
+Os últimos prêmios do servidor ficam gravados na linha ``lottery:notices`` de quem girou por último (``mj.shared``).
 """
 
 from __future__ import annotations
@@ -31,11 +31,8 @@ from . import minijogo as mj
 
 S_INFO, S_STATE, S_NOTICE, S_ITEMS, S_RESULT = 4636, 4637, 4639, 4641, 4642
 KEY = "lottery"
-ONCE, DAY_MAX = 100, 5  # TODO(inventado): padrões quando a edição não diz
-NOTICE = "{} obtained {} x{}"  # TODO(inventado): o texto do 4639 não está em captura nem no idioma
-NOTICES = 10
+NOTICES = "lottery:notices"
 RNG = random.Random()  # os testes trocam
-_notices: dict[str, list[str]] = {}  # edição -> últimos prêmios do servidor (memória: some ao reiniciar)
 
 
 def state_msg(s: GameSession) -> pb.LotteryMsg:
@@ -44,8 +41,8 @@ def state_msg(s: GameSession) -> pb.LotteryMsg:
 
 async def _earned(s: GameSession, c: Any, now: datetime) -> tuple[int, int, int]:
     """(ganhas na edição, ganhas hoje, Balens gastos hoje)."""
-    once, cap = int(c.get("onceNeedPoint", ONCE)), int(c.get("dayMaxCount", DAY_MAX))
-    start, total, today, paid = gameday.day_start(mj.at(c, "begin")), 0, 0, 0
+    once, cap = int(c["onceNeedPoint"]), int(c["dayMaxCount"])
+    start, total, today, paid = gameday.day_start(_edition(c, now)[0]), 0, 0, 0
     while start <= now:
         end = start + timedelta(days=1)
         spent = await s.ctx.characters.read(lambda uow, a=start, z=end: uow.characters.spent(s.player_id, a, z))
@@ -55,9 +52,20 @@ async def _earned(s: GameSession, c: Any, now: datetime) -> tuple[int, int, int]
     return total, today, paid
 
 
-def _used(snap: PlayerSnapshot, c: Any) -> int:
+def _edition(c: Any, now: datetime) -> tuple[datetime, datetime]:
+    ed = mj.edition(c, now)
+    assert ed is not None
+    return ed
+
+
+def _used(snap: PlayerSnapshot, c: Any, now: datetime) -> int:
     data = mj.load(snap, KEY)
-    return int(data.get("used", 0)) if data.get("edition") == c["begin"] else 0
+    return int(data.get("used", 0)) if data.get("edition") == mj.fmt(_edition(c, now)[0]) else 0
+
+
+async def _notices(s: GameSession, c: Any, now: datetime) -> list[str]:
+    data = await mj.shared(s, NOTICES)
+    return list(data.get("lines", [])) if data.get("edition") == mj.fmt(_edition(c, now)[0]) else []
 
 
 @router.on(8750)
@@ -71,41 +79,41 @@ async def lottery(s: GameSession, _: object) -> None:
     info = pb.LotteryMsg(
         payedPoint=paid,
         totalCount=total,
-        leftCount=total - _used(snap, c),
-        dayMaxCount=int(c.get("dayMaxCount", DAY_MAX)),
-        onceNeedPoint=int(c.get("onceNeedPoint", ONCE)),
+        leftCount=total - _used(snap, c, now),
+        dayMaxCount=int(c["dayMaxCount"]),
+        onceNeedPoint=int(c["onceNeedPoint"]),
         leftMillis=mj.left_ms(c, now),
         isOpen=True,
         dayAddCount=today,
     )
     s.send(S_INFO, b.complete(info))
     items = pb.VipRouletteMsg()
-    for tid, n in mj.pairs(c.get("items", []))[:16]:
+    for tid, n in mj.pairs(c["items"])[:16]:
         items.leftItem.add(tempId=tid, count=n)
     s.send(S_ITEMS, b.complete(items))
-    s.send(S_NOTICE, b.complete(pb.LotteryMsg(property3=_notices.get(c["begin"], []))))
+    s.send(S_NOTICE, b.complete(pb.LotteryMsg(property3=await _notices(s, c, now))))
 
 
 @router.on(8748)
 async def spin(s: GameSession, _: object) -> None:
     c, now, snap = mj.cfg(s, KEY), s.ctx.clock.now(), s.snapshot
     assert snap is not None
-    items = mj.pairs(c.get("items", []))[:16] if c else []
-    if not mj.is_open(c, now) or not items:
+    if not mj.is_open(c, now) or not c["items"]:
         s.send(S_STATE, state_msg(s))  # o cliente fecha a tela com isOpen falso
         return
+    items = mj.pairs(c["items"])[:16]
     total = (await _earned(s, c, now))[0]
-    used = _used(snap, c)
+    used = _used(snap, c, now)
     if used >= total:
         s.log.info("8748 sem tentativa", ganhas=total, usadas=used)
         s.send(S_RESULT, b.complete(pb.SimplePropertyMsg(param1=0, param2=0)))
         return
-    weights = [float(w) for w in c.get("weights", [])][: len(items)] or None
-    tid, n = RNG.choices(items, weights=weights)[0]
-    st = mj.store(snap, KEY, {"edition": c["begin"], "used": used + 1}, now)
-    await mj.give(s, snap, [(tid, n)], st, chat=False)  # o 83 "Obtained" é do cliente (LotteryFrame)
-    s.send(S_RESULT, b.complete(pb.SimplePropertyMsg(param1=tid, param2=total - used - 1, param3=n)))
+    tid, n = RNG.choices(items, weights=[float(w) for w in c["weights"]][: len(items)])[0]
+    edition = mj.fmt(_edition(c, now)[0])
     name = (s.ctx.templates.get("ItemTempInfos", tid) or {}).get("TemplateName", str(tid))
-    notices = _notices.setdefault(c["begin"], [])
-    notices.insert(0, NOTICE.format(snap.character.nickname, name, n))
-    del notices[NOTICES:]
+    line = str(c["noticeText"]).format(nick=snap.character.nickname, item=name, count=n)
+    lines = [line, *await _notices(s, c, now)][: int(c["notices"])]
+    st = mj.store(snap, KEY, {"edition": edition, "used": used + 1}, now)
+    board = mj.store(snap, NOTICES, {"edition": edition, "lines": lines}, now)
+    await mj.give(s, snap, [(tid, n)], st, board, chat=False)  # o 83 "Obtained" é do cliente (LotteryFrame)
+    s.send(S_RESULT, b.complete(pb.SimplePropertyMsg(param1=tid, param2=total - used - 1, param3=n)))

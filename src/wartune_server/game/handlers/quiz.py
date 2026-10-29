@@ -1,5 +1,6 @@
 """Quiz (9501 ``AnswerquestionReqMsg {type, count}``; 4907 jogador, 4908 estado, 4909 pergunta, 4910 os 10 primeiros).
-Edição em ``game_settings.quiz``; sem ela, fechado (4908 ``sysState`` 0).
+Regras em ``game_settings.quiz`` (migração 0103: agenda, tempos, pontos, ajudas, EXP e a banca, cada valor com a
+``source``); sem ela, fechado (4908 ``sysState`` 0).
 
 Idioma (``answer.view.helpHtmlTxt``): segunda, quarta e sexta, 19:30-20:00; 5 s para ler, 15 s para responder, a
 resposta sai em 5 s; pontos pelo acerto e pelo tempo que sobrou, 1 ponto no erro ou sem resposta; três ajudas (VIP
@@ -15,7 +16,7 @@ Cliente (``AnswerManager``, ``AnswerModel``), nível 30:
 - pedidos: ``type`` 1 ``count`` 11/12 abre/fecha a tela, 2 ajuda (21 dobro, 22 coração, 23 olho), 3 a opção (1-4).
 
 Banca: nem o cliente nem a internet trazem perguntas com resposta (``HeartTempInfos`` é o jogo do casamento, sem
-certa). TODO(inventado): a banca ``QUESTIONS`` (a ``Option1`` é a certa: o cliente embaralha), 20 perguntas,
+certa). TODO(inventado): a banca ``questions`` (a ``Option1`` é a certa: o cliente embaralha), 20 perguntas,
 pontos (10 + segundos que sobraram, dobro com 21), uma ajuda de cada (duas com VIP), EXP no fim (pontos x nível x
 10; extra (11 - posição) x nível x 100) só para quem está online, e o estado 1 a partir de 30 min antes.
 """
@@ -38,37 +39,10 @@ from . import minijogo as mj
 
 S_PLAYER, S_STATE, S_QUESTION, S_RANK = 4907, 4908, 4909, 4910
 KEY = "quiz"
-OPEN_GRADE = 30
 UI, ITEM, ANSWER = 1, 2, 3
 UI_OPEN, UI_CLOSE = 11, 12
 DOUBLE, HEART, EYES = 21, 22, 23
 CLOSED, READY, READ, ASK, RESULT, END = range(6)
-READ_S, ASK_S, RESULT_S = 5, 15, 5
-CYCLE = READ_S + ASK_S + RESULT_S
-DEFAULTS: dict[str, Any] = {"weekdays": [0, 2, 4], "start": "19:30", "minutes": 30, "count": 20, "readyMinutes": 30}
-# TODO(inventado): banca (pergunta, certa, três erradas)
-QUESTIONS = [
-    ("How many players can join a party?", "3", "2", "5", "10"),
-    ("Which currency is used to buy items in the Mall?", "Balens", "Gold", "Daru", "Kyanite"),
-    ("What do you need to learn hero skills?", "Daru", "Gold", "Kyanite", "Balens"),
-    ("Which building trains troops?", "Barracks", "Temple", "Fountain", "Tavern"),
-    ("Which building produces gold?", "Houses", "Barracks", "Wall", "Tavern"),
-    ("How many days does a week have?", "7", "5", "6", "8"),
-    ("What color is the sky on a clear day?", "Blue", "Green", "Red", "Purple"),
-    ("How many hours are in a day?", "24", "12", "20", "36"),
-    ("Which animal is known as the king of the jungle?", "Lion", "Tiger", "Wolf", "Bear"),
-    ("Which planet is closest to the Sun?", "Mercury", "Venus", "Earth", "Mars"),
-    ("How many legs does a spider have?", "8", "6", "10", "4"),
-    ("What is frozen water called?", "Ice", "Steam", "Fog", "Dew"),
-    ("Which is the largest ocean?", "Pacific", "Atlantic", "Indian", "Arctic"),
-    ("How many minutes are in an hour?", "60", "100", "30", "90"),
-    ("Which metal is liquid at room temperature?", "Mercury", "Iron", "Copper", "Silver"),
-    ("What do bees make?", "Honey", "Milk", "Silk", "Wax paper"),
-    ("Which season comes after winter?", "Spring", "Summer", "Autumn", "Winter"),
-    ("How many sides does a triangle have?", "3", "4", "5", "6"),
-    ("What is the opposite of victory?", "Defeat", "Triumph", "Glory", "Honor"),
-    ("Which gas do plants absorb?", "Carbon dioxide", "Oxygen", "Helium", "Neon"),
-]
 
 
 @dataclass
@@ -100,13 +74,16 @@ _tickers: dict[int, asyncio.Task[None]] = {}
 
 def _cfg(s: GameSession | GameContext) -> dict[str, Any]:
     world = s.world if isinstance(s, GameContext) else s.ctx.world
-    c = world.settings.get(KEY) or {}
-    return {**DEFAULTS, **c} if c else {}
+    return world.settings.get(KEY) or {}
 
 
 def _questions(c: dict[str, Any]) -> list[Any]:
-    bank = c.get("questions") or QUESTIONS
-    return list(bank)[: int(c["count"])]
+    return list(c["questions"])[: int(c["count"])]
+
+
+def _secs(c: dict[str, Any]) -> tuple[int, int, int]:
+    """(leitura, resposta, resultado) em segundos."""
+    return int(c["readSeconds"]), int(c["askSeconds"]), int(c["resultSeconds"])
 
 
 def _start(c: dict[str, Any], now: datetime) -> datetime | None:
@@ -125,15 +102,17 @@ def phase(c: dict[str, Any], now: datetime) -> tuple[int, int, int]:
         return CLOSED, -1, 0
     t = (gameday.local(now) - start).total_seconds()
     count = len(_questions(c))
+    read_s, ask_s, result_s = _secs(c)
+    cycle = read_s + ask_s + result_s
     if -int(c["readyMinutes"]) * 60 <= t < 0:
         return READY, -1, int(-t * 1000)
-    if 0 <= t < count * CYCLE:
-        q, r = int(t // CYCLE), t % CYCLE
-        if r < READ_S:
-            return READ, q, int((READ_S - r) * 1000)
-        if r < READ_S + ASK_S:
-            return ASK, q, int((READ_S + ASK_S - r) * 1000)
-        return RESULT, q, int((CYCLE - r) * 1000)
+    if 0 <= t < count * cycle:
+        q, r = int(t // cycle), t % cycle
+        if r < read_s:
+            return READ, q, int((read_s - r) * 1000)
+        if r < read_s + ask_s:
+            return ASK, q, int((read_s + ask_s - r) * 1000)
+        return RESULT, q, int((cycle - r) * 1000)
     if 0 <= t < int(c["minutes"]) * 60:
         return END, count - 1, int((int(c["minutes"]) * 60 - t) * 1000)
     return CLOSED, -1, 0
@@ -177,20 +156,20 @@ def _player_msg(ed: Edition, pid: int) -> pb.playeranswerquestionMsg:
     )  # fmt: skip
 
 
-def _rank_msg(ed: Edition) -> pb.TenAnswerQuestionOrderMsg:
+def _rank_msg(c: dict[str, Any], ed: Edition) -> pb.TenAnswerQuestionOrderMsg:
     msg = pb.TenAnswerQuestionOrderMsg()
-    for i, (pid, p) in enumerate(_ranking(ed)[:10], start=1):
+    for i, (pid, p) in enumerate(_ranking(ed)[: int(c["topCount"])], start=1):
         msg.tenAQ_Info.add(userId=pid, nickName=p.nick, curOrder=i, currentScore=p.score)
     return msg
 
 
-def _join(s: GameSession, ed: Edition) -> Player:
+def _join(s: GameSession, c: dict[str, Any], ed: Edition) -> Player:
     from .vip import vip_grade  # noqa: PLC0415  (vip importa handlers que importam este)
 
     snap = s.snapshot
     assert snap is not None
     if s.player_id not in ed.players:
-        n = 2 if vip_grade(s, snap) > 0 else 1
+        n = int(c["vipHelps"] if vip_grade(s, snap) > 0 else c["helps"])
         ed.players[s.player_id] = Player(snap.character.nickname or "", helps={DOUBLE: n, HEART: n, EYES: n})
     return ed.players[s.player_id]
 
@@ -201,13 +180,13 @@ async def quiz(s: GameSession, msg: pb.AnswerquestionReqMsg) -> None:
     assert snap is not None
     state, q, _ = phase(c, now)
     ed = _edition(s.ctx, c, now)
-    if ed is None or state == CLOSED or snap.character.grades < OPEN_GRADE:
+    if ed is None or state == CLOSED or snap.character.grades < int(c["openGrade"]):
         s.send(S_STATE, b.complete(pb.SysAnswerQuestionStateMsg(sysState=CLOSED)))
         return
     if msg.type == UI and msg.count == UI_CLOSE:
         ed.watching.discard(s.player_id)
         return
-    p = _join(s, ed)
+    p = _join(s, c, ed)
     if msg.type == UI:
         ed.watching.add(s.player_id)
         _ensure_ticker(s.ctx)
@@ -215,7 +194,7 @@ async def quiz(s: GameSession, msg: pb.AnswerquestionReqMsg) -> None:
         if q >= 0:
             s.send(S_QUESTION, b.complete(_question(c, q, _correct(q) if state >= RESULT else 0)))
         s.send(S_PLAYER, b.complete(_player_msg(ed, s.player_id)))
-        s.send(S_RANK, b.complete(_rank_msg(ed)))
+        s.send(S_RANK, b.complete(_rank_msg(c, ed)))
     elif msg.type == ANSWER and state == ASK and p.choice == 0 and 1 <= msg.count <= 4:
         p.choice, p.left = msg.count, int(phase(c, now)[2] // 1000)
     elif msg.type == ITEM and p.helps.get(msg.count, 0) > 0 and state in (READ, ASK):
@@ -270,7 +249,8 @@ async def tick(ctx: GameContext) -> bool:
     if state == RESULT:
         for p in ed.players.values():
             ok = p.choice == _correct(q)
-            p.score += (10 + p.left) * (2 if p.double else 1) if ok else 1
+            gain = (int(c["rightBase"]) + p.left) * (int(c["doubleFactor"]) if p.double else 1)
+            p.score += gain if ok else int(c["wrongPoints"])
             p.right += ok
     elif state == READ:
         for p in ed.players.values():
@@ -283,14 +263,14 @@ async def tick(ctx: GameContext) -> bool:
         elif state == RESULT:
             o.send(S_QUESTION, b.complete(_question(c, q, _correct(q))))
             o.send(S_PLAYER, b.complete(_player_msg(ed, o.player_id)))
-            o.send(S_RANK, b.complete(_rank_msg(ed)))
+            o.send(S_RANK, b.complete(_rank_msg(c, ed)))
     if state == END and not ed.paid:
         ed.paid = True
-        await _pay(ctx, ed)
+        await _pay(ctx, c, ed)
     return state not in (CLOSED,)
 
 
-async def _pay(ctx: GameContext, ed: Edition) -> None:
+async def _pay(ctx: GameContext, c: dict[str, Any], ed: Edition) -> None:
     for order, (pid, p) in enumerate(_ranking(ed), start=1):
         o = ctx.online.get(pid)
         if o is None or o.snapshot is None:

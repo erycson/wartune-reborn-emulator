@@ -1,5 +1,6 @@
-"""Minério de Stokes (9645 ``extend1`` 35, ``OreActiveClientOpMsg {opType, isUseProp}``). Edição em
-``game_settings.stokes_ore``; sem ela, fechado (190 ``param7`` falso, como em todas as capturas).
+"""Minério de Stokes (9645 ``extend1`` 35, ``OreActiveClientOpMsg {opType, isUseProp}``). Regras em
+``game_settings.stokes_ore`` (migração 0103, edição diária ``begin``/``cycleDays``, preços, golpes, andares, achados,
+textos, cada valor com a ``source``); sem a chave, fechado (190 ``param7`` falso, como em todas as capturas).
 
 Cliente (``StokesOreManager``, ``StokesOreModel``, ``StokesOreFrame``):
 
@@ -12,11 +13,11 @@ Cliente (``StokesOreManager``, ``StokesOreModel``, ``StokesOreFrame``):
   ``countDown`` segundos até o veio novo (-1 o cliente zera a barra);
 - 187 ``OreMineRespMsg``: ``passType`` 1 as linhas dos meus achados (somam no painel), 2 as linhas dos prêmios
   especiais do servidor;
-- ops: 3 abrir (188, 189, 187 tipo 2), 1 um golpe, 2 dez; ``isUseProp`` gasta a picareta 208523 antes dos Balens
-  (``sendOpen``: o preço cai ``oneOpenCost`` por picareta).
+- ops: 3 abrir (188, 189, 187 tipo 2), 1 um golpe, 2 dez; ``isUseProp`` gasta a picareta ``pickItem`` antes dos
+  Balens (``sendOpen``: o preço cai ``oneOpenCost`` por picareta).
 
-Sem captura nem idioma em inglês. TODO(inventado): preços 10/95, 50 golpes e 3 especiais por dia, andares 25/50/75/100,
-1 min de espera entre veios, achados e textos; o andar do veio fica na memória do processo (reinício zera).
+O veio do servidor (andar, fim da espera, avisos) fica gravado na linha ``stokes_ore:vein`` de quem golpeou por último
+(``mj.shared``).
 """
 
 from __future__ import annotations
@@ -37,40 +38,22 @@ from .player import _player, alert
 
 S_MINE, S_BASE, S_WINDOW, S_OPEN, S_ITEMS = 187, 188, 189, 190, 115
 KEY = "stokes_ore"
+VEIN = "stokes_ore:vein"
 ONE, TEN, OPEN = 1, 2, 3
 MINE, LUCK = 1, 2
-PICK = 208523
-DEFAULTS: dict[str, Any] = {  # TODO(inventado): sem captura
-    "oncePrice": 10,
-    "tenPrice": 95,
-    "dailyTurns": 50,
-    "dailySpecial": 3,
-    "cooldown": 60,
-    "finds": [[208009, 1, 50], [208014, 1, 30], [3020010, 1, 15], [2131019, 1, 5]],
-    "special": [[25, [[208017, 2]]], [50, [[208017, 5]]], [75, [[2131018, 1]]], [100, [[2131023, 1]]]],
-}
-FIND_LINE = "Received {} x{}"  # TODO(inventado): textos do 187
-LUCK_LINE = "{} reached floor {} and received {} x{}"
 RNG = random.Random()  # os testes trocam
-# shortcut: veio de cada servidor na memória do processo, sem gravar; gravar se o reinício no meio da edição importar
-_veins: dict[int, dict[str, Any]] = {}
-
-
-def _cfg(s: GameSession) -> dict[str, Any]:
-    c = mj.cfg(s, KEY)
-    return {**DEFAULTS, **c} if c else {}
 
 
 def open_msg(s: GameSession) -> pb.SimplePropertyMsg:
-    c, now = mj.cfg(s, KEY), s.ctx.clock.now()
-    if not c:
+    ed = mj.edition(mj.cfg(s, KEY), s.ctx.clock.now())
+    if ed is None:
         return pb.SimplePropertyMsg(param7=False)
-    return pb.SimplePropertyMsg(param7=mj.is_open(c, now), param4=str(c["begin"]), param5=str(c["end"]))
+    return pb.SimplePropertyMsg(param7=True, param4=mj.fmt(ed[0]), param5=mj.fmt(ed[1]))
 
 
-def _vein(s: GameSession, now: datetime) -> dict[str, Any]:
-    v = _veins.setdefault(s.snapshot.character.server_id if s.snapshot else 0, {"seq": 0, "next": None, "luck": []})
-    if v["next"] is not None and now >= v["next"]:
+async def _vein(s: GameSession, now: datetime) -> dict[str, Any]:
+    v = await mj.shared(s, VEIN) or {"seq": 0, "next": None, "luck": []}
+    if v["next"] is not None and now >= datetime.fromisoformat(v["next"]):
         v["seq"], v["next"] = 0, None
     return v
 
@@ -81,8 +64,8 @@ def _today(snap: PlayerSnapshot, now: datetime) -> dict[str, Any]:
     return data if data.get("day") == day else {"day": day, "turns": 0, "special": 0}
 
 
-def _window(c: dict[str, Any], data: dict[str, Any], v: dict[str, Any], now: datetime) -> pb.OreWindowMsg:
-    wait = int((v["next"] - now).total_seconds()) if v["next"] else 0
+def _window(c: Any, data: dict[str, Any], v: dict[str, Any], now: datetime) -> pb.OreWindowMsg:
+    wait = int((datetime.fromisoformat(v["next"]) - now).total_seconds()) if v["next"] else 0
     return pb.OreWindowMsg(
         todayRemainTurns=int(c["dailyTurns"]) - data["turns"],
         curSeq=v["seq"],
@@ -92,10 +75,12 @@ def _window(c: dict[str, Any], data: dict[str, Any], v: dict[str, Any], now: dat
     )
 
 
-def _base(c: dict[str, Any]) -> pb.OreActiveBaseInfoMsg:
+def _base(c: Any, now: datetime) -> pb.OreActiveBaseInfoMsg:
+    ed = mj.edition(c, now)
+    assert ed is not None
     msg = pb.OreActiveBaseInfoMsg(
-        openTime=str(c["begin"]),
-        closeTime=str(c["end"]),
+        openTime=mj.fmt(ed[0]),
+        closeTime=mj.fmt(ed[1]),
         mineOncePrice=int(c["oncePrice"]),
         mineTimesPrice=int(c["tenPrice"]),
     )
@@ -110,14 +95,14 @@ def _base(c: dict[str, Any]) -> pb.OreActiveBaseInfoMsg:
 
 
 async def operate(s: GameSession, msg: pb.OreActiveClientOpMsg) -> None:
-    c, now, snap = _cfg(s), s.ctx.clock.now(), s.snapshot
+    c, now, snap = mj.cfg(s, KEY), s.ctx.clock.now(), s.snapshot
     assert snap is not None
-    if not c or not mj.is_open(c, now):
+    if not mj.is_open(c, now):
         s.send(S_OPEN, open_msg(s))
         return
-    v, data = _vein(s, now), _today(snap, now)
+    v, data = await _vein(s, now), _today(snap, now)
     if msg.opType == OPEN:
-        s.send(S_BASE, b.complete(_base(c)))
+        s.send(S_BASE, b.complete(_base(c, now)))
     elif msg.opType in (ONE, TEN):
         await _mine(s, c, snap, v, data, 1 if msg.opType == ONE else 10, msg.isUseProp, now)
     else:
@@ -136,13 +121,14 @@ async def _mine(
     if hits <= 0 or v["next"] is not None:
         s.log.info("9645 minério recusado", golpes=hits, espera=v["next"])
         return
-    picks = min(bag.count_of(snap, PICK), hits) if use_pick else 0
+    pick = int(c["pickItem"])
+    picks = min(bag.count_of(snap, pick), hits) if use_pick else 0
     cost = int(c["tenPrice"]) if hits == 10 and not picks else int(c["oncePrice"]) * (hits - picks)
     paid = ledger.pay(snap.character, cost, bind=False, reason="stokes_ore", ref=str(hits), now=now) if cost else None
     if cost and paid is None:
-        alert(s, "Insufficient Balens")  # TODO(inventado): o cliente já barra (RechargeAlertMannager)
+        alert(s, str(c["noMoneyText"]))  # o cliente já barra (RechargeAlertMannager)
         return
-    changed, gone = bag.take(snap, PICK, picks) if picks else ([], [])
+    changed, gone = bag.take(snap, pick, picks) if picks else ([], [])
     drops: list[tuple[int, int]] = []
     hit_floors: list[int] = []
     for _ in range(hits):
@@ -154,16 +140,22 @@ async def _mine(
             hit_floors.append(v["seq"])
             for stid, sn in floors[v["seq"]]:
                 drops.append((int(stid), int(sn)))
-                name = bag.name(s.ctx.templates, int(stid))
-                v["luck"] = [LUCK_LINE.format(snap.character.nickname, v["seq"], name, sn), *v["luck"]][:10]
+                line = str(c["luckLine"]).format(
+                    nick=snap.character.nickname, floor=v["seq"], item=bag.name(s.ctx.templates, int(stid)), count=sn
+                )
+                v["luck"] = [line, *v["luck"]][: int(c["luckKeep"])]
         if v["seq"] >= bottom:
-            v["next"] = now + timedelta(seconds=int(c["cooldown"]))
+            v["next"] = (now + timedelta(seconds=int(c["cooldown"]))).isoformat()
     data["turns"] += hits
     if changed or gone:
         s.send(S_ITEMS, bag.moved(changed, s.player_id, gone))
     extra = [paid] if paid else []
-    await mj.give(s, snap, drops, mj.store(snap, KEY, data, now), *extra, *changed, chat=False, delete=tuple(gone))
+    vein = mj.store(snap, VEIN, v, now)
+    await mj.give(
+        s, snap, drops, mj.store(snap, KEY, data, now), vein, *extra, *changed, chat=False, delete=tuple(gone)
+    )
     if paid:
         _player(s)
-    lines = [FIND_LINE.format(bag.name(s.ctx.templates, t), n) for t, n in drops]
+    find = str(c["findLine"])
+    lines = [find.format(item=bag.name(s.ctx.templates, t), count=n) for t, n in drops]
     s.send(S_MINE, b.complete(pb.OreMineRespMsg(passType=MINE, count=hits, floors=hit_floors, infos=lines)))

@@ -1,6 +1,7 @@
-"""Caça-níquel (9500 ``SlotActiveRequest {op}`` -> 4901 ``SlotActiveMsg``). Edição em ``game_settings.slot_machine``
-(``begin``/``end`` em hora do jogo, ``rewardTemplateId``, ``findCost``); sem ela, fechado (4901 ``open`` falso, como
-em todas as capturas oficiais, que nunca mostram o jogo aberto).
+"""Caça-níquel (9500 ``SlotActiveRequest {op}`` -> 4901 ``SlotActiveMsg``). Regras em ``game_settings.slot_machine``
+(migração 0103: ``begin``/``cycleDays`` edição semanal, ``type``, ``rewardTemplateId``, ``findCost``,
+``digitWeights``, ``noMoneyText``, cada valor com a ``source``); sem a chave, fechado (4901 ``open`` falso, como em
+todas as capturas oficiais).
 
 Cliente (``SlotManager``, ``SlotFrame``) e ajuda do idioma (``slot.slotHelpFrame.describe``, "Other servers"):
 
@@ -13,8 +14,7 @@ Cliente (``SlotManager``, ``SlotFrame``) e ajuda do idioma (``slot.slotHelpFrame
 - prêmio: o número formado pelas casas na moeda ``rewarditemtemplateid`` (-100 ouro, -300 Daru, -500 Balens
   vinculados, -600 cristais: os quatro ícones de ``setRewardIcon``).
 
-TODO(inventado): dígito uniforme de 0 a 9, casa perdida vale 0 no resgate, resgate liberado quando não sobra ``*``
-nem ``-`` (último dia sorteado), ``findCost`` padrão 10 e moeda padrão -100.
+TODO(inventado): casa perdida vale 0 no resgate; resgate liberado quando não sobra ``*`` nem ``-``.
 """
 
 from __future__ import annotations
@@ -36,57 +36,50 @@ from .player import _player, alert
 S_SLOT = 4901
 KEY = "slot_machine"
 OPEN, PULL, CLAIM, RESTORE = 1, 2, 3, 11
-OLD_SERVER = 2  # SlotActiveMsg.type 2: "Other servers" da ajuda (recuperar pagando)
 CLAIMABLE, CLAIMED = 1, 2
-FIND_COST, REWARD = 10, -100  # TODO(inventado): padrões quando a edição não diz
 RNG = random.Random()  # os testes trocam
 
 
-def _days(c: Any) -> int:
-    return (gameday.game_day(mj.at(c, "end")) - gameday.game_day(mj.at(c, "begin"))).days or 1
+def _days(c: Any, now: datetime) -> tuple[str, int, int]:
+    """(edição, número de dias, dia de hoje). Chame só com a edição aberta."""
+    ed = mj.edition(c, now)
+    assert ed is not None
+    first = gameday.game_day(ed[0])
+    return mj.fmt(ed[0]), (gameday.game_day(ed[1]) - first).days or 1, (gameday.game_day(now) - first).days
 
 
-def _today(c: Any, now: datetime) -> int:
-    return (gameday.game_day(now) - gameday.game_day(mj.at(c, "begin"))).days
-
-
-def _state(snap: PlayerSnapshot, c: Any) -> dict[str, Any]:
+def _state(snap: PlayerSnapshot, edition: str) -> dict[str, Any]:
     data = mj.load(snap, KEY)
-    if data.get("edition") != c["begin"]:  # edição nova: tudo do zero
-        data = {"edition": c["begin"], "digits": {}, "claimed": False}
+    if data.get("edition") != edition:  # edição nova: tudo do zero
+        data = {"edition": edition, "digits": {}, "claimed": False}
     return data
 
 
 def _slot(c: Any, data: dict[str, Any], now: datetime) -> str:
-    today, digits = _today(c, now), data["digits"]
-    marks = []
-    for day in range(_days(c)):
-        if str(day) in digits:
-            marks.append(str(digits[str(day)]))
-        else:
-            marks.append("+" if day < today else "*" if day == today else "-")
-    return "".join(marks)
+    _, days, today = _days(c, now)
+    digits = data["digits"]
+    return "".join(
+        str(digits[str(d)]) if str(d) in digits else "+" if d < today else "*" if d == today else "-"
+        for d in range(days)
+    )
 
 
 def _msg(c: Any, data: dict[str, Any], now: datetime, op: int) -> pb.SlotActiveMsg:
     slot = _slot(c, data, now)
     status = CLAIMED if data["claimed"] else CLAIMABLE if "*" not in slot and "-" not in slot else 0
-    return pb.SlotActiveMsg(
-        open=mj.is_open(c, now),
-        op=op,
-        status=status,
-        slot=slot,
-        type=OLD_SERVER,
-        rewarditemtemplateid=int(c.get("rewardTemplateId", REWARD)),
-        findcost=int(c.get("findCost", FIND_COST)),
-    )
+    return pb.SlotActiveMsg(open=True, op=op, status=status, slot=slot, type=int(c["type"]),
+                            rewarditemtemplateid=int(c["rewardTemplateId"]), findcost=int(c["findCost"]))  # fmt: skip
+
+
+def _roll(c: Any) -> int:
+    return RNG.choices(range(10), weights=[float(w) for w in c["digitWeights"]])[0]
 
 
 def login_push(s: GameSession) -> None:
     """Só com edição aberta (o ícone do topo precisa do ``open``; fechado, o servidor não manda nada)."""
     c, snap, now = mj.cfg(s, KEY), s.snapshot, s.ctx.clock.now()
     if snap is not None and mj.is_open(c, now):
-        s.send(S_SLOT, b.complete(_msg(c, _state(snap, c), now, 0)))
+        s.send(S_SLOT, b.complete(_msg(c, _state(snap, _days(c, now)[0]), now, 0)))
 
 
 @router.on(9500)
@@ -97,28 +90,28 @@ async def slot(s: GameSession, msg: pb.SlotActiveRequest) -> None:
     if not mj.is_open(c, now):
         s.send(S_SLOT, b.complete(pb.SlotActiveMsg(open=False, op=0)))
         return
-    data = _state(snap, c)
+    data = _state(snap, _days(c, now)[0])
     slot_ = _slot(c, data, now)
     op = msg.op
     if op == PULL and "*" in slot_ and not data["claimed"]:
-        data["digits"][str(slot_.index("*"))] = RNG.randint(0, 9)
+        data["digits"][str(slot_.index("*"))] = _roll(c)
         await s.ctx.characters.save(mj.store(snap, KEY, data, now))
     elif op == RESTORE and "+" in slot_ and not data["claimed"]:
-        cost = int(c.get("findCost", FIND_COST))
-        paid = ledger.pay(snap.character, cost, bind=False, reason="slot_restore", ref=c["begin"], now=now)
+        cost = int(c["findCost"])
+        paid = ledger.pay(snap.character, cost, bind=False, reason="slot_restore", ref=data["edition"], now=now)
         if paid is None:
-            alert(s, "Insufficient Balens")  # TODO(inventado): o cliente já barra (RechargeAlertMannager)
+            alert(s, str(c["noMoneyText"]))
             op = OPEN
         else:
-            data["digits"][str(slot_.rindex("+"))] = RNG.randint(0, 9)
+            data["digits"][str(slot_.rindex("+"))] = _roll(c)
             await s.ctx.characters.save(snap.character, paid, mj.store(snap, KEY, data, now))
             _player(s)
     elif op == CLAIM and _msg(c, data, now, op).status == CLAIMABLE:
         data["claimed"] = True
-        number = int("".join(str(data["digits"].get(str(d), 0)) for d in range(_days(c))))
+        number = int("".join(str(data["digits"].get(str(d), 0)) for d in range(len(slot_))))
         st = mj.store(snap, KEY, data, now)
         if number > 0:
-            await mj.give(s, snap, [(int(c.get("rewardTemplateId", REWARD)), number)], st)
+            await mj.give(s, snap, [(int(c["rewardTemplateId"]), number)], st)
         else:
             await s.ctx.characters.save(st)
     elif op != OPEN:

@@ -45,7 +45,7 @@ def add_chance(snap: PlayerSnapshot, now: datetime) -> EventState:
 async def group_draw(s: GameSession, msg: pb.LeadRewardMsg) -> None:
     snap, now = s.snapshot, s.ctx.clock.now()
     assert snap is not None
-    items = mj.pairs(mj.cfg(s, KEY).get("items", []))[:9]
+    items = mj.pairs(mj.cfg(s, KEY)["items"])[:9]
     n = left(snap)
     if msg.op == OPEN:
         out = pb.VipRouletteMsg(leftCount=n)
@@ -53,7 +53,7 @@ async def group_draw(s: GameSession, msg: pb.LeadRewardMsg) -> None:
             out.leftItem.add(tempId=tid, count=count)
         s.send(S_LIST, b.complete(out))
     elif msg.op == DRAW and n > 0 and items:
-        weights = [float(w) for w in mj.cfg(s, KEY).get("weights", [])][: len(items)] or None
+        weights = [float(w) for w in mj.cfg(s, KEY)["weights"]][: len(items)]
         tid, count = RNG.choices(items, weights=weights)[0]
         await mj.give(s, snap, [(tid, count)], mj.store(snap, KEY, {"left": n - 1}, now))
         s.send(S_DRAW, b.complete(pb.LeadRewardMsg(op=DRAW, templateId=tid, count=count, leadExtractTimes=n - 1)))

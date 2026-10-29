@@ -84,20 +84,20 @@ async def test_every_minigame_opcode_answers_empty_body_without_dropping_the_ses
         assert any(p.code == 4637 for p in await g.idle())
 
 
-async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
+async def test_minigames_answer_their_state(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(BEFORE_FUND)) as g:
         g.client.send(9500)
         slot = pb.SlotActiveMsg.FromString(_body(await g.idle(), 4901))
-        assert slot.open is False
+        assert slot.open is True  # minijogos ligados pela 0103
 
         g.client.send(9638)
         got = await g.idle()
-        assert pb.SimplePropertyMsg.FromString(_body(got, 414)).param7 is False
-        assert pb.ChairsListMsg.FromString(_body(got, 415)).luckyNickName == []
+        assert pb.SimplePropertyMsg.FromString(_body(got, 414)).param7 is True
+        assert pb.ChairsListMsg.FromString(_body(got, 415)).chairsNeedPoints == 100
 
         g.client.send(9645, extend1=minigames.ORE_OP)
         got = await g.idle()
-        assert [p.code for p in got] == [190] and pb.SimplePropertyMsg.FromString(got[0].body).param7 is False
+        assert [p.code for p in got] == [189]  # op 0: só a janela do veio
 
         g.client.send(9610, pb.LuckExchangeOpMsg(exchangeId="x", exchangeCount=1))  # sem edição: recusa
         got = await g.idle()  # (visto) #11765-#11767: 111 "Insufficient exchange items." e o 4247 zerado
@@ -118,7 +118,7 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
         assert len(pb.GoldenRoadMsg.FromString(got[0].body).cellInfo) == 36
 
         g.client.send(8750)
-        assert pb.LotteryMsg.FromString(_body(await g.idle(), 4637)).isOpen is False
+        assert pb.LotteryMsg.FromString(_body(await g.idle(), 4637)).isOpen is True
 
 
 def _signin(g: Game, op: int, day: int = 0) -> None:

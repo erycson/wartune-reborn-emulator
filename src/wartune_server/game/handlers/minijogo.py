@@ -1,13 +1,13 @@
 """Peças comuns dos minijogos do operador (caça-níquel, loteria, sorteio de grupo, cadeiras, caça ao tesouro,
-minério e quiz): a edição vem de ``game_settings`` (sem a chave, o jogo fica fechado como nas capturas oficiais,
-que só mostram o estado fechado), o estado do jogador é JSON num ``EventState`` e o prêmio vai para a mochila ou,
-cheia, pelo correio (``shop.place``/``save_with_mail``)."""
+minério e quiz): toda regra vem de ``game_settings`` (semeada ligada pela migração 0103; sem a chave, o jogo fica
+fechado como nas capturas oficiais, que só mostram o estado fechado), o estado do jogador é JSON num ``EventState`` e
+o prêmio vai para a mochila ou, cheia, pelo correio (``shop.place``/``save_with_mail``)."""
 
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from ...domain import gameday
@@ -24,16 +24,33 @@ def cfg(s: GameSession, key: str) -> Mapping[str, Any]:
 
 
 def at(c: Mapping[str, Any], name: str) -> datetime:
-    """Data da edição em hora do jogo (``YYYY-MM-DD hh:mm:ss``, o formato que o cliente mostra)."""
+    """Data em hora do jogo (``YYYY-MM-DD hh:mm:ss``, o formato que o cliente mostra)."""
     return datetime.strptime(str(c[name]), ev.TIME_FMT).replace(tzinfo=gameday.GAME_TZ)
 
 
+def fmt(when: datetime) -> str:
+    return gameday.local(when).strftime(ev.TIME_FMT)
+
+
+def edition(c: Mapping[str, Any], now: datetime) -> tuple[datetime, datetime] | None:
+    """(começo, fim) da edição vigente: com ``cycleDays`` a edição se repete a partir de ``begin``; sem ele,
+    ``begin``/``end`` fixos. None fora da janela ou sem config."""
+    if not c or now < at(c, "begin"):
+        return None
+    if "cycleDays" in c:
+        size = timedelta(days=int(c["cycleDays"]))
+        start = at(c, "begin") + size * ((now - at(c, "begin")) // size)
+        return start, start + size
+    return (at(c, "begin"), at(c, "end")) if now < at(c, "end") else None
+
+
 def is_open(c: Mapping[str, Any], now: datetime) -> bool:
-    return bool(c) and at(c, "begin") <= now < at(c, "end")
+    return edition(c, now) is not None
 
 
 def left_ms(c: Mapping[str, Any], now: datetime) -> int:
-    return max(0, int((at(c, "end") - now).total_seconds() * 1000)) if c else 0
+    ed = edition(c, now)
+    return max(0, int((ed[1] - now).total_seconds() * 1000)) if ed else 0
 
 
 def load(snap: PlayerSnapshot, key: str) -> dict[str, Any]:
@@ -50,6 +67,17 @@ def store(snap: PlayerSnapshot, key: str, data: Mapping[str, Any], now: datetime
     st = ev.state(snap, key, now)
     st.text, st.updated_at = json.dumps(data), now
     return st
+
+
+async def shared(s: GameSession, key: str) -> dict[str, Any]:
+    """Estado do servidor (veio do minério, avisos da loteria): fica na linha ``key`` de quem o mudou por último, e
+    vale a mais nova do servidor (o mesmo jeito da árvore dourada, sem tabela própria)."""
+    snap = s.snapshot
+    assert snap is not None
+    states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, key))
+    rows = [st for st in states if st.key == key]
+    newest = max(rows, key=lambda st: (st.updated_at, st.id or 0), default=None)
+    return load_text(newest.text if newest is not None else "")
 
 
 def pairs(raw: Sequence[Sequence[int]]) -> list[tuple[int, int]]:

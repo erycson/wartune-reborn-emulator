@@ -384,11 +384,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
 | Caça ao tesouro (9502) | 🧪 | | ops 1-7, 10 explorações com recarga, diálogo, achado e troca de 100 shards pelo cliente e idioma (`treasure_hunt.py`); nós, achados, 30 min e preço do "+" inventados |
 | Quiz (9501) | 🧪 | | agenda, tempos, pontos e EXP do top 10 pelo idioma; estados, 4907-4910 e ajudas pelo cliente (`quiz.py`, `game_settings.quiz`); banca (Option1 certa), pontos e EXP inventados |
-| Minério de Stokes (9645/35) | 🧪 | | 187-190 e ops pelo cliente, veio do servidor com andares especiais (`ore.py`, `game_settings.stokes_ore`); preços, limites, achados e textos inventados, veio só na memória |
-| Caça-níquel (9500) | 🧪 | | regras da ajuda inglesa e do cliente (`slot.py`, `game_settings.slot_machine`); dígito uniforme e padrões inventados |
-| Loteria (8750/8748) | 🧪 | | tentativas pelo gasto de Balens no `cash_ledger` (idioma) e mensagens do cliente (`lottery.py`, `game_settings.lottery`); sorteio, padrões e texto do 4639 inventados |
+| Minério de Stokes (9645/35) | 🧪 | | 187-190 e ops pelo cliente, veio do servidor com andares especiais (`ore.py`, `game_settings.stokes_ore`); veio gravado no banco; preços, limites, achados e textos inventados (`game_settings`) |
+| Caça-níquel (9500) | 🧪 | | regras da ajuda inglesa e do cliente (`slot.py`, `game_settings.slot_machine`); pesos dos dígitos e preço inventados (`game_settings`) |
+| Loteria (8750/8748) | 🧪 | | tentativas pelo gasto de Balens no `cash_ledger` (idioma) e mensagens do cliente (`lottery.py`, `game_settings.lottery`); avisos do 4639 gravados no banco; sorteio e texto inventados |
 | Cadeiras (9638) | 🧪 | | mensagens do cliente (`chairs.py`, `game_settings.chairs`); regra inteira inventada (cadeira por recarga, sortudos pelo total) |
-| Sorteio de grupo (9523) | 🟡 | | roleta 338/4936 pelo cliente (`group_draw.py`); depende da compra coletiva (8645) para ganhar sorteios; sorteio inventado |
+| Sorteio de grupo (9523) | 🟡 | | ligados por padrão (migração 0103, toda regra em `game_settings` com `source`); roleta 338/4936 pelo cliente (`group_draw.py`); depende da compra coletiva (8645) para ganhar sorteios; sorteio inventado |
 | Campo minado, caixa de ano novo, história | ❌ | | |
 | Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |

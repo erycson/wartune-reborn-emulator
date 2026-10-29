@@ -1,4 +1,4 @@
-"""Minijogos do operador que as capturas só mostram fechados: abertos por ``game_settings`` (ver ``minijogo.py``)."""
+"""Minijogos do operador que as capturas só mostram fechados: ligados pela migração 0103 (``game_settings``, ver ``minijogo.py``)."""
 
 import random
 from datetime import UTC, datetime
@@ -11,8 +11,7 @@ import pytest
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, PlayerSnapshot
 from wartune_server.game import bag
-from wartune_server.game.handlers import group_draw, minigames, ore, quiz, treasure_hunt
-from wartune_server.game.handlers import slot as slot_mod
+from wartune_server.game.handlers import group_draw, minigames, quiz, treasure_hunt
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services import ledger
@@ -23,8 +22,19 @@ DAY = 86400
 
 
 def _open(g: Game, key: str, cfg: dict[str, Any]) -> None:
+    """Troca parâmetros da chave semeada (o resto fica como a migração deixou)."""
     world = g.server.services.world
-    object.__setattr__(world, "settings", MappingProxyType({**world.settings, key: cfg}))
+    seeded = world.settings.get(key) or _closed[key]
+    object.__setattr__(world, "settings", MappingProxyType({**world.settings, key: {**seeded, **cfg}}))
+
+
+_closed: dict[str, Any] = {}  # o que ``_close`` tirou
+
+
+def _close(g: Game, key: str) -> None:
+    world = g.server.services.world
+    _closed[key] = world.settings[key]
+    object.__setattr__(world, "settings", MappingProxyType({k: v for k, v in world.settings.items() if k != key}))
 
 
 def _snap(g: Game) -> PlayerSnapshot:
@@ -37,16 +47,10 @@ def _last(got: list[Packet], code: int) -> bytes:
     return next(p.body for p in reversed(got) if p.code == code)
 
 
-def _fixed(monkeypatch: pytest.MonkeyPatch, module: Any, value: int) -> None:
-    rng = random.Random(1)
-    rng.randint = lambda a, b: value  # type: ignore[method-assign]
-    monkeypatch.setattr(module, "RNG", rng)
-
-
 # ---------------------------------------------------------------- caça-níquel
 
 
-SLOT = {"begin": "2026-10-20 05:00:00", "end": "2026-10-23 05:00:00", "rewardTemplateId": -100, "findCost": 10}
+SLOT = {"begin": "2026-10-20 05:00:00", "cycleDays": 3, "digitWeights": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]}  # sempre 7
 
 
 async def _slot(g: Game, op: int) -> pb.SlotActiveMsg:
@@ -54,12 +58,11 @@ async def _slot(g: Game, op: int) -> pb.SlotActiveMsg:
     return pb.SlotActiveMsg.FromString(_last(await g.idle(), 4901))
 
 
-async def test_slot_draws_one_digit_a_day_restores_missed_day_and_pays_the_number(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    _fixed(monkeypatch, slot_mod, 7)
+async def test_slot_draws_one_digit_a_day_restores_missed_day_and_pays_the_number(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
-        assert (await _slot(g, 1)).open is False  # sem edição: fechado
+        assert (await _slot(g, 1)).open is True  # ligado pela migração
+        _close(g, "slot_machine")
+        assert (await _slot(g, 1)).open is False  # sem a chave: fechado
         _open(g, "slot_machine", SLOT)
         info = await _slot(g, 1)
         assert (info.open, info.op, info.slot, info.type, info.status, info.findcost) == (True, 1, "*--", 2, 0, 10)
@@ -83,7 +86,7 @@ async def test_slot_draws_one_digit_a_day_restores_missed_day_and_pays_the_numbe
 
 LOTTERY = {
     "begin": "2026-10-20 05:00:00",
-    "end": "2026-10-23 05:00:00",
+    "cycleDays": 3,
     "onceNeedPoint": 100,
     "dayMaxCount": 2,
     "items": [[-100, 5000], [208009, 3]],
@@ -103,8 +106,9 @@ async def _spend(g: Game, point: int) -> None:
 
 async def test_lottery_turns_balens_spent_into_capped_daily_spins(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        _close(g, "lottery")
         g.client.send(8750)
-        assert [p.code for p in await g.idle()] == [4637]  # sem edição: só o fechado
+        assert [p.code for p in await g.idle()] == [4637]  # sem a chave: só o fechado
         _open(g, "lottery", LOTTERY)
         await _spend(g, 350)  # 3 tentativas, mas o teto do dia é 2
         g.client.send(8750)
@@ -151,7 +155,7 @@ async def test_group_draw_spends_chances_won_by_group_buys(tmp_path: Path) -> No
 
 CHAIRS = {
     "begin": "2026-10-20 05:00:00",
-    "end": "2026-10-23 05:00:00",
+    "cycleDays": 3,
     "chairsNeedPoints": 100,
     "rewardNeedChairs": 2,
     "luckyCount": 1,
@@ -162,6 +166,7 @@ CHAIRS = {
 
 async def test_chairs_turn_recharges_into_comfort_rewards_and_the_lucky_one(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        _close(g, "chairs")
         g.client.send(9638, pb.ChairsListMsg(op=1))
         got = await g.idle()
         assert [p.code for p in got] == [414, 415] and pb.SimplePropertyMsg.FromString(got[0].body).param7 is False
@@ -215,10 +220,10 @@ async def test_treasure_hunt_explores_opens_recharges_and_exchanges(
         await _seek(g, 3)
         assert (await _seek(g, 1)).nextAddTime == 1800
         snap = _snap(g)
-        shards = bag.add(snap, g.server.services.templates, treasure_hunt.SHARD, 95, NOW)
+        shards = bag.add(snap, g.server.services.templates, 2131019, 95, NOW)
         await g.server.services.characters.save(*shards)
         await _seek(g, 6)
-        assert bag.count_of(snap, treasure_hunt.MASTER_KIT) == 1 and bag.count_of(snap, treasure_hunt.SHARD) == 0
+        assert bag.count_of(snap, 2131018) == 1 and bag.count_of(snap, 2131019) == 0
 
 
 # ---------------------------------------------------------------- minério de Stokes
@@ -226,7 +231,7 @@ async def test_treasure_hunt_explores_opens_recharges_and_exchanges(
 
 ORE = {
     "begin": "2026-10-20 05:00:00",
-    "end": "2026-10-23 05:00:00",
+    "cycleDays": 3,
     "dailyTurns": 12,
     "finds": [[208009, 1, 1]],
     "special": [[2, [[208014, 3]]], [4, [[208017, 1]]], [6, [[208017, 1]]], [8, [[3020010, 1]]]],
@@ -239,7 +244,6 @@ async def _ore(g: Game, op: int, prop: bool = False) -> list[Packet]:
 
 
 async def test_stokes_ore_mines_the_shared_vein_with_special_floors(tmp_path: Path) -> None:
-    ore._veins.clear()
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
         _open(g, "stokes_ore", ORE)
         got = await _ore(g, 3)
@@ -288,7 +292,8 @@ def _state(got: list[Packet]) -> int:
 async def test_quiz_runs_the_schedule_scores_answers_helps_and_pays_exp(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000, clock=FakeClock(QUIZ_DAY)) as g:
         _snap(g).character.grades = 30
-        assert _state(await _quiz(g, 1, 11)) == 0  # sem edição
+        _close(g, "quiz")
+        assert _state(await _quiz(g, 1, 11)) == 0  # sem a chave
         _open(g, "quiz", {"count": 2})
         got = await _quiz(g, 1, 11)
         assert (
