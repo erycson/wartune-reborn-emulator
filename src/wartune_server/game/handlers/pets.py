@@ -55,10 +55,7 @@ ADVANCE_RULES = {
     3: ("107", 208045, "pet_up_qualityupgrade"),
 }
 ADVANCE_GP, BLESSING = 10, 5  # PetAdvancedView: 10 de EXP por unidade; a bênção do Sylph dá 5x ("EXP x5")
-BLESSING_CHANCE = 10  # ponytail: a chance da bênção não está no cliente; 10% até haver captura
 ADV_SEPULCRUM = 3040002  # PetStrengthenView: o NeedGrade 3 gasta o Adv. Sepulcrum; os outros, o Sylph Sepulcrum
-# ponytail: quanto um Sepulcrum dá na aptidão não está no cliente ("Randomly improves one aptitude that is not maxed")
-ENCHANT_GAIN = (1, 10)
 LEARN_BOOK, LEARN_RANDOM = 1, 2  # PlayerPetOpMsg.value do learnSkill
 SKILL_BOOK = "303"  # ItemTempInfos.SonType do livro de skill de pet: Property1 = a skill
 SKILL_SHOP_AREA = "7"  # ShopTempInfos.Area dos livros (ShopModel.petSkillBookDic)
@@ -454,7 +451,9 @@ async def _advance(
     used, gp = 0, pet.quality_gp
     while used < msg.value and star + 1 in need:
         used += 1
-        gp += ADVANCE_GP * (BLESSING if random.randrange(100) < BLESSING_CHANCE else 1)
+        gp += ADVANCE_GP * (
+            BLESSING if random.randrange(100) < int(s.ctx.world.settings["taxas"]["pet_advance_bless_chance"]) else 1
+        )
         while star + 1 in need and gp >= need[star + 1]:
             gp, star = gp - need[star + 1], star + 1
     gp = gp if star + 1 in need else 0  # na última estrela a barra para
@@ -507,7 +506,13 @@ async def _enchant(
     while used < msg.value and room:
         used += 1
         a = random.choice(room)
-        setattr(pet, f"{a}_apti", min(caps[a], getattr(pet, f"{a}_apti") + random.randint(*ENCHANT_GAIN)))
+        setattr(
+            pet,
+            f"{a}_apti",
+            min(
+                caps[a], getattr(pet, f"{a}_apti") + random.randint(*s.ctx.world.settings["taxas"]["pet_enchant_gain"])
+            ),
+        )
         room = [a for a in caps if getattr(pet, f"{a}_apti") < caps[a]]
     changed, gone = bag.take(snap, item, used)
     pet.is_bind = pet.is_bind or _spent_bound(0, 0, [*changed, *gone])
@@ -583,9 +588,9 @@ async def _learn(
             book = 0
             skill = skill if cost > 0 else None
     elif msg.value == LEARN_RANDOM:
-        # ponytail: o sorteio é uniforme entre as skills dos livros; o cliente não tem a lista nem os pesos
-        pool = [sk for sid in books if fits(sk := templates.get("SkillTempInfos", sid))]
-        skill = random.choice(pool) if pool else None
+        pool = [sk for sid in books if (sk := templates.get("SkillTempInfos", sid)) is not None and fits(sk)]
+        weights = s.ctx.world.settings["taxas"]["pet_skill_weights"]  # skillId -> peso, 1 se ausente (0124)
+        skill = random.choices(pool, [float(weights.get(str(sk["TemplateId"]), 1)) for sk in pool])[0] if pool else None
         wait = (
             int(rules.config(templates, "pet_learn_random_skill_interval", "480")) - vip_right(s, snap, VIP_SKILL_WAIT)
         ) * 60

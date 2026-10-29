@@ -702,7 +702,7 @@ async def mould(s: GameSession, msg: pb.PayTypeMsg) -> None:
     confirmação). Taxa ``mould_rate``; sucesso: nível +1; falha: bênção +5 abaixo do nível 10, +3 depois
     ("Enchantment failed, Enchantment Blessing +{0}"), até 100. O item fica vinculado (``Store.IntensifyView.Tip``).
     O preço do que falta é o ``Point`` da loja (80): o cliente soma o ``GiftToken`` dela, que é 0 nos templates.
-    ponytail: a bênção zera no sucesso (o cliente não diz; a barra recomeça do 0 no próximo nível)."""
+    Zerar a bênção no sucesso é ``taxas.pet_mould_bless_reset`` (0124; o cliente não diz)."""
     snap = s.snapshot
     assert snap is not None
     c, now = snap.character, s.ctx.clock.now()
@@ -725,7 +725,8 @@ async def mould(s: GameSession, msg: pb.PayTypeMsg) -> None:
         gone += go
     ok = random.randint(1, 100) <= mould_rate(item)
     if ok:
-        item.mould_grade, item.bless_value = item.mould_grade + 1, 0
+        reset = s.ctx.world.settings["taxas"]["pet_mould_bless_reset"]
+        item.mould_grade, item.bless_value = item.mould_grade + 1, 0 if reset else item.bless_value
     else:
         item.bless_value = min(BLESS_MAX, item.bless_value + (5 if item.mould_grade < 10 else 3))
     item.is_binds = True

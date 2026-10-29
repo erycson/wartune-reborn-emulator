@@ -222,7 +222,8 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         else:
             c.gold -= SITE_COST[site]
             paid = True
-        sy.star_point += site + 1  # ponytail: o grátis do dia também dá ponto, o cliente não diz; mudar com captura
+        if not free or settings["taxas"]["star_free_point"]:  # o grátis dar ponto: 0124
+            sy.star_point += site + 1
         tpl = roll(templates, c.grades, site, table)
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)
         snap.stars.append(star)

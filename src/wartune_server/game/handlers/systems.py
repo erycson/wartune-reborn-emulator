@@ -42,9 +42,6 @@ HOOF = 208035  # Mount Hoof (MountsManager.GOLDEN_HORSE_SHOE): 1 por refino
 ADVANCED = 10  # MountsPromotionView.advCost: o "10x" (param1 1) gasta 10 Hoofs em 10 refinos
 NO_STAR = ("3", "4")  # MountsManager.canShowStar: a de VIP (3) e o rei (4) não têm estrela
 STAR_TABLE = "37"  # UpGradeTempInfo: TemplateId = GradeType da montaria, Grades = estrela, Data = bênção até ela
-# ponytail: o cliente não diz a bênção de cada refino nem a chance; 10 de bênção e 5% de "Therion's Blessing" (o
-# getPromotSuccessRate mostra 5 com a barra incompleta e 100 com ela cheia). Trocar com captura do oficial
-STAR_BLESS, STAR_CHANCE = 10, 5
 # WildSoulFrame: só MountType 1, 2 e 4 se ativam no clique (0 vem do Beast Soul Lvl, 3 é a de VIP); 4 = rei das
 # montarias, que pede o mount_king_active_item
 UNLOCKABLE, KING = ("1", "2", "4"), "4"
@@ -309,11 +306,12 @@ async def _star(s: GameSession, msg: pb.MountEditMsg) -> None:
         for r in templates.find("UpGradeTempInfos", Types=STAR_TABLE)
         if r.get("TemplateId") == tpl.get("GradeType")
     }
+    taxas = s.ctx.world.settings["taxas"]  # bênção e chance do refino (migração 0124)
     used, before = 0, star
     while used < tries and star < len(adds):
         used += 1
-        bless += STAR_BLESS
-        if bless >= need.get(star + 1, 0) or random.randrange(100) < STAR_CHANCE:
+        bless += int(taxas["mount_star_bless"])
+        if bless >= need.get(star + 1, 0) or random.randrange(100) < int(taxas["mount_star_chance"]):
             star, bless = star + 1, 0
     all_stars[mount] = (star, bless)
     sy.mount_stars = ",".join(f"{m}:{a}:{b}" for m, (a, b) in all_stars.items())
@@ -438,8 +436,6 @@ FATE_LEVEL = 55
 FATE_DEFAULT = "2000:0,3000:0"  # os dois tipos do login (só turco: login.json #34); 2100 e 2200 não sabemos abrir
 FATE_GRADE = "26"  # UpGradeTempInfo.Types: Data = EXP de cada grau (FateRotarySkillInfo.currentGp)
 FATE_STONE, FATE_STONE_ID = "307", 208024
-# ponytail: pesos da roda tirados do tamanho das fatias (FateRotaryModel.rndDic, em graus)
-WHEEL = {1: 144, 2: 90, 3: 63, 4: 45, 10: 18}
 
 
 def fate(sy: PlayerSystems) -> dict[int, int]:
@@ -513,7 +509,7 @@ async def fate_train(s: GameSession, msg: pb.FateEditMsg) -> None:
         return
     changed, deleted = rules.take_items(snap, stones, n)
     gps = fate(sy)
-    gps[msg.skillSonType] += n  # ponytail: 1 de EXP por pedra (sem captura do treino)
+    gps[msg.skillSonType] += n * int(s.ctx.world.settings["taxas"]["fate_stone_exp"])  # EXP por pedra (0124)
     sy.fate = ",".join(f"{k}:{v}" for k, v in gps.items())
     counted = ev.count(snap, s.ctx.events, ev.FATE_EAT, s.ctx.clock.now(), n)  # atividade "Fate Stones" (tipo 109)
     await s.ctx.characters.save(sy, *changed, *counted, delete=tuple(deleted))
@@ -557,7 +553,8 @@ async def fate_turn(s: GameSession, msg: pb.FateEditMsg) -> None:
     if cost and spent is None:
         s.send(S_FATE_TURN, pb.FateEditMsg(isSuccess=False, currCount=sy.fate_turns, turnNum=turns))
         return
-    rewards = random.choices(list(WHEEL), weights=list(WHEEL.values()), k=turns)
+    wheel = s.ctx.world.settings["taxas"]["fate_wheel"]  # FateRotaryModel.rndDic em graus (0124)
+    rewards = random.choices([int(k) for k in wheel], weights=list(wheel.values()), k=turns)
     sy.fate_turns += turns
     item = give_item(snap, FATE_STONE_ID, sum(rewards))
     counted = ev.count(snap, s.ctx.events, ev.FATE_TURN, s.ctx.clock.now(), turns)  # "Wheel of Fate" (tipo 108)

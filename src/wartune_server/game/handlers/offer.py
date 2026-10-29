@@ -36,8 +36,6 @@ SLOTS, OPEN_GRADE, BASE_COUNT = 4, 14, 20  # OfferRewardModel: MAX_OFFER_TASK_NU
 AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 10  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
 CAN_ACCEPT, ACCEPTED, COMPLETED = 1, 2, 3  # REWARD_STATE_*
 PASS_CONTRACT = 2  # KingContracts 2 "Bounty Helper": termina a tarefa na hora
-# ponytail: o sorteio de qualidade do oficial não é conhecido; pesos para 1..5 (5 = ouro, rende x6)
-QUALITY_WEIGHTS = (40, 30, 15, 10, 5)
 OFFER, RING = 0, 1  # RewardTemps.Type
 RING_GRADE, RING_MAX, RING_COST, RING_ITEM = 35, 200, 35, 2131021  # RingTaskManager/TaskFrameII
 
@@ -187,7 +185,7 @@ def _roll(s: GameSession, snap: PlayerSnapshot, now: datetime) -> EventState:
         pick = random.choices(pool, weights=[int(r["Rands"]) for r in pool])[0]
         pool.remove(pick)
         ids.append(int(pick["TemplateId"]))
-    quality = random.choices(range(1, 6), weights=QUALITY_WEIGHTS, k=len(ids))
+    quality = random.choices(range(1, 6), weights=s.ctx.world.settings["taxas"]["offer_quality_weights"], k=len(ids))
     st = _board(snap, now)
     st.text, st.updated_at = json.dumps({"ids": ids, "q": quality, "st": [CAN_ACCEPT] * len(ids)}), now
     return st

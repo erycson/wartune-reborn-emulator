@@ -26,7 +26,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
 | Castelo | 12 | 2 | 6 | 0 | 3 |
 | Herói e exército | 14 | 9 | 5 | 1 | 4 |
-| Pets | 4 | 5 | 1 | 1 | 2 |
+| Pets | 5 | 4 | 1 | 1 | 2 |
 | Itens | 13 | 2 | 11 | 0 | 2 |
 | Lojas e mercado | 7 | 4 | 1 | 0 | 1 |
 | Chat e social | 6 | 1 | 5 | 0 | 1 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 6 | 0 | 0 |
 | Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **119** | **60** | **96** | **12** | **34** |
+| **Total** | **120** | **59** | **96** | **12** | **34** |
 
 ## Validação e base
 
@@ -96,18 +96,18 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Montaria: lista (8530) | ✅ |  | o 4426 junto do 4427 no inglês (231733 #11-#14), igual ao turco |
 | Montaria: treinar, montar, ativar, voo | ✅ | | |
 | Montaria: carta (5006, SonType 218) | ✅ | | |
-| Montaria: refino de estrela | 🟡 | | bênção e chance de 5% são atalho (`handlers/systems.py:43`) |
+| Montaria: refino de estrela | 🟡 | | lógica do cliente; bênção por refino e chance em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
 | Montaria: ops 7-12 e evento (8843) | ❌ | | sem tela no cliente inglês |
 | Destino: abrir (8628) | 🧪 | 🇹🇷 | tipos 2000/3000 do turco; 2100/2200 abrem nos níveis de `game_settings.fate_unlock` (0116, TODO(inventado) 65/75) |
-| Destino: treinar pedras (8626) | 🟡 | | 1 EXP por pedra é chute |
-| Destino: roda (8627) | 🟡 | | pesos das fatias por dedução |
+| Destino: treinar pedras (8626) | 🟡 | | lógica do cliente; EXP por pedra em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
+| Destino: roda (8627) | 🟡 | | lógica do cliente; pesos das fatias (graus do FateRotaryModel.rndDic, dedução) em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
 | Dragão: abrir e login (8642, 4555) | ✅ | 🇹🇷 | abre no 40 e vai no login (turco) |
 | Dragão: alimentar (8641) | ✅ | | |
 | Dragão: transferência (8643) | 🧪 | | vocação sobe pela comida na tabela 107 (dedução) e dá % de ataque por grau na luta (`game_settings.dragon_vocation_bonus`, 0116, TODO(inventado)) |
 | Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
 | Cartas: bônus de coleção (4905) | 🟡 | | degraus por dedução; o bônus não entra na luta |
 | Cartas: ganho nas batalhas | 🧪 | | carta do saque da campanha entra na coleção (`systems.gain_cards`, item 600): a 1ª abre no grau 1, as outras viram +1 gp cada (inventado); usar a carta da mochila faz o mesmo |
-| Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade são atalho; 4388 (SNS) na estrela de qualidade 4 com md5 inventado |
+| Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade em `star_weights` (0035) e o ponto do grátis em `game_settings.taxas` (0124), `TODO(inventado)`; 4388 (SNS) na estrela de qualidade 4 com md5 inventado |
 | Estrelas: recolher, vender, mover | ✅ | | |
 | Estrelas: compor (8331) | 🟡 | | textos e ordem do inglês (#19525, #6816, #13736); o 4484 do início sem gatilho conhecido |
 | Estrelas: travar, espaço, loja | ✅ | | |
@@ -120,10 +120,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pontos, batalha, descanso, devorar (8621 ops 1-3, 9, 10) | ✅ | | |
 | Sacrifício (op 6) | ✅ | | sorteio uniforme por dedução |
 | Vagas e skills do torneio (op 12, 8726) | ✅ | | |
-| Compor (op 13) | 🟡 | | 24 de 28 receitas |
-| Avanço de qualidade (op 4) | 🟡 | | chance da bênção 10% é atalho |
-| Encantar aptidão (op 7) | 🟡 | | quanto sobe é atalho |
-| Aprender skill (op 5) | 🟡 | | sorteio uniforme entre livros |
+| Compor (op 13) | ✅ | | 24 de 28 receitas; as 4 restantes (19, 26, 29, 32) pedem pets PetType 117-119, que não existem no PetTempInfos inglês (só 101-106): nenhum pet de entrada pode existir, então não há o que compor |
+| Avanço de qualidade (op 4) | 🟡 | | lógica do cliente; chance da bênção 5x em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
+| Encantar aptidão (op 7) | 🟡 | | lógica do cliente; quanto sobe (faixa) em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
+| Aprender skill (op 5) | 🟡 | | lógica do cliente; peso de cada skill no aleatório (padrão 1) em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
 | Crescimento e treino do mascote (fazenda 15044 ops 12-15) | 🧪 | | `handlers/farm_pets.py`: 2 terras, nível 50, 10 partes e 5 comidas do cliente (`FarmLandLayer`, `PetLandInfo.canFeed`); horas, EXP/h e % por comida TODO(inventado) `farm_pet_practice` (0118). Comida do amigo: `isFeed` no 4190 e aviso ao dono online (145 + 4387; texto inventado); o cliente não tem prêmio para quem alimenta. Resistência (8621 op 8, `trainResistance`) sem chamador no cliente inglês: bloqueio |
 | Fusão de dois pets (op 15) | ❌ | | sem template |
 | Mascote em batalha (EXP, despertar 4600) | 🟡 | 🇹🇷 | do turco; +250 por golpe e gasto 150 por dedução |
@@ -154,7 +154,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 e transformação 8538 no inglês (231733 #1492, 26/10 #10315, sem aviso); caixa de pedras do turco |
 | Forja: refino de atributos (8336/8339) | 🧪 | | ordem e "Refinement Complete!" do inglês (24/10 #8019-#8027); o sorteio continua inventado (`bag.roll_random_skill`); o sorteio pendente fica no EventState `refine` até o 8339 |
 | Forja: decomposição (8340) | ✅ | | ordem vista em 191924 #2259-#2278; recusa calada por dedução (o cliente limpa a bancada com qualquer 4260) |
-| Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
+| Equipamento do mascote: encantar (8644) | 🟡 | | lógica do cliente; zerar a bênção no sucesso em `game_settings.taxas` (migração 0124, `TODO(inventado)`: procurado no decomp inglês, XMLs do mirror e templates) |
 | Equipamento do mascote na luta | 🧪 | | bagAttack + bagMagicattack somam no ataque do mascote (`campaign.fighting_pet`, dedução) |
 | Moda: composição (8594) | 🧪 | | cliente dá custo (níveis x 10000 de ouro), charms e chance por diferença de nível (só o nome); inventado: % das chances, sorteio da moda, consumo na falha e dos 5 curingas (`game_settings["fashion"]`) |
 | Moda: avaliação (8781) | 🧪 | | cliente dá custo (Property1 em ouro), chance (TransformId) e skills; visto #2524 (109, 111, 4542); inventado: pesos das estrelas 1-5 e a família sorteada; sem aviso no sucesso; o bônus soma nos atributos do líder (livro inteiro, como o cliente); refino com Property2 Fashion Cores sempre acerta (inventado) |
@@ -293,7 +293,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 10 de 26 conferidas (prédios, 503, 623); faltam catacumbas (6), mina de Amethyst (86, ligada na coleta; entrega não conferida), 241/768 pelo handler e a ordem 52/83 em 5 subidas de nível |
 | Castelo e ocupação (7, 8) | 🧪 | | castelo de jogador atacável (cópia do herói, battleType 4); saque e proteção inventados (`player_castle`, migração 0113) |
 | Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras solo com captura na 0098 |
-| Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
+| Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço feita no lote 9 (nó 12 do anel, 143 COLLECTION e 8733, `handlers/space.py`) |
 | Diárias e repetíveis | ✅ | | repetível concluída vai no 112 do login (QuestTemps IsRepeat) |
 | Conversa com NPC (85) | ✅ | | patrulha (MasterType 1) conta sem conferir a posição (o NPC anda; o cliente abre a janela sozinho) |
 | Guilda (22, 29, 30, 51) | ✅ | | 22/29/51 pelo estado (`social_state_quests`, 5014), 30 no altar (5145); test_missoes_social.py e test_missoes_tipos.py |
@@ -329,7 +329,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Castelos NPC do mundo | 🧪 | | grades, saque e nomes inventados (`npc_castles.py`) |
 | Castelos-robô (missões 100, 411, 765) | 🧪 | | saque acima do grau 30 inventado |
 | Monstros dos Wilds e patrulha | 🧪 | | luta em grupo: quem é do time entra na luta em curso (`Battle.join`) e leva o abate e o baú; quem pode entrar é inventado |
-| Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista no inglês (153200 #191); luta: 4938 type 4 e herói do chefe da 157 do inglês (24/10 #16254-#16256); aviso de abate do inglês (26/10 #1106); falta luta em equipe, prêmio do abate e nome inglês ("Purgatory Lord", o catálogo turco dá "Balrog") |
+| Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista no inglês (153200 #191); luta: 4938 type 4 e herói do chefe da 157 do inglês (24/10 #16254-#16256); aviso de abate do inglês (26/10 #1106); luta em equipe (Battle.join do time, `outer_city.py`) e baú do abate feitos; falta o nome inglês ("Purgatory Lord", o catálogo turco dá "Balrog") |
 | Baús dos Wilds (9526) | ✅ | | |
 | Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
 | Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço entra na luta em curso (`Battle.join`), na partilha e na missão 89; login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
