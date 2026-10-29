@@ -35,7 +35,7 @@ from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
-from .. import bosses, mines, monsters, npc_castles, rewards, robots, rules, server_state, social
+from .. import bosses, buffs, mines, monsters, npc_castles, rewards, robots, rules, server_state, social
 from .. import caches as tc
 from .. import castle as cs
 from .. import outer_city as oc
@@ -48,7 +48,7 @@ from ..mail import SYSTEM_SENDER, notify, stage
 from ..router import router
 from ..session import GameSession
 from . import events
-from .campaign import player_hero, quarry_fight
+from .campaign import player_hero, pvp_fight, quarry_fight, team_hero
 from .login import army, player_info
 from .player import S_CHAT, alert, hero_after_fight, hp_pack
 from .vip import vip_right
@@ -60,6 +60,7 @@ S_FULL_ARMY, S_REPORT, S_ARMY_PAWN, S_QUESTS, S_POLITICS = 150, 4103, 100, 112, 
 S_ITEMS, S_UNOCCUPY, S_CASTLE_TIME, S_CASTLE_DEFENSE = 115, 108, 4452, 118
 WORLD = 2  # ChatChannelMsg.channel dos anúncios para o servidor
 S_TELEPORT, S_TELEPORT_FAIL = 4237, 4263
+S_BROAD_POS, S_ARMY_EXIT = 4167, 4168  # PosMoveMsg (rota de outro exército) e ArmyRemoveMsg (OuterCityController)
 TELEPORT_ENERGY, TELEPORT_POINT = 100, 100  # TransmitHandler
 VIP_PLUNDER_CRYSTALS = 7  # VipPrerogativeTempInfos "Bonus Kyanite from Plunder" (500 do VIP 4 em diante)
 ARMY_IDLE, ARMY_MOVING, ARMY_FIGHTING = 0, 1, 2  # MapUpdatedMsg/ArmyArmyMsg.state
@@ -91,14 +92,49 @@ def _army_brief(s: GameSession, state: int = ARMY_IDLE) -> pb.ArmyArmyMsg:
 
 
 def _grid_msg(s: GameSession, grids: set[str], map_id: int) -> pb.OutercityArmyUpdatedGridMsg:
-    """169: o exército próprio se cair numa das grades pedidas no mesmo mapa; senão lista vazia."""
+    """169: o exército próprio se cair numa das grades pedidas no mesmo mapa e, num mapa compartilhado, os dos
+    outros jogadores online ali (``s.outer_army`` de cada sessão; parado, o exército está no castelo). O cliente
+    (``OuterCityController.__updateScreenArmysHandler``) cria um ``UserArmy`` para cada ``playerId`` alheio."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     msg = pb.OutercityArmyUpdatedGridMsg()
     map_now, x, y = oc.position(snap.castle, s.outer_army)
     if map_id == map_now and oc.grid_of(x, y) in grids:
         msg.updatedArmy.add().CopyFrom(_army_brief(s))
+    if oc.template_of(map_id) != oc.BASE_MAP:  # a instância 100000xxx é só do dono
+        for o in s.ctx.online.sessions():
+            other = o.snapshot
+            if o is s or other is None or other.castle is None or other.leader is None:
+                continue
+            m, ox, oy = oc.position(other.castle, o.outer_army)
+            if m == map_id and oc.grid_of(ox, oy) in grids:
+                msg.updatedArmy.add().CopyFrom(_army_brief(o))
     return msg
+
+
+def _watchers(s: GameSession) -> list[GameSession]:
+    """Os outros que veem o exército de ``s`` agora: mesmo mapa compartilhado e a grade dele no último 8201."""
+    snap = s.snapshot
+    if snap is None or snap.castle is None:
+        return []
+    map_id, x, y = oc.position(snap.castle, s.outer_army)
+    if oc.template_of(map_id) == oc.BASE_MAP:
+        return []
+    grid = oc.grid_of(x, y)
+    return [o for o in viewers(s, map_id) if o is not s and o.outer_view is not None and grid in o.outer_view[1]]
+
+
+def leave_map(s: GameSession) -> None:
+    """O exército sai de onde está (teleporte, volta, castelo mudado, derrota, saída do jogo): 4168
+    ``ArmyRemoveMsg`` a quem o via (``OuterCityController.__armyExitOuterCityHandler``)."""
+    for o in _watchers(s):
+        o.send(S_ARMY_EXIT, pb.ArmyRemoveMsg(armyId=s.player_id))
+
+
+def _show(s: GameSession) -> None:
+    """O exército apareceu num ponto novo: 169 só com ele a quem vê a grade."""
+    for o in _watchers(s):
+        o.send(S_GRID_ARMY, pb.OutercityArmyUpdatedGridMsg(updatedArmy=[_army_brief(s)]))
 
 
 def _send_player(s: GameSession) -> None:
@@ -247,7 +283,7 @@ async def army_grid(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     s.log.info("5181 grade", mapa=msg.mapId, grades=len(msg.files.split(",")))
 
 
-async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Castle, str]]:
+async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Castle, str, int]]:
     """Castelos de outros jogadores nas grades pedidas de um mapa compartilhado (1 a 5). A instância
     100000xxx é do jogador: no oficial ela só tem o castelo dele e 2 robôs (tutorial_en #532)."""
     snap = s.snapshot
@@ -261,17 +297,19 @@ async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Ca
         return []
     chars = await s.ctx.characters.read(lambda uow: uow.characters.by_ids([c.character_id for c in near]))
     names = {c.id: c.nickname or "" for c in chars}
-    return [(c, names.get(c.character_id, "")) for c in near]
+    now, out = s.ctx.clock.now(), []
+    for c in near:
+        other = await _other(s, c.character_id)
+        out.append((c, names.get(c.character_id, ""), buffs.protection_left(other, now) if other else 0))
+    return out
 
 
 @router.on(8201)
 async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     """4129 com as minas da grade (ciclo atual do jogador) ou, num mapa compartilhado, os monstros dos Wilds;
-    o próprio castelo e, num mapa compartilhado, os castelos de outros jogadores; depois 169 com o exército
-    próprio se cair numa grade pedida do mesmo mapa.
-
-    ponytail: os exércitos alheios não aparecem (o 169 é só o próprio): a posição de outro jogador só existe
-    na sessão dele, e não há presença entre sessões.
+    o próprio castelo e, num mapa compartilhado, os castelos de outros jogadores (com a trégua deles); depois 169
+    com os exércitos das grades pedidas (``_grid_msg``). Num mapa compartilhado a vista fica em ``outer_view``:
+    é por ela que os outros mandam o andar (4167), o 140 e a saída (4168) do exército deles.
     """
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
@@ -291,7 +329,7 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
             reply.wildLand.append(_world_land(s, mine, now, holders.get(mine.id)))
     found = monsters.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now)
     boxes = tc.on_map(s.ctx.world, s.ctx.templates, msg.mapId, now)
-    if found or boxes:
+    if found or boxes or oc.template_of(msg.mapId) != oc.BASE_MAP:
         s.outer_view = (msg.mapId, grids, monsters.cycle_start(s.ctx.templates, now))
     if found:
         killed = await _killed(s, msg.mapId, now)
@@ -306,7 +344,7 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
             if oc.grid_of(c.x, c.y) in grids and (c.id, c.born) not in opened:
                 s.outer_caches[c.id] = c
                 reply.wildLand.append(tc.cache_msg(s.ctx.templates, c, now, _cache_state(s, c)))
-    reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle)))
+    reply.baseCastle.add().CopyFrom(b.complete(b.castle_msg(snap, snap.castle, buffs.protection_left(snap, now))))
     # (visto) tutorial_en #532: os robôs vêm junto com o castelo
     for robot in robots.robots_in(snap, s.ctx.world, msg.mapId, grids):
         left = s.ctx.wilds.shield_left((snap.character.id or 0, robot.id), now)
@@ -315,8 +353,8 @@ async def physics_by_grid(s: GameSession, msg: pb.PhysicUpdateReqMsg) -> None:
     for npc in npc_castles.castles_in(s.ctx.world, s.ctx.templates, msg.mapId, grids):
         left = s.ctx.wilds.shield_left((0, npc.id), now)
         reply.baseCastle.add().CopyFrom(b.complete(npc_castles.castle_msg(npc, 1, left)))
-    for castle, name in await _rivals(s, grids, msg.mapId):
-        reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name)))
+    for castle, name, truce in await _rivals(s, grids, msg.mapId):
+        reply.baseCastle.add().CopyFrom(b.complete(oc.rival_castle_msg(castle, name, truce)))
     s.send(S_PHYSICS, reply)
     # (visto) oficial_20261023-171155-1 #6969-#6971 e #7379: o 4940 com os baús fechados do mapa entre o 4129 e o
     # 169, quando a grade pedida tem um deles
@@ -424,8 +462,9 @@ def _roll_caches(s: GameSession, map_id: int, grids: set[str]) -> None:
 @router.on(8254)
 async def army_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
     """O exército andou: guarda o último ponto (pixels // 20). Como no oficial (tutorial_en #773-#777): 140 ×2
-    andando no ponto de saída e, na chegada, 140 ×2 parado no destino. Sem outro jogador no mapa não
-    há o que avisar (4167). Outro exército, mapa diferente, rota vazia ou fora do mapa: ignorado."""
+    andando no ponto de saída e, na chegada, 140 ×2 parado no destino. Quem vê o exército recebe a rota no 4167
+    (``__broadPosHandler``: o cliente anda o ``UserArmy`` por ela). Outro exército, mapa diferente, rota vazia ou
+    fora do mapa: ignorado."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     castle = snap.castle
@@ -439,6 +478,9 @@ async def army_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
     _stop_walk(s)
     _map, x0, y0 = oc.position(castle, s.outer_army)
     _army_sync(s, ARMY_MOVING)
+    route = pb.PosMoveMsg(mapId=msg.mapId, armyId=msg.armyId, routes=msg.routes)
+    for o in _watchers(s):
+        o.send(S_BROAD_POS, route)
     s.outer_army = (castle.map_id, x, y)
     s.outer_walk = asyncio.create_task(_arrive(s, WALK_SECONDS_PER_TILE * math.dist((x0, y0), (x, y))))
 
@@ -482,7 +524,9 @@ async def teleport(s: GameSession, msg: pb.ArmyPositionMsg) -> None:
     await s.ctx.characters.save(c, castle, *([spent] if spent else []))
     _stop_walk(s)
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))  # um só (#7308)
+    leave_map(s)
     s.outer_army = (map_id, msg.posX, msg.posY)
+    _show(s)
     s.send(S_TELEPORT, pb.ArmyPositionMsg(posX=msg.posX, posY=msg.posY, leftEnergy=castle.energy))
     alert(s, "Teleportation Complete")
     if spent is not None:
@@ -495,7 +539,9 @@ async def return_home(s: GameSession, _: pb.PayTypeMsg) -> None:
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     _stop_walk(s)
+    leave_map(s)
     s.outer_army = None
+    _show(s)
     _map, x, y = oc.home(snap.castle)
     s.send(S_RETURN, pb.OutercityRspMsg(result=snap.character.id, curPosX=x, curPosY=y))
 
@@ -516,8 +562,12 @@ def _mine_sync(s: GameSession, mine: Mine, state: int) -> None:
 
 
 def _army_sync(s: GameSession, state: int) -> None:
-    for _ in range(2):  # o oficial manda o 140 do exército sempre duas vezes
-        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, state)))
+    """140 do exército (o oficial manda sempre duas vezes); quem o vê recebe um (estado de luta/parado)."""
+    msg = pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, state))
+    for _ in range(2):
+        s.send(S_MAP_SYNC, msg)
+    for o in _watchers(s):
+        o.send(S_MAP_SYNC, msg)
 
 
 @router.on(5160)
@@ -525,8 +575,9 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     """Atacar uma posição do mapa. Mina de ouro livre: luta com o guarda (tutorial_en #723-#727): 140 do
     exército lutando, 140 da mina em luta (state 4) e a 157. Castelo-robô e castelo NPC do mundo: luta (ver
     ``_attack_castle``).
+    Castelo de outro jogador: a mesma luta, contra a cópia do herói dele (``_player_target``).
     Monstro dos Wilds: luta (ver ``_attack_monster``). Treasure Cache: luta (ver ``_attack_cache``). Mina já
-    ocupada ou castelo de outro jogador: o exército só para (140 parado)."""
+    ocupada: o exército só para (140 parado)."""
     snap = s.snapshot
     assert snap is not None and snap.castle is not None
     await refresh(s)
@@ -536,6 +587,10 @@ async def attack(s: GameSession, msg: pb.MapPhysicAttackMsg) -> None:
     if robot is not None or npc is not None:
         target = _robot_target(s, robot) if robot is not None else _npc_target(s, npc)  # type: ignore[arg-type]
         if rows := _attack_castle(s, target):
+            await s.ctx.characters.save(*rows)
+        return
+    if (rival := await _rival_at(s, msg.mapId, msg.posX, msg.posY)) is not None:
+        if rows := _attack_castle(s, _player_target(s, *rival)):
             await s.ctx.characters.save(*rows)
         return
     boxes = tc.on_map(s.ctx.world, s.ctx.templates, msg.mapId, s.ctx.clock.now())
@@ -805,11 +860,19 @@ async def unoccupy_wild_land(s: GameSession, msg: pb.BuildingReqMsg) -> None:
 
 async def _attack_monster(s: GameSession, m: monsters.Monster) -> None:
     """Luta com monstro dos Wilds (battleType 2). Recusa com 140 parado se já há luta, se o monstro já foi
-    abatido no ciclo ou se o catálogo não tem a unidade dele. O 140 dele vai em state 4 a quem vê a grade."""
+    abatido no ciclo ou se o catálogo não tem a unidade dele. O 140 dele vai em state 4 a quem vê a grade.
+    Monstro já em luta (state 4): quem é do time (``ctx.teams``) de quem luta entra nela (``Battle.join``, como o
+    reforço 8255/8745) e leva o abate junto (``_helper_over``); fora do time, recusa. TODO(inventado): nenhuma
+    captura mostra quem pode entrar; o texto do chefe abatido (#1106, "、") é o da equipe."""
     snap = s.snapshot
     assert snap is not None
     killed = await _killed(s, m.map_id, s.ctx.clock.now())
     spec = monsters.battle(snap, s.ctx.world, s.ctx.templates, m)
+    running = s.ctx.wilds.fighting.get((m.map_id, m.id, m.born))
+    if s.battle is None and m.id not in killed and running is not None:
+        if await _join_monster(s, m, running):
+            return
+        spec = None
     if s.battle is not None or m.id in killed or spec is None:  # s.battle de novo: houve await
         s.log.info("5160 monstro recusado", monstro=m.id, template=m.template_id, abatido=m.id in killed)
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
@@ -845,23 +908,29 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
     _army_sync(s, ARMY_IDLE)
     same = monsters.cycle_start(templates, now) == m.born  # luta que cruzou o refresh: o monstro já sumiu
     gone = won and same
+    helpers = [h for h in battle.joined if h.snapshot is not None]
     if gone:
         kill = WildMonsterKill(m.map_id, m.id, m.born, snap.character.id or 0, now)
         try:
             await s.ctx.characters.write(lambda uow: uow.wild_kills.add(kill))
         except IntegrityError:
             s.log.info("monstro já abatido por outro", monstro=m.id)
+            gone = False
         else:
             if monsters.count_kill(snap.character, templates, m):
                 await s.ctx.characters.save(snap.character)
                 await drop_box(s, m)
             if m.boss_type == monsters.CHIEF:
-                _boss_killed(s, m)
+                _boss_killed(s, m, helpers)
+    for h in helpers:
+        await _helper_over(h, m, won, gone)
     if same:  # senão o roll_monsters já tirou o velho: um 140 dele o traria de volta
         _monster_sync(s, m, monsters.MONSTER_GONE if gone else monsters.MONSTER_ALIVE)
     if not won:
         _stop_walk(s)
+        leave_map(s)
         s.outer_army = None
+        _show(s)
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
     # (visto) oficial_20261023-171155-1 #6955, #7235, #7513: o 83 do HP pack depois dos 140 (e da volta para casa)
     hp_pack(s, healed)
@@ -871,22 +940,48 @@ async def _monster_over(s: GameSession, battle: Battle, m: monsters.Monster, won
 
 # o chefe morto sai no 83 canal 2 para o servidor inteiro, com o link 111 que abre o painel dos chefes
 # (ChatCellData.__outerCityBossClickHandler). (visto) 26/10 x_20261026-225632-1 #1106: o texto é o da equipe, com
-# os nomes separados por "、"; aqui a luta é sozinha, então só o nome de quem abateu. ponytail: sem equipe.
+# os nomes separados por "、": quem abateu e quem entrou na luta (``_join_monster``).
 BOSS_KILLED = (
     'Congratulations to {} for obtaining abundant rewards by defeating the Wilds BOSS {}!<a t="111" name="{}"/>'
 )
 BOSS_LINK = "Find BOSSes in the Wilds"
 
 
-def _boss_killed(s: GameSession, m: monsters.Monster) -> None:
+def _boss_killed(s: GameSession, m: monsters.Monster, helpers: list[GameSession] | None = None) -> None:
     assert s.snapshot is not None
     row = s.ctx.templates.get("MapPhysicsTempInfos", m.template_id) or {}
-    text = BOSS_KILLED.format(
-        social.player_link(s.ctx, s.snapshot.character), row.get("MapPhysicsTempName", ""), BOSS_LINK
-    )
+    names = "、".join(social.player_link(s.ctx, o.snapshot.character) for o in (s, *(helpers or [])) if o.snapshot)
+    text = BOSS_KILLED.format(names, row.get("MapPhysicsTempName", ""), BOSS_LINK)
     shout = pb.ChatChannelMsg(channel=WORLD, encodeMsg=text)
     for other in s.ctx.online.sessions():
         other.send(S_CHAT, shout)
+
+
+async def _join_monster(s: GameSession, m: monsters.Monster, running: Battle) -> bool:
+    """Entra na luta de outro com o monstro (``Battle.join``), se for do time de quem luta: 140 do exército em luta
+    a quem vê e o 157 da luta em curso (o ``join`` manda)."""
+    owner = next((o for o in s.ctx.online.sessions() if o.battle is running), None)
+    team = s.ctx.teams.of(s.player_id)
+    if owner is None or team is None or owner.player_id not in team.members or s in running.joined:
+        s.log.info("5160 monstro em luta de outro", monstro=m.id, dono=owner and owner.player_id)
+        return False
+    if not running.join(team_hero(owner, s), s):
+        return False
+    _army_sync(s, ARMY_FIGHTING)
+    s.log.info("reforço na luta com monstro", monstro=m.id, dono=owner.player_id)
+    return True
+
+
+async def _helper_over(h: GameSession, m: monsters.Monster, won: bool, gone: bool) -> None:
+    """Fim da luta para quem entrou nela: 4103, o exército parado e, com o monstro abatido, o abate no limite do
+    dia dele e o baú (como o dono; a cópia do herói não perde vida nem tropa)."""
+    snap = h.snapshot
+    assert snap is not None
+    h.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=monsters.SCENE))
+    _army_sync(h, ARMY_IDLE)
+    if gone and monsters.count_kill(snap.character, h.ctx.templates, m):
+        await h.ctx.characters.save(snap.character)
+        await drop_box(h, m)
 
 
 async def _attack_cache(s: GameSession, c: tc.Cache) -> None:
@@ -974,7 +1069,8 @@ async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) ->
 
 @dataclass(frozen=True, slots=True)
 class _Target:
-    """Castelo NPC atacável: o robô da instância (``robots.py``) ou o castelo NPC do mundo (``npc_castles.py``)."""
+    """Castelo atacável: o robô da instância (``robots.py``), o castelo NPC do mundo (``npc_castles.py``) ou o de
+    outro jogador (``_player_target``, com ``defender``)."""
 
     id: int
     grade: int
@@ -983,6 +1079,46 @@ class _Target:
     msg: Callable[[int, int], pb.BaseCastleMsg]  # o 140 com o state e o defenceLefttime
     spec: Callable[[], dict[str, Any]]
     shield: tuple[int, int]  # chave da proteção depois de vencido (``Wilds.shields``)
+    defender: PlayerSnapshot | None = None  # dono do castelo: sessão se online, senão o banco (``_other``)
+
+
+# castelo de jogador: TODO(inventado) nenhuma captura tem o saque nem a proteção depois de vencido;
+# ``game_settings.player_castle`` (migração 0113) troca
+PLAYER_CASTLE = {"loot_pct": 10, "shield_seconds": 7200}
+
+
+def _player_castle(s: GameSession) -> dict[str, Any]:
+    return {**PLAYER_CASTLE, **(s.ctx.world.settings.get("player_castle") or {})}
+
+
+async def _rival_at(s: GameSession, map_id: int, x: int, y: int) -> tuple[Castle, PlayerSnapshot] | None:
+    """O castelo de outro jogador no tile de um mapa compartilhado e o dono dele."""
+    snap = s.snapshot
+    assert snap is not None and snap.castle is not None
+    if map_id != snap.castle.map_id or oc.template_of(map_id) == oc.BASE_MAP:
+        return None
+    castles = await s.ctx.characters.read(lambda uow: uow.castles.on_map(map_id))
+    own = snap.character.id or 0
+    castle = next((c for c in castles if (c.pos_x, c.pos_y) == (x, y) and c.character_id != own), None)
+    other = await _other(s, castle.character_id) if castle is not None else None
+    return (castle, other) if castle is not None and other is not None else None
+
+
+def _player_target(s: GameSession, castle: Castle, other: PlayerSnapshot) -> _Target:
+    """Castelo de outro jogador: a luta é contra a cópia do herói dele (``arena.copy_hero``, como o ``pvp_fight``),
+    no mesmo tipo de luta do castelo-robô (battleType 4, mapa 993 "Plunder City", 4103 com battleScene 6)."""
+    name = other.character.nickname or ""
+
+    def spec() -> dict[str, Any]:
+        out = A.colosseum_spec([], [A.copy_hero(other, s.ctx.templates, s.ctx.clock.now())])
+        out.update(battleType=oc.ROBOT_BATTLE_TYPE, mapTempId=oc.ROBOT_MAP, battleScene=oc.ROBOT_SCENE)
+        return out
+
+    return _Target(
+        castle.id or 0, castle.grade, name, (castle.map_id, castle.pos_x, castle.pos_y),
+        lambda state, left: oc.rival_castle_msg(castle, name, left, state), spec,
+        (other.character.id or 0, 0), other,
+    )  # fmt: skip
 
 
 def _robot_target(s: GameSession, robot: RobotCastle) -> _Target:
@@ -1011,7 +1147,7 @@ def _attack_castle(s: GameSession, target: _Target) -> list[object]:
     para o castelo for 10 ou mais ou se o castelo ainda está protegido (MapPhysicsCastle.attack, command02/03).
     Senão gasta um ataque e manda, na ordem do oficial (tutorial_en #1648-#1657, oficial_20261023-171155-1
     #740-#749): o leed 10, 140 do exército lutando, 140 do
-    próprio castelo, 4452 (``defenceLefttime`` 0: atacar acaba a proteção, que aqui não existe), 3 com o
+    próprio castelo, 4452 (``defenceLefttime`` 0: atacar acaba a própria trégua, ``buffs.PROTECTION``), 3 com o
     ``attackLeftCount`` novo, 140 do castelo em luta (state 4) e a luta.
     (dedução) o ataque sai do contador do dia (o mesmo do 9506, "x/5" do AttackAlertFrame). O contador e a
     devoção voltam para quem chama gravar logo depois da luta criada: cair no meio da luta não devolve o ataque."""
@@ -1021,15 +1157,22 @@ def _attack_castle(s: GameSession, target: _Target) -> list[object]:
     if A.roll_day(arena, now):
         s.send(S_RESET, A.data_reset(snap, now))
     shielded = s.ctx.wilds.shield_left(target.shield, now) > 0
-    if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - target.grade) >= 10 or shielded:
+    ally = False
+    if (d := target.defender) is not None:  # castelo de jogador: a trégua dele (command03) e a mesma guilda (command04)
+        shielded = shielded or buffs.protection_left(d, now) > 0
+        mine, theirs = s.ctx.guilds.of(s.player_id), s.ctx.guilds.of(d.character.id or 0)
+        ally = mine is not None and theirs is not None and mine[0].id == theirs[0].id
+    if s.battle is not None or arena.attack_left <= 0 or abs(c.grades - target.grade) >= 10 or shielded or ally:
         s.log.info(
-            "5160 castelo NPC recusado",
-            castelo=target.id, ataques=arena.attack_left, nivel=c.grades, protegido=shielded,
+            "5160 castelo recusado",
+            castelo=target.id, ataques=arena.attack_left, nivel=c.grades, protegido=shielded, guilda=ally,
         )  # fmt: skip
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s)))
         return []
     arena.attack_left -= 1  # sem await até criar a luta: dois 5160 seguidos não gastam o mesmo ataque
-    rows = events.leed_gain(s, events.PLUNDER_LEED)
+    rows: list[object] = list(events.leed_gain(s, events.PLUNDER_LEED))
+    if (truce := buffs.stop(snap, buffs.PROTECTION, now)) is not None:  # atacar acaba a própria trégua
+        rows.append(truce)
     _army_sync(s, ARMY_FIGHTING)
     own = b.complete(b.castle_msg(snap, snap.castle))
     s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=own))
@@ -1069,12 +1212,19 @@ async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: boo
     fight = _capacity(s)
     daru, _ = await _casualties(s, battle, won, oc.ROBOT_SCENE)
     s.battle_strategy = 0  # o 4382 do castelo sai aqui mesmo (#1770)
-    gold = npc_castles.loot(s.ctx.world, target.grade) if won else 0
+    d = target.defender
+    if d is not None:  # relido: ele pode ter entrado ou saído do jogo durante a luta
+        d = await _other(s, d.character.id or 0) or d
+    if d is None:
+        gold = npc_castles.loot(s.ctx.world, target.grade) if won else 0
+    else:  # saque do ouro do dono (TODO(inventado) ``player_castle.loot_pct``)
+        gold = d.character.gold * int(_player_castle(s)["loot_pct"]) // 100 if won else 0
+        d.character.gold -= gold
     crystals = vip_right(s, snap, VIP_PLUNDER_CRYSTALS) if won else 0
     snap.character.gold += gold
     snap.character.crystals += crystals
     if won:
-        seconds = int(npc_castles.settings(s.ctx.world)["shield_seconds"])
+        seconds = int((npc_castles.settings(s.ctx.world) if d is None else _player_castle(s))["shield_seconds"])
         s.ctx.wilds.shield(target.shield, now, seconds)
         await server_state.save(s.ctx, server_state.SHIELDS)
         _, x, y = target.where
@@ -1086,7 +1236,9 @@ async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: boo
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     notify(s.ctx.online, letter)
-    s.log.info("relatório do castelo NPC", castelo=target.id, carta=letter.id, venceu=won, ouro=gold, kyanite=crystals)
+    if d is not None:
+        await _defender_after(s, d, target, won, fight, gold, now)
+    s.log.info("relatório do castelo", castelo=target.id, carta=letter.id, venceu=won, ouro=gold, kyanite=crystals)
     _army_sync(s, ARMY_IDLE)
     _target_sync(s, target, CASTLE_IDLE)
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
@@ -1110,7 +1262,7 @@ def _castle_report(
          "pos": f"{x},{y}", "mapId": map_id, "time": mines.game_date(now)},
         {"heroId": snap.leader.template_id, **empty, "fight": fight, "grade": snap.character.grades, "gold": gold,
          "crystal": crystals},
-        {"heroId": enemy.get("tempId", 0), **empty, "fight": npc_castles.fight(s.ctx.world, target.grade),
+        {"heroId": enemy.get("tempId", 0), **empty, "fight": _defender_fight(s, target),
          "grade": target.grade, "gold": -gold, "crystal": 0},
     )  # fmt: skip
     return Mail(
@@ -1123,11 +1275,88 @@ def _castle_report(
     )
 
 
+def _defender_fight(s: GameSession, target: _Target) -> int:
+    if target.defender is None:
+        return npc_castles.fight(s.ctx.world, target.grade)
+    return rules.leader_stats(target.defender, s.ctx.templates, s.ctx.clock.now()).fighting_capacity
+
+
+async def _defender_after(
+    s: GameSession, d: PlayerSnapshot, target: _Target, won: bool, fight: int, gold: int, now: datetime
+) -> None:
+    """O lado do dono do castelo atacado: o ouro saqueado sai dele (gravado: a sessão dele se online, o banco se não,
+    ``_other``) e ele recebe o relatório da defesa (o mesmo XML com ``camp`` 2, o resultado do ponto de vista dele e
+    o ouro trocado de lado). Online: o 3 com o ouro novo e a carta (``notify``). TODO(inventado): nenhuma captura tem
+    a defesa de um castelo de jogador."""
+    snap = s.snapshot
+    assert snap is not None and snap.leader is not None
+    await s.ctx.characters.save(d.character)
+    map_id, x, y = target.where
+    empty = {"site1Name": "", "site1Count": 0, "site2Name": "", "site2Count": 0}
+    contents = oc.report_contents(
+        {"type": 1, "camp": 2, "result": 2 if won else 1, "playerName": snap.character.nickname or "",
+         "siteName": target.name, "pos": f"{x},{y}", "mapId": map_id, "time": mines.game_date(now)},
+        {"heroId": d.leader.template_id if d.leader else 0, **empty, "fight": _defender_fight(s, target),
+         "grade": d.character.grades, "gold": -gold, "crystal": 0},
+        {"heroId": snap.leader.template_id, **empty, "fight": fight, "grade": snap.character.grades, "gold": gold,
+         "crystal": 0},
+    )  # fmt: skip
+    letter = Mail(
+        d.character.id or 0, now, "Battle Report", contents, mail_type=MailType.BATTLE_REPORT, send_type=SYSTEM_SENDER
+    )
+    await s.ctx.characters.write(lambda uow: stage(uow, letter))
+    notify(s.ctx.online, letter)
+    if (o := s.ctx.online.get(d.character.id or 0)) is not None and o.snapshot is d:
+        _send_player(o)
+
+
+async def _army_pk_over(s: GameSession, target: GameSession, won: bool) -> None:
+    """Fim do PvP de exércitos: 4103 a quem atacou; o exército que perdeu volta para o castelo (98 a ele, como a
+    derrota com monstro, e 4168 a quem o via) e os dois voltam a parado (140). TODO(inventado): sem captura do PvP
+    no mapa; sem saque nem honra."""
+    s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=oc.ROBOT_SCENE))
+    loser = target if won else s
+    if loser.snapshot is not None and loser.snapshot.castle is not None:
+        leave_map(loser)
+        _stop_walk(loser)
+        loser.outer_army = None
+        _show(loser)
+        _map, x, y = oc.home(loser.snapshot.castle)
+        loser.send(S_RETURN, pb.OutercityRspMsg(result=loser.player_id, curPosX=x, curPosY=y))
+    for o in (s, target):
+        if o.snapshot is not None and o.snapshot.castle is not None:
+            _army_sync(o, ARMY_IDLE)
+
+
 @router.on(8488)
 async def pvp_army(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
-    """PvP contra o exército de outro jogador no mapa. Os exércitos alheios não aparecem na cidade externa
-    (ver 8201), então não há alvo: nada muda e o cliente não espera resposta para isso (ele só espera a 157)."""
-    s.log.info("8488 sem alvo no mapa", alvo=msg.tarUserId)
+    """PvP contra o exército de outro jogador no mapa (``OuterCityPkMediator``: o cliente chega perto e manda o
+    ``tarUserId``). Luta contra a cópia do herói dele (``pvp_fight``, battleType 4 como o castelo; TODO(inventado)
+    sem captura): os dois exércitos em luta (140 state 2) a quem os vê. Recusa (log, sem resposta: o cliente só
+    espera a 157) se o alvo não está online no mesmo mapa compartilhado, é da mesma guilda (``command01``), já luta
+    (``command05``) ou se quem ataca já luta."""
+    snap, target = s.snapshot, s.ctx.online.get(msg.tarUserId)
+    other = target.snapshot if target is not None else None
+    assert snap is not None and snap.castle is not None
+    mine, theirs = s.ctx.guilds.of(s.player_id), s.ctx.guilds.of(msg.tarUserId)
+    if (
+        target is None or target is s or other is None or other.castle is None or other.leader is None
+        or s.battle is not None or target.battle is not None
+        or (mine is not None and theirs is not None and mine[0].id == theirs[0].id)
+        or oc.position(other.castle, target.outer_army)[0] != oc.position(snap.castle, s.outer_army)[0]
+        or oc.template_of(snap.castle.map_id) == oc.BASE_MAP
+    ):  # fmt: skip
+        s.log.info("8488 recusado", alvo=msg.tarUserId)
+        return
+    assert target is not None and other is not None
+    _stop_walk(s)
+    _army_sync(s, ARMY_FIGHTING)
+    _army_sync(target, ARMY_FIGHTING)
+
+    async def finished(won: bool) -> None:
+        await _army_pk_over(s, target, won)
+
+    pvp_fight(s, other, oc.ROBOT_BATTLE_TYPE, oc.ROBOT_SCENE, finished)
 
 
 @router.on(8699)
@@ -1161,25 +1390,31 @@ async def add_attack(s: GameSession, msg: pb.OutercityReqMsg) -> None:
     _send_player(s)
 
 
-async def _tile_taken(s: GameSession, map_id: int, x: int, y: int) -> bool:
-    """O tile tem mina, castelo NPC, robô ou o castelo de outro jogador (o 5160 ali acharia esse)."""
+async def _taken(s: GameSession, map_id: int) -> Callable[[int, int], bool]:
+    """Se um tile tem mina, castelo NPC, robô ou o castelo de outro jogador (o 5160 ali acharia esse). Lê os
+    castelos do mapa uma vez só."""
     snap = s.snapshot
     assert snap is not None
-    world, templates = s.ctx.world, s.ctx.templates
-    if npc_castles.tile_taken(world, templates, map_id, x, y) or mines.mine_at(world, map_id, x, y) is not None:
-        return True
-    if robots.robot_at(snap, world, map_id, x, y) is not None:
-        return True
-    own = snap.character.id or 0
+    world, templates, own = s.ctx.world, s.ctx.templates, snap.character.id or 0
     castles = await s.ctx.characters.read(lambda uow: uow.castles.on_map(map_id))
-    return any((c.pos_x, c.pos_y) == (x, y) and c.character_id != own for c in castles)
+    others = {(c.pos_x, c.pos_y) for c in castles if c.character_id != own}
+
+    def taken(x: int, y: int) -> bool:
+        return (
+            (x, y) in others
+            or npc_castles.tile_taken(world, templates, map_id, x, y)
+            or mines.mine_at(world, map_id, x, y) is not None
+            or robots.robot_at(snap, world, map_id, x, y) is not None
+        )
+
+    return taken
 
 
 @router.on(5176)
 async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     """Muda o castelo de lugar.
 
-    Outro mapa (``magId`` diferente): o servidor escolhe o ponto (centro do mapa) e gasta 200 de
+    Outro mapa (``magId`` diferente): o servidor escolhe o ponto (o livre mais próximo do centro) e gasta 200 de
     energia de teleporte; sem energia, completa até o teto com diamante (``payType 2`` = vinculado).
     Mesmo mapa com ``posX``/``posY``: 100 de energia, no ponto pedido se estiver no mapa.
     Resposta: 140 com o exército no lugar novo e 105 com o castelo (mapa, posição, energia). Mudando de mapa,
@@ -1195,7 +1430,7 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             s.log.info("5176 recusado", motivo="ponto fora do mapa")
             _castle_state(s)
             return
-        if await _tile_taken(s, castle.map_id, msg.posX, msg.posY):
+        if (await _taken(s, castle.map_id))(msg.posX, msg.posY):
             s.log.info("5176 recusado", motivo="tile ocupado", x=msg.posX, y=msg.posY)
             _castle_state(s)
             return
@@ -1205,9 +1440,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             s.log.info("5176 recusado", motivo="mapa fechado", mapa=msg.magId)
             _castle_state(s)
             return
-        target, spot, need = msg.magId, oc.centre(templates, msg.magId), oc.ENERGY_OTHER_MAP
-        while await _tile_taken(s, target, *spot):  # (dedução) o vizinho livre à direita do centro
-            spot = (spot[0] + 1, spot[1])
+        target, need = msg.magId, oc.ENERGY_OTHER_MAP
+        spot = oc.nearest_free(templates, target, oc.centre(templates, target), await _taken(s, target))
     top = cs.energy_max(templates)
     diamonds = oc.energy_diamonds(castle, top, need)
     entry = None
@@ -1226,12 +1460,14 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     moved_map = target != castle.map_id
     if moved_map:  # (visto) 24/10 #15690 e 27/10 #18050: o castelo ainda no mapa velho, antes do 152 e do exército
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=2, baseCastle=b.complete(b.castle_msg(snap, castle))))
+    leave_map(s)  # da posição velha, antes de o castelo (e o exército parado nele) mudar
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
     if moved_map and mines.is_world(s.ctx.world, target):
         castle.mines_at = mines.world_cycle_start(s.ctx.world, now)  # as minas do mundo vivem no ciclo do mundo
     quests = rules.update_state_quests(snap, templates, snap.quests)  # 37: missões do mapa (checkMapId)
     _stop_walk(s)
     s.outer_army = None
+    _show(s)
     await s.ctx.characters.save(c, castle, *([entry] if entry else []), *quests, delete=tuple(released))
     if moved_map:
         s.send(S_POLITICS, politics_msg(snap, templates))

@@ -30,6 +30,7 @@ class Room:
     rewarded: set[int] = field(default_factory=set)  # prontos com o ``isGet`` (usar a entrada do dia)
     state: int = IN_USE  # RoomMsg/RoomStateRspMsg.roomState (5037)
     type: int = PVE  # RoomMsg.roomType
+    positions: dict[int, int] = field(default_factory=dict)  # userId -> heroPos da formação da equipe (8277)
 
     def __post_init__(self) -> None:
         if not self.seats:  # o dono entra no lugar 0; lugares além da capacidade ficam fechados

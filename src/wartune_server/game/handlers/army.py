@@ -345,23 +345,42 @@ async def army_pos_edit(s: GameSession, msg: pb.ArmyFightPosEditMsg) -> None:
 
 
 def team_pos(s: GameSession) -> pb.ArmyFightPosEditListMsg:
+    """4186: a formação da sala (cada membro com a posição gravada; sem posição, a do próprio herói) ou, sozinho,
+    só o próprio herói."""
     assert s.snapshot is not None and s.snapshot.leader is not None
     msg = pb.ArmyFightPosEditListMsg()
-    msg.armyFightPos.add(userId=s.player_id, heroPos=s.snapshot.leader.fight_pos)
+    room = s.ctx.rooms.of(s.player_id)
+    for pid in room.members if room is not None else [s.player_id]:
+        o = s.ctx.online.get(pid)
+        own = o.snapshot.leader.fight_pos if o is not None and o.snapshot and o.snapshot.leader else 0
+        pos = room.positions.get(pid, own) if room is not None else s.snapshot.leader.fight_pos
+        msg.armyFightPos.add(userId=pid, heroPos=pos)
     return msg
 
 
 @router.on(8277)
 async def campaign_pos_edit(s: GameSession, msg: pb.ArmyFightPosEditListMsg) -> None:
-    """Formação da equipe na sala de campanha. ponytail: só a posição do próprio herói é gravada;
-    as dos outros membros dependem do sistema de salas em grupo. Resposta: 4186."""
+    """Formação da equipe na sala (``ArmySocketSendManager.sendEditTeamPos``): grava a posição (1 a 9) de cada
+    membro da sala na sala (``Room.positions``, usada em ``campaign._with_team``) e a do próprio herói nele; a 4186
+    vai a todos da sala online. Posição fora de 1-9, repetida ou de quem não é da sala: recusa com a 4186 atual."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
-    mine = next((p for p in msg.armyFightPos if p.userId == s.player_id), None)
-    if mine is not None and 1 <= mine.heroPos <= 9:
-        snap.leader.fight_pos = mine.heroPos
+    room = s.ctx.rooms.of(s.player_id)
+    members = set(room.members) if room is not None else {s.player_id}
+    got = {p.userId: p.heroPos for p in msg.armyFightPos}
+    if not got or any(u not in members or not 1 <= p <= 9 for u, p in got.items()) or len(set(got.values())) < len(got):
+        s.log.info("8277 recusado", pedido=str(msg))
+        s.send(S_TEAM_POS, team_pos(s))
+        return
+    if room is not None:
+        room.positions.update(got)
+    if s.player_id in got:
+        snap.leader.fight_pos = got[s.player_id]
         await s.ctx.characters.save(snap.leader)
-    s.send(S_TEAM_POS, team_pos(s))
+    reply = team_pos(s)
+    for pid in members:
+        if (o := s.ctx.online.get(pid)) is not None:
+            o.send(S_TEAM_POS, reply)
 
 
 @router.on(8278)

@@ -14,8 +14,8 @@ from ...domain.models import Building, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from ...templates.repository import GameTemplates, Row
+from .. import buffs, rules
 from .. import castle as cs
-from .. import rules
 from ..builders import login as b
 from ..builders.army import castle_pawns, unlocked_pawns
 from ..builders.player import quest_update
@@ -334,7 +334,11 @@ async def transfer_cool(s: GameSession, _: pb.PayTypeMsg) -> None:
 
 @router.on(8562)
 async def castle_time_cancel(s: GameSession, _: object) -> None:
-    """Cancela a trégua do castelo (buff 2001). ponytail: trégua ainda não existe; zera e confirma."""
+    """Cancela a trégua do castelo (buff 2001; ``PlayerBufferManager.removeBuffer``: o jogador tirou o ícone ou o
+    relógio chegou a 0): grava o fim agora e confirma com o 4452 zerado, que tira o ícone."""
+    assert s.snapshot is not None
+    if (st := buffs.stop(s.snapshot, buffs.PROTECTION, s.ctx.clock.now())) is not None:
+        await s.ctx.characters.save(st)
     s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))
 
 

@@ -49,7 +49,8 @@ S_EFFECT, S_ITEM_BUFFER = 110, 4188  # PropertyUpdatedMsg e ItemBufferRspMsg dos
 BOX, USE, GEM_BOX, BLOOD, EFFECT = "298", "203", "206", "209", "201"  # ItemTempInfo.SonType usáveis
 MOUNT_CARD = "218"  # carta de montaria
 POWER_CARD = "600"  # carta de poder (systems.CARD_ITEM)
-PROTECTION = 2001  # City Protection Token (208006): o cliente conta pelo 4452 defenceLeftTime e para com o 8562
+PROTECTION = buffs.PROTECTION  # City Protection Token (208006): o cliente conta pelo 4452 e para com o 8562
+S_CASTLE_TIME = 4452
 STORE_STONE = 208014  # Soul Crystal (SonType 293): Property1 = EXP do cristal (8484)
 STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
 BAG_ROW, BAG_MAX = 7, 175  # 5010 compra de 7 em 7 até 175 espaços (PlayerInfo.PLAYER_BAG_MAX)
@@ -581,13 +582,17 @@ async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
     snap = s.snapshot
     assert snap is not None
     effect, minutes, level = (int(row.get(f"Property{i}") or 0) for i in (1, 2, 3))
-    if effect == PROTECTION or minutes <= 0 or not _effect_type(s, effect):
+    if minutes <= 0 or (effect != PROTECTION and not _effect_type(s, effect)):
         return False
     st = buffs.apply(snap, effect, item.template_id, level, minutes * n, s.ctx.clock.now())
     if st is None:
         return False  # grau menor que o ativo
     changed, gone = _consume(snap, item, n)  # antes de qualquer await
     await s.ctx.characters.save(st, *changed, delete=tuple(gone))
+    if effect == PROTECTION:  # trégua: o fim fica gravado; o ícone e o relógio vêm só do 4452 (segundos)
+        _send_items(s, changed, gone)
+        send(s, S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=buffs.protection_left(snap, s.ctx.clock.now())))
+        return True
 
     # (visto) oficial_20261024-191924-1 #1737 (Crit Scroll): 115, 150, 4434, 110, 150, 4188, 150, 3; #2241 (Lvl. 2
     # Bonus EXP Scroll): 115, 150, 4434, 110, 4188, 150, 3. O 110 dos atributos o cliente ignora (PlayerEffectHelper):

@@ -303,9 +303,10 @@ def brief_army(full: pb.ArmyArmyMsg, job: int, hero_template: int, state: int) -
     )  # fmt: skip
 
 
-def castle_msg(snap: PlayerSnapshot, castle: Castle) -> pb.BaseCastleMsg:
+def castle_msg(snap: PlayerSnapshot, castle: Castle, defence: int = 0) -> pb.BaseCastleMsg:
+    """``defence``: segundos de trégua (``buffs.protection_left``); o cliente bloqueia o ataque com ela."""
     c = snap.character
-    return pb.BaseCastleMsg(
+    msg = pb.BaseCastleMsg(
         id=castle.id or 0,
         mapId=castle.map_id,
         posX=castle.pos_x,
@@ -318,6 +319,9 @@ def castle_msg(snap: PlayerSnapshot, castle: Castle) -> pb.BaseCastleMsg:
         leftEnergy=castle.energy,
         grade=castle.grade,
     )
+    if defence:
+        msg.defenceLefttime = defence
+    return msg
 
 
 def system_property(now: datetime, opened_at: datetime) -> pb.SystemPropertyMsg:

@@ -803,9 +803,14 @@ def _with_team(s: GameSession, spec: dict[str, Any], team: list[GameSession]) ->
     used += [u["livingId"] for w in spec.get("reinforce", []) for u in w] + [spec["player"]["livingId"]]
     taken = {u["pos"] for u in spec.get("soldiers", []) if u.get("side") == 1} | {spec["player"]["pos"]}
     free = [p for p in TEAM_POS if p not in taken]
+    room = s.ctx.rooms.of(s.player_id)
+    chosen = room.positions if room is not None else {}  # a formação da sala (8277), se o lugar estiver livre
     heroes = list(spec.get("heroes", []))
     for i, m in enumerate(team[: len(free)]):
-        heroes.append(team_hero(s, m) | {"livingId": max(used) + 1 + i, "pos": free[i]})
+        pos = chosen.get(m.player_id, 0)
+        pos = pos if pos in free else free[0]
+        free.remove(pos)
+        heroes.append(team_hero(s, m) | {"livingId": max(used) + 1 + i, "pos": pos})
     return spec | {"heroes": heroes}
 
 

@@ -12,6 +12,7 @@ Exército andando de outro jogador não existe aqui. Minas em ``mines.py``, cast
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from xml.sax.saxutils import quoteattr
 
 from ..domain.models import Castle, Pawn, PlayerSnapshot
@@ -79,14 +80,25 @@ def inside(templates: GameTemplates, map_id: int, x: int, y: int) -> bool:
 
 
 def centre(templates: GameTemplates, map_id: int) -> tuple[int, int]:
-    """Onde o castelo cai ao chegar num mapa novo.
-
-    ponytail: o oficial escolhe um ponto livre; usamos o centro (só turco: transfer, mapa 2 em 2191,1952, perto do
-    centro de 4000×4000 tiles), então dois castelos que mudam para o mesmo mapa ficam no mesmo ponto até um
-    deles se mover (5176 no mesmo mapa). Subir: procurar ponto livre com ``CastleRepository.on_map``.
-    """
+    """Âncora de onde o castelo cai ao chegar num mapa novo: o centro (só turco: transfer, mapa 2 em 2191,1952, perto
+    do centro de 4000×4000 tiles). O ponto final é o livre mais próximo dela (``nearest_free``)."""
     size = map_size(templates, map_id) or (0, 0)
     return size[0] // 2, size[1] // 2
+
+
+def nearest_free(
+    templates: GameTemplates, map_id: int, start: tuple[int, int], taken: Callable[[int, int], bool]
+) -> tuple[int, int]:
+    """O tile livre mais próximo de ``start`` dentro do mapa, em anéis quadrados (Chebyshev; no mesmo anel, o de
+    menor distância real). TODO(inventado): o oficial escolhe um ponto livre sem regra conhecida."""
+    size = map_size(templates, map_id) or (0, 0)
+    sx, sy = start
+    for r in range(max(size) + 1):
+        ring = [(sx + dx, sy + dy) for dx in range(-r, r + 1) for dy in range(-r, r + 1) if max(abs(dx), abs(dy)) == r]
+        for x, y in sorted(ring, key=lambda p: (p[0] - sx) ** 2 + (p[1] - sy) ** 2):
+            if inside(templates, map_id, x, y) and not taken(x, y):
+                return x, y
+    return start
 
 
 def energy_diamonds(castle: Castle, top: int, need: int) -> int:
@@ -252,10 +264,11 @@ def robot_battle(
     }
 
 
-def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
+def rival_castle_msg(castle: Castle, name: str, defence: int = 0, state: int = 0) -> pb.BaseCastleMsg:
     """Castelo de outro jogador num mapa compartilhado (o do próprio jogador é ``builders.login.castle_msg``).
-    (dedução) os mesmos campos do castelo próprio no 4129 (inglês #532); nenhuma captura tem castelo de outro."""
-    return pb.BaseCastleMsg(
+    (dedução) os mesmos campos do castelo próprio no 4129 (inglês #532); nenhuma captura tem castelo de outro.
+    ``defence``: a trégua dele em segundos (o cliente recusa o ataque com ``command03``); ``state`` troca o gravado."""
+    msg = pb.BaseCastleMsg(
         id=castle.id or 0,
         mapId=castle.map_id,
         posX=castle.pos_x,
@@ -263,11 +276,14 @@ def rival_castle_msg(castle: Castle, name: str) -> pb.BaseCastleMsg:
         type=1,
         occupyPlayerId=castle.character_id,
         occupyPlayerName=name,
-        state=castle.state,
+        state=state or castle.state,
         castleName=castle.name,
         leftEnergy=castle.energy,
         grade=castle.grade,
     )
+    if defence:
+        msg.defenceLefttime = defence
+    return msg
 
 
 def report_contents(info: dict[str, object], me: dict[str, object], he: dict[str, object]) -> str:

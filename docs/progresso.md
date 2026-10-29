@@ -24,8 +24,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
-| Castelo | 10 | 4 | 5 | 1 | 3 |
-| Herói e exército | 13 | 13 | 1 | 2 | 4 |
+| Castelo | 11 | 4 | 5 | 0 | 3 |
+| Herói e exército | 14 | 12 | 2 | 1 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 7 | 1 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
@@ -34,16 +34,16 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 12 | 4 | 1 | 4 | 0 |
+| Missões | 12 | 3 | 2 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 2 |
+| Mapa do mundo (cidade externa) | 3 | 3 | 9 | 2 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
-| PvP e chefes | 1 | 2 | 2 | 4 | 2 |
+| PvP e chefes | 1 | 2 | 3 | 3 | 2 |
 | Atividades e eventos | 5 | 11 | 10 | 2 | 5 |
 | VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **110** | **78** | **68** | **31** | **34** |
+| **Total** | **113** | **74** | **73** | **27** | **34** |
 
 ## Validação e base
 
@@ -76,7 +76,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Árvore: colheita do fruto (5178) | 🧪 | | ordem e textos vistos (25/10 #218-#227, 27/10 #5075-#5086); Daru/Kyanite/ouro vistos nos graus 6 e 10, os outros graus são reta entre eles (inventado) |
 | Caixa por tempo (5019) | ✅ | | reset diário de uma amostra só |
 | Recompensa offline (8287) | 🟡 | | só ×1; ×1,5 e ×2 recusados (preço desconhecido); EXP = nível × minutos por dedução |
-| Trégua (8562) | ❌ | | só zera e confirma |
+| Trégua (8562) | ✅ | | City Protection Token grava o fim (buff 2001), 4452 em segundos no uso/login/8201, 8562 e atacar acabam; castelo em trégua não é atacável (`PlayerBufferManager`, `MapPhysicsCastle.attack`) |
 | Reforço em batalha (8255) | 🧪 | | pelo cliente (`CampaignArmyViewHelper`, `ReinforceHandler`): `Battle.join` põe o herói (cópia) numa posição livre do lado 1, 72 para os de dentro, 157 com o estado atual para quem chega, luta o resto e leva o prêmio (`_battle_over` mate); também no 8745 do tesouro. Nenhuma captura de 8255: ordem dos pacotes e posições (`TEAM_POS`) inventadas |
 
 ## Herói e exército
@@ -87,10 +87,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Tropas: formação (8276) e posição (8328) | ✅ | | |
 | Tropas: evoluir (5158) e trocar tipo (8580) | ✅ | | |
 | Tropas: especialidades (8455/8456) | 🟡 | | a 1ª vem sozinha no nível 10 (visto: Lancer 100, Hunter 200); o sorteio do 8455 só até o grau atual (atalho, `handlers/army.py`) |
-| Tropas: formação de campanha (8277/8278) | 🟡 | | só a posição do herói é gravada |
+| Tropas: formação de campanha (8277/8278) | 🧪 | | posição de cada membro gravada na sala (`Room.positions`), 4186 a todos, usada na luta em grupo; os lugares do lado 1 seguem `TEAM_POS` inventado |
 | Herói: aprender skills e talento (5185/5187) | ✅ | | custo do talento por dedução |
 | Herói: resetar skills e 2º conjunto | ✅ | | |
-| Herói: redistribuir atributos (5170) | ❌ | | sem efeito (pontos automáticos) |
+| Herói: redistribuir atributos (5170) | ✅ | | `*_point` voltam a `remain_point`; sem custo: no inglês nenhuma tela nem item chama o 5170 e a resposta 66 não tem handler |
 | Subida de nível (139, 100, 150, 4640) | 🟡 | | vista na missão; por batalha, coliseu, fazenda e livro de EXP por dedução |
 | Runas (8605) | 🟡 | 🇹🇷 | reforço sem o bônus 2x-20x; o 4495 do login do turco |
 | Montaria: lista (8530) | ✅ |  | o 4426 junto do 4427 no inglês (231733 #11-#14), igual ao turco |
@@ -291,7 +291,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Principais: recrutar, nível, tropa, construção | ✅ | | |
 | Segundo login, nível, eventos (39, 1, 40, 63, 66, 87) | ✅ | | |
 | Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 10 de 26 conferidas (prédios, 503, 623); faltam catacumbas (6), mina de Amethyst (86, ligada na coleta; entrega não conferida), 241/768 pelo handler e a ordem 52/83 em 5 subidas de nível |
-| Castelo e ocupação (7, 8) | 🟡 | | castelo de jogador sem alvo |
+| Castelo e ocupação (7, 8) | 🧪 | | castelo de jogador atacável (cópia do herói, battleType 4); saque e proteção inventados (`player_castle`, migração 0113) |
 | Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras solo com captura na 0098 |
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
 | Diárias e repetíveis | ✅ | | repetível concluída vai no 112 do login (QuestTemps IsRepeat) |
@@ -321,20 +321,20 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Grade, andar e exércitos | 🟡 | | exércitos alheios não aparecem |
-| Mudar o castelo de lugar (5176) | 🟡 | | ordem 140/152/140/105 e energia no inglês (24/10 #15689, 27/10 #18049); ponto de chegada: o inglês cai num ponto fixo, aqui o centro |
+| Grade, andar e exércitos | ✅ | | exércitos dos outros online no 169, rota no 4167 e saída no 4168 (`OuterCityController`) |
+| Mudar o castelo de lugar (5176) | 🟡 | | ordem 140/152/140/105 e energia no inglês (24/10 #15689, 27/10 #18049); ponto de chegada: o livre mais próximo do centro (regra do ponto inventada) |
 | Minas de ouro (missão 60) | 🟡 | | perda de soldados na derrota e refresh com o jogador online sem captura |
 | Minas do mundo (mapas 1-5) | 🧪 | | grades não vistas inventadas (`mines.py:22`) |
 | Atacar mina de outro jogador | 🧪 | | cópia do herói inventada |
 | Castelos NPC do mundo | 🧪 | | grades, saque e nomes inventados (`npc_castles.py`) |
 | Castelos-robô (missões 100, 411, 765) | 🧪 | | saque acima do grau 30 inventado |
-| Monstros dos Wilds e patrulha | 🟡 | | luta em grupo não existe |
+| Monstros dos Wilds e patrulha | 🧪 | | luta em grupo: quem é do time entra na luta em curso (`Battle.join`) e leva o abate e o baú; quem pode entrar é inventado |
 | Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista no inglês (153200 #191); luta: 4938 type 4 e herói do chefe da 157 do inglês (24/10 #16254-#16256); aviso de abate do inglês (26/10 #1106); falta luta em equipe, prêmio do abate e nome inglês ("Purgatory Lord", o catálogo turco dá "Balrog") |
 | Baús dos Wilds (9526) | ✅ | | |
 | Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
 | Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço entra na luta em curso (`Battle.join`), na partilha e na missão 89; login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
-| PK no campo de animais (8525) | ❌ | | |
+| PK no campo de animais (8525) | 🧪 | | ilha dos pets/mina: luta direta (BattleType 19); outras salas: convite 4421 e op 2; battleScene inventado |
 | Passe de progresso (8636/8637) | ❌ | | |
 | Ataque extra (9506) | ✅ | | |
 | Coleta de Amethyst e Copper | ❌ | | |
@@ -360,7 +360,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Arena entre servidores (8590) | ❌ | | |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); PvP 8334 entre jogadores locais (157 battleType 32 contra a cópia do alvo, 4494 state 2/0, 4104/4175 com o perdedor em 179,75 por 25 s, 4103, 4388 tipo 4, 4269 de ganho e perda; perda de 15% e ganho igual, inventados); missões 45 (abate no PvP, 767 vista #11106) e 50 (vitória da partida, posição do 112 inventada); honra e Amethyst sem moeda; nós, vencedor e constantes no código (sem `game_settings`) inventados |
-| Ataque a castelo/exército de jogador | ❌ | | |
+| Ataque a castelo/exército de jogador | 🧪 | | castelo (5160) e exército (8488) contra a cópia do herói; recusa por trégua, guilda e nível pelo cliente; saque, relatório da defesa e PvP de exércitos sem captura |
 | Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
 | Boss mundial: buff e dublê | ❌ | | |
 

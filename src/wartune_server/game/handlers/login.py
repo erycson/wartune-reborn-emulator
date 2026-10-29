@@ -204,8 +204,9 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         for kind, gold in castle.tech_effects(snap, s.ctx.templates):  # (só turco: login.json #20) 110 tipo 104 = 330
             s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=kind, value=gold))
     if msg.castle:
-        _send(s, S_CASTLE, b.castle_msg(snap, snap.castle))
-        s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=0))  # oficial manda só este campo
+        truce = buffs.protection_left(snap, s.ctx.clock.now())
+        _send(s, S_CASTLE, b.castle_msg(snap, snap.castle, truce))
+        s.send(S_CASTLE_TIME, pb.BaseCastleMsg(defenceLefttime=truce))  # oficial manda só este campo
     if msg.army:
         _send(s, S_ARMY, army(s, snap)[0])
         # tropas do castelo: o oficial manda o 100 aqui, depois do 150, mesmo vazio para personagem sem tropas nem

@@ -265,9 +265,10 @@ class GameSession:
             self.npc_patrol.cancel()
         if self.snapshot is not None:
             from . import guild, rules, social, space  # importam este módulo
-            from .handlers import altar, events, hangup, room, team, vehicle, warfield, wedding, worldboss  # idem
+            from .handlers import altar, events, hangup, outer_city, room, team, vehicle, warfield, wedding, worldboss
 
             try:  # sala e time antes do unbind: quem fica ainda recebe a saída
+                outer_city.leave_map(self)  # o exército some do mapa de quem o via (4168)
                 room.leave_room(self)
                 team.leave_team(self)
                 worldboss.leave_boss(self)

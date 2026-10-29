@@ -185,8 +185,18 @@ async def change_skill(s: GameSession, msg: pb.HeroSkillChangeMsg) -> None:
 
 @router.on(5170)
 async def reset_attribute_points(s: GameSession, _: object) -> None:
-    """Redistribuir atributos: aqui os pontos de atributo são todos aplicados automaticamente por
-    nível (rules.GROWTH), não há o que devolver; responde o herói atual. Nenhuma tela chama."""
+    """Redistribuir atributos (``ArmyControler.sendWashPoint``): os pontos distribuídos (``*_point``, o
+    ``addXPoint`` do ``ThaneInfoHelper``) voltam a ``remain_point`` e o herói vai no 150. O crescimento por nível
+    (rules.GROWTH) não muda. Sem custo: no cliente inglês nenhuma tela chama o 5170 e nenhum item o aciona; a
+    resposta 66 (``AcceptProtocolType.U_C_HERO_RESETPOINT``) não tem handler, por isso não vai."""
+    hero = s.snapshot.leader if s.snapshot is not None else None
+    if hero is None:
+        return
+    names = ("power_point", "agility_point", "intellect_point", "captain_point", "physique_point")
+    hero.remain_point += sum(getattr(hero, n) for n in names)
+    for n in names:
+        setattr(hero, n, 0)
+    await s.ctx.characters.save(hero)
     _army(s)
 
 

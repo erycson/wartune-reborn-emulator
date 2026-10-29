@@ -47,7 +47,19 @@ def boost(value: int, snap: PlayerSnapshot, effect: int, now: datetime) -> int:
 
 
 def active(snap: PlayerSnapshot, now: datetime) -> list[EventState]:
-    return [e for e in snap.events if e.key.startswith(KEY) and _live(e, now)]
+    """Os do 4188. A trégua (2001) fica de fora: o cliente a monta só pelo 4452 (``PlayerBufferManager``)."""
+    return [e for e in snap.events if e.key.startswith(KEY) and _live(e, now) and effect_of(e) != PROTECTION]
+
+
+# trégua do castelo, City Protection Token (208006): o cliente conta pelo 4452 ``defenceLefttime`` (segundos, como o
+# ``validityDate * 60`` dos outros) e o cancela com o 8562 (``PlayerBufferManager.removeBuffer``)
+PROTECTION = 2001
+
+
+def protection_left(snap: PlayerSnapshot, now: datetime) -> int:
+    """Segundos de trégua que faltam (0 sem trégua)."""
+    st = events.peek(snap, f"{KEY}{PROTECTION}")
+    return max(0, math.ceil((st.updated_at - now).total_seconds())) if st is not None else 0
 
 
 def effect_of(st: EventState) -> int:

@@ -11,9 +11,9 @@ escreve "Restored 1 Stamina through cultivation.". 8292 cancela, 8293 acelera: `
 O que resta para hoje (``leftWeay``) é um teto diário (``DataResetMsg.leftHangupWeary`` zera por dia), sem valor no
 cliente: ``game_settings.rest_house``. A meditação vive na sessão: sair da sala ou desconectar acerta e para.
 
-O convite de PK (8525 op 1) precisa da batalha no mapa (BattleType 19), que não existe. O cliente não espera
-resposta, então só registramos. Não mandamos 4421 de volta: com a recusa automática ligada
-(``SharedManager.refuseInvitation``) o cliente responde 8525 op 3 a qualquer 4421, e isso viraria laço.
+O PK no mapa (8525) é a luta contra a cópia do herói do alvo (BattleType 19): direto na ilha dos pets e na mina,
+por convite (4421 op 1, aceito com op 2) nas outras salas; ver ``map_pk``. A recusa (op 3) não volta a ninguém:
+com a recusa automática ligada (``SharedManager.refuseInvitation``) o cliente responde op 3 a qualquer 4421.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from ...templates.repository import GameTemplates
 from .. import events as ev
 from .. import rules, space
 from ..builders import login as b
-from ..campaign import NORMAL, CampaignMap
+from ..campaign import NORMAL, PET_ISLANDS, CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
 from .player import _player
@@ -58,6 +58,9 @@ START = (36, 22)  # (dedução) o bloco de tiles valor 4 do maps/7001/7001.title
 # (a estátua já está na arte do mapa).
 STATUES = ((43, 17), (58, 29), (16, 37), (20, 17))
 SON_TYPE = 7001
+S_PK, S_BATTLE_REPORT = 4421, 4103  # convite de PK (CampaignMapController) e o fim da luta
+MINERAL = 30000  # WorldBossHelper.checkMineral
+PK_TYPE, PK_SCENE = 19, 11  # BattleType do PK no mapa; TODO(inventado) o battleScene (o do campo de batalha)
 
 
 @dataclass
@@ -325,5 +328,36 @@ async def hangup_room_state(s: GameSession, _: object) -> None:
 
 @router.on(8525)
 async def map_pk(s: GameSession, msg: pb.HangupAttackMsg) -> None:
-    """op 1 convite, 2 aceita, 3 recusa; sem op é o ataque no campo de animais (sem batalha aqui)."""
-    s.log.info("8525 sem batalha de PK no mapa da campanha", op=msg.op, alvo=msg.defenceId)
+    """PK no mapa de campanha. Sem op (``MapSocketOuterManager.sendAttackInPetLand``, o ``PvpWarFightMediator`` na
+    ilha dos pets e na mina, alvo fora de luta): na ilha dos pets/mina a luta começa já; nas outras salas vira o
+    convite 4421 op 1 ao alvo (``HookMapPKMediator``: "Accept"/"Reject"). Op 2 (aceitou, ``attackId`` = quem
+    convidou): a luta de quem convidou contra a cópia de quem aceitou. Op 3 (recusou): só o log; nada volta, senão a
+    recusa automática (``SharedManager.refuseInvitation``) de quem convidou responderia de novo e viraria laço.
+    A luta: ``pvp_fight`` com BattleType 19 e o 4103 a quem atacou. TODO(inventado): sem captura; o battleScene do
+    4103 (o do campo de batalha, 11) e nenhuma perda além da luta."""
+    from .campaign import pvp_fight  # campaign importa space, que importa este módulo
+
+    if msg.op == 3:
+        s.log.info("8525 convite recusado", alvo=msg.attackId)
+        return
+    attacker, defender = (s, s.ctx.online.get(msg.defenceId)) if msg.op != 2 else (s.ctx.online.get(msg.attackId), s)
+    if (
+        msg.op not in (0, 2) or attacker is None or defender is None or attacker is defender
+        or attacker.campaign is None or defender.campaign is None
+        or attacker.campaign.map_id != defender.campaign.map_id
+        or attacker.battle is not None or defender.battle is not None or defender.snapshot is None
+    ):  # fmt: skip
+        s.log.info("8525 recusado", op=msg.op, alvo=msg.defenceId, quem=msg.attackId)
+        return
+    map_id = attacker.campaign.map_id
+    if msg.op == 0 and not (map_id in PET_ISLANDS or map_id == MINERAL):
+        name = attacker.snapshot.character.nickname if attacker.snapshot else ""
+        defender.send(S_PK, pb.HangupAttackMsg(op=1, attackId=attacker.player_id, attackName=name or "",
+                                               defenceId=defender.player_id))  # fmt: skip
+        return
+    target = defender.snapshot
+
+    async def finished(won: bool) -> None:
+        attacker.send(S_BATTLE_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PK_SCENE))
+
+    pvp_fight(attacker, target, PK_TYPE, PK_SCENE, finished)
