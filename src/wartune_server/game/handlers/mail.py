@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import random
 import re
 
 from ...domain.models import BagType, CashLedger, Item, Mail, MailAnnex, MailType, Pet, PlayerSnapshot
@@ -11,11 +12,13 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...services.ledger import record_cash
 from .. import bag, items, rules, social
+from .. import events as gev
 from .. import guild as gd
 from .. import mail as mailbox
 from ..builders import login as b
 from ..builders.player import item_moved
 from ..castle import castle_yield
+from ..mail import SYSTEM_SENDER
 from ..mall import SYLPH
 from ..router import router
 from ..session import GameSession
@@ -32,6 +35,8 @@ PLAYER_MAIL, GUILD_MAIL = 1, 2  # MailSendReqMsg.sendType (ConsortiaControler.se
 GUILD_MAIL_COST = 175
 MAX_PICKUP = 50
 _TAG = re.compile(r"<[^>]*>")
+_MAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")  # MailCheckFrame.ckSth, mais estrito
+MAIL_CHECK_KEY, MAIL_VERIFIED = "mail_check", -1
 
 
 def _clean(raw: str, limit: int) -> str | None:
@@ -227,8 +232,34 @@ async def take_annexes(s: GameSession, msg: pb.MailMsg) -> None:
 
 @router.on(9591)
 async def mail_check(s: GameSession, msg: pb.MailCheckMsg) -> None:
-    """Verificação do endereço de e-mail do jogador (op 1 pede o código, op 2 envia o PIN), que
-    dá o prêmio ``mail_rewards``. Sem SMTP o código nunca chega: responde estado 0 (botão de
-    enviar desligado) e não dá prêmio. Depende de um serviço de e-mail."""
-    s.log.info("9591 sem SMTP; verificação de e-mail indisponível", op=msg.op)
-    s.send(S_MAIL_CHECK, b.complete(pb.MailCheckMsg(op=msg.op, state=0, mail=msg.mail[:64])))
+    """Verificação do endereço de e-mail (``MailCheckManager``: op 1 pede o código, op 2 manda o PIN) com o prêmio
+    ``mail_rewards`` do ConfigInfos (``ConfigInfoManager.getMailCheckPrize``, "-500,3000"). Estados do 337
+    (``MailCheckFrame``): 0 enviar desligado, 1 código enviado (enviar ligado), 2 verificado (fecha e some o botão),
+    3 recusado. TODO(inventado): sem SMTP, o código de 6 dígitos vai por correio do jogo; o prêmio também vai pelo
+    correio. Uma vez só por personagem (EventState ``mail_check``: ``value`` -1 = verificado, senão o PIN)."""
+    snap, now = s.snapshot, s.ctx.clock.now()
+    assert snap is not None
+    st = gev.state(snap, MAIL_CHECK_KEY, now)
+    address = msg.mail.strip()[:64]
+    letter: tuple[Mail, list[tuple[int, int]], list[Item]] | None = None
+    if st.value == MAIL_VERIFIED:
+        state = 2
+    elif not _MAIL_RE.fullmatch(address):
+        state = 3
+    elif msg.op == 1:
+        st.value, st.text, state = random.randint(100000, 999999), address, 1
+        body = f"Your verification code is {st.value}."  # TODO(inventado): o texto do código
+        letter = (Mail(s.player_id, now, "Email Verification", body, mail_type=MailType.SYSTEM,
+                       send_type=SYSTEM_SENDER), [], [])  # fmt: skip
+    elif msg.op == 2 and st.value > 0 and msg.pin == st.value and address == st.text:
+        st.value, state = MAIL_VERIFIED, 2
+        raw = rules.config(s.ctx.templates, "mail_rewards", "-500,3000")
+        goods = [(int(a), int(n)) for a, n in (x.split(",") for x in raw.split("|") if x)]
+        letter = (Mail(s.player_id, now, "Email Verified", "Email verification reward.", mail_type=MailType.SYSTEM,
+                       send_type=SYSTEM_SENDER), goods, [])  # fmt: skip
+    else:
+        state = 3
+    st.updated_at = now
+    await shop.save_with_mail(s, [letter] if letter else [], st)
+    s.log.info("9591", op=msg.op, estado=state)
+    s.send(S_MAIL_CHECK, b.complete(pb.MailCheckMsg(op=msg.op, state=state, mail=address)))

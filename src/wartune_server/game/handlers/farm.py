@@ -65,10 +65,13 @@ async def _other(s: GameSession, user_id: int) -> PlayerSnapshot | None:
 
 
 def _info(s: GameSession, target: PlayerSnapshot, now: datetime) -> pb.FarmInfoRspMsg:
-    from .pets import guard_msg  # noqa: PLC0415  (pets -> player -> ... -> farm)
+    from .farm_pets import land_msgs  # noqa: PLC0415  (pets -> player -> ... -> farm)
+    from .pets import guard_msg  # noqa: PLC0415
 
     templates = s.ctx.templates
-    return farm.farm_info(target, now, templates, own=target is s.snapshot, guard=guard_msg(target, templates))
+    msg = farm.farm_info(target, now, templates, own=target is s.snapshot, guard=guard_msg(target, templates))
+    msg.petInfo.extend(land_msgs(target, templates))
+    return msg
 
 
 async def _friend(s: GameSession, user_id: int) -> tuple[PlayerSnapshot, Relation] | None:
@@ -103,8 +106,15 @@ async def farm_operate(s: GameSession, msg: pb.FarmOperReqMsg) -> None:
             s.send(S_FARM_INFO, b.complete(_info(s, target, now)))
         return
     own = msg.friendId in (0, s.player_id)
-    if msg.opType > LAND_UP:  # 12-16 terras de mascote e guarda: o 4387 de falha cairia num canteiro (pos -1 no guarda)
-        s.log.info("15044 recusado: cultivo de mascote sem regra (precisa captura)", op=msg.opType)
+    if msg.opType > LAND_UP:  # terras de mascote e guarda (farm_pets); 10 e 11 não saem do cliente pelo 15044
+        from . import farm_pets  # noqa: PLC0415  (pets -> player -> ... -> farm)
+
+        pal = None if own or msg.opType != farm_pets.FEED else await _friend(s, msg.friendId)
+        owner = snap if own else (pal[0] if pal else None)
+        if farm_pets.START <= msg.opType <= farm_pets.DEFENSE and owner is not None:
+            await farm_pets.operate(s, owner, msg, own)
+        else:
+            s.log.info("15044 recusado", op=msg.opType, friend=msg.friendId)
         return
     if msg.opType == LAND_UP:  # sem pos e sem 4387 (um 4387 de falha apagaria a terra 0 no cliente)
         if not own or not await _land_up(s, snap, msg):

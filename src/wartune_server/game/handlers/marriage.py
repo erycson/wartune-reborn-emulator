@@ -33,7 +33,7 @@ from ..mail import send_system_mail
 from ..router import router
 from ..session import GameContext, GameSession
 from .hero import send_items
-from .login import player_info
+from .login import player_info, tokens_msg
 from .player import alert, granted
 
 S_PROPOSALS, S_QUALITY, S_LOVER, S_ROOMS, S_TASKS = 4656, 4658, 4659, 4662, 4675
@@ -629,7 +629,13 @@ async def marriage_task(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     done_today.value += 1
     done_today.updated_at = now
     happy = int(row.get("RewardHappy") or 0) + _config(s.ctx, "mar_task_add_happy", 50)
-    await add_happy(s, happy, snap.character, task, done_today, *changed)
+    # Venus Crystal: a fonte oficial (Venus Battle) é entre servidores; aqui a missão do casal dá
+    # TODO(inventado) ``game_settings.venus_crystal_sources.couple_task`` (0118)
+    venus = int((s.ctx.world.settings.get("venus_crystal_sources") or {}).get("couple_task", 5))
+    crystal = ev.state(snap, rewards.ETERNAL_KEY, now)
+    crystal.value, crystal.updated_at = crystal.value + venus, now
+    await add_happy(s, happy, snap.character, task, done_today, crystal, *changed)
+    s.send(4725, tokens_msg(snap))  # PlayerCurrencyManager.__currencyRefreshHandler
     if deleted:
         await s.ctx.characters.save(delete=tuple(deleted))
     send_items(s, changed, deleted)

@@ -70,6 +70,9 @@ USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bou
 # PlayerManager e ThaneInfoHelper; a loja confere NeedGeste com ela); repute é outro valor
 USE_KINDS |= {6: ("geste", "Honor"), 7: ("gp", "Hero EXP"), 10: ("strategy", "Daru")}  # 191924 #1721
 USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (2032101): +1 entrada de campanha em grupo
+# Kyanite Pack (11, cristal do castelo) e Contribution Badge (8, contribuição da guilda): o campo pelo nome do item;
+# TODO(inventado): o texto "Received:" sem captura
+USE_KINDS |= {8: ("consortia_offer", "Guild Contribution"), 11: ("crystals", "Kyanite")}
 ITEM_EXP_KEY = "item_exp"  # event_state diário: EXP de herói vinda de itens (203 tipo 7) hoje
 ITEM_EXP_FULL = "Today's EXP item limit has been reached."  # TODO(inventado): sem texto no cliente nem captura
 VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
@@ -383,7 +386,7 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     kind = USE_KINDS.get(int(row.get("Property1") or 0))
     amount = int(row.get("Property2") or 0) * n
     if kind is None or amount <= 0:
-        return False  # cristal, guilda, VIP, buffs...: sistemas que não existem aqui
+        return False  # 9 (cartas de herói), 14 (buffs de 31 dias) e 16 (Medallion): fora deste lote
     field, label = kind
     if field == "copies":
         return await _use_copies(s, item, n, amount)
@@ -416,7 +419,7 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     # (visto) 153200 #2188-#2192 (ouro: 115, 109, 111 "Received:Gold x1000", 3) e 231733 #4131-#4150 (Daru, Stamina:
     # 115, 111, 3); sem separador de milhar. O turco (essiz_can_ilaci_kullanimi) põe "Tebrikler! " na frente
     _send_items(s, changed, gone)
-    if field == "gold":
+    if field in ("gold", "crystals"):
         castle_yield(s)
     if gained:  # (visto) 191924 #1725: 115, 83 da EXP, o nível (140, 100, 150), 111 e 3
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))

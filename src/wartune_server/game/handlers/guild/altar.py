@@ -5,9 +5,7 @@ from __future__ import annotations
 import random
 from datetime import datetime
 
-from ....domain.models import (
-    ConsortiaMember,
-)
+from ....domain.models import ConsortiaMember, Item
 from ....protocol.messages import wartune_pb2 as pb
 from ... import bag, rewards, rules, social
 from ... import guild as gd
@@ -15,6 +13,7 @@ from ...builders import login as b
 from ...builders.player import quest_update
 from ...router import router
 from ...session import GameSession
+from .. import shop
 from .common import (
     GUILD_SHOP,
     S_ADDFRESH,
@@ -37,6 +36,7 @@ S_ALERT, S_MINE, ALERT, MINE = 111, 83, 7, 3
 
 _rng = random.Random()  # os testes trocam o sorteio da casa e do prêmio
 SHOP_SITE = 1  # "Shop Item": um item do mercado da guilda liberado pelo nível do altar
+QUICK_COUNT, QUICK_VIP = 10, 6  # ConsortiaAltarFrame.QUICK_BLESS_COUNT / QUICK_BLESS_VIP_GRADE
 FIXED = (2, 1)  # (visto) todo 4144 de 171155, 121659 e 191924 começa com Strength e Shop Item; o resto embaralha
 # Prêmio de cada casa (DropViewInfos.Site) = [(TemplateId, quantidade, peso, anuncia?)]. (visto) os 17 prêmios de
 # oficial_20261024-121659-1 #549-#589 e 191924 #1413-#1994, a casa pelo 4144 anterior (-500 sempre na 9, -100 na
@@ -100,9 +100,15 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 
     A casa sai por sorteio entre as 10 e o prêmio de ``BLESS_PRIZES`` (a "Shop Item", do mercado da guilda liberado
     pelo nível do altar: 121659 #552 Enhanced Bounty Scroll). (visto) 3, 4152 do leed, 45 e o 83 da devoção; os
-    prêmios comuns sem anúncio. A bênção rápida (``param1`` > 1, VIP 6) fica recusada: o m6 (ConsortiaAltarFrame)
-    mostra o VIP 6 e as 10 bênçãos, mas não o custo nem a forma da resposta.
+    prêmios comuns sem anúncio.
+
+    Bênção rápida (``param1`` 10): (cliente) m6 ``ConsortiaAltarFrame.QUICK_BLESS_COUNT`` 10 e
+    ``QUICK_BLESS_VIP_GRADE`` 6, com o mesmo ``canBless`` (uma bênção e o custo de uma). TODO(inventado): faz até 10
+    (o que sobra no dia e a contribuição deixam), entrega na hora as n-1 primeiras (mochila, cheia -> correio; moeda
+    no personagem) e a última fica no altar como a bênção simples, porque o 4144 só leva um prêmio.
     """
+    from ..vip import is_vip, vip_grade  # noqa: PLC0415
+
     mine = _mine(s)
     c, now = _char(s), _now(s)
     used = _bless_used(mine[1], now) if mine else 0
@@ -113,7 +119,10 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         for r in s.ctx.templates.find("ShopTempInfos", ShopType=GUILD_SHOP)
         if mine is not None and int(r.get("NeedConsortiaLevels") or 0) <= mine[0].altar_level
     ]
-    ok = mine is not None and row is not None and msg.param1 <= 1
+    snap = s.snapshot
+    assert snap is not None
+    quick = msg.param1 == QUICK_COUNT and is_vip(snap, now) and vip_grade(s, snap) >= QUICK_VIP
+    ok = mine is not None and row is not None and (msg.param1 <= 1 or quick)
     if (
         not ok
         or row is None
@@ -130,17 +139,42 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         _refuse(s, 5145, "templates sem prêmio")
         s.send(S_BLESS, b.complete(pb.ConsortiaMsg(blessSite=-1, blessLeftTime=used)))
         return
-    site = _rng.choice(open_sites)
-    options = prizes[site]
-    prize, count, _, shout = _rng.choices(options, weights=[o[2] for o in options])[0]
-    c.consortia_offer -= int(row["Property1"])
+    cost = int(row["Property1"])
+    n = min(QUICK_COUNT, int(row["Property2"]) - used, c.consortia_offer // cost) if quick else 1
+    extra: list[object] = []
+    letters: list[shop.Letter] = []
+    texts: list[str] = []
+    for i in range(n):
+        site = _rng.choice(open_sites)
+        options = prizes[site]
+        prize, count, _, shout = _rng.choices(options, weights=[o[2] for o in options])[0]
+        c.consortia_offer -= cost
+        if i == n - 1:
+            break
+        if prize < 0:  # moeda das n-1 primeiras: no personagem; ouro no teto encerra o lote e o prêmio fica no altar
+            from .. import farm  # noqa: PLC0415
+
+            paid = farm._payout(s, snap, prize, count, "altar", reason="altar")
+            if paid is None:
+                n = i + 1
+                break
+            extra += paid[0]
+        else:
+            got, mail = shop.place(s, snap, s.player_id, [(prize, count)], now)
+            extra += got
+            letters += mail
+        texts.append(rewards.text(s.ctx.templates, [(prize, count)]))
     member = mine[1]
-    member.bless_count, member.bless_day = used + 1, _day(now)
+    member.bless_count, member.bless_day = used + n, _day(now)
     member.bless_item, member.bless_item_count = prize, count
-    snap = s.snapshot
-    assert snap is not None
-    quests = rules.quest_event(snap, s.ctx.templates, rules.BLESS_CONDITION, 0, 1)  # missão 30
-    await s.ctx.characters.save(c, member, *quests)
+    quests = rules.quest_event(snap, s.ctx.templates, rules.BLESS_CONDITION, 0, n)  # missão 30
+    await shop.save_with_mail(s, letters, c, member, *quests, *extra)
+    if extra:
+        if items := [x for x in extra if isinstance(x, Item)]:
+            s.send(S_ITEMS, bag.moved(items, s.player_id))
+        _player(s)  # ouro, Daru e Bound Balens das n-1
+    for text in texts:
+        s.send(S_MINE, pb.ChatChannelMsg(channel=MINE, encodeMsg=text))
     from .. import events  # handlers.events importa login, que importa a guilda
 
     # (visto) oficial_20261024-121659-1 #549-#553 e #576-#580: 3, 4152 do leed, 45 e o 83 da devoção depois do 45
@@ -150,7 +184,7 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     s.send(
         S_BLESS,
         b.complete(
-            pb.ConsortiaMsg(blessLeftTime=used + 1, blessSite=sites.index(site), blessTempId=prize, blessCount=count)
+            pb.ConsortiaMsg(blessLeftTime=used + n, blessSite=sites.index(site), blessTempId=prize, blessCount=count)
         ),
     )
     if quests:

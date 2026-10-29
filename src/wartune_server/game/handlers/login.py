@@ -354,6 +354,8 @@ async def _login_state(s: GameSession) -> None:
     s.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=0, param2=int(s.ctx.world.settings.get("honor_day_max", 0))))
     s.send(S_KING_TOWER, torres.king_msg(snap, s.ctx.clock.now()))  # as entradas de hoje e a maior dificuldade
     s.send(S_TOKENS, tokens_msg(snap))
+    if (mc := ev.peek(snap, "mail_check")) is not None and mc.value == -1:  # e-mail verificado (mail.mail_check)
+        s.send(337, b.complete(pb.MailCheckMsg(state=2, mail=mc.text)))  # TODO(inventado): sem captura do login
     from . import lords, warfield  # os dois importam este módulo
 
     # (visto) depois do 4725, não com o sys do 8224: tutorial_en #101-#106, 171155 #103-#108

@@ -21,6 +21,7 @@ from ..builders.login import complete
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
+from . import farm_pets
 from .player import _army, _player, snapshot_of
 from .shop import send
 from .vip import vip_right
@@ -141,10 +142,10 @@ def share_gp(s: GameSession, gp: int) -> Pet | None:
 
 
 def guard_msg(snap: PlayerSnapshot, templates: GameTemplates) -> pb.FarmPetInfoMsg | None:
-    """O guarda da fazenda (``FarmInfo.defender``) é o mascote em batalha: (dedução) o cliente não tem tela para o
-    PET_DEFENSE (FarmOperateType 16, nenhum ``sendFarmOper`` com ele) e em todas as turcas o guarda é o mascote em
-    batalha (login #49 e os 4387 depois do 4540); o inglês, sem mascote em batalha, não manda guarda."""
-    pet = next((p for p in snap.pets if p.is_fight), None)
+    """O guarda da fazenda (``FarmInfo.defender``): o escolhido no PET_DEFENSE (15044 op 16, ``FarmPetSelectMeun``
+    m7) ou, sem escolha, o mascote em batalha, como em todas as turcas (login #49 e os 4387 depois do 4540)."""
+    gid = farm_pets.guard_id(snap)
+    pet = next((p for p in snap.pets if (p.id == gid if gid else p.is_fight)), None)
     if pet is None:
         return None
     tpl = templates.get("PetTempInfos", pet.template_id) or {}
@@ -221,8 +222,11 @@ def pet_info(pet: Pet, templates: GameTemplates, equip: Sequence[Item] = ()) -> 
 def pets_msg(snap: PlayerSnapshot, templates: GameTemplates, pets: list[Pet] | None = None) -> pb.PlayerPetMsg:
     c = snap.character
     msg = pb.PlayerPetMsg(userId=c.id, nickName=c.nickname or "", petCount=BASE_SLOTS + rules.systems(snap).pet_slots)
+    busy = farm_pets.practicing(snap)
     for pet in sorted(snap.pets if pets is None else pets, key=lambda p: p.pos):
-        msg.petInfo.append(pet_info(pet, templates, pet_items(snap, pet)))
+        info = pet_info(pet, templates, pet_items(snap, pet))
+        info.isPractice = pet.id in busy  # treinando na fazenda (farm_pets)
+        msg.petInfo.append(info)
     return msg
 
 
@@ -662,6 +666,7 @@ async def pet_op(s: GameSession, msg: pb.PlayerPetOpMsg) -> None:
     elif msg.opType == FIGHT and (
         c.grades < int((templates.get("PetTempInfos", pet.template_id) or {}).get("NeedGrade", 0))
         or pet.grade > c.grades
+        or pet.id in farm_pets.practicing(snap)
     ):
         s.log.info("8621 batalha recusada: nível", pedido=str(msg))
         return
