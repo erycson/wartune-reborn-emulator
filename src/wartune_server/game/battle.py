@@ -137,6 +137,15 @@ FORMULA: dict[str, float] = {
 # Lvl. 1 Fire Resistance Crystal 101 FireResi; Pan 104 com WindResi 200)
 PET_ELEMENT = {101: "FireResi", 102: "WaterResi", 103: "ElectResi", 104: "WindResi", 105: "DarkResi", 106: "LightResi"}
 RESIST_KEYS = (*PET_ELEMENT.values(), "ReduceResi")
+# SkillPropertyTempInfos -> atributo da luta (a vida, Live, vai no max_hp)
+PROPERTY_STATS = {
+    "Attack": "PhyAttack",
+    "Defence": "PhyDefence",
+    "MagicAttack": "MagicAttack",
+    "MagicDefence": "MagicDefence",
+    "ForceHit": "ForceHit",
+    "Parry": "Parry",
+}
 STATS = ("PhyAttack", "PhyDefence", "MagicAttack", "MagicDefence", "ForceHit", "Parry")
 TEMPLATE_STATS = dict(
     zip(STATS, ("Attack", "Defence", "MagicAttack", "MagicDefence", "ForceHit", "Parry"), strict=True)
@@ -554,12 +563,27 @@ class Battle:
             row = self.templates.get("SkillTempInfos", skill)
             if row is None or row.get("UseWay") != PASSIVE:
                 continue
+            if not row.get("BufferIds"):  # alma do dragão (SonType 32/33): só atributo
+                self._property(unit, self.templates.get("SkillPropertyTempInfos", skill) or {})
             for buffer_id in filter(None, row.get("BufferIds", "").split(",")):
                 buff = self._apply(unit, unit, int(buffer_id))
                 if buff is not None:
                     buff.turn, buff.see = -1, 1
                     if self._player_msg is not None:
                         self._player_msg.buffers.append(buff.msg(battle_turns=False))
+
+    def _property(self, unit: Unit, prop: Mapping[str, str]) -> None:
+        """Atributo de skill sem buffer (cliente DragonSoulView.buildSkillPropertyTip): ``AddType`` true soma o valor,
+        false soma o % do atributo (7101 "Max HP +1%": Live 1; 7201 "PDEF +1000": Defence 1000)."""
+        flat = prop.get("AddType") == "true"
+        for col, key in PROPERTY_STATS.items():
+            if value := int(prop.get(col) or 0):
+                unit.stats[key] += value if flat else unit.stats[key] * value // 100
+        if live := int(prop.get("Live") or 0):
+            extra = live if flat else unit.max_hp * live // 100
+            unit.max_hp, unit.hp = unit.max_hp + extra, unit.hp + extra
+            if unit.is_player and self._player_msg is not None:
+                self._player_msg.maxHp, self._player_msg.hp = unit.max_hp, unit.hp
 
     def prepare_msg(self) -> pb.BattlePrepareMsg:
         spec = self.spec

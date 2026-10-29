@@ -696,12 +696,20 @@ def rune_skills(rune_key: str, templates: GameTemplates) -> list[int]:
 def passive_skills(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int, ...]:
     """Passivas fora da lista de skills: talento (``talent_script``, SkillTempInfo MasterType 10, UseWay 2) e
     destino (skill do SonType no grau, como o 4544). Os BufferIds delas viram buffers no 157 (dedução: o
-    tutorial só mostra a passiva 30111 da lista de skills). Alma do dragão e cartas: sem tabela, ver batalha.md."""
+    tutorial só mostra a passiva 30111 da lista de skills). Alma do dragão (cliente DragonSoulView): as skills de
+    atributo do grau 1 até o atual, SonType 32 (alma, 7101-7105) e, depois da transferência, SonType 33 (Dragon Soul
+    Heart, 7201-7208) com a alma inteira."""
     from . import systems  # systems importa este módulo
 
     leader = snap.leader
     assert leader is not None
     skills = [int(x) for x in leader.talent_script.split(",") if x]
+    sy = snap.systems
+    if sy is not None and sy.dragon_type:
+        done = sy.dragon_type == systems.DRAGON_DONE
+        for son, top in (("32", 10**6 if done else sy.dragon_grade), ("33", sy.dragon_grade if done else 0)):
+            rows = templates.find("SkillTempInfos", SonType=son)
+            skills += [int(r["TemplateId"]) for r in rows if 0 < int(r["Grades"]) <= top]
     for son_type, gp in systems.fate(rules.systems(snap)).items():
         row = next(templates.find("SkillTempInfos", SonType=son_type, Grades=systems.fate_grade(templates, gp)), None)
         if row is not None:

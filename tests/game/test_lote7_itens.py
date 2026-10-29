@@ -278,8 +278,11 @@ async def test_vocacao_sobe_com_a_comida_e_da_bonus_na_luta(tmp_path: Path) -> N
         g.client.send(8641, pb.FateEditMsg(useItemCount=10))
         info = pb.FateInfoMsg.FromString((await g.until(4557))[-1].body)
         assert (info.fateTypes, info.grades, info.totalGp) == (systems.DRAGON_DONE, 2, 0)  # 107: 10 para o grau 2
-        bonus = systems.vocation_percent(me(g), g.server.services.world.settings)
-        assert bonus == {"PhyAttack": 2, "MagicAttack": 2}
+        assert systems.vocation_percent(me(g), g.server.services.world.settings) == {}  # 0133: vem das skills
+        from wartune_server.game.handlers.campaign import passive_skills
+
+        skills = set(passive_skills(me(g), g.server.services.templates))
+        assert {7101, 7105, 7201, 7202} <= skills and 7203 not in skills  # alma inteira + Dragon Soul Heart 1-2
 
 
 # --- patrulha sem captura e a 9113 montada pelos mapas (0117, TODO(inventado)) ---

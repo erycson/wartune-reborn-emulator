@@ -580,8 +580,8 @@ class Match:
             won = win in (t.team, BOTH)
             rank = LOW_RANK if t.score < LOW_SCORE else index + 1
             pack = (RANK_PACKS[rank - 1], 1) if rank <= len(RANK_PACKS) else (RUNESTONE, int(self.rules["runestones"]))
-            r = self.rules
-            exp = int(r["exp_win"] if won else r["exp_loss"]) + t.score // int(r["exp_per_score"])
+            rule = self.rules
+            exp = int(rule["exp_win"] if won else rule["exp_loss"]) + t.score // int(rule["exp_per_score"])
             rewards[t.player_id] = Reward(t.player_id, t.score, exp, ((VICTORY if won else FAILURE, 1), pack))
             rewarded.add(t.player_id)
         lines = []

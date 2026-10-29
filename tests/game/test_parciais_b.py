@@ -92,3 +92,15 @@ async def test_1007_segunda_etapa_gerada(tmp_path: Path) -> None:
         c = s.campaign
         assert c is not None and c.content is not None
         assert any(b["map"] == 1182 for b in c.content["battles"].values())
+
+
+def test_alma_do_dragao_soma_os_atributos_das_skills() -> None:
+    """(cliente) DragonSoulView: 7105 dá +1% (AddType false) e 7201 +1000 de defesa (AddType true)."""
+    b, _ = _battle()
+    hero = b.player
+    assert hero is not None
+    atk, pdef, hp = hero.stats["MagicAttack"], hero.stats["PhyDefence"], hero.max_hp
+    b._passives(hero, [7105, 7201])
+    assert hero.stats["MagicAttack"] == atk + atk // 100
+    assert hero.stats["PhyDefence"] == pdef + pdef // 100 + 1000
+    assert hero.max_hp == hp + hp // 100

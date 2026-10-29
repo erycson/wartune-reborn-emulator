@@ -276,8 +276,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Iniciativa (ordem das unidades) | 🟡 | | aliados, inimigos e herói; `battle_formula.hero_first` (0130) põe o herói no início; nenhuma regra no cliente nem no language.txt |
 | Crítico e bloqueio | 🟡 | | ganhos por dedução; chances da internet |
 | Skills, buffs e controle | 🟡 | | atordoado sem captura |
-| Passivas, talento, runas e destino | 🟡 | | runas e destino por dedução |
-| Cartas de poder e dragão na luta | 🟡 | | dragão sem tabela de skill |
+| Passivas, talento, runas e destino | 🟡 | | runas (RuneTempInfos.SkillTemplateId, uma vez por luta) e destino (SkillTempInfos do SonType no grau, com BufferIds) pelos templates; a entrada no 157 é dedução |
+| Cartas de poder e dragão na luta | 🟡 | | alma do dragão pelo cliente (DragonSoulView: SkillPropertyTempInfos das skills SonType 32 até o grau e SonType 33 depois da transferência, migração 0133 tira o % inventado da 0116); cartas na luta sem captura |
 | PvP manual | ✅ | | |
 | EXP do mundo e EXP descansada | 🧪 | 🇹🇷 | 10× só turco; nível mínimo e acúmulo inventados (`rules.py:519,539`) |
 | Selo sagrado, itens na luta, skill de casal | ❌ | | |
