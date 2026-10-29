@@ -432,7 +432,8 @@ async def cross_score_reward(s: GameSession, _: object) -> None:
     """Prêmio dos pontos PvP (fila local, ``handlers/cruzado.py``): 4482 (cliente ``TopToolsBar.__pvpTakeHandler``)
     ``param2`` pontos, ``param3`` Warrior's Mark (0: "didn't earn") e ``param4`` 1 = título Road Warrior.
     Regra do ``pvpHeroFrame.rewardTip``: 1000 pontos dão a marca; top 20 com 1000, o título.
-    TODO(inventado): os itens (``game_settings.cross_score``, migração 0121); o título não existe nos templates."""
+    O título é o ``AppellInfos`` 25 (CondtionType 21, ``titles.CROSS``): sai pela posição no ranking da fila local e
+    vai no 4484 logo depois. TODO(inventado): os itens (``game_settings.cross_score``, migração 0121)."""
     snap, now = s.snapshot, s.ctx.clock.now()
     assert snap is not None
     cfg = dict(s.ctx.world.settings.get("arena_party") or {})
@@ -453,6 +454,11 @@ async def cross_score_reward(s: GameSession, _: object) -> None:
         states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(server, ag.KEY))
         place = ag.position(states, s.player_id, now, cfg)
         title = int(0 < place <= int(cross.get("top", ag.TITLE_TOP)))
+        if title:  # Road Warrior (AppellInfos 25, CondtionType 21 "Top 20 in Cross-Server PvP"): posição já relida
+            from . import events as hev  # noqa: PLC0415  (events importa login, que importa este módulo)
+
+            await hev.title_ranks(s)
+            hev.send_titles(s)
     else:
         s.log.info("8590 sem prêmio", pontos=pts)
     s.send(S_CROSS, pb.ChallengeRankRewardMsg(isTake=False, param1=0, param2=pts, param3=marks, param4=title))

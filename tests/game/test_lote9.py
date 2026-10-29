@@ -6,6 +6,7 @@ test_lote6_mapa.py::218."""
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,9 +15,9 @@ import pytest
 from tests.game.harness import logged_in
 from tests.game.test_heroi_exercito import snap_of
 from tests.test_end_to_end import TEMPLATES
-from wartune_server.domain.models import Pawn
+from wartune_server.domain.models import EventState, Pawn
 from wartune_server.game import events as ev
-from wartune_server.game import outer_city
+from wartune_server.game import fam, outer_city, rankings, server_state
 from wartune_server.game.handlers import vip
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services.clock import FakeClock
@@ -60,3 +61,28 @@ async def test_soldados_9001_9008_no_exercito_e_na_luta(tmp_path: Path) -> None:
         assert s is not None
         soldiers, pawn_tpl = outer_city.army_soldiers(snap, s.ctx.templates)
         assert pawn_tpl == 9003 and soldiers
+
+
+def test_ranking_do_sky_trails_soma_e_ordena() -> None:
+    now = datetime(2026, 10, 29, tzinfo=UTC)
+
+    def st(cid: int, top: int, ranks: dict[str, int]) -> EventState:
+        return EventState(cid, "singlepass", now, text=json.dumps({"max": top, "ranks": ranks}))
+
+    rows = [st(1, 5, {"1": 2}), st(2, 7, {"1": 1}), st(3, 5, {"1": 5, "2": 1}), st(4, 0, {})]
+    rows.append(EventState(9, "singlepass_bugle", now, text="{}"))  # outra chave do mesmo prefixo
+    assert rankings.singlepass_ranked(rows) == [(2, 7, 1), (3, 5, 6), (1, 5, 2)]
+
+
+async def test_master_treasure_thief_volta_depois_do_reinicio(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        at = s.ctx.clock.now()
+        s.ctx.guilds.lords[7] = fam.Lords(at, {750133})
+        await server_state.save(s.ctx, server_state.LORDS)
+        s.ctx.guilds.lords.clear()
+        loaded = await server_state.ServerStates.load(g.server.services.characters, s.ctx.states.server_id)
+        server_state.restore(s.ctx, loaded)
+        lords = s.ctx.guilds.lords[7]
+        assert (lords.called_at, lords.dead) == (at, {750133})

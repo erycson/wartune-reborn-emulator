@@ -26,6 +26,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     guildwar,
     hangup,
     hero,
+    historia,
     items,
     login,
     lords,
@@ -57,5 +58,6 @@ from . import (  # noqa: F401  (registra os handlers no router)
     warfield,
     wedding,
     wild_boxes,
+    wishwall,
     worldboss,
 )

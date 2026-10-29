@@ -73,8 +73,11 @@ async def test_premio_dos_pontos_cruzados(tmp_path: Path) -> None:
         await a.server.services.characters.save(st)
         before = bag.count_of(snap, INSIGNIA)
         a.client.send(8590, pb.ChallengeRankRewardMsg())
-        got = pb.ChallengeRankRewardMsg.FromString((await a.until(4482))[-1].body)
+        packets = await a.until(4482)
+        got = pb.ChallengeRankRewardMsg.FromString(packets[-1].body)
         assert (got.param2, got.param3, got.param4) == (1200, 1, 1)  # 1º do ranking: título
+        titles = pb.AppellsMsg.FromString([p for p in packets if p.code == 4484][-1].body)  # o último: depois do 115
+        assert next(t for t in titles.appells if t.appellId == 25).isGet  # Road Warrior concedido
         assert bag.count_of(snap, INSIGNIA) == before + 1
         await a.idle()
         a.client.send(8590, pb.ChallengeRankRewardMsg())

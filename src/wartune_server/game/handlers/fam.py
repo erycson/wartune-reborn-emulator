@@ -350,6 +350,7 @@ async def lords(s: GameSession, _: object) -> None:
     st.value, st.updated_at = 1, now
     await s.ctx.characters.save(st)
     s.ctx.guilds.lords[guild.id or 0] = fam.Lords(now)
+    await server_state.save(s.ctx, server_state.LORDS)
     for o in gd.online_members(s.ctx, guild.id or 0):
         o.send(S_LORDS, _lords_msg(o, guild))
         if o.campaign is not None and o.campaign.fam and o.campaign.ready:
@@ -475,8 +476,8 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool, lord: bool
         mine[0].total_offer += offer
         rows.append(mine[0])
     await s.ctx.characters.save(*rows)
-    if won and inv is not None and not lord:
-        await server_state.save(s.ctx, server_state.INVASIONS)
+    if won and inv is not None:
+        await server_state.save(s.ctx, server_state.LORDS if lord else server_state.INVASIONS)
     if won and mine is not None and inv is not None:
         link = social.player_link(s.ctx, snap.character)
         foe = "a Master Treasure Thief" if lord else "an invader"

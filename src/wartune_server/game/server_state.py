@@ -15,13 +15,14 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from ..domain.models import ServerState
-from .fam import Invasion
+from .fam import Invasion, Lords
 
 if TYPE_CHECKING:
     from ..services.characters import CharacterService
     from .session import GameContext
 
 SHIELDS, PET_RAGE, INVASIONS, TEAMS, MARRIAGE = "shields", "pet_rage", "invasions", "teams", "marriage"
+LORDS = "lords"  # Master Treasure Thief chamado (`guilds.lords`): hora da chamada e os vencidos
 RAGE_KEEP = timedelta(days=1)  # janelas da fúria mais velhas que isso já fecharam (a janela dura horas)
 
 
@@ -48,6 +49,8 @@ def _dump(ctx: GameContext, key: str, now: datetime) -> Any:
         return {start.isoformat(): points for start, points in ctx.pet_rage.items() if start > now - RAGE_KEEP}
     if key == INVASIONS:
         return {str(g): {"wave": i.wave.isoformat(), "dead": sorted(i.dead)} for g, i in ctx.guilds.invasions.items()}
+    if key == LORDS:
+        return {str(g): {"at": x.called_at.isoformat(), "dead": sorted(x.dead)} for g, x in ctx.guilds.lords.items()}
     if key == TEAMS:
         return ctx.teams.dump()
     if key == MARRIAGE:
@@ -77,6 +80,8 @@ def restore(ctx: GameContext, states: ServerStates) -> None:
         ctx.pet_rage[datetime.fromisoformat(start)] = points
     for g, inv in (states.value(INVASIONS) or {}).items():
         ctx.guilds.invasions[int(g)] = Invasion(datetime.fromisoformat(inv["wave"]), set(inv["dead"]))
+    for g, x in (states.value(LORDS) or {}).items():  # a vencida sai no próximo ``fam.lords_of``
+        ctx.guilds.lords[int(g)] = Lords(datetime.fromisoformat(x["at"]), set(x["dead"]))
     ctx.teams.restore(states.value(TEAMS) or [])
     from .handlers import marriage
 

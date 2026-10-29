@@ -177,3 +177,39 @@ async def test_migracao_0119_num_banco_em_0118(tmp_path: Path) -> None:
         assert [k for (k,) in keys] == ["gods_descent", "sky_trails"]
     finally:
         await db.engine.dispose()
+
+
+async def test_wishing_wall_mesa_cartas_cornetas_e_balens(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=22500) as g:
+        snap = me(g)
+        snap.character.point, snap.character.gift_token = 1000, 0
+        d = mj.load(snap, "singlepass")
+        d["max"] = 5
+        await g.server.services.characters.save(mj.store(snap, "singlepass", d, datetime.now(UTC)))
+        g.client.send(8638, pb.PlayerChallengeMsg())
+        await g.idle()
+        assert _count(g, 3150001) == 2
+
+        g.client.send(8639, pb.VipRouletteMsg(leftCount=1))  # sem mesa: nada vira
+        assert _one(await g.idle(), 4554, pb.VipRouletteMsg).leftCount == 0  # type: ignore[attr-defined]
+        g.client.send(8640, pb.VipRouletteMsg())
+        board = _one(await g.idle(), 4553, pb.VipRouletteMsg)
+        assert len(board.leftItem) == 8  # type: ignore[attr-defined]
+
+        g.client.send(8639, pb.VipRouletteMsg(leftCount=3, opType=0))
+        res = _one(await g.idle(), 4554, pb.VipRouletteMsg)
+        assert (res.leftCount, list(res.openIndex), res.needVipItem) == (1, [3], 10)  # type: ignore[attr-defined]
+        assert _count(g, 3150001) == 1 and snap.character.point == 1000  # a 1ª é grátis
+        g.client.send(8639, pb.VipRouletteMsg(leftCount=3))  # já virada
+        assert _one(await g.idle(), 4554, pb.VipRouletteMsg).leftCount == 1  # type: ignore[attr-defined]
+
+        g.client.send(8639, pb.VipRouletteMsg(leftCount=5, opType=1))
+        res = _one(await g.idle(), 4554, pb.VipRouletteMsg)
+        assert (list(res.openIndex), len(res.leftItem)) == ([3, 5], 2)  # type: ignore[attr-defined]
+        assert _count(g, 3150001) == 0 and snap.character.point == 990
+        g.client.send(8639, pb.VipRouletteMsg(leftCount=6))  # sem corneta
+        assert _one(await g.idle(), 4554, pb.VipRouletteMsg).leftCount == 2  # type: ignore[attr-defined]
+
+        g.client.send(8640, pb.VipRouletteMsg())  # "de novo": mesa nova
+        await g.idle()
+        assert mj.load(snap, "wishwall") == {"open": []}

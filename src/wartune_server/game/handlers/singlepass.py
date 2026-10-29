@@ -14,7 +14,7 @@ Cliente: ``SinglePassManager``, ``SinglePassSocketOutManager``, ``SinglePassMode
 * 8637: área toda feita (``maxIndex`` == área * 10, TipsTxt04) dá o ``AreaReward`` da área e abre a próxima;
   ``areaReward`` é a lista das áreas já pagas (``SinglePassModel.initFloors``).
 * 8638: Heaven Horn (3150001): ``maxIndex / 5 * 2 - itemCount`` (``SinglePassManager``, ``bugleCount`` 2).
-  O Wishing Wall (8639/8640) não está aqui.
+  O Wishing Wall (8639/8640) é ``handlers/wishwall.py``.
 * Cada luta conta na atividade 113 (``FunnyType.SINGLEPASS_TIMES_TYPE``).
 
 Estado do jogador: JSON no ``EventState`` ``singlepass``.

@@ -223,7 +223,7 @@ async def collection_finished(s: GameSession, msg: pb.SimplePropertyMsg) -> None
     if pending is None or pending[0] != msg.param1 or node is None or snap is None or not _near(s, node):
         s.log.info("8733 sem coleta iniciada", no=msg.param1)
         return
-    item = int(node["Param4"])
+    item = int(node.get("Param4") or 0)  # a caixa de ano novo (historia.py) também usa ``space_collect``
     if now - pending[1] < COLLECT_TIME or not offer.ring_collects(s, item):
         s.log.info("8733 recusado (cedo demais ou o anel não pede mais)", no=msg.param1)
         return

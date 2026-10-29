@@ -39,11 +39,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mapa do mundo (cidade externa) | 4 | 2 | 11 | 0 | 2 |
 | Mundo compartilhado | 4 | 1 | 1 | 0 | 2 |
 | PvP e chefes | 1 | 2 | 5 | 1 | 2 |
-| Atividades e eventos | 5 | 11 | 11 | 1 | 5 |
+| Atividades e eventos | 5 | 10 | 12 | 1 | 5 |
 | VIP | 1 | 0 | 6 | 0 | 0 |
 | Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **119** | **61** | **95** | **12** | **34** |
+| **Total** | **119** | **60** | **96** | **12** | **34** |
 
 ## Validação e base
 
@@ -218,7 +218,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Correio de guilda | ✅ | | |
 | Guerra de guildas | ✅ | | mapa 4501 (26/10 #2464-#6452): par das 8 maiores, torres, placar/10000, vantagem de 4000, feridas, buffs, prêmio; PvP 8548 com luta real (battleType 24 do cliente, cópia do inimigo, sem captura) e o perdedor no acampamento; TODO: janela diária e carro/invencível sem efeito |
 | Guerra entre servidores | 🧪 | | fila local (`handlers/cruzado.py`): 8779 inscreve, dois jogadores daqui lutam (cópia do herói, battleType 10), o primeiro assiste; pontos no `crossScore`; torres/inspirar/grupos seguem como antes TODO(inventado) |
-| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 30 nós masterType 181 em 3 levas de 180 s; luta e prêmio do Invasor (inventado) |
+| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 30 nós masterType 181 em 3 levas de 180 s; luta e prêmio do Invasor (inventado); chamada em `server_states` (`lords`), volta no reinício |
 
 ## Campanhas e masmorras
 
@@ -335,7 +335,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço entra na luta em curso (`Battle.join`), na partilha e na missão 89; login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
 | PK no campo de animais (8525) | 🧪 | | ilha dos pets/mina: luta direta (BattleType 19); convite do menu (op 1 → 4421, op 2 só com convite pendente); battleScene inventado |
-| Passe = Sky Trails (8636-8638, 8753/8755 type 0) | 🧪 | | 100 fases `CampaignData` 40001, BossReward/AreaReward, 10 lutas/dia (`SinglePass_Count`), Heaven Horn, atividade 113; avaliação pela vida que sobra TODO(inventado) (0119) |
+| Passe = Sky Trails (8636-8640, 8753/8755 type 0) | 🧪 | | 100 fases `CampaignData` 40001, BossReward/AreaReward, 10 lutas/dia, Heaven Horn, atividade 113; Wishing Wall 8639/8640 (4553/4554, 8 cartas, 1 corneta + Balens crescentes); ranking `singlepass.xml` (fase máxima, soma das avaliações); avaliação, prêmios e custos da parede TODO(inventado) (0119, 0122) |
 | Ataque extra (9506) | ✅ | | |
 | Coleta de Amethyst e Copper | 🧪 | | Amethyst: carrinho despejado na mina 30000 dá 200 (`DUMP_AMETHYST`, TODO(inventado)) e paga a loja 11; Copper sem fonte |
 
@@ -357,7 +357,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Janela do PvP | ✅ | | |
 | Coliseu | 🧪 | 🇹🇷 | EXP 180/120 por nível, 157, 4176 e o VIP Token no inglês; Luck Stone do turco; prêmios por posição inventados (`arena.py:347`) |
 | Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
-| Arena entre servidores (8590) | 🧪 | | fila local; 4482 com pontos, Warrior's Mark com 1000 pontos e Road Warrior no top 20 (`pvpHeroFrame.rewardTip`); a marca é a Insignia 208001 TODO(inventado) (0121); 1x/semana |
+| Arena entre servidores (8590) | 🧪 | | fila local; 4482 com pontos, Warrior's Mark com 1000 pontos e o título Road Warrior (AppellInfos 25) concedido ao top 20 com o 4484; a marca é a Insignia 208001 TODO(inventado) (0121); 1x/semana |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); PvP 8334 entre jogadores locais (157 battleType 32 contra a cópia do alvo, 4494 state 2/0, 4104/4175 com o perdedor em 179,75 por 25 s, 4103, 4388 tipo 4, 4269 de ganho e perda; perda de 15% e ganho igual, inventados); missões 45 (abate no PvP, 767 vista #11106) e 50 (vitória da partida, posição do 112 inventada); honra e Amethyst sem moeda; nós, vencedor e constantes no código (sem `game_settings`) inventados |
 | Ataque a castelo/exército de jogador | 🧪 | | castelo (5160) e exército (8488) contra a cópia do herói; recusa por trégua, guilda e nível pelo cliente; saque, relatório da defesa e PvP de exércitos sem captura |
@@ -392,7 +392,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loteria (8750/8748) | 🧪 | | tentativas pelo gasto de Balens no `cash_ledger` (idioma) e mensagens do cliente (`lottery.py`, `game_settings.lottery`); avisos do 4639 gravados no banco; sorteio e texto inventados |
 | Cadeiras (9638) | 🧪 | | mensagens do cliente (`chairs.py`, `game_settings.chairs`); regra inteira inventada (cadeira por recarga, sortudos pelo total) |
 | Sorteio de grupo (9523) | 🟡 | | ligados por padrão (migração 0103, toda regra em `game_settings` com `source`); roleta 338/4936 pelo cliente (`group_draw.py`); cada compra coletiva (8645, `group_buy.py`) dá 1 sorteio; sorteio inventado |
-| Campo minado (atividade 111), caixa de ano novo, história | 🟡 | | 111 = participar da Amethyst Mine (`TYPE_MINEFIELD_BATTLE`, title111): cada 8633 conta no período; caixa de ano novo e história sem tela |
+| Campo minado (atividade 111), caixa de ano novo (8994), história (8629/8630) | 🧪 | | 111 = participar da Amethyst Mine (cada 8633 conta no período); caixa: nós 30001-30020 (MasterType 300) do 10000, 8994 param1 3/1/2 com 4811 e 143 COLLECTION; história: ovo 4546 no `TimeStoryFrame`, 8630 dá ouro; janela, prêmios e 5 ovos/dia TODO(inventado) (0123) |
 | Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
 | Corneta (passe), 360 | ❌ | | |

@@ -9,6 +9,7 @@ labirinto de gemas (``GemMazeControler.loadGemMazeOrderData``), todos no loader 
 from __future__ import annotations
 
 import asyncio
+import json
 import zlib
 from collections.abc import Callable, Mapping
 from datetime import datetime
@@ -239,6 +240,54 @@ async def cross_order(characters: CharacterService, guilds: Guilds, server_id: i
     return _xml("".join(rows))
 
 
+SINGLEPASS_KEY = "singlepass"  # event_state do Sky Trails (handlers/singlepass.py, JSON com "max" e "ranks")
+
+
+def singlepass_ranked(states: list[EventState]) -> list[tuple[int, int, int]]:
+    """(personagem, fase máxima, soma das avaliações), da maior fase para a menor; empate pela soma.
+    TODO(inventado): o critério (o ``singlepass.xml`` só tem ``Order`` e ``Index``, sem captura do oficial)."""
+    out = []
+    for st in states:
+        if st.key == SINGLEPASS_KEY and st.text:
+            d = json.loads(st.text)
+            if (top := int(d.get("max", 0))) > 0:
+                out.append((st.character_id, top, sum(int(r) for r in d.get("ranks", {}).values())))
+    return sorted(out, key=lambda r: (-r[1], -r[2], r[0]))
+
+
+async def singlepass_order(characters: CharacterService, guilds: Guilds, server_id: int, clock: Clock) -> bytes:
+    """``singlepass.xml`` do Sky Trails (``SinglePassFrameController.loadSinglePassOrderData``): linhas ``item`` com
+    UserId, Job, NickName, ConsortiaName, Grades, Order, Index (fase máxima), FightingCapacity, IsVip e VipType."""
+
+    async def query(uow: UnitOfWork) -> tuple[list[tuple[int, int, int]], list[Character], list[EventState]]:
+        ranked = singlepass_ranked(await uow.events.by_prefix(server_id, SINGLEPASS_KEY))[:FIGHT_TOP]
+        chars = await uow.characters.by_ids([c for c, _, _ in ranked])
+        return ranked, chars, await uow.events.by_prefix(server_id, VIP_KEY)
+
+    ranked, chars, vips = await characters.read(query)
+    by_id = {c.id: c for c in chars}
+    vip_of = vips_of(vips, clock)
+    rows = []
+    for pos, (cid, top, _) in enumerate(ranked, 1):
+        if (c := by_id.get(cid)) is None:
+            continue
+        vip, kind = vip_of(cid)
+        attrs = {
+            "UserId": cid,
+            "Job": c.job,
+            "NickName": c.nickname or "",
+            "ConsortiaName": _guild_name(guilds, cid),
+            "Grades": c.grades,
+            "Order": pos,
+            "Index": top,
+            "FightingCapacity": c.fighting_capacity,
+            "IsVip": str(vip).lower(),
+            "VipType": kind,
+        }
+        rows.append(_row("item", attrs))
+    return _xml("".join(rows))
+
+
 def vips_of(vips: list[EventState], clock: Clock) -> Callable[[int], tuple[bool, int]]:
     """``(IsVip, VipType)`` por personagem: VIP vencido vai ``false`` e tipo 0."""
     now = clock.now()
@@ -287,6 +336,7 @@ async def run(
         ("gemmaze.xml", gem_order),
         ("fish.xml", fish_order),
         ("cross/crossscore.xml", cross_order),
+        ("singlepass.xml", singlepass_order),
     )
     while True:
         for name, build in files:

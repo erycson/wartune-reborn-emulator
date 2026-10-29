@@ -242,4 +242,3 @@ async def login_push(s: GameSession) -> None:
     out = sw.response(current, s.ctx.templates, now, sw.RESUME, all_rounds=True)
     await s.ctx.characters.save(sw.store(snap, current, now))
     _send(s, out)
-

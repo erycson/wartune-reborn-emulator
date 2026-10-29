@@ -31,7 +31,6 @@ from .player import S_CHAT, S_ITEMS, _player, alert, granted
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
 S_PRIVILEGE, S_CHARGE, S_CONSUM = 4543, 4745, 345
-S_BUGLE_REQ, S_BUGLE_REWARD = 4553, 4554
 S_RECOVER = 4912  # pesca, caça-níquel, quiz etc. têm módulo próprio (fishing.py, slot.py, quiz.py...)
 S_GOLDEN_CLOSE, S_GOLDEN, S_ICON = 300, 4933, 4980
 # (visto) 1026-225632-1 #2454: 36 casas (itemID, count); -1 = casa vazia
@@ -665,21 +664,13 @@ async def rebate(s: GameSession, msg: pb.RebateOpMsg) -> None:
     _send(s, S_REBATE_USER, info)
 
 
-@router.on(8629, 8630, 8634, 9521, 9522)
+@router.on(8634, 9521, 9522)
 async def no_reply(s: GameSession, _: object) -> None:
     """Pedidos que o cliente só manda com a tela aberta, que aqui nunca abre: sem resposta.
-    História (8629/8630; nunca 4546), volta do jogador (8634; nunca 4550) e dados da estrada dourada
-    (9521/9522); pegar corneta (8638) é ``handlers/singlepass.py``. O labirinto de gemas (9508..9517) é
-    ``handlers/gemmaze.py``."""
+    Volta do jogador (8634; nunca 4550) e dados da estrada dourada (9521/9522); a história (8629/8630) e a caixa
+    de ano novo (8994) são ``handlers/historia.py``; pegar corneta (8638) é ``handlers/singlepass.py``.
+    O labirinto de gemas (9508..9517) é ``handlers/gemmaze.py``."""
     s.log.debug("minigame fechado: pedido sem resposta")
-
-
-@router.on(8639, 8640)
-async def bugle(s: GameSession, msg: object) -> None:
-    """Corneta do passe sem item (4553/4554 vazios). 8639 traz o índice da carta (VipRouletteMsg) e
-    recebe o 4554; 8640 não traz corpo e recebe o 4553."""
-    code = S_BUGLE_REWARD if isinstance(msg, pb.VipRouletteMsg) else S_BUGLE_REQ
-    _send(s, code, pb.VipRouletteMsg())
 
 
 @router.on(8722, 8723)
@@ -699,13 +690,6 @@ async def recharge_rank(s: GameSession, _: object) -> None:
 async def cross_cost(s: GameSession, _: object) -> None:
     """Gasto entre servidores zerado (345). Sem atividade no servidor."""
     _send(s, S_CONSUM, pb.ChargeRewardMsg())
-
-
-@router.on(8994)
-async def new_year_box(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
-    """Caixa de ano novo fora do evento: (visto) oficial_20261023-215937-1 #751, #973, #1189, #1300 (``param1`` 3,
-    ao entrar e sair do castelo) sem resposta nenhuma; o 4811 (nós coletados) fica para quando houver o evento."""
-    s.log.info("8994 sem evento de ano novo", param1=msg.param1)
 
 
 @router.on(9520)
