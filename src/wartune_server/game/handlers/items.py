@@ -693,7 +693,8 @@ async def _use_power_card(s: GameSession, item: Item, row: Row, n: int) -> bool:
     ``isActive`` 1 e as outras 0 (o cliente toca o efeito, ``MagicCardInfo.isPlay``/``MagicCardSlotItem``). (visto)
     captura 20261029-121453-1 #4043-#4107: 115, 111, 4902, 150, 4903 (vazio fora de campanha), 83 "Congrats! You
     just received the 1st card, [coleção]." quando é a primeira da coleção, 83 "Card {nome} has been successfully
-    activated!", 4905, 4902 e 3. O 111 é o primeiro dos dois textos. Carta repetida: *(dedução)* os mesmos pacotes."""
+    activated!", 4905, 4902 e 3. O 111 é o primeiro dos dois textos. Só abre uma cópia, e só se a carta é nova; a
+    repetida é recusada (fica na mochila para o op 3 do 9505 engolir)."""
     from .systems import S_CAMP_BUFFS, cards, gain_cards, send_cards, store_cards
 
     snap = s.snapshot
@@ -703,6 +704,7 @@ async def _use_power_card(s: GameSession, item: Item, row: Row, n: int) -> bool:
     temp = int(row.get("Property1") or 0)
     suite = int((templates.get("PowcardTempInfos", temp) or {}).get("SuiteId") or 0)
     first = not any(int((templates.get("PowcardTempInfos", t) or {}).get("SuiteId") or 0) == suite for t in cards(sy))
+    n = 1  # gain_cards abre uma cópia por item
     copy = Item(item.character_id, item.template_id, count=n)
     if not gain_cards(sy, templates, [copy]):
         return False

@@ -30,6 +30,7 @@ from .player import _army, _player, alert, snapshot_of
 S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER, S_MOUNT_STAR = 4427, 4426, 4459, 4679
 S_FATE, S_FATE_TURN, S_DRAGON, S_TRANSFER, S_TRANSFER_GRADE = 4544, 4545, 4555, 4556, 4557
 S_POWCARD = 4905
+S_ITEMS = 115  # ItemsUpdatedRspMsg
 S_QUESTS = 112  # QuestUpdatedRspMsg
 QUEST_MOUNT_TRAIN = 71  # QuestCondictionInfos: treinar a montaria (Para2 1; uma ação de treino)
 
@@ -676,21 +677,23 @@ def store_cards(sy: PlayerSystems, found: dict[int, list[int]]) -> None:
 CARD_ITEM = "600"  # ItemTempInfos.SonType das cartas ("Available after using the ... card"; Property1 = a carta)
 
 
+def card_of(templates: GameTemplates, item: Item) -> int:
+    """A carta (``PowcardTempInfos``) de um item SonType 600 (``Property1``); 0 se não é carta."""
+    row = templates.get("ItemTempInfos", item.template_id) or {}
+    temp = int(row.get("Property1") or 0)
+    return temp if row.get("SonType") == CARD_ITEM and templates.get("PowcardTempInfos", temp) else 0
+
+
 def gain_cards(sy: PlayerSystems, templates: GameTemplates, items: list[Item]) -> list[Item]:
-    """Cartas ganhas (itens SonType 600) entram no 4905: a primeira cópia abre a carta no grau 1 e cada cópia a mais
-    soma 1 de ``gp``, a EXP que o 9505 op 1 gasta (``UpGradeTempInfos`` 30-34: 10, 30, 60...). Devolve os itens
-    absorvidos (quem chama apaga). TODO(inventado): 1 de EXP por cópia; o cliente só mostra o ``gp``."""
+    """Usar a carta (5006/9505 op 2) abre na coleção, no grau 1, só a carta que o jogador ainda não tem (uma cópia por
+    item; quem chama gasta 1). Repetida não entra: sobe pelo op 3 ("engulfing all cards in your inventory", idioma
+    card.cardHelper.content01; ajuda "Upgrading a card requires you to burn the same kind of card")."""
     found, used = cards(sy), []
     for item in items:
-        row = templates.get("ItemTempInfos", item.template_id) or {}
-        temp = int(row.get("Property1") or 0)
-        if row.get("SonType") != CARD_ITEM or templates.get("PowcardTempInfos", temp) is None:
-            continue
-        n = item.count
-        if temp not in found:
-            found[temp], n = [1, 0, 0], n - 1
-        found[temp][1] += n
-        used.append(item)
+        temp = card_of(templates, item)
+        if temp and temp not in found:
+            found[temp] = [1, 0, 0]
+            used.append(item)
     if used:
         store_cards(sy, found)
     return used
@@ -878,12 +881,45 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
             alert(s, NO_CARDS)
             return
         for item in held:
-            await _use_power_card(s, item, templates.get("ItemTempInfos", item.template_id) or {}, item.count)
+            await _use_power_card(s, item, templates.get("ItemTempInfos", item.template_id) or {}, 1)
         return
-    elif msg.op != CARD_TIDY:
+    elif msg.op == CARD_TIDY:
+        await _burn_cards(s, snap, sy, found)
+        return
+    else:
         s.log.info("9505 op desconhecida", pedido=str(msg))
         return
-    if msg.op != CARD_TIDY:
+    store_cards(sy, found)
+    await s.ctx.characters.save(sy)
+    send_cards(s)
+
+
+async def _burn_cards(s: GameSession, snap: PlayerSnapshot, sy: PlayerSystems, found: dict[int, list[int]]) -> None:
+    """op 3 (idioma card.cardHelper.content01 "Upgrade activated cards by engulfing all cards in your inventory?"):
+    cada item de carta da mochila cuja carta já está na coleção vira ``taxas.card_burn_gp`` de EXP dela (0139), até
+    o ``Data`` do grau seguinte (``MagicCardInfo.currentGP`` corta no ``currentMaxGp``); a que falta na coleção fica.
+    *(dedução)* 115 do que saiu, 4905 e 4902 (sem captura do op 3)."""
+    templates = s.ctx.templates
+    per = int(taxas.get(s.ctx.world.settings, "card_burn_gp"))
+    changed: list[Item] = []
+    gone: list[Item] = []
+    for item in list(bag.in_bag(snap)):
+        temp = card_of(templates, item)
+        card = found.get(temp)
+        tpl = templates.get("PowcardTempInfos", temp) if temp else None
+        if card is None or tpl is None:
+            continue
+        top = rules.upgrade_row(templates, str(CARD_GRADE_BASE + int(tpl["Profile"])), card[0] + 1)
+        cap = int(top["Data"]) if top else card[1]  # no grau máximo não engole
+        n = min(item.count, max(0, (cap - card[1] + per - 1) // per)) if per else 0
+        if n <= 0:
+            continue
+        card[1] = min(cap, card[1] + n * per)
+        took, removed = bag.take(snap, item.template_id, n)
+        changed += took
+        gone += removed
+    if changed or gone:
         store_cards(sy, found)
-        await s.ctx.characters.save(sy)
+        await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+        s.send(S_ITEMS, bag.moved(changed, s.player_id, gone))
     send_cards(s)

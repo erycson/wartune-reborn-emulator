@@ -234,8 +234,8 @@ def test_14_cartas_ganhas_entram_na_colecao() -> None:
     first, again, junk = Item(1, 6000001, count=1), Item(1, 6000001, count=3), Item(1, 208001, count=5)
     assert systems.gain_cards(sy, templates, [first, junk]) == [first]
     assert systems.cards(sy)[10001] == [1, 0, 0]  # a primeira cópia abre a carta
-    assert systems.gain_cards(sy, templates, [again]) == [again]
-    assert systems.cards(sy)[10001] == [1, 3, 0]  # as outras viram EXP (gp) da carta
+    assert systems.gain_cards(sy, templates, [again]) == []  # repetida fica na mochila para o op 3
+    assert systems.cards(sy)[10001] == [1, 0, 0]
 
 
 async def test_15_titulos_de_ranking_proprio_chefe_e_lider(tmp_path: Path) -> None:

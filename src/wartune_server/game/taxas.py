@@ -27,6 +27,8 @@ DEFAULTS: dict[str, Any] = {
     "enemy_cast_ms": 3500,
     # 0138: [Profile da carta, peso] por kit de invocador
     "summoner_kits": {"2131016": [[1, 80], [2, 20]], "2131017": [[2, 80], [3, 20]], "2131018": [[3, 80], [4, 20]]},
+    # 0139: EXP que cada carta repetida dá ao ser engolida (9505 op 3)
+    "card_burn_gp": 1,
 }
 
 

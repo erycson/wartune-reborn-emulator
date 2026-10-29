@@ -229,3 +229,28 @@ async def test_expert_kits_give_one_card_each_and_cards_enter_the_collection(tmp
         assert [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in await g.idle()] == [
             "There are no cards to be activated."
         ]
+
+
+async def test_repeated_card_stays_in_the_bag_and_op3_burns_it_up_to_the_next_grade(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        snap = _snap(g)
+        sy = snap.systems
+        assert sy is not None
+        templates = g.server.services.templates
+        sy.powcards = "10001:1:8:0"  # grau 1 -> 2 pede 10 (UpGradeTempInfos Types 29 + Profile)
+        held = bag.add(snap, templates, 6000001, 5, NOW)
+        await g.server.services.characters.save(sy, *held)
+        g.client.send(5006, pb.ItemUseMsg(pos=held[0].pos, count=1, bagType=1))  # repetida: não entra
+        await g.idle()
+        assert sy.powcards == "10001:1:8:0"
+        assert sum(i.count for i in bag.in_bag(snap) if i.template_id == 6000001) == 5
+
+        g.client.send(9505, pb.PowCardReqMsg(op=3))  # card.cardHelper.content01: engole até o Data do grau 2
+        got = await g.idle()
+        assert _codes(got)[0] == 115
+        card = pb.PowCardSuiteListMsg.FromString(_body(got, 4905)).suites[0].cardInfos[0]
+        assert (card.grade, card.gp) == (1, 10)  # taxa card_burn_gp 1: duas cópias
+        assert sum(i.count for i in bag.in_bag(snap) if i.template_id == 6000001) == 3
+        g.client.send(9505, pb.PowCardReqMsg(op=1, cardId=10001))
+        card = pb.PowCardSuiteListMsg.FromString((await g.until(4905))[-1].body).suites[0].cardInfos[0]
+        assert (card.grade, card.gp) == (2, 0)

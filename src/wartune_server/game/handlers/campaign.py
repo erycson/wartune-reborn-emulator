@@ -917,6 +917,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
     letters: list[Any] = []
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
+        letters += loot.letters
         trun = s.campaign.run if s.campaign is not None else None
         trow = _campaign_row(s, trun.campaign_id) if trun is not None else {}
         if won and trun is not None and torres.son(trow):
@@ -925,7 +926,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
             if trun.rewarded:  # (internet) o baú sai depois de cada luta (King) / chefe (Spire)
                 from .shop import place  # shop importa este módulo
 
-                chests, letters = place(s, snap, s.player_id, torres.prize(trow, floors), s.ctx.clock.now())
+                chests, mailed = place(s, snap, s.player_id, torres.prize(trow, floors), s.ctx.clock.now())
+                letters += mailed
             if battle.layer:  # o TrailView mostra o andar e o que ele vale
                 s.send(S_TRIAL_INFO, torres.shop_msg(snap, s.ctx.templates, s.ctx.clock.now(), trun.floors))
     if chests or letters:
@@ -994,15 +996,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
         c.talked.discard(camp)  # tumba/caixa perdida: o 29 volta a perguntar (dedução, sem captura de derrota)
         _node_update(s, camp, NORMAL)
         return
-    from . import systems as systems_h  # systems importa este módulo
-
-    if loot.items and (cards := systems_h.gain_cards(rules.systems(snap), s.ctx.templates, loot.items)):
-        # fim da luta: as cartas ganhas entram na coleção (4905/4902) em vez de ficar na mochila
-        for card in cards:
-            snap.items.remove(card)
-        loot.items = [i for i in loot.items if i not in cards]
-        await s.ctx.characters.save(rules.systems(snap), delete=tuple(cards))
-        systems_h.send_cards(s)
+    # carta que cai fica na mochila como item até o 5006 (captura 20261029-121453-1 #4026-#4043: o kit dá o item e a
+    # coleção só muda no uso)
     if loot.items:  # (visto) inglesa #1275-#1280: 115, 111, 128 e só depois o 83
         from . import events as hev  # handlers.events importa login, que importa este módulo
 
@@ -1799,6 +1794,7 @@ class _Loot:
     finished: bool = False
     sign: str = ""  # baú da luta (``fallen``): signId e itens no 4103, pegos no 5129
     fallen: list[tuple[int, int]] = field(default_factory=list)
+    letters: list[Any] = field(default_factory=list)  # o que não coube na mochila vai pelo correio (shop.place)
 
 
 def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot:
@@ -1847,12 +1843,24 @@ def _dungeon_loot(s: GameSession, battle: Battle, camp: int, won: bool) -> _Loot
         while loot.sign in c.fallen:
             loot.sign = str(int(loot.sign) + 1)
         c.fallen[loot.sign] = fallen
+    from .shop import place  # shop importa este módulo
+
     if got and bag.fits(snap, templates, got, now):  # confere antes; depois só muda o snapshot
         for template_id, count in got:
             loot.items += bag.add(snap, templates, template_id, count, now)  # completa a pilha que já existe
         loot.texts = [rewards.received(templates, [d]) for d in got]  # um aviso por item, como o oficial
+    elif got:  # mochila cheia: correio (cliente basta)
+        kept, mailed = place(s, snap, s.player_id, got, now)
+        loot.items += kept
+        loot.letters += mailed
     if win is not None:
         money = _roll(c, camp, win)[1]
+        if not rewards.can_grant(snap, templates, money, now):  # carta/item da caixa sem espaço: correio
+            goods = [d for d in money if d[0] not in rewards.CURRENCIES and d[0] not in (rewards.EXP, rewards.AMETHYST)]
+            kept, mailed = place(s, snap, s.player_id, goods, now)
+            loot.items += kept
+            loot.letters += mailed
+            money = [d for d in money if d not in goods]
         new, _ = rewards.grant(snap, templates, money)
         loot.items += new
         loot.win, loot.win_paid = _win_text(templates, money), any(t < 0 for t, _ in money)
