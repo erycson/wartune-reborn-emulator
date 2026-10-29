@@ -20,22 +20,21 @@ from typing import Any
 from google.protobuf.message import Message
 
 from ...protocol.messages import wartune_pb2 as pb
+from .. import arena_grupo as ag
 from .. import events as ev
 from .. import rewards, rules
 from ..battle import TEAM_POS, Battle
+from ..builders import login as b
 from ..rooms import COMPETING, IN_USE, PLAYING, PVP, Room
 from ..session import GameSession
 
 MATCHING, SCENE = 10, 8  # battleType e battleScene vistos (#19968, #19987)
 LEADER_POS = 1  # (visto #19912, #19968) o herói de cada sala no lugar 1 do seu lado
 WON, LOST = 1, 2
-S_REPORT, S_CLICK_ADD, S_ALERT, S_CHAT, S_ITEMS = 4103, 4413, 111, 83, 115
+S_REPORT, S_CLICK_ADD, S_ALERT, S_CHAT, S_ITEMS, S_PLAYER = 4103, 4413, 111, 83, 115, 3
 ARENA_PARTY_LEED = 13  # LeedTemp 13: (visto #19930) 4152 com currentCount +1 a cada luta
 CLICK_KEY = "match"  # DayGuideManager: "match" -> atividade 2/10; (visto #19932) 4413 keyData +1
-INSIGNIA = 208001
-# game_settings.arena_party: prêmio por resultado. (visto #19933/#19993) derrota: Insignia x10.
-# TODO(inventado): a vitória (sem captura), Insignia x20.
-DEFAULT_PRIZE: dict[str, list[list[int]]] = {"win": [[INSIGNIA, 20]], "lose": [[INSIGNIA, 10]]}
+# game_settings.arena_party (migração 0107): prêmio por resultado, {"win": [[templateId, n]], "lose": [...]}
 
 
 def _fit(room: Room, s: GameSession) -> list[GameSession] | None:
@@ -105,6 +104,8 @@ def _fight(s: GameSession, room: Room, mine: list[GameSession], other: Room, the
 
     s.battle = Battle(spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, send, finished,
                       settings=s.ctx.world.settings)  # fmt: skip
+    battle = s.battle
+    battle.forfeit = lambda: finished(battle, False)  # dono caiu no meio: derrota dele, as salas voltam a 1
     s.log.info("arena em grupo", battle=s.battle.id, salas=(room.id, other.id), times=(a_ids, b_ids))
     s.battle.start()
 
@@ -116,14 +117,21 @@ async def _after(o: GameSession, won: bool, rewarded: bool) -> None:
 
     snap, now = o.snapshot, o.ctx.clock.now()
     assert snap is not None
+    from .login import player_info  # noqa: PLC0415
+
     o.send(S_REPORT, pb.BattleReportMsg(battleResult=WON if won else LOST, battleScene=SCENE))
+    cfg: dict[str, Any] = dict(o.ctx.world.settings.get("arena_party") or {})
+    scored, delta = ag.add(snap, won, now, cfg)
+    await o.ctx.characters.save(scored)
+    o.send(S_PLAYER, b.complete(player_info(o, snap)))  # (visto #19928) 3 logo depois do 4103; leva o crossScore
     await count_quest(o, rules.ARENA_PARTY_CONDITION, 1)
     await leed_done(o, ARENA_PARTY_LEED)
     clicked = ev.click(snap, CLICK_KEY, now)
     await o.ctx.characters.save(clicked)
     o.send(S_CLICK_ADD, pb.ClickDatasRspMsg(info=[click_info(clicked)]))
-    cfg: dict[str, Any] = DEFAULT_PRIZE | dict(o.ctx.world.settings.get("arena_party") or {})
-    drops = [(int(t), int(n)) for t, n in cfg["win" if won else "lose"]]
+    # TODO(inventado): o texto dos pontos (a captura não mostra); "Points  +5" do torneio de fadas como modelo
+    o.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Points {delta:+d}"))
+    drops = [(int(t), int(n)) for t, n in cfg.get("win" if won else "lose", [])]
     if not rewarded or not drops or not rewards.can_grant(snap, o.ctx.templates, drops, now):
         return
     new, text = rewards.grant(snap, o.ctx.templates, drops)

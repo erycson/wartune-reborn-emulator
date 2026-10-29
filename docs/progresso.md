@@ -245,7 +245,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem); 5024 recusado (senha, cheia) devolve o 4270 da sala (225632 #12656) |
 | Times (convite, capitão, sair) | 🟡 | | não persistem |
 | Link de sala no chat (9504) | ✅ | | |
-| Salas PvP (5023, 5039, 8344, 8465) | ✅ | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); arena em grupo (handlers/arena_grupo.py): salas na fila emparelham, luta battleType 10 time contra time, 4103, missão 16, leed 13, contador `match`, Insignia x10 na derrota (27/10 #19912-#19995); vitória x20 e lugares do lado 2 inventados; só salas deste servidor; ranking sem tela no cliente |
+| Salas PvP (5023, 5039, 8344, 8465) | ✅ | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); arena em grupo (handlers/arena_grupo.py): salas na fila emparelham, luta battleType 10 time contra time, 4103, missão 16, leed 13, contador `match`, Insignia x10 na derrota (27/10 #19912-#19995); prêmios em game_settings.arena_party (0107); pontos semanais (crossScore do 3) e ranking em cross/crossscore.xml do PvpHeroFrame (game/arena_grupo.py); dono que cai perde e as salas voltam a 1; vitória x20, pontos 10/5, texto "Points +N" e lugares do lado 2 inventados; só salas deste servidor |
 | Falas e câmera no meio da luta (171/142) | ❌ | | |
 | Pedágio (8752-8755) | ❌ | | fechado |
 

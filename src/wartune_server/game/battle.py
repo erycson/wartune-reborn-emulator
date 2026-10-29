@@ -301,6 +301,7 @@ class Battle:
         self.formula = FORMULA | dict((settings or {}).get("battle_formula") or {})
         self.rng = rng or random.Random()
         self._out, self._on_end = send, on_end
+        self.forfeit: Callable[[], Awaitable[None]] | None = None  # quem conduz caiu: fecha a luta (arena em grupo)
         self.joined: list[Any] = []  # reforços de jogador (``join``, 8255/8745): sessões que recebem o resto da luta
         self._t0: float | None = None  # time.monotonic() do 156
         self._paused_at: float | None = None

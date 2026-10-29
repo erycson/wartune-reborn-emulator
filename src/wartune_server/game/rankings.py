@@ -21,6 +21,7 @@ from ..domain.models import ArenaRank, Character, EventState
 from ..domain.repositories import UnitOfWork
 from ..services.characters import CharacterService
 from ..services.clock import Clock
+from . import arena_grupo as ag
 from . import events as ev
 from . import fishing as fs
 from . import gemmaze as gm
@@ -202,6 +203,42 @@ async def fish_order(characters: CharacterService, guilds: Guilds, server_id: in
     return _xml("".join(rows), "FishScores")
 
 
+async def cross_order(characters: CharacterService, guilds: Guilds, server_id: int, clock: Clock) -> bytes:
+    """``cross/crossscore.xml`` do ``PvpHeroFrame``: ``<list><info createDate/><CrossScoreTotalAdd .../></list>``
+    com os atributos do ``SortController.read`` (``orderId``, ``userid``, ``nikcName``, ``weekScore``...); o
+    cliente mostra os 20 primeiros. ``weekScore`` = pontos da arena em grupo (``game/arena_grupo.py``).
+    shortcut: o período vem do padrão "week" (o loop não tem o game_settings); passar a config se ``reset`` mudar."""
+
+    async def query(uow: UnitOfWork) -> tuple[list[tuple[int, int]], list[Character], list[EventState]]:
+        ranked = ag.ranked(await uow.events.by_prefix(server_id, ag.KEY), clock.now(), {})[:HERO_TOP]
+        chars = await uow.characters.by_ids([c for c, _ in ranked])
+        return ranked, chars, await uow.events.by_prefix(server_id, VIP_KEY)
+
+    ranked, chars, vips = await characters.read(query)
+    by_id = {c.id: c for c in chars}
+    vip_of = vips_of(vips, clock)
+    rows = [_row("info", {"createDate": clock.now().strftime("%Y-%m-%d %H:%M:%S")})]
+    for pos, (cid, score) in enumerate(ranked, 1):
+        if (c := by_id.get(cid)) is None:
+            continue
+        vip, kind = vip_of(cid)
+        attrs = {
+            "orderId": pos,
+            "userid": cid,
+            "nikcName": c.nickname or "",
+            "job": c.job,
+            "grades": c.grades,
+            "fightCapaity": c.fighting_capacity,
+            "ConsortiaName": _guild_name(guilds, cid),
+            "IsVip": str(vip).lower(),
+            "VipType": kind,
+            "weekScore": score,
+            "serverId": server_id,
+        }
+        rows.append(_row("CrossScoreTotalAdd", attrs))
+    return _xml("".join(rows))
+
+
 def vips_of(vips: list[EventState], clock: Clock) -> Callable[[int], tuple[bool, int]]:
     """``(IsVip, VipType)`` por personagem: VIP vencido vai ``false`` e tipo 0."""
     now = clock.now()
@@ -232,9 +269,11 @@ def _xml(rows: str, root: str = "list") -> bytes:
 
 def write(folder: Path, name: str, body: bytes) -> None:
     """Grava por cima de uma cópia temporária: o Apache nunca serve o arquivo pela metade."""
-    tmp = folder / f".{name}.tmp"
+    target = folder / name
+    target.parent.mkdir(parents=True, exist_ok=True)  # cross/crossscore.xml fica numa subpasta
+    tmp = target.with_name(f".{target.name}.tmp")
     tmp.write_bytes(body)
-    tmp.replace(folder / name)
+    tmp.replace(target)
 
 
 async def run(
@@ -247,6 +286,7 @@ async def run(
         ("fight.xml", fight_order),
         ("gemmaze.xml", gem_order),
         ("fish.xml", fish_order),
+        ("cross/crossscore.xml", cross_order),
     )
     while True:
         for name, build in files:

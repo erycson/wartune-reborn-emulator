@@ -256,6 +256,8 @@ class GameSession:
     async def on_disconnect(self) -> None:
         if self.battle is not None:
             self.battle.cancel()
+            if self.battle is not None and self.battle.forfeit is not None:
+                await self.battle.forfeit()  # derrota de quem saiu; o adversário volta à sala
         if self.outer_walk is not None:
             self.outer_walk.cancel()
         if self.npc_talk is not None:

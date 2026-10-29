@@ -17,7 +17,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import buffs, castle, daily, farm, guild, rules, social, space, timebox, torres
+from .. import arena_grupo, buffs, castle, daily, farm, guild, rules, social, space, timebox, torres
 from .. import events as ev
 from ..bag import expire as expire_items
 from ..builders import login as b
@@ -97,6 +97,8 @@ def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     copies = snap.character.multi_copies(rules.copies_base(s.ctx.templates), now)  # o oficial não manda 4240 no login
     msg = b.player_msg(snap, fighting, now, rules.quest_bitmap(snap), copies, mine[0] if mine else None)
     events.fill_player(msg, snap, s.ctx.clock.now())
+    cfg = s.ctx.world.settings.get("arena_party") or {}
+    msg.crossScore = arena_grupo.points(ev.peek(snap, arena_grupo.KEY), now, cfg)  # pontos do PvpHeroFrame
     r = timebox.rule(s.ctx.world.settings)
     msg.timeProcess, msg.timeRun = timebox.box_state(snap.character, now, online=s.box_counting, r=r)
     msg.timeGet = msg.timeProcess > 0  # recebeu o último período alcançado (BoxManager)
