@@ -23,6 +23,9 @@ EXP = -700  # ItemTempInfo -700 "EXP": soma no jogador (rules.add_gp)
 # ItemTempInfo -200 "Amethyst": o ``playerInfo.mineral`` do cliente (PlayerMsg.mineScore, PlayerManager), pago na
 # loja de Amethyst (ShopType 11, ``MineScore``); guardado no event_state ``AMETHYST_KEY`` (value)
 AMETHYST, AMETHYST_KEY = -200, "mine_score"
+# Venus Crystal (``eternalCrystal``, 4725 masterType 12, loja 20 ``payType`` 16 pelo ``Score``): event_state.
+# Ganha-se na Venus Battle (``MatelordsFrame``, entre servidores, fechada aqui)
+ETERNAL_KEY = "eternal_crystal"
 
 
 def add_amethyst(snap: PlayerSnapshot, count: int, now: datetime) -> EventState:

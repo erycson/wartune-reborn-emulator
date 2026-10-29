@@ -93,6 +93,9 @@ PERCENT = {
     47: ("ForceHit",),
 }
 HONOR_BOOST = 48  # "Honor Received +{Grades}%" (Double Honor Scroll)
+TROOP = 46  # "Troop Count +{Grades}%": a vida da tropa na luta (``campaign.player_hero``)
+# 2000 "Camouflage" ("Take on the appearance of a monster.", PropertyType1 200): só a aparência, que o cliente
+# monta pelo 4188; nada a aplicar na luta
 
 
 def percent(snap: PlayerSnapshot, templates: GameTemplates, kind: int, now: datetime) -> int:

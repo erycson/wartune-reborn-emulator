@@ -227,10 +227,28 @@ def test_fila_de_tecnologia_nasce_com_a_academia_como_no_4155_ingles() -> None:
 # --- vida do campo (8338) ---
 
 
-def test_restaurar_vida_no_campo_usa_a_reserva() -> None:
+def test_restaurar_vida_no_campo_custa_200_star_points() -> None:
     import inspect
 
     from wartune_server.game.handlers import warfield
 
     src = inspect.getsource(warfield.restore_hp)
-    assert "heal_hero" in src and "FULL_HP" in src
+    assert warfield.RESET_STARS == 200 and "NO_STARS" in src and "FULL_HP" in src and "heal_hero" not in src
+
+
+# --- loja 20 (Venus Crystal) ---
+
+
+async def test_loja_venus_paga_com_cristal_e_manda_o_4725(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        now = g.server.services.clock.now()
+        st = ev.state(me(g), rewards.ETERNAL_KEY, now)
+        st.value = 3
+        await g.server.services.characters.save(st)
+        g.client.send(5154, buy(2325, 1))  # 208034 por 2 Venus Crystal (Score)
+        got = await g.until(90)
+        assert pb.ShopMsg.FromString(got[-1].body).buyInfo.result == 1
+        assert any(p.code == 4725 for p in got)
+        assert ev.peek(me(g), rewards.ETERNAL_KEY).value == 1  # type: ignore[union-attr]
+        g.client.send(5154, buy(2325, 1))
+        assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 4

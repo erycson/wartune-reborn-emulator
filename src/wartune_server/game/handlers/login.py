@@ -63,6 +63,14 @@ S_CUSTOMER, S_HONOR_DAY, S_KING_TOWER, S_TOKENS = 4392, 4471, 4900, 4725
 TOKEN_TYPES = (1, 2, 3, 4, 5, 12, 9, 22)  # (visto) 215937 #110, nessa ordem (PlayerCurrencyManager: cristal de pet...)
 
 
+def tokens_msg(snap: PlayerSnapshot) -> pb.PlayerTokenInfoMsg:
+    """4725 (``PlayerCurrencyManager``): só o Venus Crystal (12) tem saldo aqui; os outros vão zerados (visto)."""
+    st = ev.peek(snap, rewards.ETERNAL_KEY)
+    amount = {12: st.value if st is not None else 0}
+    tokens = [pb.TokenInfoMsg(masterType=t, amount=amount.get(t, 0), expiredDate=b.NEVER) for t in TOKEN_TYPES]
+    return pb.PlayerTokenInfoMsg(tokenInfos=tokens)
+
+
 def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     leader, castle = snap.leader, snap.castle
     assert leader is not None and castle is not None and snap.character.id is not None
@@ -345,8 +353,7 @@ async def _login_state(s: GameSession) -> None:
     s.send(S_CUSTOMER, pb.FastOpenCustomerMsg(canOpen=1))
     s.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=0, param2=int(s.ctx.world.settings.get("honor_day_max", 0))))
     s.send(S_KING_TOWER, torres.king_msg(snap, s.ctx.clock.now()))  # as entradas de hoje e a maior dificuldade
-    tokens = [pb.TokenInfoMsg(masterType=t, amount=0, expiredDate=b.NEVER) for t in TOKEN_TYPES]
-    s.send(S_TOKENS, pb.PlayerTokenInfoMsg(tokenInfos=tokens))
+    s.send(S_TOKENS, tokens_msg(snap))
     from . import lords, warfield  # os dois importam este módulo
 
     # (visto) depois do 4725, não com o sys do 8224: tutorial_en #101-#106, 171155 #103-#108

@@ -49,6 +49,7 @@ END_TEXT = "The battle has ended! You will be teleported out momentarily."
 ENTERED_TEXT = "Entered resource transport state. Movement speed is now decreased by 50%."
 DELIVER_BODY = "Turn in resources to obtain points and honor. Continue?"
 FULL_HP = "You already have full HP, no need to recharge!"
+RESET_STARS, NO_STARS = 200, "Inadequate Star Points"  # idioma PvpMapRightView.reset / StarIconView.command01
 CART_BODY = (
     "Get Minecart| If you want to collect Amethyst, you'll need to bring a minecart! "
     "A higher level minecart will yield "
@@ -310,22 +311,25 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
 @router.on(8338)
 async def restore_hp(s: GameSession, _: object) -> None:
     """Restaurar vida no campo (``PvpMapRightView`` "reset", ``warMaxhp``): o herói ferido (a luta do campo gasta a
-    vida como as outras, ``pvp_fight``) volta cheio pela reserva das poções (``rules.heal_hero``), 113 e 150; cheio,
-    o aviso (visto #15796). TODO(inventado): a cura pela reserva (só o aviso de vida cheia foi visto)."""
+    vida como as outras, ``pvp_fight``) volta cheio por 200 Star Points (idioma
+    ``PvpMapRightView.reset``: "Spend 200 Star points to restore your health."), 150 e 3; cheio, o aviso (visto
+    #15796); sem pontos, ``StarIconView.command01``."""
     snap = s.snapshot
     if s.campaign is None or not s.campaign.is_warfield or snap is None or snap.leader is None:
         return
-    now = s.ctx.clock.now()
-    live = rules.leader_stats(snap, s.ctx.templates, now).live
-    healed = rules.heal_hero(snap, s.ctx.templates, now) if b.hero_hp(snap.leader, live) < live else 0
-    if not healed:
+    live = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live
+    if b.hero_hp(snap.leader, live) >= live:
         s.send(S_ALERT, _chat(FULL_HP, channel=7))
         return
-    await s.ctx.characters.save(snap.leader)
-    from .shop import send_blood  # shop importa campaign, que importa este módulo
-
-    send_blood(s)
-    army(s, snap)
+    sy = rules.systems(snap)
+    if sy.star_point < RESET_STARS:
+        s.send(S_ALERT, _chat(NO_STARS, channel=7))
+        return
+    sy.star_point -= RESET_STARS
+    snap.leader.hp = live
+    await s.ctx.characters.save(snap.leader, sy)
+    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    _player(s)
 
 
 @router.on(8599)

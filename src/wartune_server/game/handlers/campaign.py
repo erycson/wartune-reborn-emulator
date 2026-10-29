@@ -620,9 +620,11 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False, ca
     runes = rune_skills(leader.rune_key, s.ctx.templates)
     msg.skillId.extend(runes)
     army, _ = outer_city.army_soldiers(snap, s.ctx.templates)
-    if boost:
-        for unit in army:
-            unit["initHp"] = unit["hp"] = _boost(int(str(unit["hp"])))
+    # tropa: o contrato 7 (+10%) e o pergaminho 46 "Troop Count +{Grades}%" (dedução: a tropa é a vida do exército)
+    troop = buffs.percent(snap, s.ctx.templates, buffs.TROOP, now)
+    for unit in army:
+        hp_ = int(str(unit["hp"])) * (100 + troop) // 100
+        unit["initHp"] = unit["hp"] = _boost(hp_) if boost else hp_
     pet = fighting_pet(s, msg)
     if spec.get("trial"):  # Spire: as cargas das Spire Runes (game/torres)
         msg.trials.extend(torres.trials(snap, s.ctx.templates, s.ctx.clock.now()))

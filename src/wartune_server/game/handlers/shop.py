@@ -38,7 +38,7 @@ from ..castle import castle_yield
 from ..mail import MAX_ANNEXES
 from ..mail import notify as notify_mail
 from ..mail import stage as stage_mail
-from ..rewards import AMETHYST_KEY
+from ..rewards import AMETHYST_KEY, ETERNAL_KEY
 from ..router import router
 from ..session import GameSession
 from .guild import shop_buy as guild_shop_buy
@@ -70,12 +70,14 @@ def price(row: Row) -> tuple[str, int] | None:
     # pontuações de outros sistemas (Score); 7 = troca por pontos da misteriosa (MysteryShopFrame página 2): a linha
     # pode ter GiftToken, mas o Score também é cobrado, e quanto se ganha de ponto por compra não tem fonte.
     # 8 (selos, payType 1001-1006) e 15 (1007): Score unidades do item NeedItem (essência, Sylph Crystalloid).
-    # 13 (CrossGuildScore): nenhuma linha nos templates. 20 (payType 16): eternalCrystal do PlayerCurrencyManager,
-    # moeda dos Senhores em casal (fechado): bloqueio real
+    # 13 (CrossGuildScore): nenhuma linha nos templates. 20 (payType 16, MatelordsShopFrame): Score em Venus
+    # Crystal (``eternalCrystal``, ``rewards.ETERNAL_KEY``)
     if row.get("ShopType") in ("8", "15") and int(row.get("NeedItem") or 0) > 0:
         return f"Item{row['NeedItem']}", int(row.get("Score") or 0)
     if int(row.get("MineScore") or 0) > 0:  # loja de Amethyst (MineralShopItem: playerInfo.mineral, 5154)
         return "MineScore", int(row["MineScore"])
+    if row.get("ShopType") == "20" and int(row.get("Score") or 0) > 0:
+        return "Eternal", int(row["Score"])
     if row.get("ShopType") in ("7", "8", "15", "13", "20"):
         return None
     return next(((k, int(row[k])) for k in PRICE_COLUMNS if int(row.get(k) or 0) > 0), None)
@@ -110,8 +112,8 @@ def charge(snap: PlayerSnapshot, column: str, total: int, pay_type: int, ref: st
             return None
         c.gold -= total
         return Charge(gold=True)
-    if column == "MineScore":
-        st = ev.state(snap, AMETHYST_KEY, now)
+    if column in ("MineScore", "Eternal"):
+        st = ev.state(snap, AMETHYST_KEY if column == "MineScore" else ETERNAL_KEY, now)
         if st.value < total:
             return None
         st.value, st.updated_at = st.value - total, now
@@ -263,6 +265,10 @@ async def receiver_of(s: GameSession, receive_id: int) -> int | None:
 def send_charge(s: GameSession, paid: Charge) -> None:
     if paid.ledger is not None or paid.state is not None:
         _player(s)
+    if paid.state is not None and paid.state.key == ETERNAL_KEY and s.snapshot is not None:
+        from .login import tokens_msg
+
+        s.send(4725, tokens_msg(s.snapshot))  # PlayerCurrencyManager.__currencyRefreshHandler
     if paid.gold:
         castle_yield(s)
     if paid.changed or paid.gone:
