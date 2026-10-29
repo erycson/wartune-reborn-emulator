@@ -48,6 +48,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     tollgate,
     tower,
     treasure,
+    treasure_hunt,
     vehicle,
     vip,
     warfield,

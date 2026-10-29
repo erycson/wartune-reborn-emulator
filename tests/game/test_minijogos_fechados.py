@@ -10,7 +10,8 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, PlayerSnapshot
-from wartune_server.game.handlers import group_draw
+from wartune_server.game import bag
+from wartune_server.game.handlers import group_draw, treasure_hunt
 from wartune_server.game.handlers import slot as slot_mod
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -179,3 +180,42 @@ async def test_chairs_turn_recharges_into_comfort_rewards_and_the_lucky_one(tmp_
         info = pb.ChairsListMsg.FromString(_last(await g.idle(), 415))
         assert info.rewardCounts == 0 and _snap(g).character.gold == gold + 1000
         assert sum(i.count for i in _snap(g).items if i.template_id == 208009) == 2
+
+
+# ---------------------------------------------------------------- caça ao tesouro
+
+
+async def _seek(g: Game, op: int) -> pb.PlayerSeekInfoMsg:
+    g.client.send(9502, pb.PlayerSeekInfoMsg(op=op))
+    return pb.PlayerSeekInfoMsg.FromString(_last(await g.idle(), 4914))
+
+
+async def test_treasure_hunt_explores_opens_recharges_and_exchanges(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rng = random.Random(1)
+    rng.choices = lambda items, weights=None: [items[0]]  # type: ignore[method-assign,assignment]
+    monkeypatch.setattr(treasure_hunt, "RNG", rng)
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        g.client.send(9502, pb.PlayerSeekInfoMsg(op=1))
+        assert [p.code for p in await g.idle()] == [111]  # abaixo do 32
+        _snap(g).character.grades = 32
+        info = await _seek(g, 1)
+        assert (info.op, info.seekCount, info.state, info.nextAddTime) == (1, 10, 0, 0)
+        assert len(info.seekNodeList.seekNode) == 6
+        info = await _seek(g, 3)
+        assert (info.op, info.seekCount, info.state) == (3, 9, 1) and info.curNodeId != 1 and info.eventDesc
+        g.client.send(9502, pb.PlayerSeekInfoMsg(op=4))
+        got = await g.idle()
+        assert pb.PlayerSeekInfoMsg.FromString(_last(got, 4914)).state == 0
+        assert "Summoner's Shard x5" in pb.MessageForSeekMsg.FromString(_last(got, 4915)).info
+        g.server.services.clock.advance(1800 + 60)  # type: ignore[attr-defined]
+        info = await _seek(g, 2)
+        assert (info.seekCount, info.nextAddTime) == (10, 0)
+        await _seek(g, 3)
+        assert (await _seek(g, 1)).nextAddTime == 1800
+        snap = _snap(g)
+        shards = bag.add(snap, g.server.services.templates, treasure_hunt.SHARD, 95, NOW)
+        await g.server.services.characters.save(*shards)
+        await _seek(g, 6)
+        assert bag.count_of(snap, treasure_hunt.MASTER_KIT) == 1 and bag.count_of(snap, treasure_hunt.SHARD) == 0

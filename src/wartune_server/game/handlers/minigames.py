@@ -713,15 +713,6 @@ async def quiz(s: GameSession, _: object) -> None:
     _send(s, S_QUIZ, pb.SysAnswerQuestionStateMsg(sysState=0))
 
 
-@router.on(9502)
-async def treasure_hunt(s: GameSession, _: object) -> None:
-    """Caça ao tesouro fechada (4914 op 1, sem nós, seekCount 0). ``seekNodeList`` precisa existir:
-    o cliente lê ``.seekNode`` quando ``op == 1``."""
-    msg = pb.PlayerSeekInfoMsg(op=1, seekCount=0, state=0)
-    msg.seekNodeList.SetInParent()
-    _send(s, S_SEEK, msg)
-
-
 @router.on(9520)
 async def golden_road(s: GameSession, _: object) -> None:
     """Tabuleiro da estrada dourada (4933, GoldRoadManager.getOrRefreshGoldInfo -> __goldRoadInfoHandler).

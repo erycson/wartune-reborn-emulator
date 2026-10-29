@@ -57,14 +57,19 @@ def pairs(raw: Sequence[Sequence[int]]) -> list[tuple[int, int]]:
 
 
 async def give(
-    s: GameSession, snap: PlayerSnapshot, drops: Sequence[tuple[int, int]], *entities: object, chat: bool = True
+    s: GameSession,
+    snap: PlayerSnapshot,
+    drops: Sequence[tuple[int, int]],
+    *entities: object,
+    chat: bool = True,
+    delete: tuple[object, ...] = (),
 ) -> str:
-    """Moedas e EXP no personagem, itens na mochila (cheia: correio). Grava ``entities`` junto e manda 3/150/109/115
-    e o 83 com o ``Received: ...``."""
+    """Moedas e EXP no personagem, itens na mochila (cheia: correio). Grava ``entities`` (e apaga ``delete``) junto e
+    manda 3/150/109/115 e o 83 com o ``Received: ...``."""
     templates, now = s.ctx.templates, s.ctx.clock.now()
     rewards.grant(snap, templates, [d for d in drops if d[0] < 0])
     got, letters = place(s, snap, s.player_id, [d for d in drops if d[0] > 0], now)
-    await save_with_mail(s, letters, *rewards.owners(snap), *got, *entities)
+    await save_with_mail(s, letters, *rewards.owners(snap), *got, *entities, delete=delete)
     text = rewards.text(templates, drops)
     granted(s, drops, got, text, chat=chat)
     return text

@@ -90,10 +90,6 @@ async def test_closed_minigames_answer_the_closed_state(tmp_path: Path) -> None:
         slot = pb.SlotActiveMsg.FromString(_body(await g.idle(), 4901))
         assert slot.open is False
 
-        g.client.send(9502)
-        seek = pb.PlayerSeekInfoMsg.FromString(_body(await g.idle(), 4914))
-        assert (seek.op, seek.seekCount, seek.state) == (1, 0, 0) and seek.HasField("seekNodeList")
-
         g.client.send(9638)
         got = await g.idle()
         assert pb.SimplePropertyMsg.FromString(_body(got, 414)).param7 is False
