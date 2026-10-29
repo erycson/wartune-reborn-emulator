@@ -21,6 +21,7 @@ Cada campanha gerada leva ``"inventado"`` com os mapas gerados: é a marca para 
     uv run python tools/gera_masmorras.py
     uv run python tools/gera_masmorras.py grupo
     uv run python tools/gera_masmorras.py torres  # 8200-8204 (migração 0102, ver TOWERS)
+    uv run python tools/gera_masmorras.py casamento  # salões 4301-4303 (migração 0112, ver WEDDING_NPCS)
 """
 
 from __future__ import annotations
@@ -394,5 +395,38 @@ def main(cfg: dict[str, Any]) -> None:
     print(f"{cfg['out']}: {len(result)} campanhas, {sum(len(c['inventado']) for c in result.values())} mapas gerados")
 
 
+# Salões do casamento 4301-4303 (migração 0112): só as casas andáveis vêm do cliente (``.titles``). TODO(inventado) o
+# resto: a entrada no meio das casas, o padre (``param1`` 3, voto 101 no MarryWeddingDialogFrame) acima e o criado
+# (``param1`` 8, bolo/champanhe/flores/doces/presentes) à direita; nó de NPC como o da Elise (61/2127) da captura.
+WEDDING_OUT = VERSIONS / "0112_casamento.json"
+WEDDING_NPCS = ((3, "Priest", 0, -12), (8, "Wedding Steward", 12, 0))  # (param1, nome, dx, dy) a partir da entrada
+
+
+def wedding() -> None:
+    result: dict[str, Any] = {}
+    for map_id in (4301, 4302, 4303):
+        tiles = walkable(map_id)
+        cx = sum(x for x, _ in tiles) // len(tiles)
+        cy = sum(y for _, y in tiles) // len(tiles)
+        start = _near(tiles, cx, cy)
+        nodes = []
+        for i, (param1, name, dx, dy) in enumerate(WEDDING_NPCS, 1):
+            x, y = _near(tiles, start[0] + dx, start[1] + dy)
+            camp = map_id * 100 + i
+            nodes.append({"nodeId": camp, "campDataId": camp, "nodeName": name, "masterType": 61, "sonType": 2127,
+                          "preNodeIds": "0", "nextNodeIds": "0", "state": 1, "refreshSpeed": 1, "posX": x, "posY": y,
+                          "curX": x, "curY": y, "level": 0, "styleType": 1, "attackTypes": 0, "nameColor": 0,
+                          "sizeType": 1, "toward": 0, "resource": 1, "resetX": 0, "resetY": 0, "fixX": x * TILE + 9,
+                          "fixY": y * TILE + 9, "heroTempId": -1, "handlerRange": 0, "fightCapaity": 0,
+                          "param1": param1, "param2": 0, "param3": "", "param4": "", "param5": ""})  # fmt: skip
+        result[str(map_id)] = {"campaign": map_id, "stages": [[map_id]], "inventado": [map_id],
+                               "maps": {str(map_id): {"start": list(start), "nodes": nodes}}}  # fmt: skip
+    WEDDING_OUT.write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{WEDDING_OUT}: {len(result)} salões")
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["casamento"]:
+        wedding()
+        sys.exit()
     main({"grupo": GROUP, "torres": TOWERS}.get(sys.argv[1] if sys.argv[1:] else "", SOLO))

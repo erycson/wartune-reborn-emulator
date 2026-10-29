@@ -163,9 +163,12 @@ async def leave_pet_island(s: GameSession, msg: pb.RoomExitMsg) -> None:
     from .guildwar import leave_war  # guildwar importa space
     from .hangup import leave_room as leave_hook  # hangup importa space
     from .warfield import leave_field  # warfield importa space
+    from .wedding import leave as leave_wedding  # wedding importa space
     from .worldboss import leave_boss  # worldboss importa space
 
-    if leave_boss(s) or leave_altar(s) or leave_field(s) or leave_war(s) or leave_quarry(s) or await leave_hook(s):
+    if leave_boss(s) or leave_altar(s) or leave_wedding(s) or leave_field(s) or leave_war(s) or leave_quarry(s):
+        return
+    if await leave_hook(s):
         return
     s.log.info("5025 sem ilha dos pets nem sala", mapa=s.campaign and s.campaign.map_id)
 

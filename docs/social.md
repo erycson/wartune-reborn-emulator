@@ -96,29 +96,29 @@ cobrança passa pelo ledger; `payType` 1 = só Balens, 0 = vinculados primeiro.
 **Fluxo do cliente inglês** (`MarryRingView`, `helpContent02`, `SpaceDialogFrame`): o líder de um time de 2 pede com o
 Engagement Ring 208033; o alvo aceita e os dois ficam noivos (state 1) por até 20 dias; o líder reserva a cerimônia na
 NPC Andrew (15049 → 4658 → op 5); a sala abre e a troca de alianças casa o casal (state 3, `marTime`). Nas 72 h depois do
-casamento o botão "Wedding Ceremony" da TopToolsBar reserva outra cerimônia com desconto. O servidor pula a sala: o op 5
-já casa.
+casamento o botão "Wedding Ceremony" da TopToolsBar reserva outra cerimônia com desconto. O op 5 só reserva
+(`speTemplateId`); o voto do padre na sala (8760 op 101) casa (`handlers/wedding.py`).
 
 | C>S | op | S>C | situação |
 |---|---|---|---|
 | 8759 | 1 pedir (`property1` alvo, `property3` texto até 100) | 4656 para o alvo: `property1` true (pedido novo), `property3` nível, `property4` guilda, `property5` texto, `property6` cabeça (`pics`) | pronto: sexos diferentes, nível 36 (`MarryQuestFrame`), os dois solteiros e online, anel 208033 na mochila. Alvo não solteiro: 111 "Cannot propose because your teammate is married"; sem anel: 111 "You don't have an Engagement Ring." |
 | 8759 | 3 responder (`property1`, `property5`) | 4656 `property1` falso ao alvo (sai da lista); aceito: 4657 aos dois e 4656 `property7` 1 a quem pediu (abre o QUALITY_SELECT) | pronto: noivos; o anel sai de quem pediu *(dedução: quando ele é gasto)*; os outros pedidos ao noivo caem |
 | 15049 | 4 escolher casamento (`property1` MarrySpecTempInfo, `payType`) | 4658 MarriageProMsg para o cônjuge | pronto, noivo ou casado. Preço de `MarryModel.getMarryQualityCosts`: `Points` cheio; `ceil(Points × Discount / 100)` nas 72 h depois de `marTime` (noivo não tem data, paga cheio) |
-| 8759 | 5 aceitar a escolha | 4657 para os dois + correio com `Rewards` | parcial: cobra e já casa; sem a sala. O `MarryConfirmFrame` manda true e, ao fechar, false: vale o primeiro |
+| 8759 | 5 aceitar a escolha | 4657 para os dois com `speTemplateId` | pronto: cobra e reserva (`couple.reserved`). O `MarryConfirmFrame` manda true e, ao fechar, false: vale o primeiro |
 | 8759 | 8 divórcio pago / 15 divórcio grátis (cônjuge offline ≥ 5 dias, desde a saída gravada) | 4657 | pronto |
 | 8759 | 14 cancelar noivado | 4657 | pronto, mas sem chamador na interface inglesa (`MarryManager.checkTime` não é chamado). O prazo de 20 dias é do servidor: qualquer pedido de casamento e o login cancelam o noivado vencido, sem custo |
 | 8759 | 16 pedir divórcio consensual / 17 aceitar | 358 para o cônjuge / 4657 | pronto (17 custa 1799 a quem aceita). Cônjuge offline no 16 ou recusa no 17: 111 a quem pediu (texto nosso, o language_en não tem) |
 | 8759 | 9 dados do pretendente | 4659: `property1` solteiro, `property3` nível, `property4` guilda, `property6` cabeça | pronto (`MarryQuestFrame.refreshView`) |
-| 8759 | 10 salas / 20 procurar par | 4662 vazio / 359 RecommendListMsg (5 linhas, `attack` = poder) | 10 vazio; 20 pronto, sem chamador no inglês |
-| 8759 | 6, 7, 13 (sala, carro, entrar), 12 (aliança), 18 (`helpMateTrain`, ajuda de satisfação, sem chamador) | — | só log |
-| 8760 | sala: 101 alianças, 102-109 bolo/champanhe/doces/buquê/fogos, 104/112 presentes, 105 senha, 106 expulsar, 110/111 convidar | — | só log: a sala não existe |
+| 8759 | 10 salas / 20 procurar par | 4662 com as salas (MarryRoomItem: `property1` trancada, 2 tipo, 3 número, 4 início, 7 cerimônia) / 359 RecommendListMsg | pronto; 20 sem chamador no inglês |
+| 8759 | 6 criar sala, 13 entrar (`property3` "a_b", `property4` senha, `property5` veio do link), 7 carro | 4662 ao casal; entrada como sala (125, 140, 21, 127, 150) + 4674/4673; 4672 a todos (`property4` = `Path`, `MarryCarAi`) | pronto; salões 4301-4303 gerados (`gera_masmorras.py casamento`, 0112, inventado); 12 aliança e 18 `helpMateTrain` só log |
+| 8760 | padre (nó `param1` 3, 29 tipo 11): 101 voto; criado (`param1` 8): 102 bolo, 108 champanhe, 103 flores, 107 doces, 104 presente de ouro (`marriage_gift`), 112 pontos, 109 fogos (`marriage_fireworks`); 105 senha, 106 expulsar, 110/111 convidar | 4660 falas, 4674 por quem vê, 4673 convidados, 16 `RoomInviteMsg` (`roomType` 4) | pronto; fim em `mar_time` min. TODO(inventado): falas, pontos do casal por ação, metade do presente a cada um |
 | 8773 | árvore do casal: 1001 regar, 1002 cultivar (itens com `Feed` da bancada 0-9), 1003 limpar, 1004 colher, 1005 trocar o item em dobro | 4678 `MarriageTreeMsg` aos dois; `FarmInfoRspMsg.marriageTree` na fazenda do casado (a própria e a vista por amigos) | pronto (`game/marriage_tree.py`). Estado em JSON nas duas linhas de `marriages` (0091). Regras do cliente (`MarryTreeView`, `MarryTreeFosterFrame`): 5 h por rega, 2 regas e 10 cultivos por dia, −10 por mato/praga que chegou e não foi limpo, teto 800, baú por status (<200 2060475, <800 2060476, 800 2060477) e Rose Hazel 208034; troca a 100.000 de ouro; colhidos os dois lados, pede rega de novo. *TODO(inventado): chance de mato/praga 50% por hora, Rose Hazel 1 + status/100; A = o homem (191924 #1249)* |
 | 8774 | missões do casal (2001 pegar, 2004 usar o item `property1`, 2005 falar) | 4675 com a missão (RewardTemps tipo 4) e `isComplete` ao cumprir | pronto: `marriage_task_count` por dia; ouro/Daru do template e `RewardHappy` + `mar_task_add_happy` nos pontos do casal |
 | 8802 | jogo do coração (3001 chamar, 3002 aceitar, 3003 responder, 3004 tempo, 3005 desistir; `HeartTempInfos`) | 4690 ao cônjuge, 4691 aos dois | pronto, regras TODO(inventado) `marriage_heart`: acerto = mesma opção, pontos do casal por acerto |
 | 9611 | loja do altar (`Mate_Shop`) | 365 AltarShopListMsg, `altarScore` = pontos do casal | pronto: op 2 compra (dedução), máximo contado por casal em `marriages.couple` |
 
-**4657** (`MarryManager.__marryInfoHandler`): cônjuge, `state`, `templateId` (cerimônia), `speTemplateId` 0 (≠ 0 é
-"reservada e alianças por trocar"; aqui casar já troca), `marTime` em `YYYY-MM-DD hh:mm:ss` (`MarryInfo.marriageTime`,
+**4657** (`MarryManager.__marryInfoHandler`): cônjuge, `state`, `templateId` (cerimônia), `speTemplateId` (≠ 0 é
+"reservada e alianças por trocar", até o voto), `marTime` em `YYYY-MM-DD hh:mm:ss` (`MarryInfo.marriageTime`,
 vazio para noivo) e `logoutDays` pela saída gravada. Faltam `happy`, `ringGrade`/`ringGp`, `questCount`, `answerNum` e o 357
 `MarriageDataMsg` (satisfação, aliança, árvore).
 
@@ -133,6 +133,5 @@ offline, presente de rosa (SonType 217) e a resposta automática do IM.
 
 - Guilda: correio de guilda (8205 sendType 2), canal 5.
 - Time/sala: canal 6, convite de amigo para time.
-- Sala de casamento: cerimônia (8760, op 6/7/13, 4662/4673/4674/4672).
 - SMTP: 9591.
 - Entre-servidores: 8623, 25024, 25096, 25097 tratados como este servidor.

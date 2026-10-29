@@ -51,6 +51,21 @@ async def _engage(a: Game, b: Game) -> None:
         assert _session(g).snapshot.marriage.state == MarriageState.ENGAGED  # type: ignore[union-attr]
 
 
+async def ceremony(a: Game, b: Game) -> list:  # type: ignore[type-arg]
+    """Sala (op 6), os dois entram (op 13) e o voto do padre (8760 op 101)."""
+    a.client.send(8759, pb.MarriageOpMsg(opType=6))
+    [room] = pb.EngageMsg.FromString((await a.until(4662))[-1].body).engageInfos
+    key = f"{room.userIdA}_{room.userIdB}"
+    for g in (a, b):
+        g.client.send(8759, pb.MarriageOpMsg(opType=13, property3=key))
+        await g.until(127)
+    a.client.send(8760, pb.MarriageOpMsg(opType=101))
+    got = await a.until(4660)
+    got += await a.idle()
+    await b.idle()
+    return got
+
+
 async def test_propose_engage_marry_and_divorce(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as a:  # maga (feminino)
         b = await a.join("bruxo", 3)  # type: ignore[call-arg]  # mago (masculino)
@@ -63,12 +78,14 @@ async def test_propose_engage_marry_and_divorce(tmp_path: Path) -> None:
         a.client.send(8759, pb.MarriageOpMsg(opType=5, property5=False))  # o MarryConfirmFrame manda os dois
         info = pb.MarriageMsg.FromString((await a.until(4657))[-1].body)
         payer = _session(b).snapshot.character  # type: ignore[union-attr]
-        assert _session(a).snapshot.marriage.state == MarriageState.MARRIED  # type: ignore[union-attr]
+        assert _session(a).snapshot.marriage.state == MarriageState.ENGAGED  # type: ignore[union-attr]  # só reserva
         assert payer.point == 20000 - 3999  # noivo não tem marTime: o cliente mostra e cobra o preço cheio
+        assert info.speTemplateId == 3  # cerimônia reservada: o padre oferece o voto (101)
+        got = await ceremony(a, b)
+        info = pb.MarriageMsg.FromString([p for p in got if p.code == 4657][-1].body)
+        assert _session(a).snapshot.marriage.state == MarriageState.MARRIED  # type: ignore[union-attr]
         assert len(info.marTime) == 19 and info.speTemplateId == 0  # "YYYY-MM-DD hh:mm:ss" (MarryInfo)
-        await b.until(148)  # presentes pelo correio
-        await a.idle()
-        await b.idle()
+        assert any(p.code == 148 for p in got)  # presentes da cerimônia pelo correio, no voto
 
         b.client.send(15049, pb.MarriageOpMsg(opType=4, property1=3, payType=1))  # casado, nas 72 h: desconto
         await a.until(4658)

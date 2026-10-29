@@ -243,8 +243,8 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
             nickName=mate.nickname or "" if mate else "",
             state=m.state,
             templateId=m.spec_id,
-            # speTemplateId != 0 = cerimônia reservada e alianças por trocar (MarryUIMediator); aqui casar já troca
-            speTemplateId=0,
+            # speTemplateId != 0 = cerimônia reservada e alianças por trocar no voto (MarryWeddingDialogFrame 101)
+            speTemplateId=int((json.loads(m.couple) if m.couple else {}).get("reserved") or 0),
             engageTime=b.fmt_time(m.since),
             # MarryInfo.marriageTime lê "YYYY-MM-DD hh:mm:ss" (desconto e botão de cerimônia nas 72 h); noivo: vazio
             marTime=b.fmt_time(m.married_at) if m.married_at else "",

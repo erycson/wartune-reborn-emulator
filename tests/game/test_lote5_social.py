@@ -179,8 +179,10 @@ async def test_6_eleicao_abre_com_o_chefe_sumido_conta_os_votos_e_fecha(tmp_path
 
 
 async def _married(a: Game) -> Game:
-    from tests.game.test_marriage import _engage
+    from tests.game.test_marriage import _engage, ceremony
+    from wartune_server.game.handlers import wedding
 
+    wedding._weddings.clear()  # salas de outro teste (mesmos ids) ficam no módulo
     b = await a.join("bruxo", 3)  # type: ignore[call-arg]
     await _engage(a, b)
     b.client.send(15049, pb.MarriageOpMsg(opType=4, property1=3, payType=1))
@@ -190,6 +192,7 @@ async def _married(a: Game) -> Game:
     await a.until(4657)
     await a.idle()
     await b.idle()
+    await ceremony(a, b)
     return b
 
 
@@ -234,3 +237,55 @@ async def test_5_jogo_do_coracao_missao_e_loja_do_casal(tmp_path: Path, monkeypa
         shop = pb.AltarShopListMsg.FromString((await a.until(marriage.S_MATE_SHOP))[-1].body)
         assert shop.altarScore == happy - 30
         assert next(i for i in shop.info if i.templateId == 41001000).leftCount == 0
+
+
+async def test_5_sala_do_casamento_voto_criado_convite_carro_e_fim(tmp_path: Path) -> None:
+    from wartune_server.game.handlers import wedding
+
+    clock = FakeClock(NOW)
+    async with logged_in(tmp_path, novice=19000, clock=clock) as a:
+        await _married(a)  # reserva, sala, entrada dos dois e voto (test_marriage.ceremony)
+        w = wedding.of_couple(a.user_id)
+        assert w is not None and w.state == wedding.PARTY and _s(a).campaign.wedding == w.key  # type: ignore[union-attr]
+        priest = next(n for n in _s(a).campaign.nodes.values() if n["param1"] == wedding.PRIEST)  # type: ignore[union-attr]
+        a.client.send(5125, pb.CampaignReqMsg(paraInt1=priest["campDataId"]))
+        frame = pb.CampaignConfirmMsg.FromString((await a.until(29))[-1].body)
+        assert frame.type == wedding.DIALOG and frame.mapId == 4301  # MarryWeddingDialogFrame; cerimônia 3 = salão 4301
+
+        happy = marriage.couple(_s(a).snapshot.marriage)["happy"]  # type: ignore[union-attr]
+        a.client.send(8760, pb.MarriageOpMsg(opType=wedding.CAKE))
+        info = pb.MarriageProMsg.FromString((await a.until(wedding.S_INFO))[-1].body)
+        assert info.property6 == 1 and info.property2 == wedding.PARTY and info.property9 == 3
+        assert marriage.couple(_s(a).snapshot.marriage)["happy"] == happy + 10  # type: ignore[union-attr]
+
+        c = await a.join("corvo", 3)  # type: ignore[call-arg]
+        _s(c).snapshot.character.grades = 40  # type: ignore[union-attr]
+        _s(c).snapshot.character.gold = 300000  # type: ignore[union-attr]
+        await c.idle()
+        a.client.send(8760, pb.MarriageOpMsg(opType=wedding.INVITE, property1=c.user_id))
+        invite = pb.RoomInviteMsg.FromString((await c.until(wedding.S_INVITE))[-1].body)
+        assert (invite.roomType, invite.userKey) == (wedding.ROOM_TYPE, w.key)
+        c.client.send(8759, pb.MarriageOpMsg(opType=13, property3=invite.userKey))
+        await c.until(127)
+        gold_a = _s(a).snapshot.character.gold  # type: ignore[union-attr]
+        c.client.send(8760, pb.MarriageOpMsg(opType=wedding.GIFT, property1=200000))  # cerimônia 3: o 1º valor
+        await c.until(wedding.S_INFO)
+        await a.idle()
+        assert _s(c).snapshot.character.gold == 100000  # type: ignore[union-attr]
+        assert _s(a).snapshot.character.gold == gold_a + 100000  # type: ignore[union-attr]  # metade a cada um
+
+        a.client.send(8759, pb.MarriageOpMsg(opType=7))  # cerimônia 3 sem Path: sem carro (MarryModel.canRideCar)
+        assert not [p for p in await c.idle() if p.code == wedding.S_CAR]
+        w.spec = 1  # a 1 tem o Path: o carro passa na cidade
+        a.client.send(8759, pb.MarriageOpMsg(opType=7))
+        car = pb.MarriageProMsg.FromString((await c.until(wedding.S_CAR))[-1].body)
+        assert car.property4.startswith("171,72|")
+
+        a.client.send(8353, pb.CaptainSpeakMsg(type=1, inviteContent=["venham!"]))
+        assert any(f'id="{w.key}"' in m for m in _chats(await c.idle(), 10))  # link roomType 4 no mundo
+
+        saved = marriage.dump_pending()["weddings"]
+        assert saved and saved[0]["cake"] and saved[0]["gifted"] == [c.user_id]
+        clock.advance(121 * 60)
+        await wedding.clock(_s(a))
+        assert wedding.of_couple(a.user_id) is None and _s(c).campaign is None

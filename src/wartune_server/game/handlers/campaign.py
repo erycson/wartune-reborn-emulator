@@ -329,6 +329,10 @@ async def sync_pos(s: GameSession, msg: pb.PosMoveMsg) -> None:
             from .guildwar import moved  # guildwar importa este módulo
 
             moved(s, msg)
+        if s.campaign.wedding:
+            from .wedding import moved as wedding_moved  # wedding importa este módulo
+
+            wedding_moved(s, msg)
         for mate in mates(s):  # (visto) 232017 #7875: 4185 com o caminho do outro da sala (armyId 10)
             mate.send(S_MOVE, pb.PosMoveMsg(mapId=s.campaign.map_id, armyId=s.player_id, routes=msg.routes))
 
@@ -367,6 +371,11 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         from . import fam  # fam importa este módulo
 
         await fam.arrive(s, camp, node)
+        return
+    if c.wedding:
+        from .wedding import arrive as wedding_arrive  # wedding importa este módulo
+
+        wedding_arrive(s, node)
         return
     if c.altar:
         from .altar import attack as altar_attack  # altar importa worldboss, que importa este módulo

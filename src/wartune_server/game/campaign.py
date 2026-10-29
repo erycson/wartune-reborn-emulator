@@ -107,6 +107,7 @@ class CampaignMap:
     warfield: int = 0  # campo de batalha (4005/4007) ou mina (30000): ``handlers/warfield.py``; 0 = não é
     gvg: bool = False  # guerra de guildas (4501): ``handlers/guildwar.py``
     altar: bool = False  # altar do demônio da guilda (7601): ``handlers/altar.py``
+    wedding: str = ""  # salão do casamento (4301-4303): a chave "a_b" da sala, ``handlers/wedding.py``
 
     @property
     def is_warfield(self) -> bool:

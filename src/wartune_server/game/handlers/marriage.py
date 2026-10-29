@@ -6,9 +6,10 @@ Fluxo do cliente (MarryRingView, ``helpContent02``): pedido com o Engagement Rin
 20 dias, cerimônia reservada na Andrew (15049 -> 4658 -> op 5), sala de casamento e troca de alianças.
 O casal tem duas linhas em ``marriages``; quem está online tem a sua no snapshot.
 
-ponytail: pedidos, ofertas de casamento e pedidos de divórcio ficam em memória (somem se o
-servidor reiniciar), como o jogo do coração. A sala da cerimônia (8760) é bloqueio real (ver ``wedding_campaign``).
-Pontos do casal (``couple``): missões 8774, jogo do coração 8802 e rega da árvore; gastos na loja 9611.
+Pedidos, ofertas, pedidos de divórcio, jogos do coração e salas ficam em memória e vão para ``server_states``
+(``dump_pending``). A cerimônia aceita (op 5) só reserva (``speTemplateId``); casa no voto da sala
+(``handlers/wedding.py``). Pontos do casal (``couple``): missões 8774, jogo do coração 8802 e rega da árvore;
+gastos na loja 9611.
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ TREE_WATER, TREE_CULTIVATE, TREE_CLEAR, TREE_HARVEST, TREE_REFRESH = 1001, 1002,
 ROSE = 208034  # Rose Hazel: MarryTreeView, recompensa da colheita
 CHESTS = ((200, 2060475), (tree.TREE_MAX, 2060476), (tree.TREE_MAX + 1, 2060477))  # MarryTreeView: por status
 PROPOSE, ANSWER, QUALITY_ANSWER, DIVORCE, PROPOSE_INFO, ROOM_LIST = 1, 3, 5, 8, 9, 10
+ROOM_CREATE, RIDE, ROOM_ENTER = 6, 7, 13  # MarrySender.creatWeddingRoom/rideHorse/enterWeddingRoom
 CANCEL, FREE_DIVORCE, CONSULT, AGREE, FIND_MATES = 14, 15, 16, 17, 20
 POINT = 1  # payType 1 = só diamante (DivorceAlert confere ``point``); 0 = vinculados primeiro
 FREE_DIVORCE_DAYS = 5  # DivorceAlert: cônjuge offline há 5 dias ou mais
@@ -256,8 +258,17 @@ async def _request(s: GameSession, msg: pb.MarriageOpMsg) -> None:
         if other_c is not None:
             single = _single(await _row(s.ctx, msg.property1), now)
             s.send(S_LOVER, _pro(s, other_c, property1=single))  # falso: "Player already has a spouse"
-    elif op == ROOM_LIST:
-        s.send(S_ROOMS, pb.EngageMsg())  # sem salas: a cerimônia é pulada
+    elif op in (ROOM_CREATE, ROOM_LIST, RIDE, ROOM_ENTER):
+        from . import wedding  # wedding importa este módulo
+
+        if op == ROOM_CREATE:
+            await wedding.create(s)
+        elif op == ROOM_LIST:
+            wedding.room_list(s)
+        elif op == RIDE:
+            await wedding.ride(s)
+        else:
+            await wedding.enter(s, msg)
     elif op == FIND_MATES:  # sem chamador na interface inglesa (MarrySender.findMates)
         out = pb.RecommendListMsg()
         for other in s.ctx.online.sessions():
@@ -268,7 +279,7 @@ async def _request(s: GameSession, msg: pb.MarriageOpMsg) -> None:
                 (out.boyList if o.character.sex else out.girlList).append(_mate_player(o.character))
         s.send(S_MATES, out)
     else:
-        # 6 sala, 7 carro, 13 entrar na sala (cerimônia); 12 aliança; 18 helpMateTrain (ajuda de satisfação, sem
+        # 12 aliança; 18 helpMateTrain (ajuda de satisfação, sem
         # chamador no inglês)
         s.log.info("operação de casamento sem suporte", op=op)
 
@@ -329,22 +340,24 @@ async def _quality_answer(s: GameSession, accept: bool) -> None:
     entry = _pay(s, payer.snapshot.character, _price(s, m, spec), pay_type, "wedding")
     if entry is None:
         return
-    await _couple(s, MarriageState.MARRIED, spec_id, paid=payer.snapshot.character, entry=entry)
-    await ensure_tree(s.ctx, snap)  # a árvore do casal nasce com o casamento (os dois estão online)
-    goods = [(int(t), int(n)) for t, n in (part.split(",") for part in spec["Rewards"].split("|") if part)]
-    for cid in (s.player_id, payer_id):  # presentes do casamento pelo correio (até 5 por correio)
-        for i in range(0, len(goods), 5):
-            await send_system_mail(s.ctx, cid, spec["TemplateName"], spec["TemplateName"], goods[i : i + 5])
+    await reserve(s, spec_id, payer.snapshot.character, entry)
 
 
-@router.on(8760)
-async def wedding_campaign(s: GameSession, msg: pb.MarriageOpMsg) -> None:
-    """Sala da cerimônia (101 alianças, 102-109 bolo/champanhe/doces/buquê/fogos, 104/112 presentes, 105 senha,
-    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame). Pendente: o cliente (m3
-    MarryUIMediator/MarryWeddingDialogFrame, m9 marry/room) usa a sala do RoomManager; os mapas 4301-4303 não têm
-    nós. Sem a sala, o 8353 tipo 1 fica sem destino.
-    Quem aceita a oferta já sai casado (presentes pelo correio)."""
-    s.log.info("cerimônia de casamento sem suporte", op=msg.opType)
+async def reserve(s: GameSession, spec_id: int, paid: Character, entry: object) -> None:
+    """Op 5 aceito: a cerimônia fica reservada nas duas linhas (``couple["reserved"]`` -> ``speTemplateId`` do 4657,
+    MarryUIMediator/MarryWeddingDialogFrame); casa no voto 101 da sala (``handlers/wedding.py``)."""
+    snap = s.snapshot
+    assert snap is not None and snap.marriage is not None
+    m = snap.marriage
+    mate = await _row(s.ctx, m.mate_id)
+    data = couple(m) | {"reserved": spec_id}
+    rows = [m, *([mate] if mate is not None else [])]
+    for row in rows:
+        row.couple = json.dumps(data)
+    await s.ctx.characters.save(*rows, paid, entry)
+    await _announce(s.ctx, *rows)
+    if (payer := s.ctx.online.get(paid.id or 0)) is not None and payer.snapshot is not None:
+        payer.send(S_PLAYER, b.complete(player_info(payer, payer.snapshot)))
 
 
 async def ensure_tree(ctx: GameContext, snap: PlayerSnapshot) -> None:
@@ -818,7 +831,9 @@ async def mate_skill_shop(s: GameSession, msg: pb.AltarShopListMsg) -> None:
 
 
 def dump_pending() -> dict[str, Any]:
-    """Pedidos, ofertas, pedidos de divórcio e jogos do coração para ``server_states`` (``game/server_state.py``)."""
+    """Pedidos, ofertas, pedidos de divórcio, jogos do coração e salas para ``server_states``."""
+    from . import wedding  # wedding importa este módulo
+
     hearts = {id(h): h for h in _hearts.values()}.values()
     return {
         "proposals": {str(t): {str(p): [x, w.isoformat()] for p, (x, w) in d.items()} for t, d in _proposals.items()},
@@ -828,11 +843,14 @@ def dump_pending() -> dict[str, Any]:
         "hearts": [{"a": h.a, "b": h.b, "questions": h.questions, "seconds": h.seconds, "order": h.order,
                     "asked_at": h.asked_at.isoformat() if h.asked_at else None,
                     "answers": {str(k): v for k, v in h.answers.items()}, "done": h.done} for h in hearts],
+        "weddings": wedding.dump(),
     }  # fmt: skip
 
 
 def load_pending(data: dict[str, Any]) -> None:
     """Devolve o que ``dump_pending`` gravou (arranque)."""
+    from . import wedding  # wedding importa este módulo
+
     for t, d in data.get("proposals", {}).items():
         _proposals[int(t)] = {int(p): (x, datetime.fromisoformat(w)) for p, (x, w) in d.items()}
     _offers.update({int(k): (v[0], v[1], v[2]) for k, v in data.get("offers", {}).items()})
@@ -844,6 +862,7 @@ def load_pending(data: dict[str, Any]) -> None:
                   datetime.fromisoformat(at) if at else None, {int(k): v for k, v in raw["answers"].items()},
                   raw["done"])  # fmt: skip
         _hearts[h.a] = _hearts[h.b] = h
+    wedding.load(data.get("weddings", []))
 
 
 async def save_pending(ctx: GameContext) -> None:

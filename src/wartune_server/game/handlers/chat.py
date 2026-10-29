@@ -39,7 +39,7 @@ PRIVATE_COOLDOWN = timedelta(seconds=1)  # IMFrame: 1 s entre mensagens (friends
 OFFLINE = -1  # 4236.result: "o jogador não está online"
 SMALL_BUGLE, BIG_BUGLE_ITEM, CROSS_BUGLE_ITEM = 208003, 208002, 208025  # ShopGoodsInfo.*_BUGLE_TEMP_ID
 ROOM_LINK = 4  # ChatChannelMsg.type: ChatFormat.createRoomCellData lê cada <tag> da mensagem como link de sala
-INVITE_ROOM = 0  # CaptainSpeakMsg.type: 0 sala, 1 casamento (QuickInviteFrame.getSendType)
+INVITE_ROOM, INVITE_WEDDING = 0, 1  # CaptainSpeakMsg.type: 0 sala, 1 casamento (QuickInviteFrame.getSendType)
 S_ALERT = 111
 _TAG = re.compile(r"<[^>]*>")
 
@@ -113,6 +113,8 @@ def scene_key(s: GameSession) -> tuple[object, ...]:
             return ("map", c.map_id, guild_id)
         if c.gvg:  # as duas guildas do par (``guildwar.players_on``)
             return ("map", c.map_id, id(s.ctx.guilds.wars.get(guild_id)))
+        if c.wedding:  # o salão de uma sala de casamento
+            return ("map", c.map_id, c.wedding)
         if c.world_boss or c.is_warfield or c.hook:
             return ("map", c.map_id)
         room = s.ctx.rooms.of(s.player_id)
@@ -293,10 +295,14 @@ async def quick_invite(s: GameSession, msg: pb.CaptainSpeakMsg) -> None:
     sala (``ChatChannelMsg.type`` 4), uma tag ``<a t="6" .../>`` por linha (visto 191924 #3763-#3766), e o clique
     manda o 9504 com o ``id``. ``position`` 0 é sala trancada (``RoomInfo.isLock``, o cliente só lê ele e o ``name``);
     (dedução) ``islock`` vai igual ao ``position``: a única amostra é sala sem senha, com os dois "1". Depois o leed 16
-    ("Speak in world chat") e o 83 da devoção; o oficial não mandou o 4500 da cota. O tipo 1 (casamento) fica de fora
-    porque a sala de casamento não existe (``marriage.py``)."""
+    ("Speak in world chat") e o 83 da devoção; o oficial não mandou o 4500 da cota. O tipo 1 (casamento, ``inWedding``)
+    leva à sala do casal: ``roomType`` 4 com ``id`` "a_b" e ``position`` a senha (ChatFormat ``MarryCampaignInfo``), e
+    o 4662 da sala vai junto para o ``roomDic`` do clique (ChatOutputViewII -> op 13)."""
+    from . import wedding  # wedding importa este módulo
+
     room = s.ctx.rooms.of(s.player_id)  # qualquer membro, com lugar livre (RoomRightView._inviteClick)
-    if msg.type != INVITE_ROOM or room is None or rooms.OPEN not in room.seats:
+    marry = wedding.of_couple(s.player_id) if msg.type == INVITE_WEDDING else None
+    if marry is None and (msg.type != INVITE_ROOM or room is None or rooms.OPEN not in room.seats):
         s.log.info("8353 sem sala", tipo=msg.type, sala=room.id if room else None)
         return
     if _text(s, "".join(msg.inviteContent), WORLD, COOLDOWN[WORLD]) is None:
@@ -306,10 +312,17 @@ async def quick_invite(s: GameSession, msg: pb.CaptainSpeakMsg) -> None:
     if not await _pay_bugle(s, SMALL_BUGLE, free=True, notify=False):
         s.log.info("8353 sem corneta")
         return
-    unlocked = int(not room.password)
-    attrs = {"campaignId": room.campaign, "islock": unlocked, "position": unlocked, "roomType": rooms.PVE}
+    if marry is not None:
+        key, attrs = marry.key, wedding.link(marry, s.ctx)
+        for o in s.ctx.online.sessions():
+            o.send(wedding.S_ROOMS, pb.EngageMsg(engageInfos=[wedding.room_msg(marry)]))
+    else:
+        assert room is not None
+        unlocked = int(not room.password)
+        key = str(room.id)
+        attrs = {"campaignId": room.campaign, "islock": unlocked, "position": unlocked, "roomType": rooms.PVE}
     tail = " ".join(f"{k}={quoteattr(str(v))}" for k, v in attrs.items())
-    link = "".join(f'<a t="6" id="{room.id}" name={quoteattr(t)} {tail}/>' for t in lines)
+    link = "".join(f'<a t="6" id="{key}" name={quoteattr(t)} {tail}/>' for t in lines)
     out = _channel_msg(s, WORLD, link)
     out.type = ROOM_LINK
     _broadcast(s, S_CHAT, out)

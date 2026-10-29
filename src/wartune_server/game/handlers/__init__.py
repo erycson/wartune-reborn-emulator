@@ -55,6 +55,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     vehicle,
     vip,
     warfield,
+    wedding,
     wild_boxes,
     worldboss,
 )

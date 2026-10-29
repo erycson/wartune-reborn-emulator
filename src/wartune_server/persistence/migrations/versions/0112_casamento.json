@@ -1,0 +1,269 @@
+{
+ "4301": {
+  "campaign": 4301,
+  "stages": [
+   [
+    4301
+   ]
+  ],
+  "inventado": [
+   4301
+  ],
+  "maps": {
+   "4301": {
+    "start": [
+     60,
+     62
+    ],
+    "nodes": [
+     {
+      "nodeId": 430101,
+      "campDataId": 430101,
+      "nodeName": "Priest",
+      "masterType": 61,
+      "sonType": 2127,
+      "preNodeIds": "0",
+      "nextNodeIds": "0",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 60,
+      "posY": 50,
+      "curX": 60,
+      "curY": 50,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1209,
+      "fixY": 1009,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 3,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 430102,
+      "campDataId": 430102,
+      "nodeName": "Wedding Steward",
+      "masterType": 61,
+      "sonType": 2127,
+      "preNodeIds": "0",
+      "nextNodeIds": "0",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 72,
+      "posY": 62,
+      "curX": 72,
+      "curY": 62,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1449,
+      "fixY": 1249,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 8,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     }
+    ]
+   }
+  }
+ },
+ "4302": {
+  "campaign": 4302,
+  "stages": [
+   [
+    4302
+   ]
+  ],
+  "inventado": [
+   4302
+  ],
+  "maps": {
+   "4302": {
+    "start": [
+     58,
+     61
+    ],
+    "nodes": [
+     {
+      "nodeId": 430201,
+      "campDataId": 430201,
+      "nodeName": "Priest",
+      "masterType": 61,
+      "sonType": 2127,
+      "preNodeIds": "0",
+      "nextNodeIds": "0",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 58,
+      "posY": 49,
+      "curX": 58,
+      "curY": 49,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1169,
+      "fixY": 989,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 3,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 430202,
+      "campDataId": 430202,
+      "nodeName": "Wedding Steward",
+      "masterType": 61,
+      "sonType": 2127,
+      "preNodeIds": "0",
+      "nextNodeIds": "0",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 70,
+      "posY": 61,
+      "curX": 70,
+      "curY": 61,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1409,
+      "fixY": 1229,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 8,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     }
+    ]
+   }
+  }
+ },
+ "4303": {
+  "campaign": 4303,
+  "stages": [
+   [
+    4303
+   ]
+  ],
+  "inventado": [
+   4303
+  ],
+  "maps": {
+   "4303": {
+    "start": [
+     58,
+     61
+    ],
+    "nodes": [
+     {
+      "nodeId": 430301,
+      "campDataId": 430301,
+      "nodeName": "Priest",
+      "masterType": 61,
+      "sonType": 2127,
+      "preNodeIds": "0",
+      "nextNodeIds": "0",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 58,
+      "posY": 49,
+      "curX": 58,
+      "curY": 49,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1169,
+      "fixY": 989,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 3,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     },
+     {
+      "nodeId": 430302,
+      "campDataId": 430302,
+      "nodeName": "Wedding Steward",
+      "masterType": 61,
+      "sonType": 2127,
+      "preNodeIds": "0",
+      "nextNodeIds": "0",
+      "state": 1,
+      "refreshSpeed": 1,
+      "posX": 70,
+      "posY": 61,
+      "curX": 70,
+      "curY": 61,
+      "level": 0,
+      "styleType": 1,
+      "attackTypes": 0,
+      "nameColor": 0,
+      "sizeType": 1,
+      "toward": 0,
+      "resource": 1,
+      "resetX": 0,
+      "resetY": 0,
+      "fixX": 1409,
+      "fixY": 1229,
+      "heroTempId": -1,
+      "handlerRange": 0,
+      "fightCapaity": 0,
+      "param1": 8,
+      "param2": 0,
+      "param3": "",
+      "param4": "",
+      "param5": ""
+     }
+    ]
+   }
+  }
+ }
+}
