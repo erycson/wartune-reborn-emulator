@@ -186,3 +186,46 @@ async def test_plus_with_ten_refuses_without_spending(tmp_path: Path, rng: None)
         got = await _seek(g, 7)  # 10 explorações: huntcountFull, o item fica
         assert _codes(got) == [111] and "Treasure Hunt limit" in pb.ChatChannelMsg.FromString(got[0].body).encodeMsg
         assert bag.count_of(snap, 2131022) == 1
+
+
+async def test_expert_kits_give_one_card_each_and_cards_enter_the_collection(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        snap = _snap(g)
+        snap.character.grades = 32
+        templates = g.server.services.templates
+        kits = bag.add(snap, templates, 2131017, 5, NOW)
+        await g.server.services.characters.save(*kits)
+        g.client.send(5006, pb.ItemUseMsg(pos=kits[0].pos, count=5, bagType=1))  # d31 #4024-#4040
+        got = await g.idle()
+        assert _codes(got) == [115, 115, 4476, 111, 3, 83]
+        cards = [i for i in bag.in_bag(snap) if 6000001 <= i.template_id <= 6000021]
+        assert sum(i.count for i in cards) == 5
+        assert all(templates.get("ItemTempInfos", i.template_id)["Profile"] in ("2", "3") for i in cards)
+
+        for i in list(cards):
+            snap.items.remove(i)
+        lancer, velus = bag.add(snap, templates, 6000002, 1, NOW), bag.add(snap, templates, 6000012, 1, NOW)
+        await g.server.services.characters.save(*lancer, *velus)
+        g.client.send(5006, pb.ItemUseMsg(pos=lancer[0].pos, count=1, bagType=1))  # d31 #4043-#4053
+        got = await g.idle()
+        assert _codes(got) == [115, 111, 4902, 150, 4903, 83, 83, 4905, 4902, 3]
+        texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 83]
+        assert texts == [
+            "Congrats! You just received the 1st card, [Tauren Tribe].",
+            "Card Tauren Lancer · Karlan has been successfully activated!",
+        ]
+        add = pb.PowcardFightAddMsg.FromString(_body(got, 4902)).singlefightadd
+        assert [(a.userid, a.campType, a.add) for a in add] == [(0, 800, 160)]
+        g.client.send(5006, pb.ItemUseMsg(pos=velus[0].pos, count=1, bagType=1))  # d31 #4057-#4067
+        got = await g.idle()
+        suites = pb.PowCardSuiteListMsg.FromString(_body(got, 4905)).suites
+        assert [(c.tempId, c.buf.bufId, c.isActive) for s in suites for c in s.cardInfos] == [
+            (10002, 3020, 0),
+            (10012, 4020, 1),
+        ]
+        add = pb.PowcardFightAddMsg.FromString(_body(got, 4902)).singlefightadd
+        assert [(a.campType, a.add) for a in add] == [(800, 160), (802, 160)]
+        g.client.send(9505, pb.PowCardReqMsg(op=2))  # d31 #4119-#4120: nenhuma carta na mochila
+        assert [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in await g.idle()] == [
+            "There are no cards to be activated."
+        ]

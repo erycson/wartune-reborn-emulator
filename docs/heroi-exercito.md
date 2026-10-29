@@ -114,7 +114,9 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8642 dragão | 4555 | visto (só turco: login.json #37) | abre no 40 |
 | 8641 alimentar | 115, 4555 | cliente | item SonType 319, 1 EXP; Types 101 por grau; grau máx. pelo nível (40→1 … 80→5) |
 | 8643 transferência | 4556, 4557 | cliente | grau 5 → tipo 102; **vocação: parcial** |
-| 9505 cartas | 4905 | visto (só turco: login.json #76) | op 1 sobe (Types 29+Profile), 2 ativa todas, 3 reenvia; buf = BufId + grau − 1; depois do 4905 vai o 4902. 4903: os buffs do tipo do lugar, na entrada da masmorra (depois do 3: 4902, 150, 4903), vazio na saída e no login. **Cartas/EXP vêm das batalhas: parcial** |
+| 9505 cartas | 4905 | visto (captura 20261029-121453-1; turco login.json #76) | op 1 sobe (Types 29+Profile), 2 usa as cartas da mochila (sem nenhuma: 111 "There are no cards to be activated."), 3 reenvia; buf = BufId + grau − 1; 4902 sem userid, na ordem das coleções. 4903: os buffs do tipo do lugar, na entrada da masmorra |
+| 5006 carta (SonType 600) | 115, 111, 4902, 150, 4903, 83, 83, 4905, 4902, 3 | visto (#4043-#4107) | 83 "Congrats! You just received the 1st card, [coleção]." só na 1ª da coleção; `isActive` 1 só na carta nova (efeito no cliente) |
+| 5006 kit de invocador (2131016-2131018) | 115, 115, 4476, 4426, 4484, 111, 3, 83 | visto (#4024-#4040) | 1 carta por kit; raridade (`Profile`) pela descrição do kit, peso em `taxas.summoner_kits` (0138, inventado) |
 | 4905 `bufInfos` (bônus da coleção) | — | visto + cliente + dedução | 3 degraus por coleção (`MagicCardSlotView`); o degrau k usa `Template{3+k}s` (sonType) e `Property{3+k}` (bufId) da `PowCardSuiteTemInfos`, com `fixvalue`/`percent` da linha. Aceso quando há [cartas, grau mínimo] = `powcard_suite_slots` (game_settings, 0037; padrão 4/1, 4/3, 4/8). Fontes: login.json #76 (só turco; só a 1002, com 4 cartas, tem 40001; as de 3 cartas nada) e o language EN `card.CardSlotView.Notactive0..2` ("4 cards", "3 level 4 cards", "8 level 4 cards"). A leitura dos graus 3 e 8 é **dedução**. O bônus ainda não entra na batalha (`battle.py`) |
 | 8224 `powcardInfo` | 4905 | visto | |
 

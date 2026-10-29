@@ -769,7 +769,8 @@ def fight_add_msg(
     for camp, t in totals.items():
         if camp:
             power = (20 * sum(t[k] for k in BUFF_FLAT) + 21 * t["MagicAttack"] + 4 * t["Live"]) // 20
-            msg.singlefightadd.add(op=0, userid=snap.character.id, campType=camp, add=power)
+            # (visto) captura 20261029-121453-1 #4046-#4107: sem userid, na ordem em que a coleção entrou
+            msg.singlefightadd.add(op=0, campType=camp, add=power)
     return msg
 
 
@@ -866,11 +867,19 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
             return
         card[0], card[1] = card[0] + 1, card[1] - int(nxt["Data"])
     elif msg.op == CARD_ACTIVATE:
-        if not found:  # (visto) captura 20261029-121453-1 #574-#575: só o 111
+        # idioma card.cardHelper.content02 "Activate all cards in your inventory?" (MagicCardSlotView): usa as
+        # cartas da mochila. Sem nenhuma, só o 111 (captura 20261029-121453-1 #574-#575, #4119-#4120, esta com
+        # cartas já na coleção). *(dedução)* com cartas: os pacotes do 5006 de cada uma
+        from .items import _use_power_card  # items importa este módulo
+
+        held = [i for i in bag.in_bag(snap) if (templates.get("ItemTempInfos", i.template_id) or {}).get("SonType")
+                == CARD_ITEM]  # fmt: skip
+        if not held:
             alert(s, NO_CARDS)
             return
-        for card in found.values():
-            card[2] = 1
+        for item in held:
+            await _use_power_card(s, item, templates.get("ItemTempInfos", item.template_id) or {}, item.count)
+        return
     elif msg.op != CARD_TIDY:
         s.log.info("9505 op desconhecida", pedido=str(msg))
         return

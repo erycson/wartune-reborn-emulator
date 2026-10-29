@@ -25,6 +25,8 @@ DEFAULTS: dict[str, Any] = {
     "robot_hp": 0.35,
     "robot_attack": 0.15,
     "enemy_cast_ms": 3500,
+    # 0138: [Profile da carta, peso] por kit de invocador
+    "summoner_kits": {"2131016": [[1, 80], [2, 20]], "2131017": [[2, 80], [3, 20]], "2131018": [[3, 80], [4, 20]]},
 }
 
 

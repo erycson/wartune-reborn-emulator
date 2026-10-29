@@ -18,7 +18,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...services.ledger import item_entry
 from ...templates.repository import Row
-from .. import bag, buffs, daily, monsters, rewards, rules, space
+from .. import bag, buffs, daily, monsters, rewards, rules, space, taxas
 from .. import events as ev
 from ..builders import login as b
 from ..builders.army import castle_pawns
@@ -493,7 +493,11 @@ async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
     (Property1 = o próprio id, sem tabela de drop nos templates) e são recusadas."""
     snap = s.snapshot
     assert snap is not None
-    templates, now = s.ctx.templates, s.ctx.clock.now()
+    templates = s.ctx.templates
+    kits = taxas.get(s.ctx.world.settings, "summoner_kits") or {}
+    if str(box.template_id) in kits:
+        cards = _kit_cards(s, kits[str(box.template_id)], n)
+        return cards is not None and await _box_items(s, box, n, cards)
     if box.template_id not in GEM_BOX_LEVELS:
         return await _open_described(s, box, row, n)
     low, high = GEM_BOX_LEVELS[box.template_id]
@@ -504,6 +508,34 @@ async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
             return False
         tid = int(level[f"Material{random.randint(1, 8)}"])
         stones[tid] = stones.get(tid, 0) + 1
+    return await _box_items(s, box, n, stones)
+
+
+def _kit_cards(s: GameSession, pool: list[list[int]], n: int) -> dict[int, int] | None:
+    """Kit de invocador (2131016-2131018): uma carta por kit. A raridade é ``ItemTempInfos.Profile`` das cartas
+    (SonType 600; 1 comum ... 5); a descrição do kit diz "high chance" de uma e "lower chance" da seguinte, o peso
+    está em ``taxas.summoner_kits`` (0138). (visto) captura 20261029-121453-1 #4024-#4026: 5 Expert -> 4 de Profile 2
+    e 1 de Profile 3, um item de carta por kit."""
+    by_profile: dict[int, list[int]] = {}
+    for r in s.ctx.templates.rows("ItemTempInfos"):
+        if r.get("SonType") == POWER_CARD:
+            by_profile.setdefault(int(r.get("Profile") or 0), []).append(int(r["TemplateId"]))
+    cards: dict[int, int] = {}
+    for _ in range(n):
+        profile = random.choices([p for p, _ in pool], weights=[w for _, w in pool])[0]
+        if not (choices := sorted(by_profile.get(int(profile), []))):
+            return None
+        tid = random.choice(choices)
+        cards[tid] = cards.get(tid, 0) + 1
+    return cards
+
+
+async def _box_items(s: GameSession, box: Item, n: int, stones: dict[int, int]) -> bool:
+    """Gasta ``n`` caixas e dá ``stones``: 115 da caixa, 115 do que entrou, 4476/4426/4484, 111, 3 e 83 (captura
+    20261029-121453-1 #4024-#4040, kits; só turco: lvl1_degerli_tas_sandigi, pedras)."""
+    snap = s.snapshot
+    assert snap is not None
+    templates, now = s.ctx.templates, s.ctx.clock.now()
     if not bag.fits(snap, templates, stones.items(), now):
         return False
     changed, gone = _consume(snap, box, n)
@@ -657,20 +689,42 @@ async def _use_mount_card(s: GameSession, item: Item, row: Row, _: int) -> bool:
 
 
 async def _use_power_card(s: GameSession, item: Item, row: Row, n: int) -> bool:
-    """Carta de poder (SonType 600, "Available after using the ... card"): ``n`` cópias entram na coleção pela regra
-    de ``systems.gain_cards`` e o 4905/4902 sai de novo."""
-    from .systems import gain_cards, send_cards  # systems importa hero, que vem antes deste módulo
+    """Carta de poder (SonType 600): ``n`` cópias entram na coleção (``systems.gain_cards``); a carta nova fica com
+    ``isActive`` 1 e as outras 0 (o cliente toca o efeito, ``MagicCardInfo.isPlay``/``MagicCardSlotItem``). (visto)
+    captura 20261029-121453-1 #4043-#4107: 115, 111, 4902, 150, 4903 (vazio fora de campanha), 83 "Congrats! You
+    just received the 1st card, [coleção]." quando é a primeira da coleção, 83 "Card {nome} has been successfully
+    activated!", 4905, 4902 e 3. O 111 é o primeiro dos dois textos. Carta repetida: *(dedução)* os mesmos pacotes."""
+    from .systems import S_CAMP_BUFFS, cards, gain_cards, send_cards, store_cards
 
     snap = s.snapshot
     assert snap is not None
+    templates = s.ctx.templates
     sy = rules.systems(snap)
+    temp = int(row.get("Property1") or 0)
+    suite = int((templates.get("PowcardTempInfos", temp) or {}).get("SuiteId") or 0)
+    first = not any(int((templates.get("PowcardTempInfos", t) or {}).get("SuiteId") or 0) == suite for t in cards(sy))
     copy = Item(item.character_id, item.template_id, count=n)
-    if not gain_cards(sy, s.ctx.templates, [copy]):
+    if not gain_cards(sy, templates, [copy]):
         return False
+    found = cards(sy)
+    for t, card in found.items():
+        card[2] = int(t == temp)
+    store_cards(sy, found)
     changed, gone = _consume(snap, item, n)
     await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+
+    texts = [f"Card {row.get('TemplateName', '')} has been successfully activated!"]
+    if first:
+        name = (templates.get("PowCardSuiteTemInfos", suite) or {}).get("TemplateName", "")
+        texts.insert(0, f"Congrats! You just received the 1st card, [{name}].")
     _send_items(s, changed, gone)
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=texts[0]))
+    _army(s)
+    s.send(S_CAMP_BUFFS, pb.PowCardBufListMsg())
+    for text in texts:
+        send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     send_cards(s)
+    _player(s)
     return True
 
 

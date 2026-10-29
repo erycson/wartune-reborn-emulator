@@ -483,8 +483,12 @@ def test_bonus_da_colecao_reproduz_o_login_76() -> None:
     add = fight_add_msg(snap, templates)
     assert add is not None
     assert [(a.op, a.userid, a.campType, a.add) for a in add.singlefightadd] == [
-        (0, 7, 800, 608), (0, 7, 802, 608), (0, 7, 806, 1521), (0, 7, 807, 768), (0, 7, 801, 768)
-    ]  # fmt: skip
+        (0, 0, 800, 608),
+        (0, 0, 802, 608),
+        (0, 0, 806, 1521),
+        (0, 0, 807, 768),
+        (0, 0, 801, 768),
+    ]  # fmt: skip  (userid vazio como no inglês: captura 20261029-121453-1 #4046)
     # 4903 (só turco: exp_kitabi #31 na masmorra, yeralti #36 no labirinto): os buffs do tipo do lugar
     from wartune_server.game.handlers.systems import camp_buffs_msg, camp_stats
 
