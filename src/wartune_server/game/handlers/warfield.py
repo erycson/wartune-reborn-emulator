@@ -309,12 +309,23 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
 
 @router.on(8338)
 async def restore_hp(s: GameSession, _: object) -> None:
-    """Restaurar vida no campo: a vida do exército não se gasta no campo, então sempre "cheia" (visto #15796).
-
-    TODO(inventado): a vida do campo não é guardada; só a mensagem de vida cheia é respondida.
-    """
-    if s.campaign is not None and s.campaign.is_warfield:
+    """Restaurar vida no campo (``PvpMapRightView`` "reset", ``warMaxhp``): o herói ferido (a luta do campo gasta a
+    vida como as outras, ``pvp_fight``) volta cheio pela reserva das poções (``rules.heal_hero``), 113 e 150; cheio,
+    o aviso (visto #15796). TODO(inventado): a cura pela reserva (só o aviso de vida cheia foi visto)."""
+    snap = s.snapshot
+    if s.campaign is None or not s.campaign.is_warfield or snap is None or snap.leader is None:
+        return
+    now = s.ctx.clock.now()
+    live = rules.leader_stats(snap, s.ctx.templates, now).live
+    healed = rules.heal_hero(snap, s.ctx.templates, now) if b.hero_hp(snap.leader, live) < live else 0
+    if not healed:
         s.send(S_ALERT, _chat(FULL_HP, channel=7))
+        return
+    await s.ctx.characters.save(snap.leader)
+    from .shop import send_blood  # shop importa campaign, que importa este módulo
+
+    send_blood(s)
+    army(s, snap)
 
 
 @router.on(8599)

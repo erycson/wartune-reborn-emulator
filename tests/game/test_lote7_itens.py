@@ -222,3 +222,15 @@ def test_fila_de_tecnologia_nasce_com_a_academia_como_no_4155_ingles() -> None:
     )
     order = castle.tech_order(snap, t, datetime(2026, 1, 1, tzinfo=UTC))
     assert order is not None and (order.order_id, order.order_type) == (3, castle.TECH_ORDER)
+
+
+# --- vida do campo (8338) ---
+
+
+def test_restaurar_vida_no_campo_usa_a_reserva() -> None:
+    import inspect
+
+    from wartune_server.game.handlers import warfield
+
+    src = inspect.getsource(warfield.restore_hp)
+    assert "heal_hero" in src and "FULL_HP" in src

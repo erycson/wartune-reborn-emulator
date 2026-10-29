@@ -282,9 +282,11 @@ async def comprehend(s: GameSession, msg: pb.ComprehendMsg) -> None:
     saved = templates.get("SpecialTempInfos", int(pawn.specials)) if pawn.specials else None
     grade = int(saved["Grades"]) if saved else 1
     bless = next(templates.find("UpGradeTempInfos", Types=SPECIAL_BLESS, Grades=grade), None)
-    # ponytail: o sorteio comum vai até o grau atual (o texto só diz "chance" de subir); mudar com captura
+    # helpContent: "a new specialty is generated, while also providing a chance to receive a higher level specialty":
+    # o sorteio comum vai até um grau acima, pelo TakeRandom; TODO(inventado) que a chance é só o peso do template
     full = bless is not None and pawn.bless + 1 >= int(bless["Data"]) and grade < MAX_SPECIAL_GRADE
-    pick = special_pick(templates, tpl["MasterType"], grade + 1 if full else grade, exact=full)
+    top = min(grade + 1, MAX_SPECIAL_GRADE)
+    pick = special_pick(templates, tpl["MasterType"], top, exact=full)
     if pick is None:
         s.log.info("8455 recusado: sem especialidade", pedido=str(msg))
         return
