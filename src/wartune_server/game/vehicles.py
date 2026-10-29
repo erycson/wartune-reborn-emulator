@@ -9,7 +9,8 @@ O que o cliente inglês decide fica igual a ele (m17 ``com.map.vehicle``; regras
 - alcance e área são em pixels (``CastAction``), e são 4 por time.
 
 O que só o servidor oficial sabia (dano, pontos, prêmios, conteúdo das caixas e o alvo do chefe) está em
-``game_settings.vehicle_match`` e aguarda dump. Estado só em memória (``GameContext.vehicles``); os pacotes estão em ``handlers/vehicle.py``.
+``game_settings.vehicle_match`` e aguarda dump.
+Estado só em memória (``GameContext.vehicles``); os pacotes estão em ``handlers/vehicle.py``.
 """
 
 from __future__ import annotations
