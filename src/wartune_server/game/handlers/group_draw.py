@@ -10,7 +10,7 @@ Cliente (``GroupBuyView``, ``FunnyControler.sendLuckDraw``, ``GroupLuckFrame``):
 - op 2: fim da animação, sem resposta (o prêmio já foi no op 1).
 
 Idioma (``dayGuide.view.GroupLuckFrameWarn``): "purchase an item to gain one draw chance (stackable)": cada compra
-coletiva soma um sorteio (``add_chance``). A compra coletiva (8645) ainda não existe, então ninguém ganha sorteio.
+coletiva soma um sorteio (``add_chance``). A compra coletiva (8645, `group_buy`) chama ao vender cada unidade.
 TODO(inventado): sorteio pelos ``weights`` (uniforme sem eles).
 """
 

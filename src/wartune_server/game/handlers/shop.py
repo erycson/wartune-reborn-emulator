@@ -1,5 +1,5 @@
 """Lojas: compra (5154/8592), poção rápida (5633), limites do dia (8218/8693), loja misteriosa
-(8482/8483), ofertas (8632/8645) e títulos (8597). Ver ``docs/itens.md``.
+(8482/8483), ofertas (8632; a compra coletiva 8645 em ``group_buy``) e títulos (8597). Ver ``docs/itens.md``.
 
 Preço e moeda seguem ``ShopGoodsInfo.setPrice`` do cliente: a primeira coluna > 0 entre Point,
 GiftToken, Gold, Honor, ConsortiaOffer e MazeCoin. Honor e MazeCoin são itens na mochila
@@ -345,7 +345,11 @@ async def send_offers(s: GameSession) -> None:
     Mesmo ``flag`` em todas as partes: ``ShopManager.__shopHandler`` (cliente inglês) junta as partes de flag igual e
     recomeça a lista quando ele muda. ``currentCount`` = vendidos neste servidor (o do oficial é o dele)."""
     cfg = s.ctx.world.settings.get("shop_offers") or {}
+    from . import group_buy  # group_buy importa este módulo
+
     live, sold = offers(s), await _sold(s)
+    if (group := group_buy.current(s, s.ctx.clock.now())) is not None:  # type 3: compra coletiva da edição
+        live, sold = [*live, group], {**sold, int(group["id"]): (await group_buy.sold(s, group))[1]}
     for i in range(0, max(len(live), 1), OFFERS_PER_MSG):
         msg = pb.ShopMainRspMsg(flag=int(cfg.get("flag", 0)))
         for o in live[i : i + OFFERS_PER_MSG]:
@@ -472,13 +476,6 @@ async def flash_sale_fresh(s: GameSession, _: object) -> None:
     """Rodízio das ofertas (``type`` 2 do 4238; ``ShopManager.__refreshTimeBuyHandler``): o 0053 só tem ``type`` 1,
     então a lista vai vazia (o oficial também manda só o ``refreshDate``, #1633)."""
     send(s, S_FLASH_FRESH, pb.ShopMsg(refreshDate=b.fmt_time(s.ctx.clock.now())))
-
-
-@router.on(8645)
-async def groupon(s: GameSession, msg: pb.ShopMsg) -> None:
-    # compra coletiva só existe com uma oferta type 3 do 4238 (evento do operador): não há nenhuma,
-    # então o cliente nem abre a tela; um pedido assim é recusado sem resposta
-    s.log.info("8645 recusado: nenhuma compra coletiva ativa", pedido=str(msg))
 
 
 @router.on(5633)

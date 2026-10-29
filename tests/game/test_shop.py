@@ -212,7 +212,10 @@ async def test_timed_sales_are_sent_in_parts_and_sold_with_a_daily_limit(tmp_pat
         assert s is not None
         await shop.send_offers(s)
         parts = [pb.ShopMainRspMsg.FromString(p.body) for p in await g.idle() if p.code == 4238]
-        assert [(m.flag, len(m.discountInfo)) for m in parts] == [(13, 50), (13, 3)]
+        assert [(m.flag, len(m.discountInfo)) for m in parts] == [
+            (13, 50),
+            (13, 4),
+        ]  # + a compra coletiva (type 3, 0104)
         card = next(d for m in parts for d in m.discountInfo if d.id == VIP_CARD)
         assert (card.shopId, card.templateId, card.price, card.names) == (1198, 2031205, 799, "31-Day VIP Card")
 

@@ -28,7 +28,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Herói e exército | 13 | 14 | 0 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 6 | 2 | 2 |
-| Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
+| Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 10 | 6 | 2 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **93** | **52** | **39** | **34** |
+| **Total** | **100** | **94** | **52** | **38** | **34** |
 
 ## Validação e base
 
@@ -168,7 +168,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loja de moda (8592) e poção (5633) | ✅ | | |
 | Loja misteriosa (8483/8482) | ✅ | | 4470 vazio depois de cada 4384 (232017 #3057); quem entra na lista de sortudos, sem captura |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
-| Compra coletiva (8645) | ❌ | | nenhuma oferta tipo 3 |
+| Compra coletiva (8645) | 🟡 | | ligada por padrão (migração 0104, `game_settings.group_buy` com `source`): oferta `type` 3 no 4238 em rodízio por edição, preço cai em 3 degraus pelos compradores do servidor, sinal + limite do dia, acerto cobra/devolve a diferença e entrega (4559/4560), 1 sorteio de grupo por compra (`group_buy.py`, pelo cliente); catálogo/preços inventados |
 | Presente a outro jogador e mochila cheia pelo correio | ✅ | | loja, ofertas e misteriosa: `receiveId` de outro (id pelo 8223/4148) cobra quem compra e manda pelo correio do sistema; mochila cheia paga e o que não cabe vai pelo correio (item com vínculo e validade). VIP e contrato a amigo seguem abaixo |
 | Lojas de honra, glória, ametista | ✅ | | |
 | Loja do labirinto (ShopType 4) | ✅ | 🇹🇷 | compra do turco; a Necropolis é outro sistema |
@@ -388,7 +388,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Caça-níquel (9500) | 🧪 | | regras da ajuda inglesa e do cliente (`slot.py`, `game_settings.slot_machine`); pesos dos dígitos e preço inventados (`game_settings`) |
 | Loteria (8750/8748) | 🧪 | | tentativas pelo gasto de Balens no `cash_ledger` (idioma) e mensagens do cliente (`lottery.py`, `game_settings.lottery`); avisos do 4639 gravados no banco; sorteio e texto inventados |
 | Cadeiras (9638) | 🧪 | | mensagens do cliente (`chairs.py`, `game_settings.chairs`); regra inteira inventada (cadeira por recarga, sortudos pelo total) |
-| Sorteio de grupo (9523) | 🟡 | | ligados por padrão (migração 0103, toda regra em `game_settings` com `source`); roleta 338/4936 pelo cliente (`group_draw.py`); depende da compra coletiva (8645) para ganhar sorteios; sorteio inventado |
+| Sorteio de grupo (9523) | 🟡 | | ligados por padrão (migração 0103, toda regra em `game_settings` com `source`); roleta 338/4936 pelo cliente (`group_draw.py`); cada compra coletiva (8645, `group_buy.py`) dá 1 sorteio; sorteio inventado |
 | Campo minado, caixa de ano novo, história | ❌ | | |
 | Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
