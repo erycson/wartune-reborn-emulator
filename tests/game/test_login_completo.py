@@ -50,7 +50,7 @@ async def test_pacotes_do_login(tmp_path: Path) -> None:
         assert len(pb.ActiveRspMsg.FromString(got[0].body).activeRspInfo) == 9
         switches = {x.switchType: x.isOpen for x in pb.SwitchInfoListMsg.FromString(got[2].body).switches}
         assert len(switches) == 67 and switches[3007] and switches[5]  # pet challenge e terra secreta abertos
-        assert not switches[3006] and not switches[3031]  # mina e estrada dourada: fechadas aqui (closed_switches)
+        assert switches[3006] and not switches[3031]  # mina aberta (0115); estrada dourada fechada (closed_switches)
 
         g.client.send(8271)
         got = await g.idle()

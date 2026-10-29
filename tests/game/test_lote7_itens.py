@@ -3,6 +3,8 @@ pontuação, Amethyst e honra, leilão (ordem e reempilhar). Ver docs/itens.md e
 
 from pathlib import Path
 
+import pytest
+
 from tests.game.harness import Game, logged_in
 from tests.game.test_mall import _put, _sell, last
 from tests.game.test_shop import buy, me
@@ -148,3 +150,75 @@ async def test_cancelar_leilao_reempilha_na_pilha_incompleta(tmp_path: Path) -> 
         assert last(await a.until(4358), pb.CanceltemRspMsg).result == h.OK
         horns = [i for i in me(a).items if i.template_id == 208002 and i.bag_type == BagType.BAG]
         assert [(i.pos, i.count) for i in horns] == [(5, 10)]
+
+
+# --- paginação da lista de amigos (4156) ---
+
+
+async def test_lista_de_amigos_vai_em_paginas(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from wartune_server.domain.models import Relation
+    from wartune_server.game import social
+
+    monkeypatch.setattr(social, "FRIEND_PAGE", 1)
+    async with logged_in(tmp_path, novice=19000) as a:
+        b = await a.join("bruxa")
+        c = await a.join("corvo")
+        me(a).relations.extend(Relation(a.user_id, o.user_id, 1, group_id=2) for o in (b, c))
+        session = a.server.online.get(a.user_id)
+        assert session is not None
+        pages = await social.friend_list(session)
+        assert [(p.maxPage, p.curPage, len(p.relationList)) for p in pages] == [(2, 0, 1), (2, 1, 1)]
+
+
+# --- offline x1,5 / x2 pagos ---
+
+
+async def test_offline_x2_cobra_balens_e_dobra_a_exp(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=20000) as g:
+        c = me(g).character
+        c.offline_seconds, c.point, c.gift_token = 7200, 0, 100
+        await g.server.services.characters.save(c)
+        total = c.total_gp
+        g.client.send(8287, pb.OfflineRewardMsg(rateCount=20))
+        player = pb.PlayerMsg.FromString((await g.until(3))[-1].body)
+        assert player.totalGp == total + 120 * c.grades * 2  # 120 min x nível, x2
+        assert me(g).character.gift_token == 100 - 2 * 10  # 10 por hora (0115, TODO inventado)
+
+
+# --- pergaminhos de %, cartas e mascote na luta ---
+
+
+def test_pergaminhos_de_porcentagem_somam_na_luta() -> None:
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+
+    from tests.game.test_batalha import _templates  # type: ignore[attr-defined]
+    from wartune_server.game import buffs
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    snap: PlayerSnapshot = SimpleNamespace(events=[], character=SimpleNamespace(id=1))  # type: ignore[assignment]
+    buffs.apply(snap, 2041, 2010101, 10, 60, now)  # Physical Attack Scroll: "PATK +{Grades}%"
+    buffs.apply(snap, 2037, 2010102, 5, 60, now)  # Student's Oatmeal: "Defense +{Grades}%"
+    stats = buffs.percent_stats(snap, _templates(), now)
+    assert stats == {"PhyAttack": 10, "PhyDefence": 5, "MagicDefence": 5}
+    assert buffs.percent_stats(snap, _templates(), now.replace(hour=2)) == {}  # venceu
+
+
+# --- fila de tecnologia no login (visto: 4155 com orderId 3 orderType 2) ---
+
+
+def test_fila_de_tecnologia_nasce_com_a_academia_como_no_4155_ingles() -> None:
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+
+    from tests.game.test_batalha import _templates  # type: ignore[attr-defined]
+    from wartune_server.domain.models import Building
+    from wartune_server.game import castle
+
+    t = _templates()
+    academy = next(t.find("BuildingTempInfos", SonType=castle.ACADEMY))
+    snap: PlayerSnapshot = SimpleNamespace(  # type: ignore[assignment]
+        character=SimpleNamespace(id=1), orders=[], buildings=[Building(1, int(academy["TemplateId"]))]
+    )
+    order = castle.tech_order(snap, t, datetime(2026, 1, 1, tzinfo=UTC))
+    assert order is not None and (order.order_id, order.order_type) == (3, castle.TECH_ORDER)

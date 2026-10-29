@@ -204,24 +204,27 @@ def friend_update(ctx: GameContext, other_id: int, r: Relation) -> pb.FriendInfo
     )
 
 
-async def friend_list(s: GameSession) -> pb.FriendRelationList:
-    """4156 do login numa página só (``maxPage=1``; 0 sem ninguém, captura inglesa #61): o cliente espera
-    ``maxPage`` pacotes.
+FRIEND_PAGE = 50  # TODO(inventado): quantos por pacote (a captura inglesa só tem a lista vazia, #61)
 
-    ponytail: página única; paginar se a lista passar do tamanho de um pacote (200 amigos cabem).
-    """
+
+async def friend_list(s: GameSession) -> list[pb.FriendRelationList]:
+    """4156 do login em páginas (``maxPage`` 0 sem ninguém, captura inglesa #61). O cliente
+    (``LoginInitDataAccept.__loadFriendListHandler``) espera ``maxPage`` pacotes: o primeiro monta a lista
+    (``setup``), os outros somam (``addFriends``). Os grupos vão só no primeiro."""
     snap = s.snapshot
     assert snap is not None
     found = await characters(s.ctx, [r.other_id for r in snap.relations])
-    msg = pb.FriendRelationList(maxPage=1 if snap.relations or snap.groups else 0, curPage=0)
-    for r in snap.relations:
-        if (c := found.get(r.other_id)) is not None:
-            entry = msg.relationList.add(relation=r.relation, friendRp=r.friend_gp, friendGrade=friend_grade(s.ctx, r),
-                                         groupId=r.group_id, isVip=0)  # fmt: skip
-            entry.player.CopyFrom(simple_player(s.ctx, c))
+    known = [r for r in snap.relations if r.other_id in found]
+    pages = -(-len(known) // FRIEND_PAGE) or (1 if snap.groups else 0)
+    out = [pb.FriendRelationList(maxPage=pages, curPage=i) for i in range(max(1, pages))]
+    for n, r in enumerate(known):
+        entry = out[n // FRIEND_PAGE].relationList.add(relation=r.relation, friendRp=r.friend_gp,
+                                                       friendGrade=friend_grade(s.ctx, r), groupId=r.group_id,
+                                                       isVip=0)  # fmt: skip
+        entry.player.CopyFrom(simple_player(s.ctx, found[r.other_id]))
     for g in snap.groups:
-        msg.group.add(groupId=g.group_id, groupName=g.name, result=1)
-    return msg
+        out[0].group.add(groupId=g.group_id, groupName=g.name, result=1)
+    return out
 
 
 async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:

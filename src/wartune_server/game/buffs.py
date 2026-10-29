@@ -80,6 +80,35 @@ def stat_bonuses(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) 
     return rows
 
 
+# Pergaminhos de % (EffectTempInfo.PropertyType1 -> chave do ``PlayerHero``): descrições "PATK +{Grades}%", "MATK",
+# "PDEF", "MDEF", "HP", "Crit"; 37 "Defense +{Grades}%" (Student's Oatmeal) nas duas defesas (dedução). Valem na luta
+# (``campaign.player_hero``). 46 "Troop Count" e 48 "Honor Received" agem fora daqui (``percent``).
+PERCENT = {
+    41: ("PhyAttack",),
+    42: ("MagicAttack",),
+    43: ("PhyDefence",),
+    44: ("MagicDefence",),
+    37: ("PhyDefence", "MagicDefence"),
+    45: ("Live",),
+    47: ("ForceHit",),
+}
+HONOR_BOOST = 48  # "Honor Received +{Grades}%" (Double Honor Scroll)
+
+
+def percent(snap: PlayerSnapshot, templates: GameTemplates, kind: int, now: datetime) -> int:
+    """% somado dos pergaminhos ativos do tipo ``kind`` (``PropertyType1``)."""
+    return sum(st.value for st in active(snap, now) if stat_type(templates, effect_of(st)) == kind)
+
+
+def percent_stats(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) -> dict[str, int]:
+    """Chave do herói na luta -> % dos pergaminhos ativos."""
+    out: dict[str, int] = {}
+    for st in active(snap, now):
+        for key in PERCENT.get(stat_type(templates, effect_of(st)), ()):
+            out[key] = out.get(key, 0) + st.value
+    return out
+
+
 def data(st: EventState, now: datetime) -> pb.BufferDataMsg:
     """Uma linha do 4188. ``validityDate`` em minutos (o cliente multiplica por 60; <= 0 tira o ícone): arredonda
     para cima, então o relógio do cliente acaba depois do servidor e o 8283 dele chega com o efeito já vencido."""

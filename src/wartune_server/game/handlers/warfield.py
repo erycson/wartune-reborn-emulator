@@ -17,7 +17,7 @@ from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
 from .. import battlefield as bf
-from .. import rewards, rules, space, titles, worldboss
+from .. import buffs, rewards, rules, space, titles, worldboss
 from ..builders import login as b
 from ..campaign import CampaignMap
 from ..router import router
@@ -545,7 +545,8 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
         if rewards.can_grant(snap, ctx.templates, drops, now):
             new, _ = rewards.grant(snap, ctx.templates, drops)
         # a honra do texto vai para o geste (a honra do jogador: Honor Certificate, NeedGeste da loja de honra)
-        snap.character.geste += bf.WIN_HONOR * insignia // bf.WIN_INSIGNIA
+        honor = bf.WIN_HONOR * insignia // bf.WIN_INSIGNIA  # Double Honor Scroll: "Honor Received +{Grades}%"
+        snap.character.geste += honor * (100 + buffs.percent(snap, ctx.templates, buffs.HONOR_BOOST, now)) // 100
         await ctx.characters.save(snap.character, *new)
         if new:
             o.send(S_ITEMS, rewards.items_msg(new, o.player_id))

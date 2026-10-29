@@ -74,7 +74,8 @@ PET_EQUIP_STATS |= {"MagicDefence": "bagMagicdefence", "Live": "bagLiving"}
 def pet_equipment(items: Sequence[Item], templates: GameTemplates) -> dict[str, int]:
     """``bag*`` do mascote pelas peças vestidas (bolsa 26): atributo do template + encantamento
     (``GoodsHelp.getPetEquipStrengAddition``: ``int(base × 1,08^g − base)``) + Almas engastadas + atributos sorteados.
-    ponytail: o total é dedução (o cliente só lê o pronto) e a batalha do mascote (``arena.pet_unit``) não soma."""
+    ponytail: o total é dedução (o cliente só lê o pronto). Na luta o mascote em batalha (``campaign.fighting_pet``)
+    soma a vida (``maxHp`` do 4540) e o ataque; o torneio de fadas (``arena.pet_unit`` do 8724) não."""
     out = dict.fromkeys(PET_EQUIP_STATS.values(), 0)
     for item in items:
         row = templates.get("ItemTempInfos", item.template_id) or {}

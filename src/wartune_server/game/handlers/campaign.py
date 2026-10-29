@@ -540,22 +540,34 @@ def pvp_fight(
     s.battle.start()
 
 
-def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) -> PlayerHero:
+def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False, camp: int = 0) -> PlayerHero:
     """``boost``: o buff do contrato 7 (+10% nos ataques, defesas, vida e tropa; ``boosted``). (dedução) a vida
-    atual ganha o mesmo tanto que a máxima."""
+    atual ganha o mesmo tanto que a máxima. ``camp``: tipo de lugar das cartas (arena 806); sem ele, o da campanha
+    ou o do campo de batalha (807). Os pergaminhos de % (``buffs.PERCENT``) sobem os atributos da luta."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     leader = snap.leader
-    stats = rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now())
+    now = s.ctx.clock.now()
+    stats = rules.leader_stats(snap, s.ctx.templates, now)
     total, live = dict(stats.total), stats.live
     hp = b.hero_hp(leader, live)
     from . import systems  # systems importa este módulo
 
     c = s.campaign
-    if c is not None and c.run is not None:  # buffs das cartas do lugar (o 4903 da entrada)
-        cards = systems.camp_stats(snap, s.ctx.templates, systems.camp_type(_campaign_row(s, c.run.campaign_id)))
+    if not camp and c is not None and c.run is not None:  # buffs das cartas do lugar (o 4903 da entrada)
+        camp = systems.camp_type(_campaign_row(s, c.run.campaign_id))
+    elif not camp and c is not None and c.is_warfield:
+        camp = systems.CAMP_WARFIELD
+    if camp:
+        cards = systems.camp_stats(snap, s.ctx.templates, camp)
         total.update({k: int(total.get(k, 0)) + v for k, v in cards.items() if k != "Live"})
         live, hp = live + cards.get("Live", 0), hp + cards.get("Live", 0)
+    for key, pct in buffs.percent_stats(snap, s.ctx.templates, now).items():
+        if key == "Live":
+            extra = live * pct // 100
+            live, hp = live + extra, hp + extra  # (dedução) como o contrato 7
+        else:
+            total[key] = int(total.get(key, 0)) * (100 + pct) // 100
     if boost:
         total.update({k: _boost(int(total.get(k, 0))) for k in STATS})
         live, hp = _boost(live), hp + _boost(live) - live
@@ -651,7 +663,8 @@ def fighting_pet(s: GameSession, msg: pb.HeroMsg) -> dict[str, Any] | None:
     follow = [int(x) for x in pet.follow_skills.split(",") if x]
     change = [int(x) for x in pet.change_skills.split(",") if x]
     entry = A.pet_unit(pet.template_id, pet.grade, info.quality, 0, 1, 0, s.player_id, pet.id or 0, templates)
-    hp = info.maxHp or entry["hp"]
+    hp = info.maxHp or entry["hp"]  # o maxHp do 4540 já soma o bagLiving do equipamento
+    entry["attack"] += info.bagAttack + info.bagMagicattack  # (dedução) o ataque do equipamento entra no golpe
     entry |= {"skillId": follow + change, "maxHp": hp, "initHp": hp, "hp": hp, "castTime": 14000}
     entry |= {"follow": [x for x in follow if (templates.get("SkillTempInfos", x) or {}).get("UseWay") != "2"]}
     entry["change"] = change

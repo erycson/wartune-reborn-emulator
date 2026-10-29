@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
+from ...services import cash
 from ...services.ledger import record_cash
 from .. import bag, rewards, rules, timebox
 from .. import castle as cs
@@ -14,7 +15,7 @@ from .login import player_info
 from .player import CURRENCIES, push_level
 
 S_PLAYER, S_BOX, S_ITEMS, S_ALERT = 3, 4, 115, 111
-RATES = {0: 1}  # rateCount do HookRewardFrame: 0 = x1, 15 = x1,5, 20 = x2
+RATES = {0: 10}  # rateCount do HookRewardFrame: 0 = x1 (10/10), 15 = x1,5, 20 = x2 (EXP x rateCount/10)
 
 
 S_BOX_STAR, S_CHAT = 4250, 83
@@ -109,13 +110,23 @@ async def take_offline_reward(s: GameSession, msg: pb.OfflineRewardMsg) -> None:
     assert snap is not None
     c = snap.character
     gp = timebox.offline_gp(c)
-    # ponytail: x1,5 e x2 custam diamante no oficial, mas o preço não está no cliente; recusados
-    if gp <= 0 or msg.rateCount not in RATES:
+    # x1,5 (15) e x2 (20) custam Balens por hora fora (``game_settings.offline_reward_cost``, migração 0115); o
+    # cliente (HookRewardFrame) só mostra a EXP x rateCount/10. TODO(inventado): o preço
+    per_hour = (s.ctx.world.settings.get("offline_reward_cost") or {}).get(str(msg.rateCount))
+    if gp <= 0 or (msg.rateCount not in RATES and per_hour is None):
         s.log.info("8287 recusado", gp=gp, rate=msg.rateCount)
         return
-    gained = rules.add_gp(snap, s.ctx.templates, gp * RATES[msg.rateCount])
+    ledger = None
+    if msg.rateCount not in RATES:
+        hours = -(-c.offline_seconds // 3600)
+        ref = f"8287:x{msg.rateCount}"
+        ledger = cash.pay(c, int(per_hour or 0) * hours, msg.payType, "offline", ref, s.ctx.clock.now())
+        if ledger is None:
+            s.log.info("8287 recusado: Balens", rate=msg.rateCount)
+            return
+    gained = rules.add_gp(snap, s.ctx.templates, gp * RATES.get(msg.rateCount, msg.rateCount) // 10)
     c.offline_seconds = 0
-    await s.ctx.characters.save(c, snap.leader, *snap.pawns)
+    await s.ctx.characters.save(c, snap.leader, *snap.pawns, *([ledger] if ledger else []))
     s.send(S_PLAYER, b.complete(player_info(s, snap)))
     if gained:
         await push_level(s, c.grades - gained)  # (dedução) como na entrega de missão

@@ -652,7 +652,7 @@ async def test_offline_reward_gives_exp_once(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=READY) as g:
         snap = await _set(g, offline_seconds=7200)
         total = snap.character.total_gp
-        g.client.send(8287, pb.OfflineRewardMsg(rateCount=20))  # x2 tem preço que não conhecemos
+        g.client.send(8287, pb.OfflineRewardMsg(rateCount=20))  # x2 custa Balens (0115) e não há nenhum
         assert await g.idle() == []
         g.client.send(8287, pb.OfflineRewardMsg(rateCount=0))
         player = pb.PlayerMsg.FromString((await g.until(3))[-1].body)

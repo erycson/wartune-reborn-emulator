@@ -234,7 +234,7 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         return
     arena.challenge_count += 1
     arena.cool_until = A.cool_until(now, A.COLOSSEUM_COOL)
-    hero = player_hero(s, A.colosseum_spec([], []))
+    hero = player_hero(s, A.colosseum_spec([], []), camp=806)  # cartas da arena (systems.CAMP_ARENA)
     if other is not None:
         soldiers: list[dict[str, Any]] = []
         heroes = [A.copy_hero(other, s.ctx.templates, s.ctx.clock.now())]

@@ -260,7 +260,8 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
     if msg.questionnarie:  # (visto) 215937 #54: nenhum questionário
         s.send(S_QUESTIONNAIRE, pb.QuestionnarieInfoMsg())
     if msg.friend:
-        _send(s, S_FRIENDS, await social.friend_list(s))
+        for page in await social.friend_list(s):
+            _send(s, S_FRIENDS, page)
     if msg.snsReq:
         _send(s, S_SNS, social.sns_info(snap.character, snap.sns))
     if msg.aas:
