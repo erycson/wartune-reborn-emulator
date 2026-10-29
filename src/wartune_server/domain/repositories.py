@@ -37,6 +37,7 @@ from .models import (
     PlayTicket,
     Quest,
     Relation,
+    ServerState,
     SnsProfile,
     Star,
     TreasureCacheOpen,
@@ -170,6 +171,7 @@ class FarmLandRepository(Protocol):
 class EventStateRepository(Protocol):
     async def by_character(self, character_id: int) -> list[EventState]: ...
     async def by_prefix(self, server_id: int, prefix: str) -> list[EventState]: ...
+    async def of_server(self, server_id: int) -> list[ServerState]: ...
 
 
 class WildKillRepository(Protocol):

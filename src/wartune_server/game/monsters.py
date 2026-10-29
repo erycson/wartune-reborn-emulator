@@ -165,7 +165,7 @@ class Wilds:
     fog: dict[int, datetime] = field(default_factory=dict)  # mapa -> fim da Divine Light
     fighting: dict[tuple[int, int, datetime], Battle] = field(default_factory=dict)  # (mapa, id, ciclo)
     # castelo NPC vencido -> fim da proteção (118); (0, id) no castelo do mundo, (jogador, id) no robô da instância.
-    # shortcut: só em memória (2 h), um restart tira a proteção; gravar se a proteção ficar longa
+    # Gravada em server_states (game/server_state.py) e devolvida no arranque
     shields: dict[tuple[int, int], datetime] = field(default_factory=dict)
 
     def shield(self, key: tuple[int, int], now: datetime, seconds: int) -> None:

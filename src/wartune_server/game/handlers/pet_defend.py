@@ -20,7 +20,7 @@ from typing import Any
 
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
-from .. import outer_city, rewards
+from .. import outer_city, rewards, server_state
 from .. import pet_defend as pd
 from ..arena import npc_hero
 from ..battle import Battle
@@ -203,6 +203,7 @@ async def _over(s: GameSession, battle: Battle, camp: int, kind: int, start: dat
             s.ctx.pet_rage[start] = min(
                 pd.max_rage(templates), s.ctx.pet_rage.get(start, 0) + pd.rage_add(templates, kind)
             )
+            await server_state.save(s.ctx, server_state.PET_RAGE)
     if rows:
         await s.ctx.characters.save(*rows)
     s.send(S_REPORT, _report(battle, won, 0))

@@ -1,7 +1,8 @@
 """Time livre (``FreedomTeam``): até 4 jogadores, o capitão convida amigos e define as posições.
 
-Em memória, no ``GameContext``, pelo mesmo motivo das salas (``rooms.py``): o capitão mexe em
-membros que estão online em outras sessões. Só amigos entram: o cliente só oferece convite para
+No ``GameContext``, pelo mesmo motivo das salas (``rooms.py``): o capitão mexe em membros que estão online em
+outras sessões. Membros, capitão, posições e ausência vão para ``server_states`` (``teams``) a cada mudança e
+voltam no arranque; quem cai continua no time. Só amigos entram: o cliente só oferece convite para
 quem tem ``relation == 1`` (``FreedomTeamManager.inviteMember``), e o servidor confere de novo.
 Pacotes em ``handlers/team.py``; regras em docs/salas-campanha.md.
 """
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
+from typing import Any
 
 TEAM_MAX = 4  # FreedomTeamManager.as: convida só com menos de 4 membros
 
@@ -110,3 +112,34 @@ class Teams:
 
     def set_positions(self, team: Team, positions: dict[int, int]) -> None:
         team.fight_pos = {p: pos for p, pos in positions.items() if p in team.members}
+
+    def drop_invites(self, player_id: int) -> None:
+        """Desconexão: os convites dele somem (os dois sentidos); o time fica."""
+        self._invites = {k: v for k, v in self._invites.items() if k != player_id and v != player_id}
+
+    def dump(self) -> list[dict[str, Any]]:
+        """Os times para ``server_states`` (os convites não: o convidado precisa estar online)."""
+        return [
+            {
+                "id": t.id,
+                "captain": t.captain,
+                "members": t.members,
+                "fight_pos": {str(p): pos for p, pos in t.fight_pos.items()},
+                "away": sorted(t.away),
+            }
+            for t in self._teams.values()
+        ]
+
+    def restore(self, data: list[dict[str, Any]]) -> None:
+        self._teams = {
+            d["id"]: Team(
+                d["id"],
+                d["captain"],
+                list(d["members"]),
+                {int(p): v for p, v in d["fight_pos"].items()},
+                set(d["away"]),
+            )
+            for d in data
+        }
+        self._of = {p: t.id for t in self._teams.values() for p in t.members}
+        self._ids = itertools.count(max(self._teams, default=0) + 1)

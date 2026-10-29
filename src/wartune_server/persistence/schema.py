@@ -65,6 +65,7 @@ from ..domain.models import (
     Purchase,
     Quest,
     Relation,
+    ServerState,
     ShopBuy,
     SnsProfile,
     Star,
@@ -1024,6 +1025,18 @@ event_states = Table(
     UniqueConstraint("character_id", "key"),
 )
 
+# estado do servidor que não é de um personagem (0109): proteções, fúria, Invasores e times
+server_states = Table(
+    "server_states",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("server_id", Integer, nullable=False),
+    Column("key", String(96), nullable=False),
+    Column("text", Text, nullable=False, default="", server_default=""),
+    Column("updated_at", UTCDateTime, nullable=False),
+    UniqueConstraint("server_id", "key"),
+)
+
 pawns = Table(
     "pawns",
     metadata,
@@ -1086,6 +1099,7 @@ player_systems = Table(
     _str("mount_expiry", 1024),
     _str("mount_fly", 1024),
     _str("mount_stars", 1024),
+    _str("mount_since", 1024),
     _str("battle_guard", 255),
     _int("dragon_type"),
     _int("dragon_grade"),
@@ -1178,6 +1192,7 @@ def map_entities() -> None:
         (BuildOrder, build_orders),
         (FarmLand, farm_lands),
         (EventState, event_states),
+        (ServerState, server_states),
         (Pawn, pawns),
         (Star, stars),
         (Pet, pets),

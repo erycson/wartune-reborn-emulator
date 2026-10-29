@@ -113,6 +113,7 @@ def grant_mount(sy: PlayerSystems, mount: int, days: int, now: datetime) -> bool
         return False
     if mount not in owned:
         sy.mount_avatars = ",".join(map(str, [*owned, mount]))
+        sy.mount_since = ",".join(x for x in (sy.mount_since, f"{mount}:{int(now.timestamp())}") if x)
     if days > 0:
         ends[mount] = max(ends.get(mount, 0), int(now.timestamp())) + days * DAY
     else:
@@ -144,7 +145,9 @@ def avatar_msg(snap: PlayerSnapshot, templates: GameTemplates, now: datetime) ->
 def avatar_info(snap: PlayerSnapshot, mount: int, now: datetime) -> pb.AvatarInfoMsg:
     """Uma montaria possuída do 4427 (e do 4679 da estrela), com estrela e bênção."""
     sy = rules.systems(snap)
-    since = fmt_time(snap.character.created_at)  # ponytail: a data de ativação não é guardada
+    # ativação gravada no grant_mount (0109); as montarias de antes dela mostram a criação do personagem
+    at = dict(x.split(":") for x in sy.mount_since.split(",") if x).get(str(mount))
+    since = fmt_time(datetime.fromtimestamp(int(at), UTC) if at else snap.character.created_at)
     end = expiry(sy).get(mount)
     until = fmt_time(datetime.fromtimestamp(end, UTC)) if end else NEVER
     days = -(-(end - int(now.timestamp())) // DAY) if end else -1

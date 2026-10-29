@@ -25,7 +25,7 @@ from ..builders import player as pb_player
 from ..builders.army import army_pawn_msg, castle_pawns
 from ..router import router
 from ..session import LOGIN_CODE, GameSession
-from . import account, pet_defend, vehicle
+from . import account, pet_defend, team, vehicle
 
 KEY_SIZE = 8
 
@@ -311,6 +311,7 @@ async def _login_state(s: GameSession) -> None:
         vehicle.login(s)  # o oficial manda antes e depois do 6; aqui antes, junto com o resto do estado
     s.send(S_WEDDING_ROOMS, pb.EngageMsg())  # salas de casamento: vazio, como o oficial (tutorial_en #43)
     pet_defend.login(s)  # 4686: invasão da ilha dos pets (tutorial_en #44, oficial_encantar #43)
+    team.login(s)  # 4624 do time gravado (server_states); quem não está em time não recebe nada
     from .hero import login_rune  # hero importa player, que importa este módulo
 
     login_rune(s)  # (só turco: login.json #40) 4495 depois do 4686

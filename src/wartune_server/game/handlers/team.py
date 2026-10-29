@@ -11,7 +11,7 @@ from google.protobuf.message import Message
 
 from ...domain.models import RelationType
 from ...protocol.messages import wartune_pb2 as pb
-from .. import rules, social
+from .. import rules, server_state, social
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
@@ -22,11 +22,12 @@ S_CAPTAIN, S_FIGHT_POS, S_LEFT, S_KICK = 4627, 4628, 4629, 4630
 S_AWAY, S_REFUSE_TEAM = 4621, 4635  # 4621 é só um aviso (o cliente só recarrega); 4635 é RefuseFriendRspMsg
 
 
-def _info(s: GameSession, team: Team) -> pb.TeamInfoMsg:
+def _info(s: GameSession, team: Team, gone: int = 0) -> pb.TeamInfoMsg:
+    """``gone``: quem está saindo do jogo agora (ainda na lista de online), sem detalhe como os offline."""
     out = pb.TeamInfoMsg(teamId=team.id, memberId=team.members, captainId=team.captain)
     for pid in team.members:
         other = s.ctx.online.get(pid)
-        if other is None or other.snapshot is None or other.snapshot.leader is None:
+        if pid == gone or other is None or other.snapshot is None or other.snapshot.leader is None:
             continue
         snap = other.snapshot
         leader = snap.leader
@@ -67,6 +68,7 @@ async def answer_invite(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     if team is None:
         s.log.info("8734 recusado", convidador=inviter)
         return
+    await _save(s)
     _send_team(s, team, S_ADD if existed else S_CREATE, _info(s, team))
 
 
@@ -103,6 +105,7 @@ async def change_captain(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     if team is None or team.captain != s.player_id or not s.ctx.teams.hand_captain(team, msg.param1):
         s.log.info("8736 recusado", novo=msg.param1)
         return
+    await _save(s)
     _send_team(s, team, S_CAPTAIN, pb.SimplePropertyMsg(param1=team.captain))
 
 
@@ -114,6 +117,7 @@ async def fight_positions(s: GameSession, msg: pb.MemberFightPosListMsg) -> None
         return
     positions = {m.memberId: m.pos for m in msg.memberPos if 0 <= m.pos < TEAM_MAX}
     s.ctx.teams.set_positions(team, positions)
+    await _save(s)
     out = pb.MemberFightPosListMsg(isGet=False)
     out.memberPos.extend([pb.MemberFightPos(memberId=p, pos=pos) for p, pos in team.fight_pos.items()])
     _send_team(s, team, S_FIGHT_POS, out)
@@ -127,7 +131,9 @@ async def kick_member(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         s.log.info("8739 recusado", alvo=target)
         return
     _send_team(s, team, S_KICK, pb.SimplePropertyMsg(param1=target))  # o expulso também recebe
-    if s.ctx.teams.remove(team, target):
+    dissolved = s.ctx.teams.remove(team, target)
+    await _save(s)
+    if dissolved:
         _send_team(s, team, S_DISMISS, None)
     else:
         _send_team(s, team, S_INFO, _info(s, team))
@@ -156,14 +162,36 @@ def _quit(s: GameSession, notify_self: bool) -> None:
 
 
 def leave_team(s: GameSession) -> None:
-    """Desconexão: sai do time e limpa convites (ver ``_quit``)."""
-    _quit(s, notify_self=False)
+    """Desconexão: os convites somem, mas o jogador fica no time (``server_states``); os demais recebem o 4624 sem
+    o detalhe dele (offline). (dedução) sem captura de relogar em time (docs/salas-campanha.md)."""
+    s.ctx.teams.drop_invites(s.player_id)
+    team = s.ctx.teams.of(s.player_id)
+    if team is not None:
+        _send_team(s, team, S_INFO, _info(s, team, gone=s.player_id))
+
+
+def login(s: GameSession) -> None:
+    """Login de quem está num time (gravado): o 4624 para ele e para os demais (o detalhe dele volta)."""
+    team = s.ctx.teams.of(s.player_id)
+    if team is None:
+        return
+    info = _info(s, team)
+    s.send(S_INFO, info)
+    for pid in team.members:
+        other = s.ctx.online.get(pid)
+        if other is not None and other is not s:
+            other.send(S_INFO, info)
+
+
+async def _save(s: GameSession) -> None:
+    await server_state.save(s.ctx, server_state.TEAMS)
 
 
 @router.on(8741)
 async def quit_team(s: GameSession, _: object) -> None:
     """Sai de vez (``FreedomTeamManageFrame.__requestQuitBtnHandler``, depois da confirmação)."""
     _quit(s, notify_self=True)
+    await _save(s)
 
 
 @router.on(8740)
@@ -175,6 +203,7 @@ async def leave_for_now(s: GameSession, _: object) -> None:
         s.log.info("8740 recusado: sem time")
         return
     s.ctx.teams.toggle_away(team, s.player_id)
+    await _save(s)
     _send_team(s, team, S_AWAY, pb.SimplePropertyMsg(param1=s.player_id))
     _send_team(s, team, S_INFO, _info(s, team))
 

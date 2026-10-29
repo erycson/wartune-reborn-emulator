@@ -29,6 +29,7 @@ from .guild import Guilds
 from .monsters import Wilds
 from .rooms import Rooms
 from .router import PacketRouter
+from .server_state import ServerStates
 from .teams import Teams
 from .vehicles import Arena
 
@@ -66,9 +67,9 @@ class GameContext:
     # árvore dourada: andares e sorte por edição (handlers/gold_tree.py)
     gold_tree: dict[str, Any] = field(default_factory=dict)
     vehicles: Arena = field(default_factory=Arena)  # fila e partidas de veículos (game/vehicles.py)
-    # fúria da invasão da ilha dos pets por janela (início -> pontos; handlers/pet_defend.py)
-    # shortcut: só em memória, um restart no meio da janela zera a fúria; gravar se a janela ficar longa
+    # fúria da invasão da ilha dos pets por janela (início -> pontos; handlers/pet_defend.py); em server_states
     pet_rage: dict[datetime, int] = field(default_factory=dict)
+    states: ServerStates = field(default_factory=ServerStates)  # linhas de server_states (game/server_state.py)
 
 
 class OnlinePlayers:
@@ -168,9 +169,6 @@ class GameSession:
         self.online_since: datetime | None = None  # tempo online ainda não somado (presente online)
         self.box_counting = False  # a caixa por tempo só conta depois do primeiro 5019 (timebox.py)
         self.serven_sent: bytes | None = None  # último 4638 mandado (handlers.events.refresh_serven)
-        # item -> de onde o herói o mandou para a bancada (5005): tirar da bancada devolve lá
-        # shortcut: só na memória da sessão (relogar ou reiniciar manda para a mochila); gravar se o oficial lembrar
-        self.bench_from: dict[int, tuple[int, int, int]] = {}
         self.maze_first: dict[str, tuple[int, str]] = {}  # primeiro abate do 4205 por torre (handlers.tower)
         self.maze_order: dict[str, int] = {}  # order do 4205 por torre (Kind.key), calculada ao abrir (handlers.tower)
         self.title_ranks: dict[str, int] = {}  # posição nos rankings dos títulos (handlers.events.title_ranks)

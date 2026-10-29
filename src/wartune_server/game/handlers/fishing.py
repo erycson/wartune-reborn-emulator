@@ -51,12 +51,26 @@ def _snap(s: GameSession) -> PlayerSnapshot:
 
 def _pool(s: GameSession, f: fs.Fisher) -> fs.Pool:
     now = s.ctx.clock.now()
+    saved = ev.peek(_snap(s), fs.POOL_KEY)
+    if s.fish_pool is None and saved is not None and saved.text:
+        s.fish_pool = fs.load_pool(saved.text)  # o cardume gravado (relogar ou reinício)
     if s.fish_pool is None:
         s.fish_pool = fs.new_pool(s.ctx.templates, f.level, now, RNG)
     else:
         fs.refresh(s.fish_pool, s.ctx.templates, f.level, now, RNG)
     pool: fs.Pool = s.fish_pool
     return pool
+
+
+async def _save_pool(s: GameSession) -> None:
+    """Grava o cardume da sessão se mudou (o dono está online: o snapshot dele é o da memória)."""
+    if s.fish_pool is None or s.snapshot is None:
+        return
+    text, now = fs.dump_pool(s.fish_pool), s.ctx.clock.now()
+    st = ev.state(s.snapshot, fs.POOL_KEY, now)
+    if st.text != text:
+        st.text, st.updated_at = text, now
+        await s.ctx.characters.save(st)
 
 
 def _send_pool(to: GameSession, owner: GameSession, f: fs.Fisher) -> None:
@@ -104,6 +118,10 @@ async def fishing(s: GameSession, msg: pb.FreshPoolMsg) -> None:
         _close(s)
     else:
         s.log.info("9507 op desconhecido", op=msg.op)
+    owner = s.ctx.online.get(s.fish_watch) if s.fish_watch else None
+    for who in (s, owner):
+        if who is not None:
+            await _save_pool(who)
 
 
 async def _fresh(s: GameSession, f: fs.Fisher, paras: list[int]) -> None:

@@ -28,7 +28,7 @@ from typing import Any
 
 from ...domain.models import Consortia, ConsortiaMember, Quest
 from ...protocol.messages import wartune_pb2 as pb
-from .. import fam, outer_city, rules, social, space
+from .. import fam, outer_city, rules, server_state, social, space
 from .. import guild as gd
 from ..battle import Battle
 from ..builders import login as b
@@ -217,7 +217,10 @@ async def push_state(s: GameSession) -> None:
     sala, os tiques de EXP vencidos, a árvore, as coletas e os Invasores."""
     c, mine, snap = s.campaign, _mine(s), s.snapshot
     if mine is not None:
-        _invasion(s, mine[0])
+        inv = _invasion(s, mine[0])
+        saved = (s.ctx.states.value(server_state.INVASIONS) or {}).get(str(mine[0].id or 0), {})
+        if saved.get("wave") != inv.wave.isoformat():  # onda nova (aqui ou no _sync_nodes): grava
+            await server_state.save(s.ctx, server_state.INVASIONS)
     if c is None or not c.fam or not c.ready or mine is None or snap is None:
         return
     guild, member = mine
@@ -399,6 +402,8 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool) -> None:
         mine[0].total_offer += offer
         rows.append(mine[0])
     await s.ctx.characters.save(*rows)
+    if won and inv is not None:
+        await server_state.save(s.ctx, server_state.INVASIONS)
     if won and mine is not None and inv is not None:
         link = social.player_link(s.ctx, snap.character)
         guild_chat(s, mine[0], f"{link} has defeated an invader and earned {offer} guild contribution!")

@@ -35,7 +35,7 @@ from ...domain.world import Mine, RobotCastle
 from ...protocol.messages import wartune_pb2 as pb
 from ...services.ledger import pay
 from .. import arena as A
-from .. import bosses, mines, monsters, npc_castles, rewards, robots, rules, social
+from .. import bosses, mines, monsters, npc_castles, rewards, robots, rules, server_state, social
 from .. import caches as tc
 from .. import castle as cs
 from .. import outer_city as oc
@@ -1076,6 +1076,7 @@ async def _castle_over(s: GameSession, battle: Battle, target: _Target, won: boo
     if won:
         seconds = int(npc_castles.settings(s.ctx.world)["shield_seconds"])
         s.ctx.wilds.shield(target.shield, now, seconds)
+        await server_state.save(s.ctx, server_state.SHIELDS)
         _, x, y = target.where
         s.send(S_CASTLE_DEFENSE, pb.CastleDefenseRspMsg(posX=x, posY=y, leftTime=seconds))
     quests = rules.quest_event(snap, templates, ATTACK_CASTLE, int(won), 1)

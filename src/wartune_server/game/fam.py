@@ -54,10 +54,9 @@ def wave_start(now: datetime) -> datetime:
 
 
 def invasion(store: dict[int, Invasion], guild_id: int, now: datetime) -> tuple[Invasion, bool]:
-    """A onda em curso; ``True`` quando ela acabou de trocar (o aviso no chat da guilda).
-
-    shortcut: em memória; ao reiniciar o servidor os Invasores voltam e o 1º aviso da guilda não sai, guardar no
-    banco se isso importar."""
+    """A onda em curso; ``True`` quando ela acabou de trocar (o aviso no chat da guilda). ``store`` (onda e vencidos)
+    vai para ``server_states`` e volta no arranque (``game/server_state.py``): o reinício não traz os Invasores
+    vencidos de volta nem repete o aviso da onda."""
     wave = wave_start(now)
     inv = store.get(guild_id)
     if inv is not None and inv.wave == wave:

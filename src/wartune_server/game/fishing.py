@@ -6,8 +6,10 @@ Fontes: *(cliente)* ``FishManager``, ``FishModel`` (20 tentativas, 4 ferramentas
 paga ``(3 - ajudantes)*5``), ``FishPoolInfo`` (nível pela ``UpGradeTempInfos`` tipo 40), ``FishTemplateInfos``
 (canal, nível, GP, pontos, velocidade, comprimento, prêmios); *(visto)* 26/10, 27/10 e 28/10 (docs/eventos.md).
 
-Estado em ``EventState`` ``fish`` (``text`` JSON); o cardume é da sessão (cada sessão oficial teve ids próprios:
-27/10 27,10,29..., 28/10 39,30,23...). shortcut: o cardume renasce ao relogar; gravar se precisar sobreviver.
+Estado em ``EventState`` ``fish`` (``text`` JSON). O cardume (os peixes de cada lugar) fica em ``EventState``
+``cardume`` e volta ao relogar ou reiniciar (``dump_pool``/``load_pool``); fisgadas, fúria e ajudantes são da
+sessão. (visto) cada sessão oficial teve ids próprios (27/10 27,10,29..., 28/10 39,30,23...): aqui os lugares são
+os fixos de ``SLOTS``, então o cardume gravado continua valendo.
 """
 
 from __future__ import annotations
@@ -160,6 +162,17 @@ class Pool:
     hooked: set[int] = field(default_factory=set)  # op 11 [2, id]
     rage: tuple[int, int, int] | None = None  # (fishId, ângulo, quadro) do op 11 [1, ...]
     helpers: list[tuple[int, str]] = field(default_factory=list)
+
+
+POOL_KEY = "cardume"  # não começa com ``fish``: o ``by_prefix(KEY)`` dos rankings lê só os pescadores
+
+
+def dump_pool(pool: Pool) -> str:
+    return json.dumps({fid: asdict(f) for fid, f in pool.fish.items()})
+
+
+def load_pool(text: str) -> Pool:
+    return Pool({int(fid): Fish(**f) for fid, f in json.loads(text).items()})
 
 
 def ms(now: datetime) -> int:

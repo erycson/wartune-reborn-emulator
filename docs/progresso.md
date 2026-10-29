@@ -31,7 +31,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 2 | 7 | 2 | 1 |
-| Campanhas e masmorras | 7 | 9 | 6 | 2 | 3 |
+| Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 12 | 4 | 1 | 4 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 2 | 3 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **108** | **87** | **59** | **33** | **34** |
+| **Total** | **108** | **86** | **60** | **33** | **34** |
 
 ## Validação e base
 
@@ -152,7 +152,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |
 | Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 e transformação 8538 no inglês (231733 #1492, 26/10 #10315, sem aviso); caixa de pedras do turco |
-| Forja: refino de atributos (8336/8339) | 🧪 | | ordem e "Refinement Complete!" do inglês (24/10 #8019-#8027); o sorteio continua inventado (`bag.roll_random_skill`) |
+| Forja: refino de atributos (8336/8339) | 🧪 | | ordem e "Refinement Complete!" do inglês (24/10 #8019-#8027); o sorteio continua inventado (`bag.roll_random_skill`); o sorteio pendente fica no EventState `refine` até o 8339 |
 | Forja: decomposição (8340) | ✅ | | ordem vista em 191924 #2259-#2278; recusa calada por dedução (o cliente limpa a bancada com qualquer 4260) |
 | Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
 | Equipamento do mascote na luta | 🟡 | | a luta não usa os atributos |
@@ -212,7 +212,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 recusada |
 | Altar do demônio (boss de guilda) | 🟡 | | entrada 8542 recusada |
 | Terra secreta: entrada e saída | ✅ | | |
-| Terra secreta: invasores | 🧪 | | só em memória; contribuição inventada (0073) |
+| Terra secreta: invasores | 🧪 | | onda e vencidos em `server_states` (0109), voltam no arranque; contribuição inventada (0073) |
 | Terra secreta: árvore sagrada | 🧪 | | EXP do tique e energia inventados (`fam.py:33`) |
 | Anúncio de recrutamento | 🧪 | | canal e remetente inventados |
 | Correio de guilda | ✅ | | |
@@ -243,7 +243,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga tratada como grátis |
 | Relatório da etapa (137) | 🟡 | | curva por nível falta |
 | Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem); 5024 recusado (senha, cheia) devolve o 4270 da sala (225632 #12656) |
-| Times (convite, capitão, sair) | 🟡 | | não persistem |
+| Times (convite, capitão, sair) | 🧪 | | membros, capitão, posições e ausência em `server_states` (0109); quem cai fica no time e o login manda o 4624 (dedução: sem captura de relogar em time) |
 | Link de sala no chat (9504) | ✅ | | |
 | Salas PvP (5023, 5039, 8344, 8465) | ✅ | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); arena em grupo (handlers/arena_grupo.py): salas na fila emparelham, luta battleType 10 time contra time, 4103, missão 16, leed 13, contador `match`, Insignia x10 na derrota (27/10 #19912-#19995); prêmios em game_settings.arena_party (0107); pontos semanais (crossScore do 3) e ranking em cross/crossscore.xml do PvpHeroFrame (game/arena_grupo.py); dono que cai perde e as salas voltam a 1; vitória x20, pontos 10/5, texto "Points +N" e lugares do lado 2 inventados; só salas deste servidor |
 | Falas e câmera no meio da luta (171/142) | ❌ | | |

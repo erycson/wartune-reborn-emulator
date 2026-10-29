@@ -5,8 +5,9 @@ travar (8809), cristal (8484), espaços (5010/8819), ver equipamento de outro (8
 
 from __future__ import annotations
 
+import json
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from google.protobuf.message import Message
 
@@ -133,6 +134,20 @@ def _place_ok(s: GameSession, item: Item, bag_type: int, obj: int, pos: int) -> 
     return bag.fits_hero(snap, row, tpl.job, tpl.sex)
 
 
+BENCH_FROM = "bench_from"  # EventState: item -> [bagType, objectId, pos] de onde o herói o mandou para a bancada
+
+
+def _bench_from(snap: PlayerSnapshot) -> dict[str, list[int]]:
+    st = ev.peek(snap, BENCH_FROM)
+    return json.loads(st.text) if st and st.text else {}
+
+
+def _set_bench_from(snap: PlayerSnapshot, benched: dict[str, list[int]], now: datetime) -> EventState:
+    st = ev.state(snap, BENCH_FROM, now)
+    st.text, st.updated_at = json.dumps(benched), now
+    return st
+
+
 @router.on(5005)
 async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     """Move entre mochila (1), bancada (0), armazém da guilda (6), as bolsas do herói (2 runas, 3 medalha,
@@ -150,9 +165,10 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
     if end_bag == BagType.PET_EQUIP and not end_obj:
         end_obj = pet
     item = bag.at(snap, *begin)
-    back = s.bench_from.get(item.id or 0) if item is not None and begin[0] == BagType.STORE else None
+    benched = _bench_from(snap)
+    back = benched.get(str(item.id or 0)) if item is not None and begin[0] == BagType.STORE else None
     if back is not None and end_bag == BagType.BAG and bag.at(snap, *back) is None:
-        end_bag, end_obj, end_pos = back
+        end_bag, end_obj, end_pos = back[0], back[1], back[2]
     if begin[0] == BagType.STORE and end_bag == BagType.BAG and bag.at(snap, end_bag, 0, end_pos) is not None:
         # a bancada devolve sempre com endPos 0: o servidor escolhe o primeiro espaço livre
         free = bag.free_positions(snap, s.ctx.clock.now())
@@ -214,12 +230,13 @@ async def bag_move(s: GameSession, msg: pb.ItemReqMsg) -> None:
             snap.leader.hp = live
         trimmed = rules.trim_army(snap, s.ctx.templates, now)
     leader = snap.leader if healed or dropped else None
-    kept = (i for i in (item, other, book, wearer, leader) if i is not None and i not in gone)
-    await s.ctx.characters.save(*kept, *(snap.pawns if trimmed else ()), delete=gone)
-    if begin[0] == BagType.STORE:
-        s.bench_from.pop(item.id or 0, None)
+    kept: list[object] = [i for i in (item, other, book, wearer, leader) if i is not None and i not in gone]
+    if begin[0] == BagType.STORE and benched.pop(str(item.id or 0), None) is not None:
+        kept.append(_set_bench_from(snap, benched, s.ctx.clock.now()))
     if end_bag == BagType.STORE and begin[0] == BagType.HERO and not gone:
-        s.bench_from[item.id or 0] = begin
+        benched[str(item.id or 0)] = list(begin)
+        kept.append(_set_bench_from(snap, benched, s.ctx.clock.now()))
+    await s.ctx.characters.save(*kept, *(snap.pawns if trimmed else ()), delete=gone)
 
     # (visto) oficial_20261023-171155-1 #2310-#2316, tirar a arma: 113 com a vida no máximo novo, 100 com as tropas
     # que voltaram ao castelo, 3, 150, 115, 115

@@ -15,7 +15,7 @@ from .domain.models import GameServer
 from .domain.world import World
 from .game import handlers as _handlers  # noqa: F401  (registra os handlers)
 from .game import mall as market
-from .game import rankings
+from .game import rankings, server_state
 from .game.events import EventCatalog
 from .game.guild import Guilds
 from .game.router import router
@@ -55,6 +55,7 @@ class Services:
     clock: Clock
     guilds: Guilds
     world: World
+    states: server_state.ServerStates
 
 
 async def build_services(settings: Settings, clock: Clock | None = None) -> Services:
@@ -82,6 +83,7 @@ async def build_services(settings: Settings, clock: Clock | None = None) -> Serv
         clock=clock,
         guilds=await Guilds.load(characters, settings.server_id),
         world=await world_store.load(database.engine),
+        states=await server_state.ServerStates.load(characters, settings.server_id),
     )
 
 
@@ -127,6 +129,7 @@ class GameServerApp:
             EventCatalog.load(settings.events_file),
             world=services.world,
         )
+        server_state.restore(ctx, services.states)
         self.acceptor = ConnectionAcceptor(
             registry, lambda conn: GameSession(conn, ctx), idle_timeout=settings.idle_timeout_seconds
         )

@@ -8,13 +8,16 @@ com o 5005. Fórmulas do cliente: ``GoodsHelp.getStrengthenGold``/``StoreIntensi
 
 from __future__ import annotations
 
+import json
 import random
+from datetime import datetime
 
-from ...domain.models import BagType, Item, PlayerSnapshot
+from ...domain.models import BagType, EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import GameTemplates, Row
 from .. import bag, rules
+from .. import events as ev
 from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
@@ -49,8 +52,19 @@ LOCK_ITEM, LOCK_PRICE = 208027, 45  # RefreshView.REFRESHLOCK_TEMPID; cada cadea
 UNBOUND_ONLY = 2  # SmithFreshReqMsg.bindType: 0 = vinculado primeiro ("Use bound material first"), 2 = só livre
 REFINED = "Refinement Complete!"  # (visto) oficial_20261024-191924-1 #8023 (111) e #8025 (83)
 
-# ponytail: o refino sorteado fica na memória até o 8339 (some se o servidor reiniciar)
-_pending: dict[int, list[int]] = {}
+PENDING = "refine"  # EventState: o refino sorteado por item (JSON {id: atributos}) até o 8339
+
+
+def _pending(snap: PlayerSnapshot) -> dict[str, list[int]]:
+    st = ev.peek(snap, PENDING)
+    return json.loads(st.text) if st and st.text else {}
+
+
+def _set_pending(snap: PlayerSnapshot, pending: dict[str, list[int]], now: datetime) -> EventState:
+    held = {str(i.id) for i in snap.items}  # o item decomposto ou vendido sai do sorteio
+    st = ev.state(snap, PENDING, now)
+    st.text, st.updated_at = json.dumps({k: v for k, v in pending.items() if k in held}), now
+    return st
 
 
 def _gained(s: GameSession) -> None:
@@ -484,11 +498,13 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
             continue
         taken = [k // 100 for k in skills if k]
         skills[i] = rng.choice(pool) if pet else bag.roll_random_skill(s.ctx.templates, need, rng, taken)
-    _pending[item.id or 0] = skills
+    pending = _pending(snap)
+    pending[str(item.id or 0)] = skills
+    held = _set_pending(snap, pending, now)
     # (visto) tempinfos: 769 "Refine a Piece of Equipment" = tipo 47, Para1 0, Para2 1; conta no 8336, não no 8339
     # (dedução)
     quests = rules.quest_event(snap, s.ctx.templates, REFINE, 0, 1)
-    await s.ctx.characters.save(c, *changed, *quests, *([ledger] if ledger else []), delete=tuple(gone))
+    await s.ctx.characters.save(c, held, *changed, *quests, *([ledger] if ledger else []), delete=tuple(gone))
 
     # (visto) oficial_20261024-191924-1 #8019-#8027 (payType 0) e #6319-#6324 (payType 1): 115 dos materiais, 112 da
     # missão, 115 do equipamento, 111, 4258 e 83, os dois com "Refinement Complete!"
@@ -506,15 +522,18 @@ async def refresh_random(s: GameSession, msg: pb.SmithFreshReqMsg) -> None:
 @router.on(8339)
 async def refresh_replace(s: GameSession, _: object) -> None:
     """Aceita o último sorteio do 8336 no item da bancada."""
+    snap = s.snapshot
+    assert snap is not None
     found = _any_equip(s)
-    skills = _pending.pop(found[0].id or 0, None) if found else None
+    pending = _pending(snap)
+    skills = pending.pop(str(found[0].id or 0), None) if found else None
     if found is None or skills is None:
         s.log.info("8339 recusado: nada sorteado")
         send(s, S_REPLACE, pb.SmithFreshReplaceRspMsg(result=False))
         return
     item = found[0]
     item.random_skills = skills + item.random_skills[len(skills) :]
-    await s.ctx.characters.save(item)
+    await s.ctx.characters.save(item, _set_pending(snap, pending, s.ctx.clock.now()))
     send(s, S_REPLACE, pb.SmithFreshReplaceRspMsg(result=True))
     send(s, S_ITEMS, bag.moved([item], s.player_id))
 
@@ -528,7 +547,7 @@ async def refresh_property(s: GameSession, msg: pb.RefreshPropertyReqMsg) -> Non
     if item is None:
         send(s, S_REFRESH_PROPERTY, pb.RefreshPropertyRepMsg(result=0))
         return
-    skills = _pending.get(item.id or 0, item.random_skills)
+    skills = _pending(snap).get(str(item.id or 0), item.random_skills)
     send(s, S_REFRESH_PROPERTY, pb.RefreshPropertyRepMsg(randomSkill=skills, lockPos=[False] * len(skills), result=1))
 
 

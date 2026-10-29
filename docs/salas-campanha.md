@@ -103,7 +103,8 @@ Só amigos entram: o cliente oferece convite só para quem tem `relation == 1`, 
 novo. O convite só chega se o alvo estiver online.
 
 Quem sai avisa os demais com 4629, com o id de quem saiu. Com dois membros, o time acaba e os demais
-recebem 4625. Se era o capitão, o novo capitão é enviado (4627). Na desconexão, quem caiu não recebe nada.
+recebem 4625. Se era o capitão, o novo capitão é enviado (4627). Na desconexão o jogador continua no time: os
+demais recebem o 4624 sem o detalhe dele, e o login dele manda o 4624 de novo (*dedução*).
 
 Sair de vez (8741) segue a mesma regra, e quem pediu recebe a própria resposta: 4625 se o time acaba, ou
 4629 com o próprio id, que o cliente trata como saída (`FreedomTeamManager`). Sair por ora (8740) não tira o
@@ -113,16 +114,17 @@ dedução do campo.
 
 ## Persistência (decisão)
 
-Hoje nada de salas e times vai ao banco. A decisão abaixo segue o oficial; onde falta captura, diz o que
+Salas não vão ao banco; times sim. A decisão abaixo segue o oficial; onde falta captura, diz o que
 capturar.
 
 - **Salas: não persistem.** Lugares, dono e campanha ficam presos às sessões vivas. O oficial manda o
   estado ao vivo (12, 17, 32, 120) e dissolve a sala quando o dono sai (15 para todos). Nenhuma captura
   mostra sala restaurada no login.
-- **Times: não persistem por enquanto.** Nenhuma captura tem 4620 a 4630 no login, então não dá para
-  provar que o oficial restaura o time depois de relogar. Para decidir: formar um time com dois amigos,
-  desconectar, logar de novo e gravar o login. Se o 4624 voltar no login, persistir membros, capitão,
-  posições de combate (`fight_pos`) e `hasLeftForNow` numa tabela nova (migração).
+- **Times: persistem** (migração `0109`, `server_states` chave `teams`): membros, capitão, posições de
+  combate (`fight_pos`) e `hasLeftForNow`, gravados a cada mudança e devolvidos no arranque
+  (`game/server_state.py`). Os convites pendentes não: o convidado precisa estar online. *(dedução)* nenhuma
+  captura tem 4620 a 4630 no login; para confirmar: formar um time com dois amigos, desconectar, logar de novo e
+  gravar o login.
 - **Recusas de convite (8286, 8746): persistem** no personagem (`refuse_invite`, `refuse_team_invite`) e
   voltam no login (visto).
 - **Contador de campanha multi (4240, `campaignCount` e `campaignMaxcount`): persiste** (migração `0021`:

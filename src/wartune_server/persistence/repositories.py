@@ -42,6 +42,7 @@ from ..domain.models import (
     Purchase,
     Quest,
     Relation,
+    ServerState,
     SnsProfile,
     Star,
     TreasureCacheOpen,
@@ -437,6 +438,11 @@ class SqlEventStateRepository(_Repo):
             .where(Character.server_id == server_id, EventState.key.startswith(prefix, autoescape=True))  # type: ignore[arg-type,call-arg]
             .order_by(EventState.id)  # type: ignore[arg-type]
         )
+        return list(await self._s.scalars(query))
+
+    async def of_server(self, server_id: int) -> list[ServerState]:
+        """O estado do servidor que não é de um personagem (``server_states``, 0109)."""
+        query = select(ServerState).where(ServerState.server_id == server_id)  # type: ignore[arg-type]
         return list(await self._s.scalars(query))
 
 

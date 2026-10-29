@@ -882,6 +882,18 @@ class EventState:
 
 
 @dataclass(eq=False)
+class ServerState:
+    """Estado do servidor que não é de um personagem (``key`` única por servidor, ``text`` em JSON): carregado no
+    arranque por ``persistence/server_state.py``."""
+
+    server_id: int
+    key: str
+    updated_at: datetime
+    id: int | None = None
+    text: str = ""
+
+
+@dataclass(eq=False)
 class Pawn:
     """Tropa (``ArmyPawnInfoMsg``): uma linha por tipo (SonType), no castelo e/ou no exército.
 
@@ -964,6 +976,7 @@ class PlayerSystems:
     mount_expiry: str = ""  # as temporárias (carta com Property2 dias): "1107:<fim em segundos Unix>"
     mount_fly: str = ""  # voo comprado com Flystone (op 13, AvatarInfoMsg.isBuyFly): "1001,1002"
     mount_stars: str = ""  # estrela e bênção de cada montaria (op 6, AvatarInfoMsg.starLevel/blessing): "1000:2:30"
+    mount_since: str = ""  # quando cada montaria entrou nas possuídas (AvatarInfoMsg.activeDate): "1000:<s Unix>"
     # guarda de batalha (8742/4631): encaixes abertos "gridType:gridPos:j1:j2:j3" (gema ou 0), separados por ","
     battle_guard: str = ""
     dragon_type: int = 0  # 101 alma do dragão, 102 depois da transferência
