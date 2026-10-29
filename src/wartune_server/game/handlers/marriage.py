@@ -7,14 +7,15 @@ Fluxo do cliente (MarryRingView, ``helpContent02``): pedido com o Engagement Rin
 O casal tem duas linhas em ``marriages``; quem está online tem a sua no snapshot.
 
 ponytail: pedidos, ofertas de casamento e pedidos de divórcio ficam em memória (somem se o
-servidor reiniciar); a sala da cerimônia (8760, 4662/4673/4674/4672) não existe e é pulada:
-quem aceita a oferta já sai casado.
+servidor reiniciar), como o jogo do coração. A sala da cerimônia (8760) é bloqueio real (ver ``wedding_campaign``).
+Pontos do casal (``couple``): missões 8774, jogo do coração 8802 e rega da árvore; gastos na loja 9611.
 """
 
 from __future__ import annotations
 
 import json
 import random
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -22,6 +23,7 @@ from ...domain.models import BagType, Character, Item, Marriage, MarriageState, 
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import castle as cs
+from .. import events as ev
 from .. import marriage_tree as tree
 from .. import rewards, rules, social
 from ..builders import login as b
@@ -328,7 +330,9 @@ async def _quality_answer(s: GameSession, accept: bool) -> None:
 @router.on(8760)
 async def wedding_campaign(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     """Sala da cerimônia (101 alianças, 102-109 bolo/champanhe/doces/buquê/fogos, 104/112 presentes, 105 senha,
-    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame): a sala não existe."""
+    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame). Bloqueio real: os mapas 4301-4303 não têm nós nem
+    captura (só o 4662 visto) e a tela é do m9 (não descompilado); sem a sala, o 8353 tipo 1 também fica sem destino.
+    Quem aceita a oferta já sai casado (presentes pelo correio)."""
     s.log.info("cerimônia de casamento sem suporte", op=msg.opType)
 
 
@@ -480,6 +484,7 @@ async def marriage_tree(s: GameSession, msg: pb.MarriageOpMsg) -> None:
         ok = _water(s, t, now)
         if ok:
             await _store(s, t)
+            await add_happy(s, int(_points_cfg(s)["water"]))
     elif msg.opType == TREE_CULTIVATE:
         ok = await _cultivate(s, t, now)
     elif msg.opType == TREE_CLEAR:
@@ -494,32 +499,256 @@ async def marriage_tree(s: GameSession, msg: pb.MarriageOpMsg) -> None:
         s.log.info("8773 recusado", op=msg.opType)
 
 
+# ---- pontos do casal ---------------------------------------------------------------------------------------------
+
+
+def couple(m: Marriage | None) -> dict[str, Any]:
+    """O JSON do casal (``marriages.couple``): ``happy`` (pontos do casal, o ``happy`` do 4657) e ``bought``."""
+    data: dict[str, Any] = json.loads(m.couple) if m is not None and m.couple else {}
+    return {"happy": 0, "bought": {}} | data
+
+
+async def add_happy(s: GameSession, points: int, *extra: object) -> None:
+    """Soma ``points`` aos pontos do casal nas duas linhas (o cônjuge offline pelo banco) e manda o 4657 novo."""
+    snap = s.snapshot
+    assert snap is not None
+    m = snap.marriage
+    if m is None or m.state != MARRIED or points <= 0:
+        if extra:
+            await s.ctx.characters.save(*extra)
+        return
+    mate = await _row(s.ctx, m.mate_id)
+    data = couple(m)
+    data["happy"] += points
+    rows = [m, *([mate] if mate is not None else [])]
+    for row in rows:
+        row.couple = json.dumps(data)
+    await s.ctx.characters.save(*rows, *extra)
+    await _announce(s.ctx, *rows)
+
+
+def _points_cfg(s: GameSession) -> dict[str, Any]:
+    return {"water": 1} | dict(s.ctx.world.settings.get("couple_points") or {})
+
+
+# ---- missões do casal -------------------------------------------------------------------------------------------
+
+TASK_TYPE = 4  # RewardTemps.Type das missões do casal (4001-4005, ``RingTaskManager.getRewardTempByTempId``)
+TASK_USE, TASK_TALK = 2004, 2005
+TALK, KILL, FIREWORK = 16, 22, 23  # RewardCondictionInfos.CondictionType das missões do casal
+TASK_KEY, TASKS_KEY = "marry:task", "marry:tasks"
+
+
+def _task_info(tid: int, *, done: bool = False, accept: bool = True) -> pb.RewardInfo:
+    return pb.RewardInfo(templateId=tid, isComplete=done, isAccept=accept, isSelect=True,
+                         completedDate=b.fmt_time(datetime(2000, 1, 1)))  # fmt: skip
+
+
+def _task_cond(s: GameSession, tid: int) -> Any:
+    return next(s.ctx.templates.find("RewardCondictionInfos", TemplateId=tid), None)
+
+
 @router.on(8774)
 async def marriage_task(s: GameSession, msg: pb.MarriageOpMsg) -> None:
-    """Missões do casal (op 2001 pegar, 2004 usar o mapa da missão, 2005 falar com a NPC): sem missões de casal,
-    4675 vazio (o cliente só oferece casado: SpaceDialogFrame ``isMarry``)."""
+    """Missões do casal (``RewardTemps`` ``Type`` 4; o cliente só oferece casado, SpaceDialogFrame ``isMarry``): 2001
+    pega uma (``marriage_task_count`` por dia), 2005 fala com a NPC (condição 16, o cliente leva até ela), 2004 usa o
+    item da missão (``property1``; 22 a flecha de Cupido, 23 os fogos: o item vai para a mochila ao pegar). Feita: ouro
+    e Daru do template e ``RewardHappy`` + ``mar_task_add_happy`` nos pontos do casal; 4675 com ``isComplete``.
+    (dedução) usar o item cumpre a 22/23: o cliente mostra o lugar, e a luta e o fogo no céu não têm pacote próprio."""
     snap = s.snapshot
-    if msg.opType == TASK_ACCEPT and snap is not None and snap.marriage is not None and snap.marriage.state == MARRIED:
-        s.send(S_TASKS, pb.RewardUpdatedRspMsg())
-    s.log.info("missão de casamento sem suporte", op=msg.opType)
+    assert snap is not None
+    m, now = snap.marriage, s.ctx.clock.now()
+    if m is None or m.state != MARRIED:
+        s.log.info("8774 sem casamento", op=msg.opType)
+        return
+    task = ev.state(snap, TASK_KEY, now)
+    done_today = ev.daily(snap, TASKS_KEY, now)
+    if msg.opType == TASK_ACCEPT:
+        pool = [int(r["TemplateId"]) for r in s.ctx.templates.find("RewardTemps", Type=TASK_TYPE)]
+        if task.value or done_today.value >= _config(s.ctx, "marriage_task_count", 10) or not pool:
+            s.log.info("8774 recusado", ativa=task.value, hoje=done_today.value)
+            return
+        tid = random.choice(pool)
+        cond = _task_cond(s, tid)
+        carries = cond is not None and int(cond["CondictionType"]) in (KILL, FIREWORK)
+        drops = [(int(cond["Para1"]), 1)] if carries else []
+        if drops and not rewards.can_grant(snap, s.ctx.templates, drops, now):
+            return
+        new, text = rewards.grant(snap, s.ctx.templates, drops) if drops else ([], "")
+        task.value, task.updated_at = tid, now
+        await s.ctx.characters.save(task, *rewards.owners(snap), *new)
+        if drops:
+            await granted(s, drops, new, text)
+        s.send(S_TASKS, pb.RewardUpdatedRspMsg(reward=[_task_info(tid)]))
+        return
+    cond = _task_cond(s, task.value) if task.value else None
+    kind = int(cond["CondictionType"]) if cond is not None else 0
+    para = int(cond["Para1"]) if cond is not None else 0
+    used: list[Item] = []
+    if msg.opType == TASK_TALK and kind == TALK:
+        pass
+    elif msg.opType == TASK_USE and kind in (KILL, FIREWORK) and msg.property1 == para:
+        used = [i for i in snap.items if i.template_id == msg.property1 and i.bag_type == BagType.BAG][:1]
+        if not used:
+            return
+    else:
+        s.log.info("8774 sem missão para isso", op=msg.opType, missao=task.value)
+        return
+    row = s.ctx.templates.get("RewardTemps", task.value) or {}
+    changed, deleted = rules.take_items(snap, used, 1) if used else ([], [])
+    tid = task.value
+    snap.character.gold += int(row.get("RewardGold") or 0)
+    snap.character.strategy += int(row.get("RewardStrategy") or 0)
+    task.value, task.updated_at = 0, now
+    done_today.value += 1
+    done_today.updated_at = now
+    happy = int(row.get("RewardHappy") or 0) + _config(s.ctx, "mar_task_add_happy", 50)
+    await add_happy(s, happy, snap.character, task, done_today, *changed)
+    if deleted:
+        await s.ctx.characters.save(delete=tuple(deleted))
+    send_items(s, changed, deleted)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    s.send(S_TASKS, pb.RewardUpdatedRspMsg(reward=[_task_info(tid, done=True)]))
+
+
+# ---- jogo do coração --------------------------------------------------------------------------------------------
+
+HEART_START, HEART_ACCEPT, HEART_ANSWER, HEART_TIMEOUT, HEART_QUIT = 3001, 3002, 3003, 3004, 3005
+S_HEART_ASK, S_HEART = 4690, 4691
+
+
+@dataclass
+class Heart:
+    """Um jogo do coração: ``a`` chamou (as respostas dele vão em ``optionA``), ``b`` aceitou."""
+
+    a: int
+    b: int
+    questions: list[int]
+    seconds: int
+    order: int = 1
+    asked_at: datetime | None = None
+    answers: dict[int, int] = field(default_factory=dict)
+    done: list[pb.HeartMsg] = field(default_factory=list)
+
+
+_heart_asks: dict[int, int] = {}  # cônjuge chamado -> quem chamou
+_hearts: dict[int, Heart] = {}  # os dois do casal -> o jogo
+
+
+def _heart_cfg(s: GameSession) -> dict[str, Any]:
+    return {"questions": 10, "seconds": 30, "points": 2} | dict(s.ctx.world.settings.get("marriage_heart") or {})
+
+
+def _heart_msg(s: GameSession, h: Heart) -> pb.MarriageHeartMsg:
+    """4691: a pergunta da vez (``options`` = as 4 opções na ordem da tela), as já respondidas e o acerto em %."""
+    out = pb.MarriageHeartMsg(maxOrder=len(h.questions), lastQuestions=h.done)
+    hits = sum(1 for q in h.done if q.result)
+    out.syncRate = hits * 100 // len(h.done) if h.done else 0
+    if h.order <= len(h.questions):
+        left = h.seconds - int((s.ctx.clock.now() - (h.asked_at or s.ctx.clock.now())).total_seconds())
+        out.curQuestion.CopyFrom(pb.HeartMsg(order=h.order, templateId=h.questions[h.order - 1], options=[1, 2, 3, 4],
+                                             remainTime=max(0, left), random=0))  # fmt: skip
+    return out
+
+
+def _heart_send(s: GameSession, h: Heart) -> None:
+    for cid in (h.a, h.b):
+        if (o := s.ctx.online.get(cid)) is not None:
+            o.send(S_HEART, _heart_msg(s, h))
+
+
+async def _heart_next(s: GameSession, h: Heart) -> None:
+    """Fecha a pergunta da vez (``result`` 1 = os dois escolheram o mesmo) e passa à próxima; no fim, os pontos do
+    casal (``points`` por acerto) e o jogo sai da memória."""
+    q = pb.HeartMsg(order=h.order, templateId=h.questions[h.order - 1], options=[1, 2, 3, 4],
+                    optionA=h.answers.get(h.a, 0), optionB=h.answers.get(h.b, 0))  # fmt: skip
+    q.result = int(q.optionA > 0 and q.optionA == q.optionB)
+    h.done.append(q)
+    h.order, h.answers, h.asked_at = h.order + 1, {}, s.ctx.clock.now()
+    _heart_send(s, h)
+    if h.order > len(h.questions):
+        _hearts.pop(h.a, None)
+        _hearts.pop(h.b, None)
+        await add_happy(s, sum(x.result for x in h.done) * int(_heart_cfg(s)["points"]))
 
 
 @router.on(8802)
 async def marriage_heart(s: GameSession, msg: pb.MarriageOpMsg) -> None:
-    """Jogo do coração (3001 começar, 3002 aceitar, 3003 responder, 3004 tempo esgotado, 3005 desistir; perguntas
-    em ``HeartTempInfos``, respostas 4690/4691): ainda não implementado."""
-    s.log.info("jogo do coração sem suporte", op=msg.opType)
+    """Jogo do coração (perguntas em ``HeartTempInfos``; ``MarryManager``): 3001 chama o cônjuge (4690 abre o
+    "aceita?"), 3002 aceita (4691 com a 1ª pergunta aos dois), 3003 responde (``property1`` a ordem, ``property2`` a
+    opção), 3004 o tempo da pergunta ``property1`` acabou, 3005 desiste (4691 sem pergunta aos dois).
+    TODO(inventado): a tela é do m9 (sem fonte): 10 perguntas de 30 s, ``result`` 1 = mesma resposta, ``options``
+    1-4 na ordem do template e ``random`` 0 (``marriage_heart``, 0111)."""
+    snap = s.snapshot
+    assert snap is not None
+    m, op = snap.marriage, msg.opType
+    mate = s.ctx.online.get(m.mate_id) if m is not None and m.state == MARRIED else None
+    if op == HEART_START:
+        if mate is None or s.player_id in _hearts or m is None:
+            s.log.info("jogo do coração: cônjuge offline ou já jogando")
+            alert(s, MATE_AWAY) if mate is None else None
+            return
+        _heart_asks[m.mate_id] = s.player_id
+        mate.send(S_HEART_ASK)
+    elif op == HEART_ACCEPT:
+        caller = _heart_asks.pop(s.player_id, None)
+        if mate is None or m is None or caller != m.mate_id or s.player_id in _hearts:
+            return
+        cfg = _heart_cfg(s)
+        pool = [int(r["TemplateId"]) for r in s.ctx.templates.rows("HeartTempInfos")]
+        h = Heart(caller, s.player_id, random.sample(pool, min(int(cfg["questions"]), len(pool))), int(cfg["seconds"]))
+        h.asked_at = s.ctx.clock.now()
+        _hearts[h.a] = _hearts[h.b] = h
+        _heart_send(s, h)
+    elif op in (HEART_ANSWER, HEART_TIMEOUT):
+        game = _hearts.get(s.player_id)
+        if game is None or msg.property1 != game.order:
+            return
+        h = game
+        if op == HEART_ANSWER and 1 <= msg.property2 <= 4:
+            h.answers.setdefault(s.player_id, msg.property2)
+        if op == HEART_TIMEOUT or len(h.answers) == 2:
+            await _heart_next(s, h)
+    elif op == HEART_QUIT and (quit_game := _hearts.get(s.player_id)) is not None:
+        _hearts.pop(quit_game.a, None)
+        _hearts.pop(quit_game.b, None)
+        quit_game.order = len(quit_game.questions) + 1
+        _heart_send(s, quit_game)
+
+
+# ---- loja do altar ----------------------------------------------------------------------------------------------
+
+SHOP_BUY = 2  # AltarShopListMsg.op: (dedução) 2 compra ``templateId``; os outros listam
 
 
 @router.on(9611)
 async def mate_skill_shop(s: GameSession, msg: pb.AltarShopListMsg) -> None:
-    """Loja do altar da Guerra de Vênus (ConfigInfo ``Mate_Shop``: modelo,preço,máximo,tipo).
-
-    Sem a Guerra de Vênus não há pontos de altar: lista com ``altarScore`` 0 e compra recusada.
-    """
+    """Loja do altar (ConfigInfo ``Mate_Shop``: modelo,preço,máximo,tipo; as habilidades da Guerra de Vênus) paga com
+    os pontos do casal (``altarScore``). A compra (op 2) gasta os pontos das duas linhas e conta no máximo do casal; a
+    resposta é a lista nova (365). TODO(inventado): o op da compra e os pontos do casal como ``altarScore``."""
+    snap = s.snapshot
+    assert snap is not None
+    m = snap.marriage
     row = next(s.ctx.templates.find("ConfigInfos", ConfigName="Mate_Shop"), None)
-    out = pb.AltarShopListMsg(op=msg.op, altarScore=0)
-    for part in row["ConfigValue"].split("|") if row else []:
-        template_id, price, max_count, _ = (int(x) for x in part.split(","))
-        out.info.add(templateId=template_id, price=price, leftCount=max_count, maxCount=max_count, skillTempId=0)
+    parts = (x.split(",") for x in (row["ConfigValue"].split("|") if row else []))
+    shop = {int(t): (int(p), int(n)) for t, p, n, _ in parts}
+    data = couple(m)
+    if msg.op == SHOP_BUY:
+        price, most = shop.get(msg.templateId, (0, 0))
+        bought = int(data["bought"].get(str(msg.templateId), 0))
+        if m is None or m.state != MARRIED or not price or bought >= most or data["happy"] < price:
+            s.log.info("9611 compra recusada", modelo=msg.templateId, pontos=data["happy"])
+        else:
+            mate = await _row(s.ctx, m.mate_id)
+            data["happy"] -= price
+            data["bought"][str(msg.templateId)] = bought + 1
+            rows = [m, *([mate] if mate is not None else [])]
+            for r in rows:
+                r.couple = json.dumps(data)
+            await s.ctx.characters.save(*rows)
+            await _announce(s.ctx, *rows)
+    out = pb.AltarShopListMsg(op=msg.op, altarScore=int(data["happy"]))
+    for tid, (price, most) in shop.items():
+        left = most - int(data["bought"].get(str(tid), 0))
+        out.info.add(templateId=tid, price=price, leftCount=left, maxCount=most, skillTempId=0)
     s.send(S_MATE_SHOP, out)

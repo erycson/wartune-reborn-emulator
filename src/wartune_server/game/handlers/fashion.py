@@ -125,8 +125,8 @@ async def fashion_switch(s: GameSession, msg: pb.FashionMsg) -> None:
         None,
     )
     known = any(f.template_id == msg.templateId for f in snap.fashions)
-    # ponytail: o MarryUIMediator também manda 8595 com as roupas do casamento (MarryQualityTempInfo), que não estão no
-    # livro: recusado até existir o casamento
+    # bloqueio real: o MarryUIMediator mandaria 8595 com as roupas do casamento, mas MarryQualityTempInfos não existe
+    # nos templates ingleses (``getTempById`` devolve null e o cliente não manda nada); só a moda do livro passa
     if not is_fashion(templates, msg.templateId) or not known or worn is None or worn.template_id == msg.templateId:
         s.log.info("8595 recusado", modelo=msg.templateId, vestida=worn.template_id if worn else None)
         return

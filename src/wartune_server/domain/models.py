@@ -619,6 +619,7 @@ class Marriage:
     spec_id: int = 0  # MarrySpecTempInfo do casamento (0 = nenhum)
     married_at: datetime | None = None
     tree: str = ""  # árvore do casal em JSON, igual nas duas linhas (``game/marriage_tree.py``)
+    couple: str = ""  # pontos do casal e compras da loja do altar em JSON, igual nas duas linhas (``marriage.py``)
 
 
 @dataclass(eq=False)

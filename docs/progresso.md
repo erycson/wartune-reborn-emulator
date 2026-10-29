@@ -29,8 +29,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 7 | 1 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
-| Chat e social | 5 | 4 | 2 | 1 | 1 |
-| Clã / Guilda | 10 | 1 | 8 | 2 | 1 |
+| Chat e social | 6 | 1 | 5 | 0 | 1 |
+| Clã / Guilda | 10 | 0 | 9 | 2 | 1 |
 | Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **109** | **82** | **64** | **32** | **34** |
+| **Total** | **110** | **78** | **68** | **31** | **34** |
 
 ## Validação e base
 
@@ -184,15 +184,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat: mundo, cena, guilda, privado, corneta | 🧪 | | cota VIP de cornetas sem fonte (padrão 0); cena = mesmo mapa (sala ou mapa compartilhado) ou cidade do céu; a cidade (castelo) como uma cena só é inventada |
 | Chat: time e sala (canal 6) | ✅ | | time livre ou, sem time, a sala (`ChatHelper.checkTeamChatScene`); só membros online |
 | Corneta entre servidores (8623) | ✅ | | processo único: 4541 a todos os online |
-| Convite rápido de sala (8353) | 🟡 | | formato visto em 191924 (corneta sem 4500, uma tag `<a t="6">` por linha, leed 16 e 83); casamento recusado |
+| Convite rápido de sala (8353) | ✅ | | formato visto em 191924 (corneta sem 4500, uma tag `<a t="6">` por linha, leed 16 e 83); tipo 1 (casamento) sem destino: bloqueio real da sala 8760 |
 | Amigos: pedir, aceitar, grupos, busca, lista negra, recomendados | ✅ | | |
 | Amizade: grau (friend_gp) | 🟡 | 🇹🇷 | grau 1 no inglês bate com 1 + gp/10; graus acima só no turco (dedução da tabela) |
 | Nome, ficha e busca de jogador | ✅ | | |
 | Casamento: pedido, noivado, divórcio | ✅ | | |
-| Casamento: cerimônia | 🟡 | | cobra e casa direto, sem sala |
-| Casamento: sala (8760) e jogo do coração (8802) | ❌ | | só log |
-| Casamento: árvore e missões do casal | 🧪 | | árvore do casal (8773/4678 e `marriageTree` no 4386) pelo cliente (MarryTreeView/MarryTreeFosterFrame) e 191924 #1249; chance de mato/praga e quantidade de Rose Hazel inventadas; missões do casal (8774) ainda vazias |
-| Casamento: loja do altar (9611) | 🟡 | | compra recusada sem pontos |
+| Casamento: cerimônia | 🧪 | | cobra e casa direto; sala é bloqueio real (mapas 4301-4303 sem nós/captura, tela no m9); roupas 8595 bloqueio real (MarryQualityTempInfos ausente) |
+| Casamento: sala (8760) e jogo do coração (8802) | 🧪 | | coração 8802/4690/4691 com HeartTempInfos; regras TODO(inventado) `marriage_heart` (0111); sala 8760 bloqueio real |
+| Casamento: árvore e missões do casal | 🧪 | | árvore do casal (8773/4678 e `marriageTree` no 4386) pelo cliente (MarryTreeView/MarryTreeFosterFrame) e 191924 #1249; chance de mato/praga e quantidade de Rose Hazel inventadas; missões do casal (8774/4675, RewardTemps tipo 4, `marriage_task_count`, `mar_task_add_happy`); usar item cumpre 22/23 (dedução) |
+| Casamento: loja do altar (9611) | 🧪 | | `Mate_Shop` paga com os pontos do casal (`marriages.couple`, 0111); op 2 = compra e pontos como `altarScore` TODO(inventado) |
 
 ## Clã / Guilda
 
@@ -210,7 +210,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Baú da guilda (distribuir) | ✅ | | correio de mochila cheia por dedução |
 | Baú de prêmios | 🧪 | | a guerra de guildas enche o baú com Guild Treasure (2060044): presentes do lado vencedor, metade para o perdedor (quantidade inventada) |
 | Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 recusada |
-| Altar do demônio (boss de guilda) | 🟡 | | entrada 8542 recusada |
+| Altar do demônio (boss de guilda) | 🧪 | | handlers/altar.py: ondas sobre o Pool do world boss, vida do herói 1042 do template, reviver 8264 tipo 2 por contribuição, buff 8550, habilidades 8593; ondas/tempos/recompensas TODO(inventado) `altar_demon` (0110) |
 | Terra secreta: entrada e saída | ✅ | | |
 | Terra secreta: invasores | 🧪 | | onda e vencidos em `server_states` (0109), voltam no arranque; contribuição inventada (0073) |
 | Terra secreta: árvore sagrada | 🧪 | | EXP do tique e energia inventados (`fam.py:33`) |

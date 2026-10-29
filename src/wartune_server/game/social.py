@@ -7,6 +7,7 @@ Regras e formatos em docs/social.md.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from google.protobuf.message import Message
@@ -239,6 +240,8 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
             # MarryInfo.marriageTime lê "YYYY-MM-DD hh:mm:ss" (desconto e botão de cerimônia nas 72 h); noivo: vazio
             marTime=b.fmt_time(m.married_at) if m.married_at else "",
             logoutDays=0 if online else days,  # divórcio grátis (op 15) com 5+ dias offline
+            # felicidade (``mar_task_add_happy``): os pontos do casal (``handlers.marriage.couple``)
+            happy=int((json.loads(m.couple) if m.couple else {}).get("happy", 0)),
         )
     )
 

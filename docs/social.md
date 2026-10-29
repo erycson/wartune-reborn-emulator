@@ -113,9 +113,9 @@ já casa.
 | 8759 | 6, 7, 13 (sala, carro, entrar), 12 (aliança), 18 (`helpMateTrain`, ajuda de satisfação, sem chamador) | — | só log |
 | 8760 | sala: 101 alianças, 102-109 bolo/champanhe/doces/buquê/fogos, 104/112 presentes, 105 senha, 106 expulsar, 110/111 convidar | — | só log: a sala não existe |
 | 8773 | árvore do casal: 1001 regar, 1002 cultivar (itens com `Feed` da bancada 0-9), 1003 limpar, 1004 colher, 1005 trocar o item em dobro | 4678 `MarriageTreeMsg` aos dois; `FarmInfoRspMsg.marriageTree` na fazenda do casado (a própria e a vista por amigos) | pronto (`game/marriage_tree.py`). Estado em JSON nas duas linhas de `marriages` (0091). Regras do cliente (`MarryTreeView`, `MarryTreeFosterFrame`): 5 h por rega, 2 regas e 10 cultivos por dia, −10 por mato/praga que chegou e não foi limpo, teto 800, baú por status (<200 2060475, <800 2060476, 800 2060477) e Rose Hazel 208034; troca a 100.000 de ouro; colhidos os dois lados, pede rega de novo. *TODO(inventado): chance de mato/praga 50% por hora, Rose Hazel 1 + status/100; A = o homem (191924 #1249)* |
-| 8774 | missões do casal (2001 pegar, 2004 usar o mapa, 2005 falar) | 4675 vazio para casado | parcial |
-| 8802 | jogo do coração (3001-3005, perguntas em `HeartTempInfos`), respostas 4690/4691 | — | só log |
-| 9611 | loja do altar (Guerra de Vênus) | 365 AltarShopListMsg do ConfigInfo `Mate_Shop`, `altarScore` 0 | parcial: compra recusada (sem pontos de altar) |
+| 8774 | missões do casal (2001 pegar, 2004 usar o item `property1`, 2005 falar) | 4675 com a missão (RewardTemps tipo 4) e `isComplete` ao cumprir | pronto: `marriage_task_count` por dia; ouro/Daru do template e `RewardHappy` + `mar_task_add_happy` nos pontos do casal |
+| 8802 | jogo do coração (3001 chamar, 3002 aceitar, 3003 responder, 3004 tempo, 3005 desistir; `HeartTempInfos`) | 4690 ao cônjuge, 4691 aos dois | pronto, regras TODO(inventado) `marriage_heart`: acerto = mesma opção, pontos do casal por acerto |
+| 9611 | loja do altar (`Mate_Shop`) | 365 AltarShopListMsg, `altarScore` = pontos do casal | pronto: op 2 compra (dedução), máximo contado por casal em `marriages.couple` |
 
 **4657** (`MarryManager.__marryInfoHandler`): cônjuge, `state`, `templateId` (cerimônia), `speTemplateId` 0 (≠ 0 é
 "reservada e alianças por trocar"; aqui casar já troca), `marTime` em `YYYY-MM-DD hh:mm:ss` (`MarryInfo.marriageTime`,
