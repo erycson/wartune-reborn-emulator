@@ -957,9 +957,9 @@ class Pet:
     change_skills: str = ""
     fast_key: str = ""
     pos: int = 0  # ordem na lista (14 = mover para o topo)
-    # PetInfoMsg.isBind: só o livre vai ao leilão. ponytail: nasce vinculado; o selo livre dar mascote livre não
-    # está escrito no cliente
-    is_bind: bool = True
+    # PetInfoMsg.isBind: só o livre vai ao leilão. Nasce livre e se vincula pelo uso: language
+    # PetAdvancedView.useBindPointTip/useBindGoodsTip (Balens ou itens vinculados), equipar, devorar e lutar
+    is_bind: bool = False
     cha_skills: str = "-1,-1,-1"  # PetInfoMsg.chaSkillIndexs: skills do torneio (8726)
     held: bool = False  # no leilão ou no correio (item -900): fora da lista até alguém pegar (5022) ou cancelar
     quality_gp: int = 0  # PetInfoMsg.curQualityGp: a barra de bênção do avanço (8621 op 4) dentro da estrela
