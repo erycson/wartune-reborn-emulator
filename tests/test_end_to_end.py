@@ -149,7 +149,7 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         assert codes.index(4238) < codes.index(4434)
         assert [c for c in codes if c not in (4247, 4238)] == [
             112, 4542, 4184, 4662, 4686,  # veículos só do nível 35 (tutorial_en não tem)
-            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4484, 4461, 4612, 4497, 295, 363, 364, 190, 4590, 514, 414, 4696, 4598, 150, 6,
+            4434, 4410, 4360, 4616, 4198, 4152, 4475, 4476, 4484, 4461, 4612, 4901, 4497, 295, 363, 364, 190, 4590, 514, 414, 4696, 4598, 150, 6,
         ]  # fmt: skip
         assert pb.LoginStateMsg.FromString(got[-1].body).playerId == user_id
         assert [p.code for p in await client.until(4151)] == [4151]  # tutorial_en #94: libera o mapa de campanhas
@@ -161,7 +161,9 @@ async def test_new_account_reaches_login_state(tmp_path: Path) -> None:
         second.send(20001, pb.LoginReqMsg(key=key, ekeys=list(ekeys)))
         second.rekey(ekeys)
         await second.until(150)
-        assert await asyncio.wait_for(client.reader.read(), 5) == b""
+        # o que já estava a caminho chega antes do EOF: lê até o primeiro cair
+        while await asyncio.wait_for(client.reader.read(65536), 5):
+            pass
         second.writer.close()
     finally:
         await http.close()

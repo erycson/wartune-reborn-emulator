@@ -316,7 +316,6 @@ def login_push(s: GameSession) -> None:
     #88 e 364 #102, sem pedido; vazios: o servidor não tem as edições) e minério, super assinatura e cadeiras fechados
     (190, 4590, 414: #109, #110, #112)."""
     gemmaze.login_push(s)
-    slot.login_push(s)
     send_rebate(s)
     snap = s.snapshot
     assert snap is not None
@@ -325,6 +324,7 @@ def login_push(s: GameSession) -> None:
         _send_fund(s, snap)
     if _fund_cfg(s, NORMAL):
         _send_fund(s, snap, NORMAL)
+    slot.login_push(s)  # (visto) 215937 #92, 231733 #95: 4612, 4638, 4640, 4901, 363
     gold_tree.login_push(s)
     _send(s, S_LUCKY_TEMP, _lucky_temp(s, s.ctx.clock.now()))
     _send(s, S_LUCKY_INFO, _lucky_info(s, snap, s.ctx.clock.now()))
