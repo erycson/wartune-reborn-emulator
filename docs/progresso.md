@@ -30,20 +30,20 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Itens | 13 | 2 | 11 | 0 | 2 |
 | Lojas e mercado | 7 | 4 | 1 | 0 | 1 |
 | Chat e social | 6 | 1 | 5 | 0 | 1 |
-| Clã / Guilda | 10 | 0 | 9 | 2 | 1 |
-| Campanhas e masmorras | 7 | 7 | 8 | 2 | 3 |
+| Clã / Guilda | 10 | 0 | 11 | 0 | 1 |
+| Campanhas e masmorras | 7 | 7 | 9 | 1 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
-| Batalha | 5 | 6 | 1 | 2 | 1 |
+| Batalha | 5 | 6 | 2 | 1 | 1 |
 | Missões | 12 | 3 | 2 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 4 | 2 | 10 | 1 | 2 |
-| Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
-| PvP e chefes | 1 | 2 | 3 | 3 | 2 |
-| Atividades e eventos | 5 | 10 | 11 | 2 | 5 |
-| VIP | 1 | 0 | 5 | 1 | 0 |
+| Mapa do mundo (cidade externa) | 4 | 2 | 11 | 0 | 2 |
+| Mundo compartilhado | 4 | 1 | 1 | 0 | 2 |
+| PvP e chefes | 1 | 2 | 5 | 1 | 2 |
+| Atividades e eventos | 5 | 11 | 11 | 1 | 5 |
+| VIP | 1 | 0 | 6 | 0 | 0 |
 | Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **119** | **60** | **86** | **22** | **34** |
+| **Total** | **119** | **61** | **95** | **12** | **34** |
 
 ## Validação e base
 
@@ -217,8 +217,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anúncio de recrutamento | 🧪 | | canal e remetente inventados |
 | Correio de guilda | ✅ | | |
 | Guerra de guildas | ✅ | | mapa 4501 (26/10 #2464-#6452): par das 8 maiores, torres, placar/10000, vantagem de 4000, feridas, buffs, prêmio; PvP 8548 com luta real (battleType 24 do cliente, cópia do inimigo, sem captura) e o perdedor no acampamento; TODO: janela diária e carro/invencível sem efeito |
-| Guerra entre servidores | ❌ | | |
-| Master Treasure Thief (8743) | ❌ | | |
+| Guerra entre servidores | 🧪 | | fila local (`handlers/cruzado.py`): 8779 inscreve, dois jogadores daqui lutam (cópia do herói, battleType 10), o primeiro assiste; pontos no `crossScore`; torres/inspirar/grupos seguem como antes TODO(inventado) |
+| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 30 nós masterType 181 em 3 levas de 180 s; luta e prêmio do Invasor (inventado) |
 
 ## Campanhas e masmorras
 
@@ -247,7 +247,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Link de sala no chat (9504) | ✅ | | |
 | Salas PvP (5023, 5039, 8344, 8465) | ✅ | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); arena em grupo (handlers/arena_grupo.py): salas na fila emparelham, luta battleType 10 time contra time, 4103, missão 16, leed 13, contador `match`, Insignia x10 na derrota (27/10 #19912-#19995); prêmios em game_settings.arena_party (0107); pontos semanais (crossScore do 3) e ranking em cross/crossscore.xml do PvpHeroFrame (game/arena_grupo.py); dono que cai perde e as salas voltam a 1; vitória x20, pontos 10/5, texto "Points +N" e lugares do lado 2 inventados; só salas deste servidor |
 | Falas e câmera no meio da luta (171/142) | ❌ | | |
-| Pedágio (8752-8755) | ❌ | | fechado |
+| Pedágio = Gods Descent (8752-8755 type 1, 5021 type 2) | 🧪 | | 30 chefes `CampaignData` 40002, ScoreReward/LuckyReward, regras do `GodArriveFrame` e da ajuda; janela, contagem de 30 min, pontos e posições da sorte TODO(inventado) (0119) |
 
 ## Labirinto (Forgotten Catacombs)
 
@@ -281,7 +281,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | PvP manual | ✅ | | |
 | EXP do mundo e EXP descansada | 🧪 | 🇹🇷 | 10× só turco; nível mínimo e acúmulo inventados (`rules.py:519,539`) |
 | Selo sagrado, itens na luta, skill de casal | ❌ | | |
-| QTE, assistir batalha, postura | ❌ | | |
+| QTE, assistir batalha, postura | 🧪 | | assistir (8985): espectadores na `Battle` recebem tudo, 157/156 ao entrar e 4803 no fim; o inglês não tem botão que chame (só `BattleCDViewFrame`); QTE e postura sem efeito |
 
 ## Missões
 
@@ -335,7 +335,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço entra na luta em curso (`Battle.join`), na partilha e na missão 89; login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
 | PK no campo de animais (8525) | 🧪 | | ilha dos pets/mina: luta direta (BattleType 19); convite do menu (op 1 → 4421, op 2 só com convite pendente); battleScene inventado |
-| Passe de progresso (8636/8637) | ❌ | | |
+| Passe = Sky Trails (8636-8638, 8753/8755 type 0) | 🧪 | | 100 fases `CampaignData` 40001, BossReward/AreaReward, 10 lutas/dia (`SinglePass_Count`), Heaven Horn, atividade 113; avaliação pela vida que sobra TODO(inventado) (0119) |
 | Ataque extra (9506) | ✅ | | |
 | Coleta de Amethyst e Copper | 🧪 | | Amethyst: carrinho despejado na mina 30000 dá 200 (`DUMP_AMETHYST`, TODO(inventado)) e paga a loja 11; Copper sem fonte |
 
@@ -347,7 +347,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Cidade do céu: presença e visual (4606/4607, 149) | ✅ | 🇹🇷 | 4606/4607 e o 149 de quem chega no inglês (215937 #826-#830) |
 | Cidade do céu: nós e NPCs | ✅ | | |
 | Ilha dos pets (127, patrulha) | ✅ | 🇹🇷 | sequência do turco |
-| Coleta no espaço (8733) | ❌ | | |
+| Coleta no espaço (8733) | 🧪 | | nó 18 (Rose Lilies) do 10000: 143 COLLECTION com o anel pedindo o item, 8733 depois de 1 s dá 1 Rose Lily (mochila/correio) |
 | Times livres | ✅ | | |
 
 ## PvP e chefes
@@ -357,12 +357,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Janela do PvP | ✅ | | |
 | Coliseu | 🧪 | 🇹🇷 | EXP 180/120 por nível, 157, 4176 e o VIP Token no inglês; Luck Stone do turco; prêmios por posição inventados (`arena.py:347`) |
 | Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida e dano do pet aproximados |
-| Arena entre servidores (8590) | ❌ | | |
+| Arena entre servidores (8590) | 🧪 | | fila local; 4482 com pontos, Warrior's Mark com 1000 pontos e Road Warrior no top 20 (`pvpHeroFrame.rewardTip`); a marca é a Insignia 208001 TODO(inventado) (0121); 1x/semana |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); PvP 8334 entre jogadores locais (157 battleType 32 contra a cópia do alvo, 4494 state 2/0, 4104/4175 com o perdedor em 179,75 por 25 s, 4103, 4388 tipo 4, 4269 de ganho e perda; perda de 15% e ganho igual, inventados); missões 45 (abate no PvP, 767 vista #11106) e 50 (vitória da partida, posição do 112 inventada); honra e Amethyst sem moeda; nós, vencedor e constantes no código (sem `game_settings`) inventados |
 | Ataque a castelo/exército de jogador | 🧪 | | castelo (5160) e exército (8488) contra a cópia do herói; recusa por trégua, guilda e nível pelo cliente; saque, relatório da defesa e PvP de exércitos sem captura |
 | Boss mundial: agenda e luta | 🧪 | | luta inteira vista (27/10 e 26/10: avisos, barreira, moral, fim, correios, reviver pago); vida = Live × 1,5 por abate (exato nas capturas); último golpe direto; inventado: o correio do último golpe se quem matou saiu; cair sem abate e `kill_turn` da internet |
-| Boss mundial: buff e dublê | ❌ | | |
+| Boss mundial: buff e dublê | 🧪 | | buff 8470 (Types 4, 401-420, 20 Balens/vinculados, +5% por grau no herói); dublê 8526/4424/4423 por 135 Balens, prêmio na janela fechada = ouro/Daru do teto TODO(inventado) |
 
 ## Atividades e eventos
 
@@ -392,7 +392,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Loteria (8750/8748) | 🧪 | | tentativas pelo gasto de Balens no `cash_ledger` (idioma) e mensagens do cliente (`lottery.py`, `game_settings.lottery`); avisos do 4639 gravados no banco; sorteio e texto inventados |
 | Cadeiras (9638) | 🧪 | | mensagens do cliente (`chairs.py`, `game_settings.chairs`); regra inteira inventada (cadeira por recarga, sortudos pelo total) |
 | Sorteio de grupo (9523) | 🟡 | | ligados por padrão (migração 0103, toda regra em `game_settings` com `source`); roleta 338/4936 pelo cliente (`group_draw.py`); cada compra coletiva (8645, `group_buy.py`) dá 1 sorteio; sorteio inventado |
-| Campo minado, caixa de ano novo, história | ❌ | | |
+| Campo minado (atividade 111), caixa de ano novo, história | 🟡 | | 111 = participar da Amethyst Mine (`TYPE_MINEFIELD_BATTLE`, title111): cada 8633 conta no período; caixa de ano novo e história sem tela |
 | Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
 | Corneta (passe), 360 | ❌ | | |
@@ -406,7 +406,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Presente semanal, cartão de teste, roleta | ✅ | | |
 | Contrato do rei: compra | 🧪 | | presente a amigo como o VIP: 4434 ao amigo online, banco se offline, carta do sistema (texto inventado) |
 | Contrato do rei: efeitos | 🧪 | | cura e varredura (`rules.py:210`, `sweep.py:40`) |
-| Privilégios extras (montaria, missões, cornetas) | ❌ | | lista em [eventos.md](eventos.md); só o aviso 4610 da montaria VIP (cartão e primeiro login vencido) |
+| Privilégios (todos os tipos) | 🧪 | | cada `VipPrerogativeTempInfos.type` com onde vale em `vip.PRIVILEGES` (teste confere a tabela inteira); 1, 11 e 15 sem efeito no servidor (visual, cliente repete o 8269, nenhuma luta tira honra) |
 | Loja do teste (8582) | 🧪 | | é a loja da Spire: ver Torres 8200-8204 |
 
 ## Veículos (Tank Trials)
