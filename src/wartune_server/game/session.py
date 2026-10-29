@@ -171,7 +171,7 @@ class GameSession:
         # item -> de onde o herói o mandou para a bancada (5005): tirar da bancada devolve lá
         # shortcut: só na memória da sessão (relogar ou reiniciar manda para a mochila); gravar se o oficial lembrar
         self.bench_from: dict[int, tuple[int, int, int]] = {}
-        self.maze_order = 0  # order do 4205: posição no recorde das Catacombs, calculada ao abrir (handlers.tower)
+        self.maze_order: dict[str, int] = {}  # order do 4205 por torre (Kind.key), calculada ao abrir (handlers.tower)
         self.fish_pool: Any = None  # cardume da pesca (game.fishing.Pool), criado na primeira abertura
         self.fish_watch = 0  # dono da piscina que este jogador está vendo para ajudar (9507 op 6)
         self.fish_order = 0  # order do 4916: posição nos pontos da semana, calculada ao abrir (handlers.fishing)

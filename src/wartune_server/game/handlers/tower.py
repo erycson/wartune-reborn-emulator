@@ -1,4 +1,4 @@
-"""Forgotten Catacombs (8296/8297/8299/8300, 4205/4373) e guarda de batalha (8742).
+"""Forgotten Catacombs e Tormented Necropolis (8296/8297/8299/8300, 4205/4373) e guarda de batalha (8742).
 
 Andares e estado em ``game/maze.py``; a luta, o portal e a varredura passam pela masmorra (``handlers/campaign.py``,
 ``handlers/dungeon.py``). Fontes em docs/salas-campanha.md. As gemas da guarda não são modeladas.
@@ -28,14 +28,24 @@ RESPAWN_TITLE = "Respawn Note"
 MAZE_LEED = 23  # LeedTemp 23 "Enter Forgotten Catacombs"
 
 
-def _cfg(s: GameSession) -> dict[str, Any]:
-    return mz.settings(s.ctx.world.settings)
+def _cfg(s: GameSession, kind: mz.Kind = mz.CATACOMBS) -> dict[str, Any]:
+    return mz.settings(s.ctx.world.settings, kind)
+
+
+def _kind(s: GameSession) -> mz.Kind:
+    """A torre do andar onde o jogador está."""
+    return (mz.kind_of(s.campaign.map_id) if s.campaign is not None else None) or mz.CATACOMBS
+
+
+def _info(s: GameSession, tower: mz.Tower, kind: mz.Kind) -> pb.TowerInfoMsg:
+    return mz.info(tower, _cfg(s, kind), kind, s.maze_order.get(kind.key, 0))
 
 
 def tower_msg(s: GameSession, index: int = 0) -> pb.TowerInfoMsg:
     snap = s.snapshot
     assert snap is not None
-    return mz.info(mz.load(snap, s.ctx.clock.now()), _cfg(s), index, s.maze_order)
+    kind = mz.KINDS[index] if 0 <= index < len(mz.KINDS) else mz.CATACOMBS
+    return _info(s, mz.load(snap, s.ctx.clock.now(), kind), kind)
 
 
 def record(s: GameSession) -> int:
@@ -47,10 +57,12 @@ def login_list(s: GameSession) -> pb.TowerListMsg:
     """4373 do login: (visto) tutorial_en e 215937 vazio sem registro; (só turco: login #55) com a torre."""
     snap = s.snapshot
     assert snap is not None
-    tower = mz.load(snap, s.ctx.clock.now())
-    if not tower.record and not tower.index:
-        return pb.TowerListMsg()
-    return pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s), order=s.maze_order)])
+    out = pb.TowerListMsg()
+    for kind in mz.KINDS:
+        tower = mz.load(snap, s.ctx.clock.now(), kind)
+        if tower.record or tower.index:
+            out.towerInfo.append(_info(s, tower, kind))
+    return out
 
 
 @router.on(8297)
@@ -59,8 +71,9 @@ async def tower_info(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
     shortcut: o 4373 do login vai com order 0 até a primeira abertura."""
     snap = s.snapshot
     assert snap is not None
-    states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, mz.KEY))
-    s.maze_order = mz.position(states, s.player_id)
+    kind = mz.KINDS[msg.index] if 0 <= msg.index < len(mz.KINDS) else mz.CATACOMBS
+    states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, kind.key))
+    s.maze_order[kind.key] = mz.position(states, s.player_id, kind)
     s.send(S_TOWER_INFO, tower_msg(s, msg.index))
 
 
@@ -71,11 +84,12 @@ async def tower_reset(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
-    tower = mz.load(snap, now)
-    if msg.index == 0 and s.campaign is None:
+    kind = mz.KINDS[msg.index] if 0 <= msg.index < len(mz.KINDS) else mz.CATACOMBS
+    tower = mz.load(snap, now, kind)
+    if s.campaign is None:
         tower.index, tower.gp, tower.items, tower.double = 0, 0, [], False
-        await s.ctx.characters.save(mz.store(snap, tower, now))
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), msg.index, s.maze_order))
+        await s.ctx.characters.save(mz.store(snap, tower, now, kind))
+    s.send(S_TOWER_INFO, _info(s, tower, kind))
 
 
 @router.on(8296)
@@ -83,14 +97,18 @@ async def tower_enter(s: GameSession, msg: pb.EnterTowerInfoMsg) -> None:
     """Entrar (``MazeFrame``): ``chooseIndex`` 1 Start (gasta uma entrada do dia, do andar 1; "No attempts left!"
     sem entrada), 0 Continue (o andar da corrida). ``isDouble`` 2 gasta uma Crypt Key (sem ela o cliente abre a
     compra). (só turco: yeralti #26-#39) 4205, 4165, 150, 150, 125, 140, 21, 3, 4902/150, 4903, 127, 4205 e o 83 da
-    poção de vida."""
+    poção de vida. A Necropolis (8101) só abre com o recorde 100 das Catacombs."""
     snap = s.snapshot
     assert snap is not None
-    now, cfg = s.ctx.clock.now(), _cfg(s)
-    tower = mz.load(snap, now)
-    if msg.campaignId != mz.CAMPAIGN or s.campaign is not None or s.battle is not None:
-        s.log.info("8296 recusado", campanha=msg.campaignId)  # shortcut: a Necropolis (8101) não tem andares aqui
+    kind = mz.kind_of(msg.campaignId)
+    if kind is None or msg.campaignId != kind.campaign or s.campaign is not None or s.battle is not None:
+        s.log.info("8296 recusado", campanha=msg.campaignId)
         return
+    now, cfg = s.ctx.clock.now(), _cfg(s, kind)
+    if not mz.is_open(snap, cfg):
+        s.log.info("8296 torre fechada", campanha=msg.campaignId)
+        return
+    tower = mz.load(snap, now, kind)
     key: tuple[Item, bool] | None = None
     if msg.chooseIndex == START:
         if tower.enters >= int(cfg["max_enter"]):
@@ -108,15 +126,15 @@ async def tower_enter(s: GameSession, msg: pb.EnterTowerInfoMsg) -> None:
         item, gone = key
         await s.ctx.characters.save(*([] if gone else [item]), delete=(item,) if gone else ())
         s.send(S_ITEMS, rewards.taken_msg(item, gone, s.player_id))
-    await s.ctx.characters.save(mz.store(snap, tower, now))
-    await _enter(s, tower)
-    if msg.chooseIndex == START:
+    await s.ctx.characters.save(mz.store(snap, tower, now, kind))
+    await _enter(s, tower, kind)
+    if msg.chooseIndex == START and kind == mz.CATACOMBS:
         from . import events as hev  # events importa este módulo
 
         await hev.leed_done(s, MAZE_LEED)
 
 
-async def _enter(s: GameSession, tower: mz.Tower) -> None:
+async def _enter(s: GameSession, tower: mz.Tower, kind: mz.Kind) -> None:
     from . import campaign as ch  # campaign importa login, que importa este módulo
     from . import systems
     from .login import army
@@ -125,9 +143,9 @@ async def _enter(s: GameSession, tower: mz.Tower) -> None:
     snap = s.snapshot
     assert snap is not None
     templates = s.ctx.templates
-    floor_map = mz.map_of(tower.index)
-    full = mz.content(templates, _cfg(s))
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
+    floor_map = mz.map_of(tower.index, kind)
+    full = mz.content(templates, _cfg(s, kind), kind)
+    s.send(S_TOWER_INFO, _info(s, tower, kind))
     ch._send(s, ch.S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
@@ -140,9 +158,9 @@ async def _enter(s: GameSession, tower: mz.Tower) -> None:
     ch._send(s, ch.S_ROOM_ENTER, ch._room_enter(s))
     await ch._push_player(s)
     s.send(ch.S_FULL_ARMY, b.complete(army(s, snap)[0]))
-    systems.send_camp_buffs(s, systems.camp_type(ch._campaign_row(s, mz.CAMPAIGN)))
+    systems.send_camp_buffs(s, systems.camp_type(ch._campaign_row(s, kind.campaign)))
     ch._send(s, ch.S_NODES, c.node_list())
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
+    s.send(S_TOWER_INFO, _info(s, tower, kind))
     healed = rules.heal_hero(snap, templates, s.ctx.clock.now()) if snap.leader is not None else 0
     hp_pack(s, healed)  # (só turco: yeralti #39) "HP Paketi kullanılarak HP arttırıldı."
     if snap.leader is not None:
@@ -155,13 +173,14 @@ def died(s: GameSession) -> Any:
     seguintes custam 25 (jogador 28/10: 0, 25, 25; sair não zera). Devolve a linha a gravar."""
     snap = s.snapshot
     assert snap is not None
-    now, cfg = s.ctx.clock.now(), _cfg(s)
-    tower = mz.load(snap, now)
+    kind = _kind(s)
+    now, cfg = s.ctx.clock.now(), _cfg(s, kind)
+    tower = mz.load(snap, now, kind)
     tower.deaths += 1
     tower.dead = True
     cost = 0 if tower.deaths == 1 else int(cfg["revive"])
     s.send(S_TOWER_DIED, pb.TowerDiedMsg(title=RESPAWN_TITLE, msg=str(cost)))
-    return mz.store(snap, tower, now)
+    return mz.store(snap, tower, now, kind)
 
 
 def floor_entered(s: GameSession, map_id: int) -> list[Any]:
@@ -172,14 +191,15 @@ def floor_entered(s: GameSession, map_id: int) -> list[Any]:
 
     snap = s.snapshot
     assert snap is not None
-    now = s.ctx.clock.now()
-    tower = mz.load(snap, now)
+    now, kind = s.ctx.clock.now(), mz.kind_of(map_id) or mz.CATACOMBS
+    tower = mz.load(snap, now, kind)
     tower.index = mz.floor_of(map_id)
     tower.raise_record(tower.index, now)  # (visto 10/28 #1672 maxIndex 28 antes de vencer o 28)
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
-    quests = rules.quest_event(snap, s.ctx.templates, rules.CATACOMBS_CONDITION, mz.CAMPAIGN, 1)
+    s.send(S_TOWER_INFO, _info(s, tower, kind))
+    quests = rules.quest_event(snap, s.ctx.templates, rules.CATACOMBS_CONDITION, mz.CAMPAIGN, 1) if (
+        kind == mz.CATACOMBS) else []  # fmt: skip
     send_quests(s, quests)
-    return [mz.store(snap, tower, now), *quests]
+    return [mz.store(snap, tower, now, kind), *quests]
 
 
 def floor_won(s: GameSession, map_id: int, gp: int) -> Any:
@@ -187,12 +207,12 @@ def floor_won(s: GameSession, map_id: int, gp: int) -> Any:
     antes do 131. Devolve a linha a gravar."""
     snap = s.snapshot
     assert snap is not None
-    now = s.ctx.clock.now()
-    tower = mz.load(snap, now)
+    now, kind = s.ctx.clock.now(), mz.kind_of(map_id) or mz.CATACOMBS
+    tower = mz.load(snap, now, kind)
     tower.gp += gp
     tower.raise_record(mz.floor_of(map_id), now)
-    s.send(S_TOWER_LIST, pb.TowerListMsg(towerInfo=[mz.info(tower, _cfg(s), order=s.maze_order)]))
-    return mz.store(snap, tower, now)
+    s.send(S_TOWER_LIST, pb.TowerListMsg(towerInfo=[_info(s, tower, kind)]))
+    return mz.store(snap, tower, now, kind)
 
 
 async def leave_maze(s: GameSession) -> bool:
@@ -207,12 +227,12 @@ async def leave_maze(s: GameSession) -> bool:
     assert snap is not None
     if s.campaign is None or not mz.is_floor(s.campaign.map_id):
         return False
-    now = s.ctx.clock.now()
-    tower = mz.load(snap, now)
+    now, kind = s.ctx.clock.now(), _kind(s)
+    tower = mz.load(snap, now, kind)
     if tower.dead:
         s.send(S_TOWER_REPORT, pb.TowerInfoMsg(itemTempIds=tower.item_ids()))
         tower.index, tower.gp, tower.items, tower.double, tower.dead = 0, 0, [], False, False
-        await s.ctx.characters.save(mz.store(snap, tower, now))
+        await s.ctx.characters.save(mz.store(snap, tower, now, kind))
     ch.exit_to_city(s)
     return True
 
@@ -221,7 +241,7 @@ def doubled(s: GameSession, gp: int) -> int:
     """Corrida com a Crypt Key: TODO(inventado) a EXP do andar em dobro (o cliente só diz "lucro dobrado")."""
     snap = s.snapshot
     assert snap is not None
-    return gp * 2 if mz.load(snap, s.ctx.clock.now()).double else gp
+    return gp * 2 if mz.load(snap, s.ctx.clock.now(), _kind(s)).double else gp
 
 
 async def open_chest(s: GameSession, camp: int, goods: list[list[int]]) -> None:
@@ -238,9 +258,10 @@ async def open_chest(s: GameSession, camp: int, goods: list[list[int]]) -> None:
         s.log.info("baú do labirinto: mochila cheia", nó=camp)
         return
     new, _ = rewards.grant(snap, templates, got)
-    tower = mz.load(snap, now)
+    kind = _kind(s)
+    tower = mz.load(snap, now, kind)
     tower.add_items(got)
-    await s.ctx.characters.save(*rewards.owners(snap), *new, mz.store(snap, tower, now))
+    await s.ctx.characters.save(*rewards.owners(snap), *new, mz.store(snap, tower, now, kind))
     ch._node_update(s, camp, DONE)
     s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
     hev.progress(s)
@@ -248,7 +269,7 @@ async def open_chest(s: GameSession, camp: int, goods: list[list[int]]) -> None:
         hev.send_titles(s)
     text = rewards.received(templates, got)
     ch._send(s, ch.S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
-    s.send(S_TOWER_INFO, mz.info(tower, _cfg(s), order=s.maze_order))
+    s.send(S_TOWER_INFO, _info(s, tower, kind))
     ch._send(s, ch.S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
 
 
@@ -266,9 +287,9 @@ async def tower_live(s: GameSession, msg: pb.PayTypeMsg) -> None:
     assert snap is not None
     if s.campaign is None or not mz.is_floor(s.campaign.map_id) or snap.leader is None:
         return
-    now = s.ctx.clock.now()
-    tower = mz.load(snap, now)
-    cost = 0 if tower.deaths <= 1 else int(_cfg(s)["revive"])  # a 1ª morte da entrada é grátis
+    now, kind = s.ctx.clock.now(), _kind(s)
+    tower = mz.load(snap, now, kind)
+    cost = 0 if tower.deaths <= 1 else int(_cfg(s, kind)["revive"])  # a 1ª morte da entrada é grátis
     paid = cash.pay(snap.character, cost, msg.payType, "maze_revive", str(s.campaign.map_id), now) if cost else None
     if cost and paid is None:
         s.log.info("8300 sem Balens")
@@ -276,7 +297,7 @@ async def tower_live(s: GameSession, msg: pb.PayTypeMsg) -> None:
     rules.heal_hero(snap, s.ctx.templates, now)
     tower.dead = False  # (visto 10/24 #13956-#13959) revivido, a saída depois não manda o 4419
     await s.ctx.characters.save(
-        snap.character, snap.leader, mz.store(snap, tower, now), *([paid] if paid is not None else [])
+        snap.character, snap.leader, mz.store(snap, tower, now, kind), *([paid] if paid is not None else [])
     )
     if paid is not None:
         await _push_player(s)

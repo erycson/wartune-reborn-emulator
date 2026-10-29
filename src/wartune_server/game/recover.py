@@ -10,8 +10,8 @@ outro dia. Atividades e o contador de cada uma:
   (leed 18 "Fight a World BOSS"), 6 Altar of Ennoblement (``hangup``: estamina meditada no dia), 10 cobrança do
   conselho (``castle.impose_used``), 7 estamina que transbordou na virada (``weary + 100`` acima de ``weary_limit``),
   5 The Spire (``torres``: a entrada do dia, "spire").
-- 3 Tormented Necropolis não tem entrada no servidor: conta como não feita (só depois do recorde 100 das
-  Catacombs, que a abre).
+- 3 Tormented Necropolis: as entradas do dia na torre (``maze.NECROPOLIS``); fechada (recorde das Catacombs abaixo
+  de 100) não tem o que recuperar.
 
 Prêmio por ``MasterType`` (language ``active.expback.MasterTypeN``): 1 EXP, 2 ouro, 3 estamina, 4 insígnia,
 5 "Gold Daru" (ouro e Daru).
@@ -91,8 +91,12 @@ def _used_yesterday(snap: PlayerSnapshot, son: int, now: datetime) -> int:
         return impose_used(snap.castle, now - timedelta(days=1))
     if son == SPILL:  # a virada dá 100 (daily.WEARY_DAILY = OneDayMax) até o teto: o que cabe não transborda
         return max(0, c.weary_limit - c.weary)
-    if son == NECROPOLIS and maze.record(snap) < 100:
-        return 1 << 30  # fechada: nada a recuperar
+    if son == NECROPOLIS:
+        if not maze.is_open(snap, maze.settings(None, maze.NECROPOLIS)):
+            return 1 << 30  # fechada: nada a recuperar
+        st = ev.peek(snap, maze.NECROPOLIS.key)
+        run = json.loads(st.text) if st is not None and st.text else {}
+        return int(run.get("enters", 0)) if run.get("day") == gameday.today(now - timedelta(days=1)) else 0
     return 0
 
 

@@ -32,7 +32,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
 | Campanhas e masmorras | 6 | 10 | 6 | 2 | 3 |
-| Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
+| Labirinto (Forgotten Catacombs) | 4 | 1 | 4 | 1 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 1 | 6 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **92** | **45** | **42** | **34** |
+| **Total** | **100** | **92** | **46** | **41** | **34** |
 
 ## Validação e base
 
@@ -261,7 +261,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Corrida dobrada (Crypt Key) | 🧪 | | EXP em dobro inventada (`tower.py:170`) |
 | Reviver (8300) | ✅ | | grátis: 111 "Respawn Successful!" e 4175; pago: 3, devoção, 150, 4434 antes (28/10 #1134, #1566, #1755) |
 | Varredura do labirinto (8528 tipo 2) | 🧪 | | baús dos andares 5/10/15/20 com fichas e gema, ordem 115/83/111/4425 (25/10 #9394-#9650); o oficial sorteia a gema por corrida, aqui fixa; itens extras após o status 5 (#9630-#9643) sem origem; dobrado inventado (`sweep.py:155`) |
-| Necropolis (8101) | ❌ | | sem andares |
+| Necropolis (8101) | 🧪 | | 30 andares pelo cliente/templates (mapas 8101-8130, chefes GameHeroTemp 8001-8030 "Level k Guardian", `checkMaze2`/`towerInfo2`, varredura até 29), abre com o recorde 100 das Catacombs; mesma torre do labirinto (`maze.Kind`): entrada diária, morte/reviver, baús, ranking, varredura. Sem captura: EXP (400 x (100+k)), baús, sonType dos nós e varredura a partir do 10 inventados (`maze.py` NECROPOLIS) |
 | Guarda de batalha e gemas (8742/4631) | ❌ | 🇹🇷 | gemas não modeladas; o 4631 vazio no login (turco) |
 
 ## Batalha
@@ -385,7 +385,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Caça ao tesouro, quiz, minério | ❌ | | fechados |
 | Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
 | Campo minado, caixa de ano novo, história | ❌ | | |
-| Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis sem entrada: conta como não feita; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
+| Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis pelas entradas do dia da torre, fechada sem o recorde 100; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
 | Corneta (passe), 360 | ❌ | | |
 

@@ -34,14 +34,15 @@ async def _settle_maze(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False
     snap = s.snapshot
     assert snap is not None
     now, before = s.ctx.clock.now(), snap.character.grades
-    tower = mz.load(snap, now)
+    kind = mz.kind_of(sweep.campaign_id) or mz.CATACOMBS
+    tower = mz.load(snap, now, kind)
     done = sweep.done
     got, changed = sw.settle_maze(
-        snap, s.ctx.templates, sweep, tower, mz.settings(s.ctx.world.settings), s.ctx.world.settings, now,
+        snap, s.ctx.templates, sweep, tower, mz.settings(s.ctx.world.settings, kind), s.ctx.world.settings, now,
         all_now=all_now,
     )  # fmt: skip
     pet = P.share_gp(s, sum(gp for gp, _, _ in got))
-    rows = [*rewards.owners(snap), *changed, mz.store(snap, tower, now), sw.store(snap, sweep, now)]
+    rows = [*rewards.owners(snap), *changed, mz.store(snap, tower, now, kind), sw.store(snap, sweep, now)]
     await s.ctx.characters.save(*rows, *([pet] if pet is not None else []))
     if not got:
         return []
@@ -138,13 +139,15 @@ async def _maze_start(s: GameSession, msg: pb.CampaignSweepReq) -> None:
     snap = s.snapshot
     assert snap is not None
     now, templates = s.ctx.clock.now(), s.ctx.templates
-    tower = mz.load(snap, now)
-    if why := sw.maze_refusal(snap, templates, tower, mz.settings(s.ctx.world.settings), msg.eIndex):
+    kind = mz.kind_of(msg.campaignId) or mz.CATACOMBS  # (cliente) MazeMopupPrepareFrame manda o campaignId da torre
+    cfg = mz.settings(s.ctx.world.settings, kind)
+    tower = mz.load(snap, now, kind)
+    if why := sw.maze_refusal(snap, templates, tower, cfg, msg.eIndex):
         s.log.info("8528 do labirinto recusado", status=why, até=msg.eIndex, andar=tower.index)
         _send(s, pb.CampaignSweepRsp(status=why, sweepType=sw.MAZE))
         return
     first = max(tower.index, 1)
-    new = sw.Sweep(mz.CAMPAIGN, msg.eIndex - first + 1, b.fmt_time(now), kind=sw.MAZE, first=first)
+    new = sw.Sweep(kind.campaign, msg.eIndex - first + 1, b.fmt_time(now), kind=sw.MAZE, first=first)
     out = sw.response(new, templates, now, sw.OK)
     out.ClearField("result")  # (só turco: #4) o 4425 do começo vai só com o status
     await s.ctx.characters.save(sw.store(snap, new, now))

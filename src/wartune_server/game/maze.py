@@ -11,6 +11,12 @@ o portal), o baú ``+3`` (só a cada 5 andares, visível) e o portal ``+4`` (sta
 próximo mapa). Nos andares de chefe (5, 10, ...) o monstro tem ``heroTempId`` = ``7000 + k``.
 
 Estado em ``EventState`` ``maze`` (``text`` JSON). Regras em ``game_settings.maze`` (migração 0087).
+
+Tormented Necropolis (campanha 8101, ``Kind`` ``NECROPOLIS``): a mesma torre com outro estado. (cliente)
+``WorldBossHelper.checkMaze2`` (8101-8129), ``PlayerManager.towerInfo2`` (o 4205/4373 com ``campaignId`` 8101),
+``MazeMopupPrepareFrame`` (varredura até 29), ``MazeView`` (aba 1); (templates) ``MapInfos`` 8101-8130 (30 andares,
+``MapFileId`` 8001/8002/8003 como os andares 1-30 das Catacombs) e ``GameHeroTemp`` 8001-8030 "Level k Guardian" (o
+monstro do andar k, sempre chefe). Sem captura: nós, sonType e prêmios seguem as Catacombs (TODO(inventado)).
 """
 
 from __future__ import annotations
@@ -47,6 +53,8 @@ DEFAULT: dict[str, Any] = {
     "floors": 100,  # MapInfos 8001-8100 e os monstros 7001-7100
     # (visto) 4205 totalGp = 200 * k * (k + 1) depois de vencer o andar k (400, 1200, ... 76000, 84000, 120000)
     "gp_per_floor": 400,
+    "gp_from": 0,  # o andar k vale gp_per_floor * (gp_from + k)
+    "open_at": 0,  # recorde das Catacombs que abre a torre
     "free_enter": 1,  # (visto, só turco) freeEnterCount 1, maxEnterCount 1 em todos os 4205
     "max_enter": 1,
     # (visto, 4103 de 24/10 #12181 a #13269) nenhuma vitória dos andares 1-15 deu item de monstro, só EXP (gpBonus).
@@ -65,8 +73,37 @@ DEFAULT: dict[str, Any] = {
 }
 
 
-def settings(world_settings: Any) -> dict[str, Any]:
-    return DEFAULT | dict((world_settings or {}).get(SETTING) or {})
+@dataclass(frozen=True)
+class Kind:
+    key: str  # EventState
+    setting: str  # game_settings
+    campaign: int
+    first_map: int  # andar k = mapa first_map + k
+    monster_base: int  # monstro do andar k = TemplateId monster_base + k
+    index: int  # aba do MazeFrame (TowerInfoMsg.index)
+    over: tuple[tuple[str, Any], ...] = ()  # o que muda no DEFAULT
+
+
+CATACOMBS = Kind(KEY, SETTING, CAMPAIGN, FIRST_MAP, MONSTER_BASE, 0)
+NECROPOLIS = Kind("necropolis", "necropolis", SECOND, 8100, 8000, 1, (
+    ("floors", 30),  # (templates) MapInfos 8101-8130, GameHeroTemp 8001-8030; (cliente) varredura até 29
+    ("gp_from", 100),  # TODO(inventado): a EXP continua a das Catacombs (andar k vale o 100 + k)
+    ("open_at", 100),  # (cliente, idioma) "Requires passage through Level 100 of the Forgotten Catacombs."
+))  # fmt: skip
+KINDS = (CATACOMBS, NECROPOLIS)
+
+
+def kind_of(campaign_or_map: int) -> Kind | None:
+    """A torre da campanha ou do mapa de andar (``checkMaze``/``checkMaze2`` do cliente)."""
+    for k in KINDS:
+        top = k.first_map + int(dict(k.over).get("floors", DEFAULT["floors"]))
+        if campaign_or_map == k.campaign or k.first_map < campaign_or_map <= top:
+            return k
+    return None
+
+
+def settings(world_settings: Any, kind: Kind = CATACOMBS) -> dict[str, Any]:
+    return DEFAULT | dict(kind.over) | dict((world_settings or {}).get(kind.setting) or {})
 
 
 @dataclass
@@ -101,8 +138,8 @@ class Tower:
                 self.items.append([tid, n])
 
 
-def load(snap: PlayerSnapshot, now: datetime) -> Tower:
-    st = ev.peek(snap, KEY)
+def load(snap: PlayerSnapshot, now: datetime, kind: Kind = CATACOMBS) -> Tower:
+    st = ev.peek(snap, kind.key)
     tower = Tower(**json.loads(st.text)) if st is not None and st.text else Tower()
     today = gameday.today(now)
     if tower.day != today:  # (dedução) as entradas voltam no dia novo, como as das masmorras
@@ -110,22 +147,26 @@ def load(snap: PlayerSnapshot, now: datetime) -> Tower:
     return tower
 
 
-def store(snap: PlayerSnapshot, tower: Tower, now: datetime) -> Any:
-    st = ev.state(snap, KEY, now)
+def store(snap: PlayerSnapshot, tower: Tower, now: datetime, kind: Kind = CATACOMBS) -> Any:
+    st = ev.state(snap, kind.key, now)
     st.text, st.updated_at = json.dumps(asdict(tower)), now
     return st
 
 
-def record(snap: PlayerSnapshot) -> int:
+def record(snap: PlayerSnapshot, kind: Kind = CATACOMBS) -> int:
     """maxIndex gravado (0 sem corrida nenhuma)."""
-    st = ev.peek(snap, KEY)
+    st = ev.peek(snap, kind.key)
     return int(json.loads(st.text).get("record", 0)) if st is not None and st.text else 0
 
 
-def position(states: list[EventState], character_id: int) -> int:
+def is_open(snap: PlayerSnapshot, cfg: dict[str, Any]) -> bool:
+    return record(snap) >= int(cfg["open_at"])
+
+
+def position(states: list[EventState], character_id: int, kind: Kind = CATACOMBS) -> int:
     """``order``: 1 + quantos têm recorde maior ou o mesmo alcançado antes (jogador 28/10: andar, desempate pelo
     horário); 0 ("None") sem recorde."""
-    runs = {s.character_id: json.loads(s.text) for s in states if s.key == KEY and s.text}
+    runs = {s.character_id: json.loads(s.text) for s in states if s.key == kind.key and s.text}
     mine = runs.get(character_id, {})
     me = (-int(mine.get("record", 0)), mine.get("record_at", ""))
     if me[0] == 0:
@@ -135,11 +176,9 @@ def position(states: list[EventState], character_id: int) -> int:
     )
 
 
-def info(tower: Tower, cfg: dict[str, Any], index: int = 0, order: int = 0) -> pb.TowerInfoMsg:
-    """4205. ``index`` é a aba do MazeFrame (0 Catacombs, 1 Necropolis). ``order`` 0: o cliente mostra "None"."""
-    if index != 0:  # shortcut: a Necropolis (8101) não tem andares aqui; abre só com o recorde 100 da primeira
-        return pb.TowerInfoMsg(index=index, campaignId=SECOND, freeEnterCount=cfg["free_enter"],
-                               maxEnterCount=cfg["max_enter"])  # fmt: skip
+def info(tower: Tower, cfg: dict[str, Any], kind: Kind = CATACOMBS, order: int = 0) -> pb.TowerInfoMsg:
+    """4205. ``index`` é a aba do MazeFrame (0 Catacombs, 1 Necropolis); o cliente escolhe a torre pelo
+    ``campaignId``. ``order`` 0: o cliente mostra "None"."""
     return pb.TowerInfoMsg(
         enterCount=tower.enters,
         totalGp=tower.gp,
@@ -149,36 +188,42 @@ def info(tower: Tower, cfg: dict[str, Any], index: int = 0, order: int = 0) -> p
         maxEnterCount=cfg["max_enter"],
         itemTempIds=tower.item_ids(),
         freeEnterCount=cfg["free_enter"],
-        campaignId=CAMPAIGN,
-        index=index,
+        campaignId=kind.campaign,
+        index=kind.index,
     )
 
 
 def floor_gp(cfg: dict[str, Any], floor: int) -> int:
-    return int(cfg["gp_per_floor"]) * floor
+    return int(cfg["gp_per_floor"]) * (int(cfg["gp_from"]) + floor)
 
 
-def chest_goods(cfg: dict[str, Any], floor: int) -> list[list[int]]:
+def _seen(kind: Kind) -> dict[str, Any]:
+    """As capturas são todas das Catacombs."""
+    return _SEEN if kind == CATACOMBS else {"chests": {}, "floors": {}}
+
+
+def chest_goods(cfg: dict[str, Any], floor: int, kind: Kind = CATACOMBS) -> list[list[int]]:
     """Baú do andar (``maze_chests``): o visto nos andares 5 a 20, o da configuração depois. (visto) a gema muda por
     corrida (10/25 #9409, #9470, #9529; 10/26 #693; 10/27 #8677-#9041); cada andar guarda a de uma corrida
     (TODO(inventado) qual). A quantidade de 208009 (Crypt Tokens) é a mesma nas três."""
-    return list(_SEEN["chests"].get(str(floor), cfg["chest"]))
+    return list(_seen(kind)["chests"].get(str(floor), cfg["chest"]))
 
 
-def map_of(floor: int) -> int:
-    return FIRST_MAP + floor
+def map_of(floor: int, kind: Kind = CATACOMBS) -> int:
+    return kind.first_map + floor
 
 
 def floor_of(map_id: int) -> int:
-    return map_id - FIRST_MAP
+    kind = kind_of(map_id) or CATACOMBS
+    return map_id - kind.first_map
 
 
 def is_floor(map_id: int) -> bool:
-    return CAMPAIGN <= map_id <= FIRST_MAP + int(DEFAULT["floors"])
+    return kind_of(map_id) is not None
 
 
-def boss(templates: GameTemplates, floor: int) -> bool:
-    return templates.get("GameHeroTemp", MONSTER_BASE + floor) is not None
+def boss(templates: GameTemplates, floor: int, kind: Kind = CATACOMBS) -> bool:
+    return templates.get("GameHeroTemp", kind.monster_base + floor) is not None
 
 
 def _node(camp: int, master: int, son: int, state: int, pos: tuple[int, int], fix: tuple[int, int]) -> dict[str, Any]:
@@ -217,17 +262,17 @@ def _hero(row: Any, battle: dict[str, Any]) -> dict[str, Any]:
     }  # fmt: skip
 
 
-def _battle(templates: GameTemplates, cfg: dict[str, Any], floor: int) -> dict[str, Any]:
+def _battle(templates: GameTemplates, cfg: dict[str, Any], floor: int, kind: Kind = CATACOMBS) -> dict[str, Any]:
     """(visto, 157) battleType 6, attackModel 2 (``attack`` do andar: 1 nos 26-28, 10/28 #1369, #1488, #1578, #1685,
     #1766); quatro do monstro nas posições 2, 3, 8 e 9, e o chefe sozinho (sem
     escolta). ``battleScene`` 10 não conferido no 157. O gpBonus guardado é a base (``rules.exp_bonus`` soma o mundo e a
     descansada)."""
-    tid = MONSTER_BASE + floor
-    battle = _SEEN["floors"].get(str(floor), {}).get("battle", {})
+    tid = kind.monster_base + floor
+    battle = _seen(kind)["floors"].get(str(floor), {}).get("battle", {})
     spec: dict[str, Any] = {
-        "battleType": 6, "mapTempId": map_of(floor), "attackModel": battle.get("attack", 2), "soldiers": [],
+        "battleType": 6, "mapTempId": map_of(floor, kind), "attackModel": battle.get("attack", 2), "soldiers": [],
         "heroes": [],
-        "player": {"livingId": 1, "pos": 1}, "map": map_of(floor), "gpBonus": floor_gp(cfg, floor),
+        "player": {"livingId": 1, "pos": 1}, "map": map_of(floor, kind), "gpBonus": floor_gp(cfg, floor),
         "strategyBonus": 0, "battleScene": 10,
     }  # fmt: skip
     if (hero := templates.get("GameHeroTemp", tid)) is not None:
@@ -275,18 +320,18 @@ def _son_by_swf(templates: GameTemplates) -> dict[str, int]:
     return out
 
 
-def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) -> dict[str, Any]:
-    m = map_of(floor)
+def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int, kind: Kind) -> dict[str, Any]:
+    m = map_of(floor, kind)
     camp = m * 100
     lay = _layout(floor)
-    seen = _SEEN["floors"].get(str(floor))
+    seen = _seen(kind)["floors"].get(str(floor))
     last = _SEEN["floors"][str(max(int(k) for k in _SEEN["floors"]))]
     # (visto) 1-25: o início é 40 com state 2 nos andares ímpares e 62 com state 1 nos pares (8001 #12046 é 40/2, 8002
     # #12116 é 62/1). Causa não achada; por isso o from_town saiu.
     odd = floor % 2 == 1
     start = _node(camp + START, NODE_START if odd else NODE_SEND, 2301, 2 if odd else 1, lay["start"][:2],
                   lay["start"][2:4])  # fmt: skip
-    tid = MONSTER_BASE + floor
+    tid = kind.monster_base + floor
     hero = templates.get("GameHeroTemp", tid)
     pawn = templates.get("PawnTempInfos", tid)
     name = (seen or {}).get("name") or (hero or {}).get("TemplateName") or (pawn or {}).get("PawnName", "")
@@ -304,7 +349,7 @@ def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) 
     portal |= {
         "resetX": lay["portal"][4],
         "resetY": lay["portal"][5],
-        "param1": map_of(floor + 1) if floor < top else 0,
+        "param1": map_of(floor + 1, kind) if floor < top else 0,
     }
     nodes = [start, monster, portal]
     if floor % int(cfg["chest_every"]) == 0:
@@ -320,24 +365,24 @@ def _floor(templates: GameTemplates, cfg: dict[str, Any], floor: int, top: int) 
 
 
 @lru_cache(maxsize=4)
-def _content(templates: GameTemplates, cfg_json: str) -> dict[str, Any]:
+def _content(templates: GameTemplates, cfg_json: str, kind: Kind) -> dict[str, Any]:
     cfg = json.loads(cfg_json)
     top = int(cfg["floors"])
-    out: dict[str, Any] = {"campaign": CAMPAIGN, "stages": [], "maps": {}, "battles": {}, "drops": {},
+    out: dict[str, Any] = {"campaign": kind.campaign, "stages": [], "maps": {}, "battles": {}, "drops": {},
                            "portals": {}, "maze_chests": {}}  # fmt: skip
     for floor in range(1, top + 1):
-        m = map_of(floor)
-        out["maps"][str(m)] = _floor(templates, cfg, floor, top)
-        out["battles"][str(m * 100 + MONSTER)] = _battle(templates, cfg, floor)
+        m = map_of(floor, kind)
+        out["maps"][str(m)] = _floor(templates, cfg, floor, top, kind)
+        out["battles"][str(m * 100 + MONSTER)] = _battle(templates, cfg, floor, kind)
         out["drops"][str(m * 100 + MONSTER)] = cfg["drops"]
         if floor < top:
-            out["portals"][str(m * 100 + PORTAL)] = map_of(floor + 1)
+            out["portals"][str(m * 100 + PORTAL)] = map_of(floor + 1, kind)
         if floor % int(cfg["chest_every"]) == 0:
             # (visto) 5, 10, 15, 20: o baú de cada chefe (ganho do 4205); o resto é o ``chest`` da configuração
-            out["maze_chests"][str(m * 100 + CHEST)] = chest_goods(cfg, floor)
+            out["maze_chests"][str(m * 100 + CHEST)] = chest_goods(cfg, floor, kind)
     return out
 
 
-def content(templates: GameTemplates, cfg: dict[str, Any]) -> dict[str, Any]:
+def content(templates: GameTemplates, cfg: dict[str, Any], kind: Kind = CATACOMBS) -> dict[str, Any]:
     """Os andares todos, no formato do ``campaign_contents`` (``CampaignMap.enter_dungeon``)."""
-    return _content(templates, json.dumps(cfg, sort_keys=True))
+    return _content(templates, json.dumps(cfg, sort_keys=True), kind)

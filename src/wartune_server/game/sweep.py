@@ -159,7 +159,9 @@ def settle_maze(
         rules.add_gp(snap, templates, gp)
         tower.gp += base
         tower.index = floor + 1
-        got = [(int(t), int(n)) for t, n in mz.chest_goods(cfg, floor)] if floor % int(cfg["chest_every"]) == 0 else []
+        kind = mz.kind_of(sweep.campaign_id) or mz.CATACOMBS
+        box = mz.chest_goods(cfg, floor, kind) if floor % int(cfg["chest_every"]) == 0 else []
+        got = [(int(t), int(n)) for t, n in box]
         if got and not rewards.can_grant(snap, templates, got, now):
             got = []  # (dedução) mochila cheia: o andar segue sem o baú
         if got:
