@@ -13,7 +13,7 @@ from ..session import GameSession
 
 S_FIGHT_MODE, S_ITEM_RESULT, S_VIEW_INFO = 77, 158, 4804
 REFUSED = 1  # ItemUseResultMsg.result != 0: o cliente tira a marca da skill e libera a barra
-BATTLE_ITEM = 1  # ItemUseResultMsg.type (2 prova, 3 casal: só importam no sucesso)
+BATTLE_ITEM, TRIAL_ITEM = 1, 2  # ItemUseResultMsg.type (2 prova, 3 casal: só importam no sucesso)
 
 
 def _battle(s: GameSession, battle_id: str) -> Battle | None:
@@ -36,9 +36,24 @@ async def fight_mode(s: GameSession, msg: pb.AttackModeMsg) -> None:
     s.send(S_FIGHT_MODE, pb.AttackModeMsg(userId=s.player_id, battleId=msg.battleId, mode=msg.mode, fmTurn=0, heroSp=0))
 
 
-@router.on(10499, 10507, 10509)
+@router.on(10507)
+async def trial_prop(s: GameSession, msg: pb.BattleItemMsg) -> None:
+    """Spire Rune na luta da Spire (``sendUseBattleTrialProp``): 158 ``type`` 2 com ``uItemId`` = o índice dela no
+    ``HeroMsg.trials`` e ``count`` = as cargas que sobram (cliente ``__useBattleItemServerBack``); sem carga, recusa."""
+    if (battle := _battle(s, msg.battleId)) is None:
+        return
+    left = battle.use_trial(msg.skillTempId)
+    if left is None or battle.player is None:
+        await battle_item(s, msg)
+        return
+    reply = pb.ItemUseResultMsg(uItemId=list(battle.trials).index(msg.skillTempId), count=left, result=0)
+    reply.livingId, reply.tempId, reply.type = battle.player.living_id, msg.skillTempId, TRIAL_ITEM
+    s.send(S_ITEM_RESULT, reply)
+
+
+@router.on(10499, 10509)
 async def battle_item(s: GameSession, msg: pb.BattleItemMsg) -> None:
-    """Item, prova (battleType 25) e skill de casal: nenhum existe aqui ainda, então recusa (158)."""
+    """Item e skill de casal: nenhum existe aqui ainda, então recusa (158). A Spire Rune sem carga cai aqui."""
     if _battle(s, msg.battleId) is None:
         return
     s.log.info("item de batalha recusado (sem itens de batalha)", pedido=str(msg))

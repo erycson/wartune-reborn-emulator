@@ -325,18 +325,12 @@
       4041,
       4041
      ]
-    },
-    "cards": {
-     "sceneType": "CAMPAIGN_MAP_SCENE",
-     "cardCount": 5,
-     "payCardCount": 5,
-     "price": 0
     }
    }
   },
   "battles": {
    "820002": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8200,
     "attackModel": 2,
     "soldiers": [
@@ -409,12 +403,12 @@
      "pos": 1
     },
     "map": 8200,
-    "gpBonus": 5586,
+    "gpBonus": 100000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820003": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8200,
     "attackModel": 2,
     "soldiers": [
@@ -487,12 +481,12 @@
      "pos": 1
     },
     "map": 8200,
-    "gpBonus": 5586,
+    "gpBonus": 100000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820004": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8200,
     "attackModel": 2,
     "soldiers": [],
@@ -550,12 +544,12 @@
      "pos": 1
     },
     "map": 8200,
-    "gpBonus": 5586,
+    "gpBonus": 100000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820008": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8200,
     "attackModel": 2,
     "soldiers": [
@@ -653,7 +647,7 @@
      "pos": 1
     },
     "map": 8200,
-    "gpBonus": 0,
+    "gpBonus": 100000,
     "strategyBonus": 0,
     "battleScene": 3
    }
@@ -988,18 +982,12 @@
       4054,
       4054
      ]
-    },
-    "cards": {
-     "sceneType": "CAMPAIGN_MAP_SCENE",
-     "cardCount": 5,
-     "payCardCount": 5,
-     "price": 0
     }
    }
   },
   "battles": {
    "820102": {
-    "battleType": 13,
+    "battleType": 25,
     "mapTempId": 8201,
     "attackModel": 2,
     "soldiers": [
@@ -1072,12 +1060,12 @@
      "pos": 1
     },
     "map": 8201,
-    "gpBonus": 6762,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820103": {
-    "battleType": 13,
+    "battleType": 25,
     "mapTempId": 8201,
     "attackModel": 2,
     "soldiers": [
@@ -1150,12 +1138,12 @@
      "pos": 1
     },
     "map": 8201,
-    "gpBonus": 6762,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820104": {
-    "battleType": 13,
+    "battleType": 25,
     "mapTempId": 8201,
     "attackModel": 2,
     "soldiers": [],
@@ -1213,12 +1201,12 @@
      "pos": 1
     },
     "map": 8201,
-    "gpBonus": 6762,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820108": {
-    "battleType": 13,
+    "battleType": 25,
     "mapTempId": 8201,
     "attackModel": 2,
     "soldiers": [
@@ -1316,7 +1304,7 @@
      "pos": 1
     },
     "map": 8201,
-    "gpBonus": 0,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3,
     "reinforce": [
@@ -1602,6 +1590,468 @@
       },
       {
        "livingId": 25,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 26,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 27,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 28,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 29,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 30,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 31,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 32,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 33,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 34,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 35,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 36,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 37,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 38,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 39,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 40,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 41,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 42,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 43,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 44,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 45,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 46,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 47,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 48,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 49,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 50,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 51,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 7,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 4000,
+       "skillId": [
+        40161,
+        40162,
+        40161
+       ]
+      }
+     ],
+     [
+      {
+       "livingId": 52,
+       "tempId": 4054,
+       "type": 1,
+       "side": 2,
+       "pos": 1,
+       "initHp": 19661,
+       "hp": 19661,
+       "qteTime": 0,
+       "castTime": 3000,
+       "skillId": [
+        40121,
+        40122
+       ]
+      },
+      {
+       "livingId": 53,
        "tempId": 4054,
        "type": 1,
        "side": 2,
@@ -1951,18 +2401,12 @@
       4054,
       4054
      ]
-    },
-    "cards": {
-     "sceneType": "CAMPAIGN_MAP_SCENE",
-     "cardCount": 5,
-     "payCardCount": 5,
-     "price": 0
     }
    }
   },
   "battles": {
    "820202": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8202,
     "attackModel": 2,
     "soldiers": [
@@ -2035,12 +2479,12 @@
      "pos": 1
     },
     "map": 8202,
-    "gpBonus": 7056,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820203": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8202,
     "attackModel": 2,
     "soldiers": [
@@ -2113,12 +2557,12 @@
      "pos": 1
     },
     "map": 8202,
-    "gpBonus": 7056,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820204": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8202,
     "attackModel": 2,
     "soldiers": [],
@@ -2176,12 +2620,12 @@
      "pos": 1
     },
     "map": 8202,
-    "gpBonus": 7056,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820208": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8202,
     "attackModel": 2,
     "soldiers": [
@@ -2279,7 +2723,7 @@
      "pos": 1
     },
     "map": 8202,
-    "gpBonus": 0,
+    "gpBonus": 300000,
     "strategyBonus": 0,
     "battleScene": 3
    }
@@ -2614,18 +3058,12 @@
       4073,
       4073
      ]
-    },
-    "cards": {
-     "sceneType": "CAMPAIGN_MAP_SCENE",
-     "cardCount": 5,
-     "payCardCount": 5,
-     "price": 0
     }
    }
   },
   "battles": {
    "820302": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8203,
     "attackModel": 2,
     "soldiers": [
@@ -2698,12 +3136,12 @@
      "pos": 1
     },
     "map": 8203,
-    "gpBonus": 8526,
+    "gpBonus": 900000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820303": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8203,
     "attackModel": 2,
     "soldiers": [
@@ -2776,12 +3214,12 @@
      "pos": 1
     },
     "map": 8203,
-    "gpBonus": 8526,
+    "gpBonus": 900000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820304": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8203,
     "attackModel": 2,
     "soldiers": [],
@@ -2839,12 +3277,12 @@
      "pos": 1
     },
     "map": 8203,
-    "gpBonus": 8526,
+    "gpBonus": 900000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820308": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8203,
     "attackModel": 2,
     "soldiers": [
@@ -2942,7 +3380,7 @@
      "pos": 1
     },
     "map": 8203,
-    "gpBonus": 0,
+    "gpBonus": 900000,
     "strategyBonus": 0,
     "battleScene": 3
    }
@@ -3277,18 +3715,12 @@
       4091,
       4091
      ]
-    },
-    "cards": {
-     "sceneType": "CAMPAIGN_MAP_SCENE",
-     "cardCount": 5,
-     "payCardCount": 5,
-     "price": 0
     }
    }
   },
   "battles": {
    "820402": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8204,
     "attackModel": 2,
     "soldiers": [
@@ -3361,12 +3793,12 @@
      "pos": 1
     },
     "map": 8204,
-    "gpBonus": 9996,
+    "gpBonus": 2500000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820403": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8204,
     "attackModel": 2,
     "soldiers": [
@@ -3439,12 +3871,12 @@
      "pos": 1
     },
     "map": 8204,
-    "gpBonus": 9996,
+    "gpBonus": 2500000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820404": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8204,
     "attackModel": 2,
     "soldiers": [],
@@ -3502,12 +3934,12 @@
      "pos": 1
     },
     "map": 8204,
-    "gpBonus": 9996,
+    "gpBonus": 2500000,
     "strategyBonus": 0,
     "battleScene": 3
    },
    "820408": {
-    "battleType": 13,
+    "battleType": 290,
     "mapTempId": 8204,
     "attackModel": 2,
     "soldiers": [
@@ -3605,7 +4037,7 @@
      "pos": 1
     },
     "map": 8204,
-    "gpBonus": 0,
+    "gpBonus": 2500000,
     "strategyBonus": 0,
     "battleScene": 3
    }

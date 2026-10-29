@@ -70,6 +70,7 @@ S_PLOT, S_MAP_SYNC, S_CAMERA, S_MOVIE, S_CAMPAIGN_FINISH = 138, 140, 142, 143, 1
 S_BATTLE_REPORT, S_NPC_CHASE, S_NPC_MOVE, S_ESCORT, S_PLAYER_MOVE = 4103, 4105, 4122, 4124, 4162
 S_BUFFERS, S_NODE_STAND, S_FIGHT_MOVIE = 4165, 4208, 4382
 S_FULL_ARMY, S_QUESTS, S_ITEMS = 150, 112, 115
+S_TRIAL_BUY, S_TRIAL_INFO = 4467, 4468  # loja da Spire (U_BUY_TRIAL_RESULT, U_HERO_TRIAL_IFNO)
 S_CONFIRM, S_NOTIFY, S_CARDS, S_REPORT, S_RANK = 29, 126, 135, 137, 4151
 S_STANDPOS, S_FOG_UPDATE, S_TAKE_CARD, S_EXIT = 4126, 19, 26, 22
 
@@ -594,6 +595,8 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False) ->
         for unit in army:
             unit["initHp"] = unit["hp"] = _boost(int(str(unit["hp"])))
     pet = fighting_pet(s, msg)
+    if spec.get("trial"):  # Spire: as cargas das Spire Runes (game/torres)
+        msg.trials.extend(torres.trials(snap, s.ctx.templates, s.ctx.clock.now()))
 
     def on_awake(value: int) -> None:
         leader.awake = value  # vai para o banco com o herói (o fim da luta grava a vida dele)
@@ -781,7 +784,7 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
     assert snap is not None and snap.leader is not None
     if not mate:
         s.battle, s.hero_sp = None, battle.player_sp
-    gp = int(battle.spec.get("gpBonus", 0)) if won and _rewarded(s) else 0
+    gp = int(battle.spec.get("gpBonus", 0)) * max(1, battle.layer) if won and _rewarded(s) else 0  # Spire: por andar
     # EXP Boost (2013001-4): o gpBonus capturado é a base; o 4103, o 83 e o 4382 levam a EXP com o bônus (dedução)
     gp = buffs.boost(gp, snap, buffs.EXP_BOOST, s.ctx.clock.now())
     maze = s.campaign is not None and mz.is_floor(s.campaign.map_id)
@@ -813,10 +816,27 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
     from .player import hero_after_fight, hp_pack  # player importa login, que importa este módulo
 
     healed = hero_after_fight(s, battle.player.hp if battle.player is not None and not mate else None)
+    chests: list[Item] = []
+    letters: list[Any] = []
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
-        if won and s.campaign is not None and s.campaign.run is not None:
-            s.campaign.run.floors += battle.layer or 1  # andares das torres (a Spire conta as ondas)
+        trun = s.campaign.run if s.campaign is not None else None
+        trow = _campaign_row(s, trun.campaign_id) if trun is not None else {}
+        if won and trun is not None and torres.son(trow):
+            floors = battle.layer or 1  # andares das torres (a Spire conta as ondas)
+            trun.floors += floors
+            if trun.rewarded:  # (internet) o baú sai depois de cada luta (King) / chefe (Spire)
+                from .shop import place  # shop importa este módulo
+
+                chests, letters = place(s, snap, s.player_id, torres.prize(trow, floors), s.ctx.clock.now())
+            if battle.layer:  # o TrailView mostra o andar e o que ele vale
+                s.send(S_TRIAL_INFO, torres.shop_msg(snap, s.ctx.templates, s.ctx.clock.now(), trun.floors))
+    if chests or letters:
+        from .shop import save_with_mail  # shop importa este módulo
+
+        await save_with_mail(s, letters, *chests)
+        if chests:
+            _send(s, S_ITEMS, rewards.items_msg(chests, s.player_id))
     if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win or hit:
         await s.ctx.characters.save(
             snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests,
@@ -1163,6 +1183,8 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
     _send(s, S_MOVIE, pb.PlayerMovieMsg(movieTargetType=3, targetId=0, movieType="MOVIE_MAP_NAME", delay=0))
     healed = rules.heal_hero(snap, templates, now) if snap.leader is not None else 0
     hp_pack(s, healed)  # (só turco: #39) a poção enche a vida na entrada
+    # TODO(captura): o texto de entrada das torres; o "Entered [X]..." é do servidor (nenhuma chave no language.txt)
+    # e fala das entradas de masmorra em grupo, que as torres não gastam
     if not tower:
         _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=GROUP_TEXT.format(name, count, top)))
     await s.ctx.characters.save(c_, *([snap.leader] if snap.leader is not None else []), *tower_rows)
@@ -1170,6 +1192,25 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
         from . import events as hev  # handlers.events importa login, que importa este módulo
 
         await hev.leed_done(s, torres.SPIRE_LEED)  # LeedTemp 28 "Enter the Spire"
+    if tower == torres.SPIRE:  # a loja e o andar do TrailView (CampaignSocketManger.__trailPropInfoHandler)
+        s.send(S_TRIAL_INFO, torres.shop_msg(snap, templates, now))
+
+
+@router.on(8582)
+async def buy_trial(s: GameSession, msg: pb.TrialInfoMsg) -> None:
+    """Compra de Spire Rune (``TrailShopItem.confirmBack``): ``param1`` 0 paga com Balens vinculados primeiro. 4467
+    com ``count`` = compradas hoje e ``param1`` 1; recusa com ``param1`` 0 (o quadro não muda)."""
+    snap = s.snapshot
+    if snap is None:
+        return
+    done = torres.buy(snap, s.ctx.templates, msg.skillId, msg.param1 == 0, s.ctx.clock.now())
+    if done is None:
+        s.send(S_TRIAL_BUY, pb.TrialInfoMsg(skillId=msg.skillId, count=0, param1=0))
+        return
+    count, rows = done
+    await s.ctx.characters.save(*rows)
+    await _push_player(s)
+    s.send(S_TRIAL_BUY, pb.TrialInfoMsg(skillId=msg.skillId, count=count, param1=1))
 
 
 def _rewarded(s: GameSession) -> bool:
@@ -1735,28 +1776,22 @@ async def _dungeon_end(s: GameSession) -> None:
     stages = len((c.content or {}).get("stages", [])) or 1
     stage.value, stage.updated_at = (run.stage + 1) % stages, now
     saved: list[EventState] = [rank, stage]
-    tower, letters, got = torres.son(row), [], []
+    tower = torres.son(row)
     if tower and run.rewarded:
-        from .shop import place, save_with_mail  # shop importa este módulo
-
-        prize = torres.prize(row, run.floors)
-        got, letters = place(s, snap, s.player_id, prize, now)
         saved += torres.finish(snap, row, now)
-    if letters:
-        await save_with_mail(s, letters, snap.character, snap.leader, *snap.pawns, *saved, *got)
-    else:
-        await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, *saved, *got)
-    if got:
-        _send(s, S_ITEMS, rewards.items_msg(got, s.player_id))
-    if tower == torres.KING and run.rewarded:
+    await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, *saved)
+    if tower == torres.KING and run.rewarded:  # os baús já saíram em cada luta
         end = {"currentIndex": run.floors, "currentStep": int(row.get("DifficultyGrade") or 1)}
-        s.send(S_KING_TOWER, torres.king_msg(snap, now, **end, rewardCount=sum(n for _, n in prize)))
+        reward = sum(n for _, n in torres.prize(row, run.floors))
+        s.send(S_KING_TOWER, torres.king_msg(snap, now, **end, rewardCount=reward))
+        run.rewarded = False  # o fim (4900 e a dificuldade) vale uma vez por corrida
     await _push_player(s)
     _send(s, S_REPORT, report)
     _send(s, S_RANK, ranks(s))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp + report.vipJoin)))
-    cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
-    _send(s, S_CARDS, ParseDict(cards, pb.CampaignCardsMsg()))
+    if not tower:  # torres: sem carta, o prêmio é o baú por luta (internet, docs/fontes-internet.md)
+        cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
+        _send(s, S_CARDS, ParseDict(cards, pb.CampaignCardsMsg()))
     if quests:
         _send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     c.buffs = []

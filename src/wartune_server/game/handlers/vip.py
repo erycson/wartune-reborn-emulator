@@ -1,5 +1,5 @@
 """VIP (8505/8513/8519/8521/8756), contrato do rei (8540), alquimia (8320/8321), refino de alma
-(8466/8467) e loja do teste (8582). Regras e fontes em docs/eventos.md.
+(8466/8467); a loja da Spire (8582) está em handlers/campaign.py. Regras e fontes em docs/eventos.md.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from ..session import GameSession
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_VIP, S_ROULETTE, S_VIP_TIPS, S_KING = 4410, 4414, 4416, 4434
-S_LUCKY, S_SOUL, S_TRIAL = 4224, 4372, 4468
+S_LUCKY, S_SOUL = 4224, 4372
 VIP_DAYS = {31: "One_MonthPoint", 93: "Three_MonthPoint", 186: "Six_MonthPoint"}  # OpenVipItem: index*31
 VIP_GRADE = 4  # UpGradeTempInfos.Types da VIP (Data = vipGp acumulado)
 ALCHEMY_RIGHT, SOUL_RIGHT = 8, 9  # VipPrerogativeTempInfos.type: usos extras por dia
@@ -577,24 +577,6 @@ async def soul(s: GameSession, _: object) -> None:
     granted(s, [], [], "", chat=False)
     _player(s)  # (visto) 191924-1 #17038, 1025 #9226, 1026 #626, 1027 #158: 3 e depois 4372 nas quatro amostras
     s.send(S_SOUL, _soul_msg(s, snap))
-
-
-# ---------------------------------------------------------------- loja do teste (8582)
-
-
-@router.on(8582)
-async def trial_buy(s: GameSession, msg: pb.TrialInfoMsg) -> None:
-    """Compra de buff (TrialSkill) dentro do mapa do teste; responde 4468 com a loja.
-
-    ponytail: o mapa do teste (andar, buffs na batalha) não existe no servidor; sem ele não há onde
-    o buff valer, então recusa sem cobrar e devolve a loja cheia."""
-    s.log.info("8582 recusado: teste não implementado", skill=msg.skillId)
-    shop = pb.PlayerTrialMsg(userId=s.player_id)
-    for i, part in enumerate(ev.config(s.ctx.templates, "TrialSkill").split("|")):
-        if part:
-            skill, _cur, top, cost = (int(x) for x in part.split(","))
-            shop.trialInfos.add(index=i, skillId=skill, param1=0, param2=top, param3=cost)
-    s.send(S_TRIAL, shop)
 
 
 def login_push(s: GameSession) -> None:

@@ -59,10 +59,17 @@ SOLO = {"captured": CAPTURED, "out": OUT, "ids": range(1101, 1603), "single": SI
 # Torres (Tower of Kings 8200/8202-8204 e The Spire 8201, migração 0102): em grupo (Capacity 4, sala), um mapa cada
 # (MapFileId 8201). TODO(inventado) a planta é o fim da 9002 (chefe); a dificuldade sobe TOWER_STEP níveis de monstro
 # por DifficultyGrade (as quatro têm MinLevel 38 e StandardDamage 10000 no cliente); a Spire leva SPIRE_WAVES ondas de
-# reforço na luta do chefe (cliente: andar = ``currentWave``/``ReinforceMsg.reinforceWave``, TrailCountView < 36).
+# reforço na luta do chefe (cliente: andar = ``currentWave``/``ReinforceMsg.reinforceWave``; 24 andares,
+# internet). Sem carta no fim (internet: o prêmio é o baú por luta).
+# battleType (cliente): 290 na King (BattleModel.isKingTower), 25 na Spire (TrailCountView.isTrail).
+# EXP por luta (internet, docs/fontes-internet.md): King 100.000/300.000/900.000/2.500.000, Spire 300.000 por andar.
+# TODO(inventado): a wiki dá 5 níveis na King contra sombras dos 16 melhores; aqui são as 4 lutas da planta.
 TOWERS = GROUP | {"out": VERSIONS / "0102_torres.json", "ids": range(8200, 8205), "multi": GROUP["single"]}
 TOWER_STEP = 10  # TODO(inventado)
-SPIRE, SPIRE_WAVES = 8201, 9  # TODO(inventado) 10 andares
+SPIRE, SPIRE_WAVES = 8201, 23  # internet: 24 chefes (cliente: além do 24 é "clear instantly")
+KING_GP = {1: 100_000, 2: 300_000, 3: 900_000, 4: 2_500_000}  # internet
+SPIRE_GP = 300_000
+KING_TYPE, SPIRE_TYPE = 290, 25
 
 
 def _amf3(data: bytes) -> list[Any]:
@@ -296,12 +303,16 @@ def nightmare(content: dict[str, Any], row: dict[str, Any], normal: dict[str, An
                     u[k] = round(u[k] * hp)
 
 
-def spire(content: dict[str, Any]) -> None:
-    """The Spire: a luta do chefe vira os andares (``trial``: o cliente mostra o andar), com SPIRE_WAVES ondas de
-    reforço iguais às tropas dela. TODO(inventado) a composição das ondas."""
+def tower(content: dict[str, Any], grade: int, spire: bool) -> None:
+    """Torres: battleType e EXP de cada luta, sem carta no fim. Na Spire a luta do chefe vira os andares (``trial``:
+    o cliente mostra o andar), com SPIRE_WAVES ondas de reforço iguais às tropas dela; a EXP é por andar
+    (``gpBonus`` x andar no servidor). TODO(inventado) a composição das ondas."""
+    for entry in content["maps"].values():
+        entry.pop("cards", None)
     for b in content["battles"].values():
+        b["battleType"], b["gpBonus"] = (SPIRE_TYPE, SPIRE_GP) if spire else (KING_TYPE, KING_GP[grade])
         enemies = [s for s in b["soldiers"] if s["side"] != 1]
-        if not enemies or not b["heroes"]:
+        if not spire or not enemies or not b["heroes"]:
             continue
         top = max(u["livingId"] for k in ("soldiers", "heroes") for u in b[k])
         waves = []
@@ -347,8 +358,8 @@ def main(cfg: dict[str, Any]) -> None:
             made += maps
         if made and row.get("DifficultyGrade") == "2" and (normal := g.rows.get(cid - 100)):
             nightmare(content, row, normal)
-        if made and cid == SPIRE and cfg is TOWERS:
-            spire(content)
+        if made and cfg is TOWERS:
+            tower(content, int(row["DifficultyGrade"]), cid == SPIRE)
         if made:
             content["inventado"] = made
             result[str(cid)] = {k: v for k, v in content.items() if v != {}}

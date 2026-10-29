@@ -265,9 +265,9 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 | 8320 / 8466 | estado (4224 / 4372) | (cliente) |
 | 8321 | custo 0 no 1º uso do dia, depois `min(40 + 10 x usos, 200)` Balens não vinculados (só `point`); ouro = Town Hall(901).Property1 x 10 + Gold Refinery(101).Property1 x 5; 20 usos + privilégio VIP 8 | (cliente) AlchemyFrame |
 | 8467 | mesmo custo; alma = nível Barracks(402) x `RefiningSoul_ArmyHouseMut` + nível Cottage(1201) x `RefiningSoul_PeopleMut` (500 cada, como o SoulMakeFrame); nível mínimo `RefiningSoul_Grades`; `RefiningSoul_Count` + privilégio VIP 9 | (cliente) + (visto) login.json #10 (só turco) |
-| 8582 | recusa sem cobrar e devolve a loja 4468 (`TrialSkill`) | (cliente) TrailShopItem |
+| 8582 | loja da Spire (game/torres, handlers/campaign.buy_trial): cobra Balens, conta a cota do dia e responde 4467 | (cliente) TrailShopItem |
 
-- **Dependência (8582):** o mapa do teste (andar, buffs na batalha) não existe no servidor.
+- **8582:** a loja vale na luta da Spire (cargas no `HeroMsg.trials`, uso pelo 10507).
 
 ## Painel de recompensas e anel
 

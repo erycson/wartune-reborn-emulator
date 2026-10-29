@@ -44,6 +44,19 @@ log = structlog.get_logger(__name__)
 S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP, S_NOTICE = 157, 156, 153, 154, 75, 69, 4361
 S_REINFORCE, S_LOAD_RES = 72, 4149
 _WAVE_IDS = itertools.count(1)  # armyId do 4149
+TRIAL_TYPE = 25  # battleType da Spire (cliente TrailCountView.isTrail)
+SPIRE_CLEAR = 24  # (cliente) pular para além do 24 é "clear instantly"
+
+
+def skip_to(layer: int, turns: int, battle_type: int) -> int:
+    """O próximo andar ao vencer o ``layer`` com o chefe em ``turns`` turnos (cliente TrailCountView.refreshTurn).
+    Spire (battleType 25): até 3 turnos pula para layer+4 ("Defeat within {0} turns to skip to Stage {1}");
+    nos andares 1 e múltiplos de 5 abaixo de 36: até 5 turnos pula para layer+5 (o 1 vai para o 5)."""
+    if battle_type == TRIAL_TYPE:
+        return layer + 4 if turns <= 3 else layer + 1
+    if layer < 36 and (layer % 5 == 0 or layer == 1) and turns <= 5:
+        return 5 if layer == 1 else layer + 5
+    return layer + 1
 
 
 def _shuffled_waves(waves: Iterable[Iterable[Mapping[str, Any]]]) -> list[list[dict[str, Any]]]:
@@ -288,6 +301,11 @@ class Battle:
         self.units = self._units(player)
         self._waves = _shuffled_waves(spec.get("reinforce", []))  # ondas de reforço que faltam
         self.layer = 1 if spec.get("trial") else 0  # andar da Spire (cliente ``BattleModel.trialLayer``)
+        if self.layer:  # a Spire não sorteia: os andares vão em ordem
+            self._waves = [[dict(s) for s in w] for w in spec.get("reinforce", [])]
+        self._wave = [u for u in self.units if u.side != PLAYER_SIDE]  # quem conta os turnos do pulo
+        # cargas das Spire Runes (skill -> quantas), do ``HeroMsg.trials`` do jogador
+        self.trials = {int(t.skillId): int(t.count) for t in player.msg.trials} if player is not None else {}
         self.player = next((u for u in self.units if u.is_player), None)
         self.wound = self.hurt = 0  # dano causado e sofrido pelo lado do jogador (relatório 137 da masmorra)
         if player is not None and self.player is not None:
@@ -407,8 +425,18 @@ class Battle:
         231733-1 #4458-#4459, o 72 sai logo depois do golpe que mata o último e a luta segue com os novos."""
         if not self._waves or not self._side_alive(True) or self._side_alive(False):
             return False
+        if self.layer:
+            jump = skip_to(self.layer, max((u.turn for u in self._wave), default=0), self.spec["battleType"])
+            if jump > SPIRE_CLEAR:  # "Defeat within {0} turns to clear instantly"
+                self.layer, self._waves = len(self._waves) + self.layer, []
+                return False
+            del self._waves[: jump - self.layer - 1]  # os andares pulados contam como vencidos
+            self.layer = jump - 1
+            if not self._waves:
+                return False
         wave = self._waves.pop(0)
-        self.units += [self._soldier(s) for s in wave]
+        self._wave = [self._soldier(s) for s in wave]
+        self.units += self._wave
         msg = _parse({"side": wave[0]["side"], "soldiers": wave}, pb.ReinforceMsg())
         if self.layer:  # (cliente) ReinforceHandler: trialLayer = reinforceWave
             self.layer += 1
@@ -492,6 +520,16 @@ class Battle:
         """Termina já (8727, "encerrar a luta" do torneio de fadas): o resto é resolvido sem 153."""
         self._skip = True
         self.auto = True
+
+    def use_trial(self, skill_id: int) -> int | None:
+        """10507: uma Spire Rune (skill 101-104) vira a próxima ação do herói. Devolve as cargas que sobram, ou
+        ``None`` se não tem carga (ou o herói caiu)."""
+        p = self.player
+        if p is None or p.hp <= 0 or self.trials.get(skill_id, 0) <= 0:
+            return None
+        self.trials[skill_id] -= 1
+        self._order = (skill_id, self.frame)
+        return self.trials[skill_id]
 
     def order(self, living_id: int, skill_id: int) -> None:
         """10008: aceita (75 result 0) ou recusa (result 1) a skill escolhida."""

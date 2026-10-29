@@ -243,3 +243,17 @@ Não achado:
 - Thor/Tyre no guia de fusao de 2015: nao aparecem ali; a ligacao Electro & Fire vem da wiki Sylph.
 - Taxa de 10% no saque de cidade: nenhuma fonte lida da o numero; a wiki diz so 'a percentage'.
 - Mercado: continuam sem fonte o nivel de abertura do leilao, a taxa em ouro, as duracoes 8/24/48 h, o preco minimo e o limite de anuncios.
+
+## Torres (Tower of Kings e The Spire)
+
+Lidas pela API do fandom (wikitext completo), 28/10/2026. Usadas em `game/torres.py` e `tools/gera_masmorras.py torres`.
+
+| Sistema | Fato | Valor | Confiança | Fonte |
+|---|---|---|---|---|
+| Tower of Kings | Prêmio depois de cada luta: 1 baú da dificuldade e EXP | Easy 1 Bronze King Chest + 100.000 EXP; Normal Silver + 300.000; Hard Gold + 900.000; Nightmare Diamond + 2.500.000 | media | [link](https://wartune.fandom.com/api.php?action=parse&page=Tower_of_Kings&prop=wikitext&format=json) |
+| Tower of Kings | Quatro dificuldades; a anterior vencida abre a próxima (bate com o cliente "Clear {0} to enter") | Easy -> Normal -> Hard -> Nightmare | media | idem |
+| Tower of Kings | Cinco níveis por corrida contra 4 sombras dos 16 melhores do ranking; uma corrida por semana (o cliente diz "today": vale o cliente). Removida no patch 8.3 | 5 níveis; não usado (o mapa gerado tem 4 lutas, TODO) | baixa | idem |
+| Tower of Kings | Quem sai ou é expulso recebe Shadow Souls | 10/12/14/16 | baixa | idem (não implementado: o servidor não tem expulsão no meio da torre) |
+| The Spire | 24 chefes em ondas, sem pausa entre eles (bate com o cliente: "clear instantly" além do 24) | 24 andares | media | [link](https://wartune.fandom.com/api.php?action=parse&page=The_Spire&prop=wikitext&format=json) |
+| The Spire | Por chefe vencido: 300.000 EXP e 7 Spire Chests (o "1" riscado na página) | 300.000 EXP, 7 baús | media | idem |
+| The Spire | Spire Runes: cargas grátis e preço (o cliente `TrialSkill` dá 95 para a Sacred Nirvana: vale o cliente) | Guardian Shield 3/45, Paean of Life 3/45, Vulcan Wrath 3/45, Sacred Nirvana 1/90 | media | idem |

@@ -255,6 +255,7 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
     me.fighting = them.fighting = True
     cid = c.warfield
     _to_map(s.ctx, cid, S_CROSS, _cross((s, c.pos, 2), (target, target.campaign.pos, 2)))
+
     async def finished(won: bool) -> None:
         await pvp_over(s, target, field, won)
 
