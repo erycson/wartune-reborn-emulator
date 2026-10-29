@@ -316,7 +316,7 @@ Altar of Ennoblement (`handlers/hangup.py`): campanhas 7001-7009 (`Types` 3, map
 - **Labirinto**: o Necropolis (8101, segunda aba) não tem andares (shortcut). Os andares 1 a 25 estão vistos nas capturas de 24 a 27/10 (`content/maze_floors.json`: nós, monstro, força, baú dos 5, 10, 15 e 20). Do 26 em diante é dedução: o sonType e a força são chutes (**TODO(inventado)**), o baú do 25 não foi visto, e o drop de monstro: nenhum nos andares 1 a 15 (o 4103 dá só EXP); o 21 e o 22 têm loot que não dá para atribuir a um monstro. A varredura não entrega o baú dos andares 5, 10, 15 e 20 que a captura de 25/10 mostrou (#9650), e o 4207 "Respawn Note" não é enviado pelo servidor. As capturas param no 25: o 30 que se fala ainda não tem prova. Os baús têm uma gema de nível 1 que varia (2050101, 2050501, 2050701 nos vistos), e a da varredura não foi confirmada.
 - **Gemas da guarda de batalha**: modeladas pelo cliente (`BattleGuardView`, `PlayerManager.sendAddBattleGem`);
   `jion1` 3120101 é a Lvl. 1 Fire Resistance Crystal. Falta captura do 8742 (ordem da resposta, vínculo da gema
-  devolvida: **TODO(inventado)**). A batalha do servidor ainda não aplica as resistências (só vão no 150/HeroMsg).
+  devolvida: **TODO(inventado)**). Na batalha o golpe de elemento (mascote, PetType) cai pela resistência do alvo menos o ReduceResi do autor (attle.resist_factor, fórmula **TODO(inventado)**: o cliente não calcula dano).
 - **Pedágio**: sem agenda do evento. O template tem a configuração (`tollgate_count` 5 tentativas base,
   `tollgate_attack_count` 10 (desafio com diamantes), `tollgate_add_count` 1000 de limite de compras extras) e as tabelas
   `ScoreRewards` (28), `BossRewards` (370), `AreaRewards` (30) e `LuckyRewards`, que o parser descarta

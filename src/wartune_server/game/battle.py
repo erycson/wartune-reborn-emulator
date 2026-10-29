@@ -117,7 +117,17 @@ FORMULA: dict[str, float] = {
     "awake_max": 3000,
     "awake_gain": 250,
     "awake_cost": 150,
+    # TODO(inventado): resistência elemental. O cliente não calcula dano (só repassa fireResi..reduceResi no
+    # HeroMsg/DebugBattleCreater); dedução: golpe de elemento × (1 - (resistência do alvo - ReduceResi do autor) /
+    # resist_div), com o fator entre resist_min e resist_max (template: mascote 200 no próprio, -200 na fraqueza)
+    "resist_div": 1000,
+    "resist_min": 0.5,
+    "resist_max": 1.5,
 }
+# PetTempInfos.PetType (= Property1 das gemas da guarda) -> coluna de resistência (conferido nos templates:
+# Lvl. 1 Fire Resistance Crystal 101 FireResi; Pan 104 com WindResi 200)
+PET_ELEMENT = {101: "FireResi", 102: "WaterResi", 103: "ElectResi", 104: "WindResi", 105: "DarkResi", 106: "LightResi"}
+RESIST_KEYS = (*PET_ELEMENT.values(), "ReduceResi")
 STATS = ("PhyAttack", "PhyDefence", "MagicAttack", "MagicDefence", "ForceHit", "Parry")
 TEMPLATE_STATS = dict(
     zip(STATS, ("Attack", "Defence", "MagicAttack", "MagicDefence", "ForceHit", "Parry"), strict=True)
@@ -145,6 +155,15 @@ def damage(attack: float, defence: float, p1: int, p2: int, formula: Mapping[str
     PDef 44 -> 30; cura (P1 0, P2 -50) -> -50."""
     base = max((attack - defence) * formula["defence_factor"], attack * formula["floor"])
     return base * p1 / 100 + p2
+
+
+def resist_factor(unit: Unit, target: Unit, formula: Mapping[str, float] = FORMULA) -> float:
+    """Multiplicador do golpe de elemento pela resistência do alvo menos o ReduceResi (Willpower) do autor."""
+    if not unit.element:
+        return 1.0
+    base = target.resists.get(unit.element, 0)
+    res = max(base - unit.resists.get("ReduceResi", 0), min(base, 0))  # a redução não passa de 0 (dedução)
+    return min(formula["resist_max"], max(formula["resist_min"], 1 - res / formula["resist_div"]))
 
 
 @dataclass
@@ -212,6 +231,8 @@ class Unit:
     turn: int = 0
     hero: bool = False  # herói NPC (o PvP anuncia a skill dele no 75)
     reject: frozenset[int] = frozenset()  # GameHeroTemp.RejectType: tipos de buffer que não pegam
+    element: str = ""  # coluna de resistência do golpe (mascote: PetType -> PET_ELEMENT); "" = sem elemento
+    resists: dict[str, int] = field(default_factory=dict)  # FireResi..DarkResi e ReduceResi (guarda/template)
 
     @property
     def alive(self) -> bool:
@@ -400,6 +421,12 @@ class Battle:
                     m.livingId, m.side, m.hp, list(m.skillId), player.default_skill, stats, m.maxHp or m.hp, True, m.sp
                 )
             )
+            # as gemas da guarda (HeroMsg.fireResi..reduceResi); o ReduceResi do dono vale para o mascote dele
+            units[-1].resists = {k: v for k in RESIST_KEYS if (v := getattr(m, k[0].lower() + k[1:]))}
+            reduce = units[-1].resists.get("ReduceResi", 0)
+            for u in units:
+                if reduce and u.living_id == self.pet_id:
+                    u.resists["ReduceResi"] = reduce
         return units
 
     def _npc(self, kind: str, h: Mapping[str, Any]) -> Unit:
@@ -410,6 +437,9 @@ class Battle:
         reject = frozenset(int(x) for x in str(row.get("RejectType", "")).split(",") if x)
         unit = Unit(h["livingId"], h["side"], hp, skills, default, _stats(row, h), int(h.get("maxHp") or hp))
         unit.hero, unit.reject = kind == "heroes", reject
+        if kind == "pets":
+            unit.element = PET_ELEMENT.get(int(row.get("PetType") or 0), "")
+            unit.resists = {k: v for k in RESIST_KEYS if (v := int(row.get(k) or 0))}
         return unit
 
     def _soldier(self, s: Mapping[str, Any]) -> Unit:
@@ -845,7 +875,7 @@ class Battle:
         taken_pct, taken_flat = self._mods(target, {RECEIVED})
         value = value * (100 + dealt_pct) / 100 + dealt_flat
         value = value * (100 + taken_pct) / 100 + taken_flat
-        value *= (100 + self._improve) / 100 * spread
+        value *= (100 + self._improve) / 100 * spread * resist_factor(unit, target, f)
         crit_pct, crit_flat = self._mods(unit, {CRIT})
         crit = self.rng.random() < 1 - f["crit_base"] ** unit.stats["ForceHit"] + (crit_pct + crit_flat) / 100
         if crit:

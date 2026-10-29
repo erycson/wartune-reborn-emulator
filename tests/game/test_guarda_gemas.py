@@ -130,3 +130,30 @@ async def test_compor_e_subir_nivel_das_gemas(tmp_path: Path) -> None:
         assert bag.count_of(snap, FIRE_1) == 1 and bag.count_of(snap, ESSENCE) == 0
         templates = g.server.services.templates
         assert next(templates.find("ComposeTempInfos", Types="6", NewMaterial=FIRE_2))["Material1"] == str(FIRE_1)
+
+
+def test_golpe_elemental_tira_menos_com_gema_de_resistencia() -> None:
+    """Mascote de fogo (Amazon Queen, PetType 101) contra o herói: com FireResi da guarda o mesmo golpe (mesmo
+    sorteio) tira menos; o ReduceResi (Willpower) do autor desconta a resistência."""
+    import random
+
+    from tests.game.test_batalha import _battle, _unit
+    from wartune_server.game import battle as bt
+
+    pet = {"livingId": 6, "tempId": 101101, "side": 2, "pos": 6, "maxHp": 500, "hp": 500, "defaultSkill": 30000}
+    b, _ = _battle(pets=[pet])
+    queen, hero = _unit(b, 6), _unit(b, 3)
+    assert queen.element == "FireResi"
+    row = {"Parameter1": "100", "Parameter2": "50"}
+
+    def hit() -> int:
+        b.rng = random.Random(7)
+        return b._hit(queen, hero, row, 1)[0]
+
+    plain = hit()
+    hero.resists = {"FireResi": 72}  # Lvl. 6 Fire Resistance Crystal
+    resisted = hit()
+    assert resisted < plain
+    queen.resists["ReduceResi"] = 72
+    assert hit() == plain
+    assert bt.resist_factor(hero, queen) == 1.0  # golpe sem elemento não muda
