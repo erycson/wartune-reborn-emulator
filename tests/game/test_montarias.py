@@ -135,7 +135,8 @@ async def test_estrela_gasta_hoof_enche_a_bencao_e_sobe(tmp_path: Path, monkeypa
         assert (star.starLevel, star.blessing, hoofs.count) == (1, 60, 10)  # 4 refinos até 50, mais 6
         info = pb.MountInfoMsg.FromString(got[-1].body)
         assert info.power == before["Power"] + 10
-        assert [p.code for p in await g.idle()] == [150]  # o exército com a montaria nova
+        # o exército com a montaria nova; nível 70 >= CARD_OPEN_GRADE: o 4902 vazio vem antes (20261029-121453-1 #422)
+        assert [p.code for p in await g.idle()] == [4902, 150]
 
         snap.character.grades = systems.STAR_GRADE - 1
         g.client.send(8529, pb.MountEditMsg(op=6, propertyType=1000))
