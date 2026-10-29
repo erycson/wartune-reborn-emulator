@@ -36,14 +36,14 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 9 | 6 | 1 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
+| Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 2 | 4 | 2 |
 | Atividades e eventos | 5 | 11 | 10 | 2 | 5 |
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **104** | **94** | **52** | **36** | **34** |
+| **Total** | **104** | **93** | **53** | **36** | **34** |
 
 ## Validação e base
 
@@ -304,7 +304,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Arena e batalhas (16, 93) | ❌ | | 16 sem luta em grupo na arena (a sala PvP só procura); 93 Sky Trail sem sistema identificado (TODO em rules.py) |
 | Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ✅ | | forge.py (5150, 5151, 5153, 8336, 8340) e hero.py (77 nas pedras gastas) |
 | Demais tipos (12, 21, 56, 57, 59, 61, 64, 65, 71, 74, 86, 91) | ✅ | | 64 alquimia (8321), 65 alquimia de Daru (8467), 74 entrada na Spire, 86 coleta na mina de ametista (5032), 91 exploração (9502 op 3); os demais já ligados; posição do 112 inventada |
-| Demais tipos (58, 89, 90) | ❌ | | sem a ação no servidor: 58 Soul Engraving (sem tela no cliente), 89 escavar tesouro (8744), 90 gemas da guarda (8742); TODO em rules.py |
+| Demais tipos (58, 90) | ❌ | | sem a ação no servidor: 58 Soul Engraving (sem tela no cliente), 90 gemas da guarda (8742); TODO em rules.py (89 Lost Treasure conta no treasure.py) |
 | Janelas fechadas e Koyu Kristal | ❌ | | |
 | Mini-client (33) e celular (48) | ❌ | | |
 
@@ -331,7 +331,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chefes do mapa (9525, 4938) | 🟡 | 🇹🇷 | relógio e lista no inglês (153200 #191); luta: 4938 type 4 e herói do chefe da 157 do inglês (24/10 #16254-#16256); aviso de abate do inglês (26/10 #1106); falta luta em equipe, prêmio do abate e nome inglês ("Purgatory Lord", o catálogo turco dá "Balrog") |
 | Baús dos Wilds (9526) | ✅ | | |
 | Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
-| Mapa do tesouro (8744) | 🟡 | 🇹🇷 | só o bronze; ops 2-5 recusadas; login só turco; 8745 e 8535 dependem dos mapas de guilda e do chefe |
+| Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço só entra na partilha (a luta não aceita herói no meio); login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
 | PK no campo de animais (8525) | ❌ | | |
 | Passe de progresso (8636/8637) | ❌ | | |

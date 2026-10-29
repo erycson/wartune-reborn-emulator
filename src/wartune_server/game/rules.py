@@ -459,13 +459,12 @@ SPIRE_CONDITION = 74  # 799 "Enter [The Spire]": entrada que gasta a vez do dia 
 TANK_JOIN_CONDITION = 79  # 912 (Para1 0) e 914 (Para1 3001): entrar na batalha de tanques (vehicle.match_up)
 TANK_WIN_CONDITION = 80  # 913 e 915: vencer a batalha de tanques (vehicle.settle; empate BOTH conta para os dois)
 EXPLORE_CONDITION = 91  # 930 "Click Explore -> Go on an exploration": 9502 op 3 (treasure_hunt)
+LOST_TREASURE_CONDITION = 89  # 925 "Lost Treasure": entrar na luta do mapa do tesouro (8744 op 3/5, reforço 8745)
 # Sem a ação no servidor (contam quando ela existir):
 # TODO(16): "Arena (Party)" 421/422: a sala PvP só procura partida (room.start_matching), não há luta
 ARENA_PARTY_CONDITION = 16
 # TODO(58): "Soul Engraving" 858: o cliente decompilado só tem GoodsSonType SOUL_CRYSTAL 293, sem tela nem pacote
 ENGRAVE_CONDITION = 58
-# TODO(89): "Lost Treasure" 925: escavar o mapa do tesouro (8744) não existe (handlers/treasure.py)
-LOST_TREASURE_CONDITION = 89
 # TODO(90): "Socket a Resistance Crystal" 926: as gemas da guarda de batalha (8742, handlers/tower.py) são recusadas
 RESIST_CRYSTAL_CONDITION = 90
 # TODO(93): "Win a Sky Trail battle" 932 (General William, Cloud City): sistema não identificado; (dedução) candidato

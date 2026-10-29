@@ -59,7 +59,7 @@ async def test_mapa_do_tesouro_responde_o_estado(tmp_path: Path) -> None:
         assert (state.userId, state.joinCount, state.rewardCount, list(state.templateIds)) == (
             g.user_id, 0, 0, [2190001, 2190002, 2190003, 2190004]
         )  # fmt: skip
-        g.client.send(8745, pb.GuildMsg(param1=1))  # reforço de mapa de guilda: não há mapa, só registra
+        g.client.send(8745, pb.GuildMsg(param1=1))  # reforço sem grupo nem escavação em curso: recusado
         assert await g.idle() == []
 
 
