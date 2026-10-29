@@ -213,6 +213,12 @@ async def test_rune_learn_upgrade_and_equip(tmp_path: Path) -> None:
 
         # diamante (RuneUpgradeView inglês): 50 + 10 por uso no dia, 20 EXP; count = usos (diamondIndex)
         snap.character.point, snap.character.gift_token = 110, 0
+        world = g.server.services.world  # sem o bônus 2x-20x (taxas.rune_diamond_multiplier, 0134): só a base
+        object.__setattr__(
+            world,
+            "settings",
+            {**world.settings, "taxas": {**world.settings.get("taxas", {}), "rune_diamond_multiplier": {"1": 1}}},
+        )
         for gp, used in ((70, 1), (90, 2)):
             g.client.send(8605, pb.HeroRuneOpMsg(opType=2, runeId=202))
             op = pb.HeroRuneOpMsg.FromString(next(p for p in await g.until(150) if p.code == 4495).body)

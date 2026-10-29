@@ -107,11 +107,12 @@ async def test_fund_harvest_items_are_bound(tmp_path: Path) -> None:
         world = g.server.services.world
         fund = {
             **world.settings["novice_fund"],
-            "levels": [{"level": 1, "costDiamond": 0, "tiers": [[1, 1, [[208017, 2]]]]}],
+            "levels": [{"level": 1, "costDiamond": 10, "tiers": [[1, 1, [[208017, 2]]]]}],
         }
         object.__setattr__(world, "settings", MappingProxyType({**world.settings, "novice_fund": fund}))
         s = g.server.online.get(g.user_id)
         assert s is not None and s.snapshot is not None
+        s.snapshot.character.point = 100
         s.snapshot.character.grades = max(s.snapshot.character.grades, int(fund.get("minGrades", 0)))
         g.client.send(8751, pb.DepositActiveMsg(opType=1, opParam=1))
         await g.idle()
