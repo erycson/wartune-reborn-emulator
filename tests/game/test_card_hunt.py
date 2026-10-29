@@ -142,3 +142,35 @@ async def test_activate_without_cards_only_alerts_and_fight_add_is_empty_from_32
         codes = [p.code for p in await g.idle()]
         first = codes.index(4902)
         assert codes[first : first + 3] == [4902] * 3 and codes.count(4902) == 3 and codes.index(150) > first + 2
+
+
+async def test_plus_spends_an_exploration_artifact(tmp_path: Path, rng: None) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        snap = _snap(g)
+        snap.character.grades = 32
+        got = await _seek(g, 7)  # d29 #2859-#2860
+        assert _codes(got) == [111]
+        assert pb.ChatChannelMsg.FromString(got[0].body).encodeMsg == "Not enough Exploration Artifact!"
+        await g.server.services.characters.save(*bag.add(snap, g.server.services.templates, 2131022, 1, NOW))
+        got = await _seek(g, 7)  # d29 #2803-#2806: 115, 111, 4914 op 2
+        assert _codes(got) == [115, 111, 4914]
+        assert pb.ChatChannelMsg.FromString(_body(got, 111)).encodeMsg == "Treasure Hunt attempts increased!"
+        info = pb.PlayerSeekInfoMsg.FromString(_body(got, 4914))
+        assert (info.op, info.seekCount) == (2, 4) and bag.count_of(snap, 2131022) == 0
+
+
+async def test_dwarf_merchant_charges_daru_in_the_player_packet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    r = random.Random(1)
+    r.choice = lambda seq: 8 if 8 in seq else seq[-1]  # type: ignore[method-assign,assignment]
+    monkeypatch.setattr(treasure_hunt, "RNG", r)
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        snap = _snap(g)
+        snap.character.grades, snap.character.strategy, gold = 32, 20000, snap.character.gold
+        info = pb.PlayerSeekInfoMsg.FromString(_body(await _seek(g, 3), 4914))
+        assert "19200 Daru" in info.eventDesc and info.curNodeId == 8
+        got = await _seek(g, 4)  # d29 #2838-#2857: 3 no lugar do 109
+        assert _codes(got) == [3, 115, 4476, 111, 4915, 4914, 83, 83]
+        assert (snap.character.strategy, snap.character.gold) == (800, gold)
+        assert pb.MessageForSeekMsg.FromString(_body(got, 4915)).info.endswith("Shardx2 from Banshee Wetlands")

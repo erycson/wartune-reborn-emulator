@@ -372,7 +372,7 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
 | 8994 | sem resposta fora do evento (o 4811 seria a lista de nós) | *(visto)* oficial_20261023-215937-1 #751, #973, #1189, #1300; (cliente) StoreSocketOutManager |
 | 9500 | caça-níquel (`game_settings.slot_machine`; sem ela 4901 `open` falso): ops 1/2/11/3, `slot` com dígitos, `*`, `+`, `-`, resgate do número na moeda. `handlers/slot.py` | (visto) tutorial_en #87 (fechado); (cliente) SlotManager, SlotFrame; idioma `slot.slotHelpFrame.describe` |
 | 9501 | quiz (`game_settings.quiz`; sem ela 4908 `sysState` 0): agenda seg/qua/sex 19:30, 4908 estados 1-5, 4909 pergunta e `answer`, 4907, 4910, EXP no fim. `handlers/quiz.py` | (cliente) AnswerManager, AnswerModel; idioma `answer.view.helpHtmlTxt`; banca TODO(inventado) |
-| 9502 | caça ao tesouro (nível 32): ops 1-7, 4914 com os nós, 4915 diário, troca 100 shards -> Master Summoner's Kit. `handlers/treasure_hunt.py` | (cliente) TreasureHuntManager/Controler/Frame, SeekType; idioma `hunt.*`; captura 20261029-121453-1 (0136); preço do "+" TODO(inventado) |
+| 9502 | caça ao tesouro (nível 32): ops 1-7, 4914 com os nós, 4915 diário, troca 100 shards -> Master Summoner's Kit. `handlers/treasure_hunt.py` | (cliente) TreasureHuntManager/Controler/Frame, SeekType; idioma `hunt.*`; captura 20261029-121453-1 (0136/0137); o "+" gasta Exploration Artifact |
 | 9507 | pesca: ops em `handlers/fishing.py` (4916, 4917, 4918, 4919, 4920) | (visto) 26/10, 27/10, 28/10; (cliente) FishManager |
 | 9508 | 4922 com o tabuleiro (real, abaixo) | (visto) só turco: av_askeri #1, login da replay #10; (cliente) GemMazeManager |
 | 9509 | troca: cascata, 4923 por passo e 4924 (real, abaixo) | (visto) só turco: av_askeri #5-#56; (cliente) GemMazeView |
@@ -468,8 +468,8 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   números inventados (`TODO(inventado)` em `game/fishing.py`).
 - **Caça ao tesouro (9502):** feita (`handlers/treasure_hunt.py`) pela captura 20261029-121453-1 #447-#575
   (migração 0136): nós, 3 iniciais, 6 h, `eventDesc`, 32000 de ouro, prêmio por nó, correio e ordem dos pacotes.
-  **Captura que falta**: o "+" (op 7, preço inventado), desistir (5), trocar (6), ouro insuficiente e o prêmio
-  dos outros 33 nós.
+  **Captura que falta** (o "+" gasta Exploration Artifact e o Dwarf Merchant cobra Daru: 0137): desistir (5), trocar (6), moeda insuficiente e o prêmio
+  dos outros 31 nós.
 - **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` 50 e o help ("Normal 1x, Double 2x, Quintuple 5x",
   casas "?", 100 pontos) existem; as casas (4933 `cellInfo`) e o custo de cada dado vêm do servidor. **Captura que
   falta**: abrir (4933) e jogar o dado nos três modos (4934 `CastDiceMsg`), mais o "refresh".
