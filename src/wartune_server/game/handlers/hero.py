@@ -84,6 +84,9 @@ async def skill_upgrade(s: GameSession, msg: pb.HeroAddPointReqMsg) -> None:
     setattr(hero, attr, ",".join(script))
     rules.refresh_skill_point(hero, templates)
     await s.ctx.characters.save(hero)
+    from .systems import send_fight_add  # systems importa este módulo
+
+    send_fight_add(s)  # (visto) captura 20261029-121453-1 #615-#617: 4902 ×2 antes do 150 (o 2º vem do send)
     _army(s)
     s.send(S_SKILL, pb.UpdatedSkillMsg(templateId=msg.skillTempId, index=int(tpl["Index"]), type=int(talent)))
 

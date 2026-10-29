@@ -157,6 +157,10 @@ async def _build(s: GameSession, code: int, building: Building | None, target: R
         troop = kind - (rules.ADV_TECH if kind >= 2 * rules.ADV_TECH else 0) in rules.TROOP_TECH
         for g, sign, _ in steps:
             _attr_step(s, sign * rules.boosted(per * g, bless), troop)
+        if troop:  # (visto) captura 20261029-121453-1 #644-#653: um 4902 depois do último 100, antes do 109
+            from .systems import send_fight_add  # systems importa este módulo
+
+            send_fight_add(s)
     if after != paid or attr_tech:  # o oficial manda o segundo 109 só quando rendimento/teto/população mudam
         s.send(cs.S_CASTLE_YIELD, after)
     # nível do quartel que libera um tipo de tropa (NeedBuilding = o template novo): 100 com todas as tropas do

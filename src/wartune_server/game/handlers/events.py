@@ -218,9 +218,20 @@ def progress(s: GameSession) -> None:
 
 def progress_of(s: GameSession, active_type: int) -> None:
     """4476 só das atividades ``active_type`` que correm (e o 4426): (visto) captura 20261029-121453-1 #450-#451,
-    9502 op 3 manda só a "Great Card Hunt" (tipo 101). Sem nenhuma correndo, nada."""
+    9502 op 3 manda só a "Great Card Hunt" (tipo 101). Sem nenhuma correndo, nada. Este 4476 de contagem vai com
+    ``activeCharge`` e ``getCount`` 0 (#450, #504, #548), enquanto o de todas leva 10/10 (#72, #459, #510): no
+    cliente (``FunnyManager``) ``activeCharge`` é o ``canGet`` do texto de alguns tipos e ``getCount`` só conta na
+    troca (condição 11, ``FunnyBagItem``/``FunnyHelper.mutiMaxNum``), nenhum dos dois no tipo 101."""
+    from .systems import send_mount  # systems importa este módulo
+
     if actives := [a for a in s.ctx.events.running(s.ctx.clock.now()) if a.active_type == active_type]:
-        _sum_data(s, actives)
+        msg = _active_data(s, actives)
+        for data in msg.datas:
+            data.activeCharge = 0
+            for pd in data.packdata:
+                pd.getCount = 0
+        s.send(S_SUM_DATA, msg)
+        send_mount(s)
 
 
 def items_gained(s: GameSession) -> None:

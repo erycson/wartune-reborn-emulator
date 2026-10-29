@@ -831,6 +831,15 @@ def send_camp_buffs(s: GameSession, camp: int) -> None:
     s.send(S_CAMP_BUFFS, camp_buffs_msg(snap, s.ctx.templates, camp, s.ctx.world.settings.get("powcard_suite_slots")))
 
 
+def send_fight_add(s: GameSession, times: int = 1) -> None:
+    """``times`` 4902 soltos (fora do que o ``GameSession.send`` põe antes do 150). Nada sem cartas abaixo do 32."""
+    assert s.snapshot is not None
+    if (add := fight_add_msg(s.snapshot, s.ctx.templates, s.ctx.world.settings.get("powcard_suite_slots"))) is None:
+        return
+    for _ in range(times):
+        s.send(S_FIGHT_ADD, add)
+
+
 def send_cards(s: GameSession) -> None:
     """4905 e o 4902 logo depois (só turco: login #76-#77)."""
     assert s.snapshot is not None

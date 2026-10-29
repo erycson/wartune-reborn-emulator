@@ -99,6 +99,11 @@ async def push_level(s: GameSession, before: int) -> None:
     if snap.castle is not None and snap.character.grades // 10 > before // 10:
         own = b.complete(b.castle_msg(snap, snap.castle, buffs.protection_left(snap, s.ctx.clock.now())))
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=own))
+    from .systems import send_fight_add  # systems importa este módulo
+
+    # (visto) captura 20261029-121453-1 #422-#426, subida 31 -> 32: 4902 ×3 antes do 100 e o 150 sem outro;
+    # (dedução) igual nas subidas seguintes. Abaixo do 32 e sem cartas não sai nenhum
+    send_fight_add(s, 3)
     pawns = castle_pawns(snap, templates)
     # os prédios do oficial nascem no 8281 (EN #578, antes o 4154 do login vem vazio); aqui nascem com o personagem,
     # então "castelo aberto" é a produção já iniciada pelo 8281
@@ -108,7 +113,7 @@ async def push_level(s: GameSession, before: int) -> None:
         if target is not None and target.army_count < lead:
             s.send(S_SHORT)
         s.send(S_CASTLE_PAWNS, pawns)
-    _army(s)
+    _army(s, cards=False)  # os 4902 já foram antes do 100
     fund_opened(s, before)
 
 

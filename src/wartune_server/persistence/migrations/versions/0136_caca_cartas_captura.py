@@ -112,7 +112,9 @@ TREASURE_HUNT: dict[str, Any] = {
         "startCount/startNode/interval/nodes": CAP + " #448 (4914 op 1: seekCount 3, nextAddTime 21600, nó 7)",
         "eventDescs/goldCost": CAP + " #453, #506, #550 (texto) e 109 #508/#552 (-32000)",
         "prizes": CAP + " 4915 #493 (nó 12), #524 (nó 7), #567 (nó 3)",
-        "defaultPrize": INV + " (nós fora da captura; o kit x1 é igual nos três vistos)",
+        "defaultPrize": INV + " (nós fora da captura; o kit x1 é igual nos três vistos; procurado sem achar: "
+        "ItemTempInfos 2131016-2131019 só dizem a chance de carta do kit e '100 shards por Master Kit', "
+        "language.txt hunt.* e funny.*101 sem prêmio, TreasureHuntFrame/HunterDialogFrame sem tabela)",
         "failText/mailSuffix/gainedText": CAP + " 111 #528/#492, 4915 #493",
         "mailTitle/mailDays/mailSendType": CAP + " 4131 #606",
         "noGoldText": INV + " (sem captura de ouro insuficiente)",

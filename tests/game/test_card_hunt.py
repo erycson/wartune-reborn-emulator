@@ -62,7 +62,8 @@ async def test_hunt_open_explore_and_treasure_follow_the_capture(tmp_path: Path,
         got = await _seek(g, 3)  # d29 #450-#453: 4476 só da atividade, sem 4915
         assert _codes(got) == [4476, 4914]
         data = pb.SumActiveDataMsg.FromString(_body(got, 4476))
-        assert [(d.type, d.value) for d in data.datas] == [(101, 1)]
+        assert [(d.type, d.value, d.activeCharge) for d in data.datas] == [(101, 1, 0)]
+        assert all(p.getCount == 0 for p in data.datas[0].packdata)  # #450: 0, o de todas leva 10
         info = pb.PlayerSeekInfoMsg.FromString(_body(got, 4914))
         assert (info.op, info.seekCount, info.state, info.curNodeId) == (3, 2, 1, 12)
         assert "32000 Gold" in info.eventDesc
@@ -132,3 +133,12 @@ async def test_activate_without_cards_only_alerts_and_fight_add_is_empty_from_32
         _army(session)  # do 32 em diante: 4902 vazio antes do 150 (d29 #536-#537)
         got = await g.idle()
         assert [p.code for p in got] == [4902, 150] and got[0].body == b""
+        from wartune_server.game.handlers.player import push_level
+        from wartune_server.game.handlers.systems import send_fight_add
+
+        send_fight_add(session, 2)  # 5185 (#615-#617) usa 1 solto + o do 150
+        assert [p.code for p in await g.idle()] == [4902, 4902]
+        await push_level(session, 31)  # subida ao 32 (#422-#426): 4902 ×3 antes do 100/150, o 150 sem outro
+        codes = [p.code for p in await g.idle()]
+        first = codes.index(4902)
+        assert codes[first : first + 3] == [4902] * 3 and codes.count(4902) == 3 and codes.index(150) > first + 2
