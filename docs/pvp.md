@@ -256,13 +256,41 @@ e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque =
 | 8718 / 8721 | 4532 / 4537 vazios | |
 | 8717, 8720 | nada (o cliente não espera) | o 8720 só aparece depois de um 4533, nunca mandado |
 | 8979, 8975, 8976, 8981 | 4799 `{isOpen false, isSign false, isOver true}` | Senhores de casal; o botão já é escondido no cliente (`MATELORD`) |
-| 8337 | 4255 vazio | classificação do campo de batalha |
-| 8332, 8334, 8338, 8599 | nada | campo de batalha (campanhas 4001-4011, mapa com times): sem 125 o cliente não troca de cena. O 8599 (`CampaignReqMsg {paraInt1: campanha}`) é o `WarFightItem` pedindo entradas com `warFieldCount` <= 0: o login manda 2 e o botão só aparece no estado 0. *(visto)* oficial_20261027-152321-1 #22504 (8599 `paraInt1` 4009) -> #22505 4493 `paraInt1` 4009, `paraBool1` false; o handler de 8599 (`warfield.closed`) só loga e não manda o 4493 (pendente: o arquivo está fora desta entrega) |
-| 8633 | nada | mina de ametista (campanha 30000): o botão só aparece com 4549/4422, nunca mandados |
+| 8633 | mina (abaixo) | mina de ametista (campanha 30000) |
 
-No login (8224 `sys`): 4776 com a agenda dos Senhores no passado (sem 4535, como a inglesa #104-#106) e o **4248
-de 4001-4011 pela agenda de hoje**: 1 antes do `OpenTime`, 3 na janela, 2 depois do `StopTime` (inglesa #104 às
-18:24: 4001-4007 = 2, 4008 = 3, 4009-4011 = 1). O oficial manda 0 (aberto) na abertura (#3110); aqui nunca, porque o
-mapa do campo não existe (o 0 é o único estado que o cliente lê: mostra o botão no nível 30).
-Abrir de verdade depende do mapa de campanha compartilhado (campo e mina) e de agenda/servidores
+## Campo de batalha (4002, 4005, 4007) — `handlers/warfield.py`, `game/battlefield.py`
+
+Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 121453 (4002 #8285-#10568).
+
+- **Entrada (8332)**: 140, 125 (isCross), 21 (com guilda e `teamId`), 127 (28 nós, iguais nos três campos; no 4002 os
+  guardiões 13-18 do time 2 vivos, state 1), 4252 a todos, 4175 com o estado de cada um, 150; missão 44. Nasce no
+  acampamento do lado: time 1 em 179,75, time 2 em 17,76 (nós 001/002). Pontos pessoais começam em 100. Lado: o de
+  menos gente, empate no 2 (*inventado*: o oficial cruza servidores).
+- **4252**: `teamId`, pontos, `order` 0, `geste` = honra total do personagem, abates; `one` = time 1, `two` = time 2
+  (gente e pontos do lado); sem `leftTime`. Vai a todos no campo a cada mudança.
+- **Pontos do lado**: só sobem com entregas e ganhos no PvP; entrar não soma e perder não desconta.
+- **Coleta/entrega**: nós 005-009 (91/2380); a qualidade é sorteada na coleta (`taxas.field_ore_weights`, 0140,
+  contagem das 26 entregas vistas); entrega no "Resource Recovery Officer" do lado (011 time 1, 012 time 2):
+  superior 30/3/3, normal 20/2/2, inferior 10/1/1 (pontos/honra/shards). Ordem: 4175, 4252, 4471, 3, 115, 111, 83,
+  4252, 4269. A honra entra no geste na hora e no 4471 (honra do dia, `event_state honor_day`; o login e a guerra
+  de guildas usam o mesmo contador).
+- **PvP (8334)**: o alvo recebe 111 "X is attacking you!" e 83 com o link; perdedor perde `ceil(15%)`, vencedor
+  ganha `20 + pontos do perdedor // 20`, 10 de honra e 10 pontos de PvP entre servidores (texto ", Cross-server PvP
+  points +10"). O perdedor vai ao acampamento, 4175 state 1 (3 se carrega; o minério fica) por 25 s e renasce
+  (4175 state 0/2). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!").
+- **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141) persegue: 4105, 4494,
+  128 nodeState 4, 157 tipo 32; na derrota 4104, 4103, 4122 de volta ao ponto, 4175 morto, 128 nodeState 1, 4494,
+  4269 e "You lost: 150 Points." (`taxas.field_guardian_loss`). Vitória não vista (*inventado*: cai, nodeState 8).
+- **Fim** (StopTime): 4248 state 2, 83, 4254 (`oneTeamId` = vencedor, como o cliente lê em
+  `PvpSortListView.isVictory`; linhas com `itemCount`/`winGesteCount`), 4248, 22, 4471, 3, 115, 112 (missão 50) e
+  "The battle has ended! You received Insignia xN and honor xN!": vencedor 80/90, perdedor 30/30 (visto #11669 e
+  121453 #10546). Empate: *inventado* (sem vencedor, todos 30/30).
+- **8337**: 4255 com todos que entraram, na ordem de chegada, nome, abates e a honra do campo.
+- **8338**: 200 Star Points (idioma `PvpMapRightView.reset`); cheio: "You already have full HP..." (#15796).
+- **Mina**: na abertura 4549 true e 83 "It's Amethyst Double Time!..." (191924 #14217-#14218).
+
+Ainda inventado: o lado de quem entra, o empate, o renascer fixo em 25 s (vistos 5 a 30 s), o alcance e a perda
+do guardião (um caso), a vitória contra o guardião, o 4388 `data`, o 4549 no login dentro da janela, as frases de
+sequência de abates ("first blood", "killing spree"...; não implementadas) e a honra/pontos extras de abate (visto
+11 e 12 uma vez, 121453 #9800).
 cruzados (Senhores).
