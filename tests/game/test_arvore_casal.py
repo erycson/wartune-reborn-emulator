@@ -20,10 +20,16 @@ async def _marry(a: Game, b: Game) -> None:
     await _engage(a, b)
     b.client.send(15049, pb.MarriageOpMsg(opType=4, property1=3, payType=1))
     await a.until(4658)
+    # desde o lote 5 o aceite (op 5) só reserva a cerimônia; o casamento sai no voto da sala (handlers/wedding)
     a.client.send(8759, pb.MarriageOpMsg(opType=5, property5=True))
-    await b.until(148)
+    await a.until(4657)
     await a.idle()
     await b.idle()
+    from tests.game.test_marriage import ceremony
+    from wartune_server.game.handlers import wedding
+
+    wedding._weddings.clear()
+    await ceremony(a, b)
 
 
 async def _op(g: Game, op: int) -> pb.MarriageTreeMsg:

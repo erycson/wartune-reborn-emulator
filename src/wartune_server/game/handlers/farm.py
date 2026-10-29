@@ -676,5 +676,9 @@ async def friend_farm_state(s: GameSession, msg: pb.FriendUserIdsMsg) -> None:
         target, r = found
         full = target.castle is not None and target.castle.tree_fruit > 0
         can_water = room and r.tree_day != gameday.today(now) and not full
-        states.append(farm.friend_state(s.player_id, target, s.ctx.templates, now, can_water=can_water))
+        state = farm.friend_state(s.player_id, target, s.ctx.templates, now, can_water=can_water)
+        from .farm_pets import can_feed_any  # noqa: PLC0415
+
+        state.isFeed = can_feed_any(target, now)  # FarmSceneView: ícone de comida na lista de amigos
+        states.append(state)
     s.send(S_CAN_WATER, b.complete(pb.LoadFarmRsp(friendFarmState=states)))

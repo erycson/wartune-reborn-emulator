@@ -153,3 +153,46 @@ async def test_6_venus_crystal_pela_missao_do_casal(tmp_path: Path, monkeypatch:
         assert st is not None and st.value == 5
         tokens = pb.PlayerTokenInfoMsg.FromString(got[-1].body).tokenInfos
         assert next(t.amount for t in tokens if t.masterType == 12) == 5
+
+
+async def test_4b_203_tropas_contrato_e_medalha(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        snap.character.grades = 40
+        c = snap.character
+        geste = c.geste
+        for pos, tid in ((20, 2030901), (21, 2031401), (22, 2032201)):  # Huntera x200, Pocket Market, Medallion
+            item = Item(g.user_id, tid, pos=pos, count=1)
+            snap.items.append(item)
+            await g.server.services.characters.save(item)
+            g.client.send(5006, pb.ItemUseMsg(pos=pos, count=1, bagType=1))
+            await g.idle()
+        assert next(p.castle_count for p in snap.pawns if p.template_id == 9001) == 200
+        assert ev.contract_end(snap, 1) is not None and ev.contract_end(snap, 2) is None  # só o contrato 1
+        assert c.geste - geste == 500
+        assert not [i for i in snap.items if i.template_id in (2030901, 2031401, 2032201)]
+
+
+async def test_2b_amigo_alimenta_e_o_dono_ve(tmp_path: Path) -> None:
+    from tests.game.test_castelo import _friends
+
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=19000, clock=clock) as g:
+        other = await g.join("outro")  # type: ignore[call-arg]
+        await g.idle()
+        await _friends(g, other)
+        snap = me(g)
+        snap.character.grades = 60
+        pet = Pet(g.user_id, 101103, "Amazon", pos=0)
+        snap.pets.append(pet)
+        await g.server.services.characters.save(snap.character, pet)
+        g.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=12, pos=1, bagPos=pet.id, templateId=12))
+        await g.idle()
+        clock.advance(4 * 3600)
+        other.client.send(8231, pb.FriendUserIdsMsg(friendId=[g.user_id]))
+        states = pb.LoadFarmRsp.FromString((await other.until(4190))[-1].body).friendFarmState
+        assert next(x for x in states if x.userId == g.user_id).isFeed
+        other.client.send(15044, pb.FarmOperReqMsg(friendId=g.user_id, opType=15, pos=1, bagPos=pet.id, templateId=10))
+        assert _one(await other.idle(), 4387, pb.FarmInfoRspMsg).petInfo[0].state == 3
+        log = _one(await g.idle(), 145, pb.FarmLogRsp)
+        assert log.operUserId == other.user_id

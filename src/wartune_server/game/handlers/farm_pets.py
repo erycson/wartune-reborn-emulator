@@ -84,6 +84,16 @@ def _region(land: dict[str, Any], now: datetime) -> int:
     return int((now - begin) / ((end - begin) / FEED_PARTS))
 
 
+def _can_feed(land: dict[str, Any], now: datetime) -> bool:
+    """``PetLandInfo.canFeed``."""
+    state = int(land["state"])
+    return state < FEED_MAX and now < ev.parse_time(land["end"]) and _region(land, now) > state
+
+
+def can_feed_any(snap: PlayerSnapshot, now: datetime) -> bool:
+    return any(_can_feed(land, now) for land in data(snap)["lands"].values())
+
+
 async def operate(s: GameSession, owner: PlayerSnapshot, msg: pb.FarmOperReqMsg, own: bool) -> None:
     """``owner`` é a fazenda (a própria ou, só no 15, a do amigo). Recusa: só o 4387 da terra como está."""
     from . import pets  # noqa: PLC0415
@@ -115,10 +125,9 @@ async def operate(s: GameSession, owner: PlayerSnapshot, msg: pb.FarmOperReqMsg,
             del d["lands"][key]
             changed.append(pet)
     elif msg.opType == FEED and land is not None:
-        region = _region(land, now)
-        ok = int(land["state"]) < FEED_MAX and now < ev.parse_time(land["end"]) and region > int(land["state"])
+        ok = _can_feed(land, now)
         if ok:
-            land["state"], land["feeds"] = min(region, FEED_MAX), int(land["feeds"]) + 1
+            land["state"], land["feeds"] = min(_region(land, now), FEED_MAX), int(land["feeds"]) + 1
     elif msg.opType == DEFENSE and own and pet is not None:
         d["guard"], ok = pet.id, True
     if not ok:
@@ -133,5 +142,12 @@ async def operate(s: GameSession, owner: PlayerSnapshot, msg: pb.FarmOperReqMsg,
             s.send(S_FARM_LAND, b.complete(pb.FarmInfoRspMsg(userId=s.player_id, guardPetInfo=guard)))
         return
     _reply(s, owner, msg.pos)
+    if not own and (other := s.ctx.online.get(owner.character.id or 0)) is not None:
+        # o dono online vê como na rega/praga do amigo: 145 e o 4387 da terra. TODO(inventado): texto e type 2 (sem
+        # captura da comida; o cliente não tem prêmio a quem dá comida, só a condição de evento PET_FEED 56)
+        from .farm import S_FARM_LOG, _farm_log  # noqa: PLC0415
+
+        other.send(S_FARM_LOG, _farm_log(s, "just fed your Sylph!", 2))
+        _reply(other, owner, msg.pos)
     if own and msg.opType != FEED:
         s.send(pets.S_PETS, pets.pets_msg(snap, templates, [pet] if pet is not None else []))

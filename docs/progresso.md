@@ -124,7 +124,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Avanço de qualidade (op 4) | 🟡 | | chance da bênção 10% é atalho |
 | Encantar aptidão (op 7) | 🟡 | | quanto sobe é atalho |
 | Aprender skill (op 5) | 🟡 | | sorteio uniforme entre livros |
-| Crescimento e treino do mascote (fazenda 15044 ops 12-15) | 🧪 | | `handlers/farm_pets.py`: 2 terras, nível 50, 10 partes e 5 comidas do cliente (`FarmLandLayer`, `PetLandInfo.canFeed`); horas, EXP/h e % por comida TODO(inventado) `farm_pet_practice` (0118). Resistência (8621 op 8, `trainResistance`) sem chamador no cliente inglês: bloqueio |
+| Crescimento e treino do mascote (fazenda 15044 ops 12-15) | 🧪 | | `handlers/farm_pets.py`: 2 terras, nível 50, 10 partes e 5 comidas do cliente (`FarmLandLayer`, `PetLandInfo.canFeed`); horas, EXP/h e % por comida TODO(inventado) `farm_pet_practice` (0118). Comida do amigo: `isFeed` no 4190 e aviso ao dono online (145 + 4387; texto inventado); o cliente não tem prêmio para quem alimenta. Resistência (8621 op 8, `trainResistance`) sem chamador no cliente inglês: bloqueio |
 | Fusão de dois pets (op 15) | ❌ | | sem template |
 | Mascote em batalha (EXP, despertar 4600) | 🟡 | 🇹🇷 | do turco; +250 por golpe e gasto 150 por dedução |
 | Guarda da fazenda é o mascote | ✅ | 🇹🇷 | op 16 (`FarmPetSelectMeun`) escolhe o guarda; sem escolha, o de batalha (turco). Ops 10 (GIVE_POWER) e 11 (TREE_PICK, vai pelo 5178) sem `sendFarmOper` no cliente |
@@ -147,7 +147,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pergaminhos de EXP, ouro e população | ✅ | | ordem vista em 191924 (#1737, #2241, #3379) |
 | Pergaminhos de outros efeitos | 🧪 | | % de ataque/defesa/vida/crítico e tropa (46) na luta, honra (48) no campo; 2000 Camouflage é só aparência (4188) |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
-| Cristal, guilda e Token de proteção (5006) | 🧪 | | 203 tipo 11 (Kyanite Pack -> cristais) e tipo 8 (Contribution Badge -> contribuição), texto "Received:" TODO(inventado); o City Protection Token já ia (`items.py` PROTECTION, Trégua); 203 tipos 9/14/16 seguem recusados |
+| Cristal, guilda e Token de proteção (5006) | 🧪 | | 203 tipo 11 (Kyanite Pack -> cristais) e tipo 8 (Contribution Badge -> contribuição), texto "Received:" TODO(inventado); o City Protection Token já ia (`items.py` PROTECTION, Trégua); 203 tipo 9 (soldados do PawnTempInfos Property3 no castelo, sem conferir população TODO(inventado)), 14 (um contrato do rei por Property2 horas, `vip.use_covenant`) e 16 (Medallion: +500 de honra) |
 | Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); rankings de honra, charme, força da montaria e Sylph (pontuação `rank:*` gravada no login/8597; Sylph pelo nível do pet, inventado), golpe final no chefe do mundo e líder da guilda vencedora da guerra; sem sistema: guerra de classes, arena de Sylph, Hero Returns, guerra entre servidores e monstros dos Wilds |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from google.protobuf.message import Message
 
 from ...domain import gameday
-from ...domain.models import BagType, EventState, Hero, Item, PlayerSnapshot
+from ...domain.models import BagType, EventState, Hero, Item, Pawn, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...services.ledger import item_entry
@@ -73,6 +73,10 @@ USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (203210
 # Kyanite Pack (11, cristal do castelo) e Contribution Badge (8, contribuição da guilda): o campo pelo nome do item;
 # TODO(inventado): o texto "Received:" sem captura
 USE_KINDS |= {8: ("consortia_offer", "Guild Contribution"), 11: ("crystals", "Kyanite")}
+# Medallion (16): "permanently increase Honor by 500, unaffected by the daily Honor gain limit" -> geste, como o 6
+USE_KINDS[16] = ("geste", "Honor")
+ONE_CONTRACT = 14  # Pocket Market... (Property2 horas, Property3 = o contrato do rei 1-6)
+TROOPS = 9  # Huntera Lvl. 5...: "Contains 200 Huntera" (Property2 soldados do PawnTempInfos Property3)
 ITEM_EXP_KEY = "item_exp"  # event_state diário: EXP de herói vinda de itens (203 tipo 7) hoje
 ITEM_EXP_FULL = "Today's EXP item limit has been reached."  # TODO(inventado): sem texto no cliente nem captura
 VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
@@ -383,10 +387,16 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
         from . import vip
 
         return await vip.use_covenant(s, item, row, n)
+    if int(row.get("Property1") or 0) == ONE_CONTRACT:  # Pocket Market, Bounty Helper...: o contrato Property3
+        from . import vip
+
+        return await vip.use_covenant(s, item, row, n, (int(row.get("Property3") or 0),))
+    if int(row.get("Property1") or 0) == TROOPS:
+        return await _use_troops(s, item, row, n)
     kind = USE_KINDS.get(int(row.get("Property1") or 0))
     amount = int(row.get("Property2") or 0) * n
     if kind is None or amount <= 0:
-        return False  # 9 (cartas de herói), 14 (buffs de 31 dias) e 16 (Medallion): fora deste lote
+        return False
     field, label = kind
     if field == "copies":
         return await _use_copies(s, item, n, amount)
@@ -428,6 +438,29 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     _player(s)
     if field == "gp" and not gained:  # (visto) 191924 #1720: 115, 111 "Received:Hero EXP x1000", 3 e 83
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
+    return True
+
+
+async def _use_troops(s: GameSession, item: Item, row: Row, n: int) -> bool:
+    """Carta de soldados (203 tipo 9): ``Property2`` x n soldados do ``PawnTempInfos`` ``Property3`` no castelo.
+    O tipo é achado pelo template exato (os 9001-9008 dividem o ``// 100``). TODO(inventado): não confere a
+    população; o texto é o do recrutamento (5155)."""
+    snap = s.snapshot
+    assert snap is not None
+    tid, amount = int(row.get("Property3") or 0), int(row.get("Property2") or 0) * n
+    tpl = s.ctx.templates.get("PawnTempInfos", tid)
+    if tpl is None or amount <= 0:
+        return False
+    pawn = next((p for p in snap.pawns if p.template_id == tid), None)
+    if pawn is None:
+        pawn = Pawn(snap.character.id or 0, tid)
+        snap.pawns.append(pawn)
+    pawn.castle_count += amount
+    changed, gone = _consume(snap, item, n)  # antes de qualquer await
+    await s.ctx.characters.save(pawn, *changed, delete=tuple(gone))
+    _send_items(s, changed, gone)
+    send(s, S_CASTLE_PAWNS, castle_pawns(snap, s.ctx.templates, [pawn]))
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Successfully Recruited {amount:,} {tpl['PawnName']}"))
     return True
 
 
