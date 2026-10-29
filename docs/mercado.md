@@ -112,7 +112,7 @@ Regras do `AuctionSellSubmitPane` *(cliente)*, conferidas também no servidor:
   migração `0018`); passou: −52, recusado antes de cobrar; o lance devolvido não volta para a cota.
 - **Encerramento**: dois caminhos, na mesma transação e sob `MALL_LOCK`:
   - **agendado**: `game/mall.py` `run`, iniciado em `app.py` (`serve`) e cancelado ao desligar. Roda já na subida e
-    depois a cada 60 s (`SWEEP_SECONDS`). Uma rodada que falha é registrada (`log.exception`) e a próxima tenta de
+    depois dorme até o menor `ends_at` (no máximo 60 s, `SWEEP_SECONDS`). Uma rodada que falha é registrada (`log.exception`) e a próxima tenta de
     novo.
   - **no pedido**: antes de cada pedido do mercado, `_transact` roda `settle`, então um pedido nunca vê um anúncio
     vencido aberto.

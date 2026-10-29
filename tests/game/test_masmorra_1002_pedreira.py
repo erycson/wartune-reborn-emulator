@@ -18,6 +18,7 @@ from wartune_server.game.handlers import campaign as hc
 from wartune_server.game.handlers.campaign import _map_finished
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
 __all__ = ["fast_battles"]  # fixture autouse importada: sem sorte nos drops e lutas rápidas
@@ -199,7 +200,8 @@ async def test_1002_do_1131_ao_karlan_e_a_segunda_etapa(tmp_path: Path, monkeypa
 
 
 async def test_pedreira_entra_colhe_luta_e_sai(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=25500) as g:
+    clock = FakeClock()
+    async with logged_in(tmp_path, novice=25500, clock=clock) as g:
         g.client.send(8258, pb.WorldBossMsg(param1=6001))
         got = await g.idle()
         assert codes(got) == [125, 140, 140, 21, 127]  # inglesa #1805-#1809
@@ -211,6 +213,7 @@ async def test_pedreira_entra_colhe_luta_e_sai(tmp_path: Path) -> None:
 
         characters = g.server.services.characters
         for _ in range(2):  # (visto) #1847 e #1861: a mesma pilha duas vezes
+            clock.advance(5)  # o fim da animação de colheita (quarry_collect_seconds)
             g.client.send(5032, pb.CallBackReqMsg(mapId=6001, nodeId=600108, cmd=2))
             got = await g.idle()
             assert (

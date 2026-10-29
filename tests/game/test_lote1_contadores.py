@@ -254,8 +254,13 @@ async def test_15_titulos_de_ranking_proprio_chefe_e_lider(tmp_path: Path) -> No
         snap.character.geste = 10
         titles.count(snap, titles.BOSS_BLOW, NOW)
         await hev.title_ranks(s)
-        guild = SimpleNamespace(chairman_id=g.user_id)
-        ctx = SimpleNamespace(guilds=SimpleNamespace(guilds={7: guild}), online=s.ctx.online, clock=s.ctx.clock)
+        guild = SimpleNamespace(chairman_id=g.user_id, server_id=snap.character.server_id)
+        ctx = SimpleNamespace(
+            guilds=SimpleNamespace(guilds={7: guild}),
+            online=s.ctx.online,
+            clock=s.ctx.clock,
+            characters=s.ctx.characters,
+        )
         [st] = await guildwar._champion(ctx, 7)  # type: ignore[arg-type]
         assert st.value == 1
         got = _got(hev.titles_msg(s))

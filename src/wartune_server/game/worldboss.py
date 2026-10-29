@@ -28,7 +28,7 @@ SPAWN_GAP = timedelta(minutes=OPEN_NOTICE - 1)  # do mapa aberto ao nascimento
 
 def spawn_at(row: Row, now: datetime) -> datetime:
     """Quando o chefe nasce hoje (UTC)."""
-    day = gameday.local(now)
+    day = _base(row, now)
     h = _hour(row["OpenTime"])
     return day.replace(hour=h.hour, minute=h.minute, second=0, microsecond=0).astimezone(UTC) + SPAWN_AFTER
 
@@ -64,11 +64,17 @@ def _hour(text: str) -> time:
     return time(int(hour), int(minute))
 
 
-def state(row: Row, now: datetime) -> int:
-    """Estado de hoje: aberto do aviso de 5 min (o mapa abre antes do chefe nascer) até ``StopTime``.
+def _base(row: Row, now: datetime) -> datetime:
+    """O dia (fuso do jogo) da janela em curso: ``StopTime`` antes do ``OpenTime`` cruza a meia-noite, e da meia-noite
+    ao ``StopTime`` a janela ainda é a de ontem."""
+    day, stop = gameday.local(now), _hour(row["StopTime"])
+    crosses = stop < _hour(row["OpenTime"])
+    return day - timedelta(days=1) if crosses and day.time() < stop else day
 
-    ponytail: janela que cruza a meia-noite não existe nos templates; não é tratada.
-    """
+
+def state(row: Row, now: datetime) -> int:
+    """Estado de hoje: aberto do aviso de 5 min (o mapa abre antes do chefe nascer) até ``StopTime`` (que pode cair
+    no dia seguinte)."""
     opened, stop = window(row, now)
     if now < opened:
         return BEFORE
@@ -80,7 +86,9 @@ def state(row: Row, now: datetime) -> int:
 def window(row: Row, now: datetime) -> tuple[datetime, datetime]:
     """Abertura do mapa e fechamento de hoje (no fuso do jogo), em UTC."""
     h = _hour(row["StopTime"])
-    stop = gameday.local(now).replace(hour=h.hour, minute=h.minute, second=0, microsecond=0)
+    stop = _base(row, now).replace(hour=h.hour, minute=h.minute, second=0, microsecond=0)
+    if h < _hour(row["OpenTime"]):
+        stop += timedelta(days=1)
     return _notice_at(row, now, OPEN_NOTICE), stop.astimezone(UTC)
 
 

@@ -380,7 +380,8 @@ async def test_pet_battle_end_early_needs_an_active_vip_3(tmp_path: Path, monkey
         assert await g.idle() == [] and ended == []
 
         snap.character.point = 400
-        g.client.send(8513, pb.VipOpenInfoMsg(days=31))  # 310 de vipGp: nível 3 ativo
+        ev.state(snap, "vip", datetime.now(UTC)).value = 300  # + 10 do dia da compra: 310 de vipGp, nível 3 ativo
+        g.client.send(8513, pb.VipOpenInfoMsg(days=31))
         await g.until(4416)
         g.client.send(8727, pb.BattleReqMsg(battleId=prepare.battleId))
         await g.idle()

@@ -97,6 +97,7 @@ class CampaignMap:
     content: Mapping[str, Any] | None = None  # conteúdo da campanha (masmorra ou pedreira), do banco
     run: StageRun | None = None  # etapa da masmorra (relatório 137)
     quarry: bool = False  # pedreira 6001: coleta (5032) e a luta do 8699, sem fim nem carta
+    collected: dict[int, datetime] = field(default_factory=dict)  # pedreira: última colheita por campDataId
     over: tuple[int, int] | None = None  # (gp, strategy) do 4382 que espera a volta ao mapa (5035 state 4)
     ending: list[Any] | None = None  # etapa vencida: missões (Quest) que fecham no fim, que sai com o 4382
     fallen: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # baús da luta por signId (5129)

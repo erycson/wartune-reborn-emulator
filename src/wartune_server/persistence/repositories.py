@@ -304,6 +304,10 @@ class SqlMallRepository(_Repo):
         )
         return list(await self._s.scalars(query))
 
+    async def next_end(self, server_id: int) -> datetime | None:
+        query = select(func.min(MallListing.ends_at)).where(MallListing.server_id == server_id)  # type: ignore[arg-type]
+        return await self._s.scalar(query)
+
     async def bid(self, listing_id: int, bidder_id: int) -> MallBid | None:
         query = select(MallBid).where(
             MallBid.listing_id == listing_id,  # type: ignore[arg-type]

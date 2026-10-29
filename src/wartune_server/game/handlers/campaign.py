@@ -12,6 +12,7 @@ import uuid
 from collections import Counter
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 
 from google.protobuf.json_format import ParseDict
@@ -1057,6 +1058,7 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
 # 1002 = [1131 -> 1132], [1141 -> 1142] (o portal 125 tipo 3 leva ao 2º mapa). Um 5039 abre a etapa da vez; o fim
 # da etapa (137 ... 140) sai no último mapa, e a carta no 5122. Detalhes em docs/salas-campanha.md.
 WEARY = 20  # (visto) "Entered [Worg Lair] and deducted 20 stamina." (inglesa #853, #2320); nenhuma coluna do template
+NO_STAMINA = "Insufficient Stamina"  # (cliente) language.txt inglês mopup.MopupManager.mopupTipData03
 STAGE_KEY = "campaign_stage:{}"  # EventState: índice da próxima etapa (#2310 e #2788 mandam o mesmo 5039)
 RANK_KEY = "campaign_rank:{}"  # EventState: melhor nota total (4151)
 MATERIAL = 210  # SonType que vai direto para a mochila (Worg Tooth, Wood; inglesa #1275, #2050); o resto cai num baú
@@ -1104,7 +1106,7 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         await _group_start(s, room, content, msg)
         return
     if snap.character.weary < WEARY:
-        # ponytail: sem energia não entra e não responde; a recusa do oficial precisa de captura com estamina < 20
+        _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=NO_STAMINA))
         s.log.info("5039 sem energia", weary=snap.character.weary)
         return
     now = s.ctx.clock.now()
@@ -1328,6 +1330,7 @@ async def _dungeon_arrive(s: GameSession, camp: int, node: dict[str, Any]) -> No
     c = _map(s)
     if c.quarry:  # (visto) inglesa #1841-#1843: a pilha responde 143 COLLECTION com o nodeId; o 5032 colhe
         if node["masterType"] == COLLECT:
+            c.collected[camp] = s.ctx.clock.now()
             movie = pb.PlayerMovieMsg(movieTargetType=0, targetId=node["nodeId"], movieType="COLLECTION", delay=0)
             _send(s, S_MOVIE, movie)
         return
@@ -1376,13 +1379,18 @@ async def _dungeon_callback(s: GameSession, camp: int) -> None:
     collect = c.part("collect", node["sonType"])
     if node["masterType"] != COLLECT or collect is None:
         return
-    # ponytail: colheita sem limite nem espera (a captura colheu duas vezes seguidas a mesma pilha, #1847 e #1861);
-    # o limite do oficial, se houver, precisa de captura de quem colhe muito
+    # A pilha não acaba (#1847 e #1861, a mesma duas vezes), mas o cliente só manda o 5032 no fim da animação de
+    # colheita (CollectionAction: setInterval de totalFrames*33 ms): 5032 antes disso é pedido forjado
     template_id, low, high = (int(x) for x in collect)
-    got = [(template_id, random.randint(low, high))]  # (visto) x2 e x3 na captura
     now = s.ctx.clock.now()
+    wait = timedelta(seconds=float(s.ctx.world.settings.get("quarry_collect_seconds") or 0))
+    if (began := c.collected.get(camp)) is None or now - began < wait:  # a contagem começa no 143 COLLECTION
+        s.log.info("5032 colheita cedo demais", no=camp)
+        return
+    got = [(template_id, random.randint(low, high))]  # (visto) x2 e x3 na captura
     if not bag.fits(snap, s.ctx.templates, got, now):
         return
+    c.collected[camp] = now  # (visto) #1847 -> #1861: a próxima colheita segue sem novo 143
     items = bag.add(snap, s.ctx.templates, template_id, got[0][1], now)
     await s.ctx.characters.save(*items)
     text = rewards.received(s.ctx.templates, got)

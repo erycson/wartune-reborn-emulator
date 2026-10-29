@@ -7,9 +7,10 @@ from __future__ import annotations
 import json
 import random
 from collections.abc import Collection, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-from ...domain.models import Item, PlayerSnapshot
+from ...domain import gameday
+from ...domain.models import EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import bag, rewards, rules
@@ -18,12 +19,13 @@ from .. import guild as gd
 from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
-from ..session import GameSession
+from ..session import GameSession, OnlinePlayers
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_VIP, S_ROULETTE, S_VIP_TIPS, S_KING = 4410, 4414, 4416, 4434
 S_LUCKY, S_SOUL = 4224, 4372
 VIP_DAYS = {31: "One_MonthPoint", 93: "Three_MonthPoint", 186: "Six_MonthPoint"}  # OpenVipItem: index*31
+VIP_GP_DAY = "vip_gp_day"  # event_state: text = "último dia somado|fim do VIP pago" (Vip_DailyAddGp)
 VIP_GRADE = 4  # UpGradeTempInfos.Types da VIP (Data = vipGp acumulado)
 ALCHEMY_RIGHT, SOUL_RIGHT = 8, 9  # VipPrerogativeTempInfos.type: usos extras por dia
 VIP_COOL = 16  # VIPModel.VIP_COOL: type do "Speed up cool down timer for free"
@@ -154,7 +156,7 @@ def send_vip(s: GameSession) -> None:
 
 def vip_changed(s: GameSession) -> None:
     """4410 para o jogador e o 4455 para a guilda online: o ``ConsortiaGroupChatControler`` troca o ícone VIP do
-    membro no chat em grupo. ponytail: o VIP que vence sozinho não avisa a guilda (não há relógio de vencimento)."""
+    membro no chat em grupo. O VIP que vence sozinho sai por ``notify_expired`` (agendador de ``game/mall.py``)."""
     send_vip(s)
     snap, mine = s.snapshot, s.ctx.guilds.of(s.player_id)
     if snap is None or mine is None:
@@ -163,6 +165,39 @@ def vip_changed(s: GameSession) -> None:
     msg = pb.VipToConsortiaMsg(userid=s.player_id, isVip=vip, vipType=vip_type(snap), consortiaId=mine[0].id)
     for other in gd.online_members(s.ctx, mine[0].id or 0):
         other.send(S_GUILD_VIP, msg)
+
+
+def _gp_mark(mark: EventState | None) -> tuple[date, datetime | None]:
+    if mark is None or not mark.text:
+        return date.min, None
+    last, end = mark.text.split("|")
+    return date.fromisoformat(last), ev.parse_time(end)
+
+
+def accrue_gp(s: GameSession, snap: PlayerSnapshot, now: datetime) -> list[EventState]:
+    """``Vip_DailyAddGp`` por dia do jogo de VIP pago (8513) ainda não somado: do dia seguinte ao último somado até
+    hoje, sem passar do dia anterior ao vencimento (31 dias comprados = 31 somas). Devolve o que gravar.
+    (cliente) o ``Vip_DailyAddGp`` é diário pelo nome; o dia da compra conta (dedução)."""
+    mark = ev.peek(snap, VIP_GP_DAY)
+    last, paid_end = _gp_mark(mark)
+    if mark is None or paid_end is None:
+        return []
+    upto = min(gameday.game_day(now), gameday.game_day(paid_end) - timedelta(days=1))
+    if (days := (upto - last).days) <= 0:
+        return []
+    st = ev.state(snap, "vip", now)
+    st.value += days * _cfg(s, "Vip_DailyAddGp")
+    st.updated_at = mark.updated_at = now
+    mark.text = f"{upto.isoformat()}|{b.fmt_time(paid_end)}"
+    return [st, mark]
+
+
+def notify_expired(online: OnlinePlayers, since: datetime, now: datetime) -> None:
+    """VIP de jogador online que venceu em ``(since, now]``: o mesmo 4410 + 4455 da compra (``vip_changed``)."""
+    for s in online.sessions():
+        end = _vip_expiry(s.snapshot) if s.snapshot is not None else None
+        if end is not None and since < end <= now:
+            vip_changed(s)
 
 
 @router.on(8513)
@@ -183,12 +218,18 @@ async def vip_open(s: GameSession, msg: pb.VipOpenInfoMsg) -> None:
     if spent is None:
         s.log.info("8513 sem diamante", dias=msg.days)
         return
+    accrue_gp(s, snap, now)  # os dias do VIP pago anterior antes de mudar o fim
     st = ev.state(snap, "vip", now)
     start = max(now, _vip_expiry(snap) or now)
-    # ponytail: o oficial soma Vip_DailyAddGp a cada dia de VIP; aqui entra tudo na compra
-    st.value += msg.days * _cfg(s, "Vip_DailyAddGp")
-    st.text, st.updated_at = b.fmt_time(start + timedelta(days=msg.days)), now
-    await s.ctx.characters.save(snap.character, st, spent)
+    end = start + timedelta(days=msg.days)
+    st.text, st.updated_at = b.fmt_time(end), now
+    mark = ev.state(snap, VIP_GP_DAY, now)
+    last, paid_end = _gp_mark(mark)
+    if paid_end is None or paid_end <= now:  # VIP pago novo: o dia da compra conta
+        last = gameday.game_day(now) - timedelta(days=1)
+    mark.text, mark.updated_at = f"{last.isoformat()}|{b.fmt_time(end)}", now
+    accrue_gp(s, snap, now)
+    await s.ctx.characters.save(snap.character, st, mark, spent)
     granted(s, [], [], "", chat=False)
     vip_changed(s)
     s.send(S_VIP_TIPS)
@@ -587,12 +628,14 @@ async def _count(s: GameSession, kind: int) -> None:
     await count_quest(s, kind)
 
 
-def login_push(s: GameSession) -> None:
+async def login_push(s: GameSession) -> None:
     """Estados que o oficial manda no login: 4434 (tutorial_en #58), 4410 (#96) e, a partir dos mesmos níveis dos
     pedidos, 4224 e 4372 logo depois do 100 (visto) oficial_20261027-152321-1 #8-#9; o mesmo nas capturas de 23 a 26/10.
     O tutorial_en (nível 1) não manda nenhum dos dois (#17-#18).
     shortcut: nenhuma captura de login entre o nível 14 e o 24 (só o nível 30 e o 1); se houver, conferir o limiar."""
     assert s.snapshot is not None
+    if gained := accrue_gp(s, s.snapshot, s.ctx.clock.now()):  # os dias de VIP passados fora do jogo
+        await s.ctx.characters.save(*gained)
     send_king(s)
     send_vip(s)
     snap = s.snapshot

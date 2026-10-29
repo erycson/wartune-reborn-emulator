@@ -33,8 +33,7 @@ SYLPH = mailbox.SYLPH  # o Sylph à venda (item -900)
 
 # ponytail: lock global do processo (um servidor por processo). Por anúncio se a fila pesar.
 MALL_LOCK = asyncio.Lock()
-# ponytail: o agendador roda a cada 60 s sem dormir até o menor ends_at: até 60 s de atraso no encerramento
-SWEEP_SECONDS = 60
+SWEEP_SECONDS = 60  # sono máximo do agendador; dorme menos quando um anúncio vence antes
 # (cliente) language.txt AuctionHelp.helpContent item 7: "o sistema tira 20% de imposto do vendedor"
 TAX_PERCENT = 20
 
@@ -148,6 +147,12 @@ async def sweep(
     return mails
 
 
+async def next_wait(characters: CharacterService, server_id: int, now: datetime, every: float) -> float:
+    """Segundos até o próximo anúncio vencer, no máximo ``every``."""
+    end = await characters.read(lambda uow: uow.mall.next_end(server_id))
+    return every if end is None else min(every, max(0.0, (end - now).total_seconds()))
+
+
 async def run(
     characters: CharacterService,
     templates: GameTemplates,
@@ -157,10 +162,18 @@ async def run(
     every: float = SWEEP_SECONDS,
 ) -> None:
     """Loop do encerramento (``app.py`` cancela ao desligar). A primeira rodada sai já, para pegar o que venceu
-    com o servidor fora. Uma rodada que falha é registrada e a próxima tenta de novo."""
+    com o servidor fora. Dorme até o menor ``ends_at`` (no máximo ``every``: o anúncio novo dura horas). Uma rodada
+    que falha é registrada e a próxima tenta de novo."""
+    from .handlers import vip  # os handlers importam este módulo
+
+    since = clock.now()
     while True:
+        wait, now = every, clock.now()
         try:
-            await sweep(characters, templates, online, server_id, clock.now())
+            await sweep(characters, templates, online, server_id, now)
+            wait = await next_wait(characters, server_id, clock.now(), every)
+            vip.notify_expired(online, since, now)  # o VIP que vence com o jogador online avisa a guilda
+            since = now
         except Exception:
             log.exception("encerramento do mercado falhou", proxima_em_s=every)
-        await asyncio.sleep(every)
+        await asyncio.sleep(wait)

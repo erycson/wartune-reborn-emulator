@@ -67,6 +67,8 @@ USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bou
 # PlayerManager e ThaneInfoHelper; a loja confere NeedGeste com ela); repute é outro valor
 USE_KINDS |= {6: ("geste", "Honor"), 7: ("gp", "Hero EXP"), 10: ("strategy", "Daru")}  # 191924 #1721
 USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (2032101): +1 entrada de campanha em grupo
+ITEM_EXP_KEY = "item_exp"  # event_state diário: EXP de herói vinda de itens (203 tipo 7) hoje
+ITEM_EXP_FULL = "Today's EXP item limit has been reached."  # TODO(inventado): sem texto no cliente nem captura
 VIP_CARD = 12  # VIP Trial Card (2031201): Property3 = horas de VIP (handlers/vip.use_trial_card)
 COVENANT = 13  # Spirit Covenant (2031301): Property2 = horas dos contratos 1-6 (handlers/vip.use_covenant)
 # Caixas de pedras (206, uma pedra aleatória por caixa): id -> (nível mínimo, máximo). É por id, não pelo nome,
@@ -371,12 +373,20 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
         if amount <= 0:
             return False
         c.weary_potions += amount
+    exp_day = None
+    if field == "gp":  # teto diário (game_settings.item_exp_daily, migração 0108)
+        exp_day = ev.daily(snap, ITEM_EXP_KEY, now)
+        amount = min(amount, int(s.ctx.world.settings.get("item_exp_daily") or 0) - exp_day.value)
+        if amount <= 0:
+            alert(s, ITEM_EXP_FULL)
+            return False
+        exp_day.value, exp_day.updated_at = exp_day.value + amount, now
     changed, gone = _consume(snap, item, n)  # antes de qualquer await
     extra: list[object] = []
     gained = 0
     if field == "gp":
         gained = rules.add_gp(snap, s.ctx.templates, amount)
-        extra += [snap.leader, *snap.pawns]
+        extra += [snap.leader, *snap.pawns, exp_day]
     elif field in ("point", "gift_token"):
         point, gift = (amount, 0) if field == "point" else (0, amount)
         extra.append(cash.change(c, point, gift, "item", f"item:{item.template_id} x{n}", now))

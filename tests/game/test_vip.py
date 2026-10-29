@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, Item, PlayerSnapshot
+from wartune_server.game import events as ev
 from wartune_server.game.builders import login as b
 from wartune_server.game.handlers import vip
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -66,10 +67,10 @@ async def test_login_manda_4224_e_4372_a_partir_do_nivel(tmp_path: Path) -> None
     async with logged_in(tmp_path, novice=19000) as g:
         s = g.server.online.get(g.user_id)
         assert s is not None
-        vip.login_push(s)
+        await vip.login_push(s)
         assert not {4224, 4372} & {p.code for p in await g.idle()}
         _snap(g).character.grades = 30
-        vip.login_push(s)
+        await vip.login_push(s)
         codes = [p.code for p in await g.idle()]
         assert 4224 in codes and 4372 in codes
 
@@ -81,6 +82,7 @@ async def test_vip_open_gift_and_king_contract(tmp_path: Path) -> None:
         assert await g.idle() == []
 
         c.point = 400
+        ev.state(_snap(g), "vip", datetime.now(UTC)).value = 300  # VIP 3 de compras antigas; o dia da compra soma 10
         g.client.send(8513, pb.VipOpenInfoMsg(days=31))
         got = await g.until(4416)
         info = pb.VipInfoMsg.FromString(next(p for p in got if p.code == 4410).body)

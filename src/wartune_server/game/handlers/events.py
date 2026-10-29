@@ -86,7 +86,7 @@ async def login_push(s: GameSession) -> None:
     """O que o oficial manda no 8224 ``user`` antes do 4598: atividade diária, SumActive, guia."""
     s.online_since = s.ctx.clock.now()
     await shop.send_offers(s)  # 4238 antes do 4428/4434 (oficial_encantar #57-#60)
-    vip.login_push(s)
+    await vip.login_push(s)
     assert s.snapshot is not None
     if vip.vip_right(s, s.snapshot, vip.VIP_AUTO_SIGN):
         # VipPrerogativeType.AUTO_SIGN_IN (3): "Auto Daily Check-In on Login" do VIP 2 em diante; o cliente não

@@ -27,7 +27,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Castelo | 10 | 4 | 5 | 1 | 3 |
 | Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
-| Itens | 12 | 6 | 6 | 2 | 2 |
+| Itens | 12 | 6 | 7 | 1 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 2 | 7 | 2 | 1 |
@@ -40,10 +40,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 2 | 4 | 2 |
 | Atividades e eventos | 5 | 11 | 10 | 2 | 5 |
-| VIP | 1 | 3 | 2 | 1 | 0 |
+| VIP | 1 | 2 | 3 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **108** | **88** | **57** | **34** | **34** |
+| **Total** | **108** | **87** | **59** | **33** | **34** |
 
 ## Validação e base
 
@@ -139,7 +139,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mochila: travar e remover vencido | ✅ | | |
 | Itens com validade (medalhas) | 🟡 | | apagar sem aviso por dedução; falta captura de uma vencendo |
 | randomSkill dos itens novos | 🧪 | | tipo 701 e peso dentro da faixa inventados |
-| Teto diário de Beden e EXP vindos de itens | ❌ | | sem teto |
+| Teto diário de Beden e EXP vindos de itens | 🧪 | | Beden (stamina de poção) 300/dia do cliente (`wearyLimit`); EXP de itens 5.000.000/dia inventado (`game_settings.item_exp_daily`) e o texto do aviso inventado |
 | Vínculo de itens | ✅ | | |
 | Uso de recurso (203: ouro, Balens, EXP, Daru, Spirit Covenant) | ✅ | | texto e ordem do inglês (231733; EXP Book e Spirit Covenant em 191924) |
 | Caixas de pedra (206) e outras caixas | 🟡 | | caixa com conteúdo só na descrição é recusada |
@@ -224,7 +224,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Entrada (5039) e estamina | ✅ | | |
+| Entrada (5039) e estamina | ✅ | | sem estamina: "Insufficient Stamina" do cliente (sem captura da recusa) |
 | 1001 Worg Lair | 🟡 | 🇹🇷 | cartas 1080012 e 1080002 no inglês, 1080013 no turco; Pandora só dá o buff; 5180, cartas pagas e progresso salvo faltam |
 | 1002 Baylon Plains | ✅ | | caixa do caçador com uma amostra |
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
@@ -236,7 +236,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Masmorras em grupo capturadas (9000, 9001, 9002) | 🟡 | | das capturas inglesas 191924, 232017, 152321 (migração 0100); entrada do dia (`paraBool1` = isNoGet) e o texto do 83 vistos; mapa dividido pela sala (21 com todos, 4185 do caminho, a luta de um leva os outros no lado 1 e todos ganham o 4103 e o nó); os outros lutam no automático (ordens só de quem atacou) e o lugar do 3º/4º é inventado; baús VIP 209109/203108 com a caixa da 201110 (prêmio TODO(inventado)) |
 | Masmorras em grupo geradas (9003-9013, 9104-9112) | 🧪 | | TODO(inventado) `tools/gera_masmorras.py grupo` (migração 0101): planta da 9002 (2031 meio, 2033 fim), mapas/casas do cliente, monstros 4xxx/chefes 3xxx pelo nível; pesadelo com vida x `StandardDamage` e EXP x `BaseGp` do `Campaigns` (pesadelo/normal); chave `inventado` |
 | Torres 8200-8204 (Tower of Kings, Spire) | 🧪 | | sala em grupo (game/torres, migração 0102). Cliente: uma entrada por dia em cada, dificuldade N com a N-1 vencida, 4900, andar da Spire (``currentWave``/``reinforceWave``), pulo de andar (TrailCountView: 3 turnos pula 4, além do 24 limpa), loja das Spire Runes (4468/8582/4467, ``TrialSkill``) e uso na luta (10507), battleType 290/25, leed 28 e Recuperar EXP. Internet (fontes-internet.md): baú e EXP por luta da King (100k/300k/900k/2,5M), 24 chefes da Spire com 300k e 7 baús cada, sem carta no fim. King com 5 lutas contra as sombras dos 16 mais fortes (cópia do coliseu); TODO(inventado): mapas e monstros da Spire (planta da 9002), crescimento das sombras por nível, sombras geradas sem jogadores, cota diária da loja; TODO(captura): texto de entrada |
-| Pedreira 6001 | ✅ | | |
+| Pedreira 6001 | ✅ | | colheita espera a animação (4 s, `game_settings.quarry_collect_seconds`) |
 | Exército do sistema (5038) | 🟡 | 🇹🇷 | bate com o inglês em todos os mapas pedidos (1011-1161, 7501); a 2011 do turco; mapas sem lista mandam vazio |
 | Patrulha dos monstros (4122) | 🟡 | | nós sem captura ficam parados |
 | Varredura / Blitz (8528) | 🧪 | 🇹🇷 | baú de prata e caixa misteriosa inventados (`sweep.py:40`); ouro só da 1007 turca |
@@ -401,7 +401,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Estado e nível (4410) | 🟡 | | vipGp diário simplificado |
+| Estado e nível (4410) | 🧪 | | vipGp: `Vip_DailyAddGp` por dia de VIP pago, somado no login e na compra; o dia da compra conta (dedução); VIP que vence online avisa a guilda (4455) |
 | Compra (8513) | 🟡 | | presente a amigo recusado: VIP não é item, não vai pelo correio (e o inglês não manda o 8513) |
 | Presente semanal, cartão de teste, roleta | ✅ | | |
 | Contrato do rei: compra | 🟡 | | presente a amigo recusado: contrato não é item, não vai pelo correio |

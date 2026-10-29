@@ -625,18 +625,25 @@ async def settle(ctx: GameContext, war: gw.War) -> None:
 
 async def _champion(ctx: GameContext, guild_id: int) -> list[Any]:
     """Título "Balenor's No. 1 Guild Master" (AppellInfos 28, CondtionType 12): o líder da guilda vencedora, online
-    ou não. shortcut: o título fica com ele depois que outra guilda vence; tirar quando houver o ranking da guerra."""
+    ou não. O líder que tinha o título (de outra vitória) perde: o nº 1 é um só."""
     guild = ctx.guilds.guilds.get(guild_id)
     if guild is None:
         return []
     cid, key, now = guild.chairman_id, titles.KEYS[titles.GUILD_MASTER], ctx.clock.now()
+    holders = await ctx.characters.read(lambda uow: uow.events.by_prefix(guild.server_id, key))
+    out = []
+    for e in [e for e in holders if e.key == key and e.value and e.character_id != cid]:
+        if (o := ctx.online.get(e.character_id)) is not None and o.snapshot is not None:
+            e = ev.state(o.snapshot, key, now)  # a linha da memória, que o jogador online grava depois
+        e.value, e.updated_at = 0, now
+        out.append(e)
     if (o := ctx.online.get(cid)) is not None and o.snapshot is not None:
         st = ev.state(o.snapshot, key, now)
     else:
         rows = await ctx.characters.read(lambda uow: uow.events.by_character(cid))
         st = next((e for e in rows if e.key == key), None) or EventState(cid, key, now)
     st.value, st.updated_at = 1, now
-    return [st]
+    return [*out, st]
 
 
 def _treasures(ctx: GameContext, war: gw.War, present: Mapping[int, int]) -> list[Any]:

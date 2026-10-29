@@ -78,17 +78,21 @@ def clicks(snap: PlayerSnapshot, now: datetime) -> list[EventState]:
 
 def rate_window(r: ExpRate) -> tuple[datetime, datetime]:
     """Início e fim do evento de EXP (datas na hora do jogo). ``begin_time``/``end_time`` = segundos somados ao
-    dia (0/86399 = o dia inteiro, como o PlayerBufferManager conta).
-
-    ponytail: janela diária (outros ``begin_time``/``end_time``) vira um intervalo só; o oficial só mostrou 0/86399.
-    """
+    dia (0/86399 = o dia inteiro, como o PlayerBufferManager conta); a janela diária é ``running_rates``."""
     local = (datetime.strptime(t, TIME_FMT).replace(tzinfo=gameday.GAME_TZ) for t in (r.begin_day, r.end_day))
     begin, end = local
     return begin + timedelta(seconds=r.begin_time), end + timedelta(seconds=r.end_time)
 
 
 def running_rates(world: World, now: datetime) -> list[ExpRate]:
-    return [r for r in world.exp_rates if rate_window(r)[0] <= now <= rate_window(r)[1]]
+    """Eventos de EXP valendo agora: entre as datas e, em cada dia, entre ``begin_time`` e ``end_time``."""
+    t = gameday.local(now)
+    second = t.hour * 3600 + t.minute * 60 + t.second
+    return [
+        r
+        for r in world.exp_rates
+        if rate_window(r)[0] <= now <= rate_window(r)[1] and r.begin_time <= second <= r.end_time
+    ]
 
 
 def config(templates: GameTemplates, name: str, default: str = "") -> str:
