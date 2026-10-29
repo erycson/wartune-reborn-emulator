@@ -32,8 +32,8 @@ S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
 S_PRIVILEGE, S_CHARGE, S_CONSUM = 4543, 4745, 345
 S_BUGLE_REQ, S_BUGLE_REWARD = 4553, 4554
-S_QUIZ, S_RECOVER, S_SEEK = 4908, 4912, 4914  # a pesca (9507) está em handlers/fishing.py
-S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
+S_RECOVER = 4912  # pesca, caça-níquel, quiz etc. têm módulo próprio (fishing.py, slot.py, quiz.py...)
+S_GOLDEN_CLOSE, S_GOLDEN, S_ICON = 300, 4933, 4980
 # (visto) 1026-225632-1 #2454: 36 casas (itemID, count); -1 = casa vazia
 GOLDEN_BOARD = (
     (3020010, 10),
@@ -73,7 +73,7 @@ GOLDEN_BOARD = (
     (-1, 0),
     (2030202, 1),
 )
-S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN, S_CHAIRS = 363, 364, 414, 415
+S_LUCKY_TEMP, S_LUCKY_INFO, S_CHAIRS_OPEN = 363, 364, 414
 S_ORE, S_TOP_TOOL, S_SIGNIN, S_SIGNIN_TEMP = 190, 4590, 513, 514
 SUPER_SIGNIN = 2059  # 4590 param1 da super assinatura (SuperSigninCardManager)
 ORE_OP, SIGNIN_OP = 35, 38  # extend1 do 9645: StokesOreManager e SuperSigninCardManager (PackageOut(9645, 0, n))
@@ -705,12 +705,6 @@ async def new_year_box(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     """Caixa de ano novo fora do evento: (visto) oficial_20261023-215937-1 #751, #973, #1189, #1300 (``param1`` 3,
     ao entrar e sair do castelo) sem resposta nenhuma; o 4811 (nós coletados) fica para quando houver o evento."""
     s.log.info("8994 sem evento de ano novo", param1=msg.param1)
-
-
-@router.on(9501)
-async def quiz(s: GameSession, _: object) -> None:
-    """Quiz fechado (4908 sysState 0). A banca de perguntas (HeartTempInfos) não traz a resposta certa."""
-    _send(s, S_QUIZ, pb.SysAnswerQuestionStateMsg(sysState=0))
 
 
 @router.on(9520)

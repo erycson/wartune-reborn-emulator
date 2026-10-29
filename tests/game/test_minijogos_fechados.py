@@ -11,7 +11,7 @@ import pytest
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, PlayerSnapshot
 from wartune_server.game import bag
-from wartune_server.game.handlers import group_draw, minigames, ore, treasure_hunt
+from wartune_server.game.handlers import group_draw, minigames, ore, quiz, treasure_hunt
 from wartune_server.game.handlers import slot as slot_mod
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -260,3 +260,57 @@ async def test_stokes_ore_mines_the_shared_vein_with_special_floors(tmp_path: Pa
         assert pb.OreWindowMsg.FromString(_last(got, 189)).curSeq == 1
         luck = pb.OreMineRespMsg.FromString(_last(await _ore(g, 3), 187))
         assert luck.passType == 2 and "Maga reached floor 6" in luck.infos[0]
+
+
+# ---------------------------------------------------------------- quiz
+
+
+QUIZ_DAY = datetime(2026, 10, 19, 19, 29, tzinfo=UTC)  # segunda-feira
+
+
+async def _quiz(g: Game, kind: int, value: int) -> list[Packet]:
+    g.client.send(9501, pb.AnswerquestionReqMsg(type=kind, count=value))
+    return await g.idle()
+
+
+async def _tick(g: Game, seconds: float) -> list[Packet]:
+    g.server.services.clock.advance(seconds)  # type: ignore[attr-defined]
+    session = g.server.online.get(g.user_id)
+    assert session is not None
+    await quiz.tick(session.ctx)
+    return await g.idle()
+
+
+def _state(got: list[Packet]) -> int:
+    return pb.SysAnswerQuestionStateMsg.FromString(_last(got, 4908)).sysState
+
+
+async def test_quiz_runs_the_schedule_scores_answers_helps_and_pays_exp(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(QUIZ_DAY)) as g:
+        _snap(g).character.grades = 30
+        assert _state(await _quiz(g, 1, 11)) == 0  # sem edição
+        _open(g, "quiz", {"count": 2})
+        got = await _quiz(g, 1, 11)
+        assert (
+            _state(got) == 1 and pb.playeranswerquestionMsg.FromString(_last(got, 4907)).wisdomHeartCount == 2
+        )  # VIP: duas
+        got = await _tick(g, 61)  # 19:30:01
+        assert _state(got) == 2
+        question = pb.singleranswerquestionMsg.FromString(_last(got, 4909))
+        assert (question.id, question.answer) == (1, 0) and question.option1
+        assert _state(await _tick(g, 5)) == 3  # 19:30:06: 14 s sobrando
+        got = await _quiz(g, 2, 22)  # coração: a certa vem no 4909
+        assert pb.singleranswerquestionMsg.FromString(_last(got, 4909)).answer == 1
+        got = await _tick(g, 15)  # 19:30:21 resultado
+        player = pb.playeranswerquestionMsg.FromString(_last(got, 4907))
+        assert (_state(got), player.currentScore, player.playerAnswerSucCount, player.wisdomHeartCount) == (4, 24, 1, 1)
+        assert [r.nickName for r in pb.TenAnswerQuestionOrderMsg.FromString(_last(got, 4910)).tenAQ_Info] == ["Maga"]
+        await _tick(g, 5)
+        await _tick(g, 5)  # 19:30:31 respondendo a 2ª
+        await _quiz(g, 3, 2)  # errada
+        got = await _tick(g, 15)
+        assert pb.playeranswerquestionMsg.FromString(_last(got, 4907)).currentScore == 25
+        got = await _tick(g, 5)  # fim: EXP
+        assert _state(got) == 5
+        player = pb.playeranswerquestionMsg.FromString(_last(got, 4907))
+        assert (player.getEXP, player.extraEXP) == (25 * 30 * 10, 10 * 30 * 100)

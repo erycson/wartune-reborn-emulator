@@ -36,6 +36,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     outer_city,
     pets,
     player,
+    quiz,
     rewards,
     room,
     shop,
