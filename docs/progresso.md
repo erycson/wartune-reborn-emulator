@@ -104,7 +104,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Dragão: abrir e login (8642, 4555) | ✅ | 🇹🇷 | abre no 40 e vai no login (turco) |
 | Dragão: alimentar (8641) | ✅ | | |
 | Dragão: transferência (8643) | 🧪 | | vocação sobe pela comida na tabela 107 (dedução) e dá % de ataque por grau na luta (`game_settings.dragon_vocation_bonus`, 0116, TODO(inventado)) |
-| Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
+| Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | op 2 sem cartas = só o 111 "There are no cards to be activated." (captura 20261029-121453-1 #574-#575); 4902 vazio antes do 150 do nível 32 em diante (#422, #536); falta: subir/ativar com carta (sem captura), os 4902 ×3 antes do 100 na subida ao 32 (#422-#424), ×2 no 5185 (#615-#616) e o 4902 depois do 100 no 8203 (#653) |
 | Cartas: bônus de coleção (4905) | 🟡 | | degraus em `powcard_suite_slots` (0037) por dedução; o bônus entra na luta (campaign.player_hero → camp_stats) |
 | Cartas: ganho nas batalhas | 🧪 | | carta do saque da campanha entra na coleção (`systems.gain_cards`, item 600): a 1ª abre no grau 1, as outras viram +1 gp cada (inventado); usar a carta da mochila faz o mesmo |
 | Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade em `star_weights` (0035) e o ponto do grátis em `game_settings.taxas` (0124), `TODO(inventado)`; 4388 (SNS) na estrela de qualidade 4 com md5 inventado |
@@ -385,7 +385,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |
 | Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ranking semanal lista também quem tem 0 pontos (no fim); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
-| Caça ao tesouro (9502) | 🧪 | | ops 1-7, 10 explorações com recarga, diálogo, achado e troca de 100 shards pelo cliente e idioma (`treasure_hunt.py`); nós, achados, 30 min e preço do "+" inventados |
+| Caça ao tesouro (9502) | 🧪 | | pela captura 20261029-121453-1 #447-#575 (migração 0136): 36 nós, 3 explorações iniciais, 6 h, nó 7, os 3 `eventDesc`, 32000 de ouro, prêmio dos nós 12/7/3, ordem 4476 só da atividade 101/112/4914 no op 3 e 109/115/4476/4484/148/111/4915/4914/83/83 no op 4 (cheia: correio "Treasure Hunt Rewards", 3 dias), "Operation failed" no 2º clique; inventados: preço do "+" (op 7: sem confirmação no TreasureHuntFrame, sem dica no treasurehunt.xml, sem preço no language.txt, sem op 7 na captura), prêmio dos outros 33 nós, texto de ouro insuficiente; ops 5/6 sem captura |
 | Quiz (9501) | 🧪 | | agenda, tempos, pontos e EXP do top 10 pelo idioma; estados, 4907-4910 e ajudas pelo cliente (`quiz.py`, `game_settings.quiz`); banca (Option1 certa), pontos e EXP inventados |
 | Minério de Stokes (9645/35) | 🧪 | | 187-190 e ops pelo cliente, veio do servidor com andares especiais (`ore.py`, `game_settings.stokes_ore`); veio gravado no banco; preços, limites, achados e textos inventados (`game_settings`) |
 | Caça-níquel (9500) | 🧪 | | regras da ajuda inglesa e do cliente (`slot.py`, `game_settings.slot_machine`); pesos dos dígitos e preço inventados (`game_settings`) |

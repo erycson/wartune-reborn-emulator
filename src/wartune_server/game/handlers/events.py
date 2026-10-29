@@ -216,6 +216,13 @@ def progress(s: GameSession) -> None:
     _sum_data(s, s.ctx.events.listed(s.ctx.clock.now()))
 
 
+def progress_of(s: GameSession, active_type: int) -> None:
+    """4476 só das atividades ``active_type`` que correm (e o 4426): (visto) captura 20261029-121453-1 #450-#451,
+    9502 op 3 manda só a "Great Card Hunt" (tipo 101). Sem nenhuma correndo, nada."""
+    if actives := [a for a in s.ctx.events.running(s.ctx.clock.now()) if a.active_type == active_type]:
+        _sum_data(s, actives)
+
+
 def items_gained(s: GameSession) -> None:
     """4476 de todas logo depois do 115 que dá item (tutorial_en: 26 dos 61 115, todos de ganho: missão #490, carta
     #1112, drop #2927, caixa #678, presente VIP #3268); mover, vestir e gastar não mandam. Depois, os 4484 de

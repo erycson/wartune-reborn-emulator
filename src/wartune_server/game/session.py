@@ -204,7 +204,7 @@ class GameSession:
 
     def _own_army(self, message: Message | None) -> bool:
         snap = self.snapshot
-        if snap is None or snap.systems is None or not snap.systems.powcards:
+        if snap is None:  # sem cartas e abaixo do nível delas o ``fight_add_msg`` devolve None
             return False
         return getattr(message, "playerId", None) == snap.character.id
 

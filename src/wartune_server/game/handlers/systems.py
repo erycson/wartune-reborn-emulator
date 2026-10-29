@@ -25,7 +25,7 @@ from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
 from .hero import send_items
-from .player import _army, _player, snapshot_of
+from .player import _army, _player, alert, snapshot_of
 
 S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER, S_MOUNT_STAR = 4427, 4426, 4459, 4679
 S_FATE, S_FATE_TURN, S_DRAGON, S_TRANSFER, S_TRANSFER_GRADE = 4544, 4545, 4555, 4556, 4557
@@ -654,6 +654,10 @@ async def dragon_transfer(s: GameSession, _: object) -> None:
 # --- cartas de poder ------------------------------------------------------------------------
 CARD_LEVEL_UP, CARD_ACTIVATE, CARD_TIDY = 1, 2, 3  # PowCardReqMsg.op
 CARD_GRADE_BASE = 29  # UpGradeTempInfo.Types = 29 + Profile (30-34); Data = EXP do próximo grau
+NO_CARDS = "There are no cards to be activated."  # (visto) captura 20261029-121453-1 #575
+# (visto) captura 20261029-121453-1: os 150 do nível 31 (#6-#160) vêm sem 4902; do 32 em diante (#421) vem o 4902
+# vazio sem nenhuma carta (#422, #536, #615). O mesmo 32 do TreasureHuntControler (setPreFrame "magiccard").
+CARD_OPEN_GRADE = 32
 
 
 def cards(sy: PlayerSystems) -> dict[int, list[int]]:
@@ -750,9 +754,10 @@ def fight_add_msg(
     bufIds do 4905) somados por Types, com a fórmula do ``HeroStats.fighting_capacity`` (flat + 1,05 MAtk +
     Vida/5). (só turco: login #3, teknoloji_upgrade #4) 608/768/608/1521/768 batem exatos com as cartas do
     login #76, todas com isActive 0: conta toda carta que o jogador tem. (dedução) Crit/Block/Leadpawn no flat
-    como ForceHit/Parry/ConatArmy; nenhum buff das cartas tem esses três. Sem cartas, None (o inglês não manda)."""
+    como ForceHit/Parry/ConatArmy; nenhum buff das cartas tem esses três. Sem cartas: vazio do nível
+    ``CARD_OPEN_GRADE`` em diante (captura 20261029-121453-1 #422, #536), None antes (o nível 31 não manda)."""
     if not cards(rules.systems(snap)):
-        return None
+        return pb.PowcardFightAddMsg() if snap.character.grades >= CARD_OPEN_GRADE else None
     totals: dict[int, dict[str, int]] = {}
     for suite in powcard_msg(snap, templates, slots).suites:
         for buf in [*(c.buf for c in suite.cardInfos), *suite.bufInfos]:
@@ -852,6 +857,9 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
             return
         card[0], card[1] = card[0] + 1, card[1] - int(nxt["Data"])
     elif msg.op == CARD_ACTIVATE:
+        if not found:  # (visto) captura 20261029-121453-1 #574-#575: só o 111
+            alert(s, NO_CARDS)
+            return
         for card in found.values():
             card[2] = 1
     elif msg.op != CARD_TIDY:

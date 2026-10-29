@@ -205,6 +205,10 @@ COUNTED |= {SKY_TRAILS: True}
 # "During the event, participate in the Amethyst Mine {0} time(s)" (FunnyType.TYPE_MINEFIELD_BATTLE): o período
 MINEFIELD = 111
 COUNTED |= {MINEFIELD: False}
+# "During the event, explore Great Card Hunt the required number of times" (conditionId 101): cada 9502 op 3; o
+# value sobe 1, 2, 3 na mesma edição (captura 20261029-121453-1 #450, #504, #548): o período
+GREAT_CARD_HUNT = 101
+COUNTED |= {GREAT_CARD_HUNT: False}
 
 
 def count(snap: PlayerSnapshot, catalog: EventCatalog, active_type: int, now: datetime, n: int = 1) -> list[EventState]:

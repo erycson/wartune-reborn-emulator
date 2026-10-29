@@ -236,9 +236,10 @@ def place(
 
 
 async def save_with_mail(
-    s: GameSession, letters: list[Letter], *entities: object, delete: tuple[object, ...] = ()
+    s: GameSession, letters: list[Letter], *entities: object, delete: tuple[object, ...] = (), notify: bool = True
 ) -> None:
-    """Grava a compra e os correios numa transação; o 148 vai depois do commit."""
+    """Grava a compra e os correios numa transação; o 148 vai depois do commit (``notify=False``: quem chama manda
+    com ``notify_mail`` mais tarde, como a caça ao tesouro)."""
 
     async def change(uow: UnitOfWork) -> None:
         for entity in delete:
@@ -249,7 +250,7 @@ async def save_with_mail(
             await stage_mail(uow, letter, goods, items)
 
     await s.ctx.characters.write(change)
-    for letter, _, _ in letters:
+    for letter, _, _ in letters if notify else ():
         notify_mail(s.ctx.online, letter)
 
 
