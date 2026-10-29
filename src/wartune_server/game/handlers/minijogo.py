@@ -5,6 +5,7 @@ o prêmio vai para a mochila ou, cheia, pelo correio (``shop.place``/``save_with
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
@@ -75,9 +76,24 @@ async def shared(s: GameSession, key: str) -> dict[str, Any]:
     snap = s.snapshot
     assert snap is not None
     states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, key))
-    rows = [st for st in states if st.key == key]
-    newest = max(rows, key=lambda st: (st.updated_at, st.id or 0), default=None)
-    return load_text(newest.text if newest is not None else "")
+    rows = [(load_text(st.text), st) for st in states if st.key == key]
+    newest = max(rows, key=lambda r: (int(r[0].get("rev", 0)), r[1].updated_at), default=None)
+    return newest[0] if newest is not None else {}
+
+
+def store_shared(snap: PlayerSnapshot, key: str, data: dict[str, Any], now: datetime) -> EventState:
+    """Grava o estado do servidor com ``rev`` + 1 (a mais nova é a de maior ``rev``, mesmo com o relógio igual)."""
+    return store(snap, key, {**data, "rev": int(data.get("rev", 0)) + 1}, now)
+
+
+_locks: dict[tuple[int, str], asyncio.Lock] = {}
+
+
+def lock(s: GameSession, key: str) -> asyncio.Lock:
+    """Serializa ler+gravar o estado do servidor ``key`` (o servidor é um processo só)."""
+    snap = s.snapshot
+    assert snap is not None
+    return _locks.setdefault((snap.character.server_id, key), asyncio.Lock())
 
 
 def pairs(raw: Sequence[Sequence[int]]) -> list[tuple[int, int]]:

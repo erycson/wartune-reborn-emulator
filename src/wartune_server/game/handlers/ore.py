@@ -100,7 +100,12 @@ async def operate(s: GameSession, msg: pb.OreActiveClientOpMsg) -> None:
     if not mj.is_open(c, now):
         s.send(S_OPEN, open_msg(s))
         return
-    v, data = await _vein(s, now), _today(snap, now)
+    async with mj.lock(s, VEIN):  # dois golpes ao mesmo tempo não sobrescrevem o veio
+        v, data = await _vein(s, now), _today(snap, now)
+        await _operate(s, c, snap, v, data, msg, now)
+
+
+async def _operate(s: GameSession, c: Any, snap: PlayerSnapshot, v: Any, data: Any, msg: Any, now: datetime) -> None:
     if msg.opType == OPEN:
         s.send(S_BASE, b.complete(_base(c, now)))
     elif msg.opType in (ONE, TEN):
@@ -150,7 +155,7 @@ async def _mine(
     if changed or gone:
         s.send(S_ITEMS, bag.moved(changed, s.player_id, gone))
     extra = [paid] if paid else []
-    vein = mj.store(snap, VEIN, v, now)
+    vein = mj.store_shared(snap, VEIN, v, now)
     await mj.give(
         s, snap, drops, mj.store(snap, KEY, data, now), vein, *extra, *changed, chat=False, delete=tuple(gone)
     )

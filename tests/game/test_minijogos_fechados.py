@@ -1,5 +1,6 @@
 """Minijogos do operador que as capturas só mostram fechados: ligados pela migração 0103 (``game_settings``, ver ``minijogo.py``)."""
 
+import asyncio
 import random
 from datetime import UTC, datetime
 from pathlib import Path
@@ -11,7 +12,8 @@ import pytest
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import CashLedger, PlayerSnapshot
 from wartune_server.game import bag
-from wartune_server.game.handlers import group_draw, minigames, quiz, treasure_hunt
+from wartune_server.game.handlers import group_draw, minigames, ore, quiz, treasure_hunt
+from wartune_server.game.handlers import minijogo as mj
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
 from wartune_server.services import ledger
@@ -319,3 +321,14 @@ async def test_quiz_runs_the_schedule_scores_answers_helps_and_pays_exp(tmp_path
         assert _state(got) == 5
         player = pb.playeranswerquestionMsg.FromString(_last(got, 4907))
         assert (player.getEXP, player.extraEXP) == (25 * 30 * 10, 10 * 30 * 100)
+
+
+async def test_stokes_ore_concurrent_hits_do_not_overwrite_the_vein(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        session = g.server.online.get(g.user_id)
+        assert session is not None
+        _snap(g).character.point = 1000
+        hit = pb.OreActiveClientOpMsg(opType=1)
+        await asyncio.gather(ore.operate(session, hit), ore.operate(session, hit))  # o lock serializa
+        await g.idle()
+        assert (await mj.shared(session, ore.VEIN))["seq"] == 2

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import random
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any
 
 from ...domain import gameday
@@ -45,11 +46,15 @@ async def _earned(s: GameSession, c: Any, now: datetime) -> tuple[int, int, int]
     start, total, today, paid = gameday.day_start(_edition(c, now)[0]), 0, 0, 0
     while start <= now:
         end = start + timedelta(days=1)
-        spent = await s.ctx.characters.read(lambda uow, a=start, z=end: uow.characters.spent(s.player_id, a, z))
+        spent: int = await s.ctx.characters.read(partial(_spent, s.player_id, start, end))
         today, paid = min(cap, spent // once), spent
         total += today
         start = end
     return total, today, paid
+
+
+async def _spent(pid: int, start: datetime, end: datetime, uow: Any) -> int:
+    return int(await uow.characters.spent(pid, start, end))
 
 
 def _edition(c: Any, now: datetime) -> tuple[datetime, datetime]:
@@ -112,8 +117,10 @@ async def spin(s: GameSession, _: object) -> None:
     edition = mj.fmt(_edition(c, now)[0])
     name = (s.ctx.templates.get("ItemTempInfos", tid) or {}).get("TemplateName", str(tid))
     line = str(c["noticeText"]).format(nick=snap.character.nickname, item=name, count=n)
-    lines = [line, *await _notices(s, c, now)][: int(c["notices"])]
     st = mj.store(snap, KEY, {"edition": edition, "used": used + 1}, now)
-    board = mj.store(snap, NOTICES, {"edition": edition, "lines": lines}, now)
-    await mj.give(s, snap, [(tid, n)], st, board, chat=False)  # o 83 "Obtained" é do cliente (LotteryFrame)
+    async with mj.lock(s, NOTICES):
+        old = await mj.shared(s, NOTICES)
+        lines = [line, *await _notices(s, c, now)][: int(c["notices"])]
+        board = mj.store_shared(snap, NOTICES, {**old, "edition": edition, "lines": lines}, now)
+        await mj.give(s, snap, [(tid, n)], st, board, chat=False)  # o 83 "Obtained" é do cliente (LotteryFrame)
     s.send(S_RESULT, b.complete(pb.SimplePropertyMsg(param1=tid, param2=total - used - 1, param3=n)))
