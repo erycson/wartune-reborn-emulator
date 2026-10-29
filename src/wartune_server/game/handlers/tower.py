@@ -56,31 +56,37 @@ def record(s: GameSession) -> int:
     return mz.record(s.snapshot) if s.snapshot is not None else 0
 
 
-def login_list(s: GameSession) -> pb.TowerListMsg:
-    """4373 do login: (visto) tutorial_en e 215937 vazio sem registro; (só turco: login #55) com a torre."""
+async def login_list(s: GameSession) -> pb.TowerListMsg:
+    """4373 do login: (visto) tutorial_en e 215937 vazio sem registro; (só turco: login #55) com a torre e o
+    ``order`` do ranking (o mesmo do 4205)."""
     snap = s.snapshot
     assert snap is not None
     out = pb.TowerListMsg()
     for kind in mz.KINDS:
         tower = mz.load(snap, s.ctx.clock.now(), kind)
         if tower.record or tower.index:
+            await refresh_rank(s, kind)
             out.towerInfo.append(_info(s, tower, kind))
     return out
 
 
 @router.on(8297)
 async def tower_info(s: GameSession, msg: pb.TowerInfoReqMsg) -> None:
-    """Info de uma aba (4205). O ``order`` é recalculado aqui (o cliente pede ao abrir o MazeFrame, 10/28 #984).
-    shortcut: o 4373 do login vai com order 0 até a primeira abertura."""
+    """Info de uma aba (4205). O ``order`` é recalculado aqui (o cliente pede ao abrir o MazeFrame, 10/28 #984)."""
+    kind = mz.KINDS[msg.index] if 0 <= msg.index < len(mz.KINDS) else mz.CATACOMBS
+    await refresh_rank(s, kind)
+    s.send(S_TOWER_INFO, tower_msg(s, msg.index))
+
+
+async def refresh_rank(s: GameSession, kind: mz.Kind) -> None:
+    """``order`` e primeiro abate da torre guardados na sessão (o 4205 e o 4373 leem daqui)."""
     snap = s.snapshot
     assert snap is not None
-    kind = mz.KINDS[msg.index] if 0 <= msg.index < len(mz.KINDS) else mz.CATACOMBS
     states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(snap.character.server_id, kind.key))
     s.maze_order[kind.key] = mz.position(states, s.player_id, kind)
     if first := mz.first_kill(states, kind):
         who = await s.ctx.characters.read(lambda uow: uow.characters.get(first))
         s.maze_first[kind.key] = (first, who.nickname if who is not None else "")
-    s.send(S_TOWER_INFO, tower_msg(s, msg.index))
 
 
 @router.on(8299)

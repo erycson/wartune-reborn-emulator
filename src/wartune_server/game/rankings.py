@@ -171,10 +171,10 @@ async def gem_order(characters: CharacterService, guilds: Guilds, server_id: int
 async def fish_order(characters: CharacterService, guilds: Guilds, server_id: int, clock: Clock) -> bytes:
     """``<FishScores><FishScore UserId NickName Job Grades FightingCapacity ConsortiaName IsVip VipType Order Score
     FishGrades/></FishScores>`` como o ``fish.xml`` do espelho oficial (``FishControler.loadFishOrderData``);
-    ``Score`` são os pontos da semana. shortcut: só quem pontuou (o oficial lista também quem tem 0)."""
+    ``Score`` são os pontos da semana; quem pescou e está com 0 na semana vai no fim, como no oficial."""
 
     async def query(uow: UnitOfWork) -> tuple[list[tuple[int, fs.Fisher]], list[Character], list[EventState]]:
-        ranked = fs.weeks(await uow.events.by_prefix(server_id, fs.KEY), clock.now())[:GEM_TOP]
+        ranked = fs.weeks(await uow.events.by_prefix(server_id, fs.KEY), clock.now(), zeros=True)[:GEM_TOP]
         chars = await uow.characters.by_ids([c for c, _ in ranked])
         return ranked, chars, await uow.events.by_prefix(server_id, VIP_KEY)
 

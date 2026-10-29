@@ -356,7 +356,7 @@ O teste agora monta o castelo como no login (`castle.ensure`: filas, prédios do
 |---|---|---|---|---|
 | 501, 502, 551, 581, 681, 711, 721, 731 | 24 a 29 | passa (xfail tirado) | 15323, 15335, 15345, 15355, 20221, 4305, 13191, 487 | prédio (tipo 2) no nível da condição |
 | 623 | 25 | passa (xfail tirado) | 20264 | estrela travada (tipo 53): gancho real em `handlers/stars.py:431` (`LOCK_QUEST`) |
-| 503 | 25 | passa, mas só por contador direto | 1931 | Amethyst Rush (tipo 86): `AMETHYST_CONDITION` não tem chamador no servidor (sem gancho de minas); o teste chama `quest_event` direto, então o pacote passa e o avanço real na partida não existe |
+| 503 | 25 | passa | 1931 | Amethyst Rush (tipo 86): cada coleta na pilha da mina (`warfield.callback`, 5032 cmd 2); a mina abre fora da janela com o carrinho comum (`test_lote1_contadores`) |
 | 400, 412, 430, 480, 570 | 22 a 28 | pendente (xfail) | 15035, 17367, 19336, 3001, 12635 | subida de nível: a fila de cobrança e o exército já estão montados; o 52 e o 83 da EXP mudam de lugar entre as subidas e nenhuma regra separa os casos (saídas no comentário do teste) |
 | 6 | 23 | pendente (xfail) | 12125 | catacumbas: gancho em tower.py:172 existe; a janela tem 4484/4426/4476 de recompensa não reproduzida |
 | 241 | 20 | pendente (xfail) | 1965 | bênção do altar (gancho altar.py:142): não feito, o teste não chama o handler 5145 |

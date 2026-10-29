@@ -253,7 +253,7 @@ async def login_load(s: GameSession, msg: pb.PlayerDataMsg) -> None:
         s.send(S_RECOVER, recover.infos_msg(snap, s.ctx.templates, now))
         from .tower import login_list  # tower importa campaign, que importa este módulo
 
-        s.send(S_TOWER_LIST, login_list(s))
+        s.send(S_TOWER_LIST, await login_list(s))
     if msg.questionnarie:  # (visto) 215937 #54: nenhum questionário
         s.send(S_QUESTIONNAIRE, pb.QuestionnarieInfoMsg())
     if msg.friend:
@@ -296,7 +296,9 @@ async def _login_state(s: GameSession) -> None:
     if gone := expire_items(snap, s.ctx.clock.now()):  # vencidos somem antes do 115 (dedução)
         await s.ctx.characters.save(delete=tuple(gone))
     assert snap.castle is not None
-    active = [q for q in snap.quests if not q.completed]
+    # abertas e as repetíveis concluídas (com o ``completedDate``: o cliente conta o RepeatInterval por ela; só turco:
+    # login.json #89 traz a 241 com a data antiga)
+    active = [q for q in snap.quests if not q.completed or rules.is_repeat(s.ctx.templates, q.template_id)]
     s.send(S_QUESTS, pb_player.quest_update(active, rules.quest_bitmap(snap)))
     if snap.items:
         bag = pb.ItemMovedListMsg()

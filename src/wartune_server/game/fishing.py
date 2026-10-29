@@ -79,10 +79,11 @@ def parse(text: str, now: datetime) -> Fisher:
     return f
 
 
-def weeks(states: list[EventState], now: datetime) -> list[tuple[int, Fisher]]:
-    """Pescadores com pontos na semana, do maior ao menor (desempate pelo id)."""
+def weeks(states: list[EventState], now: datetime, zeros: bool = False) -> list[tuple[int, Fisher]]:
+    """Pescadores com pontos na semana, do maior ao menor (desempate pelo id); ``zeros`` põe no fim quem está com
+    0 na semana (o ``fish.xml``)."""
     out = [(e.character_id, parse(e.text, now)) for e in states if e.key == KEY and e.text]
-    return sorted([x for x in out if x[1].score > 0], key=lambda x: (-x[1].score, x[0]))
+    return sorted([x for x in out if zeros or x[1].score > 0], key=lambda x: (-x[1].score, x[0]))
 
 
 def position(states: list[EventState], character_id: int, now: datetime) -> int:

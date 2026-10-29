@@ -382,6 +382,9 @@ async def _sacrifice(s: GameSession, snap: PlayerSnapshot, templates: GameTempla
     s.send(S_PETS, out)
     send(s, S_ITEMS, bag.moved(got, s.player_id))
     castle_yield(s)
+    from . import offer  # offer importa player, que importa este módulo
+
+    await offer.progress(s, offer.SACRIFICE_PET)  # "Sacrifice Sylph"
 
 
 async def _compose(

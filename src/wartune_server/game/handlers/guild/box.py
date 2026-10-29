@@ -20,7 +20,7 @@ from ...mail import SYSTEM_SENDER
 from ...mail import notify as notify_mail
 from ...mail import stage as stage_mail
 from ...router import router
-from ...session import GameSession
+from ...session import GameContext, GameSession
 from .common import S_BOX, S_BOX_ALLOT, S_ITEMS, _mine, _now, _profile, _refuse
 
 # ---- baú de prêmios --------------------------------------------------------------------------
@@ -164,9 +164,9 @@ async def box_send(s: GameSession, msg: pb.ConsortiaTreasureBoxMsg) -> None:
     s.send(S_BOX, b.complete(_box_msg(s, guild.id or 0)))
 
 
-def add_to_box(s: GameSession, guild_id: int, template_id: int, count: int) -> ConsortiaItem:
-    """Prêmio para o baú da guilda (altar, guerra); quem chama grava o retorno."""
-    box = s.ctx.guilds.box[guild_id]
+def add_to_box(ctx: GameContext, guild_id: int, template_id: int, count: int) -> ConsortiaItem:
+    """Prêmio para o baú da guilda (a guerra de guildas: ``handlers/guildwar.settle``); quem chama grava o retorno."""
+    box = ctx.guilds.box[guild_id]
     item = next((i for i in box if i.template_id == template_id), None)
     if item is None:
         item = ConsortiaItem(guild_id, template_id, count=0)

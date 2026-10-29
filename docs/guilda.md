@@ -239,7 +239,8 @@ nem forma de resposta do x10 aparece no cliente. Captura: a seção do altar aci
 
 **Armazém da guilda (bolsa 6)**: pessoal, `storeLevel*5` espaços (56 no nível 10), pelo 5005 e o 8220; ver
 [itens.md](itens.md). **Baú de prêmios**: no máximo 10 por membro (`ConsortiaPrizeAllotItem`); o `isReceived`
-vai falso (*ponytail*: quando ele zera não está no cliente) e nada enche o baú (prêmio da guerra de guildas).
+vai falso (*ponytail*: quando ele zera não está no cliente) e a guerra de guildas enche o baú com Guild Treasure (2060044): presentes do vencedor, metade
+para o perdedor (TODO(inventado): a quantidade).
 **Posição (`orderInfo.gradeOrder`)**: nível e depois riqueza total entre as guildas do servidor (*dedução*).
 `fightPower` é a soma do poder dos membros e `fightPowerOrder` a posição por ele (*dedução*; o oficial #4944 tinha
 884460 com 99 membros e 1 nas duas posições).

@@ -13,7 +13,7 @@ from ....protocol.messages import wartune_pb2 as pb
 from ....services import ledger
 from ....services.characters import normalize_nickname
 from ... import guild as gd
-from ... import rankings, rules
+from ... import rankings, rules, titles
 from ...builders import login as b
 from ...castle import castle_yield
 from ...router import router
@@ -183,13 +183,15 @@ async def member_list(s: GameSession, _: object) -> None:
         if c is not None and c.nickname:  # o cliente descarta quem vem sem apelido
             found.append((m, c))
 
-    async def extra(uow: UnitOfWork) -> tuple[list[int], list[int], list[EventState]]:
+    async def extra(uow: UnitOfWork) -> tuple[list[int], list[int], list[EventState], list[EventState]]:
         orders = [await uow.characters.gp_order(guild.server_id, c.total_gp) for _, c in found]
         heads = [p.head_id if (p := await uow.sns.by_character(c.id or 0)) else 0 for _, c in found]
-        return orders, heads, await uow.events.by_prefix(guild.server_id, rankings.VIP_KEY)
+        vips = await uow.events.by_prefix(guild.server_id, rankings.VIP_KEY)
+        return orders, heads, vips, await uow.events.by_prefix(guild.server_id, "guildwar:")
 
-    orders, heads, vips = await s.ctx.characters.read(extra)
+    orders, heads, vips, wars = await s.ctx.characters.read(extra)
     vip_of = rankings.vips_of(vips, s.ctx.clock)
+    tally = {(e.character_id, e.key): e.value for e in wars}
     rows = []
     for (m, c), order, head in zip(found, orders, heads, strict=True):
         other = s.ctx.online.get(m.character_id)
@@ -200,9 +202,11 @@ async def member_list(s: GameSession, _: object) -> None:
         row = gd.member_msg(s.ctx.guilds, c, m, other is not None, guild)
         # (visto) oficial_20261023-171155-1 #4572: Daru em ``strategy``, posição por EXP, VIP e retrato também de
         # quem está offline; ``isTeamPlayer`` veio true em todas as linhas (todos começam na lista da guerra; o 8473
-        # tira e põe, ``handlers/guildwar.py``). TODO(inventado): ``matchWin``/``matchFailed`` vão 0 (o coliseu daqui
-        # não conta vitórias e derrotas)
+        # tira e põe, ``handlers/guildwar.py``). ``matchWin``/``matchFailed``: guerras de guilda vencidas e perdidas
+        # (somadas no fim de cada uma, ``guildwar._prize``)
         row.strategy, row.gpOrder, row.headId = c.strategy, order, head
+        row.matchWin = tally.get((m.character_id, titles.GUILD_WAR_WINS), 0)
+        row.matchFailed = tally.get((m.character_id, titles.GUILD_WAR_LOSSES), 0)
         row.isTeamPlayer, row.role = not m.gvg_out, m.gvg_role
         if other is not None and other.snapshot is not None:
             vip, kind = is_vip(other.snapshot, s.ctx.clock.now()), vip_type(other.snapshot)

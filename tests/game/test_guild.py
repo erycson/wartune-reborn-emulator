@@ -534,7 +534,7 @@ async def test_box_item_goes_by_mail_when_the_bag_is_full(tmp_path: Path) -> Non
         await _create(a)
         b = await _member(a, "bruxa")
         s = _session(a)
-        await s.ctx.characters.save(handlers.add_to_box(s, _guild(a).id or 0, 2060044, 3))  # quem chama grava
+        await s.ctx.characters.save(handlers.add_to_box(s.ctx, _guild(a).id or 0, 2060044, 3))  # quem chama grava
         full = _session(b).snapshot
         assert full is not None
         for pos in range(42):
@@ -741,7 +741,7 @@ async def test_box_gives_at_most_10_to_each_member(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         s = _session(a)
-        await s.ctx.characters.save(handlers.add_to_box(s, _guild(a).id or 0, 2060044, 20))
+        await s.ctx.characters.save(handlers.add_to_box(s.ctx, _guild(a).id or 0, 2060044, 20))
         box = pb.ConsortiaTreasureBoxMsg(templateId=2060044, playerInfo=[{"userId": a.user_id, "count": 11}])
         a.client.send(8578, box)
         assert not [p for p in await a.idle() if p.code == 4466]

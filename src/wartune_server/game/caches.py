@@ -37,6 +37,7 @@ from .npc_castles import tile_taken
 from .rules import job_type
 
 CACHE_TYPE = 22  # WildLandMsg.type e MapPhysicsTempInfos.MasterType
+CACHE_SON_TYPE = 2201  # MapPhysicsTempInfos.SonType (Para1 do "Explore Wilds Gold Mine" do painel de recompensas)
 CACHE_ALIVE, CACHE_FIGHTING, CACHE_GONE = 1, 4, 0  # WildLandMsg.state
 ID_BASE = 1_100_000_000  # longe dos monstros (1_000_000_000 + mapa × 10000) e das terras do oficial (8xxxxx)
 EDGE = 20  # tiles da borda, como os monstros

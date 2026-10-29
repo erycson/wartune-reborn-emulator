@@ -21,7 +21,7 @@ from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import Row
-from .. import bag, rules, titles
+from .. import bag, rules
 from ..builders import login as b
 from ..castle import castle_yield
 from ..mail import MAX_ANNEXES
@@ -286,6 +286,10 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
         send(s, S_ITEMS, bag.moved(got, s.player_id))
     _gained(s)
     alert(s, bought_text(bag.name(templates, tid), info.count))
+    if column in ("Point", "GiftToken"):  # "Use Balens or Bound Balens to purchase an item"
+        from . import offer  # offer importa player, que importa este módulo
+
+        await offer.progress(s, offer.BALEN_BUY)
     return OK
 
 
@@ -667,11 +671,14 @@ async def mystery_buy(s: GameSession, msg: pb.ShopItemBuyMsg) -> None:
 
 @router.on(8597)
 async def appell_exchange(s: GameSession, msg: pb.AppellExchangeMsg) -> None:
-    """``look``: lista de títulos (4484, a mesma do login: ``titles.appells_msg``). Trocar o título exige tê-lo
-    ganho (``isGet``: Honor, contribuição e itens; as outras condições ainda não contam, ver ``titles``)."""
+    """``look``: lista de títulos (4484, a mesma do login: ``events.titles_msg``, com os rankings relidos). Trocar o
+    título exige tê-lo ganho (``isGet``, ver ``titles``)."""
     snap = s.snapshot
     assert snap is not None
-    listed = titles.appells_msg(snap.character, s.ctx.templates, {i.template_id for i in snap.items})
+    from . import events  # events importa este módulo
+
+    await events.title_ranks(s)
+    listed = events.titles_msg(s)
     if msg.look:
         send(s, S_APPELLS, listed)
         return

@@ -16,7 +16,7 @@ from ...domain.models import ArenaRank, BagType, ChallengeLog, EventState, Item,
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import arena as A
-from .. import bag, rewards, rules
+from .. import bag, rewards, rules, titles
 from .. import events as ev
 from ..battle import Battle
 from ..builders import login as b
@@ -310,6 +310,8 @@ async def _colosseum_over(
                 )
             )
         changed = [*prize[0], prize[2]] if prize else []
+        if won:  # título "Prize Fighter" (Accumulated 1000 Arena wins)
+            changed.append(titles.count(snap, titles.ARENA_WINS, now))
         await s.ctx.characters.save(
             snap.character, snap.leader, *snap.pawns, arena, *logs, *changed, *([pet] if pet else []),
             ranks=tuple(ranks),

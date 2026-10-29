@@ -111,6 +111,9 @@ async def contribute(s: GameSession, msg: pb.ConsortiaUserOfferReqMsg) -> None:
     _push_info(s, guild)
     if events.devotion(s) > devotion:
         events.say_devotion(s)
+    from .. import offer as reward_board
+
+    await reward_board.progress(s, reward_board.GUILD_OFFER, offer)  # "Have Guild Contribution of 10": a doação
 
 
 @router.on(8208)

@@ -256,6 +256,9 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         events.say_devotion(s)
     if temp_full(snap):
         events.send_titles(s)
+    from . import offer
+
+    await offer.progress(s, offer.ASTRAL, len(new))  # "Capture Astrals"
     rare = tuple(settings.get("star_rare_profiles") or RARE_PROFILES)
     for star in new:
         if (tpl := star_tpl(templates, star)).get("Profile") in rare:

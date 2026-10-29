@@ -29,6 +29,9 @@ DELIVER, DECOR = 12, 24  # campDataId = campanha * 1000 + n (visto 4005012, 4007
 # mina (visto #1923-#2312): o carrinho sai no nó 3, a coleta é o nó 6 e o minério é o nó 9
 CART_NODE, PICK_NODE, ORE_NODE = 3, 6, 9
 CARTS_ADV = 1  # quality do carrinho avançado (visto "You received a Adv. Minecart." e quality 1, #1956)
+# fora da janela o carrinho é o comum (CART_BODY: "Adv. Minecarts are available daily from 19:30-20:00");
+# TODO(inventado): quality 0 para ele
+CART_NORMAL = 0
 PICKS_PER_CART = 5  # (visto #2135) "Collection complete. (4 / 5) collections remaining."
 MINE_WINDOW = (time(19, 30), time(20, 0))  # texto do carrinho (visto #1962), horário do servidor
 TOP = 3
@@ -47,6 +50,7 @@ class Mark:
     honor: int = 0
     carry: str | None = None
     wins: int = 0  # vitórias no PvP do campo (hitCount do 4252)
+    team: int = TEAM  # lado no campo (teamId do 4252/4255)
     fighting: bool = False  # numa luta do 8334 (4494 state 2)
 
 
@@ -60,10 +64,23 @@ class Field:
     settled: bool = False
 
     def mark(self, player_id: int) -> Mark:
-        return self.marks.setdefault(player_id, Mark())
+        """A marca do jogador; quem chega entra no lado com menos gente (o primeiro no 2, visto #14238).
+        TODO(inventado): o equilíbrio dos lados (o oficial cruza servidores; não há captura de dois lados)."""
+        if player_id not in self.marks:
+            ours = sum(m.team == TEAM for m in self.marks.values())
+            self.marks[player_id] = Mark(team=TEAM if ours <= len(self.marks) - ours else ENEMY)
+        return self.marks[player_id]
 
-    def our_score(self) -> int:
-        return sum(m.score for m in self.marks.values())
+    def score(self, team: int) -> int:
+        return sum(m.score for m in self.marks.values() if m.team == team)
+
+    def count(self, team: int) -> int:
+        return sum(m.team == team for m in self.marks.values())
+
+    def winner(self) -> int | None:
+        """O lado com mais pontos no fim; empate (ou ninguém pontuou) não tem vencedor."""
+        ours, theirs = self.score(TEAM), self.score(ENEMY)
+        return None if ours == theirs else TEAM if ours > theirs else ENEMY
 
 
 @dataclass
@@ -175,5 +192,6 @@ def turn_in_text(quality: str, points: int, honor: int, shards: int) -> str:
             f"Battleground Treasure Shard x{shards}")  # fmt: skip
 
 
-def win_text() -> str:
-    return f"The battle has ended! You received Insignia x{WIN_INSIGNIA} and honor x{WIN_HONOR}! "
+def win_text(insignia: int = WIN_INSIGNIA) -> str:
+    honor = WIN_HONOR * insignia // WIN_INSIGNIA
+    return f"The battle has ended! You received Insignia x{insignia} and honor x{honor}! "

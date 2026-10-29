@@ -801,6 +801,18 @@ def _report(battle: Battle, won: bool, gp: int, strategy: int = 0) -> pb.BattleR
     return report
 
 
+async def _offer_kills(s: GameSession) -> None:
+    """Luta de monstro vencida no painel de recompensas e no anel: "Kill Monsters of the Same Level", "Go to Sylph
+    Atoll L4" (Para1 = o mapa) e "Eliminate the monsters in {0}". TODO(inventado): cada luta vencida conta 1 (o
+    cliente só mostra o contador; o nível do monstro e quantos morreram não têm fonte)."""
+    from . import offer  # offer importa player, que importa este módulo
+
+    await offer.progress(s, offer.KILL_SAME)
+    await offer.progress(s, offer.ELIMINATE)
+    if s.campaign is not None:
+        await offer.progress(s, offer.SYLPH_MAP, 1, s.campaign.map_id)
+
+
 async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, mate: bool = False) -> None:
     """``mate``: outro da sala que lutou junto (herói NPC na luta de quem atacou): ganha o mesmo, sem perder tropa
     nem vida (o herói dele não é o ``battle.player``)."""
@@ -891,6 +903,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
         report.signId = loot.sign
         report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in loot.fallen)
     _send(s, S_BATTLE_REPORT, report)
+    if won and not mate:
+        await _offer_kills(s)
     if not dungeon or not won:
         hp_pack(s, healed)  # (visto) oficial_20261023-153200-1 #1449-#1450
     if not dungeon and gp:  # (visto) inglesa #909 "Received 35 EXP " (com o espaço no fim)
@@ -919,6 +933,15 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
         c.talked.discard(camp)  # tumba/caixa perdida: o 29 volta a perguntar (dedução, sem captura de derrota)
         _node_update(s, camp, NORMAL)
         return
+    from . import systems as systems_h  # systems importa este módulo
+
+    if loot.items and (cards := systems_h.gain_cards(rules.systems(snap), s.ctx.templates, loot.items)):
+        # fim da luta: as cartas ganhas entram na coleção (4905/4902) em vez de ficar na mochila
+        for card in cards:
+            snap.items.remove(card)
+        loot.items = [i for i in loot.items if i not in cards]
+        await s.ctx.characters.save(rules.systems(snap), delete=tuple(cards))
+        systems_h.send_cards(s)
     if loot.items:  # (visto) inglesa #1275-#1280: 115, 111, 128 e só depois o 83
         from . import events as hev  # handlers.events importa login, que importa este módulo
 

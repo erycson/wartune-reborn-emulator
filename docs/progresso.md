@@ -25,16 +25,16 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|---|---|
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
 | Castelo | 10 | 4 | 5 | 1 | 3 |
-| Herói e exército | 13 | 14 | 0 | 2 | 4 |
+| Herói e exército | 13 | 13 | 1 | 2 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 6 | 2 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
-| Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
+| Clã / Guilda | 10 | 2 | 7 | 2 | 1 |
 | Campanhas e masmorras | 7 | 9 | 6 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 10 | 6 | 1 | 4 | 0 |
+| Missões | 12 | 4 | 1 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **106** | **92** | **55** | **34** | **34** |
+| **Total** | **108** | **88** | **57** | **34** | **34** |
 
 ## Validação e base
 
@@ -106,7 +106,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Dragão: transferência (8643) | 🟡 | | vocação sem tabela (começa no 1) |
 | Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
 | Cartas: bônus de coleção (4905) | 🟡 | | degraus por dedução; o bônus não entra na luta |
-| Cartas: ganho nas batalhas | 🟡 | | incompleto |
+| Cartas: ganho nas batalhas | 🧪 | | carta do saque da campanha entra na coleção (`systems.gain_cards`, item 600): a 1ª abre no grau 1, as outras viram +1 gp cada (inventado); usar a carta da mochila faz o mesmo |
 | Estrelas: sortear (8269) | 🟡 | | grátis do dia sem 109 como o inglês (#19350, #6727); chances por qualidade são atalho; 4388 (SNS) na estrela de qualidade 4 com md5 inventado |
 | Estrelas: recolher, vender, mover | ✅ | | |
 | Estrelas: compor (8331) | 🟡 | | textos e ordem do inglês (#19525, #6816, #13736); o 4484 do início sem gatilho conhecido |
@@ -148,7 +148,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pergaminhos de outros efeitos | 🟡 | | ícone e tempo ligam; o efeito não existe |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
 | Cristal, guilda e Token de proteção (5006) | ❌ | | recusados |
-| Títulos (4484/8597) | 🧪 | | condições de time, arena e labirinto zeradas (`titles.py:25,53`) |
+| Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); sem sistema: honra, charme, montaria, chefe mundial, guerra de classes, sylph e líder de guilda |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |
 | Forja: composição de pedras (5153/8538) | ✅ | 🇹🇷 | 5153 e transformação 8538 no inglês (231733 #1492, 26/10 #10315, sem aviso); caixa de pedras do turco |
@@ -199,7 +199,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Criar, candidatar-se, convidar | ✅ | | |
-| Membros e informações | 🧪 | | matchWin/matchFailed 0 (`guild/info.py:202`) |
+| Membros e informações | 🧪 | | matchWin/matchFailed somados dos membros (`guildwar:win`/`lose`, gravados no prêmio da guerra) |
 | Cargos e direitos | ✅ |  | direitos byte a byte no inglês (4137 de 171155, 215937, 231733), iguais ao turco |
 | Expulsar, sair, passar chefia, mudar cargo | ✅ | | |
 | Eleição do chefe | 🟡 | | só o voto; abrir/fechar pelo banco |
@@ -208,7 +208,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Habilidades (6-12) | 🧪 | | "Gold Production +N%" inventado (`castle.py:103`) |
 | Mercado da guilda | ✅ | 🇹🇷 | ordem da compra do turco |
 | Baú da guilda (distribuir) | ✅ | | correio de mochila cheia por dedução |
-| Baú de prêmios | 🟡 | | nada enche o baú |
+| Baú de prêmios | 🧪 | | a guerra de guildas enche o baú com Guild Treasure (2060044): presentes do lado vencedor, metade para o perdedor (quantidade inventada) |
 | Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 recusada |
 | Altar do demônio (boss de guilda) | 🟡 | | entrada 8542 recusada |
 | Terra secreta: entrada e saída | ✅ | | |
@@ -253,7 +253,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) por andar e desempate pelo horário (jogador 28/10), calculado ao abrir; dificuldade em `game_settings.maze.hp_pct`; prêmio do reset sem captura |
+| Info e reset (8297/8299) | 🟡 | 🇹🇷 | do turco; ranking (`order`) por andar e desempate pelo horário (jogador 28/10), calculado no 8297 e no 4373 do login; dificuldade em `game_settings.maze.hp_pct`; prêmio do reset sem captura |
 | Corrida: entrar, luta, portal (8296) | ✅ | 🇹🇷 | do turco |
 | Andares 1 a 25: monstros, chefes, escoltas, baús | ✅ | | todos vistos (24/10 #12046-#13771, 25/10 #9658-#10909); vitórias só dão EXP; subir andar conta a missão 38 (1 por andar, inferido) |
 | Andares 26 em diante | 🧪 | | 26-28 como na captura 28/10 (#1369-#1766, 127 #1355/#1474/#1669: escolta 7026-7028, skills, attackModel 1; sem herói inimigo; o 28 não foi vencido na captura, EXP 11200 é a regra). Do 29 em diante a luta e o poder do nó saem do catálogo (fórmula que reproduz os 28 vistos); o ícone (sonType) vem do desenho já visto (29), do 30 em diante falta captura |
@@ -290,16 +290,16 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Aceite, progresso, entrega e recompensas | ✅ | | |
 | Principais: recrutar, nível, tropa, construção | ✅ | | |
 | Segundo login, nível, eventos (39, 1, 40, 63, 66, 87) | ✅ | | |
-| Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 10 de 26 conferidas (prédios, 503, 623); faltam catacumbas (6), mina de Amethyst (86, sem gancho), 241/768 pelo handler e a ordem 52/83 em 5 subidas de nível |
+| Entregas conferidas com as capturas (5014) | 🟡 | | até o nível 20: 27 de 44 iguais ao oficial; 21-31: 10 de 26 conferidas (prédios, 503, 623); faltam catacumbas (6), mina de Amethyst (86, ligada na coleta; entrega não conferida), 241/768 pelo handler e a ordem 52/83 em 5 subidas de nível |
 | Castelo e ocupação (7, 8) | 🟡 | | castelo de jogador sem alvo |
 | Campanha (14, 25, 26, 31) | 🟡 | | 1001-1006 jogáveis; 1007 só a 1ª etapa; masmorras solo com captura na 0098 |
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
-| Diárias e repetíveis | 🟡 | | repetível concluída não aparece no login |
-| Conversa com NPC (85) | 🟡 | | patrulhas travam |
+| Diárias e repetíveis | ✅ | | repetível concluída vai no 112 do login (QuestTemps IsRepeat) |
+| Conversa com NPC (85) | ✅ | | patrulha (MasterType 1) conta sem conferir a posição (o NPC anda; o cliente abre a janela sozinho) |
 | Guilda (22, 29, 30, 51) | ✅ | | 22/29/51 pelo estado (`social_state_quests`, 5014), 30 no altar (5145); test_missoes_social.py e test_missoes_tipos.py |
 | Chefe do mundo (40, 41) | ✅ | | entrar e dano total contados |
 | Campo de batalha: entrar (44) | ✅ | | contado na entrada 8332 |
-| Arena e batalhas (45, 50) | 🧪 | | 45 por vitória no PvP do campo (visto #11106); 50 no fim da partida (o time sempre vence: TODO) |
+| Arena e batalhas (45, 50) | 🧪 | | 45 por vitória no PvP do campo (visto #11106); 50 para o lado com mais pontos no fim (lados equilibrados na entrada e desempate sem vencedor, inventados) |
 | Arena e batalhas (35, 79, 80) | ✅ | | 35 no desafio do coliseu (8253); 79 ao entrar na batalha de tanques, 80 a quem vence (vehicle.py); posição do 112 inventada |
 | Arena e batalhas (16) | ✅ | | 16 no fim de cada luta da arena em grupo (arena_grupo.py; 112 visto 27/10 #19929); test_arena_grupo.py |
 | Arena e batalhas (93) | ❌ | | 93 Sky Trail sem sistema identificado no cliente (TODO em rules.py) |
@@ -370,21 +370,21 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Login diário e presente online | ✅ | | dias 1 a 4 do login acumulado no inglês (153200, 191924) |
 | Baú de atividade diária (8235) | ✅ | | ordem e texto do inglês (tutorial_en #1561); mochila cheia: "Insufficient Inventory space." (27/10 #6040) |
-| Devoção (leeds) | 🟡 | 🇹🇷 | leed 8 no inglês (171155 #4955); 17 e 33 do turco; 13, 27, 28 sem gancho |
+| Devoção (leeds) | 🟡 | 🇹🇷 | leed 8 no inglês (171155 #4955); 17 e 33 do turco; 13 (arena em grupo), 27 (entrar no campo, 8332) e 28 (Spire) ligadas |
 | Guia de 7 dias (8749) | 🟡 | 🇹🇷 | tarefa 23 nunca; login do turco |
-| Atividades por contador (SumActive) | 🟡 | | troca (tipo 10) vista (191924); vários tipos sem contador |
-| Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | só o torneio de fadas conta (turco); 5001-5003, match, reward, vehicle e minefield sem captura |
+| Atividades por contador (SumActive) | 🟡 | | troca (tipo 10) vista (191924); painel conta match, reward, vehicle e minefield |
+| Contadores do painel (8518 → 4412/4413) | 🟡 | 🇹🇷 | torneio de fadas (turco); match (arena em grupo), reward (entrega do bounty), vehicle (fim do veículo) e minefield (entrada na mina) contam com 4413; 5001-5003 sem sistema |
 | Fundo de novato e fundo normal | 🟡 | | janelas por dedução; compra e resgate do fundo normal sem captura |
 | Árvore dourada (8604) | 🟡 | | pesos, início da edição e "uma vez por dia" por dedução |
 | Labirinto de gemas (9508-9517) | 🧪 | 🇹🇷 | maxExp inventado (`gemmaze.py:29`); ajuda de amigo recusada |
 | Roda do destino | 🟡 | | tipos 2100/2200 nunca abrem |
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
-| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); só a condição 5 (árvore de amigo) é contada, as outras e o 8729 dependem dos seus sistemas; texto do Daru inventado |
+| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend) sem luta de NPC; texto do Daru inventado |
 | Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |
-| Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
+| Pesca (9507) | 🧪 | | abrir, pescar, errar, cesto e cd do inglês (26/10, 27/10, 28/10); ranking semanal lista também quem tem 0 pontos (no fim); ⏩, ferramentas, fúria e ajuda sem captura (chance da fúria, nomes das ferramentas 2-4, alcance dos torpedos, prêmio sem ajuda inventados: `fishing.py`) |
 | Caça ao tesouro (9502) | 🧪 | | ops 1-7, 10 explorações com recarga, diálogo, achado e troca de 100 shards pelo cliente e idioma (`treasure_hunt.py`); nós, achados, 30 min e preço do "+" inventados |
 | Quiz (9501) | 🧪 | | agenda, tempos, pontos e EXP do top 10 pelo idioma; estados, 4907-4910 e ajudas pelo cliente (`quiz.py`, `game_settings.quiz`); banca (Option1 certa), pontos e EXP inventados |
 | Minério de Stokes (9645/35) | 🧪 | | 187-190 e ops pelo cliente, veio do servidor com andares especiais (`ore.py`, `game_settings.stokes_ore`); veio gravado no banco; preços, limites, achados e textos inventados (`game_settings`) |

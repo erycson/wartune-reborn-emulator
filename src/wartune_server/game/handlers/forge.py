@@ -19,6 +19,7 @@ from ..builders.player import quest_update
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
+from . import offer
 from .player import _army, _player
 from .shop import alert, send
 
@@ -142,6 +143,7 @@ async def strengthen(s: GameSession, _: object) -> None:
     if quests:  # o 112 vem antes do 86 (oficial_encantar #288-#289)
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(S_STRENGTHEN, out)  # como está: o oficial não manda os campos que faltam
+    await offer.progress(s, offer.ENCHANT)  # "Enchant Any Piece of Equipment" (Para1 0): toda tentativa conta
 
 
 # --- engaste ---
@@ -213,6 +215,8 @@ async def inlay(s: GameSession, msg: pb.StoreReqMsg) -> None:
         send(s, 111, pb.ChatChannelMsg(channel=7, encodeMsg="Swap Successful"))
     else:
         alert(s, "Successfully Socketed Gem!")
+    if gem == GEM:
+        await offer.progress(s, offer.SOCKET)  # "Socket a Gem"
 
 
 def _removed(s: GameSession, gem: int) -> None:
@@ -336,6 +340,7 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
         send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))  # como o oficial
     send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    await offer.progress(s, offer.SYNTH)  # "Synthesize an Item": uma receita do 5153
 
 
 def _upgrade_piece(s: GameSession, recipe: Row) -> Item | None:

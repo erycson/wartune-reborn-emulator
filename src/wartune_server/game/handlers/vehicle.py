@@ -308,6 +308,9 @@ async def settle(ctx: GameContext, match: vh.Match, now: datetime) -> None:
         await ctx.characters.write(change)
         mailbox.notify(ctx.online, mail)
         o.send(S_PROFILE, _profile(o, c))
+        from .events import count_click  # events importa login, que importa este pacote
+
+        await count_click(o, "vehicle")  # DayGuideManager "vehicle" -> Tank Trials (10004/10005)
         o.log.info("fim da batalha de veículos", pontos=reward.score, exp=reward.exp, premios=goods)
     for pid in won:  # vencer conta mesmo sem prêmio (já premiado na janela)
         if (o := ctx.online.get(pid)) is not None:

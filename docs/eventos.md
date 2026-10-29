@@ -125,8 +125,8 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   | 13 | Participate in a group arena fight | fim de cada luta da arena em grupo (`arena_grupo._after`), depois do 112 | *(visto)* oficial_20261027-152321-1 #19930 e #19990 |
   | 22 | Enter the Altar of Ennoblement | **depende de** um sistema que não se sabe qual é (o tooltip `tipData22` está no language, que não temos); talvez o altar da guilda 7601, recusado | — |
   | 23 | Enter Forgotten Catacombs | o Start do 8296 (`handlers/tower.py`): o 4152 depois da entrada | (internet) https://wartune.fandom.com/wiki/Glossary |
-  | 27 | Enter Battleground | **depende de** campo de batalha (`warfield.py`, fechado) | — |
-  | 28 | Enter the Spire | **depende de** Spire do Hall of Heroes (mapa de torre não existe) | (internet) https://wartune.fandom.com/wiki/Hall_of_Heroes |
+  | 27 | Enter Battleground | entrada no campo 8332 (`warfield.FIELD_LEED`), depois do 4152 | *(dedução)* pelo título |
+  | 28 | Enter the Spire | entrada na Spire (`handlers/campaign.py`, game/torres) | (internet) https://wartune.fandom.com/wiki/Hall_of_Heroes |
 
   A ordem: o oficial manda o 83 do total mais para o fim da resposta; aqui ele vai junto do 4152.
 - Ganho (visto tutorial_en #521-#522, #748-#753, #1649-#1652): 4152 **só com o leed que mudou** (a lista completa só
@@ -482,9 +482,8 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   grupo depende da compra coletiva (8645). **Captura que falta**: cada um num dia em que o oficial o abre.
 - **Caixa de ano novo (8994), história (8629/8630):** sem template nem config no servidor.
 - **360 (8722/8723):** `PrivilegeDrops` existe, mas o cliente só mostra com `isIn360Agent`.
-- **Recuperação (9503):** lista vazia porque nenhum sistema conta as atividades perdidas (campanha,
-  arena, boss, imposto; `RecoverInfos` tem 10 linhas). **depende de** cada sistema gravar a participação do dia;
-  quando houver, a fórmula acima já confere. O tutorial_en #51 manda o 4912 vazio (personagem novo).
+- **Recuperação (9503):** os 10 sonTypes de `RecoverInfos` leem a participação de ontem dos contadores
+  de cada sistema (`recover._used_yesterday`); a fórmula acima confere. O tutorial_en #51 manda o 4912 vazio (personagem novo).
 - **Troca da sorte (9610):** a inglesa (#88/#102) tem duas edições, uma vencida (2026-10-14) e uma futura
   (2026-10-23), sem as trocas; a sorte atual (`currentLuckValue`) e o que cada troca dá não são conhecidos.
 

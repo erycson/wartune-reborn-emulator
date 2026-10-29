@@ -644,6 +644,29 @@ def store_cards(sy: PlayerSystems, found: dict[int, list[int]]) -> None:
     sy.powcards = ",".join(f"{t}:{g}:{gp}:{a}" for t, (g, gp, a) in found.items())
 
 
+CARD_ITEM = "600"  # ItemTempInfos.SonType das cartas ("Available after using the ... card"; Property1 = a carta)
+
+
+def gain_cards(sy: PlayerSystems, templates: GameTemplates, items: list[Item]) -> list[Item]:
+    """Cartas ganhas (itens SonType 600) entram no 4905: a primeira cópia abre a carta no grau 1 e cada cópia a mais
+    soma 1 de ``gp``, a EXP que o 9505 op 1 gasta (``UpGradeTempInfos`` 30-34: 10, 30, 60...). Devolve os itens
+    absorvidos (quem chama apaga). TODO(inventado): 1 de EXP por cópia; o cliente só mostra o ``gp``."""
+    found, used = cards(sy), []
+    for item in items:
+        row = templates.get("ItemTempInfos", item.template_id) or {}
+        temp = int(row.get("Property1") or 0)
+        if row.get("SonType") != CARD_ITEM or templates.get("PowcardTempInfos", temp) is None:
+            continue
+        n = item.count
+        if temp not in found:
+            found[temp], n = [1, 0, 0], n - 1
+        found[temp][1] += n
+        used.append(item)
+    if used:
+        store_cards(sy, found)
+    return used
+
+
 # Bônus da coleção: 3 degraus (MagicCardSlotView.updateBuffData). (cliente) language EN
 # card.CardSlotView.Notactive0..2: "4 cards from the same deck", "3 level 4 cards", "8 level 4 cards".
 # (só turco: login.json #76) só a 1002, com 4 cartas, tem bufInfos (40001 = Property3); as de 3 cartas não têm.

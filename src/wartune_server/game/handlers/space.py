@@ -33,6 +33,9 @@ def _node(s: GameSession, node_id: int) -> Row | None:
 
 
 def _near(s: GameSession, node: Row) -> bool:
+    """Perto do nó; o NPC que anda (``PATROL``) não está no ``PosX/PosY`` do template, então conta sempre."""
+    if node["MasterType"] == PATROL:
+        return True
     if s.space_pos is None:
         return False
     x, y = s.space_pos
@@ -75,14 +78,18 @@ async def space_move(s: GameSession, msg: pb.SpacePlayerMoveMsg) -> None:
 async def node_trigger(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     """Clicou num nó do space: teleporte troca de mapa; os outros abrem a janela do nó (4601)."""
     node = _node(s, msg.param1)
-    if node is None or node["MasterType"] == PATROL or not _near(s, node):
+    if node is None or not _near(s, node):
         s.log.info("8692 recusado", no=msg.param1, pos=s.space_pos)
         return
     if node["MasterType"] == TRANSFER:
         await _transfer(s, node)
     else:
-        s.send(S_EVENT, pb.SimplePropertyMsg(param1=msg.param1))  # SpaceSceneController.__selectNodeHandler
+        if node["MasterType"] != PATROL:  # a patrulha o cliente abre sozinho; só a conversa conta
+            s.send(S_EVENT, pb.SimplePropertyMsg(param1=msg.param1))  # SpaceSceneController.__selectNodeHandler
         changed = talk(s, msg.param1)
+        from . import offer  # offer importa player, que importa este módulo
+
+        await offer.progress(s, offer.MESSAGE, 1, msg.param1)  # "Message for Alice" (Para4 "10000,nó", Para1 = nó)
         if changed and (snap := s.snapshot) is not None:
             await s.ctx.characters.save(*changed)
             s.send(S_QUESTS, quest_update(changed, rules.quest_bitmap(snap)))
@@ -91,8 +98,14 @@ async def node_trigger(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
 async def _transfer(s: GameSession, node: Row) -> None:
     assert s.snapshot is not None
     target, need = int(node["MoveToMapId"]), int(node.get("Param3") or 0)  # Param3 = nível mínimo
+    from .. import battlefield as bf
+
+    if s.snapshot.character.grades >= need and target == bf.MINE:  # Amethyst Mine: a mesma entrada do 8633
+        from .warfield import enter_mine  # warfield importa campaign, que importa este módulo
+
+        await enter_mine(s, None)
+        return
     if s.snapshot.character.grades < need or str(target) not in pet_island()["maps"]:
-        # ponytail: o outro teleporte (mina de ametista, 30000) depende do sistema de minas
         s.log.info("teleporte do space indisponível", destino=target, nivel=s.snapshot.character.grades)
         return
     enter_pet_island(s, target)

@@ -9,12 +9,12 @@ import random
 from collections.abc import Sequence
 from datetime import datetime
 
-from ...domain.models import EventState, PlayerSnapshot
+from ...domain.models import EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import Row
+from .. import bag, rewards, rules
 from .. import events as ev
-from .. import rewards, rules
 from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
@@ -24,6 +24,13 @@ from .player import S_ITEMS, _player, alert, granted
 S_REWARD, S_FRESH, S_COUNT = 4198, 4197, 4360
 S_CHAT, S_CLICK_ADD, S_OFFER_DONE = 83, 4413, 4196  # 4196 (0x1064) sem corpo: (visto) 121659 #505, na entrega
 TREE_FRIEND = 5  # RewardCondictionInfos.CondictionType "Energize the Tree of Ancients (Friends)"
+# os outros tipos (títulos do RewardCondictionInfos; ganchos em docs/eventos.md)
+RECRUIT, ENCHANT, SOCKET, COLLECT, ASTRAL, KILL_SAME, WILD_MINE, GUILD_OFFER = 1, 2, 3, 4, 6, 7, 8, 9
+SYNTH, BALEN_BUY, QTE, CAPTURE, MOUSE, MESSAGE, SYLPH_MAP, SACRIFICE_PET, CIRCUIT = 10, 11, 12, 14, 15, 16, 17, 20, 21
+ELIMINATE, FETCH = 18, 19
+# (cliente) RingTask.getProgress: 1 conta as tropas do SonType Para1, 4 os itens Para1, 19 ter o item; 12 (QTE), 15
+# (Whack-a-Mouse) e 16 (conversa) são resultados que só o cliente vê (nenhum pacote leva): o servidor confia no 8729
+CLIENT_ONLY = (QTE, MOUSE, MESSAGE)
 S_RING, S_RING_SUM = 4614, 4616
 SLOTS, OPEN_GRADE, BASE_COUNT = 4, 14, 20  # OfferRewardModel: MAX_OFFER_TASK_NUM, OPEN_REWARD_GRADE, BASE_REWARD_COUNT
 AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 10  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
@@ -79,35 +86,72 @@ def _conditions(s: GameSession, tid: int) -> list[Row]:
     return [r for r in s.ctx.templates.rows("RewardCondictionInfos") if int(r["TemplateId"]) == tid][:4]
 
 
-async def progress(s: GameSession, condition: int) -> None:
-    """A ação do tipo ``condition`` aconteceu: +1 nas condições desse tipo da tarefa aceita (até o ``Para2``) e o
-    4198 com o andamento. (visto) oficial_20261024-121659-1 #229-#230 e #240-#241: tipo 5 "Energize the Tree of
-    Ancients (Friends)" a cada rega de árvore de amigo, logo depois do 112. Só o tipo 5 tem quem avise; os outros
-    tipos dependem dos seus sistemas (docs/eventos.md)."""
+def _bump(s: GameSession, st: EventState, tid: int, condition: int, value: int, para1: int | None) -> bool:
+    """+``value`` (até o ``Para2``) nas condições ``condition`` da tarefa ``tid`` guardada em ``st.text["n"]``;
+    ``para1`` filtra as condições com ``Para1`` (mapa, item...) diferente de 0."""
+    conds = _conditions(s, tid)
+    info = _json(st)
+    n = [*info.get("n", []), *[0] * len(conds)][: len(conds)]
+    hits = [
+        i
+        for i, r in enumerate(conds)
+        if int(r["CondictionType"]) == condition
+        and n[i] < int(r["Para2"])
+        and (para1 is None or int(r["Para1"] or 0) in (0, para1))
+    ]
+    for i in hits:
+        n[i] = min(int(conds[i]["Para2"]), n[i] + value)
+    if hits:
+        info["n"] = n
+        st.text, st.updated_at = json.dumps(info), s.ctx.clock.now()
+    return bool(hits)
+
+
+async def progress(s: GameSession, condition: int, value: int = 1, para1: int | None = None) -> None:
+    """A ação do tipo ``condition`` aconteceu: soma nas condições desse tipo da tarefa do painel aceita e do anel em
+    andamento. (visto) oficial_20261024-121659-1 #229-#230 e #240-#241: tipo 5 "Energize the Tree of Ancients
+    (Friends)" a cada rega de árvore de amigo, logo depois do 112, com o 4198 do andamento. O anel manda o 4614
+    (dedução: o mesmo ``RewardInfo`` com ``condition_N``). Os ganchos de cada tipo estão em docs/eventos.md."""
+    snap = s.snapshot
+    if snap is None:
+        return
+    now = s.ctx.clock.now()
+    task, ring = _task(snap, now), _ring(snap, now)
+    tid = int(_json(ring).get("t", 0))
+    task_hit = bool(task.value) and _bump(s, task, task.value, condition, value, para1)
+    ring_hit = bool(tid) and _bump(s, ring, tid, condition, value, para1)
+    if not (task_hit or ring_hit):
+        return
+    await s.ctx.characters.save(*([task] if task_hit else []), *([ring] if ring_hit else []))
+    if task_hit:
+        s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_task_info(task)]))
+    if ring_hit:
+        _send_ring(s, snap, now)
+
+
+def _met(s: GameSession, task: EventState, tid: int | None = None) -> bool:
+    """Todas as condições cumpridas, pela regra do cliente (``BaseOfferReward``/``RingTask.getProgress``)."""
     snap = s.snapshot
     assert snap is not None
-    now = s.ctx.clock.now()
-    task = _task(snap, now)
-    if not task.value:
-        return
-    conds = _conditions(s, task.value)
-    info = _json(task)
-    n = [*info.get("n", []), *[0] * len(conds)][: len(conds)]
-    hits = [i for i, r in enumerate(conds) if int(r["CondictionType"]) == condition and n[i] < int(r["Para2"])]
-    if not hits:
-        return
-    for i in hits:
-        n[i] += 1
-    info["n"] = n
-    task.text, task.updated_at = json.dumps(info), now
-    await s.ctx.characters.save(task)
-    s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_task_info(task)]))
+    conds = _conditions(s, task.value if tid is None else tid)
+    n = [*_json(task).get("n", []), *[0] * len(conds)]
+
+    def done(i: int, r: Row) -> bool:
+        kind, para1, para2 = int(r["CondictionType"]), int(r["Para1"] or 0), int(r["Para2"])
+        if kind == RECRUIT:  # ArmyManager.getTotalPawnsNumberBySonType(Para1) >= Para2: castelo e exército
+            return sum(p.castle_count + p.army_count for p in snap.pawns if _son(s, p.template_id) == para1) >= para2
+        if kind == COLLECT:  # GoodsManager.goodsCountByTempId[Para1] >= Para2
+            return bag.count_of(snap, para1) >= para2
+        if kind == FETCH:  # checkGoodsCount2: um item de Para1 na mochila
+            return bag.count_of(snap, para1) >= 1
+        return kind in CLIENT_ONLY or n[i] >= para2
+
+    return bool(conds) and all(done(i, r) for i, r in enumerate(conds))
 
 
-def _met(s: GameSession, task: EventState) -> bool:
-    conds = _conditions(s, task.value)
-    n = _json(task).get("n", [])
-    return bool(conds) and all(i < len(n) and n[i] >= int(r["Para2"]) for i, r in enumerate(conds))
+def _son(s: GameSession, template_id: int) -> int:
+    row = s.ctx.templates.get("PawnTempInfos", template_id) or {}
+    return int(row.get("SonType") or 0)
 
 
 # ---------------------------------------------------------------- painel de recompensas
@@ -270,8 +314,10 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
     board, task, _, _ = _clear(snap, now, COMPLETED)
     count = ev.daily(snap, "offer:count", now)
     count.value, count.updated_at = count.value + 1, now
+    # painel (DayGuideManager "reward" -> atividade 9): o 4413 da entrega vem vazio (visto), o 4412 do 8518 leva a soma
+    clicked = ev.click(snap, "reward", now)
     new, _ = rewards.grant(snap, s.ctx.templates, drops)
-    await s.ctx.characters.save(*rewards.owners(snap), board, task, count, *new)
+    await s.ctx.characters.save(*rewards.owners(snap), board, task, count, clicked, *new)
     from . import events  # handlers.events importa este módulo
 
     if any(t == -100 for t, _ in drops):
@@ -308,7 +354,8 @@ def _send_ring(s: GameSession, snap: PlayerSnapshot, now: datetime, *, complete:
     s.send(S_RING_SUM, pb.SimplePropertyMsg(param1=st.value))
     tid = complete or _json(st).get("t", 0)
     if tid:
-        s.send(S_RING, pb.RewardUpdatedRspMsg(reward=[_reward_info(tid, 0, complete=bool(complete), accept=False)]))
+        info = _reward_info(tid, 0, complete=bool(complete), accept=False, progress=_json(st).get("n", []))
+        s.send(S_RING, pb.RewardUpdatedRspMsg(reward=[info]))
 
 
 @router.on(8731)
@@ -377,31 +424,53 @@ async def ring_finish_now(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     if used is None and spent is None:
         s.log.info("8730 sem diamante")
         return
-    st.value, st.text, st.updated_at = st.value + 1, "", now
-    new, text = rewards.grant(snap, s.ctx.templates, drops)
-    entities: list[object] = [*rewards.owners(snap), st, *new]
+    extra: list[object] = []
     gone: tuple[object, ...] = ()
     if spent:
-        entities.append(spent)
+        extra.append(spent)
     elif used:
-        gone, entities = ((used[0],), entities) if used[1] else ((), [*entities, used[0]])
-    await s.ctx.characters.save(*entities, delete=gone)
+        gone, extra = ((used[0],), []) if used[1] else ((), [used[0]])
+    await _ring_done(s, st, tid, drops, extra, gone, used)
+
+
+async def _ring_done(
+    s: GameSession,
+    st: EventState,
+    tid: int,
+    drops: list[rewards.Drop],
+    extra: list[object],
+    gone: tuple[object, ...],
+    used: tuple[Item, bool] | None = None,
+) -> None:
+    """Fecha o anel ``tid``: +1 no dia, o prêmio, grava e responde (4616/4614, 111 e o ganho)."""
+    snap = s.snapshot
+    assert snap is not None
+    st.value, st.text, st.updated_at = st.value + 1, "", s.ctx.clock.now()
+    new, text = rewards.grant(snap, s.ctx.templates, drops)
+    await s.ctx.characters.save(*rewards.owners(snap), st, *new, *extra, delete=gone)
     if used:
         s.send(S_ITEMS, rewards.taken_msg(used[0], used[1], s.player_id))
-    _send_ring(s, snap, now, complete=tid)
+    _send_ring(s, snap, s.ctx.clock.now(), complete=tid)
     alert(s, text)
     granted(s, drops, new, text)
+    await progress(s, CIRCUIT)  # "Complete Circuit Quests" do painel
 
 
 @router.on(8729)
 async def ring_submit(s: GameSession, _: object) -> None:
-    """Entrega o anel com as condições cumpridas.
-
-    ponytail: as condições (enviar mensagem, batalhas...) dependem de outros sistemas avisarem;
-    nada é contado ainda, então só devolve o estado (8730 termina pagando)."""
-    assert s.snapshot is not None
-    s.log.info("8729 recusado: condições não rastreadas")
-    _send_ring(s, s.snapshot, s.ctx.clock.now())
+    """Entrega o anel com as condições cumpridas (``progress``): o mesmo prêmio do 8730, sem custo. Sem as
+    condições só devolve o estado. TODO(inventado): a resposta é a do 8730 (sem captura da entrega normal)."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    st = _ring(snap, now)
+    tid = int(_json(st).get("t", 0))
+    drops = _ring_drops(s, snap, tid, st.value + 1) if tid else []
+    if not tid or not _met(s, st, tid) or not rewards.can_grant(snap, s.ctx.templates, drops, now):
+        s.log.info("8729 recusado", anel=tid)
+        _send_ring(s, snap, now)
+        return
+    await _ring_done(s, st, tid, drops, [], ())
 
 
 def login_push(s: GameSession) -> None:

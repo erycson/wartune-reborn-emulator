@@ -719,6 +719,10 @@ def can_accept(snap: PlayerSnapshot, templates: GameTemplates, row: Row, now: da
     return all(_pre_done(snap, templates, pre) for pre in row.get("PreQuestId", "").split(",") if pre)
 
 
+def is_repeat(templates: GameTemplates, template_id: int) -> bool:
+    return (templates.get("QuestTemps", template_id) or {}).get("IsRepeat") == "true"
+
+
 def _repeat_ok(row: Row, q: Quest, now: datetime) -> bool:
     """Repetível concluída volta a aceitar quando o dia do jogo mudou desde a conclusão (cliente: checkRepeatMax
     com checkInRepeatTime). RepeatMax é 1 em todas as linhas e repeatFinish fica 1, como o oficial manda."""

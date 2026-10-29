@@ -26,7 +26,8 @@ import structlog
 
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
-from .. import boss_fight, outer_city, rewards, space
+from .. import boss_fight, outer_city, rewards, space, titles
+from .. import events as ev
 from .. import guildwar as gw
 from ..battle import Battle, SharedHp
 from ..builders import login as b
@@ -58,6 +59,7 @@ from .campaign import (
     player_hero,
     pvp_fight,
 )
+from .guild.box import add_to_box
 from .guild.common import _alert, _mine, _push_info, _refuse
 from .guild.info import member_list
 from .login import army
@@ -85,6 +87,7 @@ PLAYER_BATTLE = 24  # BattleType.GUILD_WAR_BATTLE_PLAYER do cliente: a luta do 8
 RANGE = 2  # TODO(inventado): distância (tiles) da Mystery Tower em que a defesa vale (handlerRange 1 no nó)
 WOUND_EVERY = 8  # (dedução) o 4460/4450 sai a cada poucos segundos (219 em ~27 min); como o 4174 do chefe
 INSIGNIA, WHIP = 208001, 208017  # ItemTempInfos "Insignia" e "Mount Training Whip" (#6276, #6289)
+TREASURE = 2060044  # "Guild Treasure": "Reward for guild battle" (o 4466 do baú sempre traz a linha dela)
 # (visto #6273-#6302) a guilda vencedora depois dos 20 min: "Received 850 Honor, Insignia x950, Mount Training Whip
 # x40, and 850 Contribution."; TODO(inventado): o mesmo antes dos 20 min e a metade para a perdedora
 PRIZE_HONOR, PRIZE_OFFER, PRIZE_ITEMS = 850, 850, ((INSIGNIA, 950), (WHIP, 40))
@@ -608,13 +611,29 @@ async def settle(ctx: GameContext, war: gw.War) -> None:
     win, lose = war.side(war.winner), war.enemy(war.side(war.winner))
     lead = gw.WIN_LEAD if win.score - lose.score >= gw.WIN_LEAD else win.score - lose.score
     text = WIN_TEXT.format(win=win.name, lead=lead, lose=lose.name)
+    present: dict[int, int] = {}  # lado -> quantos estavam no mapa no fim
     for o in players_on(ctx, war):
         _alert(o, text)
         o.send(S_SCORE, _score(war))
         side = _side_of(ctx, war, o.player_id)
+        present[side] = present.get(side, 0) + 1
         leave_war(o)
         await _prize(o, side == war.winner)
+    await ctx.characters.save(*_treasures(ctx, war, present))
     log.info("guerra de guildas: fim", vencedora=win.guild_id, placar=(win.score, lose.score))
+
+
+def _treasures(ctx: GameContext, war: gw.War, present: Mapping[int, int]) -> list[Any]:
+    """O baú de prêmios enche com a Guild Treasure (2060044, "Reward for guild battle, Contains: ...") pela
+    participação: TODO(inventado) uma por membro no mapa no fim para a vencedora e uma a cada dois para a outra (o
+    cliente só diz que é prêmio da guerra; a quantidade não tem captura)."""
+    out = []
+    for side, n in present.items():
+        got = n if side == war.winner else n // 2
+        guild_id = war.side(side).guild_id
+        if got and guild_id in ctx.guilds.guilds:  # guilda desfeita durante a guerra não tem baú
+            out.append(add_to_box(ctx, guild_id, TREASURE, got))
+    return out
 
 
 async def _prize(o: GameSession, won: bool) -> None:
@@ -631,7 +650,10 @@ async def _prize(o: GameSession, won: bool) -> None:
     new: list[Item] = []
     if rewards.can_grant(snap, o.ctx.templates, drops, o.ctx.clock.now()):
         new, _ = rewards.grant(snap, o.ctx.templates, drops)
-    await o.ctx.characters.save(ch, *new)
+    # matchWin/matchFailed da lista de membros e o título "Guild Guardian": soma para quem estava no mapa no fim
+    tally = ev.state(snap, titles.GUILD_WAR_WINS if won else titles.GUILD_WAR_LOSSES, o.ctx.clock.now())
+    tally.value, tally.updated_at = tally.value + 1, o.ctx.clock.now()
+    await o.ctx.characters.save(ch, tally, *new)
     o.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=honor, param2=int(o.ctx.world.settings.get("honor_day_max", 0))))
     await _push_player(o)
     if new:

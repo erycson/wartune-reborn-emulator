@@ -24,6 +24,7 @@ from .player import _player, alert, granted
 
 S_SUM_TEMP, S_SUM_DATA, S_SIGN, S_SERVEN, S_TITLES = 4475, 4476, 4177, 4638, 4484
 S_CHAT, S_LEED_UPDATE, S_LEED_RECEIVE, S_CLICK, S_RATE, S_ITEMS = 83, 4152, 4150, 4412, 4247, 115
+S_CLICK_ADD = 4413
 SERVEN_QUEST = 130  # a conclusão dela abre o guia de 7 dias (4638)
 # (visto) tutorial_en #60-#67: 4475 de 11961/11616/11762/3821 bytes; a página fecha antes de passar disso
 PAGE_BYTES = 12000
@@ -97,6 +98,7 @@ async def login_push(s: GameSession) -> None:
     await dungeon.login_push(s)
     _send_leeds(s)
     _send_actives(s)
+    await title_ranks(s)
     send_titles(s)  # (visto) tutorial_en #68-#71, 153200 #64-#66: 4476, 4484, 4497
     send_serven(s)
     await gemmaze.load_order(s)
@@ -224,9 +226,57 @@ def items_gained(s: GameSession) -> None:
 
 
 def send_titles(s: GameSession) -> None:
-    assert s.snapshot is not None
-    owned = {i.template_id for i in s.snapshot.items}
-    s.send(S_TITLES, titles.appells_msg(s.snapshot.character, s.ctx.templates, owned))
+    s.send(S_TITLES, titles_msg(s))
+
+
+def titles_msg(s: GameSession) -> pb.AppellsMsg:
+    """O 4484 com os contadores do jogador e as posições de ranking do último ``title_ranks``."""
+    snap = s.snapshot
+    assert snap is not None
+    # itens (22, 39, 203) e montarias (202: "Collect the mount Kitty UFO")
+    owned = {i.template_id for i in snap.items} | set(systems.avatars(rules.systems(snap), s.ctx.clock.now()))
+    extra = titles.counters(snap) | s.title_ranks
+    return titles.appells_msg(snap.character, s.ctx.templates, owned, extra)
+
+
+async def title_ranks(s: GameSession) -> None:
+    """Posições do jogador nos rankings dos títulos (login e lista do 8597): poder geral e da classe (o ``fight.xml``),
+    coliseu, arena em grupo (``crossscore``), pesca e labirinto de gemas da semana (``game/rankings.py``)."""
+    from .. import arena_grupo as ag
+    from .. import fishing as fs
+    from .. import rankings
+
+    snap = s.snapshot
+    assert snap is not None
+    server, me, now = snap.character.server_id, s.player_id, s.ctx.clock.now()
+
+    async def query(uow):  # type: ignore[no-untyped-def]
+        strong = await uow.characters.strongest(server, rankings.FIGHT_TOP)
+        return (
+            strong,
+            await uow.events.by_prefix(server, ag.KEY),
+            await uow.events.by_prefix(server, fs.KEY),
+            (await uow.events.by_prefix(server, rankings.GEM_KEY)),
+        )
+
+    strong, cross, fish, gems = await s.ctx.characters.read(query)
+    job = rules.job_type(snap.character.job)
+    same = [c.id for c in strong if rules.job_type(c.job) == job]
+    gem_ids = [c for c, g in rankings.gem_weeks(gems, now) if g.week > 0]
+    cross_ids = [c for c, _ in ag.ranked(cross, now, {})]
+    pos = {
+        titles.POWER: _pos([c.id for c in strong], me),
+        titles.ARENA_RANK: await s.ctx.characters.arena_rank(me),
+        titles.CROSS: _pos(cross_ids, me),
+        titles.FISH: fs.position(fish, me, now),
+        titles.GEMS: _pos(gem_ids, me),
+    }
+    pos |= dict.fromkeys((titles.POWER_ARCHER, titles.POWER_KNIGHT, titles.POWER_MAGE), _pos(same, me))
+    s.title_ranks = pos
+
+
+def _pos(ids: Sequence[int | None], me: int) -> int:
+    return ids.index(me) + 1 if me in ids else 0
 
 
 def _online_seconds(s: GameSession, a: ev.Active, now: datetime) -> int:
@@ -653,10 +703,20 @@ async def leed_box(s: GameSession, msg: pb.LeedFinishedReqMsg) -> None:
 @router.on(8518)
 async def daily_counts(s: GameSession, _: object) -> None:
     """Painel de atividades do dia (4412): contadores por chave (``5001``, ``match``, ``reward``...), os de hoje.
-    Conta só o torneio de fadas (``pet``, 4413 visto no turco); as outras chaves precisam de captura."""
+    Somam em ``count_click``: chefe do mundo (5001-5003), arena em grupo (match), recompensa (reward), tanques
+    (vehicle), mina (minefield), campo (4001/4002) e torneio de fadas (pet)."""
     assert s.snapshot is not None
     now = s.ctx.clock.now()
     s.send(S_CLICK, pb.ClickDatasRspMsg(info=[click_info(e) for e in ev.clicks(s.snapshot, now)]))
+
+
+async def count_click(s: GameSession, key: str) -> None:
+    """+1 no contador ``key`` do painel, grava e manda o 4413 (como o chefe do mundo, visto #1407, e o torneio de
+    fadas, turco)."""
+    assert s.snapshot is not None
+    clicked = ev.click(s.snapshot, key, s.ctx.clock.now())
+    await s.ctx.characters.save(clicked)
+    s.send(S_CLICK_ADD, pb.ClickDatasRspMsg(info=[click_info(clicked)]))
 
 
 def click_info(st: EventState) -> pb.ClickDataRspMsg:

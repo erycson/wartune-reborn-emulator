@@ -966,6 +966,10 @@ async def _cache_over(s: GameSession, battle: Battle, c: tc.Cache, won: bool) ->
     s.send(S_GRID_ARMY, _grid_msg(s, {oc.grid_of(x, y)}, map_id))
     s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=0, gold=0, strategy=daru))
     s.outer_fight_over = False  # já saiu: o 5035 e o 8747 não repetem
+    if opened:  # "Explore Wilds Gold Mine" (Para1 2201 = SonType do Treasure Cache, MapPhysicsTempInfos)
+        from . import offer
+
+        await offer.progress(s, offer.WILD_MINE, 1, tc.CACHE_SON_TYPE)
 
 
 @dataclass(frozen=True, slots=True)

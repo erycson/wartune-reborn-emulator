@@ -47,6 +47,7 @@ S_COPIES = 4240  # MultiCampaignEnterCountMsg: entradas de campanha em grupo (Th
 S_EFFECT, S_ITEM_BUFFER = 110, 4188  # PropertyUpdatedMsg e ItemBufferRspMsg dos pergaminhos de efeito
 BOX, USE, GEM_BOX, BLOOD, EFFECT = "298", "203", "206", "209", "201"  # ItemTempInfo.SonType usáveis
 MOUNT_CARD = "218"  # carta de montaria
+POWER_CARD = "600"  # carta de poder (systems.CARD_ITEM)
 PROTECTION = 2001  # City Protection Token (208006): o cliente conta pelo 4452 defenceLeftTime e para com o 8562
 STORE_STONE = 208014  # Soul Crystal (SonType 293): Property1 = EXP do cristal (8484)
 STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
@@ -266,6 +267,7 @@ async def use_item(s: GameSession, msg: pb.ItemUseMsg) -> None:
     uses = {BOX: _open_box, USE: _use_resource, GEM_BOX: _open_gem_box, BLOOD: _use_blood, EFFECT: _use_effect}
     uses[monsters.FOG_SON_TYPE] = _use_divine_light
     uses[MOUNT_CARD] = _use_mount_card
+    uses[POWER_CARD] = _use_power_card
     use = uses.get(row.get("SonType", ""))
     if use is None or not await use(s, item, row, n):
         s.log.info("5006 recusado", pedido=str(msg), item=item.template_id, sontype=row.get("SonType"))
@@ -495,6 +497,24 @@ async def _use_mount_card(s: GameSession, item: Item, row: Row, _: int) -> bool:
 
     _send_items(s, changed, gone)
     send_avatars(s)
+    return True
+
+
+async def _use_power_card(s: GameSession, item: Item, row: Row, n: int) -> bool:
+    """Carta de poder (SonType 600, "Available after using the ... card"): ``n`` cópias entram na coleção pela regra
+    de ``systems.gain_cards`` e o 4905/4902 sai de novo."""
+    from .systems import gain_cards, send_cards  # systems importa hero, que vem antes deste módulo
+
+    snap = s.snapshot
+    assert snap is not None
+    sy = rules.systems(snap)
+    copy = Item(item.character_id, item.template_id, count=n)
+    if not gain_cards(sy, s.ctx.templates, [copy]):
+        return False
+    changed, gone = _consume(snap, item, n)
+    await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+    _send_items(s, changed, gone)
+    send_cards(s)
     return True
 
 

@@ -173,6 +173,7 @@ class GameSession:
         self.bench_from: dict[int, tuple[int, int, int]] = {}
         self.maze_first: dict[str, tuple[int, str]] = {}  # primeiro abate do 4205 por torre (handlers.tower)
         self.maze_order: dict[str, int] = {}  # order do 4205 por torre (Kind.key), calculada ao abrir (handlers.tower)
+        self.title_ranks: dict[str, int] = {}  # posição nos rankings dos títulos (handlers.events.title_ranks)
         self.fish_pool: Any = None  # cardume da pesca (game.fishing.Pool), criado na primeira abertura
         self.fish_watch = 0  # dono da piscina que este jogador está vendo para ajudar (9507 op 6)
         self.fish_order = 0  # order do 4916: posição nos pontos da semana, calculada ao abrir (handlers.fishing)

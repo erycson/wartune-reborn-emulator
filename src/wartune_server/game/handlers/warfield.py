@@ -17,7 +17,7 @@ from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
 from .. import battlefield as bf
-from .. import rewards, rules, space, worldboss
+from .. import rewards, rules, space, titles, worldboss
 from ..builders import login as b
 from ..campaign import CampaignMap
 from ..router import router
@@ -42,6 +42,7 @@ IN_BATTLE = "Player is now in battle!"  # (visto #10962)
 S_MINE_ACTIVE = 4549  # GuildMsg.param5 (U_C_MINE_ACTIVE_STATE): BaseManager.__mineralHandler -> mineralIsOpen
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
 ENTER_QUEST = 44  # "Participate in a Battleground" (QuestCondictionInfos tipo 44, visto nos templates)
+FIELD_LEED = 27  # LeedTemp 27 "Enter Battleground" (PassCount 1), pelo título
 END_TEXT = "The battle has ended! You will be teleported out momentarily."
 ENTERED_TEXT = "Entered resource transport state. Movement speed is now decreased by 50%."
 DELIVER_BODY = "Turn in resources to obtain points and honor. Continue?"
@@ -52,6 +53,7 @@ CART_BODY = (
     "higher level rewards. (Adv. Minecarts are available daily from 19:30-20:00)"
 )  # (visto #1962)
 CART_GOT, CART_HAS = "You received a Adv. Minecart.", "You already have a cart!"  # (visto #1955, #1966)
+CART_GOT_NORMAL = "You received a Minecart."
 SHARD_TEXT = "Battleground Treasure Shard"
 
 
@@ -131,12 +133,13 @@ def _field(s: GameSession) -> tuple[bf.Field, datetime] | None:
 
 
 def _info(s: GameSession, field: bf.Field, stop: datetime) -> pb.WarFightInfoMsg:
-    """4252: o placar do jogador e do time (visto #14238). O time 1 não tem jogadores aqui (0)."""
+    """4252: o placar do jogador e dos dois lados (visto #14238, um lado só: o do jogador em ``one``)."""
     mine = field.mark(s.player_id)
+    other = bf.ENEMY if mine.team == bf.TEAM else bf.TEAM
     left = max(0, int((stop - s.ctx.clock.now()).total_seconds() * 1000))
-    return pb.WarFightInfoMsg(teamId=bf.TEAM, score=mine.score, order=1, geste=mine.honor, hitCount=mine.wins,
-                              leftTime=left, oneCount=len(field.marks), twoCount=0, oneScore=field.our_score(),
-                              twoScore=0)  # fmt: skip
+    return pb.WarFightInfoMsg(teamId=mine.team, score=mine.score, order=1, geste=mine.honor, hitCount=mine.wins,
+                              leftTime=left, oneCount=field.count(mine.team), twoCount=field.count(other),
+                              oneScore=field.score(mine.team), twoScore=field.score(other))  # fmt: skip
 
 
 def _state_msg(player_id: int, state: int) -> pb.PlayerStateListMsg:
@@ -151,7 +154,7 @@ def _ranking(field: bf.Field, serverName: str, name_of: str, player_id: int) -> 
     for order, (pid, mark) in enumerate(sorted(field.marks.items(), key=lambda kv: -kv[1].score), 1):
         name = name_of if pid == player_id else ""
         rows.append(pb.WarReportMsg(order=order, nickName=name, userId=pid, score=mark.score, hitCount=0,
-                                    teamId=bf.TEAM, geste=mark.honor, serverName=serverName, itemCount=0,
+                                    teamId=mark.team, geste=mark.honor, serverName=serverName, itemCount=0,
                                     winGesteCount=0))  # fmt: skip
     return rows
 
@@ -193,6 +196,9 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
     s.send(S_WAR_INFO, _info(s, field, stop))
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
     await _quest(s, ENTER_QUEST)
+    from .events import leed_done  # events importa login, que importa este pacote
+
+    await leed_done(s, FIELD_LEED)
 
 
 async def _quest(s: GameSession, kind: int) -> None:
@@ -288,6 +294,8 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
     _to_map(s.ctx, cid, S_CROSS, _cross(*rows))
     s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))  # (visto) #11103
     await _quest(winner, KILL_QUEST)  # (visto #11106): 112 da 767 depois do 4103
+    if winner.snapshot is not None:  # títulos "Executioner"/"Grim Reaper" (Accumulated N Battleground kills)
+        await s.ctx.characters.save(titles.count(winner.snapshot, titles.FIELD_KILLS, s.ctx.clock.now()))
     winner.send(S_SNS, sns_msg(winner.player_id, SNS_PVP, str(wm.wins)))
     for o, add, honor, text in ((winner, True, WIN_HONOR, WIN_TEXT.format(lost, WIN_HONOR)),
                                 (loser, False, 0, LOSE_TEXT.format(lost))):  # fmt: skip
@@ -341,6 +349,9 @@ async def enter_mine(s: GameSession, _: object) -> None:
     s.send(S_NODES, s.campaign.node_list())
     s.send(S_MINE, _mine_msg(s))
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+    from .events import count_click  # events importa login, que importa este pacote
+
+    await count_click(s, "minefield")  # DayGuideManager "minefield" -> atividade 13 (MaxCount 2)
 
 
 def _mine_msg(s: GameSession) -> pb.TramcarInfoMsg:
@@ -362,7 +373,7 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
     assert c is not None
     if c.warfield == bf.MINE:
         n = camp - bf.MINE * 100
-        if n == bf.CART_NODE and bf.mine_open(s.ctx.clock.now()):
+        if n == bf.CART_NODE:  # o texto: fora das 19:30-20:00 o carrinho é o comum (``bf.CART_NORMAL``)
             s.send(S_CONFIRM, pb.CampaignConfirmMsg(title="", body=CART_BODY, mapId=bf.MINE, nodeId=camp, type=2))
         elif n == bf.PICK_NODE and s.player_id in s.ctx.warfields.carts:
             s.send(S_MOVIE, pb.PlayerMovieMsg(movieTargetType=0, targetId=int(node["nodeId"]),
@@ -425,12 +436,14 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         return
     camp = msg.paraInt2
     if c.warfield == bf.MINE:
-        if camp - bf.MINE * 100 == bf.CART_NODE and bf.mine_open(s.ctx.clock.now()):
+        if camp - bf.MINE * 100 == bf.CART_NODE:
             if s.player_id in s.ctx.warfields.carts:
                 s.send(S_ALERT, _chat(CART_HAS, 7))
                 return
-            s.ctx.warfields.carts[s.player_id] = bf.Cart()
-            s.send(S_ALERT, _chat(CART_GOT, 7))
+            adv = bf.mine_open(s.ctx.clock.now())
+            s.ctx.warfields.carts[s.player_id] = bf.Cart(quality=bf.CARTS_ADV if adv else bf.CART_NORMAL)
+            # TODO(inventado): o texto do carrinho comum (só o avançado foi visto, #1955)
+            s.send(S_ALERT, _chat(CART_GOT if adv else CART_GOT_NORMAL, 7))
             s.send(S_MINE, _mine_msg(s))
         return
     found = _field(s)
@@ -500,28 +513,36 @@ async def clock(s: GameSession) -> None:
 
 
 async def settle(ctx: GameContext, field: bf.Field) -> None:
-    """Fim da partida: o texto, o prêmio (Insignia x80) a quem estava no campo, o placar e a saída (22)."""
+    """Fim da partida: o texto, o prêmio a quem estava no campo, o placar e a saída (22). Vence o lado com mais
+    pontos (``Field.winner``): Insignia x80 e a missão 50 (visto #16396); o outro lado leva a metade."""
     field.settled = True
     now = ctx.clock.now()
+    winner = field.winner()
     for o in players_on(ctx, field.campaign_id):
         snap = o.snapshot
         assert snap is not None
         o.send(S_CHAT, _chat(END_TEXT, tip=True))  # ordem da captura (visto #16358-#16364): texto, 4254, 22
-        report = pb.WarReportListMsg(oneTeamId=bf.TEAM, twoTeamId=bf.ENEMY, oneScore=field.our_score(), twoScore=0)
+        team = field.mark(o.player_id).team
+        other = bf.ENEMY if team == bf.TEAM else bf.TEAM
+        report = pb.WarReportListMsg(oneTeamId=team, twoTeamId=other, oneScore=field.score(team),
+                                     twoScore=field.score(other))  # fmt: skip
         report.info.extend(_ranking(field, snap.server.name, snap.character.nickname or "", o.player_id))
         o.send(S_WAR_REPORT, report)
         o.campaign = None
         o.send(S_EXIT, pb.CampaignExitMsg(result=1, playerId=o.player_id, armyId=o.player_id,
                                           serverName=snap.server.name))  # fmt: skip
-        # TODO(inventado): a regra de vencedor; sem outro time aqui, a nossa equipe vence (visto a vitória #16396)
-        drops = [(bf.INSIGNIA, bf.WIN_INSIGNIA)]
+        won = team == winner
+        # TODO(inventado): o lado perdedor (e o empate) leva a metade; só a vitória foi vista (#16396)
+        insignia = bf.WIN_INSIGNIA if won else bf.WIN_INSIGNIA // 2
+        drops = [(bf.INSIGNIA, insignia)]
         new: list[Item] = []
         if rewards.can_grant(snap, ctx.templates, drops, now):
             new, _ = rewards.grant(snap, ctx.templates, drops)
         await ctx.characters.save(snap.character, *new)
         if new:
             o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
-        o.send(S_CHAT, _chat(bf.win_text()))  # o prêmio chega depois da saída (visto #16396)
-        await _quest(o, WIN_QUEST)  # "Obtain Victory in War Camp" (missão 818); TODO(inventado): a posição do 112
+        o.send(S_CHAT, _chat(bf.win_text(insignia)))  # o prêmio chega depois da saída (visto #16396)
+        if won:  # "Obtain Victory in War Camp" (missão 818); TODO(inventado): a posição do 112
+            await _quest(o, WIN_QUEST)
     for o in ctx.online.sessions():
         push_states(o)
