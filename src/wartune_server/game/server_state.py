@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ..services.characters import CharacterService
     from .session import GameContext
 
-SHIELDS, PET_RAGE, INVASIONS, TEAMS = "shields", "pet_rage", "invasions", "teams"
+SHIELDS, PET_RAGE, INVASIONS, TEAMS, MARRIAGE = "shields", "pet_rage", "invasions", "teams", "marriage"
 RAGE_KEEP = timedelta(days=1)  # janelas da fúria mais velhas que isso já fecharam (a janela dura horas)
 
 
@@ -50,6 +50,10 @@ def _dump(ctx: GameContext, key: str, now: datetime) -> Any:
         return {str(g): {"wave": i.wave.isoformat(), "dead": sorted(i.dead)} for g, i in ctx.guilds.invasions.items()}
     if key == TEAMS:
         return ctx.teams.dump()
+    if key == MARRIAGE:
+        from .handlers import marriage  # o handler importa a sessão, que importa este módulo
+
+        return marriage.dump_pending()
     raise KeyError(key)
 
 
@@ -74,3 +78,6 @@ def restore(ctx: GameContext, states: ServerStates) -> None:
     for g, inv in (states.value(INVASIONS) or {}).items():
         ctx.guilds.invasions[int(g)] = Invasion(datetime.fromisoformat(inv["wave"]), set(inv["dead"]))
     ctx.teams.restore(states.value(TEAMS) or [])
+    from .handlers import marriage
+
+    marriage.load_pending(states.value(MARRIAGE) or {})

@@ -177,6 +177,7 @@ async def test_6_eleicao_abre_com_o_chefe_sumido_conta_os_votos_e_fecha(tmp_path
         assert guild.voting_state == election.NO_VOTE and guild.chairman_id == c.user_id
         assert g.members[c.user_id].duty_id == gd.CHAIRMAN and g.members[a.user_id].duty_id == gd.MEMBER
 
+
 async def _married(a: Game) -> Game:
     from tests.game.test_marriage import _engage
 
@@ -201,12 +202,19 @@ async def test_5_jogo_do_coracao_missao_e_loja_do_casal(tmp_path: Path, monkeypa
         b.client.send(8802, pb.MarriageOpMsg(opType=marriage.HEART_ACCEPT))
         first = pb.MarriageHeartMsg.FromString((await a.until(marriage.S_HEART))[-1].body)
         assert first.maxOrder == 2 and first.curQuestion.order == 1
-        for order, (x, y) in enumerate([(1, 1), (2, 3)], 1):
+        assert list(first.curQuestion.options)[0] == 0  # índices 0-based (Option(options[i]+1))
+        saved = marriage.dump_pending()  # o jogo vai para server_states e volta igual
+        marriage._hearts.clear()
+        marriage.load_pending(saved)
+        assert marriage.dump_pending() == saved and a.user_id in marriage._hearts
+        for order, (x, y) in enumerate([(0, 0), (0, 1)], 1):  # 0 = "A" (selectIndex)
             a.client.send(8802, pb.MarriageOpMsg(opType=marriage.HEART_ANSWER, property1=order, property2=x))
             await a.idle()
             b.client.send(8802, pb.MarriageOpMsg(opType=marriage.HEART_ANSWER, property1=order, property2=y))
             await b.idle()
         await a.idle()
+        roses = sum(i.count for i in _s(a).snapshot.items if i.template_id == marriage.ROSE)  # type: ignore[union-attr]
+        assert roses == 50 // 5  # syncRate 50: Rose Hazel x syncRate/5 (MarryHeartFrame)
         assert marriage.couple(_s(a).snapshot.marriage)["happy"] == 20  # type: ignore[union-attr]  # 1 acerto
         assert marriage.couple(_s(b).snapshot.marriage)["happy"] == 20  # type: ignore[union-attr]
 

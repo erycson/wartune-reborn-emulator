@@ -171,6 +171,11 @@ def _mate_player(c: Character) -> pb.FriendPlayer:
 
 @router.on(8759)
 async def marriage_request(s: GameSession, msg: pb.MarriageOpMsg) -> None:
+    await _request(s, msg)
+    await save_pending(s.ctx)
+
+
+async def _request(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     snap = s.snapshot
     assert snap is not None
     await expire(s)
@@ -273,6 +278,11 @@ _CEREMONY = (MarriageState.ENGAGED, MarriageState.MARRIED)
 
 @router.on(15049)
 async def buy_spec(s: GameSession, msg: pb.MarriageOpMsg) -> None:
+    await _buy_spec(s, msg)
+    await save_pending(s.ctx)
+
+
+async def _buy_spec(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     """Escolhe o casamento (MarrySpecTempInfo ``property1``); o cônjuge confirma (4658 -> op 5).
 
     Noivo reserva a cerimônia; casado nas 72 h seguintes reserva com desconto (TopToolsBar "Wedding Ceremony").
@@ -552,8 +562,9 @@ def _task_cond(s: GameSession, tid: int) -> Any:
 async def marriage_task(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     """Missões do casal (``RewardTemps`` ``Type`` 4; o cliente só oferece casado, SpaceDialogFrame ``isMarry``): 2001
     pega uma (``marriage_task_count`` por dia), 2005 fala com a NPC (condição 16, o cliente leva até ela), 2004 usa o
-    item da missão (``property1``; 22 a flecha de Cupido, 23 os fogos: o item vai para a mochila ao pegar). Feita: ouro
-    e Daru do template e ``RewardHappy`` + ``mar_task_add_happy`` nos pontos do casal; 4675 com ``isComplete``.
+    item da missão (``property1`` a posição na mochila, MarryTaskMapFrame; 22 a flecha de Cupido, 23 os fogos: o
+    item vai para a mochila ao pegar). Feita: ouro e Daru do template e ``RewardHappy`` +
+    ``mar_task_add_happy`` nos pontos do casal; 4675 com ``isComplete``.
     (dedução) usar o item cumpre a 22/23: o cliente mostra o lugar, e a luta e o fogo no céu não têm pacote próprio."""
     snap = s.snapshot
     assert snap is not None
@@ -587,8 +598,9 @@ async def marriage_task(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     used: list[Item] = []
     if msg.opType == TASK_TALK and kind == TALK:
         pass
-    elif msg.opType == TASK_USE and kind in (KILL, FIREWORK) and msg.property1 == para:
-        used = [i for i in snap.items if i.template_id == msg.property1 and i.bag_type == BagType.BAG][:1]
+    elif msg.opType == TASK_USE and kind in (KILL, FIREWORK):
+        # MarrySender.useTaskGoods manda a posição na mochila (``info.pos``), não o modelo
+        used = [i for i in snap.items if i.pos == msg.property1 and i.bag_type == BagType.BAG and i.template_id == para]
         if not used:
             return
     else:
@@ -619,7 +631,8 @@ S_HEART_ASK, S_HEART = 4690, 4691
 
 @dataclass
 class Heart:
-    """Um jogo do coração: ``a`` chamou (as respostas dele vão em ``optionA``), ``b`` aceitou."""
+    """Um jogo do coração: ``a`` chamou, ``b`` aceitou. ``done``: [modelo, resposta de a, resposta de b] por pergunta
+    (-1 = sem resposta, 0 = A; MarryHeartResultItem.getAnswer)."""
 
     a: int
     b: int
@@ -628,57 +641,88 @@ class Heart:
     order: int = 1
     asked_at: datetime | None = None
     answers: dict[int, int] = field(default_factory=dict)
-    done: list[pb.HeartMsg] = field(default_factory=list)
+    done: list[list[int]] = field(default_factory=list)
 
 
 _heart_asks: dict[int, int] = {}  # cônjuge chamado -> quem chamou
 _hearts: dict[int, Heart] = {}  # os dois do casal -> o jogo
+NO_ANSWER = -1
 
 
 def _heart_cfg(s: GameSession) -> dict[str, Any]:
     return {"questions": 10, "seconds": 30, "points": 2} | dict(s.ctx.world.settings.get("marriage_heart") or {})
 
 
-def _heart_msg(s: GameSession, h: Heart) -> pb.MarriageHeartMsg:
-    """4691: a pergunta da vez (``options`` = as 4 opções na ordem da tela), as já respondidas e o acerto em %."""
-    out = pb.MarriageHeartMsg(maxOrder=len(h.questions), lastQuestions=h.done)
-    hits = sum(1 for q in h.done if q.result)
-    out.syncRate = hits * 100 // len(h.done) if h.done else 0
+def _options(s: GameSession, tid: int) -> list[int]:
+    """MarryHeartFrame mostra ``Option(options[i]+1)`` se ``options[i]`` < opções preenchidas (``getAnswersNum``)."""
+    row = s.ctx.templates.get("HeartTempInfos", tid) or {}
+    return list(range(sum(1 for i in range(1, 5) if row.get(f"Option{i}"))))
+
+
+def _sync(h: Heart) -> int:
+    hits = sum(1 for _, x, y in h.done if x >= 0 and x == y)
+    return hits * 100 // len(h.done) if h.done else 0
+
+
+def _heart_msg(s: GameSession, h: Heart, viewer: int) -> pb.MarriageHeartMsg:
+    """4691 para ``viewer``: ``optionA`` é a resposta dele e ``optionB`` a do cônjuge (MarryHeartResultItem
+    "myAnswer"/"otherAnswer"; (dedução) por isso troca para ``b``); ``result`` 1 acerto, 0 erro."""
+    out = pb.MarriageHeartMsg(maxOrder=len(h.questions), syncRate=_sync(h))
+    for order, (tid, x, y) in enumerate(h.done, 1):
+        mine, other = (x, y) if viewer == h.a else (y, x)
+        out.lastQuestions.add(order=order, templateId=tid, options=_options(s, tid), optionA=mine, optionB=other,
+                              result=int(x >= 0 and x == y), random=int(viewer != h.a))  # fmt: skip
     if h.order <= len(h.questions):
+        tid = h.questions[h.order - 1]
         left = h.seconds - int((s.ctx.clock.now() - (h.asked_at or s.ctx.clock.now())).total_seconds())
-        out.curQuestion.CopyFrom(pb.HeartMsg(order=h.order, templateId=h.questions[h.order - 1], options=[1, 2, 3, 4],
-                                             remainTime=max(0, left), random=0))  # fmt: skip
+        # random 0 = "You", 1 = "He/She" no texto da pergunta; (dedução) a pergunta é sobre quem chamou
+        out.curQuestion.CopyFrom(pb.HeartMsg(order=h.order, templateId=tid, options=_options(s, tid),
+                                             optionA=NO_ANSWER, optionB=NO_ANSWER, remainTime=max(0, left),
+                                             random=int(viewer != h.a)))  # fmt: skip
     return out
 
 
 def _heart_send(s: GameSession, h: Heart) -> None:
     for cid in (h.a, h.b):
         if (o := s.ctx.online.get(cid)) is not None:
-            o.send(S_HEART, _heart_msg(s, h))
+            o.send(S_HEART, _heart_msg(s, h, cid))
+
+
+async def _heart_reward(s: GameSession, h: Heart) -> None:
+    """Fim: Rose Hazel x ``syncRate // 5`` a cada um (o MarryHeartFrame mostra 208034 x ``syncRate / 5``; mochila,
+    senão correio) e, TODO(inventado), ``points`` por acerto nos pontos do casal."""
+    count = _sync(h) // 5
+    for cid in (h.a, h.b) if count else ():
+        drops = [(ROSE, count)]
+        o = s.ctx.online.get(cid)
+        if o is not None and o.snapshot is not None and rewards.can_grant(o.snapshot, s.ctx.templates, drops,
+                                                                          s.ctx.clock.now()):  # fmt: skip
+            new, text = rewards.grant(o.snapshot, s.ctx.templates, drops)
+            await s.ctx.characters.save(*rewards.owners(o.snapshot), *new)
+            await granted(o, drops, new, text)
+        else:
+            await send_system_mail(s.ctx, cid, "Heart to Heart", "Heart to Heart", drops)  # TODO(inventado): título
+    hits = sum(1 for _, x, y in h.done if x >= 0 and x == y)
+    await add_happy(s, hits * int(_heart_cfg(s)["points"]))
 
 
 async def _heart_next(s: GameSession, h: Heart) -> None:
-    """Fecha a pergunta da vez (``result`` 1 = os dois escolheram o mesmo) e passa à próxima; no fim, os pontos do
-    casal (``points`` por acerto) e o jogo sai da memória."""
-    q = pb.HeartMsg(order=h.order, templateId=h.questions[h.order - 1], options=[1, 2, 3, 4],
-                    optionA=h.answers.get(h.a, 0), optionB=h.answers.get(h.b, 0))  # fmt: skip
-    q.result = int(q.optionA > 0 and q.optionA == q.optionB)
-    h.done.append(q)
+    """Fecha a pergunta da vez e passa à próxima; depois da última, a recompensa e o jogo acaba."""
+    h.done.append([h.questions[h.order - 1], h.answers.get(h.a, NO_ANSWER), h.answers.get(h.b, NO_ANSWER)])
     h.order, h.answers, h.asked_at = h.order + 1, {}, s.ctx.clock.now()
     _heart_send(s, h)
     if h.order > len(h.questions):
         _hearts.pop(h.a, None)
         _hearts.pop(h.b, None)
-        await add_happy(s, sum(x.result for x in h.done) * int(_heart_cfg(s)["points"]))
+        await _heart_reward(s, h)
 
 
 @router.on(8802)
 async def marriage_heart(s: GameSession, msg: pb.MarriageOpMsg) -> None:
-    """Jogo do coração (perguntas em ``HeartTempInfos``; ``MarryManager``): 3001 chama o cônjuge (4690 abre o
-    "aceita?"), 3002 aceita (4691 com a 1ª pergunta aos dois), 3003 responde (``property1`` a ordem, ``property2`` a
-    opção), 3004 o tempo da pergunta ``property1`` acabou, 3005 desiste (4691 sem pergunta aos dois).
-    TODO(inventado): a tela é do m9 (sem fonte): 10 perguntas de 30 s, ``result`` 1 = mesma resposta, ``options``
-    1-4 na ordem do template e ``random`` 0 (``marriage_heart``, 0111)."""
+    """Jogo do coração (``HeartTempInfos``; MarryManager/MarryHeartFrame do m9): 3001 chama o cônjuge (4690 abre o
+    "aceita?"), 3002 aceita (4691 com a 1ª pergunta aos dois), 3003 responde (``property1`` a ordem, ``property2`` o
+    ``selectIndex`` 0-based), 3004 o relógio da pergunta ``property1`` zerou, 3005 desiste (4691 sem pergunta).
+    TODO(inventado): 10 perguntas de 30 s e acerto = mesma opção (``marriage_heart``, 0111)."""
     snap = s.snapshot
     assert snap is not None
     m, op = snap.marriage, msg.opType
@@ -705,7 +749,7 @@ async def marriage_heart(s: GameSession, msg: pb.MarriageOpMsg) -> None:
         if game is None or msg.property1 != game.order:
             return
         h = game
-        if op == HEART_ANSWER and 1 <= msg.property2 <= 4:
+        if op == HEART_ANSWER and 0 <= msg.property2 < len(_options(s, h.questions[h.order - 1])):
             h.answers.setdefault(s.player_id, msg.property2)
         if op == HEART_TIMEOUT or len(h.answers) == 2:
             await _heart_next(s, h)
@@ -714,6 +758,7 @@ async def marriage_heart(s: GameSession, msg: pb.MarriageOpMsg) -> None:
         _hearts.pop(quit_game.b, None)
         quit_game.order = len(quit_game.questions) + 1
         _heart_send(s, quit_game)
+    await save_pending(s.ctx)
 
 
 # ---- loja do altar ----------------------------------------------------------------------------------------------
@@ -752,3 +797,41 @@ async def mate_skill_shop(s: GameSession, msg: pb.AltarShopListMsg) -> None:
         left = most - int(data["bought"].get(str(tid), 0))
         out.info.add(templateId=tid, price=price, leftCount=left, maxCount=most, skillTempId=0)
     s.send(S_MATE_SHOP, out)
+
+
+# ---- pendências em server_states ----------------------------------------------------------------------------------
+
+
+def dump_pending() -> dict[str, Any]:
+    """Pedidos, ofertas, pedidos de divórcio e jogos do coração para ``server_states`` (``game/server_state.py``)."""
+    hearts = {id(h): h for h in _hearts.values()}.values()
+    return {
+        "proposals": {str(t): {str(p): [x, w.isoformat()] for p, (x, w) in d.items()} for t, d in _proposals.items()},
+        "offers": {str(k): list(v) for k, v in _offers.items()},
+        "divorce": {str(k): v for k, v in _divorce_asks.items()},
+        "heart_asks": {str(k): v for k, v in _heart_asks.items()},
+        "hearts": [{"a": h.a, "b": h.b, "questions": h.questions, "seconds": h.seconds, "order": h.order,
+                    "asked_at": h.asked_at.isoformat() if h.asked_at else None,
+                    "answers": {str(k): v for k, v in h.answers.items()}, "done": h.done} for h in hearts],
+    }  # fmt: skip
+
+
+def load_pending(data: dict[str, Any]) -> None:
+    """Devolve o que ``dump_pending`` gravou (arranque)."""
+    for t, d in data.get("proposals", {}).items():
+        _proposals[int(t)] = {int(p): (x, datetime.fromisoformat(w)) for p, (x, w) in d.items()}
+    _offers.update({int(k): (v[0], v[1], v[2]) for k, v in data.get("offers", {}).items()})
+    _divorce_asks.update({int(k): v for k, v in data.get("divorce", {}).items()})
+    _heart_asks.update({int(k): v for k, v in data.get("heart_asks", {}).items()})
+    for raw in data.get("hearts", []):
+        at = raw["asked_at"]
+        h = Heart(raw["a"], raw["b"], raw["questions"], raw["seconds"], raw["order"],
+                  datetime.fromisoformat(at) if at else None, {int(k): v for k, v in raw["answers"].items()},
+                  raw["done"])  # fmt: skip
+        _hearts[h.a] = _hearts[h.b] = h
+
+
+async def save_pending(ctx: GameContext) -> None:
+    from .. import server_state  # server_state é importado pela sessão, que este módulo importa
+
+    await server_state.save(ctx, server_state.MARRIAGE)
