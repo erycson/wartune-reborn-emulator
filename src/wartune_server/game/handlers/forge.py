@@ -16,7 +16,7 @@ from ...domain.models import BagType, EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import GameTemplates, Row
-from .. import bag, rules
+from .. import bag, rules, taxas
 from .. import events as ev
 from ..builders.player import quest_update
 from ..castle import castle_yield
@@ -725,7 +725,7 @@ async def mould(s: GameSession, msg: pb.PayTypeMsg) -> None:
         gone += go
     ok = random.randint(1, 100) <= mould_rate(item)
     if ok:
-        reset = s.ctx.world.settings["taxas"]["pet_mould_bless_reset"]
+        reset = taxas.get(s.ctx.world.settings, "pet_mould_bless_reset")
         item.mould_grade, item.bless_value = item.mould_grade + 1, 0 if reset else item.bless_value
     else:
         item.bless_value = min(BLESS_MAX, item.bless_value + (5 if item.mould_grade < 10 else 3))

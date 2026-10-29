@@ -13,7 +13,7 @@ from ...domain.models import EventState, Item, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import Row
-from .. import bag, rewards, rules
+from .. import bag, rewards, rules, taxas
 from .. import events as ev
 from ..builders import login as b
 from ..castle import castle_yield
@@ -185,7 +185,7 @@ def _roll(s: GameSession, snap: PlayerSnapshot, now: datetime) -> EventState:
         pick = random.choices(pool, weights=[int(r["Rands"]) for r in pool])[0]
         pool.remove(pick)
         ids.append(int(pick["TemplateId"]))
-    quality = random.choices(range(1, 6), weights=s.ctx.world.settings["taxas"]["offer_quality_weights"], k=len(ids))
+    quality = random.choices(range(1, 6), weights=taxas.get(s.ctx.world.settings, "offer_quality_weights"), k=len(ids))
     st = _board(snap, now)
     st.text, st.updated_at = json.dumps({"ids": ids, "q": quality, "st": [CAN_ACCEPT] * len(ids)}), now
     return st

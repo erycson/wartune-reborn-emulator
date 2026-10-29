@@ -1,0 +1,24 @@
+"""Taxas sem fonte no cliente (``game_settings.taxas``, migração 0124). O padrão é o valor da migração, para um banco
+sem a linha não quebrar; o banco manda."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+DEFAULTS: dict[str, Any] = {
+    "mount_star_bless": 10,
+    "mount_star_chance": 5,
+    "fate_stone_exp": 1,
+    "fate_wheel": {"1": 144, "2": 90, "3": 63, "4": 45, "10": 18},
+    "pet_advance_bless_chance": 10,
+    "pet_enchant_gain": [1, 10],
+    "pet_skill_weights": {},
+    "pet_mould_bless_reset": True,
+    "offer_quality_weights": [40, 30, 15, 10, 5],
+    "star_free_point": True,
+}
+
+
+def get(settings: Mapping[str, Any], name: str) -> Any:
+    return (settings.get("taxas") or {}).get(name, DEFAULTS.get(name))

@@ -15,7 +15,7 @@ from ...domain.models import PlayerSnapshot, Star, StarBag
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates, Row
-from .. import rules, social
+from .. import rules, social, taxas
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
@@ -222,7 +222,7 @@ async def star_rand(s: GameSession, msg: pb.StarRandReqMsg) -> None:
         else:
             c.gold -= SITE_COST[site]
             paid = True
-        if not free or settings["taxas"]["star_free_point"]:  # o grátis dar ponto: 0124
+        if not free or taxas.get(settings, "star_free_point"):  # o grátis dar ponto: 0124
             sy.star_point += site + 1
         tpl = roll(templates, c.grades, site, table)
         star = Star(c.id or 0, int(tpl["TemplateId"]), bag_type=StarBag.TEMP, pos=pos)

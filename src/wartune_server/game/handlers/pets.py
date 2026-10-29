@@ -16,7 +16,7 @@ from ...domain.models import BagType, Item, Pet, PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates, Row
-from .. import bag, rules
+from .. import bag, rules, taxas
 from ..builders.login import complete
 from ..castle import castle_yield
 from ..router import router
@@ -452,7 +452,7 @@ async def _advance(
     while used < msg.value and star + 1 in need:
         used += 1
         gp += ADVANCE_GP * (
-            BLESSING if random.randrange(100) < int(s.ctx.world.settings["taxas"]["pet_advance_bless_chance"]) else 1
+            BLESSING if random.randrange(100) < int(taxas.get(s.ctx.world.settings, "pet_advance_bless_chance")) else 1
         )
         while star + 1 in need and gp >= need[star + 1]:
             gp, star = gp - need[star + 1], star + 1
@@ -510,7 +510,8 @@ async def _enchant(
             pet,
             f"{a}_apti",
             min(
-                caps[a], getattr(pet, f"{a}_apti") + random.randint(*s.ctx.world.settings["taxas"]["pet_enchant_gain"])
+                caps[a],
+                getattr(pet, f"{a}_apti") + random.randint(*taxas.get(s.ctx.world.settings, "pet_enchant_gain")),
             ),
         )
         room = [a for a in caps if getattr(pet, f"{a}_apti") < caps[a]]
@@ -589,7 +590,7 @@ async def _learn(
             skill = skill if cost > 0 else None
     elif msg.value == LEARN_RANDOM:
         pool = [sk for sid in books if (sk := templates.get("SkillTempInfos", sid)) is not None and fits(sk)]
-        weights = s.ctx.world.settings["taxas"]["pet_skill_weights"]  # skillId -> peso, 1 se ausente (0124)
+        weights = taxas.get(s.ctx.world.settings, "pet_skill_weights")  # skillId -> peso, 1 se ausente (0124)
         skill = random.choices(pool, [float(weights.get(str(sk["TemplateId"]), 1)) for sk in pool])[0] if pool else None
         wait = (
             int(rules.config(templates, "pet_learn_random_skill_interval", "480")) - vip_right(s, snap, VIP_SKILL_WAIT)

@@ -18,7 +18,7 @@ from ...domain.models import BagType, Item, PlayerSnapshot, PlayerSystems
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import GameTemplates, Row
-from .. import bag, rules
+from .. import bag, rules, taxas
 from .. import events as ev
 from ..builders.login import NEVER, fmt_time
 from ..builders.player import quest_update
@@ -306,12 +306,13 @@ async def _star(s: GameSession, msg: pb.MountEditMsg) -> None:
         for r in templates.find("UpGradeTempInfos", Types=STAR_TABLE)
         if r.get("TemplateId") == tpl.get("GradeType")
     }
-    taxas = s.ctx.world.settings["taxas"]  # bênção e chance do refino (migração 0124)
     used, before = 0, star
     while used < tries and star < len(adds):
         used += 1
-        bless += int(taxas["mount_star_bless"])
-        if bless >= need.get(star + 1, 0) or random.randrange(100) < int(taxas["mount_star_chance"]):
+        bless += int(taxas.get(s.ctx.world.settings, "mount_star_bless"))
+        if bless >= need.get(star + 1, 0) or random.randrange(100) < int(
+            taxas.get(s.ctx.world.settings, "mount_star_chance")
+        ):
             star, bless = star + 1, 0
     all_stars[mount] = (star, bless)
     sy.mount_stars = ",".join(f"{m}:{a}:{b}" for m, (a, b) in all_stars.items())
@@ -509,7 +510,7 @@ async def fate_train(s: GameSession, msg: pb.FateEditMsg) -> None:
         return
     changed, deleted = rules.take_items(snap, stones, n)
     gps = fate(sy)
-    gps[msg.skillSonType] += n * int(s.ctx.world.settings["taxas"]["fate_stone_exp"])  # EXP por pedra (0124)
+    gps[msg.skillSonType] += n * int(taxas.get(s.ctx.world.settings, "fate_stone_exp"))  # EXP por pedra (0124)
     sy.fate = ",".join(f"{k}:{v}" for k, v in gps.items())
     counted = ev.count(snap, s.ctx.events, ev.FATE_EAT, s.ctx.clock.now(), n)  # atividade "Fate Stones" (tipo 109)
     await s.ctx.characters.save(sy, *changed, *counted, delete=tuple(deleted))
@@ -553,7 +554,7 @@ async def fate_turn(s: GameSession, msg: pb.FateEditMsg) -> None:
     if cost and spent is None:
         s.send(S_FATE_TURN, pb.FateEditMsg(isSuccess=False, currCount=sy.fate_turns, turnNum=turns))
         return
-    wheel = s.ctx.world.settings["taxas"]["fate_wheel"]  # FateRotaryModel.rndDic em graus (0124)
+    wheel = taxas.get(s.ctx.world.settings, "fate_wheel")  # FateRotaryModel.rndDic em graus (0124)
     rewards = random.choices([int(k) for k in wheel], weights=list(wheel.values()), k=turns)
     sy.fate_turns += turns
     item = give_item(snap, FATE_STONE_ID, sum(rewards))

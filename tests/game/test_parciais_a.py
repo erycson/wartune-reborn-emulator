@@ -6,6 +6,7 @@ from types import MappingProxyType
 from typing import Any
 
 from tests.game.harness import Game, logged_in
+from wartune_server.game import taxas
 from wartune_server.game.handlers import offer
 
 
@@ -35,3 +36,7 @@ async def test_offer_quality_follows_config(tmp_path: Path) -> None:
         assert s is not None and s.snapshot is not None
         st = offer._roll(s, s.snapshot, s.ctx.clock.now())
         assert set(json.loads(st.text)["q"]) <= {5}
+
+
+def test_taxas_default_without_row() -> None:
+    assert taxas.get({}, "fate_stone_exp") == 1 and taxas.get({"taxas": {"fate_stone_exp": 3}}, "fate_stone_exp") == 3
