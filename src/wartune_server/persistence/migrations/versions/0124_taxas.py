@@ -1,7 +1,9 @@
 """taxas que o cliente não traz, fora do código
 
 ``game_settings.taxas``: a lógica de cada sistema é do cliente inglês, mas chances, pesos e quantidades não estão
-nele (procurado no decomp inglês, nos XMLs do mirror res134 e nos templates). ``source`` de cada valor: ``cliente``
+nele (procurado no decomp inglês, nos XMLs do mirror res134, nos templates e no language
+``ui/zh_cn/language.txt`` do mirror: mounts.tips02, petFrame.help02, PetAdvancedView.normalTip,
+PetStrengthenView.NormalTrainTip e faterotary.* só dizem "chance", sem número). ``source`` de cada valor: ``cliente``
 ou ``TODO(inventado)``; trocar com dump do oficial.
 
 Revision ID: 0124
@@ -48,7 +50,7 @@ TAXAS: dict[str, Any] = {
         "star_free_point": INV + " (o grátis do dia dá ponto de estrela)",
     },
 }
-SOURCE = "taxas sem fonte no cliente: " + INV
+SOURCE = "taxas sem fonte no cliente (decomp, mirror, templates e language.txt procurados): " + INV
 
 
 def upgrade() -> None:

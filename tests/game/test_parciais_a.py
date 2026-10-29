@@ -70,3 +70,52 @@ async def test_lucky_exchange_spends_fills_luck_and_gives_rare(tmp_path: Path) -
         ]
         luck, prize = minigames.lucky_roll(ed, 10, {})
         assert luck == 0 and prize == [(21261042, 2)]  # o único raro da edição
+
+
+def test_pet_is_born_unbound() -> None:
+    """72bb0e1: language PetAdvancedView.useBindPointTip/useBindGoodsTip: o vínculo vem do uso, não do nascimento."""
+    from wartune_server.domain.models import Pet
+
+    assert Pet(1, 101103, "Amazon").is_bind is False
+
+
+async def test_player_hero_uses_suite_slots_from_settings(tmp_path: Path, monkeypatch: Any) -> None:
+    """40ac553: o bônus de coleção na luta usa os degraus de ``powcard_suite_slots`` do banco."""
+    from wartune_server.game.handlers import campaign, systems
+
+    seen: list[Any] = []
+
+    def fake(snap: Any, templates: Any, camp: int, slots: Any = None) -> dict[str, int]:
+        seen.append(slots)
+        return {}
+
+    monkeypatch.setattr(systems, "camp_stats", fake)
+    async with logged_in(tmp_path, novice=19000) as g:
+        world = g.server.services.world
+        object.__setattr__(world, "settings", MappingProxyType({**world.settings, "powcard_suite_slots": [[1, 1]]}))
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        campaign.player_hero(s, {"player": {"livingId": 1, "pos": 0}}, camp=systems.CAMP_ARENA)
+        assert seen == [[[1, 1]]]
+
+
+async def test_fund_harvest_items_are_bound(tmp_path: Path) -> None:
+    """language fund.FundFrame.helpFrame.helpContent: "Items obtained during the event are bound"."""
+    from wartune_server.protocol.messages import wartune_pb2 as pb
+
+    async with logged_in(tmp_path, novice=19000) as g:
+        world = g.server.services.world
+        fund = {
+            **world.settings["novice_fund"],
+            "levels": [{"level": 1, "costDiamond": 0, "tiers": [[1, 1, [[208017, 2]]]]}],
+        }
+        object.__setattr__(world, "settings", MappingProxyType({**world.settings, "novice_fund": fund}))
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.snapshot is not None
+        s.snapshot.character.grades = max(s.snapshot.character.grades, int(fund.get("minGrades", 0)))
+        g.client.send(8751, pb.DepositActiveMsg(opType=1, opParam=1))
+        await g.idle()
+        g.client.send(8751, pb.DepositActiveMsg(opType=2, opParam=1))
+        await g.idle()
+        got = [i for i in s.snapshot.items if i.template_id == 208017]
+        assert got and all(i.is_binds for i in got)
