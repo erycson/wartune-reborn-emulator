@@ -67,6 +67,8 @@ SOLO = {"captured": CAPTURED, "out": OUT, "ids": range(1101, 1603), "single": SI
 # TODO(inventado): a wiki dá 5 níveis na King contra sombras dos 16 melhores; aqui são as 4 lutas da planta.
 TOWERS = GROUP | {"out": VERSIONS / "0102_torres.json", "ids": range(8200, 8205), "multi": GROUP["single"]}
 TOWER_STEP = 10  # TODO(inventado)
+# 9113 Elemental Forest (em grupo, MapInfos 2281/MapFileId 2271), fora da faixa do GROUP: migração 0117
+FOREST = GROUP | {"out": VERSIONS / "0117_floresta_elemental.json", "ids": range(9113, 9114)}
 SPIRE, SPIRE_WAVES = 8201, 23  # internet: 24 chefes (cliente: além do 24 é "clear instantly")
 KING_GP = {1: 100_000, 2: 300_000, 3: 900_000, 4: 2_500_000}  # internet
 SPIRE_GP = 300_000
@@ -384,7 +386,13 @@ def main(cfg: dict[str, Any]) -> None:
                 content.setdefault(k, {}).update(v)
             content["stages"].append(maps)
             made += maps
-        if made and row.get("DifficultyGrade") == "2" and (normal := g.rows.get(cid - 100)):
+        # a 9113 (Elemental Forest) é grau 2 sem StandardDamage e não é o pesadelo da 9013 (outro nome e prêmio)
+        if (
+            made
+            and row.get("DifficultyGrade") == "2"
+            and int(row.get("StandardDamage") or 0)
+            and (normal := g.rows.get(cid - 100))
+        ):
             nightmare(content, row, normal)
         if made and cfg is TOWERS:
             tower(content, int(row["DifficultyGrade"]), cid == SPIRE)
@@ -429,4 +437,4 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["casamento"]:
         wedding()
         sys.exit()
-    main({"grupo": GROUP, "torres": TOWERS}.get(sys.argv[1] if sys.argv[1:] else "", SOLO))
+    main({"grupo": GROUP, "torres": TOWERS, "floresta": FOREST}.get(sys.argv[1] if sys.argv[1:] else "", SOLO))

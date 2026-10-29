@@ -280,3 +280,31 @@ async def test_vocacao_sobe_com_a_comida_e_da_bonus_na_luta(tmp_path: Path) -> N
         assert (info.fateTypes, info.grades, info.totalGp) == (systems.DRAGON_DONE, 2, 0)  # 107: 10 para o grau 2
         bonus = systems.vocation_percent(me(g), g.server.services.world.settings)
         assert bonus == {"PhyAttack": 2, "MagicAttack": 2}
+
+
+# --- patrulha sem captura e a 9113 montada pelos mapas (0117, TODO(inventado)) ---
+
+
+async def test_agressivo_sem_pontos_anda_perto_da_origem(tmp_path: Path) -> None:
+    from tests.game.test_masmorra_1001 import enter
+    from tests.game.test_patrulha import _Always
+    from wartune_server.game.handlers import campaign as hc
+
+    async with logged_in(tmp_path, novice=19000) as g:
+        await enter(g, 1006)
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.campaign is not None
+        node = s.campaign.node(115105)
+        assert node is not None
+        node["campDataId"] = -1  # sem pontos capturados
+        hc.patrol_tick(s, _Always(1))
+        moves = [pb.NPCMoveMsg.FromString(p.body) for p in await g.idle() if p.code == hc.S_NPC_MOVE]
+        [m] = [m for m in moves if m.id == node["nodeId"]]
+        x, y = node["posX"], node["posY"]
+        assert abs(m.curPosX - x) + abs(m.curPosY - y) == 4
+
+
+async def test_floresta_elemental_tem_conteudo(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        forest = g.server.services.world.campaigns[9113]
+        assert forest["inventado"] and forest["stages"]

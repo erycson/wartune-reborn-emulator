@@ -172,8 +172,13 @@ def patrol_tick(s: GameSession, rnd: Any = None) -> None:
     if c is None or c.fam:
         return
     chance = float(cfg.get("quarry_chance" if c.quarry else "chance", 0.62))
+    step = int(cfg.get("guess_step", 0))
     for node in c.nodes.values():
         pts = [tuple(p) for p in cfg.get("points", {}).get(str(node["campDataId"]), ())]
+        if not pts and step and node["masterType"] == MONSTER and node["attackTypes"] == AGGRESSIVE:
+            # agressivo sem captura: a origem e ``guess_step`` tiles para cada lado (0117, TODO(inventado))
+            x, y = node["posX"], node["posY"]
+            pts = [(x, y), (x - step, y), (x + step, y), (x, y - step), (x, y + step)]
         if not pts or node["state"] != NORMAL or r.random() >= chance:
             continue
         if len(pts) == 1:  # (dedução) visto um passo só (o nó morreu antes): volta para a origem
@@ -1950,8 +1955,8 @@ async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
     if not 0 <= msg.paraInt2 < int(cards.get("cardCount", 0)):
         return
-    # ponytail: carta paga (isPay, autoChest) tratada como a grátis: price 0 e uma só por etapa; cartas pagas extras
-    # (payCardCount 5) precisam de captura de quem paga (nenhuma das capturas paga)
+    # ``paraBool1`` (isPay) não é carta paga no cliente inglês: o ``ChestItemView.isPay`` nunca vira true e só o
+    # ``autoChest`` (o tempo acabou) manda true; o ``payCardCount`` do 135 não tem leitor. Uma carta por etapa
     c.card = msg.paraInt2  # antes do await: um segundo 5122 já cai no ``c.card is not None``
     cid = c.run.campaign_id
     cards = s.ctx.world.campaign_cards.get(cid, ())
