@@ -174,3 +174,15 @@ async def test_dwarf_merchant_charges_daru_in_the_player_packet(
         assert _codes(got) == [3, 115, 4476, 111, 4915, 4914, 83, 83]
         assert (snap.character.strategy, snap.character.gold) == (800, gold)
         assert pb.MessageForSeekMsg.FromString(_body(got, 4915)).info.endswith("Shardx2 from Banshee Wetlands")
+
+
+async def test_plus_with_ten_refuses_without_spending(tmp_path: Path, rng: None) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        snap = _snap(g)
+        snap.character.grades = 32
+        await g.server.services.characters.save(*bag.add(snap, g.server.services.templates, 2131022, 8, NOW))
+        for _ in range(7):
+            await _seek(g, 7)
+        got = await _seek(g, 7)  # 10 explorações: huntcountFull, o item fica
+        assert _codes(got) == [111] and "Treasure Hunt limit" in pb.ChatChannelMsg.FromString(got[0].body).encodeMsg
+        assert bag.count_of(snap, 2131022) == 1

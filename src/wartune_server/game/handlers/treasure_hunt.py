@@ -163,10 +163,13 @@ async def treasure_hunt(s: GameSession, msg: pb.PlayerSeekInfoMsg) -> None:
         s.send(S_ITEMS, bag.moved(changed, s.player_id, gone))
         await mj.give(s, snap, [(int(c["kit"]), 1)], *changed, delete=tuple(gone))
     elif op == ADD:
+        if data["count"] >= int(c["maxCount"]):
+            # TreasureHuntFrame._addSeekCountClick manda sem conferir: recusa com o huntcountFull, sem gastar o item
+            alert(s, str(c["fullText"]))
+            return
         if bag.count_of(snap, int(c["addItem"])) < 1:
             alert(s, str(c["addNoItemText"]))  # d29 #2860: só o 111
             return
-        # TODO(inventado): o "+" com 10 explorações (o cliente deixa clicar; sem captura): soma além do teto
         changed, gone = bag.take(snap, int(c["addItem"]), 1)
         data["count"] += 1
         await s.ctx.characters.save(mj.store(snap, KEY, data, now), *changed, delete=tuple(gone))
