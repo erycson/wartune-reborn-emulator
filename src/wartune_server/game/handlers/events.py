@@ -12,7 +12,7 @@ from ...domain import gameday
 from ...domain.models import BagType, EventState, PlayerSnapshot, Quest, StarBag
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import Row
-from .. import bag, castle, guild, rewards, rules, titles
+from .. import bag, castle, guild, rewards, rules, titles, torres
 from .. import events as ev
 from ..builders import login as b
 from ..builders.player import quest_update
@@ -744,7 +744,8 @@ def _task_done(s: GameSession, task_id: int) -> bool:
         return c.geste >= num(tpl("AppellInfos", PRIVATE_TITLE), "Para") > 0
     if kind == 22:
         return army(s, snap)[1] >= p1
-    # ponytail: 23 ENTER_CAMPAIGN (The Spire, 8201) não tem entrada no servidor; nada grava ter entrado
+    if kind == 23:  # ENTER_CAMPAIGN (The Spire, 8201): já entrou alguma vez (game/torres)
+        return bool((st := ev.peek(snap, torres.SPIRE_TOTAL)) and st.value >= 1)
     return False
 
 

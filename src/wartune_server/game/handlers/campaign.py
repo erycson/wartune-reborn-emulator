@@ -23,7 +23,7 @@ from ...domain.models import EventState, Item, PlayerSnapshot, Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...protocol.registry import Direction
 from ...templates.repository import GameTemplates
-from .. import bag, buffs, drops, events, outer_city, rewards, rules, space
+from .. import bag, buffs, drops, events, outer_city, rewards, rules, space, torres
 from .. import campaign as cm
 from .. import maze as mz
 from ..battle import STATS, Battle, PlayerHero
@@ -60,7 +60,7 @@ from ..rooms import PLAYING, PVE, PVP, Room
 from ..router import router
 from ..session import GameSession
 from . import pet_defend
-from .login import army, player_info
+from .login import S_KING_TOWER, army, player_info
 
 S_PLAYER, S_NOVICE, S_ARMY_PAWN = 3, 1, 100
 S_CHAT, S_ALERT = 83, 111
@@ -815,6 +815,8 @@ async def _battle_over(s: GameSession, battle: Battle, camp: int, won: bool, *, 
     healed = hero_after_fight(s, battle.player.hp if battle.player is not None and not mate else None)
     if dungeon:
         loot = _dungeon_loot(s, battle, camp, won)  # antes do await: drop, missão e EXP numa save só
+        if won and s.campaign is not None and s.campaign.run is not None:
+            s.campaign.run.floors += battle.layer or 1  # andares das torres (a Spire conta as ondas)
     if gp or strategy or loot.items or loot.quests or loot.end_quests or loot.win or hit:
         await s.ctx.characters.save(
             snap.character, snap.leader, *snap.pawns, *loot.items, *loot.quests, *loot.end_quests,
@@ -1067,6 +1069,10 @@ async def _group_start(s: GameSession, room: Room, content: Mapping[str, Any], m
     if room.master != s.player_id or room.campaign != msg.paraInt2 or any(p not in room.ready for p in others):
         s.log.info("5039 recusado: sala", sala=room.id, campanha=msg.paraInt2)
         return
+    assert s.snapshot is not None
+    if not torres.unlocked(s.snapshot, _campaign_row(s, msg.paraInt2)):
+        s.log.info("5039 recusado: dificuldade da torre fechada", campanha=msg.paraInt2)  # "Clear {0} to enter"
+        return
     states = [pb.PlayerreadyrspmsgPlayerReady(playerId=p, readyState=_ready_state(room, p)) for p in room.members]
     _to_room(s, room, S_READY, pb.PlayerReadyRspMsg(readyState=states))
     room.state = PLAYING
@@ -1118,9 +1124,13 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
     stage = events.state(snap, STAGE_KEY.format(cid), now).value % len(stages)
     maps = tuple(int(m) for m in stages[stage])
     count, top = c_.multi_copies(rules.copies_base(templates), now)
-    run = StageRun(cid, stage, maps, now, rewarded=use and count > 0)
-    s.campaign = c = CampaignMap.enter_dungeon(content, maps[0], run)
     row = _campaign_row(s, cid)
+    tower = torres.son(row)
+    tower_rows: list[EventState] = []
+    if tower and use:  # as torres têm a entrada do dia delas, não a das masmorras em grupo
+        use, tower_rows = torres.enter(snap, row, now)
+    run = StageRun(cid, stage, maps, now, rewarded=use and (bool(tower) or count > 0))
+    s.campaign = c = CampaignMap.enter_dungeon(content, maps[0], run)
     name = row.get("CampaignName", "")
     created = pb.RoomCreatedMsg(createdType=ENTER)
     created.room.CopyFrom(
@@ -1139,9 +1149,11 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
     await _push_player(s)
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
     systems.send_camp_buffs(s, systems.camp_type(row))
-    if run.rewarded:
+    if run.rewarded and not tower:
         count -= 1
         c_.multi_copy_count, c_.multi_copy_max, c_.multi_copy_day = count, top, gameday.today(now)
+    if tower == torres.KING:
+        s.send(S_KING_TOWER, torres.king_msg(snap, now))
     await _push_player(s)
     _send(s, S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
@@ -1151,8 +1163,13 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
     _send(s, S_MOVIE, pb.PlayerMovieMsg(movieTargetType=3, targetId=0, movieType="MOVIE_MAP_NAME", delay=0))
     healed = rules.heal_hero(snap, templates, now) if snap.leader is not None else 0
     hp_pack(s, healed)  # (só turco: #39) a poção enche a vida na entrada
-    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=GROUP_TEXT.format(name, count, top)))
-    await s.ctx.characters.save(c_, *([snap.leader] if snap.leader is not None else []))
+    if not tower:
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=GROUP_TEXT.format(name, count, top)))
+    await s.ctx.characters.save(c_, *([snap.leader] if snap.leader is not None else []), *tower_rows)
+    if tower == torres.SPIRE and tower_rows:
+        from . import events as hev  # handlers.events importa login, que importa este módulo
+
+        await hev.leed_done(s, torres.SPIRE_LEED)  # LeedTemp 28 "Enter the Spire"
 
 
 def _rewarded(s: GameSession) -> bool:
@@ -1718,7 +1735,22 @@ async def _dungeon_end(s: GameSession) -> None:
     stages = len((c.content or {}).get("stages", [])) or 1
     stage.value, stage.updated_at = (run.stage + 1) % stages, now
     saved: list[EventState] = [rank, stage]
-    await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, *saved)
+    tower, letters, got = torres.son(row), [], []
+    if tower and run.rewarded:
+        from .shop import place, save_with_mail  # shop importa este módulo
+
+        prize = torres.prize(row, run.floors)
+        got, letters = place(s, snap, s.player_id, prize, now)
+        saved += torres.finish(snap, row, now)
+    if letters:
+        await save_with_mail(s, letters, snap.character, snap.leader, *snap.pawns, *saved, *got)
+    else:
+        await s.ctx.characters.save(snap.character, snap.leader, *snap.pawns, *saved, *got)
+    if got:
+        _send(s, S_ITEMS, rewards.items_msg(got, s.player_id))
+    if tower == torres.KING and run.rewarded:
+        end = {"currentIndex": run.floors, "currentStep": int(row.get("DifficultyGrade") or 1)}
+        s.send(S_KING_TOWER, torres.king_msg(snap, now, **end, rewardCount=sum(n for _, n in prize)))
     await _push_player(s)
     _send(s, S_REPORT, report)
     _send(s, S_RANK, ranks(s))

@@ -17,6 +17,7 @@ from ...domain.models import Building, Castle, Character, Consortia, Hero, Playe
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
 from .. import events as ev
+from .. import torres
 
 NEVER = "2000-01-01 00:00:00"
 MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2: tutorial_en)
@@ -210,7 +211,8 @@ def player_msg(
         matchRoomCount=15,
         serverName=snap.server.name,
         warFieldCount=2,
-        trialMaxCount=1,
+        trialCount=torres.used(snap, torres.SPIRE, now),  # The Spire: entradas de hoje (game/torres)
+        trialMaxCount=torres.MAX_PER_DAY,
         campaignMaxcount=copies[1],
         lastFreeSkillLearnTime=fmt_time(free_skill) if (free_skill := sy.pet_free_skill_at if sy else None) else NEVER,
         rentalBagTime=fmt_time(c.rental_bag_until) if c.rental_bag_until else NEVER,

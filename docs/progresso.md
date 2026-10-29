@@ -31,7 +31,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Lojas e mercado | 6 | 4 | 0 | 2 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
-| Campanhas e masmorras | 6 | 10 | 5 | 3 | 3 |
+| Campanhas e masmorras | 6 | 10 | 6 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 3 | 2 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 5 | 6 | 1 | 6 | 0 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 1 | 2 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **92** | **43** | **44** | **34** |
+| **Total** | **100** | **92** | **44** | **43** | **34** |
 
 ## Validação e base
 
@@ -235,7 +235,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Masmorras solo geradas (1202-1602 e 2ª etapa de 1102, 1106, 1201) | 🧪 | | TODO(inventado) tools/gera_masmorras.py (migração 0099): planta das capturadas, mapas/casas/monstros do cliente; chave `inventado` marca o que trocar |
 | Masmorras em grupo capturadas (9000, 9001, 9002) | 🟡 | | das capturas inglesas 191924, 232017, 152321 (migração 0100); entrada do dia (`paraBool1` = isNoGet) e o texto do 83 vistos; mapa dividido pela sala (21 com todos, 4185 do caminho, a luta de um leva os outros no lado 1 e todos ganham o 4103 e o nó); os outros lutam no automático (ordens só de quem atacou) e o lugar do 3º/4º é inventado; baús VIP 209109/203108 com a caixa da 201110 (prêmio TODO(inventado)) |
 | Masmorras em grupo geradas (9003-9013, 9104-9112) | 🧪 | | TODO(inventado) `tools/gera_masmorras.py grupo` (migração 0101): planta da 9002 (2031 meio, 2033 fim), mapas/casas do cliente, monstros 4xxx/chefes 3xxx pelo nível; pesadelo com vida x `StandardDamage` e EXP x `BaseGp` do `Campaigns` (pesadelo/normal); chave `inventado` |
-| Torres 8200-8204 (Tower of Kings, Spire) | ❌ | | só drops |
+| Torres 8200-8204 (Tower of Kings, Spire) | 🧪 | | sala em grupo (game/torres, migração 0102): do cliente uma entrada por dia em cada (`maxKingCount`, `trialCount`), dificuldade N só com a N-1 vencida, 4900 no login/entrada/fim (`maxIndex`, andar, prêmio), andar da Spire no 157/72 (`currentWave`/`reinforceWave`), baú da coluna `Item`, leed 28 e Recuperar EXP; TODO(inventado): mapas (planta do fim da 9002, +10 níveis por dificuldade), 10 andares da Spire, baús por andar; sem captura: texto da entrada, varredura e ranking (o cliente não tem) |
 | Pedreira 6001 | ✅ | | |
 | Exército do sistema (5038) | 🟡 | 🇹🇷 | bate com o inglês em todos os mapas pedidos (1011-1161, 7501); a 2011 do turco; mapas sem lista mandam vazio |
 | Patrulha dos monstros (4122) | 🟡 | | nós sem captura ficam parados |
@@ -385,7 +385,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Caça ao tesouro, quiz, minério | ❌ | | fechados |
 | Caça-níquel, loteria, cadeiras, sorteio de grupo | ❌ | | fechados |
 | Campo minado, caixa de ano novo, história | ❌ | | |
-| Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis e Spire sem entrada: contam como não feitas); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
+| Recuperar EXP (9503) | 🧪 | | lista de ontem (game/recover) e resgate ouro/item/item+diamante no inglês (27/10 #63, #745-#760, #18450-#18479); os 10 sonTypes com contador (Necropolis sem entrada: conta como não feita; Spire pela entrada do dia de game/torres); altar 20 de estamina/unidade visto; curva de EXP/ouro do chefe por nível inventada (TODO) |
 | Troca da sorte (9610) | 🟡 | | recusa "Insufficient exchange items." e 4247 do inglês (27/10 #11765); sem tabela das edições |
 | Corneta (passe), 360 | ❌ | | |
 

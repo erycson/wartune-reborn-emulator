@@ -17,7 +17,7 @@ from google.protobuf.message import Message
 from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
-from .. import buffs, castle, daily, farm, guild, rules, social, space, timebox
+from .. import buffs, castle, daily, farm, guild, rules, social, space, timebox, torres
 from .. import events as ev
 from ..bag import expire as expire_items
 from ..builders import login as b
@@ -332,10 +332,10 @@ async def _login_state(s: GameSession) -> None:
 
     waiting_login(s)  # 11 logo depois do 4151 (oficial_20261023-231733-1 #105)
     # (visto) 215937 #104-#105, #109-#110: canOpen 1 (sem leitor no cliente); honra do dia / teto (o geste não sobe
-    # aqui); torre do rei sem entradas; as moedas de pet, cristal eterno, selo do rei e inspiração zeradas
+    # aqui); torre do rei (sem entradas na captura); as moedas de pet, cristal eterno, selo do rei e inspiração zeradas
     s.send(S_CUSTOMER, pb.FastOpenCustomerMsg(canOpen=1))
     s.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=0, param2=int(s.ctx.world.settings.get("honor_day_max", 0))))
-    s.send(S_KING_TOWER, pb.KingTowerInfoMsg(enterCount=0, maxIndex=0))
+    s.send(S_KING_TOWER, torres.king_msg(snap, s.ctx.clock.now()))  # as entradas de hoje e a maior dificuldade
     tokens = [pb.TokenInfoMsg(masterType=t, amount=0, expiredDate=b.NEVER) for t in TOKEN_TYPES]
     s.send(S_TOKENS, pb.PlayerTokenInfoMsg(tokenInfos=tokens))
     from . import lords, warfield  # os dois importam este módulo

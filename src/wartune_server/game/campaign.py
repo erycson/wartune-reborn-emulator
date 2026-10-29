@@ -74,6 +74,7 @@ class StageRun:
     lost: int = 0  # lutas perdidas (``failedCount``)
     batter: int = 0  # maior 8282 (combo) da etapa
     rewarded: bool = True  # campanha em grupo sem a entrada do dia: sem EXP, drop nem carta (cliente)
+    floors: int = 0  # andares vencidos nas torres 8200-8204 (game/torres)
 
 
 @dataclass

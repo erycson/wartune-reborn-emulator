@@ -20,6 +20,7 @@ Cada campanha gerada leva ``"inventado"`` com os mapas gerados: é a marca para 
 
     uv run python tools/gera_masmorras.py
     uv run python tools/gera_masmorras.py grupo
+    uv run python tools/gera_masmorras.py torres  # 8200-8204 (migração 0102, ver TOWERS)
 """
 
 from __future__ import annotations
@@ -55,6 +56,13 @@ GROUP = {
     "family": True,  # monstros 4xxx e chefes 3xxx só das em grupo (os solo têm outra vida)
 }
 SOLO = {"captured": CAPTURED, "out": OUT, "ids": range(1101, 1603), "single": SINGLE, "multi": MULTI, "family": False}
+# Torres (Tower of Kings 8200/8202-8204 e The Spire 8201, migração 0102): em grupo (Capacity 4, sala), um mapa cada
+# (MapFileId 8201). TODO(inventado) a planta é o fim da 9002 (chefe); a dificuldade sobe TOWER_STEP níveis de monstro
+# por DifficultyGrade (as quatro têm MinLevel 38 e StandardDamage 10000 no cliente); a Spire leva SPIRE_WAVES ondas de
+# reforço na luta do chefe (cliente: andar = ``currentWave``/``ReinforceMsg.reinforceWave``, TrailCountView < 36).
+TOWERS = GROUP | {"out": VERSIONS / "0102_torres.json", "ids": range(8200, 8205), "multi": GROUP["single"]}
+TOWER_STEP = 10  # TODO(inventado)
+SPIRE, SPIRE_WAVES = 8201, 9  # TODO(inventado) 10 andares
 
 
 def _amf3(data: bytes) -> list[Any]:
@@ -148,6 +156,7 @@ class Gen:
         self.t, self.family = t, family
         self.rows = {int(r["CampaignId"]): r for r in t.rows("Campaigns")}
         self.level = {int(r["CampaignId"]): int(r["MinLevel"]) for r in t.rows("Campaigns")}
+        self.file = {int(r["Id"]): int(r.get("MapFileId") or r["Id"]) for r in t.rows("MapInfos")}
         self.pawns = {int(r["TemplateId"]): r for r in t.rows("PawnTempInfos")}
         self.monsters = [r for r in self.pawns.values() if r["MasterType"] == "101" and int(r["Live"]) > 0]
         self.heroes = {int(r["TemplateId"]): r for r in t.rows("GameHeroTemp")}
@@ -201,7 +210,7 @@ def stage(g: Gen, plan: dict[str, Any], plan_maps: list[str], maps: list[int], c
     for i, new in enumerate(maps):
         src = plan_maps[-1] if i == len(maps) - 1 else plan_maps[0]
         old = int(src)
-        tiles = walkable(new)
+        tiles = walkable(g.file.get(new, new))
         entry = copy.deepcopy({k: v for k, v in plan["maps"][src].items() if k != "plot"})
         entry = _retarget(entry, old, new)
         if "start" in entry:
@@ -287,17 +296,34 @@ def nightmare(content: dict[str, Any], row: dict[str, Any], normal: dict[str, An
                     u[k] = round(u[k] * hp)
 
 
+def spire(content: dict[str, Any]) -> None:
+    """The Spire: a luta do chefe vira os andares (``trial``: o cliente mostra o andar), com SPIRE_WAVES ondas de
+    reforço iguais às tropas dela. TODO(inventado) a composição das ondas."""
+    for b in content["battles"].values():
+        enemies = [s for s in b["soldiers"] if s["side"] != 1]
+        if not enemies or not b["heroes"]:
+            continue
+        top = max(u["livingId"] for k in ("soldiers", "heroes") for u in b[k])
+        waves = []
+        for _ in range(SPIRE_WAVES):
+            waves.append([dict(s, livingId=(top := top + 1)) for s in enemies])
+        b["reinforce"], b["trial"] = waves, True
+
+
 def main(cfg: dict[str, Any]) -> None:
     t = GameTemplates.parse(TEMPLATES.read_bytes())
     g = Gen(t, cfg["family"])
     captured = json.loads(cfg["captured"].read_text(encoding="utf-8"))
-    if cfg is GROUP:  # a semente que a 0100 grava (com as caixas dos baús VIP), não só o JSON da captura
+    if cfg["captured"] == GROUP["captured"]:  # a semente que a 0100 grava (com as caixas dos baús VIP)
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("m0100", VERSIONS / "0100_masmorras_grupo.py")
         assert spec is not None and spec.loader is not None
         spec.loader.exec_module(mod := importlib.util.module_from_spec(spec))
         captured = mod.seed()
+    if cfg is TOWERS:
+        for cid in cfg["ids"]:
+            g.level[cid] += TOWER_STEP * (int(g.rows[cid]["DifficultyGrade"]) - 1)
     result: dict[str, Any] = {}
     for row in t.rows("Campaigns"):
         cid = int(row["CampaignId"])
@@ -321,6 +347,8 @@ def main(cfg: dict[str, Any]) -> None:
             made += maps
         if made and row.get("DifficultyGrade") == "2" and (normal := g.rows.get(cid - 100)):
             nightmare(content, row, normal)
+        if made and cid == SPIRE and cfg is TOWERS:
+            spire(content)
         if made:
             content["inventado"] = made
             result[str(cid)] = {k: v for k, v in content.items() if v != {}}
@@ -329,4 +357,4 @@ def main(cfg: dict[str, Any]) -> None:
 
 
 if __name__ == "__main__":
-    main(GROUP if sys.argv[1:] == ["grupo"] else SOLO)
+    main({"grupo": GROUP, "torres": TOWERS}.get(sys.argv[1] if sys.argv[1:] else "", SOLO))

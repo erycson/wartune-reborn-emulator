@@ -8,9 +8,10 @@ outro dia. Atividades e o contador de cada uma:
 - 1 campanha em grupo (``multi_copy_*``), 4 painel de recompensas (``offer:count``), 8 coliseu
   (``arena.challenge_count``), 2 Forgotten Catacombs (leed 23 "Enter Forgotten Catacombs"), 9 chefe do mundo
   (leed 18 "Fight a World BOSS"), 6 Altar of Ennoblement (``hangup``: estamina meditada no dia), 10 cobrança do
-  conselho (``castle.impose_used``), 7 estamina que transbordou na virada (``weary + 100`` acima de ``weary_limit``).
-- 3 Tormented Necropolis e 5 The Spire não têm entrada no servidor: contam como não feitas (a 3 só depois do
-  recorde 100 das Catacombs, que a abre).
+  conselho (``castle.impose_used``), 7 estamina que transbordou na virada (``weary + 100`` acima de ``weary_limit``),
+  5 The Spire (``torres``: a entrada do dia, "spire").
+- 3 Tormented Necropolis não tem entrada no servidor: conta como não feita (só depois do recorde 100 das
+  Catacombs, que a abre).
 
 Prêmio por ``MasterType`` (language ``active.expback.MasterTypeN``): 1 EXP, 2 ouro, 3 estamina, 4 insígnia,
 5 "Gold Daru" (ouro e Daru).
@@ -29,14 +30,14 @@ from ..domain.models import EventState, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import events as ev
-from . import maze, rewards
+from . import maze, rewards, torres
 from .castle import impose_used, levy_gold
 
 KEY = "recover"
 # RecoverInfos.SonType
 GROUP, CATACOMBS, NECROPOLIS, OFFER, SPIRE, ALTAR, SPILL, ARENA, BOSS, LEVY = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 STAMINA = 0  # não é item: soma em ``weary`` (MasterType 3)
-LEEDS = {CATACOMBS: "leed:23", BOSS: "leed:18", ALTAR: "hangup"}  # EventState diário de cada atividade
+LEEDS = {CATACOMBS: "leed:23", BOSS: "leed:18", ALTAR: "hangup", SPIRE: torres.DAILY[torres.SPIRE]}  # EventState diário
 ITEM = 2131020  # ExpBackSignelFrame: o item de resgate (way 1 e 3)
 INSIGNIA = 208001
 GOLD, DARU = -100, -300

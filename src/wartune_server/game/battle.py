@@ -287,6 +287,7 @@ class Battle:
         self._buff_seq = 0  # bufferId: 1, 2... por batalha (visto #1466 e #1484)
         self.units = self._units(player)
         self._waves = _shuffled_waves(spec.get("reinforce", []))  # ondas de reforço que faltam
+        self.layer = 1 if spec.get("trial") else 0  # andar da Spire (cliente ``BattleModel.trialLayer``)
         self.player = next((u for u in self.units if u.is_player), None)
         self.wound = self.hurt = 0  # dano causado e sofrido pelo lado do jogador (relatório 137 da masmorra)
         if player is not None and self.player is not None:
@@ -408,7 +409,11 @@ class Battle:
             return False
         wave = self._waves.pop(0)
         self.units += [self._soldier(s) for s in wave]
-        self._send(S_REINFORCE, _parse({"side": wave[0]["side"], "soldiers": wave}, pb.ReinforceMsg()))
+        msg = _parse({"side": wave[0]["side"], "soldiers": wave}, pb.ReinforceMsg())
+        if self.layer:  # (cliente) ReinforceHandler: trialLayer = reinforceWave
+            self.layer += 1
+            msg.reinforceWave = self.layer
+        self._send(S_REINFORCE, msg)
         return True
 
     def _passives(self, unit: Unit, skills: Iterable[int]) -> None:
@@ -440,6 +445,7 @@ class Battle:
             currentReinforce=0,
             battleCapity=1,
             damageImprove=0,
+            currentWave=self.layer,  # (cliente) CreateGameTransaction: trialLayer = currentWave
         )
         for s in spec["soldiers"]:
             _parse(s, msg.soldiers.add())
