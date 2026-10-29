@@ -29,7 +29,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 7 | 1 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
-| Chat e social | 6 | 1 | 5 | 0 | 1 |
+| Chat e social | 6 | 2 | 4 | 0 | 1 |
 | Clã / Guilda | 10 | 0 | 9 | 2 | 1 |
 | Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **110** | **78** | **68** | **31** | **34** |
+| **Total** | **110** | **79** | **67** | **31** | **34** |
 
 ## Validação e base
 
@@ -184,13 +184,13 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Chat: mundo, cena, guilda, privado, corneta | 🧪 | | cota VIP de cornetas sem fonte (padrão 0); cena = mesmo mapa (sala ou mapa compartilhado) ou cidade do céu; a cidade (castelo) como uma cena só é inventada |
 | Chat: time e sala (canal 6) | ✅ | | time livre ou, sem time, a sala (`ChatHelper.checkTeamChatScene`); só membros online |
 | Corneta entre servidores (8623) | ✅ | | processo único: 4541 a todos os online |
-| Convite rápido de sala (8353) | ✅ | | formato visto em 191924 (corneta sem 4500, uma tag `<a t="6">` por linha, leed 16 e 83); tipo 1 (casamento) sem destino: bloqueio real da sala 8760 |
+| Convite rápido de sala (8353) | ✅ | | formato visto em 191924 (corneta sem 4500, uma tag `<a t="6">` por linha, leed 16 e 83); tipo 1 (casamento) depende da sala 8760 (pendente) |
 | Amigos: pedir, aceitar, grupos, busca, lista negra, recomendados | ✅ | | |
 | Amizade: grau (friend_gp) | 🟡 | 🇹🇷 | grau 1 no inglês bate com 1 + gp/10; graus acima só no turco (dedução da tabela) |
 | Nome, ficha e busca de jogador | ✅ | | |
 | Casamento: pedido, noivado, divórcio | ✅ | | |
-| Casamento: cerimônia | 🧪 | | cobra e casa direto; sala é bloqueio real (mapas 4301-4303 sem nós/captura, tela no m9); roupas 8595 bloqueio real (MarryQualityTempInfos ausente) |
-| Casamento: sala (8760) e jogo do coração (8802) | 🧪 | | coração 8802/4690/4691 com HeartTempInfos; regras TODO(inventado) `marriage_heart` (0111); sala 8760 bloqueio real |
+| Casamento: cerimônia | 🧪 | | cobra e casa direto; sala pendente (ver linha da sala); roupas 8595 bloqueio real (MarryQualityTemplateCate lê MarrySpecTempInfo, sem SlotId/ClothId/WingId/HatId no inglês) |
+| Casamento: sala (8760) e jogo do coração (8802) | 🟡 | | coração pelo m9 (MarryHeartFrame: opções 0-based, -1 sem resposta, Rose Hazel x syncRate/5, `mar_heart_count`/`answerNum`), pendências em server_states; nº de perguntas/segundos TODO(inventado) `marriage_heart`; sala 8760 ainda não feita (cliente em m3 MarryUIMediator/MarryWeddingDialogFrame + m9 marry/room: sala do RoomManager, voto 101 com speTemplateId) |
 | Casamento: árvore e missões do casal | 🧪 | | árvore do casal (8773/4678 e `marriageTree` no 4386) pelo cliente (MarryTreeView/MarryTreeFosterFrame) e 191924 #1249; chance de mato/praga e quantidade de Rose Hazel inventadas; missões do casal (8774/4675, RewardTemps tipo 4, `marriage_task_count`, `mar_task_add_happy`); usar item cumpre 22/23 (dedução) |
 | Casamento: loja do altar (9611) | 🧪 | | `Mate_Shop` paga com os pontos do casal (`marriages.couple`, 0111); op 2 = compra e pontos como `altarScore` TODO(inventado) |
 

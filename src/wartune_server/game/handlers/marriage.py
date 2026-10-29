@@ -340,8 +340,7 @@ async def _quality_answer(s: GameSession, accept: bool) -> None:
 @router.on(8760)
 async def wedding_campaign(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     """Sala da cerimônia (101 alianças, 102-109 bolo/champanhe/doces/buquê/fogos, 104/112 presentes, 105 senha,
-    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame). Bloqueio real: os mapas 4301-4303 não têm nós nem
-    captura (só o 4662 visto) e a tela é do m9 (não descompilado); sem a sala, o 8353 tipo 1 também fica sem destino.
+    106 expulsar, 110/111 convidar; MarryWeddingDialogFrame). Pendente: o cliente (m3 MarryUIMediator/MarryWeddingDialogFrame, m9\n    marry/room) usa a sala do RoomManager; os mapas 4301-4303 não têm nós. Sem a sala, o 8353 tipo 1 fica sem destino.
     Quem aceita a oferta já sai casado (presentes pelo correio)."""
     s.log.info("cerimônia de casamento sem suporte", op=msg.opType)
 
@@ -627,6 +626,7 @@ async def marriage_task(s: GameSession, msg: pb.MarriageOpMsg) -> None:
 
 HEART_START, HEART_ACCEPT, HEART_ANSWER, HEART_TIMEOUT, HEART_QUIT = 3001, 3002, 3003, 3004, 3005
 S_HEART_ASK, S_HEART = 4690, 4691
+HEARTS_KEY = "marry:hearts"  # jogos do dia (``answerNum`` do 4657)
 
 
 @dataclass
@@ -727,6 +727,10 @@ async def marriage_heart(s: GameSession, msg: pb.MarriageOpMsg) -> None:
     assert snap is not None
     m, op = snap.marriage, msg.opType
     mate = s.ctx.online.get(m.mate_id) if m is not None and m.state == MARRIED else None
+    limit = _config(s.ctx, "mar_heart_count", 1)  # MarryModel.canAnswer: ``answerNum`` do 4657 abaixo dele
+    if op in (HEART_START, HEART_ACCEPT) and ev.daily(snap, HEARTS_KEY, s.ctx.clock.now()).value >= limit:
+        s.log.info("jogo do coração: limite do dia")
+        return
     if op == HEART_START:
         if mate is None or s.player_id in _hearts or m is None:
             s.log.info("jogo do coração: cônjuge offline ou já jogando")
@@ -741,8 +745,17 @@ async def marriage_heart(s: GameSession, msg: pb.MarriageOpMsg) -> None:
         cfg = _heart_cfg(s)
         pool = [int(r["TemplateId"]) for r in s.ctx.templates.rows("HeartTempInfos")]
         h = Heart(caller, s.player_id, random.sample(pool, min(int(cfg["questions"]), len(pool))), int(cfg["seconds"]))
-        h.asked_at = s.ctx.clock.now()
+        h.asked_at = now = s.ctx.clock.now()
         _hearts[h.a] = _hearts[h.b] = h
+        counts = []
+        for o in (s, mate):
+            assert o.snapshot is not None
+            st = ev.daily(o.snapshot, HEARTS_KEY, now)
+            st.value, st.updated_at = st.value + 1, now
+            counts.append(st)
+        await s.ctx.characters.save(*counts)
+        rows = [r for o in (s, mate) if o.snapshot is not None and (r := o.snapshot.marriage) is not None]
+        await _announce(s.ctx, *rows)
         _heart_send(s, h)
     elif op in (HEART_ANSWER, HEART_TIMEOUT):
         game = _hearts.get(s.player_id)

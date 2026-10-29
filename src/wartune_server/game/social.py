@@ -12,9 +12,11 @@ from datetime import datetime
 
 from google.protobuf.message import Message
 
+from ..domain import gameday
 from ..domain.models import Character, Marriage, Relation, RelationType, SnsProfile
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
+from . import events as ev
 from .builders import login as b
 from .session import GameContext, GameSession
 
@@ -228,6 +230,13 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
     seen = last_seen(mate) if mate else None
     days = (ctx.clock.now() - seen).days if seen else 0
     online = ctx.online.get(m.mate_id) is not None
+    own = ctx.online.get(m.character_id)
+    snap = own.snapshot if own is not None else None
+
+    def today(key: str) -> int:  # contadores do dia (MarryModel.canAccessTask/canAnswer)
+        st = ev.peek(snap, key) if snap is not None else None
+        return st.value if st is not None and gameday.same_day(st.updated_at, ctx.clock.now()) else 0
+
     return b.complete(
         pb.MarriageMsg(
             userId=m.mate_id,
@@ -242,6 +251,8 @@ async def marriage_msg(ctx: GameContext, m: Marriage) -> pb.MarriageMsg:
             logoutDays=0 if online else days,  # divórcio grátis (op 15) com 5+ dias offline
             # felicidade (``mar_task_add_happy``): os pontos do casal (``handlers.marriage.couple``)
             happy=int((json.loads(m.couple) if m.couple else {}).get("happy", 0)),
+            questCount=today("marry:tasks"),  # missões do casal feitas hoje (``marriage_task_count``)
+            answerNum=today("marry:hearts"),  # jogos do coração hoje (``mar_heart_count``)
         )
     )
 
