@@ -29,7 +29,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pets | 3 | 6 | 0 | 2 | 2 |
 | Itens | 12 | 6 | 7 | 1 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
-| Chat e social | 4 | 5 | 1 | 2 | 1 |
+| Chat e social | 5 | 4 | 2 | 1 | 1 |
 | Clã / Guilda | 10 | 2 | 7 | 2 | 1 |
 | Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **108** | **84** | **62** | **33** | **34** |
+| **Total** | **109** | **83** | **63** | **32** | **34** |
 
 ## Validação e base
 
@@ -181,9 +181,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Chat: mundo, cena, guilda, privado, corneta | ✅ | | cota VIP de cornetas sem fonte (padrão 0) |
-| Chat: time e sala (canal 6) | ❌ | | recusado até existir time |
-| Corneta entre servidores (8623) | 🟡 | | só eco local |
+| Chat: mundo, cena, guilda, privado, corneta | 🧪 | | cota VIP de cornetas sem fonte (padrão 0); cena = mesmo mapa (sala ou mapa compartilhado) ou cidade do céu; a cidade (castelo) como uma cena só é inventada |
+| Chat: time e sala (canal 6) | ✅ | | time livre ou, sem time, a sala (`ChatHelper.checkTeamChatScene`); só membros online |
+| Corneta entre servidores (8623) | ✅ | | processo único: 4541 a todos os online |
 | Convite rápido de sala (8353) | 🟡 | | formato visto em 191924 (corneta sem 4500, uma tag `<a t="6">` por linha, leed 16 e 83); casamento recusado |
 | Amigos: pedir, aceitar, grupos, busca, lista negra, recomendados | ✅ | | |
 | Amizade: grau (friend_gp) | 🟡 | 🇹🇷 | grau 1 no inglês bate com 1 + gp/10; graus acima só no turco (dedução da tabela) |

@@ -16,6 +16,7 @@ from .. import events as gev
 from .. import rewards, rules, space
 from ..router import router
 from ..session import GameSession
+from .chat import scene_key
 
 S_AAS_CHANGE, S_VICE_PASSWORD, S_CHECK_SEND, S_NODE_STAND = 4172, 4696, 4420, 4208
 S_CHAT, S_ALERT, S_ITEMS = 83, 111, 115
@@ -254,4 +255,7 @@ async def node_state(s: GameSession, msg: pb.PlayerNodeStateMsg) -> None:
     if c is None or msg.mapId != c.map_id or c.node(msg.nodeId) is None:
         return
     state = pb.PlayerNodeStateMsg(mapId=c.map_id, nodeId=msg.nodeId, isStand=msg.isStand, armyId=s.player_id)
-    s.send(S_NODE_STAND, state)  # ponytail: sala de um jogador só; broadcast quando houver sala compartilhada
+    key = scene_key(s)  # todos no mesmo mapa (sala ou mapa compartilhado) veem quem saiu do nó
+    for o in s.ctx.online.sessions():
+        if o.campaign is not None and scene_key(o) == key:
+            o.send(S_NODE_STAND, state)

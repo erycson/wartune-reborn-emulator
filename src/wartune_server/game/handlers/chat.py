@@ -23,11 +23,18 @@ from ..session import GameSession
 
 S_CHAT, S_PRIVATE, S_PRIVATE_REPLY, S_USER_INFO = 83, 4231, 4236, 4256
 S_ITEMS, S_FREE_BUGLES, S_CROSS_BUGLE = 115, 4500, 4541
-BIG_BUGLE, GUILD, CURRENT, WORLD, CROSS = 1, 5, 8, 10, 13
+BIG_BUGLE, GUILD, TEAM, CURRENT, WORLD, CROSS = 1, 5, 6, 8, 10, 13
 MIN_GRADE, MAX_LEN = 6, 100  # ChatHelper / ChatInputViewII (cliente inglês: maxChars 100, checkLength)
 BUGLE = timedelta(seconds=2)
 # ponytail: o cliente não limita a guilda (ChatHelper); 1 s contra spam
-COOLDOWN = {GUILD: timedelta(seconds=1), CURRENT: timedelta(seconds=10), WORLD: BUGLE, BIG_BUGLE: BUGLE, CROSS: BUGLE}
+COOLDOWN = {
+    GUILD: timedelta(seconds=1),
+    TEAM: timedelta(seconds=1),
+    CURRENT: timedelta(seconds=10),
+    WORLD: BUGLE,
+    BIG_BUGLE: BUGLE,
+    CROSS: BUGLE,
+}
 PRIVATE_COOLDOWN = timedelta(seconds=1)  # IMFrame: 1 s entre mensagens (friends.im.IMFrame.command03)
 OFFLINE = -1  # 4236.result: "o jogador não está online"
 SMALL_BUGLE, BIG_BUGLE_ITEM, CROSS_BUGLE_ITEM = 208003, 208002, 208025  # ShopGoodsInfo.*_BUGLE_TEMP_ID
@@ -76,11 +83,38 @@ async def _say(s: GameSession, msg: pb.ChatChannelMsg, channel: int) -> None:
     out = _channel_msg(s, channel, text)
     if channel == GUILD:  # só os membros online da guilda (quem falou também)
         mine = s.ctx.guilds.of(s.player_id)
-        for o in guild.online_members(s.ctx, mine[0].id or 0) if mine is not None else []:
-            if not social.blocks(o, s.player_id):
-                o.send(S_CHAT, out)
-        return
-    _broadcast(s, S_CHAT, out)
+        targets = guild.online_members(s.ctx, mine[0].id or 0) if mine is not None else []
+    elif channel == TEAM:
+        targets = team_members(s)
+    else:
+        key = scene_key(s)
+        targets = [o for o in s.ctx.online.sessions() if scene_key(o) == key]
+    for o in targets:
+        if not social.blocks(o, s.player_id):
+            o.send(S_CHAT, out)
+
+
+def team_members(s: GameSession) -> list[GameSession]:
+    """Canal 6: o time livre (``FreedomTeam``) ou, sem time, a sala (``ChatHelper.checkTeamChatScene``); online."""
+    group = s.ctx.teams.of(s.player_id) or s.ctx.rooms.of(s.player_id)
+    ids = group.members if group is not None else []
+    return [o for i in ids if (o := s.ctx.online.get(i)) is not None]
+
+
+def scene_key(s: GameSession) -> tuple[object, ...]:
+    """Quem está na mesma cena: mapa compartilhado (chefe, terra secreta da guilda, guerra, campo, gancho), o mapa da
+    sala, a cidade do céu ou, fora de mapa, a cidade. Mapa sem sala nem compartilhamento é só do jogador.
+    TODO(inventado): a cidade (castelo) como uma cena só; o cliente deixa falar nela (``checkSceneType``)."""
+    c = s.campaign
+    if c is not None:
+        if c.fam:
+            mine = s.ctx.guilds.of(s.player_id)
+            return ("map", c.map_id, mine[0].id if mine is not None else -s.player_id)
+        if c.world_boss or c.gvg or c.is_warfield or c.hook:
+            return ("map", c.map_id)
+        room = s.ctx.rooms.of(s.player_id)
+        return ("map", c.map_id, ("sala", room.id) if room is not None else -s.player_id)
+    return ("céu",) if s.space_pos is not None else ("cidade",)
 
 
 def free_bugles(s: GameSession) -> int:
@@ -161,7 +195,8 @@ async def big_bugle(s: GameSession, msg: pb.ChatChannelMsg) -> None:
 
 @router.on(8623)
 async def cross_bugle(s: GameSession, msg: pb.CrossBigBugleMsg) -> None:
-    """Corneta entre servidores (item 208025) -> 4541. Sem entre-servidores: só este servidor."""
+    """Corneta entre servidores (item 208025) -> 4541 a todos os online: o servidor é um processo só (todos os
+    "servidores" do jogador estão aqui), então todo mundo que pode ouvir está em ``ctx.online``."""
     snap = s.snapshot
     assert snap is not None
     text = _text(s, msg.content, CROSS, COOLDOWN[CROSS])
@@ -178,11 +213,8 @@ async def cross_bugle(s: GameSession, msg: pb.CrossBigBugleMsg) -> None:
 
 @router.on(15005)
 async def channel_chat(s: GameSession, msg: pb.ChatChannelMsg) -> None:
-    """Canal da cena (8) e da guilda (5, só membros online). Time (6) fica recusado até existir.
-
-    ponytail: "cena" = todos online até existir o registro de cenas (cidade do céu).
-    """
-    if msg.channel not in (CURRENT, GUILD):
+    """Canal da cena (8, quem está na mesma ``scene_key``), da guilda (5) e do time/sala (6); só online."""
+    if msg.channel not in (CURRENT, GUILD, TEAM):
         s.log.info("canal de chat não suportado", canal=msg.channel)
         return
     await _say(s, msg, msg.channel)
