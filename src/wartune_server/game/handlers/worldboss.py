@@ -34,6 +34,7 @@ from ..builders.player import quest_update
 from ..campaign import NORMAL, CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
+from . import lottery
 from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, enter_quarry, map_sync, player_hero
 from .hangup import enter_room
 from .login import army, player_info
@@ -108,7 +109,7 @@ async def boss_state(s: GameSession, _: object) -> None:
     # fechada, o 462 que o cliente não escuta (corpo 38 00, igual em todas as capturas) e a guilda entre servidores
     # (4741 ícone 0, 4683 fechada, 4685 vazio): nenhum desses sistemas existe aqui
     s.send(S_GUILDWAR, pb.GuildMsg(param5=False))
-    s.send(S_LOTTERY, pb.LotteryMsg(isOpen=False))
+    s.send(S_LOTTERY, lottery.state_msg(s))  # aberta só com game_settings.lottery
     s.send(S_UNKNOWN_462, pb.SimplePropertyMsg(param7=False))
     s.send(S_CROSS_ICON, pb.SimplePropertyMsg(param1=0))
     s.send(S_CROSS_STATE, pb.GuildMsg(param5=False))

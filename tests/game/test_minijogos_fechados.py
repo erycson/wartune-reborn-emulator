@@ -13,6 +13,7 @@ from wartune_server.domain.models import PlayerSnapshot
 from wartune_server.game.handlers import slot as slot_mod
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services import ledger
 from wartune_server.services.clock import FakeClock
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
@@ -73,3 +74,49 @@ async def test_slot_draws_one_digit_a_day_restores_missed_day_and_pays_the_numbe
         info = await _slot(g, 3)
         assert (info.op, info.status) == (3, 2) and snap.character.gold == gold + 777
         assert (await _slot(g, 2)).op == 1  # resgatado: não sorteia mais
+
+
+# ---------------------------------------------------------------- loteria
+
+
+LOTTERY = {
+    "begin": "2026-10-20 05:00:00",
+    "end": "2026-10-23 05:00:00",
+    "onceNeedPoint": 100,
+    "dayMaxCount": 2,
+    "items": [[-100, 5000], [208009, 3]],
+    "weights": [0, 1],
+}
+
+
+async def _spend(g: Game, point: int) -> None:
+    session = g.server.online.get(g.user_id)
+    assert session is not None and session.snapshot is not None
+    c = session.snapshot.character
+    c.point += point
+    entry = ledger.spend(c, point, "teste", session.ctx.clock.now(), bound=False)
+    assert entry is not None
+    await session.ctx.characters.save(c, entry)
+
+
+async def test_lottery_turns_balens_spent_into_capped_daily_spins(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        g.client.send(8750)
+        assert [p.code for p in await g.idle()] == [4637]  # sem edição: só o fechado
+        _open(g, "lottery", LOTTERY)
+        await _spend(g, 350)  # 3 tentativas, mas o teto do dia é 2
+        g.client.send(8750)
+        got = await g.idle()
+        assert [p.code for p in got] == [4637, 4636, 4641, 4639]
+        info = pb.LotteryMsg.FromString(_last(got, 4636))
+        assert (info.payedPoint, info.dayAddCount, info.totalCount, info.leftCount) == (350, 2, 2, 2)
+        assert [i.tempId for i in pb.VipRouletteMsg.FromString(_last(got, 4641)).leftItem] == [-100, 208009]
+        for left in (1, 0):
+            g.client.send(8748)
+            res = pb.SimplePropertyMsg.FromString(_last(await g.idle(), 4642))
+            assert (res.param1, res.param2, res.param3) == (208009, left, 3)
+        g.client.send(8748)
+        assert pb.SimplePropertyMsg.FromString(_last(await g.idle(), 4642)).param1 == 0  # acabou
+        assert sum(i.count for i in _snap(g).items if i.template_id == 208009) == 6
+        g.client.send(8750)
+        assert "Maga obtained" in pb.LotteryMsg.FromString(_last(await g.idle(), 4639)).property3[0]

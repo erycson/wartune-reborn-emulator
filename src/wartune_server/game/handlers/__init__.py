@@ -25,6 +25,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     items,
     login,
     lords,
+    lottery,
     mail,
     mall,
     marriage,

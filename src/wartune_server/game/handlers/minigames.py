@@ -30,7 +30,7 @@ from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
-S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
+S_PRIVILEGE, S_CHARGE, S_CONSUM = 4543, 4745, 345
 S_BUGLE_REQ, S_BUGLE_REWARD = 4553, 4554
 S_QUIZ, S_RECOVER, S_SEEK = 4908, 4912, 4914  # a pesca (9507) está em handlers/fishing.py
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
@@ -665,12 +665,11 @@ async def rebate(s: GameSession, msg: pb.RebateOpMsg) -> None:
     _send(s, S_REBATE_USER, info)
 
 
-@router.on(8629, 8630, 8634, 8638, 8748, 9521, 9522)
+@router.on(8629, 8630, 8634, 8638, 9521, 9522)
 async def no_reply(s: GameSession, _: object) -> None:
     """Pedidos que o cliente só manda com a tela aberta, que aqui nunca abre: sem resposta.
-    História (8629/8630; nunca 4546), volta do jogador (8634; nunca 4550), pegar corneta (8638),
-    giro da loteria (8748) e dados da estrada dourada (9521/9522). O labirinto de gemas (9508..9517) é
-    ``handlers/gemmaze.py``."""
+    História (8629/8630; nunca 4546), volta do jogador (8634; nunca 4550), pegar corneta (8638) e dados
+    da estrada dourada (9521/9522). O labirinto de gemas (9508..9517) é ``handlers/gemmaze.py``."""
     s.log.debug("minigame fechado: pedido sem resposta")
 
 
@@ -687,12 +686,6 @@ async def privilege_360(s: GameSession, _: object) -> None:
     """Privilégio 360 (4543 vazio). O botão só aparece com ``isIn360Agent`` (plataforma 360): não há
     como ligar aqui, então a lista de resgatados fica vazia."""
     _send(s, S_PRIVILEGE, pb.PrivilegeMsg())
-
-
-@router.on(8750)
-async def lottery(s: GameSession, _: object) -> None:
-    """Loteria fechada (4637 isOpen falso). Sem tabela de prêmios nem janela no servidor."""
-    _send(s, S_LOTTERY, pb.LotteryMsg(isOpen=False))
 
 
 @router.on(8866)

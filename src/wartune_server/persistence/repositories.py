@@ -146,6 +146,14 @@ class SqlCharacterRepository(_Repo):
         )
         return int(await self._s.scalar(query) or 0)
 
+    async def spent(self, character_id: int, since: datetime, until: datetime) -> int:
+        """Balens (``point``, sem os vinculados) gastos entre as datas: a soma dos ``delta_point`` negativos."""
+        c: Any = CashLedger
+        query = select(func.coalesce(func.sum(-c.delta_point), 0)).where(
+            c.character_id == character_id, c.delta_point < 0, c.created_at >= since, c.created_at < until
+        )
+        return int(await self._s.scalar(query) or 0)
+
     async def offers_sold(self, server_id: int) -> dict[int, int]:
         """Unidades vendidas por oferta (``purchases`` ``source`` ``offer``) entre os personagens do servidor."""
         p: Any = Purchase
