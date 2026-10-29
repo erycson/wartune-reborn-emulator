@@ -510,7 +510,10 @@ def login_push(s: GameSession) -> None:
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
-    s.send(S_COUNT, pb.RewardCountUpdateRspMsg(rewardCount=0))  # ponytail: sem compra de vagas extras
+    # vagas além das 20 (OfferRewardManager: max = 20 + rewardCount): o cliente não tem tela nem pacote que compre
+    # vagas (nem do painel nem do anel, RingTaskManager só manda 8729-8732) e o pergaminho (SonType 213) gasta uma
+    # das 20 (PlayerBagCellClickMediator); tutorial_en #46 manda 0. Bloqueio real (sem pacote): fica 0.
+    s.send(S_COUNT, pb.RewardCountUpdateRspMsg(rewardCount=0))
     _send_ring(s, snap, now)
     task = _task(snap, now)
     msg = pb.RewardUpdatedRspMsg()

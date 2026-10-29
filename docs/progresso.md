@@ -30,7 +30,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Itens | 12 | 6 | 7 | 1 | 2 |
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
 | Chat e social | 5 | 4 | 2 | 1 | 1 |
-| Clã / Guilda | 10 | 2 | 7 | 2 | 1 |
+| Clã / Guilda | 10 | 1 | 8 | 2 | 1 |
 | Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **109** | **83** | **63** | **32** | **34** |
+| **Total** | **109** | **82** | **64** | **32** | **34** |
 
 ## Validação e base
 
@@ -202,7 +202,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Membros e informações | 🧪 | | matchWin/matchFailed somados dos membros (`guildwar:win`/`lose`, gravados no prêmio da guerra) |
 | Cargos e direitos | ✅ |  | direitos byte a byte no inglês (4137 de 171155, 215937, 231733), iguais ao turco |
 | Expulsar, sair, passar chefia, mudar cargo | ✅ | | |
-| Eleição do chefe | 🟡 | | só o voto; abrir/fechar pelo banco |
+| Eleição do chefe | 🧪 | | regras do `chairmanElection.help` (10 dias, 3 dias, 3 dias de voto) no relógio 20008; `votingState` 3 = votando (dedução), empate e texto do evento inventados |
 | Contribuição e ranking | ✅ | | |
 | Melhoria de prédios (1-5) | ✅ | | |
 | Habilidades (6-12) | 🧪 | | "Gold Production +N%" inventado (`castle.py:103`) |
@@ -380,7 +380,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Roda do destino | 🟡 | | tipos 2100/2200 nunca abrem |
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
-| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend): o 8298 abre a luta com o herói NPC do Para1 e conta na vitória (battleType e cena do mundo, inventados); texto do Daru inventado |
+| Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend): o 8298 abre a luta com o herói NPC do Para1 e conta na vitória (battleType e cena do mundo, inventados); texto do Daru inventado; vagas extras (4360 `rewardCount`) ficam 0: o cliente não tem pacote de compra |
 | Alquimia e alma (8321, 8467) | 🟡 | 🇹🇷 | troca no inglês (171155 #7827), 3 antes do 4372 nas 4 capturas novas; o oficial respondeu o 8320 no nível 10 e não no 11/12 (regra desconhecida); `point` diferente (o cliente não lê) |
 | Anúncios agendados | ✅ | | |
 | Estrada dourada (9520) | 🧪 | | tabuleiro de 36 casas do inglês (24/10 #2454, 27/10 #1354); sempre o mesmo tabuleiro (inventado) |

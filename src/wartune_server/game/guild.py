@@ -119,6 +119,7 @@ class Guilds:
     reserved: set[str] = field(default_factory=set)  # nomes sendo criados (entre a checagem e o save)
     invasions: dict[int, Any] = field(default_factory=dict)  # guilda -> ``fam.Invasion`` (Invasores do 7501)
     wars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``guildwar.War`` de hoje (as duas do par)
+    election_at: datetime | None = None  # última conferência das eleições (``handlers.guild.election.clock``)
 
     @classmethod
     async def load(cls, characters: CharacterService, server_id: int) -> Guilds:

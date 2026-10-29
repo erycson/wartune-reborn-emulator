@@ -2,18 +2,25 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from tests.game.harness import Game, logged_in
+from tests.game.test_guild import _create, _guild, _member
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import BagType, Item
+from wartune_server.game import guild as gd
 from wartune_server.game.campaign import CampaignMap
+from wartune_server.game.handlers import offer
+from wartune_server.game.handlers.guild import election
 from wartune_server.game.session import GameSession
 from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
 
 pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
+NOW = datetime(2026, 1, 1, 12, tzinfo=UTC)
 
 
 def _s(g: Game) -> GameSession:
@@ -82,3 +89,42 @@ async def test_4_saida_do_no_vai_a_quem_esta_na_mesma_sala(tmp_path: Path) -> No
         a.client.send(8301, pb.PlayerNodeStateMsg(mapId=1001, nodeId=1))
         assert any(p.code == 4208 for p in await b.idle())
         assert not any(p.code == 4208 for p in await c.idle())  # mesmo mapa, sem a sala
+
+
+async def test_9_vagas_extras_do_painel_ficam_zero_sem_pacote_de_compra(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as a:
+        await a.idle()
+        offer.login_push(_s(a))
+        [count] = [pb.RewardCountUpdateRspMsg.FromString(p.body) for p in await a.idle() if p.code == 4360]
+        assert count.rewardCount == 0  # o cliente mostra 20 + rewardCount (OfferRewardManager)
+
+
+async def test_6_eleicao_abre_com_o_chefe_sumido_conta_os_votos_e_fecha(tmp_path: Path) -> None:
+    clock = FakeClock(NOW)
+    async with logged_in(tmp_path, novice=19000, clock=clock) as a:
+        await _create(a)
+        b = await _member(a, "bruxa")
+        c = await _member(a, "corvo")
+        sb = _s(b)
+        guild, g = _guild(a), sb.ctx.guilds
+        a.client.writer.close()
+        for _ in range(40):
+            if sb.ctx.online.get(a.user_id) is None:
+                break
+            await b.idle(0.05)
+        old = clock.now() - timedelta(days=11)
+        g.logout_at[a.user_id] = old
+        profile = g.profiles[a.user_id]
+        profile.offline_at = profile.last_login_at = old
+        await election.clock(sb)
+        assert guild.voting_state == election.OPEN_VOTE and guild.voting_id == 1
+        sb.snapshot.character.consortia_offer = 100  # type: ignore[union-attr]
+        b.client.send(8481, pb.ConsortiaVotingReqMsg(votingUser=c.user_id))
+        assert pb.ConsortiaVotingRspMsg.FromString([p for p in await b.idle() if p.code == 4390][0].body).result
+        clock.advance(2 * 86400)
+        await election.clock(sb)
+        assert guild.voting_state == election.OPEN_VOTE  # ainda nos 3 dias
+        clock.advance(86400 + 60)
+        await election.clock(sb)
+        assert guild.voting_state == election.NO_VOTE and guild.chairman_id == c.user_id
+        assert g.members[c.user_id].duty_id == gd.CHAIRMAN and g.members[a.user_id].duty_id == gd.MEMBER

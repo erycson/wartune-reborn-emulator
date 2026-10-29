@@ -667,17 +667,21 @@ async def test_election_lists_candidates_and_my_vote_like_election_list_view(tmp
     async with logged_in(tmp_path, novice=19000) as a:
         await _create(a)
         b = await _member(a, "bruxa")
+        c = await _member(a, "corvo")
         guild = _guild(a)
         guild.voting_state, guild.voting_id = 3, 7
         _char(b).consortia_offer = 100
         b.client.send(8241)
         got = _one(await b.idle(), 4389, pb.ConsortiaVotingUsersMsg).info
-        assert [(u.userId, u.isVotingman, u.votingTime) for u in got] == [(a.user_id, True, 0), (b.user_id, False, 0)]
-        b.client.send(8481, pb.ConsortiaVotingReqMsg(votingUser=a.user_id))
+        # o chefe não é candidato; sem vice, os membros vistos nos últimos 3 dias (chairmanElection.help)
+        assert [(u.userId, u.isVotingman, u.votingTime) for u in got] == [(b.user_id, True, 0), (c.user_id, True, 0)]
+        b.client.send(8481, pb.ConsortiaVotingReqMsg(votingUser=a.user_id))  # o chefe não é candidato
+        assert not _one(await b.idle(), 4390, pb.ConsortiaVotingRspMsg).result
+        b.client.send(8481, pb.ConsortiaVotingReqMsg(votingUser=c.user_id))
         assert _one(await b.idle(), 4390, pb.ConsortiaVotingRspMsg).result
         b.client.send(8241)
         got = _one(await b.idle(), 4389, pb.ConsortiaVotingUsersMsg).info
-        assert [(u.userId, u.votingTime, u.votingData) for u in got] == [(a.user_id, 0, 1), (b.user_id, 1, 0)]
+        assert [(u.userId, u.votingTime, u.votingData) for u in got] == [(b.user_id, 1, 0), (c.user_id, 0, 1)]
 
 
 async def test_member_list_shows_the_vip_of_online_members(tmp_path: Path) -> None:

@@ -259,11 +259,13 @@ async def synchronized_time(s: GameSession, _: object) -> None:
         _announce(s, a)
     from .arena import push_match  # arena importa este módulo
     from .fam import push_state as push_fam  # fam importa este módulo
+    from .guild.election import clock as election_clock  # guild importa este módulo
     from .pet_defend import push_state as push_defend
     from .vehicle import push_state  # vehicle importa este módulo
 
     await boss_clock(s)
     await close_windows(s)
+    await election_clock(s)
     await field_clock(s)
     await push_fam(s)
     push_states(s)

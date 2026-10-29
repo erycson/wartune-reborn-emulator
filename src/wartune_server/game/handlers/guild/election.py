@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from ....domain import gameday
+from ....domain.models import Consortia, ConsortiaMember
 from ....protocol.messages import wartune_pb2 as pb
 from ... import guild as gd
 from ... import social
@@ -10,12 +13,92 @@ from ...builders import login as b
 from ...router import router
 from ...session import GameSession
 from .. import chat
-from .common import S_CHAT, S_VOTED, S_VOTERS, _can, _char, _mine, _profile, _push_info, _refuse, _text
+from .common import S_CHAT, S_VOTED, S_VOTERS, _can, _char, _event, _mine, _now, _profile, _push_info, _refuse, _text
 
 VOTE_OFFER = 100  # chairmanElection.help: "Players with a contribution of at least 100"
 VOTING = (3, 4)  # ConsortiaActivityPage: o "Impeach" só aparece com votingState 3 ou 4 (qual é "votando" é dedução)
+OPEN_VOTE, NO_VOTE = 3, 0
+# chairmanElection.help (cliente, igual no turco): chefe 10 dias offline abre; candidato offline há no máximo 3 dias;
+# a votação dura 3 dias
+CHAIRMAN_AWAY, CANDIDATE_SEEN, VOTE_DAYS = timedelta(days=10), timedelta(days=3), timedelta(days=3)
+CHECK_EVERY = timedelta(seconds=60)
 
 # ---- eleição do chefe ------------------------------------------------------------------------
+
+
+def _last_seen(s: GameSession, player_id: int) -> datetime | None:
+    """Agora para quem está online; senão a última saída ou entrada conhecida (sessão ou banco)."""
+    if s.ctx.online.get(player_id) is not None:
+        return _now(s)
+    c = s.ctx.guilds.profiles.get(player_id)
+    seen = [s.ctx.guilds.logout_at.get(player_id), *((c.offline_at, c.last_login_at) if c else ())]
+    return max((t for t in seen if t is not None), default=None)
+
+
+def candidates(s: GameSession, guild: Consortia, at: datetime) -> list[ConsortiaMember]:
+    """Os vice-chefes vistos nos últimos 3 dias; sem nenhum, o cargo abaixo, e assim por diante.
+    (dedução) a regra dos 3 dias vale também para os cargos de baixo (o texto só fala do vice)."""
+    others = [m for m in s.ctx.guilds.members_of(guild.id or 0) if m.duty_id != gd.CHAIRMAN]
+    for duty in sorted({m.duty_id for m in others}):
+        found = [
+            m for m in others
+            if m.duty_id == duty and (seen := _last_seen(s, m.character_id)) is not None and at - seen <= CANDIDATE_SEEN
+        ]  # fmt: skip
+        if found:
+            return found
+    return []
+
+
+async def _crown(s: GameSession, guild: Consortia, new: ConsortiaMember) -> None:
+    """O eleito vira chefe; o antigo vira membro (como o 5131). Fecha a votação."""
+    old = s.ctx.guilds.members.get(guild.chairman_id)
+    new.duty_id, guild.chairman_id = gd.CHAIRMAN, new.character_id
+    if old is not None:
+        old.duty_id = gd.MEMBER
+    guild.voting_state = NO_VOTE
+    who = _profile(s, new.character_id)
+    # TODO(inventado): o texto do evento (sem fonte no cliente/captura)
+    event = _event(s, guild, gd.EV_TRANSFER, "Guild Master elected:", (who.nickname if who else None) or "", "")
+    await s.ctx.characters.save(guild, new, *([old] if old else []), event)
+    _push_info(s, guild)
+
+
+async def clock(s: GameSession) -> None:
+    """No relógio (20008), no máximo uma vez por minuto no servidor: abre, conta e fecha as eleições.
+
+    Chefe offline há 10 dias: com um candidato só, ele vira chefe; com mais, abre a votação (``votingState`` 3, um
+    ``votingId`` novo). Votação aberta: o chefe voltando cancela; depois de 3 dias, o mais votado vira chefe (empate:
+    o primeiro da lista de candidatos, TODO(inventado)); sem candidato, a votação só fecha."""
+    g, now = s.ctx.guilds, _now(s)
+    if g.election_at is not None and now - g.election_at < CHECK_EVERY:
+        return
+    g.election_at = now
+    for guild in list(g.guilds.values()):
+        if guild.voting_state in VOTING:
+            at = guild.voting_at or now
+            if s.ctx.online.get(guild.chairman_id) is not None:
+                guild.voting_state = NO_VOTE
+                await s.ctx.characters.save(guild)
+                _push_info(s, guild)
+            elif now - at >= VOTE_DAYS:
+                cands = candidates(s, guild, at)
+                ballots = [x.voted_for for x in g.members_of(guild.id or 0) if x.voted_id == guild.voting_id]
+                if cands:
+                    await _crown(s, guild, max(cands, key=lambda m: ballots.count(m.character_id)))
+                else:
+                    guild.voting_state = NO_VOTE
+                    await s.ctx.characters.save(guild)
+            continue
+        seen = _last_seen(s, guild.chairman_id)
+        if seen is None or now - seen < CHAIRMAN_AWAY:
+            continue
+        cands = candidates(s, guild, now)
+        if len(cands) == 1:
+            await _crown(s, guild, cands[0])
+        elif cands:
+            guild.voting_state, guild.voting_id, guild.voting_at = OPEN_VOTE, guild.voting_id + 1, now
+            await s.ctx.characters.save(guild)
+            _push_info(s, guild)
 
 
 @router.on(8241)
@@ -26,8 +109,7 @@ async def voting_list(s: GameSession, _: object) -> None:
 
     Regra do oficial (cliente inglês ``chairmanElection.help``): chefe offline 10 dias abre a eleição;
     candidatos são os vice-chefes online nos últimos 3 dias (senão os outros cargos); um candidato só
-    vira chefe direto; vota quem tem 100+ de contribuição, por 3 dias; o chefe voltando encerra.
-    ponytail: só o voto está feito, ``voting_state`` ainda só muda pelo banco; abrir/fechar fica para depois.
+    vira chefe direto; vota quem tem 100+ de contribuição, por 3 dias; o chefe voltando encerra (``clock``).
     """
     mine = _mine(s)
     out = pb.ConsortiaVotingUsersMsg()
@@ -35,8 +117,9 @@ async def voting_list(s: GameSession, _: object) -> None:
         guild, me = mine
         members = s.ctx.guilds.members_of(guild.id or 0)
         voted = guild.voting_id > 0 and me.voted_id == guild.voting_id
+        cands = candidates(s, guild, guild.voting_at or _now(s)) if guild.voting_state in VOTING else []
         for m in members:
-            candidate = m.duty_id <= gd.ELDER
+            candidate = m in cands
             if not candidate and m is not me:
                 continue
             c = _profile(s, m.character_id)
@@ -60,7 +143,8 @@ async def vote(s: GameSession, msg: pb.ConsortiaVotingReqMsg) -> None:
     ok = mine is not None and mine[0].voting_state in VOTING and mine[1].voted_id != mine[0].voting_id
     c = _char(s)
     ok = ok and max(c.consortia_total_offer, c.consortia_offer) >= VOTE_OFFER  # ConsortiaModel.hasVotePermission
-    if not ok or mine is None or target is None or target.consortia_id != mine[0].id or target.duty_id > gd.ELDER:
+    ok = ok and mine is not None and target in candidates(s, mine[0], mine[0].voting_at or _now(s))
+    if not ok or mine is None or target is None:
         _refuse(s, 8481, "sem eleição, já votou, contribuição < 100 ou candidato inválido", alvo=msg.votingUser)
         s.send(S_VOTED, b.complete(pb.ConsortiaVotingRspMsg(result=False)))
         return
