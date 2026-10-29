@@ -25,6 +25,7 @@ from ..session import GameContext, GameSession
 from .army import count_quest
 from .campaign import ARMY_IDLE, map_sync, pvp_fight
 from .login import army
+from .player import _player
 from .stars import sns_msg
 
 S_WARFIELD_STATE, S_WAR_ORDER, S_WAR_INFO, S_WAR_REPORT = 4248, 4255, 4252, 4254
@@ -39,6 +40,7 @@ RESPAWN, RESPAWN_MS = (179, 75), 25000  # (visto #11098, #11101): o perdedor vol
 LOSS_PCT, WIN_HONOR = 15, 10  # (visto #9828 "You lost: 15 Points." com 100; #11130 "... and 10 Honor.")
 WIN_TEXT, LOSE_TEXT = "You received: {} Points and {} Honor.", "You lost: {} Points."
 IN_BATTLE = "Player is now in battle!"  # (visto #10962)
+DUMP_AMETHYST = 200  # (visto #2079, #2304) "Minecart dumped; you gained 200 Amethyst."
 S_MINE_ACTIVE = 4549  # GuildMsg.param5 (U_C_MINE_ACTIVE_STATE): BaseManager.__mineralHandler -> mineralIsOpen
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
 ENTER_QUEST = 44  # "Participate in a Battleground" (QuestCondictionInfos tipo 44, visto nos templates)
@@ -410,10 +412,14 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
         left = bf.PICKS_PER_CART - cart.picks
         if left > 0:
             s.send(S_ALERT, _chat(f"Collection complete. ({left} / {bf.PICKS_PER_CART}) collections remaining.", 7))
-        else:  # carrinho cheio: descarrega; o Amethyst não é creditado (não há moeda para ele; TODO)
+        else:  # carrinho cheio: descarrega e o Amethyst entra no ``playerInfo.mineral`` (rewards.AMETHYST)
             # TODO(visto): o texto veio com 200 (#2079, #2304) e com 100 (#2234); aqui vai sempre 200
             s.ctx.warfields.carts.pop(s.player_id, None)
-            s.send(S_CHAT, _chat("Minecart dumped; you gained 200 Amethyst.", 3))
+            snap = s.snapshot
+            assert snap is not None
+            await s.ctx.characters.save(rewards.add_amethyst(snap, DUMP_AMETHYST, s.ctx.clock.now()))
+            _player(s)
+            s.send(S_CHAT, _chat(f"Minecart dumped; you gained {DUMP_AMETHYST} Amethyst.", 3))
             s.send(S_MINE, _mine_msg(s))
         return
     found = _field(s)
@@ -538,9 +544,12 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
         new: list[Item] = []
         if rewards.can_grant(snap, ctx.templates, drops, now):
             new, _ = rewards.grant(snap, ctx.templates, drops)
+        # a honra do texto vai para o geste (a honra do jogador: Honor Certificate, NeedGeste da loja de honra)
+        snap.character.geste += bf.WIN_HONOR * insignia // bf.WIN_INSIGNIA
         await ctx.characters.save(snap.character, *new)
         if new:
             o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
+        _player(o)
         o.send(S_CHAT, _chat(bf.win_text(insignia)))  # o prêmio chega depois da saída (visto #16396)
         if won:  # "Obtain Victory in War Camp" (missão 818); TODO(inventado): a posição do 112
             await _quest(o, WIN_QUEST)

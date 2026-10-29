@@ -374,6 +374,7 @@ async def market_list(s: GameSession, msg: pb.MallItemViewReqMsg) -> None:
 
     async def op(uow: UnitOfWork, now: datetime) -> Reply:
         rows = await _market(uow, server, getattr(msg, "from"))
+        rows = _ordered(rows, lambda r: r, s.ctx.templates, msg.orderBy, msg.orderType)  # como o 8452/8457
         return Reply([(S_LIST_MARKET, _items_msg(rows, msg.page, msg.count))])
 
     await _transact(s, op)
@@ -571,7 +572,16 @@ async def cancel(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
         sylph = item.template_id == market.SYLPH
         pet = await uow.pets.get(item.object_id) if sylph else None
         free = bag.free_positions(snap, now)
-        stuck = (pet is None or roster_full(snap)) if sylph else not free
+        top = bag.max_count(templates, item.template_id)
+        # volta empilhando nas pilhas incompletas do mesmo item e vínculo (como o ``bag.add``); com validade, não
+        stacks = [
+            i
+            for i in sorted(bag.in_bag(snap), key=lambda i: i.pos)
+            if not sylph and not item.valid_date and not i.valid_date
+            and i.template_id == item.template_id and i.is_binds == item.is_binds and i.count < top
+        ]  # fmt: skip
+        room = sum(top - i.count for i in stacks)
+        stuck = (pet is None or roster_full(snap)) if sylph else not free and room < item.count
         if listing.bidder_id or stuck:  # com lance o anúncio já é de quem deu o lance
             return Reply([(S_CANCEL, pb.CanceltemRspMsg(result=CANCEL_FAIL, id=msg.id))])
         await uow.delete(listing)
@@ -583,10 +593,22 @@ async def cancel(s: GameSession, msg: pb.AuctionItemReqMsg) -> None:
             await uow.save(pet)
             back = (S_PETS, pets_msg(snap, templates, [pet]))
         else:
-            item.bag_type, item.object_id, item.pos = BagType.BAG, 0, free[0]
-            snap.items.append(item)
-            await uow.save(item)
-            back = (S_ITEMS, item_moved(BagType.BAG, 0, item.pos, item, s.player_id))
+            merged = []
+            for other in stacks:
+                use = min(top - other.count, item.count)
+                other.count, item.count = other.count + use, item.count - use
+                merged.append(other)
+                await uow.save(other)
+                if not item.count:
+                    break
+            if item.count:
+                item.bag_type, item.object_id, item.pos = BagType.BAG, 0, free[0]
+                snap.items.append(item)
+                await uow.save(item)
+                merged.append(item)
+            else:
+                await uow.delete(item)
+            back = (S_ITEMS, bag.moved(merged, s.player_id))
         return Reply([back, (S_CANCEL, pb.CanceltemRspMsg(result=OK, id=listing.id or 0))])
 
     await _transact(s, op)

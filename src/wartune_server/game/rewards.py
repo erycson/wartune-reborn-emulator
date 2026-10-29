@@ -8,17 +8,28 @@ numa ``save`` só, junto com o que foi consumido.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 
-from ..domain.models import BagType, Item, PlayerSnapshot
+from ..domain.models import BagType, EventState, Item, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import bag, rules
+from . import events as ev
 from .builders.player import item_moved
 
 # TemplateId < 0 (-600 Kyanite: os cristais do castelo)
 CURRENCIES = {-100: "gold", -300: "strategy", -400: "point", -500: "gift_token", -600: "crystals"}
 EXP = -700  # ItemTempInfo -700 "EXP": soma no jogador (rules.add_gp)
+# ItemTempInfo -200 "Amethyst": o ``playerInfo.mineral`` do cliente (PlayerMsg.mineScore, PlayerManager), pago na
+# loja de Amethyst (ShopType 11, ``MineScore``); guardado no event_state ``AMETHYST_KEY`` (value)
+AMETHYST, AMETHYST_KEY = -200, "mine_score"
+
+
+def add_amethyst(snap: PlayerSnapshot, count: int, now: datetime) -> EventState:
+    st = ev.state(snap, AMETHYST_KEY, now)
+    st.value, st.updated_at = st.value + count, now
+    return st
+
 
 Drop = tuple[int, int]  # (TemplateId, quantidade)
 
@@ -31,7 +42,9 @@ def can_grant(
 
     ``freed``: espaços que a mesma operação libera (ex. a caixa que está sendo aberta).
     """
-    known = all(t in CURRENCIES or t == EXP or (t > 0 and templates.get("ItemTempInfos", t)) for t, _ in drops)
+    known = all(
+        t in CURRENCIES or t in (EXP, AMETHYST) or (t > 0 and templates.get("ItemTempInfos", t)) for t, _ in drops
+    )
     goods = sum(t > 0 for t, _ in drops)
     return known and all(n > 0 for _, n in drops) and goods <= len(bag.free_positions(snap, now)) + freed
 
@@ -72,6 +85,8 @@ def grant(
             setattr(c, field, getattr(c, field) + count)
         elif template_id == EXP:
             rules.add_gp(snap, templates, count)
+        elif template_id == AMETHYST:
+            add_amethyst(snap, count, datetime.now(UTC))  # só o updated_at; ``owners`` grava a linha
         else:
             item = Item(c.id or 0, template_id, count=count)
             item.random_skills = bag.roll_random_skills(templates, template_id)
@@ -84,7 +99,7 @@ def grant(
 def owners(snap: PlayerSnapshot) -> list[object]:
     """O que um ``grant`` pode alterar além dos itens novos: personagem, líder e tropas (EXP sobe nível e completa o
     exército, ``rules.top_up_army``)."""
-    return [e for e in (snap.character, snap.leader, *snap.pawns) if e is not None]
+    return [e for e in (snap.character, snap.leader, *snap.pawns, ev.peek(snap, AMETHYST_KEY)) if e is not None]
 
 
 def items_msg(items: Sequence[Item], player_id: int) -> pb.ItemMovedListMsg:
@@ -98,7 +113,8 @@ def items_msg(items: Sequence[Item], player_id: int) -> pb.ItemMovedListMsg:
 def take_one(snap: PlayerSnapshot, template_id: int) -> tuple[Item, bool] | None:
     """Consome uma unidade do item ``template_id`` da mochila. Devolve (item, apagado?): grave o item
     ou passe-o em ``delete=`` na mesma ``save`` da recompensa. ``None`` se não tiver."""
-    item = next((i for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id), None)
+    held = [i for i in snap.items if i.bag_type == BagType.BAG and i.template_id == template_id]
+    item = min(held, key=lambda i: (not i.is_binds, i.pos), default=None)  # a ordem do ``bag.take``
     if item is None:
         return None
     if item.count > 1:

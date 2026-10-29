@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from datetime import datetime, timedelta
 
 from google.protobuf.message import Message
@@ -458,7 +459,7 @@ async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
     assert snap is not None
     templates, now = s.ctx.templates, s.ctx.clock.now()
     if box.template_id not in GEM_BOX_LEVELS:
-        return False
+        return await _open_described(s, box, row, n)
     low, high = GEM_BOX_LEVELS[box.template_id]
     stones: dict[int, int] = {}
     for _ in range(n):
@@ -479,6 +480,97 @@ async def _open_gem_box(s: GameSession, box: Item, row: Row, n: int) -> bool:
 
     events.items_gained(s)  # (só turco: lvl1_degerli_tas_sandigi) 4476, 4426 e os 4484 depois do 115 da pedra
     text = "Received: " + ", ".join(f"{bag.name(templates, tid)} x{count}" for tid, count in stones.items())
+    send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
+    _player(s)
+    send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+    return True
+
+
+_NAMES: dict[int, dict[str, int]] = {}  # id(templates) -> nome normalizado -> TemplateId (o menor)
+_FIXED = re.compile(r"\b(?:Contents|Contains|containing):\s*", re.I)
+_ONE_OF = re.compile(r"one of the following(?: items)?:\s*", re.I)
+_MAYBE = re.compile(r"chance|may contain|random", re.I)
+_TOKEN = re.compile(r"^(?:(\d[\d,]*) (.+)|(.+?) ?[x×\*] ?(\d[\d,]*)|(.+))$")  # sem número: 1
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[.\s]+", " ", name).strip().lower()
+
+
+def _named(s: GameSession, name: str) -> int | None:
+    index = _NAMES.get(id(s.ctx.templates))
+    if index is None:
+        index = {}
+        for r in sorted(s.ctx.templates.rows("ItemTempInfos"), key=lambda r: abs(int(r["TemplateId"]))):
+            index.setdefault(_norm(r.get("TemplateName", "")), int(r["TemplateId"]))
+        _NAMES[id(s.ctx.templates)] = index
+    key = _norm(name)  # plural/singular: "Runestones", "Crypt Token" (o nome é "Crypt Tokens")
+    return index.get(key, index.get(key[:-1] if key.endswith("s") else key + "s"))
+
+
+def box_contents(s: GameSession, description: str) -> tuple[list[tuple[int, int]], bool] | None:
+    """O conteúdo de uma caixa 206 pela descrição inglesa (``ItemTempInfos.Description``): "Contents: 300,000 Gold,
+    Bullhorn (Large) x10, ..." (tudo) ou "one of the following: 10000 Gold, 2000 Daru, ..." (um, ``True``). Tudo ou
+    nada: um nome que não bate com um ``TemplateName`` (ou texto com "chance"/"May contain" fora da lista de um)
+    recusa a caixa (None)."""
+    one = _ONE_OF.search(description)
+    fixed = _FIXED.search(description)
+    if one is None and (fixed is None or _MAYBE.search(description)):
+        return None
+    start = (one or fixed).end()  # type: ignore[union-attr]
+    body = re.split(r"\.(?=\s+[A-Z]|\s*$)|\bUnlocks\b", description[start:])[0]  # "Lvl. 3" não fecha a frase
+    body = re.sub(r"([x×]\s?\d(?:[\d,]*\d)?)\s+(?=[A-Z\[])", r"\1, ", body)  # "Shard x5 Gold x100000" sem vírgula
+    goods: list[tuple[int, int]] = []
+    for part in re.split(r",(?!\d{3})\s*|\s+or\s+", body.strip().rstrip(".")):
+        m = _TOKEN.match(part.strip())
+        if m is None:
+            return None
+        count, name = (m[1], m[2]) if m[1] else (m[4], m[3]) if m[4] else ("1", m[5])
+        tid = _named(s, name)
+        if tid is None or (tid < 0 and tid not in CURRENCIES and tid != rewards.AMETHYST):
+            return None
+        goods.append((tid, int(count.replace(",", ""))))
+    return (goods, one is not None) if goods else None
+
+
+async def _open_described(s: GameSession, box: Item, row: Row, n: int) -> bool:
+    """Caixa 206 sem tabela de drop (Property1 = o próprio id): o conteúdo vem da descrição (``box_contents``).
+    "one of the following": TODO(inventado) sorteio uniforme entre as opções (a descrição não dá chance). Mochila
+    cheia: recusa com o aviso do pacote 298 (visto 215937 #585)."""
+    snap = s.snapshot
+    assert snap is not None
+    templates, now, c = s.ctx.templates, s.ctx.clock.now(), snap.character
+    parsed = box_contents(s, row.get("Description", ""))
+    if parsed is None:
+        return False
+    options, one = parsed
+    drops: dict[int, int] = {}
+    for _ in range(n):
+        for tid, count in [random.choice(options)] if one else options:
+            drops[tid] = drops.get(tid, 0) + count
+    goods = [(t, k) for t, k in drops.items() if t > 0]
+    if not bag.fits(snap, templates, goods, now):
+        send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Inventory full, unable to retrieve item."))
+        return False
+    changed, gone = _consume(snap, box, n)  # antes de qualquer await
+    got = [i for t, k in goods for i in bag.add(snap, templates, t, k, now)]
+    point, gift = drops.pop(-400, 0), drops.pop(-500, 0)
+    rewards.grant(snap, templates, [(t, k) for t, k in drops.items() if t < 0])
+    ledger = cash.change(c, point, gift, "item", f"5006:{box.template_id}", now) if point or gift else None
+    extra = [ledger] if ledger else []
+    await s.ctx.characters.save(*rewards.owners(snap), *changed, *got, *extra, delete=tuple(gone))
+
+    _send_items(s, changed, gone)
+    if got:
+        send(s, S_ITEMS, bag.moved(got, s.player_id))
+        from . import events  # events importa login, que importa este módulo
+
+        events.items_gained(s)
+    if ledger:
+        balens_changed(s)
+    if -100 in drops:
+        castle_yield(s)
+    text = rewards.text(templates, [(t, k) for t, k in [*drops.items(), (-400, point), (-500, gift)] if k])
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=text))
     _player(s)
     send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))

@@ -24,7 +24,7 @@ from ..router import router
 from ..session import GameSession
 from . import offer
 from .player import _army, _player
-from .shop import alert, send
+from .shop import alert, price, send
 
 S_ITEMS, S_STRENGTHEN, S_COMPOSE = 115, 86, 89
 S_REFRESH, S_REPLACE, S_RESOLVE, S_REFRESH_PROPERTY = 4258, 4259, 4260, 4368
@@ -43,6 +43,7 @@ MAX_COMPOSE = 999
 # ComposeTempInfo.Types do avanço: 5 equipamento do herói (StoreModel.updateEquipList, composeType 4), 10 equipamento
 # do mascote (PetEquipUpgradeView, getEquipUpdateComposeTempleteByMainMaterialId)
 HERO_UPGRADE, PET_UPGRADE = "5", "10"
+GEM_RECIPE = "3"  # ComposeTempInfos.Types das pedras: o único com "Compose Now" (autoBuy)
 RESOLVE_GOLD = 1000  # ResolveView.updateMateView: 1.000 de ouro por equipamento
 # pedras de refino pelo Profile: ResolveView.mateMaterial (o que a decomposição dá) e RefreshView.updateMateMaterial
 # (o que o refino gasta), a mesma tabela
@@ -306,7 +307,7 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
         await _upgrade(s, recipe, msg)
         return
     n = msg.composeNum
-    if recipe is None or not 1 <= n <= MAX_COMPOSE or msg.autoBuy:  # ponytail: autoBuy (comprar o que falta) não
+    if recipe is None or not 1 <= n <= MAX_COMPOSE or (msg.autoBuy and recipe.get("Types") != GEM_RECIPE):
         s.log.info("5153 recusado", pedido=str(msg))
         return
     need = [
@@ -314,6 +315,13 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
         for i in range(1, 5)
         if int(recipe.get(f"Material{i}") or 0) > 0
     ]
+    cost: tuple[str, int] | None = None
+    if msg.autoBuy:
+        planned = _auto_buy_plan(s, recipe, n)
+        if planned is None:
+            s.log.info("5153 recusado: autoBuy sem preço", pedido=str(msg))
+            return
+        need, cost = planned
     product, made = int(recipe["NewMaterial"]), int(recipe.get("Counts") or 1) * n
     gold = int(recipe.get("NeedGold") or 0) * n
     has = all(bag.count_of(snap, tid) >= count for tid, count in need)
@@ -325,6 +333,13 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     if not bag.fits(snap, templates, [(product, made)], now):
         s.log.info("5153 recusado: mochila cheia", pedido=str(msg))
         return
+    ledger = None
+    if cost is not None and cost[1] > 0:
+        column, total = cost
+        ledger = cash.pay(c, total, msg.payType, "compose", f"5153:{recipe['Id']}", now, gift_ok=column == "GiftToken")
+        if ledger is None:
+            s.log.info("5153 recusado: Balens", pedido=str(msg))
+            return
     changed: list[Item] = []
     gone: list[Item] = []
     for tid, count in need:
@@ -340,8 +355,10 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     product_row = templates.get("ItemTempInfos", product)
     gem = product_row is not None and product_row.get("SonType") == GEM
     quests = rules.quest_event(snap, templates, GEM_COMPOSE, 0, 1) if gem else []
-    await s.ctx.characters.save(c, *changed, *got, *quests, delete=tuple(gone))
+    await s.ctx.characters.save(c, *changed, *got, *quests, *([ledger] if ledger else []), delete=tuple(gone))
 
+    if ledger is not None:
+        _player(s)
     # (visto) oficial_20261023-231733-1 #1493-#1511: 115, 109, 109 (iguais), 115, 4476, 4426, 4484 ×9, 111, 112, 89, 83
     send(s, S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
     castle_yield(s)
@@ -355,6 +372,38 @@ async def compose(s: GameSession, msg: pb.StoreReqMsg) -> None:
     send(s, S_COMPOSE, pb.StoreRspMsg(composeResult=False, composeTemplateId=-1))  # como o oficial
     send(s, 83, pb.ChatChannelMsg(channel=3, encodeMsg=text))
     await offer.progress(s, offer.SYNTH)  # "Synthesize an Item": uma receita do 5153
+
+
+def _auto_buy_plan(s: GameSession, recipe: Row, n: int) -> tuple[list[tuple[int, int]], tuple[str, int]] | None:
+    """ "Compose Now" das pedras (``ComposeMatetialView.needCountGrm``, só ``Types`` 3): desce a cadeia de receitas
+    usando o que há de cada nível; no primeiro nível feito da pedra de baixo (sem receita), o que falta depois de
+    compor as de baixo é comprado pelo preço da primeira linha da loja com esse ``ItemId``
+    (``getShopTempInfoByItemId``) e as compostas sobem até a pedra pedida. Devolve (o que sai da mochila, (coluna,
+    total)); None sem preço. (dedução) o ouro dos níveis de baixo não é cobrado: o cliente só confere o da receita
+    pedida; o desconto do ``getDiscountIntimeBuy`` não existe aqui."""
+    snap = s.snapshot
+    assert snap is not None
+    templates = s.ctx.templates
+    use: dict[int, int] = {}
+    per = int(recipe["Count1"])
+    tid, k, product = int(recipe["Material1"]), per * n, int(recipe["NewMaterial"])
+    for _ in range(11):  # o cliente desce no máximo 11 níveis
+        take = min(k, bag.count_of(snap, tid) - use.get(tid, 0))
+        use[tid] = use.get(tid, 0) + take
+        if take == k:
+            return [(t, c) for t, c in use.items() if c], ("Point", 0)
+        below = next(templates.find("ComposeTempInfos", NewMaterial=str(tid), Types=GEM_RECIPE), None)
+        if below is None:  # tid é a pedra de baixo: compra ``product`` (um nível acima) no lugar do que falta
+            made = take // per
+            use[tid] -= take - made * per  # as que não fecham uma receita ficam
+            short = k // per - made
+            row = min(templates.find("ShopTempInfos", ItemId=str(product)), key=lambda r: int(r["Id"]), default=None)
+            cost = price(row) if row is not None else None
+            if cost is None or cost[0] not in ("Point", "GiftToken"):
+                return None
+            return [(t, c) for t, c in use.items() if c], (cost[0], cost[1] * short)
+        product, tid, k, per = tid, int(below["Material1"]), int(below["Count1"]) * (k - take), int(below["Count1"])
+    return None
 
 
 def _upgrade_piece(s: GameSession, recipe: Row) -> Item | None:

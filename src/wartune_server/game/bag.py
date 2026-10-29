@@ -291,11 +291,12 @@ def side_add(snap: PlayerSnapshot, templates: GameTemplates, tid: int, count: in
 def take(
     snap: PlayerSnapshot, template_id: int, count: int, binds: bool | None = None
 ) -> tuple[list[Item], list[Item]]:
-    """Consome ``count`` das pilhas da mochila (as menores primeiro); ``binds`` só das de esse vínculo.
-    Devolve (alterados, apagados)."""
+    """Consome ``count`` das pilhas da mochila: vinculadas primeiro, depois pela posição (cliente:
+    ``sortOn(["isBinds","pos"],[DESCENDING,NUMERIC])`` em PetLearnSkillView, e ``isBinds`` DESCENDING no cartão de
+    nome, InformationView); ``binds`` só das de esse vínculo. Devolve (alterados, apagados)."""
     changed, gone = [], []
     held = (i for i in in_bag(snap) if i.template_id == template_id and binds in (None, i.is_binds))
-    for item in sorted(held, key=lambda i: (i.count, i.pos)):
+    for item in sorted(held, key=lambda i: (not i.is_binds, i.pos)):
         if count <= 0:
             break
         use = min(item.count, count)

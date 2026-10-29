@@ -16,17 +16,29 @@ from typing import Any
 from google.protobuf.message import Message
 
 from ...domain import gameday
-from ...domain.models import CashLedger, Character, Item, Mail, MysteryShop, PlayerSnapshot, Purchase, ShopBuy
+from ...domain.models import (
+    CashLedger,
+    Character,
+    EventState,
+    Item,
+    Mail,
+    MysteryShop,
+    PlayerSnapshot,
+    Purchase,
+    ShopBuy,
+)
 from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
 from ...templates.repository import Row
 from .. import bag, rules
+from .. import events as ev
 from ..builders import login as b
 from ..castle import castle_yield
 from ..mail import MAX_ANNEXES
 from ..mail import notify as notify_mail
 from ..mail import stage as stage_mail
+from ..rewards import AMETHYST_KEY
 from ..router import router
 from ..session import GameSession
 from .guild import shop_buy as guild_shop_buy
@@ -56,7 +68,14 @@ MAX_COUNT = 999
 def price(row: Row) -> tuple[str, int] | None:
     """(coluna, preço unitário) como ``ShopGoodsInfo.setPrice``; None = moeda que não existe aqui."""
     # pontuações de outros sistemas (Score); 7 = troca por pontos da misteriosa (MysteryShopFrame página 2): a linha
-    # pode ter GiftToken, mas o Score também é cobrado, e quanto se ganha de ponto por compra não tem fonte
+    # pode ter GiftToken, mas o Score também é cobrado, e quanto se ganha de ponto por compra não tem fonte.
+    # 8 (selos, payType 1001-1006) e 15 (1007): Score unidades do item NeedItem (essência, Sylph Crystalloid).
+    # 13 (CrossGuildScore): nenhuma linha nos templates. 20 (payType 16): eternalCrystal do PlayerCurrencyManager,
+    # moeda dos Senhores em casal (fechado): bloqueio real
+    if row.get("ShopType") in ("8", "15") and int(row.get("NeedItem") or 0) > 0:
+        return f"Item{row['NeedItem']}", int(row.get("Score") or 0)
+    if int(row.get("MineScore") or 0) > 0:  # loja de Amethyst (MineralShopItem: playerInfo.mineral, 5154)
+        return "MineScore", int(row["MineScore"])
     if row.get("ShopType") in ("7", "8", "15", "13", "20"):
         return None
     return next(((k, int(row[k])) for k in PRICE_COLUMNS if int(row.get(k) or 0) > 0), None)
@@ -70,6 +89,7 @@ class Charge:
     gold: bool = False
     changed: list[Item] = field(default_factory=list)
     gone: list[Item] = field(default_factory=list)
+    state: EventState | None = None  # Amethyst (``rewards.AMETHYST_KEY``)
 
 
 def binds(column: str) -> bool:
@@ -90,8 +110,14 @@ def charge(snap: PlayerSnapshot, column: str, total: int, pay_type: int, ref: st
             return None
         c.gold -= total
         return Charge(gold=True)
-    if column in CURRENCY_ITEMS:
-        tid = CURRENCY_ITEMS[column]
+    if column == "MineScore":
+        st = ev.state(snap, AMETHYST_KEY, now)
+        if st.value < total:
+            return None
+        st.value, st.updated_at = st.value - total, now
+        return Charge(state=st)
+    if column in CURRENCY_ITEMS or column.startswith("Item"):
+        tid = CURRENCY_ITEMS.get(column) or int(column[4:])
         if bag.count_of(snap, tid) < total:
             return None
         changed, gone = bag.take(snap, tid, total)
@@ -235,7 +261,7 @@ async def receiver_of(s: GameSession, receive_id: int) -> int | None:
 
 
 def send_charge(s: GameSession, paid: Charge) -> None:
-    if paid.ledger is not None:
+    if paid.ledger is not None or paid.state is not None:
         _player(s)
     if paid.gold:
         castle_yield(s)
@@ -277,7 +303,7 @@ async def buy(s: GameSession, info: pb.BuyInfo, pay_type: int) -> int:
     tid = int(row["ItemId"])
     got, letters = place(s, snap, receiver, [(tid, info.count)], now, valid_minutes(row), binds(column))
     rec = count_buy(snap, info.goodId, info.count, now)
-    extra = [paid.ledger] if paid.ledger else []
+    extra: list[object] = [e for e in (paid.ledger, paid.state) if e is not None]
     bought = purchase(snap, "shop", info.goodId, tid, info.count, column, unit * info.count, now)
     await save_with_mail(s, letters, snap.character, *paid.changed, *got, rec, *extra, bought, delete=tuple(paid.gone))
 
