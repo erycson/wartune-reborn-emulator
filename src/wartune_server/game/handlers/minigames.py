@@ -25,13 +25,13 @@ from ..builders import login as b
 from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
-from . import gemmaze, gold_tree
+from . import gemmaze, gold_tree, slot
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
 S_REBATE_USER = 4463
 S_LOTTERY, S_PRIVILEGE, S_CHARGE, S_CONSUM = 4637, 4543, 4745, 345
-S_BUGLE_REQ, S_BUGLE_REWARD, S_SLOT = 4553, 4554, 4901
+S_BUGLE_REQ, S_BUGLE_REWARD = 4553, 4554
 S_QUIZ, S_RECOVER, S_SEEK = 4908, 4912, 4914  # a pesca (9507) está em handlers/fishing.py
 S_GOLDEN_CLOSE, S_GOLDEN, S_LEAD, S_ICON = 300, 4933, 4936, 4980
 # (visto) 1026-225632-1 #2454: 36 casas (itemID, count); -1 = casa vazia
@@ -314,6 +314,7 @@ def login_push(s: GameSession) -> None:
     #88 e 364 #102, sem pedido; vazios: o servidor não tem as edições) e minério, super assinatura e cadeiras fechados
     (190, 4590, 414: #109, #110, #112)."""
     gemmaze.login_push(s)
+    slot.login_push(s)
     send_rebate(s)
     snap = s.snapshot
     assert snap is not None
@@ -711,12 +712,6 @@ async def new_year_box(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
     """Caixa de ano novo fora do evento: (visto) oficial_20261023-215937-1 #751, #973, #1189, #1300 (``param1`` 3,
     ao entrar e sair do castelo) sem resposta nenhuma; o 4811 (nós coletados) fica para quando houver o evento."""
     s.log.info("8994 sem evento de ano novo", param1=msg.param1)
-
-
-@router.on(9500)
-async def slot(s: GameSession, _: object) -> None:
-    """Caça-níquel fechado (4901 open falso): o ícone some e o evento não dispara."""
-    _send(s, S_SLOT, pb.SlotActiveMsg(open=False, op=0))
 
 
 @router.on(9501)

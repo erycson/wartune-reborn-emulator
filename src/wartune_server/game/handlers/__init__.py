@@ -37,6 +37,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     room,
     shop,
     singlepass,
+    slot,
     space,
     stars,
     systems,
