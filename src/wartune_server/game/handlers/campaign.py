@@ -567,7 +567,7 @@ def player_hero(
     elif not camp and c is not None and c.is_warfield:
         camp = systems.CAMP_WARFIELD
     if camp:
-        cards = systems.camp_stats(snap, s.ctx.templates, camp)
+        cards = systems.camp_stats(snap, s.ctx.templates, camp, s.ctx.world.settings.get("powcard_suite_slots"))
         total.update({k: int(total.get(k, 0)) + v for k, v in cards.items() if k != "Live"})
         live, hp = live + cards.get("Live", 0), hp + cards.get("Live", 0)
     pcts = buffs.percent_stats(snap, s.ctx.templates, now)
