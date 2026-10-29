@@ -39,6 +39,8 @@ DEFAULTS: dict[str, Any] = {
     "field_streak_stop": 4,
     "field_respawn_period": 30,
     "field_move_speed": 10,
+    # 0143: fator da velocidade de quem carrega minério
+    "field_carry_speed": 0.5,
 }
 
 

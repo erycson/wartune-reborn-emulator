@@ -677,6 +677,8 @@ def _watch_path(s: GameSession, field: bf.Field, started: float) -> None:
     if mark.path_at != started or s.campaign is None or not s.campaign.is_warfield:
         return
     speed = float(taxas.get(s.ctx.world.settings, "field_move_speed"))
+    if mark.carry:  # ENTERED_TEXT (visto #9958): "Movement speed is now decreased by 50%."
+        speed *= float(taxas.get(s.ctx.world.settings, "field_carry_speed"))
     elapsed = time.monotonic() - started
     pos = bf.position_at(mark.path, elapsed, speed)
     if pos is None:

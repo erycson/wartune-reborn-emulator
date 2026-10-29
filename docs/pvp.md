@@ -282,7 +282,7 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 1214
   4 dominating, 5-6 unstoppable, 7 god, 8+ Grimm Reaper) e "has put a stop to X's domination!" (sequência >=
   `field_streak_stop`). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!").
 - **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141) da posição real (o trecho do
-  5124 andado a `taxas.field_move_speed` casas/s, 0142) persegue: 4105, 4494,
+  5124 andado a `taxas.field_move_speed` casas/s, 0142; metade carregando minério, `field_carry_speed` 0143, visto #9958) persegue: 4105, 4494,
   128 nodeState 4, 157 tipo 32; na derrota 4104, 4103, 4122 de volta ao ponto, 4175 morto, 128 nodeState 1, 4494,
   4269 e "You lost: 150 Points." (`taxas.field_guardian_loss`). Vitória não vista (*inventado*: cai, nodeState 8).
 - **Fim** (StopTime): 4248 state 2, 83, 4254 (`oneTeamId` = vencedor, como o cliente lê em
