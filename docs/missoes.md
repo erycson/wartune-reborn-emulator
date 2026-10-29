@@ -155,27 +155,27 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 7 | Occupy Gold Mines | 2006 / 2 | 2 (60, 282) | `checkWilanCount` | sim | outer_city.py:266 quest_event OCCUPY (soma) | — | outra equipe |
 | 8 | Plunder a City | 0 / 1; 0 / 2; 1 / 1 | 3 (100, 411, 765) | `checkCount` | parcial | outer_city: `_castle_over` (handlers/outer_city.py), vitória contra o castelo-robô (Para1 1) | só o castelo-robô: PvP contra castelo de jogador segue sem alvo (8488). 765 precisa de PvP acima de 17 níveis. 411 presa pela 410. 100 fecha pelo robô, que conta pelo dado (seção *Tipo 8*). 765 é diária, não re-aceita (rules.py:282) e exige guilda (IsLeague). Ouro saqueado sem fonte. | eu |
 | 10 | Upgrade Lancers | 1 / 3; 3 / 5 | 2 (101, 764) | `checkPawnGrades` | sim | army.py:178 quest_event PAWN_LEVEL (maior valor) | — | outra equipe |
-| 12 | Speed Up the Building Construction Cooldown | 1 / 1; 1 / 3; 1 / 7 | 3 (111, 112, 113) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 12 | Speed Up the Building Construction Cooldown | 1 / 1; 1 / 3; 1 / 7 | 3 (111, 112, 113) | `checkCount` | sim | castle.py ACCELERATE (aceleração de construção) | — | eu |
 | 14 | Gain passage through the Orc Plains | 1005 / 1; 1002 / 1; 1001 / 1 | 39 (21, 70, 120, 130, 250, 350, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`, `_map_finished`); rules.quest_event (CAMPAIGN_CONDITION) | só a campanha 1001 tem nós no servidor. As outras 38 missões pedem campanhas 1002+ ou 9000+ (lista abaixo) | eu |
-| 16 | Participate in an Arena Challenge | 1 / 3; 1 / 5 | 2 (421, 422) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 17 | Enchant Weapon/Armor to Level 3 | 2 / 1 | 1 (121) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 18 | Socket a Gem | 1 / 1 | 1 (281) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 19 | Synthesize a Gem | 0 / 1 | 1 (311) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 16 | Participate in an Arena Challenge | 1 / 3; 1 / 5 | 2 (421, 422) | `checkCount` | não | — | TODO(16) em rules.py: a luta da arena em grupo não existe; viverá após room.start_matching (sala PvP, 5039), com Para1 1 | eu |
+| 17 | Enchant Weapon/Armor to Level 3 | 2 / 1 | 1 (121) | `checkCount` | sim | forge.py STRENGTHEN (5150), grau > Para1 (MIN_CONDITIONS) | — | eu |
+| 18 | Socket a Gem | 1 / 1 | 1 (281) | `checkCount` | sim | forge.py GEM_INLAY (5151) | — | eu |
+| 19 | Synthesize a Gem | 0 / 1 | 1 (311) | `checkCount` | sim | forge.py GEM_COMPOSE (5153) | — | eu |
 | 20 | Energize a Friend's Tree of Ancients | 0 / 2; 1 / 2 | 4 (22, 260, 261, 271) | `checkCount` | sim | handlers/farm.py (15017) | Para1 exato: 1 a própria árvore, 0 a de amigo | castelo.md |
-| 21 | Make a Friend | 0 / 1 | 1 (200) | `checkFriendsCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 22 | Create/Join Guild | 0 / 1 | 1 (220) | `checkJoinConsortia` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 21 | Make a Friend | 0 / 1 | 1 (200) | `checkFriendsCount` | sim | friends.py e rules.social_state_quests (tamanho da lista) | — | eu |
+| 22 | Create/Join Guild | 0 / 1 | 1 (220) | `checkJoinConsortia` | sim (estado) | rules.quest_done lê a guilda na entrega; condition_1 fica 0 como no oficial | — | eu |
 | 23 | Defeat the Huntera | 13000 / 1; 11600 / 1; 17000 / 1 | 7 (10, 20, 30, 40, 45, 50, ...) | `checkAttack` | sim | rules.update_novice_quests (campaign.py:506, accept_quest) | — | outra equipe |
 | 25 | Defeat Undead Warrior | 2041 / 4; 2042 / 3; 2043 / 2 | 34 (240, 450, 480, 490, 510, 560, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`); rules.quest_event (PAWN_KILL_CONDITION) | conta por soldado do lado 2 da batalha. A 1001 tem o 2011, mas nenhuma missão de 25 aponta para ela. As 34 missões são de campanhas 1004 a 1602 (sem nós) | eu |
 | 26 | Defeat Wulfgar | 1011 / 1; 1031 / 1; 1041 / 1 | 30 (80, 210, 230, 280, 310, 470, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`); rules.quest_event (HERO_KILL_CONDITION) | o chefe da 1001 (102109, template 1011) conta na 80 e o da 1003 (103207, template 1031) na 210. Os chefes de campanhas 1002+ e o da ilha dos pets (921) não têm gatilho | eu |
 | 27 | Collect “新” | 2125006 / 1; 2125007 / 1; 2125008 / 1 | 15 (8, 9, 13, 14, 90, 190, ...) | `checkGoodsCount` | sim | rules.goods_count (só BAG), update_state_quests (GOODS_CONDITIONS), quest_done; a entrega consome (5014) | fonte: vários itens das condições (2100003, 2100004, 2100006, 2100008, 2100009, 2100013) não têm fonte nos dados (só ItemTempInfo e a condição); a contagem não depende disso. A 90 fecha com 2100001 da 1001. Na 1001, 14 missões de 27 pedem itens sem fonte (lista abaixo) | eu |
 | 28 | Collect Forgotten Stones | 2125011 / 3; 2100005 / 1; 2100007 / 1 | 12 (17, 300, 370, 460, 500, 540, ...) | `checkGoodsCount` | sim | rules.goods_count (só BAG), update_state_quests (GOODS_CONDITIONS), quest_done; a entrega consome (5014) | fonte: 2100005 e 2100007 não têm fonte nos dados; a contagem não depende disso | eu |
-| 29 | Guild Contribution | 0 / 10; 0 / 50; 0 / 150 | 4 (221, 222, 223, 224) | `checkConsortiaOffer` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 30 | Guild Blessing | 0 / 1 | 1 (241) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 29 | Guild Contribution | 0 / 10; 0 / 50; 0 / 150 | 4 (221, 222, 223, 224) | `checkConsortiaOffer` | sim | fam.py, upgrades.py e social_state_quests (contribuição total) | — | eu |
+| 30 | Guild Blessing | 0 / 1 | 1 (241) | `checkCount` | sim | altar.py (5145) | — | eu |
 | 31 | Complete Any Solo Dungeon | 1 / 3; 2 / 1 | 2 (313, 371) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`, fim de mapa); rules.quest_event (SOLO_CONDITION) | conta cena com capacidade = Para1 só na 1001 (capacidade 1). 313 fecha no servidor (`Para2` 3), mas a pré 310 bloqueia. 371 (capacidade 2) não tem cena | eu |
 | 32 | Collect Lumber | 2100022 / 20; 2100024 / 10; 2100023 / 10 | 7 (55, 102, 140, 170, 171, 172, ...) | `checkGoodsCount` | sim | rules.goods_count (só BAG), mesmo caminho da 27 | fonte: a pedreira 6001 (Resource Quarry), pela captura inglesa: 8258 entra, 5032 `cmd:2` colhe Wood x2/x3, 8699 luta dá Wood x18 ([salas-campanha.md](salas-campanha.md)). Coleta no espaço (8733) não é implementada | eu |
 | 33 | Login With Mini-client | 0 / 1 | 2 (1, 150) | `checkClientLogin` | não | — | sinal de cliente desktop: o cliente lê DesktopManager.isDesktop (JS da página, ExternalInterface 'IsDesktop') e nenhum pacote manda isso (LoginReqMsg só tem playerId, key e ekeys). Decisão de protocolo. | eu |
 | 34 | Adjust Troop Formation | 0 / 1 | 1 (160) | `checkSortPawn` | sim | army.py:286 quest_event FORMATION (soma) | — | outra equipe |
-| 35 | Challenge | 1 / 3; 1 / 5; 1 / 1 | 3 (2, 4, 188) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 35 | Challenge | 1 / 3; 1 / 5; 1 / 1 | 3 (2, 4, 188) | `checkCount` | sim | arena.py QUEST_CHALLENGE (8253) | — | eu |
 | 36 | Astro | 1 / 1; 0 / 1 | 2 (3, 622) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 37 | Head to Autaric Plains | 0 / 1; 0 / 2; 0 / 3 | 5 (173, 390, 580, 787, 826) | `checkMapId` | sim | update_state_quests (MAP_CONDITION, checkMapId); já estava no HEAD | — | outra equipe |
 | 38 | Battle the Forgotten Catacombs | 8001 / 2 | 1 (6) | `checkMazeRecord` | não | — | não contado; não verificado neste trabalho | outra equipe |
@@ -185,38 +185,38 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 42 | Levy your town hall | 0 / 1 | 1 (763) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 44 | Participate in a Battleground | 0 / 1 | 2 (758, 766) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
 | 45 | Battleground Kills | 0 / 70; 0 / 2 | 2 (16, 767) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 46 | Recycle a Piece of Equipment | 0 / 1 | 1 (768) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 47 | Refine a Piece of Equipment | 0 / 1 | 1 (769) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 46 | Recycle a Piece of Equipment | 0 / 1 | 1 (768) | `checkCount` | sim | forge.py RECYCLE (8340) | — | eu |
+| 47 | Refine a Piece of Equipment | 0 / 1 | 1 (769) | `checkCount` | sim | forge.py REFINE (8336) | — | eu |
 | 48 | Input Your Cell Number and ID Number | 0 / 1 | 1 (816) | `checkCount` | não | — | o servidor não tem nada de celular: o cliente manda 8524 (CheckSend) e 8352 (UserPin, código SMS) e nenhum handler responde. Falta: os dois handlers, guardar o número e um provedor de SMS. | eu |
 | 49 | Shadow Crystal | 208012 / 6 a 36 (846 a 856); 2125012 / 5 (15); 2125013 / 50 (19); 2127001 / 10 (770); 2129001 / 5 (771) | 15 (15, 19, 770, 771, 846 a 856) | `checkGoodsCount` | sim | rules.goods_count (só BAG), update_state_quests (GOODS_CONDITIONS), quest_done; a entrega consome (5014) | fonte (número isolado em todo o tempinfos): 208012 só em ShopTempInfos 755/810 (preço em Score/LordsScore, que `shop.price` não cobra), ActiveTempInfos 11 (Deneme Kulesi, sem recompensa no `tower.py`) e FishTemplateInfos 1004 (pesca fechada): nenhuma servida, então 846 a 856 travam (ver "Desbloqueio"). 2125013 sem fonte; 2125012 só como QuestGoods de outra missão; 2127001 na loja 149 (1 GiftToken; sem campo de bloqueio) e receita (só ingrediente); a contagem não depende disso | eu |
 | 50 | Battle Victories | 0 / 1 | 2 (18, 818) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 51 | Guild Level | 1 / 2; 2 / 2 | 2 (819, 820) | `checkConsortuaGrade` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 51 | Guild Level | 1 / 2; 2 / 2 | 2 (819, 820) | `checkConsortuaGrade` | sim | upgrades.py e social_state_quests (GUILD_LEVEL_ATTRS) | — | eu |
 | 52 | Gain a Troop Speciality | 0 / 2 | 1 (821) | `checkCount` | sim | army.py:247 quest_event COMPREHEND (soma) | — | outra equipe |
 | 53 | Lock an Astral | 0 / 1 | 1 (623) | `checkCount` | sim | stars.py:316 quest_event LOCK_QUEST (soma) | — | outra equipe |
-| 56 | Auction | 0 / 1 | 1 (825) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 57 | Blessing Wheel | 0 / 1 | 1 (857) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 58 | Soul Engraving | 0 / 1 | 1 (858) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 59 | Life on the Farm | 0 / 1 | 2 (262, 859) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 56 | Auction | 0 / 1 | 1 (825) | `checkCount` | sim | mall.py SELL_CONDITION (8448) | — | eu |
+| 57 | Blessing Wheel | 0 / 1 | 1 (857) | `checkCount` | sim | castle.py SEMINARY_CONDITION (8489) | — | eu |
+| 58 | Soul Engraving | 0 / 1 | 1 (858) | `checkCount` | não | — | TODO(58) em rules.py: o cliente decompilado só tem o SonType 293 (Soul Crystal), sem tela nem pacote; viverá no handler da gravação quando o pacote for achado | eu |
+| 59 | Life on the Farm | 0 / 1 | 2 (262, 859) | `checkCount` | sim | farm.py QUEST_PLANT | — | eu |
 | 60 | Harvest from your own farm | 0 / 2; 1 / 2 | 4 (263, 266, 860, 861) | `checkCount` | sim | handlers/farm.py (op 4 e 5) | Para1 exato: 0 colher a própria, 1 roubar de amigo | castelo.md |
-| 61 | Pest Extermination | 1 / 2 | 2 (267, 862) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 61 | Pest Extermination | 1 / 2 | 2 (267, 862) | `checkCount` | sim | farm.py QUEST_BUG (só a praga) | — | eu |
 | 63 | Devotion | 0 / 20 | 1 (863, diária `IsRepeat`) | `checkCount` | sim: maior total de devoção do dia (`LEVEL_CONDITIONS`) | `handlers/events.leed_gain`/`devotion_quests` (ganhos e 1º login do dia) | aceite nasce com 0 mesmo com devoção já ganha (visto, tutorial_en #3199); só o próximo ganho grava o total. Reabre no dia do jogo seguinte (`_repeat_ok`) | — |
-| 64 | Alchemy | 0 / 3 | 1 (184) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 65 | Daru Alchemy | 0 / 3 | 1 (185) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 64 | Alchemy | 0 / 3 | 1 (184) | `checkCount` | sim | vip.alchemy (8321) ALCHEMY_CONDITION | posição do 112 TODO(inventado) | eu |
+| 65 | Daru Alchemy | 0 / 3 | 1 (185) | `checkCount` | sim | vip.soul (8467) DARU_ALCHEMY_CONDITION | posição do 112 TODO(inventado) | eu |
 | 66 | Instant Battle with World Boss | 0 / 3 | 1 (183) | `checkCount` | sim | handlers/worldboss.py (8264 pago) | 1 por reviver pago | boss-eventos.md |
-| 71 | Train | 0 / 1 | 1 (753) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 74 | Enter The Spire | 0 / 1 | 1 (799) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 71 | Train | 0 / 1 | 1 (753) | `checkCount` | sim | systems.py QUEST_MOUNT_TRAIN | — | eu |
+| 74 | Enter The Spire | 0 / 1 | 1 (799) | `checkCount` | sim | campaign.py, entrada da Spire que gasta a vez (SPIRE_CONDITION) | posição do 112 TODO(inventado) | eu |
 | 76 | Learn Brutality Rune | 2 / 1; 1 / 1 | 2 (906, 907) | `checkRuneStudy` | sim | update_state_quests (RUNE_STUDY); já estava no HEAD | — | outra equipe |
-| 77 | Consume Small Runestone | 3020010 / 5; 0 / 10; 3020004 / 20 | 3 (186, 908, 909) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 77 | Consume Small Runestone | 3020010 / 5; 0 / 10; 3020004 / 20 | 3 (186, 908, 909) | `checkCount` | sim | hero.py RUNE_COMBINE (pedras gastas) | — | eu |
 | 78 | Upgrade Rune | 0 / 3; 5 / 150; 0 / 5 | 6 (910, 911, 916, 917, 918, 919) | `checkRuneGrade` | sim | update_state_quests (RUNE_GRADE, LEVEL_CONDITIONS); já estava no HEAD | — | outra equipe |
-| 79 | Participate in the Tank Battles | 0 / 1; 3001 / 1 | 2 (912, 914) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 80 | Win the Tank Battles | 0 / 1; 3001 / 1 | 2 (913, 915) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 79 | Participate in the Tank Battles | 0 / 1; 3001 / 1 | 2 (912, 914) | `checkCount` | sim | vehicle.match_up (TANK_JOIN_CONDITION, Para1 3001) | posição do 112 TODO(inventado) | eu |
+| 80 | Win the Tank Battles | 0 / 1; 3001 / 1 | 2 (913, 915) | `checkCount` | sim | vehicle.settle, quem vence (TANK_WIN_CONDITION; empate conta para os dois) | posição do 112 TODO(inventado) | eu |
 | 85 | Talk to the Priest | 0 / 1 | 10 (174, 175, 191, 229, 272, 283, ...) | `checkFinishPetStory` | parcial | space.py talk (8692) e player.py quest_add (aceite), perto do nó | parcial: MasterType 61 (Dinah 361, Asima 229, Lilith 272, Lara 283, Azrael 922, Berdim 933) conta no 8692 e no aceite perto do nó. Patrulha (MasterType 1: Priest 174/191, Guardian 175, Berdim 301): o cliente não manda 8692; só conta no aceite se a posição do modelo estiver perto (não validado). O servidor não vê o fim do diálogo. | eu |
-| 86 | Join the Amethyst Rush | 0 / 1 | 1 (503) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 86 | Join the Amethyst Rush | 0 / 1 | 1 (503) | `checkCount` | sim | warfield.callback, coleta na pilha da mina (5032 cmd 2) | posição do 112 TODO(inventado) | eu |
 | 87 | Join the Sylph Arena | 0 / 1 | 1 (504) | `checkCount` | sim | arena._pet_over (`QUEST_PET_TOURNAMENT`): cada luta do torneio de mascotes conta, ganhando ou não | — | outra equipe |
-| 89 | Participate in the Lost Treasure | 0 / 1 | 1 (925) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 90 | Socket Resistance Crystal | 0 / 1 | 1 (926) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 91 | Go on an Exploration | 0 / 1 | 1 (930) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
-| 93 | Win a Sky Trail Battle | 0 / 1 | 1 (932) | `checkCount` | não | — | não contado; não verificado neste trabalho | outra equipe |
+| 89 | Participate in the Lost Treasure | 0 / 1 | 1 (925) | `checkCount` | não | — | TODO(89) em rules.py: escavar o tesouro não existe; viverá no 8744 (handlers/treasure.py) | eu |
+| 90 | Socket Resistance Crystal | 0 / 1 | 1 (926) | `checkCount` | não | — | TODO(90) em rules.py: engastar Resistance Crystal; viverá no 8742 (handlers/tower.py, hoje recusa) | eu |
+| 91 | Go on an Exploration | 0 / 1 | 1 (930) | `checkCount` | sim | treasure_hunt.py, 9502 op 3 (EXPLORE_CONDITION) | posição do 112 TODO(inventado) | eu |
+| 93 | Win a Sky Trail Battle | 0 / 1 | 1 (932) | `checkCount` | não | — | TODO(93) em rules.py: Sky Trail (General William) sem sistema identificado; candidato (dedução) SinglePass 8753/8755 (handlers/singlepass.py) | eu |
 
 ## Missões bloqueadas para as masmorras 1002+
 
