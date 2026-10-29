@@ -17,6 +17,7 @@ from . import (  # noqa: F401  (registra os handlers no router)
     friends,
     gemmaze,
     gold_tree,
+    group_draw,
     guild,
     guild_events,
     guildwar,

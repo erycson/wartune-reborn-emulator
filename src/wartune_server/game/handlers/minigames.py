@@ -734,12 +734,6 @@ async def golden_road(s: GameSession, _: object) -> None:
     _send(s, S_GOLDEN, msg)
 
 
-@router.on(9523)
-async def group_draw(s: GameSession, _: object) -> None:
-    """Sorteio de grupo sem extrações (4936 leadExtractTimes 0)."""
-    _send(s, S_LEAD, pb.LeadRewardMsg())
-
-
 @router.on(9550)
 async def icon_numbers(s: GameSession, _: object) -> None:
     """Números dos ícones: lista vazia (4980). Nenhum chamador no cliente depende de valor."""

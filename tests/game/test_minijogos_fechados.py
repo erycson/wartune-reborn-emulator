@@ -10,6 +10,7 @@ import pytest
 
 from tests.game.harness import Game, logged_in
 from wartune_server.domain.models import PlayerSnapshot
+from wartune_server.game.handlers import group_draw
 from wartune_server.game.handlers import slot as slot_mod
 from wartune_server.protocol import Packet
 from wartune_server.protocol.messages import wartune_pb2 as pb
@@ -120,3 +121,25 @@ async def test_lottery_turns_balens_spent_into_capped_daily_spins(tmp_path: Path
         assert sum(i.count for i in _snap(g).items if i.template_id == 208009) == 6
         g.client.send(8750)
         assert "Maga obtained" in pb.LotteryMsg.FromString(_last(await g.idle(), 4639)).property3[0]
+
+
+# ---------------------------------------------------------------- sorteio de grupo
+
+
+async def test_group_draw_spends_chances_won_by_group_buys(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000, clock=FakeClock(NOW)) as g:
+        _open(g, "group_draw", {"items": [[208009, 2], [-100, 100]], "weights": [1, 0]})
+        g.client.send(9523, pb.LeadRewardMsg(op=1))
+        assert pb.LeadRewardMsg.FromString(_last(await g.idle(), 4936)).templateId == 0  # sem sorteio
+        snap = _snap(g)
+        await g.server.online.get(g.user_id).ctx.characters.save(group_draw.add_chance(snap, NOW))  # type: ignore[union-attr]
+        g.client.send(9523, pb.LeadRewardMsg(op=3))
+        roulette = pb.VipRouletteMsg.FromString(_last(await g.idle(), 338))
+        assert roulette.leftCount == 1 and [(i.tempId, i.count) for i in roulette.leftItem] == [
+            (208009, 2),
+            (-100, 100),
+        ]
+        g.client.send(9523, pb.LeadRewardMsg(op=1))
+        got = pb.LeadRewardMsg.FromString(_last(await g.idle(), 4936))
+        assert (got.templateId, got.count, got.leadExtractTimes) == (208009, 2, 0)
+        assert sum(i.count for i in snap.items if i.template_id == 208009) == 2
