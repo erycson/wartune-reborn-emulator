@@ -26,9 +26,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
 | Castelo | 12 | 2 | 6 | 0 | 3 |
 | Herói e exército | 14 | 9 | 5 | 1 | 4 |
-| Pets | 3 | 6 | 0 | 2 | 2 |
-| Itens | 13 | 2 | 10 | 1 | 2 |
-| Lojas e mercado | 7 | 4 | 0 | 1 | 1 |
+| Pets | 4 | 5 | 1 | 1 | 2 |
+| Itens | 13 | 2 | 11 | 0 | 2 |
+| Lojas e mercado | 7 | 4 | 1 | 0 | 1 |
 | Chat e social | 6 | 1 | 5 | 0 | 1 |
 | Clã / Guilda | 10 | 0 | 9 | 2 | 1 |
 | Campanhas e masmorras | 7 | 7 | 8 | 2 | 3 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 0 | 5 | 1 | 0 |
 | Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **118** | **61** | **83** | **25** | **34** |
+| **Total** | **119** | **60** | **86** | **22** | **34** |
 
 ## Validação e base
 
@@ -124,10 +124,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Avanço de qualidade (op 4) | 🟡 | | chance da bênção 10% é atalho |
 | Encantar aptidão (op 7) | 🟡 | | quanto sobe é atalho |
 | Aprender skill (op 5) | 🟡 | | sorteio uniforme entre livros |
-| Crescimento, treino e resistência (ops 8 e afins) | ❌ | | o cliente não diz o ganho |
+| Crescimento e treino do mascote (fazenda 15044 ops 12-15) | 🧪 | | `handlers/farm_pets.py`: 2 terras, nível 50, 10 partes e 5 comidas do cliente (`FarmLandLayer`, `PetLandInfo.canFeed`); horas, EXP/h e % por comida TODO(inventado) `farm_pet_practice` (0118). Resistência (8621 op 8, `trainResistance`) sem chamador no cliente inglês: bloqueio |
 | Fusão de dois pets (op 15) | ❌ | | sem template |
 | Mascote em batalha (EXP, despertar 4600) | 🟡 | 🇹🇷 | do turco; +250 por golpe e gasto 150 por dedução |
-| Guarda da fazenda é o mascote | 🟡 | 🇹🇷 | do turco; ops 10-16 da fazenda recusadas |
+| Guarda da fazenda é o mascote | ✅ | 🇹🇷 | op 16 (`FarmPetSelectMeun`) escolhe o guarda; sem escolha, o de batalha (turco). Ops 10 (GIVE_POWER) e 11 (TREE_PICK, vai pelo 5178) sem `sendFarmOper` no cliente |
 
 ## Itens
 
@@ -147,7 +147,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pergaminhos de EXP, ouro e população | ✅ | | ordem vista em 191924 (#1737, #2241, #3379) |
 | Pergaminhos de outros efeitos | 🧪 | | % de ataque/defesa/vida/crítico e tropa (46) na luta, honra (48) no campo; 2000 Camouflage é só aparência (4188) |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
-| Cristal, guilda e Token de proteção (5006) | ❌ | | recusados |
+| Cristal, guilda e Token de proteção (5006) | 🧪 | | 203 tipo 11 (Kyanite Pack -> cristais) e tipo 8 (Contribution Badge -> contribuição), texto "Received:" TODO(inventado); o City Protection Token já ia (`items.py` PROTECTION, Trégua); 203 tipos 9/14/16 seguem recusados |
 | Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); rankings de honra, charme, força da montaria e Sylph (pontuação `rank:*` gravada no login/8597; Sylph pelo nível do pet, inventado), golpe final no chefe do mundo e líder da guilda vencedora da guerra; sem sistema: guerra de classes, arena de Sylph, Hero Returns, guerra entre servidores e monstros dos Wilds |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
 | Forja: engaste e furos (5151/5152) | ✅ | 🇹🇷 | engaste no inglês (231733 #1392: sem 109 no furo vazio, "Successfully Socketed Gem!"); troca e furos do turco |
@@ -164,7 +164,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Loja comum (5154) | ✅ | | lojas 8/15 pela essência (NeedItem/Score), 11 pela Amethyst, 20 pelo Venus Crystal (4725 masterType 12); a 13 não tem linha em nenhum template |
+| Loja comum (5154) | ✅ | | lojas 8/15 pela essência (NeedItem/Score), 11 pela Amethyst, 20 pelo Venus Crystal (4725 masterType 12; ganho local: missão do casal, `venus_crystal_sources` 0118 TODO(inventado)); a 13 não tem linha em nenhum template |
 | Loja de moda (8592) e poção (5633) | ✅ | | |
 | Loja misteriosa (8483/8482) | ✅ | | 4470 vazio depois de cada 4384 (232017 #3057); quem entra na lista de sortudos, sem captura |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
@@ -175,7 +175,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Leilão: anunciar, lance, comprar, cancelar, buscar | 🟡 | | regras do cliente, sem captura; 8450 ordena; cancelar reempilha na pilha incompleta |
 | Leilão: venda de pet | 🟡 | | pet livre sem fonte |
 | Correio: envio, retirada, lista | ✅ | | carta não vence |
-| Correio: verificação de e-mail (9591) | ❌ | | sem SMTP |
+| Correio: verificação de e-mail (9591) | 🧪 | | estados 0-3 do `MailCheckFrame`; sem SMTP o PIN vai por correio do jogo e o prêmio `mail_rewards` (-500 x3000) também, uma vez (EventState `mail_check`, 337 estado 2 no login) TODO(inventado) |
 
 ## Chat e social
 
@@ -209,7 +209,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mercado da guilda | ✅ | 🇹🇷 | ordem da compra do turco |
 | Baú da guilda (distribuir) | ✅ | | correio de mochila cheia por dedução |
 | Baú de prêmios | 🧪 | | a guerra de guildas enche o baú com Guild Treasure (2060044): presentes do lado vencedor, metade para o perdedor (quantidade inventada) |
-| Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 recusada |
+| Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 (VIP 6, `QUICK_BLESS_COUNT`) faz o que o dia e a contribuição deixam, entrega n-1 na hora e a última fica no altar TODO(inventado) |
 | Altar do demônio (boss de guilda) | 🧪 | | handlers/altar.py: ondas sobre o Pool do world boss, vida do herói 1042 do template, reviver 8264 tipo 2 por contribuição, buff 8550, habilidades 8593; ondas/tempos/recompensas TODO(inventado) `altar_demon` (0110) |
 | Terra secreta: entrada e saída | ✅ | | |
 | Terra secreta: invasores | 🧪 | | onda e vencidos em `server_states` (0109), voltam no arranque; contribuição inventada (0073) |
