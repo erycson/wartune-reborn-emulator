@@ -26,6 +26,7 @@ from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from . import chairs, gemmaze, gold_tree, ore, slot
+from . import minijogo as mj
 from .player import S_CHAT, S_ITEMS, _player, alert, granted
 
 S_QUESTIONNAIRE, S_REBATE, S_FUND_NORMAL, S_FUND_NOVICE = 4428, 4461, 4612, 4640
@@ -295,6 +296,8 @@ async def _harvest(s: GameSession, snap: PlayerSnapshot, fund: Fund, cfg: Mappin
     mark = ev.state(snap, key, now)
     mark.value, mark.updated_at = 1, now
     new, text = rewards.grant(snap, s.ctx.templates, drops)  # ``grant`` já mexe em diamante/vinculado
+    for item in new:  # language fund.FundFrame.helpFrame.helpContent: "Items obtained during the event are bound"
+        item.is_binds = True
     # o que volta do fundo entra no livro caixa (entrada), na mesma gravação do prêmio
     diamonds = sum(n for t, n in drops if t == DIAMOND)
     gifts = sum(n for t, n in drops if t == GIFT)
@@ -323,8 +326,8 @@ def login_push(s: GameSession) -> None:
     if _fund_cfg(s, NORMAL):
         _send_fund(s, snap, NORMAL)
     gold_tree.login_push(s)
-    _send(s, S_LUCKY_TEMP, pb.LuckExchangeTempListMsg())
-    _send(s, S_LUCKY_INFO, pb.LuckExchangeInfoListMsg())
+    _send(s, S_LUCKY_TEMP, _lucky_temp(s, s.ctx.clock.now()))
+    _send(s, S_LUCKY_INFO, _lucky_info(s, snap, s.ctx.clock.now()))
     s.send(S_ORE, ore.open_msg(s))
     signin_login(s)
     s.send(S_CHAIRS_OPEN, chairs.open_msg(s))
@@ -712,16 +715,123 @@ async def icon_numbers(s: GameSession, _: object) -> None:
 
 @router.on(9610)
 async def lucky_exchange(s: GameSession, msg: pb.LuckExchangeOpMsg) -> None:
-    """Troca da sorte (``LuckyExchangeManager.OperateLuckyExchange``: ``exchangeId`` x ``exchangeCount``). Sem edição
-    vigente: no tutorial_en (#88, #102) "Little Windmill" terminou em 2026-10-14 e "Nostalgic Times Exchange" só começa
-    em 2026-10-23, e o servidor não tem tabela das edições (o login manda as listas vazias): recusa sempre.
-    ``(visto) oficial_20261027-152321-1 #11765-#11767``: a recusa do oficial é "Insufficient exchange items." e um 4247
-    zerado. (dedução) o servidor não sabe o que a troca pede, então toda recusa diz isso."""
+    """Troca da sorte (``LuckyExchangeManager.OperateLuckyExchange``: ``exchangeId`` x ``exchangeCount``). Edições em
+    ``game_settings.lucky_exchange`` (0125, as duas do tutorial_en #88). Cada troca gasta ``consumeItemCount`` do
+    ``consumeItemId`` e soma 1 de sorte (o ``LuckyExchangeRightView`` limita a quantidade a ``luckValue`` - sorte); com
+    a sorte cheia a troca dá um item ``rare`` e zera ("Receive a rare item when Luck Blessings is full", language
+    ``materialNoteTxt``). Sem ser rara: ``dropType`` 1 todos, 2 e 4 um sorteado, 3 cada um pela chance (títulos
+    ``LuckyexchangeBagItem.titleTxt1-4``). Resposta: 364 da sorte e o 4247 zerado, que o oficial manda na recusa
+    (``oficial_20261027-152321-1 #11765-#11767``: "Insufficient exchange items.")."""
     from .events import send_empty_rate  # noqa: PLC0415  (events importa este módulo)
 
-    s.log.info("9610 recusado: sem troca da sorte", troca=msg.exchangeId, vezes=msg.exchangeCount)
-    alert(s, "Insufficient exchange items.")
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    ed = next((e for e in _lucky_open(s, now) if e["id"] == msg.exchangeId), None)
+    count = msg.exchangeCount
+    luck = _lucky_luck(snap, msg.exchangeId)
+    need = int(ed["consumeItemCount"]) * count if ed else 0
+    if ed is None or count <= 0 or (luck < int(ed["luckValue"]) and count > int(ed["luckValue"]) - luck):
+        s.log.info("9610 recusado", troca=msg.exchangeId, vezes=count)
+        alert(s, "Insufficient exchange items.")
+        send_empty_rate(s)
+        return
+    if bag.count_of(snap, int(ed["consumeItemId"])) < need:
+        alert(s, "Insufficient exchange items.")
+        send_empty_rate(s)
+        return
+    cfg = _lucky_cfg(s)
+    drops: list[tuple[int, int]] = []
+    for _ in range(count):
+        luck, got = lucky_roll(ed, luck, cfg)
+        drops += got
+    changed, gone = bag.take(snap, int(ed["consumeItemId"]), need)
+    st = ev.state(snap, LUCKY.format(ed["id"]), now)
+    st.value, st.updated_at = luck, now
+    await mj.give(s, snap, drops, st, *changed, delete=tuple(gone))
+    s.send(S_ITEMS, bag.moved(changed, s.player_id, empty=gone))
+    _send(s, S_LUCKY_INFO, _lucky_info(s, snap, now))
     send_empty_rate(s)
+
+
+LUCKY = "lucky:{}"  # value = sorte da edição
+
+
+def _lucky_cfg(s: GameSession) -> Mapping[str, Any]:
+    return s.ctx.world.settings.get("lucky_exchange") or {}
+
+
+def _lucky_open(s: GameSession, now: datetime) -> list[Mapping[str, Any]]:
+    """Edições na janela (``LuckyExchangeManager.showData``: startTime <= agora <= endTime)."""
+    return [e for e in _lucky_cfg(s).get("editions", []) if mj.at(e, "startTime") <= now <= mj.at(e, "endTime")]
+
+
+def _lucky_luck(snap: PlayerSnapshot, exchange_id: str) -> int:
+    st = ev.peek(snap, LUCKY.format(exchange_id))
+    return st.value if st is not None else 0
+
+
+def lucky_roll(
+    ed: Mapping[str, Any], luck: int, cfg: Mapping[str, Any], rng: Any = None
+) -> tuple[int, list[tuple[int, int]]]:
+    """Uma troca: (sorte nova, prêmio). Pesos e chance em ``cfg`` (``weights`` por itemId, padrão 1;
+    ``percentChance`` do ``dropType`` 3)."""
+    import random  # noqa: PLC0415
+
+    rng = rng or random
+    weights = cfg.get("weights") or {}
+    items = ed["dropItems"]
+
+    def one(pool: list[Mapping[str, Any]]) -> list[tuple[int, int]]:
+        if not pool:
+            return []
+        it = rng.choices(pool, [float(weights.get(str(i["itemId"]), 1)) for i in pool])[0]
+        return [(int(it["itemId"]), int(it["itemCount"]))]
+
+    if luck >= int(ed["luckValue"]):
+        return 0, one([i for i in items if i["rare"]])
+    common = [i for i in items if not i["rare"]]
+    got = [(int(i["itemId"]), int(i["itemCount"])) for i in common if int(i["dropType"]) == 1]
+    for kind in (2, 4):
+        got += one([i for i in common if int(i["dropType"]) == kind])
+    chance = float(cfg.get("percentChance", 50))
+    got += [
+        (int(i["itemId"]), int(i["itemCount"]))
+        for i in common
+        if int(i["dropType"]) == 3 and rng.random() * 100 < chance
+    ]
+    return luck + 1, got
+
+
+def _lucky_temp(s: GameSession, now: datetime) -> pb.LuckExchangeTempListMsg:
+    msg = pb.LuckExchangeTempListMsg()
+    for e in _lucky_cfg(s).get("editions", []):
+        if now > mj.at(e, "endTime"):
+            continue
+        t = msg.luckExchange.add(
+            id=e["id"],
+            name=e["name"],
+            consumeItemId=int(e["consumeItemId"]),
+            consumeItemCount=int(e["consumeItemCount"]),
+            luckValue=int(e["luckValue"]),
+            startTime=e["startTime"],
+            endTime=e["endTime"],
+        )
+        for i in e["dropItems"]:
+            t.dropItems.add(
+                itemId=int(i["itemId"]),
+                itemCount=int(i["itemCount"]),
+                rare=bool(i["rare"]),
+                dropType=int(i["dropType"]),
+            )
+    return msg
+
+
+def _lucky_info(s: GameSession, snap: PlayerSnapshot, now: datetime) -> pb.LuckExchangeInfoListMsg:
+    msg = pb.LuckExchangeInfoListMsg()
+    for t in _lucky_temp(s, now).luckExchange:
+        msg.luckExchangeInfo.add(exchangeId=t.id, currentLuckValue=_lucky_luck(snap, t.id))
+    return msg
 
 
 @router.on(9645)
