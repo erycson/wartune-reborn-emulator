@@ -219,8 +219,8 @@ def test_13_campo_vence_o_lado_com_mais_pontos() -> None:
     a, b = field.mark(1), field.mark(2)
     assert (a.team, b.team) == (bf.TEAM, bf.ENEMY)  # quem chega entra no lado com menos gente
     assert field.winner() is None  # 0 a 0
-    b.score = 30
-    a.score = 10
+    field.gain(b.team, 30)  # os pontos do lado (entregas e abates), não a soma dos pessoais
+    field.gain(a.team, 10)
     assert field.winner() == bf.ENEMY and field.count(bf.TEAM) == 1
 
 

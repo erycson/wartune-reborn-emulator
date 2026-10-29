@@ -116,6 +116,7 @@ async def test_4269_entrega_no_campo(tmp_path: Path) -> None:
         await g.idle()
         g.client.send(5032, pb.CallBackReqMsg(mapId=4007, nodeId=4007006, cmd=2))
         await g.idle()
+        s.ctx.warfields.fields[4007].mark(g.user_id).carry = "superior"  # a qualidade é sorteada na coleta
         g.client.send(5033, pb.CampaignReqMsg(paraInt1=4007, paraInt2=4007012, paraBool1=True))
         got = await g.idle()
         assert got[-1].code == 4269
