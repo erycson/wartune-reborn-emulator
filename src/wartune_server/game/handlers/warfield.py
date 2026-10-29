@@ -658,10 +658,23 @@ def broadcast_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
     """4185 a quem está no mesmo mapa: o caminho do jogador, com o nome do nosso servidor (``serverName``)."""
     c, snap = s.campaign, s.snapshot
     assert c is not None and snap is not None
+    found = _field(s)
+    if found is not None and (dead := found[0].mark(s.player_id)).dead:
+        # morto fica na base até a onda (decisão do usuário): o caminho para no último passo dentro dela
+        routes = list(msg.routes)
+        keep = next((i for i, r in enumerate(routes) if not bf.in_base(dead.team, (r.x // bf.TILE, r.y // bf.TILE))),
+                    len(routes))  # fmt: skip
+        if keep < len(routes):
+            del msg.routes[keep:]
+            end = (msg.routes[-1].x // bf.TILE, msg.routes[-1].y // bf.TILE) if msg.routes else bf.CAMP[dead.team]
+            c.pos = end
+            s.send(S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=s.player_id, curPosX=end[0], curPosY=end[1],
+                                                    serverName=dead.server))  # fmt: skip
+            if not msg.routes:
+                return
     move = pb.PosMoveMsg(mapId=c.warfield, armyId=s.player_id, routes=msg.routes, serverName=snap.server.name)
     for other in on_map(s, c.warfield):
         other.send(S_MOVE, move)
-    found = _field(s)
     if found is None:
         return
     mark = found[0].mark(s.player_id)
@@ -805,7 +818,7 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
     here = players_on(ctx, field.campaign_id)
     prize = {o.player_id: (bf.WIN_INSIGNIA, bf.WIN_HONOR) if field.mark(o.player_id).team == winner
              else (bf.LOSE_INSIGNIA, bf.LOSE_HONOR) for o in here}  # fmt: skip
-    first = winner or 1  # TODO(inventado): no empate ninguém vence e o time 1 vai em one
+    first = winner or 1  # empate (``bf.Field.winner``): ninguém vence, o time 1 vai em one
     second = 2 if first == 1 else 1
     report = pb.WarReportListMsg(oneTeamId=first if winner else 0, twoTeamId=second, oneScore=field.score(first),
                                  twoScore=field.score(second))  # fmt: skip

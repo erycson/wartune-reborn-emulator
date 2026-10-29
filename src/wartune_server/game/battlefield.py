@@ -45,6 +45,14 @@ CAMP = {1: (179, 75), 2: (17, 76)}  # nascer e renascer: nós 001/002 (param1 = 
 ALIVE_GUARDIANS: dict[int, tuple[int, ...]] = {4002: (13, 14, 15, 16, 17, 18)}
 GUARDIAN_BATTLE = 32  # 157 battleType 32 e 4103 battleScene 11, como o PvP (visto #10211, #10336)
 EXIT_GATES = (121, 122)  # morto não sai (visto #9840 "You cannot leave camp when dead!")
+# base de cada lado: atrás do seu portão (121 em x 165 do time 1, 122 em x 38 do time 2, ``FIELD_NODES``)
+BASE_EDGE = {1: 165, 2: 38}
+
+
+def in_base(team: int, pos: tuple[int, int]) -> bool:
+    return pos[0] >= BASE_EDGE[team] if team == 1 else pos[0] <= BASE_EDGE[team]
+
+
 # mina (visto #1923-#2312): o carrinho sai no nó 3, a coleta é o nó 6 e o minério é o nó 9
 CART_NODE, PICK_NODE, ORE_NODE = 3, 6, 9
 CARTS_ADV = 1  # quality do carrinho avançado (visto "You received a Adv. Minecart." e quality 1, #1956)
@@ -105,11 +113,12 @@ class Field:
     settled: bool = False
 
     def mark(self, player_id: int) -> Mark:
-        """A marca do jogador; quem chega entra no lado com menos gente, empate no 2 (coerente com #9482, #9533,
-        #10096 e #10220). TODO(inventado): a regra do oficial (ele cruza servidores)."""
+        """A marca do jogador; quem chega entra no lado com menos gente e, empatados, num lado sorteado (decisão do
+        usuário: o oficial cruza servidores e as capturas não mostram a regra; #9482, #9533, #10096, #10220)."""
         if player_id not in self.marks:
             one, two = self.count(1), self.count(2)
-            self.marks[player_id] = Mark(team=1 if one < two else TEAM)
+            team = random.choice(SIDES) if one == two else 1 if one < two else 2
+            self.marks[player_id] = Mark(team=team)
         return self.marks[player_id]
 
     def score(self, team: int) -> int:
@@ -124,8 +133,8 @@ class Field:
         return sum(m.team == team for m in self.marks.values())
 
     def winner(self) -> int | None:
-        """O lado com mais pontos no fim (visto #11669: 2455 x 2448, o time 2 com 80/90).
-        TODO(inventado): empate sem vencedor (as duas partidas vistas tiveram vencedor)."""
+        """O lado com mais pontos no fim (visto #11669: 2455 x 2448, o time 2 com 80/90). Empate: sem vencedor; as
+        duas partidas vistas tiveram vencedor e a busca na internet (29/10/2026) não achou a regra (docs/pvp.md)."""
         one, two = self.score(1), self.score(2)
         return None if one == two else 1 if one > two else 2
 

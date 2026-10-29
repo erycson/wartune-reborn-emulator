@@ -49,7 +49,8 @@ async def test_8332_entra_no_campo_na_janela_com_o_4248_aberto(tmp_path: Path) -
         assert {125, 140, 21, 127, 4252, 150} <= set(_codes(got))
         room = _body(got, 125, pb.RoomCreatedMsg)
         assert room.room.campaignId == 4005 and room.isCross is True
-        assert _body(got, 4252, pb.WarFightInfoMsg).teamId == bf.TEAM
+        assert s.ctx is not None
+        assert _body(got, 4252, pb.WarFightInfoMsg).teamId == s.ctx.warfields.fields[4005].mark(g.user_id).team
         assert s.campaign is not None and s.campaign.warfield == 4005
         # o 4248 do login (o clock de 20008 manda de novo) mostra 4005 aberto
         assert dict(warfield._states_tuple(s.ctx.templates, IN_4005))[4005] == 0
@@ -92,7 +93,10 @@ async def test_8337_lista_quem_esta_no_campo(tmp_path: Path) -> None:
         await _at_field(g, 4007)
         g.client.send(8337)
         order = _body(await g.until(4255), 4255, pb.WarReportListMsg)
-        assert [(i.userId, i.teamId, i.score) for i in order.info] == [(g.user_id, bf.TEAM, bf.START_SCORE)]
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.ctx is not None
+        team = s.ctx.warfields.fields[4007].mark(g.user_id).team
+        assert [(i.userId, i.teamId, i.score) for i in order.info] == [(g.user_id, team, bf.START_SCORE)]
 
 
 async def test_8338_restaura_vida_so_dentro_do_campo(tmp_path: Path) -> None:
@@ -117,12 +121,13 @@ async def test_fim_da_partida_com_o_premio_e_a_saida(tmp_path: Path) -> None:
         s = g.server.online.get(g.user_id)
         assert s is not None and s.ctx is not None
         field = s.ctx.warfields.fields[4005]
-        field.gain(bf.TEAM, 30)
+        team = field.mark(g.user_id).team
+        field.gain(team, 30)
         await warfield.settle(s.ctx, field)  # o relógio chama isto depois do StopTime
         got = await g.idle()
         assert warfield.END_TEXT in _texts(got, 83)
         assert bf.win_text() in _texts(got, 83)
-        assert _body(got, 4254, pb.WarReportListMsg).oneTeamId == bf.TEAM
+        assert _body(got, 4254, pb.WarReportListMsg).oneTeamId == team
         assert 22 in _codes(got) and s.campaign is None
 
 
@@ -173,8 +178,11 @@ def test_4002_tem_guardioes_vivos_do_time_2_e_o_4005_nao() -> None:
 
 def test_lados_e_vencedor_pelos_pontos_do_lado() -> None:
     field = bf.Field(4005, IN_4005)
-    assert [field.mark(i).team for i in (1, 2, 3)] == [2, 1, 2]
+    first = field.mark(1).team
+    assert field.mark(2).team == 3 - first  # o segundo vai ao lado com menos gente
+    assert {bf.Field(4005, IN_4005).mark(1).team for _ in range(64)} == {1, 2}  # empatados: sorteio
     assert field.mark(1).score == bf.START_SCORE and field.score(2) == 0  # entrar não soma ao lado
+    assert field.winner() is None  # empate: sem vencedor
     field.gain(1, 30)
     assert field.winner() == 1
 
@@ -190,3 +198,31 @@ def test_frases_de_sequencia_onda_de_renascer_e_posicao_no_caminho() -> None:
     assert bf.respawn_ms(IN_4005, IN_4005 + timedelta(seconds=65), 30) == 25000
     path = ((10, 10), (11, 10), (12, 10))
     assert bf.position_at(path, 0.15, 10) == (11, 10) and bf.position_at(path, 9, 10) == (12, 10)
+
+
+def test_minerio_uniforme_e_base_de_cada_lado() -> None:
+    from wartune_server.game import taxas
+
+    assert taxas.DEFAULTS["field_ore_weights"] == {"superior": 1, "normal": 1, "inferior": 1}
+    assert bf.in_base(1, bf.CAMP[1]) and bf.in_base(2, bf.CAMP[2])
+    assert not bf.in_base(1, (100, 75)) and not bf.in_base(2, (100, 75))
+
+
+async def test_morto_nao_sai_da_base_ate_a_onda(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4005)) as g:
+        await _at_field(g, 4005)
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.ctx is not None and s.campaign is not None
+        mark = s.ctx.warfields.fields[4005].mark(g.user_id)
+        mark.dead = True
+        cx, cy = bf.CAMP[mark.team]
+        step = 1 if mark.team == 2 else -1  # para fora da base
+        move = pb.PosMoveMsg(mapId=4005, armyId=g.user_id)
+        for i in range(60):
+            move.routes.add(x=(cx + step * i) * bf.TILE, y=cy * bf.TILE)
+        g.client.send(5124, move)
+        got = await g.idle()
+        back = _body(got, 4104, pb.ArmyPosUpdatedMsg)
+        assert bf.in_base(mark.team, (back.curPosX, back.curPosY))
+        assert not bf.in_base(mark.team, (back.curPosX + step, back.curPosY))
+        assert bf.in_base(mark.team, s.campaign.pos)

@@ -265,35 +265,41 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 1214
 - **Entrada (8332)**: 140, 125 (isCross), 21 (com guilda e `teamId`), 127 (28 nós, iguais nos três campos; no 4002 os
   guardiões 13-18 do time 2 vivos, state 1), 4252 a todos, 4175 com o estado de cada um, 150; missão 44. Nasce no
   acampamento do lado: time 1 em 179,75, time 2 em 17,76 (nós 001/002). Pontos pessoais começam em 100. Lado: o de
-  menos gente, empate no 2 (*inventado*: o oficial cruza servidores).
+  menos gente; empatados, sorteio (decisão do usuário: o oficial cruza servidores e as capturas não mostram a regra).
 - **4252**: `teamId`, pontos, `order` 0, `geste` = honra total do personagem, abates; `one` = time 1, `two` = time 2
   (gente e pontos do lado); sem `leftTime`. Vai a todos no campo a cada mudança.
 - **Pontos do lado**: só sobem com entregas e ganhos no PvP; entrar não soma e perder não desconta.
-- **Coleta/entrega**: nós 005-009 (91/2380); a qualidade é sorteada na coleta (`taxas.field_ore_weights`, 0140,
-  contagem das 26 entregas vistas); entrega no "Resource Recovery Officer" do lado (011 time 1, 012 time 2):
+- **Coleta/entrega**: nós 005-009 (91/2380); a qualidade é sorteada na coleta (`taxas.field_ore_weights`,
+  uniforme desde a 0144, decisão do usuário); entrega no "Resource Recovery Officer" do lado (011 time 1, 012 time 2):
   superior 30/3/3, normal 20/2/2, inferior 10/1/1 (pontos/honra/shards). Ordem: 4175, 4252, 4471, 3, 115, 111, 83,
   4252, 4269. A honra entra no geste na hora e no 4471 (honra do dia, `event_state honor_day`; o login e a guerra
   de guildas usam o mesmo contador).
 - **PvP (8334)**: o alvo recebe 111 "X is attacking you!" e 83 com o link; perdedor perde `ceil(15%)`, vencedor
   ganha `20 + pontos do perdedor // 20`, 10 de honra e 10 pontos de PvP entre servidores (texto ", Cross-server PvP
   points +10"). O perdedor vai ao acampamento, 4175 state 1 (3 se carrega; o minério fica) por 25 s e renasce
-  (4175 state 0/2) na próxima onda de `taxas.field_respawn_period` s desde a abertura (vistos 0 a 30 s).
+  (4175 state 0/2) na próxima onda de `taxas.field_respawn_period` s desde a abertura (vistos 0 a 30 s). Até lá
+  fica na base do lado (x >= 165 no time 1, <= 38 no time 2, os portões): o 5124 morto é cortado no último passo
+  dentro dela e o 4104 devolve a posição (decisão do usuário; `bf.in_base`).
   Frases a todos (111 e 83 com link): primeiro sangue, sequência sem morrer (`taxas.field_streaks`: 3 spree,
   4 dominating, 5-6 unstoppable, 7 god, 8+ Grimm Reaper) e "has put a stop to X's domination!" (sequência >=
   `field_streak_stop`). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!").
-- **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141) da posição real (o trecho do
+- **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141/0144: 26; as duas perseguições de 121453, 4105 #10205 com o
+  jogador a 24 casas no fim do trecho e #10435 a 26 no começo; a 37 não perseguiu) da posição real (o trecho do
   5124 andado a `taxas.field_move_speed` casas/s, 0142; metade carregando minério, `field_carry_speed` 0143, visto #9958) persegue: 4105, 4494,
   128 nodeState 4, 157 tipo 32; na derrota 4104, 4103, 4122 de volta ao ponto, 4175 morto, 128 nodeState 1, 4494,
   4269 e "You lost: 150 Points." (`taxas.field_guardian_loss`). Vitória não vista (*inventado*: cai, nodeState 8).
 - **Fim** (StopTime): 4248 state 2, 83, 4254 (`oneTeamId` = vencedor, como o cliente lê em
   `PvpSortListView.isVictory`; linhas com `itemCount`/`winGesteCount`), 4248, 22, 4471, 3, 115, 112 (missão 50) e
   "The battle has ended! You received Insignia xN and honor xN!": vencedor 80/90, perdedor 30/30 (visto #11669 e
-  121453 #10546). Empate: *inventado* (sem vencedor, todos 30/30).
+  121453 #10546). Empate: sem vencedor, todos 30/30. Busca
+  (29/10/2026): WebSearch "Wartune battleground tie draw points" e "Wartune battleground guide rules" só trouxeram
+  outros jogos e a wiki Wartune (Honor/Insignia: vitória paga mais honra, nada de empate); a página Battleground da
+  wiki (breezewiki) recusou o acesso. Sem fonte, fica a regra atual.
 - **8337**: 4255 com todos que entraram, na ordem de chegada, nome, abates e a honra do campo.
 - **8338**: 200 Star Points (idioma `PvpMapRightView.reset`); cheio: "You already have full HP..." (#15796).
 - **Mina**: na abertura 4549 true e 83 "It's Amethyst Double Time!..." (191924 #14217-#14218).
 
-Ainda inventado: o lado de quem entra, o empate, a origem da onda de renascer, o passo do exército (~10 casas/s
-de um caso), o alcance e a perda do guardião (um caso), a vitória contra o guardião, o 4388 `data`, o 4549 no login
+Ainda inventado: a origem da onda de renascer, o passo do exército (~10 casas/s
+de um caso), a perda do guardião (um caso), a vitória contra o guardião, o 4388 `data`, o 4549 no login
 dentro da janela, o limite do "stop" (um caso) e a honra/pontos extras de abate (11 e 12 uma vez, 121453 #9800).
 cruzados (Senhores).
