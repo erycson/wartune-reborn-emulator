@@ -34,7 +34,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Campanhas e masmorras | 6 | 10 | 6 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 4 | 1 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 5 | 6 | 1 | 6 | 0 |
+| Missões | 9 | 6 | 1 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 2 | 6 | 6 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **100** | **94** | **52** | **38** | **34** |
+| **Total** | **104** | **94** | **52** | **36** | **34** |
 
 ## Validação e base
 
@@ -296,13 +296,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Coleta de item (27, 28, 32, 49) | 🟡 | | itens sem fonte; coleta no espaço não feita |
 | Diárias e repetíveis | 🟡 | | repetível concluída não aparece no login |
 | Conversa com NPC (85) | 🟡 | | patrulhas travam |
-| Guilda (22, 29, 30, 51) | ❌ | | tipos não contados |
+| Guilda (22, 29, 30, 51) | ✅ | | 22/29/51 pelo estado (`social_state_quests`, 5014), 30 no altar (5145); test_missoes_social.py e test_missoes_tipos.py |
 | Chefe do mundo (40, 41) | ✅ | | entrar e dano total contados |
 | Campo de batalha: entrar (44) | ✅ | | contado na entrada 8332 |
 | Arena e batalhas (45, 50) | 🧪 | | 45 por vitória no PvP do campo (visto #11106); 50 no fim da partida (o time sempre vence: TODO) |
-| Arena e batalhas (16, 35, 79, 80, 93) | ❌ | | 16 sem luta em grupo na arena |
-| Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ❌ | | tipos não contados |
-| Demais tipos (12, 21, 56-59, 61, 64, 65, 71, 74, 86, 89-91) | ❌ | | tipos não contados |
+| Arena e batalhas (35, 79, 80) | ✅ | | 35 no desafio do coliseu (8253); 79 ao entrar na batalha de tanques, 80 a quem vence (vehicle.py); posição do 112 inventada |
+| Arena e batalhas (16, 93) | ❌ | | 16 sem luta em grupo na arena (a sala PvP só procura); 93 Sky Trail sem sistema identificado (TODO em rules.py) |
+| Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ✅ | | forge.py (5150, 5151, 5153, 8336, 8340) e hero.py (77 nas pedras gastas) |
+| Demais tipos (12, 21, 56, 57, 59, 61, 64, 65, 71, 74, 86, 91) | ✅ | | 64 alquimia (8321), 65 alquimia de Daru (8467), 74 entrada na Spire, 86 coleta na mina de ametista (5032), 91 exploração (9502 op 3); os demais já ligados; posição do 112 inventada |
+| Demais tipos (58, 89, 90) | ❌ | | sem a ação no servidor: 58 Soul Engraving (sem tela no cliente), 89 escavar tesouro (8744), 90 gemas da guarda (8742); TODO em rules.py |
 | Janelas fechadas e Koyu Kristal | ❌ | | |
 | Mini-client (33) e celular (48) | ❌ | | |
 

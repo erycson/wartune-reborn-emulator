@@ -19,10 +19,10 @@ from ...templates.repository import GameTemplates
 from .. import battlefield as bf
 from .. import rewards, rules, space, worldboss
 from ..builders import login as b
-from ..builders.player import quest_update
 from ..campaign import CampaignMap
 from ..router import router
 from ..session import GameContext, GameSession
+from .army import count_quest
 from .campaign import ARMY_IDLE, map_sync, pvp_fight
 from .login import army
 from .stars import sns_msg
@@ -197,13 +197,7 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
 
 async def _quest(s: GameSession, kind: int) -> None:
     """+1 nas missões de condição ``kind`` (``Para1`` 0) e o 112 se alguma subiu."""
-    snap = s.snapshot
-    if snap is None:
-        return
-    quests = rules.quest_event(snap, s.ctx.templates, kind, 0, 1)
-    if quests:
-        await s.ctx.characters.save(*quests)
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
+    await count_quest(s, kind)
 
 
 @router.on(8337)
@@ -401,6 +395,7 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
             return
         cart.picks += 1
         s.send(S_MINE, _mine_msg(s))
+        await _quest(s, rules.AMETHYST_CONDITION)  # 503 "Mine Amethyst"; TODO(inventado): a posição do 112
         left = bf.PICKS_PER_CART - cart.picks
         if left > 0:
             s.send(S_ALERT, _chat(f"Collection complete. ({left} / {bf.PICKS_PER_CART}) collections remaining.", 7))

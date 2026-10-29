@@ -531,6 +531,7 @@ async def alchemy(s: GameSession, _: object) -> None:
         _player(s)
     castle_yield(s)
     s.send(S_LUCKY, _lucky_msg(s, snap))  # gold = quanto cada uso rende (texto do cliente)
+    await _count(s, rules.ALCHEMY_CONDITION)  # TODO(inventado): a posição do 112 (nenhuma captura com a 184 aberta)
 
 
 def _soul_amount(s: GameSession, snap: PlayerSnapshot) -> int:
@@ -577,6 +578,13 @@ async def soul(s: GameSession, _: object) -> None:
     granted(s, [], [], "", chat=False)
     _player(s)  # (visto) 191924-1 #17038, 1025 #9226, 1026 #626, 1027 #158: 3 e depois 4372 nas quatro amostras
     s.send(S_SOUL, _soul_msg(s, snap))
+    await _count(s, rules.DARU_ALCHEMY_CONDITION)  # TODO(inventado): a posição do 112 (nenhuma captura com a 185)
+
+
+async def _count(s: GameSession, kind: int) -> None:
+    from .army import count_quest  # army importa player, que importa este pacote
+
+    await count_quest(s, kind)
 
 
 def login_push(s: GameSession) -> None:

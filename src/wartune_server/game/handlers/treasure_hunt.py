@@ -25,7 +25,7 @@ from typing import Any
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
-from .. import bag
+from .. import bag, rules
 from ..builders import login as b
 from ..router import router
 from ..session import GameSession
@@ -86,7 +86,8 @@ async def treasure_hunt(s: GameSession, msg: pb.PlayerSeekInfoMsg) -> None:
     shard, per = int(c["shard"]), int(c["shardsPerKit"])
     data, op = _state(snap, c, now), msg.op
     names = {nid: name for nid, name, _, _ in c["nodes"]}
-    if op == START and data["count"] > 0 and data["state"] == 0:
+    explored = op == START and data["count"] > 0 and data["state"] == 0
+    if explored:
         data["count"] -= 1
         data["node"] = RNG.choice([n for n in names if n != data["node"]] or list(names))
         data["state"] = 1
@@ -114,3 +115,7 @@ async def treasure_hunt(s: GameSession, msg: pb.PlayerSeekInfoMsg) -> None:
         s.log.info("9502 recusado", op=op, vezes=data["count"], estado=data["state"])
     await s.ctx.characters.save(mj.store(snap, KEY, data, now), snap.character)
     s.send(S_NODES, b.complete(_msg(c, data, now, op)))
+    if explored:
+        from .army import count_quest
+
+        await count_quest(s, rules.EXPLORE_CONDITION)  # 930; TODO(inventado): a posição do 112

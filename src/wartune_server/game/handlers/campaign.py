@@ -1194,8 +1194,10 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
     await s.ctx.characters.save(c_, *([snap.leader] if snap.leader is not None else []), *tower_rows)
     if tower == torres.SPIRE and tower_rows:
         from . import events as hev  # handlers.events importa login, que importa este módulo
+        from .army import count_quest
 
         await hev.leed_done(s, torres.SPIRE_LEED)  # LeedTemp 28 "Enter the Spire"
+        await count_quest(s, rules.SPIRE_CONDITION)  # 799; TODO(inventado): a posição do 112
     if tower == torres.SPIRE:  # a loja e o andar do TrailView (CampaignSocketManger.__trailPropInfoHandler)
         s.send(S_TRIAL_INFO, torres.shop_msg(snap, templates, now))
 

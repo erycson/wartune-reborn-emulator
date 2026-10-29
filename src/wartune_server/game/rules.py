@@ -451,7 +451,26 @@ BATTLEGROUND_JOIN_CONDITION = 44  # entrar numa battleground (758, 766): sistema
 BATTLEGROUND_KILL_CONDITION = 45  # kills na battleground (16, 767): idem
 PHONE_CONDITION = 48  # cadastro de celular (missão 816): sem pedido no cliente nem nas capturas: pendente
 BATTLEGROUND_WIN_CONDITION = 50  # vitória na battleground / war camp (18, 818): idem
-AMETHYST_CONDITION = 86  # Amethyst Rush (503, Para4 "10000,15"): gancho em outer_city/mines
+AMETHYST_CONDITION = 86  # Amethyst Rush (503): cada coleta na pilha da mina (warfield.callback, 5032 cmd 2)
+# (visto) tempinfos QuestTemps Detail de cada missão; +1 por ação, Para1 0 salvo indicação
+ALCHEMY_CONDITION = 64  # 184 "Use Alchemy 3 times": alquimia de ouro (vip.alchemy, 8321)
+DARU_ALCHEMY_CONDITION = 65  # 185 "Use Daru Alchemy 3 times": alquimia de Daru (vip.soul, 8467)
+SPIRE_CONDITION = 74  # 799 "Enter [The Spire]": entrada que gasta a vez do dia (campaign, torres.SPIRE)
+TANK_JOIN_CONDITION = 79  # 912 (Para1 0) e 914 (Para1 3001): entrar na batalha de tanques (vehicle.match_up)
+TANK_WIN_CONDITION = 80  # 913 e 915: vencer a batalha de tanques (vehicle.settle; empate BOTH conta para os dois)
+EXPLORE_CONDITION = 91  # 930 "Click Explore -> Go on an exploration": 9502 op 3 (treasure_hunt)
+# Sem a ação no servidor (contam quando ela existir):
+# TODO(16): "Arena (Party)" 421/422: a sala PvP só procura partida (room.start_matching), não há luta
+ARENA_PARTY_CONDITION = 16
+# TODO(58): "Soul Engraving" 858: o cliente decompilado só tem GoodsSonType SOUL_CRYSTAL 293, sem tela nem pacote
+ENGRAVE_CONDITION = 58
+# TODO(89): "Lost Treasure" 925: escavar o mapa do tesouro (8744) não existe (handlers/treasure.py)
+LOST_TREASURE_CONDITION = 89
+# TODO(90): "Socket a Resistance Crystal" 926: as gemas da guarda de batalha (8742, handlers/tower.py) são recusadas
+RESIST_CRYSTAL_CONDITION = 90
+# TODO(93): "Win a Sky Trail battle" 932 (General William, Cloud City): sistema não identificado; (dedução) candidato
+# as fases do SinglePass (8753/8755), que não existem (handlers/singlepass.py)
+SKY_TRAIL_CONDITION = 93
 PROGRESS_FIELDS = ("progress", "progress_2", "progress_3", "progress_4")  # condition_1..4 do 112
 # bolsa: quantidade do item Para1 (templateId) >= Para2 (cliente: checkGoodsCount). O condition_N fica em 0: (visto)
 # captura EN, a 90 e a 102 só têm 112 com 0 (#1140, #1572, #1800, #2081), nem nos drops do Worg Tooth (#1276, #1408)

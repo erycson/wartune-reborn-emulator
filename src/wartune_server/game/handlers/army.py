@@ -67,6 +67,16 @@ def send_quests(s: GameSession, quests: list) -> None:  # type: ignore[type-arg]
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(s.snapshot)))
 
 
+async def count_quest(s: GameSession, kind: int, para1: int = 0, value: int = 1) -> None:
+    """+``value`` nas missões de condição ``kind``, grava e manda o 112 se alguma subiu."""
+    if s.snapshot is None:
+        return
+    quests = rules.quest_event(s.snapshot, s.ctx.templates, kind, para1, value)
+    if quests:
+        await s.ctx.characters.save(*quests)
+        send_quests(s, quests)
+
+
 @router.on(5155)
 async def recruit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     """Recruta no castelo: ouro = GoldConsume por soldado (menos o desconto Property4 do quartel),

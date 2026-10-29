@@ -17,7 +17,7 @@ from ...domain.repositories import UnitOfWork
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import mail as mailbox
-from .. import space
+from .. import rules, space
 from .. import vehicles as vh
 from ..builders import login as b
 from ..router import router
@@ -236,6 +236,7 @@ async def match_up(ctx: GameContext) -> None:
             o.send(S_ROOM_CREATED, created)
             match.join(tank, now)
             o.log.info("entrou na batalha de veículos", time=team, tanque=tank.template)
+            await _count(o, rules.TANK_JOIN_CONDITION)  # 912/914; TODO(inventado): a posição do 112
     if arena.matches and arena.task is None:
         arena.task = asyncio.create_task(_run(ctx), name="vehicles")
 
@@ -285,6 +286,8 @@ async def settle(ctx: GameContext, match: vh.Match, now: datetime) -> None:
     if match in arena.matches:
         arena.matches.remove(match)
     win = vh.window(ctx.templates, match.start)
+    winner = match.winner()
+    won = [t.player_id for t in match.tanks.values() if winner in (t.team, vh.BOTH)]  # finish limpa os tanques
     rewards = match.finish(arena.rewarded.setdefault(win[0] if win is not None else match.start, set()))
     for reward in rewards:
         o = ctx.online.get(reward.player_id)
@@ -306,6 +309,15 @@ async def settle(ctx: GameContext, match: vh.Match, now: datetime) -> None:
         mailbox.notify(ctx.online, mail)
         o.send(S_PROFILE, _profile(o, c))
         o.log.info("fim da batalha de veículos", pontos=reward.score, exp=reward.exp, premios=goods)
+    for pid in won:  # vencer conta mesmo sem prêmio (já premiado na janela)
+        if (o := ctx.online.get(pid)) is not None:
+            await _count(o, rules.TANK_WIN_CONDITION)  # 913/915; TODO(inventado): a posição do 112
+
+
+async def _count(s: GameSession, kind: int) -> None:
+    from .army import count_quest  # army importa player, que importa este pacote
+
+    await count_quest(s, kind, vh.CAMPAIGN)  # Para1 3001 (914/915) ou 0 (912/913)
 
 
 async def leave_vehicle(s: GameSession) -> None:
