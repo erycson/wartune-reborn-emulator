@@ -12,6 +12,7 @@ from tests.game.harness import Game, logged_in
 from tests.game.test_outer_city import _set, _snap
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import Item
+from wartune_server.game import arena as A
 from wartune_server.game import battle as battle_mod
 from wartune_server.game import buffs, monsters
 from wartune_server.game import outer_city as oc
@@ -113,7 +114,15 @@ async def test_exercito_alheio_aparece_anda_e_some(tmp_path: Path) -> None:
         assert pb.ArmyRemoveMsg.FromString((await g.until(4168))[-1].body).armyId == other.user_id
 
 
-async def test_ataque_a_castelo_de_jogador_saqueia_e_respeita_a_tregua(tmp_path: Path) -> None:
+async def test_ataque_a_castelo_de_jogador_saqueia_e_respeita_a_tregua(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    copy = A.copy_hero
+
+    def weak(*args: object) -> dict[str, object]:  # o dono com 1 de vida: a vitória (e o saque) é certa
+        return copy(*args) | {"hp": 1, "initHp": 1}  # type: ignore[arg-type]
+
+    monkeypatch.setattr(A, "copy_hero", weak)
     async with logged_in(tmp_path, novice=19000) as g:
         await _on_map_1(g, 500, 500)
         other = await g.join("outro")
@@ -134,8 +143,8 @@ async def test_ataque_a_castelo_de_jogador_saqueia_e_respeita_a_tregua(tmp_path:
         assert prepare.battleType == oc.ROBOT_BATTLE_TYPE
         got = await g.fight(prepare)
         report = pb.BattleReportMsg.FromString(next(p for p in got if p.code == 4103).body)
-        # 10% do ouro do dono na vitória (TODO(inventado) player_castle.loot_pct)
-        assert them.character.gold == (9_000 if report.battleResult == 1 else 10_000)
+        assert report.battleResult == 1
+        assert them.character.gold == 9_000  # 10% do ouro do dono (TODO(inventado) player_castle.loot_pct)
         assert any(p.code == 148 for p in await other.idle(0.3))  # a carta da defesa
         stored = await g.server.services.characters.snapshot(other.user_id)
         assert stored.character.gold == them.character.gold
@@ -166,6 +175,11 @@ async def test_castelo_mudado_cai_no_ponto_livre_mais_proximo(tmp_path: Path) ->
         assert (moved.posX, moved.posY) != (cx, cy)
         assert max(abs(moved.posX - cx), abs(moved.posY - cy)) == 1
         assert oc.nearest_free(templates, 1, (cx, cy), lambda x, y: (x, y) == (cx, cy)) == (moved.posX, moved.posY)
+        # mapas com o ponto visto no inglês (105 de 24/10 #15693 e 27/10 #18053); o mapa 1 não tem: o centro
+        settings = g.server.services.world.settings
+        assert oc.landing(templates, settings, 2) == (2084, 1953)
+        assert oc.landing(templates, settings, 3) == (1229, 1103)
+        assert oc.landing(templates, settings, 1) == (cx, cy)
 
 
 async def test_monstro_em_luta_aceita_reforco_do_time(tmp_path: Path) -> None:
@@ -181,10 +195,19 @@ async def test_monstro_em_luta_aceita_reforco_do_time(tmp_path: Path) -> None:
         assert s.ctx.teams.invite(g.user_id, other.user_id)
         assert s.ctx.teams.accept(other.user_id, g.user_id) is not None
         g.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=m.x, posY=m.y))
-        await g.until(157)
+        first = pb.BattlePrepareMsg.FromString((await g.until(157))[-1].body)
         other.client.send(5160, pb.MapPhysicAttackMsg(mapId=1, posX=m.x, posY=m.y))
         await other.until(157)  # o estado da luta em curso (Battle.join)
         assert s.battle is not None and o in s.battle.joined
+        field = monsters.KILL_FIELDS[m.boss_type]
+        before = (getattr(_snap(g).character, field), getattr(o.snapshot.character, field))
+        await g.fight(first)
+        helper = await other.idle(0.5)
+        assert [p.code for p in helper].count(4103) == 1  # o do dono vai só a ele
+        after = (getattr(_snap(g).character, field), getattr(o.snapshot.character, field))
+        assert after[1] - before[1] == after[0] - before[0]  # o abate conta igual para quem entrou
+        other.client.send(8747, pb.SimplePropertyMsg())
+        assert 4382 in [p.code for p in await other.idle()]
 
 
 async def test_pk_na_ilha_dos_pets_luta_e_no_gancho_convida(tmp_path: Path) -> None:
@@ -198,7 +221,11 @@ async def test_pk_na_ilha_dos_pets_luta_e_no_gancho_convida(tmp_path: Path) -> N
         await g.fight(prepare)
 
         s.campaign, o.campaign = _camp(7001), _camp(7001)
-        g.client.send(8525, pb.HangupAttackMsg(defenceId=other.user_id))
+        g.client.send(8525, pb.HangupAttackMsg(defenceId=other.user_id))  # sem op fora da ilha/mina: nada
+        assert 157 not in [p.code for p in await g.idle()]
+        other.client.send(8525, pb.HangupAttackMsg(op=2, attackId=g.user_id, defenceId=other.user_id))
+        assert 157 not in [p.code for p in await g.idle()]  # aceite forjado, sem convite: recusado
+        g.client.send(8525, pb.HangupAttackMsg(op=1, attackId=g.user_id, defenceId=other.user_id))
         invite = pb.HangupAttackMsg.FromString((await other.until(4421))[-1].body)
         assert (invite.op, invite.attackId) == (1, g.user_id)
         other.client.send(8525, pb.HangupAttackMsg(op=2, attackId=g.user_id, defenceId=other.user_id))

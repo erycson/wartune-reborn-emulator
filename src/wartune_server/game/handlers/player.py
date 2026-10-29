@@ -10,7 +10,7 @@ from ...domain.errors import NotFoundError
 from ...domain.models import Consortia, Item, PlayerSnapshot
 from ...domain.world import Announcement
 from ...protocol.messages import wartune_pb2 as pb
-from .. import bag, daily, rewards, rules
+from .. import bag, buffs, daily, rewards, rules
 from .. import castle as cs
 from ..arena import data_reset
 from ..builders import login as b
@@ -97,7 +97,7 @@ async def push_level(s: GameSession, before: int) -> None:
     # (visto) só a subida 19 -> 20 (191924 #1728) manda o 140 do castelo no mapa (``grade`` novo); as dez de 10 -> 11
     # a 18 -> 19 não. TODO(inventado): a cada múltiplo de 10 (o visual do castelo no mapa)
     if snap.castle is not None and snap.character.grades // 10 > before // 10:
-        own = b.complete(b.castle_msg(snap, snap.castle))
+        own = b.complete(b.castle_msg(snap, snap.castle, buffs.protection_left(snap, s.ctx.clock.now())))
         s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_CASTLE, baseCastle=own))
     pawns = castle_pawns(snap, templates)
     # os prédios do oficial nascem no 8281 (EN #578, antes o 4154 do login vem vazio); aqui nascem com o personagem,

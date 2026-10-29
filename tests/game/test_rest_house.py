@@ -59,7 +59,7 @@ async def test_entra_medita_e_ganha_estamina_por_tique(tmp_path: Path) -> None:
         got = await _enter(g)
         codes = [p.code for p in got]
         assert codes.index(4199) < codes.index(125) < codes.index(21) < codes.index(127) < codes.index(4206)
-        assert _info(got, 4199)[0].leftWeay == 50
+        assert _info(got, 4199)[0].leftWeay == 60  # teto diário 60 (RecoverInfos, migração 0096)
         nodes = pb.CampaignNodeListMsg.FromString(next(p.body for p in got if p.code == 127)).node
         assert sorted(n.masterType for n in nodes) == [111] * 4
         assert ev.daily(snap, "leed:22", clock.now()).value == 1  # "Enter the Altar of Ennoblement"
@@ -73,12 +73,12 @@ async def test_entra_medita_e_ganha_estamina_por_tique(tmp_path: Path) -> None:
         await hangup.tick(_session(g))
         ticks = _info(await g.until(4235), 4235)
         ticks += _info(await g.idle(), 4235)
-        assert [(t.addWeay, t.leftWeay) for t in ticks] == [(1, 49), (1, 48)]
+        assert [(t.addWeay, t.leftWeay) for t in ticks] == [(1, 59), (1, 58)]
         assert snap.character.weary == 102
 
         g.client.send(8292, pb.PayTypeMsg())
         end = _info(await g.until(4200), 4200)[-1]
-        assert (end.isStartHangup, end.addWeay, end.leftWeay) == (False, 2, 48)
+        assert (end.isStartHangup, end.addWeay, end.leftWeay) == (False, 2, 58)
 
         g.client.send(5025, pb.RoomExitMsg())
         assert 22 in [p.code for p in await g.until(22)]
@@ -104,7 +104,7 @@ async def test_acelera_pago_e_gratis_com_lord_of_time(tmp_path: Path) -> None:
         await _begin(g)
         g.client.send(8293, pb.PayTypeMsg(payType=0))
         end = _info(await g.until(4200), 4200)[-1]
-        assert (end.addWeay, end.leftWeay, c.weary, c.point) == (45, 0, 45, 50)  # o resto do dia (50 - 5)
+        assert (end.addWeay, end.leftWeay, c.weary, c.point) == (55, 0, 55, 50)  # o resto do dia (60 - 5)
 
         g.client.send(5033, pb.CampaignReqMsg(paraInt1=ROOM, paraInt2=STATUE, paraBool1=True))
         refused = _info(await g.until(4200), 4200)[-1]

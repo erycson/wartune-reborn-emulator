@@ -11,9 +11,10 @@ escreve "Restored 1 Stamina through cultivation.". 8292 cancela, 8293 acelera: `
 O que resta para hoje (``leftWeay``) é um teto diário (``DataResetMsg.leftHangupWeary`` zera por dia), sem valor no
 cliente: ``game_settings.rest_house``. A meditação vive na sessão: sair da sala ou desconectar acerta e para.
 
-O PK no mapa (8525) é a luta contra a cópia do herói do alvo (BattleType 19): direto na ilha dos pets e na mina,
-por convite (4421 op 1, aceito com op 2) nas outras salas; ver ``map_pk``. A recusa (op 3) não volta a ninguém:
-com a recusa automática ligada (``SharedManager.refuseInvitation``) o cliente responde op 3 a qualquer 4421.
+O PK no mapa (8525) é a luta contra a cópia do herói do alvo (BattleType 19): direto na ilha dos pets e na mina
+(sem op), por convite (op 1 vira o 4421, aceito com op 2) pelo menu do jogador; ver ``map_pk``. A recusa (op 3)
+não volta a ninguém: com a recusa automática ligada (``SharedManager.refuseInvitation``) o cliente responde op 3
+a qualquer 4421.
 """
 
 from __future__ import annotations
@@ -328,29 +329,38 @@ async def hangup_room_state(s: GameSession, _: object) -> None:
 
 @router.on(8525)
 async def map_pk(s: GameSession, msg: pb.HangupAttackMsg) -> None:
-    """PK no mapa de campanha. Sem op (``MapSocketOuterManager.sendAttackInPetLand``, o ``PvpWarFightMediator`` na
-    ilha dos pets e na mina, alvo fora de luta): na ilha dos pets/mina a luta começa já; nas outras salas vira o
-    convite 4421 op 1 ao alvo (``HookMapPKMediator``: "Accept"/"Reject"). Op 2 (aceitou, ``attackId`` = quem
-    convidou): a luta de quem convidou contra a cópia de quem aceitou. Op 3 (recusou): só o log; nada volta, senão a
-    recusa automática (``SharedManager.refuseInvitation``) de quem convidou responderia de novo e viraria laço.
-    A luta: ``pvp_fight`` com BattleType 19 e o 4103 a quem atacou. TODO(inventado): sem captura; o battleScene do
-    4103 (o do campo de batalha, 11) e nenhuma perda além da luta."""
+    """PK no mapa de campanha. Sem op (``MapSocketOuterManager.sendAttackInPetLand``: o ``PvpWarFightMediator`` só
+    o manda na ilha dos pets e na mina, com o alvo fora de luta): a luta começa já. Op 1
+    (``CampaignSocketOutManager.sendMapPkInviteTo``, menu do jogador): o convite vai ao alvo no 4421 op 1
+    (``HookMapPKMediator``: "Accept"/"Reject") e fica pendente na sessão dele (``pk_invites``). Op 2 (aceitou,
+    ``attackId`` = quem convidou): só com convite pendente; a luta de quem convidou contra a cópia de quem aceitou.
+    Op 3 (recusou): tira o pendente; nada volta, senão a recusa automática (``SharedManager.refuseInvitation``) de
+    quem convidou responderia de novo e viraria laço. A luta: ``pvp_fight`` com BattleType 19 e o 4103 a quem
+    atacou. TODO(inventado): sem captura; o battleScene do 4103 (o do campo de batalha, 11) e nenhuma perda além
+    da luta."""
     from .campaign import pvp_fight  # campaign importa space, que importa este módulo
 
     if msg.op == 3:
+        s.pk_invites.discard(msg.attackId)
         s.log.info("8525 convite recusado", alvo=msg.attackId)
         return
     attacker, defender = (s, s.ctx.online.get(msg.defenceId)) if msg.op != 2 else (s.ctx.online.get(msg.attackId), s)
+    invited = msg.op == 2 and msg.attackId in s.pk_invites
+    if msg.op == 2:
+        s.pk_invites.discard(msg.attackId)
     if (
-        msg.op not in (0, 2) or attacker is None or defender is None or attacker is defender
+        msg.op not in (0, 1, 2) or attacker is None or defender is None or attacker is defender
+        or (msg.op == 2 and not invited)
+        or (msg.op == 0 and not (attacker.campaign and (attacker.campaign.map_id in PET_ISLANDS
+                                                        or attacker.campaign.map_id == MINERAL)))
         or attacker.campaign is None or defender.campaign is None
         or attacker.campaign.map_id != defender.campaign.map_id
         or attacker.battle is not None or defender.battle is not None or defender.snapshot is None
     ):  # fmt: skip
         s.log.info("8525 recusado", op=msg.op, alvo=msg.defenceId, quem=msg.attackId)
         return
-    map_id = attacker.campaign.map_id
-    if msg.op == 0 and not (map_id in PET_ISLANDS or map_id == MINERAL):
+    if msg.op == 1:
+        defender.pk_invites.add(attacker.player_id)
         name = attacker.snapshot.character.nickname if attacker.snapshot else ""
         defender.send(S_PK, pb.HangupAttackMsg(op=1, attackId=attacker.player_id, attackName=name or "",
                                                defenceId=defender.player_id))  # fmt: skip

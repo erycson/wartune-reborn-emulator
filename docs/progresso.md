@@ -322,7 +322,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Grade, andar e exércitos | ✅ | | exércitos dos outros online no 169, rota no 4167 e saída no 4168 (`OuterCityController`) |
-| Mudar o castelo de lugar (5176) | 🟡 | | ordem 140/152/140/105 e energia no inglês (24/10 #15689, 27/10 #18049); ponto de chegada: o livre mais próximo do centro (regra do ponto inventada) |
+| Mudar o castelo de lugar (5176) | 🟡 | | ordem 140/152/140/105 e energia no inglês (24/10 #15689, 27/10 #18049); ponto de chegada: o livre mais próximo do ponto visto no inglês (mapa 2 em 2084,1953, mapa 3 em 1229,1103; migração 0114), centro nos outros mapas; a busca do vizinho livre é inventada |
 | Minas de ouro (missão 60) | 🟡 | | perda de soldados na derrota e refresh com o jogador online sem captura |
 | Minas do mundo (mapas 1-5) | 🧪 | | grades não vistas inventadas (`mines.py:22`) |
 | Atacar mina de outro jogador | 🧪 | | cópia do herói inventada |
@@ -334,7 +334,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Treasure Cache | 🧪 | | vagas por mapa inventadas (`caches.py:48`); prêmio deduzido das 4 amostras da 171155 |
 | Mapa do tesouro (8744) | 🧪 | 🇹🇷 | ops 1-6 pelo cliente e idioma (`treasure.py`, `game_settings.treasure_map` da 0105): 4 qualidades, melhora (vinho + Balens, chances de Property1/2 por dedução), lugar no item, escavar no lugar ou já (pago), luta com o Master Treasure Thief e o grupo perto, 4634 e prêmio Property6 x Crystal Shard (+% na lendária, inventado), missão 89; 8745 reforço entra na luta em curso (`Battle.join`), na partilha e na missão 89; login: só turco, nenhuma captura inglesa acima do nível 31; lugar (NPC sorteado), ladrão como inimigo e battleType inventados. 8535 é o transporte do chefe (worldboss.py), não o tesouro |
 | Rest House e Altar of Ennoblement | 🧪 | | teto diário inventado (`hangup.py:49`) |
-| PK no campo de animais (8525) | 🧪 | | ilha dos pets/mina: luta direta (BattleType 19); outras salas: convite 4421 e op 2; battleScene inventado |
+| PK no campo de animais (8525) | 🧪 | | ilha dos pets/mina: luta direta (BattleType 19); convite do menu (op 1 → 4421, op 2 só com convite pendente); battleScene inventado |
 | Passe de progresso (8636/8637) | ❌ | | |
 | Ataque extra (9506) | ✅ | | |
 | Coleta de Amethyst e Copper | ❌ | | |

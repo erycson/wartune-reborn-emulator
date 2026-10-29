@@ -12,7 +12,8 @@ Exército andando de outro jogador não existe aqui. Minas em ``mines.py``, cast
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 from xml.sax.saxutils import quoteattr
 
 from ..domain.models import Castle, Pawn, PlayerSnapshot
@@ -80,10 +81,22 @@ def inside(templates: GameTemplates, map_id: int, x: int, y: int) -> bool:
 
 
 def centre(templates: GameTemplates, map_id: int) -> tuple[int, int]:
-    """Âncora de onde o castelo cai ao chegar num mapa novo: o centro (só turco: transfer, mapa 2 em 2191,1952, perto
-    do centro de 4000×4000 tiles). O ponto final é o livre mais próximo dela (``nearest_free``)."""
+    """Centro do mapa: a âncora do castelo que chega num mapa sem ponto visto (``landing``; só turco: transfer,
+    mapa 2 em 2191,1952, perto do centro de 4000×4000 tiles)."""
     size = map_size(templates, map_id) or (0, 0)
     return size[0] // 2, size[1] // 2
+
+
+# (visto) o 105 do 5176 para outro mapa no inglês: mapa 2 em 2084,1953 (24/10 #15693) e mapa 3 em 1229,1103
+# (27/10 #18053); ``game_settings.castle_landing`` (migração 0113) troca e acrescenta mapas
+LANDING = {2: (2084, 1953), 3: (1229, 1103)}
+
+
+def landing(templates: GameTemplates, settings: Mapping[str, Any], map_id: int) -> tuple[int, int]:
+    """Âncora do castelo que chega num mapa: o ponto visto no inglês; sem captura, o centro."""
+    seen = {**LANDING, **{int(k): tuple(v) for k, v in (settings.get("castle_landing") or {}).items()}}
+    x, y = seen.get(map_id) or centre(templates, map_id)
+    return int(x), int(y)
 
 
 def nearest_free(

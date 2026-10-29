@@ -144,6 +144,7 @@ class GameSession:
         # exército na cidade externa (mapa, x, y em tiles) depois de andar; None = parado no castelo
         self.outer_army: tuple[int, int, int] | None = None
         self.outer_walk: asyncio.Task[None] | None = None  # chegada do exército andando (140 parado)
+        self.pk_invites: set[int] = set()  # quem convidou este jogador para PK no mapa (8525 op 1) e espera resposta
         self.npc_talk: asyncio.Task[None] | None = None  # falas dos NPCs do mapa de campanha (4163)
         self.npc_patrol: asyncio.Task[None] | None = None  # patrulha dos monstros do mapa de campanha (4122)
         self.hangup: Any = None  # meditação na sala do gancho (``handlers.hangup.Cultivation``)

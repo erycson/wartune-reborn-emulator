@@ -300,7 +300,9 @@ async def _rivals(s: GameSession, grids: set[str], map_id: int) -> list[tuple[Ca
     now, out = s.ctx.clock.now(), []
     for c in near:
         other = await _other(s, c.character_id)
-        out.append((c, names.get(c.character_id, ""), buffs.protection_left(other, now) if other else 0))
+        truce = buffs.protection_left(other, now) if other else 0
+        shield = s.ctx.wilds.shield_left((c.character_id, 0), now)  # vencido há pouco (``_player_target``)
+        out.append((c, names.get(c.character_id, ""), max(truce, shield)))
     return out
 
 
@@ -973,10 +975,12 @@ async def _join_monster(s: GameSession, m: monsters.Monster, running: Battle) ->
 
 
 async def _helper_over(h: GameSession, m: monsters.Monster, won: bool, gone: bool) -> None:
-    """Fim da luta para quem entrou nela: 4103, o exército parado e, com o monstro abatido, o abate no limite do
-    dia dele e o baú (como o dono; a cópia do herói não perde vida nem tropa)."""
+    """Fim da luta para quem entrou nela: um 4103 (o do dono vai só a ele, ``_casualties``), o exército parado e,
+    com o monstro abatido, o abate no limite do dia dele e o baú (como o dono; a cópia do herói não perde vida nem
+    tropa). O 8747 da volta ao mapa responde o 4382, como ao dono."""
     snap = h.snapshot
     assert snap is not None
+    h.outer_fight_over = True
     h.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=monsters.SCENE))
     _army_sync(h, ARMY_IDLE)
     if gone and monsters.count_kill(snap.character, h.ctx.templates, m):
@@ -1414,7 +1418,8 @@ async def _taken(s: GameSession, map_id: int) -> Callable[[int, int], bool]:
 async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
     """Muda o castelo de lugar.
 
-    Outro mapa (``magId`` diferente): o servidor escolhe o ponto (o livre mais próximo do centro) e gasta 200 de
+    Outro mapa (``magId`` diferente): o servidor escolhe o ponto (o livre mais próximo de ``oc.landing``: o ponto
+    visto no inglês, ou o centro do mapa sem captura) e gasta 200 de
     energia de teleporte; sem energia, completa até o teto com diamante (``payType 2`` = vinculado).
     Mesmo mapa com ``posX``/``posY``: 100 de energia, no ponto pedido se estiver no mapa.
     Resposta: 140 com o exército no lugar novo e 105 com o castelo (mapa, posição, energia). Mudando de mapa,
@@ -1441,7 +1446,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
             _castle_state(s)
             return
         target, need = msg.magId, oc.ENERGY_OTHER_MAP
-        spot = oc.nearest_free(templates, target, oc.centre(templates, target), await _taken(s, target))
+        anchor = oc.landing(templates, s.ctx.world.settings, target)
+        spot = oc.nearest_free(templates, target, anchor, await _taken(s, target))
     top = cs.energy_max(templates)
     diamonds = oc.energy_diamonds(castle, top, need)
     entry = None
@@ -1459,7 +1465,8 @@ async def move_castle(s: GameSession, msg: pb.CastleReqMsg) -> None:
         released = mines.release(snap)
     moved_map = target != castle.map_id
     if moved_map:  # (visto) 24/10 #15690 e 27/10 #18050: o castelo ainda no mapa velho, antes do 152 e do exército
-        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=2, baseCastle=b.complete(b.castle_msg(snap, castle))))
+        truce = buffs.protection_left(snap, now)
+        s.send(S_MAP_SYNC, pb.MapUpdatedMsg(updatedType=2, baseCastle=b.complete(b.castle_msg(snap, castle, truce))))
     leave_map(s)  # da posição velha, antes de o castelo (e o exército parado nele) mudar
     castle.map_id, castle.pos_x, castle.pos_y = target, spot[0], spot[1]
     if moved_map and mines.is_world(s.ctx.world, target):
