@@ -484,9 +484,8 @@ TANK_WIN_CONDITION = 80  # 913 e 915: vencer a batalha de tanques (vehicle.settl
 EXPLORE_CONDITION = 91  # 930 "Click Explore -> Go on an exploration": 9502 op 3 (treasure_hunt)
 RESIST_CRYSTAL_CONDITION = 90  # 926 "Socket Resistance Crystal": gema 101..106 na guarda de batalha (tower, 8742)
 LOST_TREASURE_CONDITION = 89  # 925 "Lost Treasure": entrar na luta do mapa do tesouro (8744 op 3/5, reforço 8745)
+ARENA_PARTY_CONDITION = 16  # 421/422 "Arena (Party)": cada luta da sala PvP, vitória ou derrota (arena_grupo)
 # Sem a ação no servidor (contam quando ela existir):
-# TODO(16): "Arena (Party)" 421/422: a sala PvP só procura partida (room.start_matching), não há luta
-ARENA_PARTY_CONDITION = 16
 # TODO(58): "Soul Engraving" 858: o cliente decompilado só tem GoodsSonType SOUL_CRYSTAL 293, sem tela nem pacote
 ENGRAVE_CONDITION = 58
 # TODO(93): "Win a Sky Trail battle" 932 (General William, Cloud City): sistema não identificado; (dedução) candidato

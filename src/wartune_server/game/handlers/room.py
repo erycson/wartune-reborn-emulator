@@ -14,7 +14,7 @@ from google.protobuf.message import Message
 from ...protocol.messages import wartune_pb2 as pb
 from .. import rules, space
 from .. import vehicles as vh
-from ..rooms import COMPETING, IN_USE, MAX_SEATS, NAME_NEW, PVE, PVP, VEHICLE, Room
+from ..rooms import COMPETING, IN_USE, MAX_SEATS, NAME_NEW, PLAYING, PVE, PVP, VEHICLE, Room
 from ..router import router
 from ..session import GameSession
 
@@ -328,12 +328,18 @@ async def player_ready(s: GameSession, msg: pb.RoomReqMsg) -> None:
     _send_ready(s, room)
 
 
-def start_matching(s: GameSession, room: Room) -> None:
+def start_matching(s: GameSession, room: Room, rewarded: bool = True) -> None:
     """Procurar partida na sala PvP (5039 com ``paraInt2`` 0 do dono): a sala vai a 2 (competindo) e quem pediu
-    recebe o aviso. (visto) 27/10 #20230-#20232, #20258-#20260; o 5037 state 1 cancela (25 com 1, #20233-#20235)."""
+    recebe o aviso. (visto) 27/10 #20230-#20232, #20258-#20260; o 5037 state 1 cancela (25 com 1, #20233-#20235).
+    Com outra sala esperando, a luta começa (``arena_grupo.match``)."""
+    if room.state == PLAYING:
+        return
+    from .arena_grupo import match  # noqa: PLC0415  (arena_grupo importa campaign, que importa este módulo)
+
     room.state = COMPETING
     _to_room(s, room, S_STATE, pb.RoomStateRspMsg(roomState=COMPETING))
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg="Matching in progress, please be patient..."))
+    match(s, room, rewarded)
 
 
 def _send_ready(s: GameSession, room: Room) -> None:

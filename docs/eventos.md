@@ -122,7 +122,7 @@ duas do operador: novas atividades entram no arquivo com outras datas e o `dataS
   | 24 | Complete Bounty Quest | entrega do painel de recompensas 8291 | *(visto)* oficial_20261024-121659-1 #503 |
   | 25 | Harvest from your own farm | colheita 15044 op 4 (só a própria fazenda existe) | *(dedução)* pelo título |
   | 33 | Spin the Blessing Wheel | **bênção do seminário** 8489, antes do 4391 | *(visto)* só turco: city_city_upgrade #139-#140; a "Blessing Wheel Percentage" das notícias (internet) é essa % |
-  | 13 | Participate in a group arena fight | **depende de** arena em grupo (não existe) | — |
+  | 13 | Participate in a group arena fight | fim de cada luta da arena em grupo (`arena_grupo._after`), depois do 112 | *(visto)* oficial_20261027-152321-1 #19930 e #19990 |
   | 22 | Enter the Altar of Ennoblement | **depende de** um sistema que não se sabe qual é (o tooltip `tipData22` está no language, que não temos); talvez o altar da guilda 7601, recusado | — |
   | 23 | Enter Forgotten Catacombs | o Start do 8296 (`handlers/tower.py`): o 4152 depois da entrada | (internet) https://wartune.fandom.com/wiki/Glossary |
   | 27 | Enter Battleground | **depende de** campo de batalha (`warfield.py`, fechado) | — |

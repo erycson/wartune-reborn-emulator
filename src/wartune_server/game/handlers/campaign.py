@@ -1066,7 +1066,7 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if msg.paraInt2 == 0 and mine is not None and mine.type == PVP and mine.master == s.player_id:
         from .room import start_matching  # room importa este pacote
 
-        start_matching(s, mine)  # (visto) 27/10 #20230: 5039 com paraInt2 0 na sala PvP procura partida
+        start_matching(s, mine, not msg.paraBool1)  # (visto) 27/10 #20230: 5039 com paraInt2 0 procura partida
         return
     c, snap = s.campaign, s.snapshot
     content = s.ctx.world.campaigns.get(msg.paraInt2)

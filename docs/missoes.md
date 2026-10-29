@@ -157,7 +157,7 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 10 | Upgrade Lancers | 1 / 3; 3 / 5 | 2 (101, 764) | `checkPawnGrades` | sim | army.py:178 quest_event PAWN_LEVEL (maior valor) | — | outra equipe |
 | 12 | Speed Up the Building Construction Cooldown | 1 / 1; 1 / 3; 1 / 7 | 3 (111, 112, 113) | `checkCount` | sim | castle.py ACCELERATE (aceleração de construção) | — | eu |
 | 14 | Gain passage through the Orc Plains | 1005 / 1; 1002 / 1; 1001 / 1 | 39 (21, 70, 120, 130, 250, 350, ...) | `checkCount` | parcial | handlers/campaign.py (`_dungeon_loot`, `_map_finished`); rules.quest_event (CAMPAIGN_CONDITION) | só a campanha 1001 tem nós no servidor. As outras 38 missões pedem campanhas 1002+ ou 9000+ (lista abaixo) | eu |
-| 16 | Participate in an Arena Challenge | 1 / 3; 1 / 5 | 2 (421, 422) | `checkCount` | não | — | TODO(16) em rules.py: a luta da arena em grupo não existe; viverá após room.start_matching (sala PvP, 5039), com Para1 1 | eu |
+| 16 | Participate in an Arena Challenge | 1 / 3; 1 / 5 | 2 (421, 422) | `checkCount` | sim | arena_grupo._after: fim de cada luta da sala PvP, vitória ou derrota (ARENA_PARTY_CONDITION, Para1 1); 112 depois do 4103 *(visto)* 27/10 #19929 | — | eu |
 | 17 | Enchant Weapon/Armor to Level 3 | 2 / 1 | 1 (121) | `checkCount` | sim | forge.py STRENGTHEN (5150), grau > Para1 (MIN_CONDITIONS) | — | eu |
 | 18 | Socket a Gem | 1 / 1 | 1 (281) | `checkCount` | sim | forge.py GEM_INLAY (5151) | — | eu |
 | 19 | Synthesize a Gem | 0 / 1 | 1 (311) | `checkCount` | sim | forge.py GEM_COMPOSE (5153) | — | eu |

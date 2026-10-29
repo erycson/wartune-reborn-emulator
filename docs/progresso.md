@@ -31,10 +31,10 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
 | Chat e social | 4 | 5 | 1 | 2 | 1 |
 | Clã / Guilda | 10 | 3 | 6 | 2 | 1 |
-| Campanhas e masmorras | 6 | 10 | 6 | 2 | 3 |
+| Campanhas e masmorras | 7 | 9 | 6 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
-| Missões | 9 | 6 | 1 | 4 | 0 |
+| Missões | 10 | 6 | 1 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 2 | 5 | 7 | 3 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
@@ -43,7 +43,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | VIP | 1 | 3 | 2 | 1 | 0 |
 | Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **104** | **93** | **55** | **34** | **34** |
+| **Total** | **106** | **92** | **55** | **34** | **34** |
 
 ## Validação e base
 
@@ -245,7 +245,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem); 5024 recusado (senha, cheia) devolve o 4270 da sala (225632 #12656) |
 | Times (convite, capitão, sair) | 🟡 | | não persistem |
 | Link de sala no chat (9504) | ✅ | | |
-| Salas PvP (5023, 5039, 8344, 8465) | 🟡 | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); a partida em si não |
+| Salas PvP (5023, 5039, 8344, 8465) | ✅ | | criar, senha, procurar e "Cannot find a room." vistos (24/10 #11533, 27/10 #19884-#21047); arena em grupo (handlers/arena_grupo.py): salas na fila emparelham, luta battleType 10 time contra time, 4103, missão 16, leed 13, contador `match`, Insignia x10 na derrota (27/10 #19912-#19995); vitória x20 e lugares do lado 2 inventados; só salas deste servidor; ranking sem tela no cliente |
 | Falas e câmera no meio da luta (171/142) | ❌ | | |
 | Pedágio (8752-8755) | ❌ | | fechado |
 
@@ -301,7 +301,8 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Campo de batalha: entrar (44) | ✅ | | contado na entrada 8332 |
 | Arena e batalhas (45, 50) | 🧪 | | 45 por vitória no PvP do campo (visto #11106); 50 no fim da partida (o time sempre vence: TODO) |
 | Arena e batalhas (35, 79, 80) | ✅ | | 35 no desafio do coliseu (8253); 79 ao entrar na batalha de tanques, 80 a quem vence (vehicle.py); posição do 112 inventada |
-| Arena e batalhas (16, 93) | ❌ | | 16 sem luta em grupo na arena (a sala PvP só procura); 93 Sky Trail sem sistema identificado (TODO em rules.py) |
+| Arena e batalhas (16) | ✅ | | 16 no fim de cada luta da arena em grupo (arena_grupo.py; 112 visto 27/10 #19929); test_arena_grupo.py |
+| Arena e batalhas (93) | ❌ | | 93 Sky Trail sem sistema identificado no cliente (TODO em rules.py) |
 | Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ✅ | | forge.py (5150, 5151, 5153, 8336, 8340) e hero.py (77 nas pedras gastas) |
 | Demais tipos (12, 21, 56, 57, 59, 61, 64, 65, 71, 74, 86, 91) | ✅ | | 64 alquimia (8321), 65 alquimia de Daru (8467), 74 entrada na Spire, 86 coleta na mina de ametista (5032), 91 exploração (9502 op 3); os demais já ligados; posição do 112 inventada |
 | Demais tipos (58, 90) | ❌ | | sem a ação no servidor: 58 Soul Engraving (sem tela no cliente), 90 gemas da guarda (8742); TODO em rules.py (89 Lost Treasure conta no treasure.py) |
