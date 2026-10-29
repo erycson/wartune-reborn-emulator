@@ -1,7 +1,7 @@
-"""Masmorra: varredura (8528) e dublê de chefe (8526).
+"""Masmorra: varredura (8528).
 
-Varredura de campanha (``sweepType`` 1) em ``game/sweep.py``; regras e status em docs/salas-campanha.md. O dublê
-precisa do chefe mundial (docs/boss-eventos.md).
+Varredura de campanha (``sweepType`` 1) em ``game/sweep.py``; regras e status em docs/salas-campanha.md. O dublê do
+chefe do mundo (8526) está em ``handlers/worldboss.py``.
 """
 
 from __future__ import annotations
@@ -243,8 +243,3 @@ async def login_push(s: GameSession) -> None:
     await s.ctx.characters.save(sw.store(snap, current, now))
     _send(s, out)
 
-
-@router.on(8526)
-async def replacement(s: GameSession, msg: pb.OprateReplacemntMsg) -> None:
-    # dublê do chefe (4424/4423). Depende do chefe mundial, que não está ligado a este servidor ainda
-    s.log.info("8526 sem efeito (dublê depende do chefe mundial)", op=msg.op, campanha=msg.campaignId)

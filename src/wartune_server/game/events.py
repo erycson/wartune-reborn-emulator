@@ -199,6 +199,12 @@ SPEND = 1  # "Spending Bonus": Balens gastos (condição 9), "during the event" 
 MOUNT_TRAIN = 18
 COUNTED = {ALCHEMY: False, REFINE_SOUL: False, CHALLENGE: False, FATE_TURN: True, FATE_EAT: True, PET_CHALLENGE: True}
 COUNTED |= {SPEND: False, MOUNT_TRAIN: True}
+# FunnyType.SINGLEPASS_TIMES_TYPE (113): cada luta do Sky Trails; "...Sky Trails {0} times today" (diário)
+SKY_TRAILS = 113
+COUNTED |= {SKY_TRAILS: True}
+# "During the event, participate in the Amethyst Mine {0} time(s)" (FunnyType.TYPE_MINEFIELD_BATTLE): o período
+MINEFIELD = 111
+COUNTED |= {MINEFIELD: False}
 
 
 def count(snap: PlayerSnapshot, catalog: EventCatalog, active_type: int, now: datetime, n: int = 1) -> list[EventState]:

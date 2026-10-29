@@ -1,0 +1,62 @@
+"""Lote 9 da auditoria: campo minado (atividade 111), privilégios VIP conferidos um a um e os soldados especiais
+9001-9008 da carta 203 tipo 9 no castelo. Os outros itens do lote estão em test_lote9_trilhas.py (Gods Descent e
+Sky Trails), test_lote9_mundo.py (buff/dublê do chefe, Master Treasure Thief, coleta no espaço) e
+test_lote9_cruzado.py (assistir batalha, entre servidores local); o PK de animais (8525) em
+test_lote6_mapa.py::218."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+
+from tests.game.harness import logged_in
+from tests.game.test_heroi_exercito import snap_of
+from tests.test_end_to_end import TEMPLATES
+from wartune_server.domain.models import Pawn
+from wartune_server.game import events as ev
+from wartune_server.game import outer_city
+from wartune_server.game.handlers import vip
+from wartune_server.protocol.messages import wartune_pb2 as pb
+from wartune_server.services.clock import FakeClock
+
+pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/templates")
+IN_MINE = datetime(2026, 10, 27, 19, 45, tzinfo=UTC)
+
+
+async def test_campo_minado_conta_a_atividade_111(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[int] = []
+    monkeypatch.setattr(ev, "count", lambda snap, cat, kind, now, n=1: seen.append(kind) or [])
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_MINE)) as g:
+        snap_of(g).character.grades = 30
+        g.client.send(8633)
+        assert 4548 in [p.code for p in await g.idle()]
+        assert seen == [ev.MINEFIELD] and ev.COUNTED[ev.MINEFIELD] is False  # "During the event": o período
+
+
+async def test_cada_privilegio_vip_tem_onde_vale(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        kinds = {int(r["type"]) for r in s.ctx.templates.rows("VipPrerogativeTempInfos")}
+        assert kinds == set(vip.PRIVILEGES)
+
+
+async def test_soldados_9001_9008_no_exercito_e_na_luta(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = snap_of(g)
+        a, b = Pawn(snap.character.id or 0, 9001), Pawn(snap.character.id or 0, 9003)
+        a.castle_count = b.castle_count = 50
+        snap.pawns.extend([a, b])
+        await g.server.services.characters.save(a, b)
+        g.client.send(5156, pb.ArmyPawnInfoMsg(tempateId=9003, ownPawns=10))  # o segundo, não o primeiro do "// 100"
+        await g.idle()
+        assert (a.army_count, b.army_count, b.castle_count) == (0, 10, 40)
+        g.client.send(5158, pb.ArmyPawnInfoMsg(tempateId=9003))  # sem NextLevelTemplateId: não evolui
+        await g.idle()
+        assert b.template_id == 9003
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        soldiers, pawn_tpl = outer_city.army_soldiers(snap, s.ctx.templates)
+        assert pawn_tpl == 9003 and soldiers

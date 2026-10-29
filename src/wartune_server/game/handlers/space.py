@@ -6,12 +6,13 @@ Nós do mapa 10000: ``MapNodeInfos`` do tempinfos.xml (``SpaceTemplateManager.no
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import timedelta
 
 from ...content import pet_island
 from ...domain.models import Quest
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import Row
-from .. import rules, space
+from .. import rewards, rules, space
 from ..builders.player import quest_update
 from ..campaign import PET_ISLANDS, CampaignMap
 from ..router import router
@@ -26,6 +27,10 @@ S_MAP_SYNC, S_ROOM_CREATED, S_ROOM_ENTER, S_NODES = 140, 125, 21, 127
 PATROL, TRANSFER = "1", "171"  # MasterType: NPC que anda (o cliente resolve sozinho) e teleporte
 REACH = 5  # o cliente dispara a até HandlerRange+5 tiles (SpaceArmyViewHelper.selfArmyToEnd)
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType ao entrar num mapa (tutorial_en #116)
+S_MOVIE = 143  # U_C_PLAY_MOVIE (SpaceSocketManager.__playMovieHandler)
+COLLECT_NODE = "12"  # Param3 do nó de coleta do anel (SpaceArmyViewHelper.nodeTrigger)
+# (cliente) CollectionAction: o 8733 sai num setInterval de 1000 ms (ou a duração da animação); menos que isso é forjado
+COLLECT_TIME = timedelta(seconds=1)
 
 
 def _node(s: GameSession, node_id: int) -> Row | None:
@@ -83,6 +88,8 @@ async def node_trigger(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         return
     if node["MasterType"] == TRANSFER:
         await _transfer(s, node)
+    elif _start_collect(s, node):
+        return
     else:
         if node["MasterType"] != PATROL:  # a patrulha o cliente abre sozinho; só a conversa conta
             s.send(S_EVENT, pb.SimplePropertyMsg(param1=msg.param1))  # SpaceSceneController.__selectNodeHandler
@@ -189,7 +196,38 @@ async def space_player_info(s: GameSession, msg: pb.SpacePlayerArmyInfoReqMsg) -
         s.send(space.S_PRESENT, pb.RoomEnterMsg(result=1, player=[space.member(o) for o in found]))
 
 
+def _start_collect(s: GameSession, node: Row) -> bool:
+    """Nó de coleta do anel (``Param3`` "12", ``Param4`` o item: o 18 "Rose Lilies", sonType 9005, que as
+    condições 4 do anel apontam com ``Para4`` "10000,18"): o 143 "COLLECTION" abre a ``CollectionAction`` do space,
+    que no fim manda o 8733 (``SocketSendManager.sendSpaceCollectOver``)."""
+    from . import offer  # offer importa player, que importa este módulo
+
+    item = int(node.get("Param4") or 0)
+    if node["Param3"].split(",")[0] != COLLECT_NODE or not item or not offer.ring_collects(s, item):
+        return False
+    s.space_collect = (int(node["Id"]), s.ctx.clock.now())
+    s.send(S_MOVIE, pb.PlayerMovieMsg(movieTargetType=0, targetId=int(node["Id"]), movieType="COLLECTION"))
+    return True
+
+
 @router.on(8733)
 async def collection_finished(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
-    # coleta só começa com um 143 "COLLECTION" do servidor, que ainda não mandamos: nada a dar
-    s.log.info("8733 coleta sem coleta iniciada", no=msg.param1)
+    """Fim da coleta: um ``Param4`` do nó na mochila (cheia: correio). Só vale para a coleta que o 143 abriu, perto
+    do nó, depois do tempo da animação, e enquanto o anel ainda pede o item."""
+    from . import offer
+    from .player import granted
+    from .shop import place, save_with_mail
+
+    pending, s.space_collect = s.space_collect, None
+    node, snap, now = _node(s, msg.param1), s.snapshot, s.ctx.clock.now()
+    if pending is None or pending[0] != msg.param1 or node is None or snap is None or not _near(s, node):
+        s.log.info("8733 sem coleta iniciada", no=msg.param1)
+        return
+    item = int(node["Param4"])
+    if now - pending[1] < COLLECT_TIME or not offer.ring_collects(s, item):
+        s.log.info("8733 recusado (cedo demais ou o anel não pede mais)", no=msg.param1)
+        return
+    drops = [(item, 1)]
+    got, letters = place(s, snap, s.player_id, drops, now)
+    await save_with_mail(s, letters, *got)
+    await granted(s, drops, got, rewards.text(s.ctx.templates, drops))

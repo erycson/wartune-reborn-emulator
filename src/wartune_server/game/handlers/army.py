@@ -36,8 +36,11 @@ def pawn_template(templates: GameTemplates, template_id: int) -> Row | None:
     return templates.get("PawnTempInfos", template_id)
 
 
-def pawn_of(snap: PlayerSnapshot, son_type: int) -> Pawn | None:
-    return next((p for p in snap.pawns if p.template_id // 100 == son_type), None)
+def pawn_of(snap: PlayerSnapshot, template_id: int) -> Pawn | None:
+    """A linha do template exato; senão a do mesmo tipo (``// 100``). Os soldados especiais 9001-9008 (carta 203
+    tipo 9) dividem o ``// 100`` mas cada um é um tipo à parte (SonType 9001-9008, sem evolução)."""
+    exact = next((p for p in snap.pawns if p.template_id == template_id), None)
+    return exact or next((p for p in snap.pawns if p.template_id // 100 == template_id // 100), None)
 
 
 def current_pawn(s: GameSession, template_id: int) -> tuple[Pawn, Row] | None:
@@ -46,7 +49,7 @@ def current_pawn(s: GameSession, template_id: int) -> tuple[Pawn, Row] | None:
     snap = s.snapshot
     assert snap is not None
     son_type = template_id // 100
-    pawn = pawn_of(snap, son_type) or Pawn(snap.character.id or 0, son_type * 100 + 1)
+    pawn = pawn_of(snap, template_id) or Pawn(snap.character.id or 0, son_type * 100 + 1)
     tpl = pawn_template(s.ctx.templates, pawn.template_id)
     return (pawn, tpl) if tpl is not None and pawn.template_id == template_id else None
 
@@ -118,7 +121,7 @@ async def army_edit(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     estava no exército volta ao castelo (#2301-#2304)."""
     snap, templates = s.snapshot, s.ctx.templates
     assert snap is not None and snap.leader is not None
-    pawn = pawn_of(snap, msg.tempateId // 100)
+    pawn = pawn_of(snap, msg.tempateId)
     total = pawn.castle_count + pawn.army_count if pawn else 0
     leadership = rules.leader_stats(snap, templates, s.ctx.clock.now()).total["ConatArmy"]
     if pawn is None or pawn.template_id != msg.tempateId or msg.sites != 0 or not 0 <= msg.ownPawns <= total:
@@ -146,7 +149,7 @@ async def dismiss(s: GameSession, msg: pb.ArmyPawnInfoMsg) -> None:
     """Dispensa soldados do castelo com reembolso em Daru. Resposta: 3, 109, 111 e 100."""
     snap = s.snapshot
     assert snap is not None
-    pawn = pawn_of(snap, msg.tempateId // 100)
+    pawn = pawn_of(snap, msg.tempateId)
     if pawn is None or pawn.template_id != msg.tempateId or not 0 < msg.ownPawns <= pawn.castle_count:
         s.log.info("5157 recusado", pedido=str(msg))
         return

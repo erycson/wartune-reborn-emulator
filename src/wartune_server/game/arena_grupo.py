@@ -42,6 +42,17 @@ def add(snap: PlayerSnapshot, won: bool, now: datetime, cfg: Mapping[str, Any]) 
     return st, after - before
 
 
+REWARD_KEY = "cross_score_reward"  # event_state: text = período do prêmio já resgatado (8590)
+MIN_POINTS, TITLE_TOP = 1000, 20  # (cliente) pvpHeroFrame.rewardTip: 1000 pontos dão a marca; top 20 com 1000, título
+
+
+def can_claim(snap: PlayerSnapshot, now: datetime, cfg: Mapping[str, Any], cross: Mapping[str, Any]) -> bool:
+    """Prêmio dos pontos entre servidores (4481/8590): ``min_points`` no período e ainda não resgatado nele."""
+    done = ev.peek(snap, REWARD_KEY)
+    claimed = done is not None and done.text == period(now, cfg)
+    return not claimed and points(ev.peek(snap, KEY), now, cfg) >= int(cross.get("min_points", MIN_POINTS))
+
+
 def ranked(states: list[EventState], now: datetime, cfg: Mapping[str, Any]) -> list[tuple[int, int]]:
     """(personagem, pontos) com pontos no período, do maior ao menor; empate: quem chegou antes."""
     rows = [(e, points(e, now, cfg)) for e in states if e.key == KEY]

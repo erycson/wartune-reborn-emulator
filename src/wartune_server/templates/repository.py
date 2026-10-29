@@ -59,8 +59,11 @@ class HeroTemplate:
 
 
 class GameTemplates:
-    def __init__(self, categories: dict[str, list[Row]]) -> None:
+    def __init__(self, categories: dict[str, list[Row]], nested: dict[str, list[Row]] | None = None) -> None:
+        """``nested``: as linhas do nível a mais (só o ``TollgateReward``: ``ScoreRewards``, ``BossRewards``...),
+        pelo nome do grupo; ``rows``/``get``/``find`` acham também por esse nome."""
         self._categories = categories
+        self._nested = nested or {}
         self._index: dict[tuple[str, str], dict[str, Row]] = {}
         self._heroes = {
             t.template_id: t for t in (HeroTemplate.from_row(r) for r in categories.get("GameHeroTemp", []))
@@ -72,9 +75,13 @@ class GameTemplates:
             data = zlib.decompress(data)
         root = ElementTree.fromstring(data)
         categories: dict[str, list[Row]] = {}
+        nested: dict[str, list[Row]] = {}
         for category in root:
             categories[category.tag] = [MappingProxyType(dict(item.attrib)) for item in category]
-        return cls(categories)
+            for group in category:
+                if len(group):
+                    nested[group.tag] = [MappingProxyType(dict(row.attrib)) for row in group]
+        return cls(categories, nested)
 
     @classmethod
     async def load(cls, path: Path) -> GameTemplates:
@@ -99,7 +106,7 @@ class GameTemplates:
         return sorted(self._categories)
 
     def rows(self, category: str) -> list[Row]:
-        return self._categories.get(category, [])
+        return self._categories.get(category) or self._nested.get(category, [])
 
     def find(self, category: str, **attrs: object) -> Iterator[Row]:
         wanted = {k: str(v) for k, v in attrs.items()}

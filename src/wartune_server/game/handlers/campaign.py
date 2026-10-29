@@ -545,10 +545,13 @@ def pvp_fight(
     s.battle.start()
 
 
-def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False, camp: int = 0) -> PlayerHero:
+def player_hero(
+    s: GameSession, spec: dict[str, object], boost: bool = False, camp: int = 0, pct: dict[str, int] | None = None
+) -> PlayerHero:
     """``boost``: o buff do contrato 7 (+10% nos ataques, defesas, vida e tropa; ``boosted``). (dedução) a vida
     atual ganha o mesmo tanto que a máxima. ``camp``: tipo de lugar das cartas (arena 806); sem ele, o da campanha
-    ou o do campo de batalha (807). Os pergaminhos de % (``buffs.PERCENT``) sobem os atributos da luta."""
+    ou o do campo de batalha (807). Os pergaminhos de % (``buffs.PERCENT``) sobem os atributos da luta; ``pct``
+    soma outros % do lugar (o buff comprado no chefe do mundo)."""
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     leader = snap.leader
@@ -568,14 +571,14 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False, ca
         total.update({k: int(total.get(k, 0)) + v for k, v in cards.items() if k != "Live"})
         live, hp = live + cards.get("Live", 0), hp + cards.get("Live", 0)
     pcts = buffs.percent_stats(snap, s.ctx.templates, now)
-    for key, pct in systems.vocation_percent(snap, s.ctx.world.settings).items():
-        pcts[key] = pcts.get(key, 0) + pct
-    for key, pct in pcts.items():
+    for key, extra_pct in [*systems.vocation_percent(snap, s.ctx.world.settings).items(), *(pct or {}).items()]:
+        pcts[key] = pcts.get(key, 0) + extra_pct
+    for key, p in pcts.items():
         if key == "Live":
-            extra = live * pct // 100
+            extra = live * p // 100
             live, hp = live + extra, hp + extra  # (dedução) como o contrato 7
         else:
-            total[key] = int(total.get(key, 0)) * (100 + pct) // 100
+            total[key] = int(total.get(key, 0)) * (100 + p) // 100
     if boost:
         total.update({k: _boost(int(total.get(k, 0))) for k in STATS})
         live, hp = _boost(live), hp + _boost(live) - live
@@ -706,10 +709,17 @@ def passive_skills(snap: PlayerSnapshot, templates: GameTemplates) -> tuple[int,
     return tuple(skills)
 
 
-def _start_battle(s: GameSession, camp: int, over: Callable[[Battle, bool], Awaitable[None]] | None = None) -> None:
-    """140, 131, 128 (em combate) e o 157. ``over``: o fim da luta no lugar do ``_battle_over`` (terra secreta)."""
+def _start_battle(
+    s: GameSession,
+    camp: int,
+    over: Callable[[Battle, bool], Awaitable[None]] | None = None,
+    spec: dict[str, Any] | None = None,
+) -> None:
+    """140, 131, 128 (em combate) e o 157. ``over``: o fim da luta no lugar do ``_battle_over`` (terra secreta);
+    ``spec``: a luta, quando o nó não tem uma no conteúdo (Master Treasure Thief)."""
     c = _map(s)
-    spec = c.battle_like(camp) if c.content is not None else battle_spec(camp)
+    if spec is None:
+        spec = c.battle_like(camp) if c.content is not None else battle_spec(camp)
     assert spec is not None
     if c.run is not None and c.run.shadows:  # Tower of Kings: as sombras, mais fortes a cada nível
         spec = torres.with_shadows(spec, c.run.shadows, c.run.floors + 1)
@@ -1077,7 +1087,7 @@ async def client_state(s: GameSession, msg: pb.LoginStateMsg) -> None:
     if msg.state == BACK_TO_MAP and c is not None and c.fam and not c.ready:
         from . import fam  # fam importa este módulo
 
-        fam.show_room(s)
+        await fam.show_room(s)
     if msg.state == BACK_TO_MAP and c is not None and c.gvg and not c.ready:
         from .guildwar import show_map  # guildwar importa este módulo
 

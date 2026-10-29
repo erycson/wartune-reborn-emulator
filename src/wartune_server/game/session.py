@@ -70,6 +70,7 @@ class GameContext:
     # fúria da invasão da ilha dos pets por janela (início -> pontos; handlers/pet_defend.py); em server_states
     pet_rage: dict[datetime, int] = field(default_factory=dict)
     states: ServerStates = field(default_factory=ServerStates)  # linhas de server_states (game/server_state.py)
+    cross_queue: list[int] = field(default_factory=list)  # fila local do PvP entre servidores (handlers/cruzado.py)
 
 
 class OnlinePlayers:
@@ -154,6 +155,7 @@ class GameSession:
         self.balen_leed_sent = False  # o handler já contou o leed 15 do gasto de diamante deste pedido
         self.fam_paid_at: datetime | None = None  # último tique de EXP da árvore pago a esta sessão
         self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)
+        self.space_collect: tuple[int, datetime] | None = None  # coleta da cidade do céu em curso (nó, início; 8733)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
         # Treasure Caches na vista do último 8201 (id -> baú) e o último 20008 que os conferiu (``_roll_caches``)

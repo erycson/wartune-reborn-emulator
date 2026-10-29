@@ -15,13 +15,13 @@ from typing import Any
 
 import structlog
 
-from ...domain.models import Mail, MailType
+from ...domain.models import EventState, Mail, MailType
 from ...domain.repositories import UnitOfWork
 from ...domain.world import WorldBoss
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from ...templates.repository import Row
-from .. import boss_fight, rules, space, titles, worldboss
+from .. import boss_fight, rewards, rules, space, titles, worldboss
 from .. import events as ev
 from .. import mail as mailbox
 from .. import outer_city as oc
@@ -38,7 +38,7 @@ from . import lottery
 from .campaign import ARMY_FIGHTING, ARMY_IDLE, CAMPAIGN_SCENE, enter_quarry, map_sync, player_hero
 from .hangup import enter_room
 from .login import army, player_info
-from .player import alert, balens_changed
+from .player import alert, balens_changed, granted
 
 S_BOSS_STATE, S_BOSS_INFO, S_LEFT_TIME, S_TIME_JUDGE, S_LOADED = 4182, 4174, 4381, 4371, 4413
 S_PLAYER, S_ROOM_ENTER, S_EXIT, S_ROOM_CREATED, S_NODES, S_NODE = 3, 21, 22, 125, 127, 128
@@ -86,6 +86,15 @@ CLOSE_EVERY = timedelta(seconds=60)
 log = structlog.get_logger(__name__)
 UNAVAILABLE = "This action is not available now."  # reviver e buff: o cliente só pede dentro do mapa do chefe
 S_QUESTS = 112
+# buff comprado (8470): CampaignBufferTemps 401-420 ("Heroic Inspiration", Types=4, WorldBossBuyBuffModel), +5% por grau
+BUY_BUFF, BUFF_COST, OP_BUY, PAY_BIND = 400, 20, 2, 2  # OP_CONFIRM_BUY; WorldBossBufferMsg.type 2 = vinculado primeiro
+BUFF_KEY = "boss_buff:{cid}"  # EventState: value = grau, text = abertura da janela (o grau vale só nela)
+BUFF_MAX = "You have reached the maximum Heroic Inspiration level!"  # (cliente) worldboss.command01
+# dublê (Stand-in, 8526 -> 4424; 4423 no login): BuyAvatarFrame, WorldBossManager, WorldBossStuntmanInfo
+S_STANDINS, S_STANDIN = 4423, 4424
+STANDIN_KEY = "boss_standin:"  # EventState por chefe: value 1 = comprado, text = abertura da janela coberta
+STANDIN_COST = 135  # ConfigInfos WorldBoss_Replacement_Price (o cliente cai em 200 sem a linha)
+STANDIN_BUY, STANDIN_CANCEL = 1, 2  # OprateReplacemntMsg.op
 S_GUILDWAR, S_LOTTERY, S_UNKNOWN_462, S_CROSS_ICON, S_CROSS_STATE, S_CROSS_FIRST = 4451, 4637, 462, 4741, 4683, 4685
 QUEST_JOIN, QUEST_INSTANT, QUEST_DAMAGE = 40, 66, 41  # QuestCondictionInfos: lutar, luta paga (8264), dano total
 
@@ -114,6 +123,10 @@ async def boss_state(s: GameSession, _: object) -> None:
     s.send(S_CROSS_ICON, pb.SimplePropertyMsg(param1=0))
     s.send(S_CROSS_STATE, pb.GuildMsg(param5=False))
     s.send(S_CROSS_FIRST)
+    # o 4423 do login (WorldBossManager.setup escuta junto do 4182): nenhuma captura o tem, então (dedução) só com
+    # dublê comprado; pagando, ele já sai no ``pay_standins``
+    if not await pay_standins(s) and _standins(s):
+        s.send(S_STANDINS, _standin_msg(s))
 
 
 def push_states(s: GameSession) -> None:
@@ -220,6 +233,10 @@ async def enter_boss(s: GameSession, msg: pb.WorldBossMsg) -> None:
     assert snap is not None
     boss, now = pool.boss, ctx.clock.now()
     assert row is not None
+    if (stand := ev.peek(snap, f"{STANDIN_KEY}{boss.campaign_id}")) is not None and stand.value:
+        # "Attending a World Boss event will stop the Stand-in function" (BuyAvatarFrame.command04): sem devolução
+        stand.value, stand.text, stand.updated_at = 0, "", now
+        await ctx.characters.save(stand)
     s.campaign = CampaignMap(boss.campaign_id, boss_nodes(row, boss, worldboss.spawned(row, now)),
                              (boss.start_x, boss.start_y), world_boss=True)  # fmt: skip
     space.leave(s)
@@ -384,9 +401,8 @@ async def boss_attack(s: GameSession, node: dict[str, Any]) -> None:
     async def finished(battle: Battle, won: bool) -> None:
         await _boss_over(s, battle, won, pool, link)
 
-    s.battle = Battle(
-        spec, player_hero(s, spec), ctx.templates, ctx.clock, s.send, finished, shared=link, settings=ctx.world.settings
-    )
+    hero = player_hero(s, spec, pct=_buff_pct(s, pool))
+    s.battle = Battle(spec, hero, ctx.templates, ctx.clock, s.send, finished, shared=link, settings=ctx.world.settings)
     s.log.info("batalha com o chefe do mundo", chefe=c.map_id, vida=pool.hp, battle=s.battle.id)
     s.battle.start()
     from . import events  # handlers.events importa login, que importa a campanha
@@ -448,11 +464,29 @@ def _link(ctx: GameContext, character_id: int, nickname: str) -> str:
 
 
 def _buff_msg(s: GameSession, pool: boss_fight.Pool) -> pb.CampaignBufferMsg:
-    """4165: os buffs do exército no mapa do chefe, a moral (701+) quando há (visto #1402 vazio, #1867 com 701)."""
+    """4165: os buffs do exército no mapa do chefe, a moral (701+) quando há (visto #1402 vazio, #1867 com 701) e o
+    buff comprado (401+; o ``WorldBossBuyBuffView`` lê o ``Types`` 4 da lista para o próximo grau)."""
     msg = pb.CampaignBufferMsg(armyId=s.player_id)
     if grade := pool.inspire():
         msg.bufferInfo.add(bufferTempId=INSPIRE_BUFF + grade, leftTime=0)
+    if bought := _bought(s, pool):
+        msg.bufferInfo.add(bufferTempId=BUY_BUFF + bought, leftTime=0)
     return msg
+
+
+def _bought(s: GameSession, pool: boss_fight.Pool) -> int:
+    """Grau do buff comprado nesta janela (0 sem compra)."""
+    st = ev.peek(s.snapshot, BUFF_KEY.format(cid=pool.boss.campaign_id)) if s.snapshot is not None else None
+    return st.value if st is not None and st.text == pool.fight.opened_at.isoformat() else 0
+
+
+def _buff_pct(s: GameSession, pool: boss_fight.Pool) -> dict[str, int]:
+    """Os % do buff comprado nos atributos da luta ("All stats +N%"). shortcut: o ``Leadpawn`` (tropa) fica fora,
+    como nas cartas (``systems.camp_stats``)."""
+    from .systems import CARD_STATS  # systems importa a campanha
+
+    row = s.ctx.templates.get("CampaignBufferTemps", BUY_BUFF + grade) if (grade := _bought(s, pool)) else None
+    return {key: int(row.get(col) or 0) for col, key in CARD_STATS.items() if row and int(row.get(col) or 0)}
 
 
 def _inspire(ctx: GameContext, pool: boss_fight.Pool) -> None:
@@ -557,6 +591,8 @@ async def settle(ctx: GameContext, pool: boss_fight.Pool) -> None:
     for o in players_on(ctx, cid):
         if o.battle is None:
             _report_and_kick(o, pool)
+    for o in _online(ctx):  # quem está offline recebe o dublê no próximo login (8271)
+        await pay_standins(o)
 
 
 def _report_and_kick(s: GameSession, pool: boss_fight.Pool) -> None:
@@ -683,7 +719,122 @@ async def revive_or_fight(s: GameSession, msg: pb.PayTypeMsg) -> None:
 
 @router.on(8470)
 async def buy_buff(s: GameSession, msg: pb.WorldBossBufferMsg) -> None:
-    """Buff do chefe (``CampaignBufferTemps`` ``Types=4``, ``WorldBossBuyBuffModel.BUFFER_TYPE``): só se compra
-    dentro do mapa do chefe. Nada é cobrado."""
-    s.log.info("buff do chefe recusado (sem mapa do chefe)", pedido=str(msg))
-    alert(s, UNAVAILABLE)
+    """Buff do chefe (``CampaignBufferTemps`` ``Types=4``, ``WorldBossBuyBuffModel.BUFFER_TYPE``), um grau por
+    compra (+5% em todos os atributos, até o 420): o botão do ``WorldBossBuyBuffView`` só existe no mapa do chefe e
+    manda ``op`` 2 com ``type`` 2 (vinculado primeiro, ``WorldBoss_Buffer_Gift_Price``) ou 1 (só Balens,
+    ``WorldBoss_Buffer_Diamond_Price``). O 4374 (``U_C_WORLDBOSS_BUFFER``) não tem leitor no cliente: a resposta é o
+    3, o 4434 e o 4165 com o buff novo (``CAMPAIGN_BUFFER_UPDATE`` refaz a dica do botão)."""
+    ctx, c, snap, now = s.ctx, s.campaign, s.snapshot, s.ctx.clock.now()
+    pool = ctx.bosses.pools.get(c.map_id) if c is not None and c.world_boss else None
+    if pool is None or snap is None or not pool.alive or msg.op != OP_BUY:
+        s.log.info("buff do chefe recusado (fora do mapa do chefe)", pedido=str(msg))
+        alert(s, UNAVAILABLE)
+        return
+    grade = _bought(s, pool) + 1
+    if ctx.templates.get("CampaignBufferTemps", BUY_BUFF + grade) is None:
+        alert(s, BUFF_MAX)
+        return
+    bind = msg.type == PAY_BIND
+    cost = arena_config(ctx.templates, "WorldBoss_Buffer_Gift_Price" if bind else "WorldBoss_Buffer_Diamond_Price",
+                        BUFF_COST)  # fmt: skip
+    entry = ledger.pay(snap.character, cost, bind=bind, reason="world_boss_buff", ref=str(pool.boss.campaign_id),
+                       now=now)  # fmt: skip
+    if entry is None:
+        alert(s, NO_DIAMONDS)
+        return
+    st = ev.state(snap, BUFF_KEY.format(cid=pool.boss.campaign_id), now)
+    st.value, st.text, st.updated_at = grade, pool.fight.opened_at.isoformat(), now
+    await ctx.characters.save(snap.character, entry, st)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    balens_changed(s)
+    s.send(S_BUFF, _buff_msg(s, pool))
+    s.log.info("buff do chefe comprado", grau=grade, custo=cost, vinculado=bind)
+
+
+def _standins(s: GameSession) -> list[EventState]:
+    snap = s.snapshot
+    return [e for e in snap.events if e.key.startswith(STANDIN_KEY) and e.value] if snap is not None else []
+
+
+def _standin_msg(s: GameSession) -> pb.ReplacementMsg:
+    """4423 (``WorldBossStuntmanInfo.parseFromString``): "campanha,1|campanha,1"."""
+    return pb.ReplacementMsg(stateStr="|".join(f"{e.key[len(STANDIN_KEY) :]},1" for e in _standins(s)))
+
+
+def _covered(row: Row, now: datetime) -> datetime:
+    """A janela que um dublê comprado agora cobre: a de hoje até o ``StopTime``, depois a de amanhã."""
+    opened, stop = worldboss.window(row, now)
+    return opened if now < stop else worldboss.window(row, now + timedelta(days=1))[0]
+
+
+async def pay_standins(s: GameSession) -> bool:
+    """Paga os dublês de janelas encerradas (``StopTime`` passou ou o chefe morreu): "You may receive the World Boss
+    prize by using a Stand-in" mas sem os prêmios Hero, Arrius e Warrior (ajuda 1.45). No login (8271) e no
+    ``settle`` para quem está online. TODO(inventado): o prêmio é o teto de uma luta (``battle_cap`` de ouro e de
+    Daru); a ajuda não diz quanto."""
+    snap, ctx, now = s.snapshot, s.ctx, s.ctx.clock.now()
+    if snap is None:
+        return False
+    defeated = ctx.bosses.defeated(ctx.templates, now)
+    drops: list[tuple[int, int]] = []
+    paid: list[EventState] = []
+    for st in _standins(s):
+        cid = int(st.key[len(STANDIN_KEY) :])
+        row, boss = worldboss.boss(ctx.templates, cid), ctx.world.world_bosses.get(cid)
+        if row is None or boss is None:
+            continue
+        opened = datetime.fromisoformat(st.text)
+        killed = cid in defeated and worldboss.window(row, now)[0] == opened
+        if now >= worldboss.window(row, opened)[1] or killed:
+            st.value, st.text, st.updated_at = 0, "", now
+            paid.append(st)
+            drops += [(GOLD, boss.battle_cap), (DARU, boss.battle_cap)]
+    if not paid:
+        return False
+    new, text = rewards.grant(snap, ctx.templates, drops)
+    await ctx.characters.save(snap.character, *paid)
+    await granted(s, drops, new, text)
+    s.send(S_STANDINS, _standin_msg(s))
+    s.log.info("dublê do chefe pago", chefes=len(paid))
+    return True
+
+
+@router.on(8526)
+async def standin(s: GameSession, msg: pb.OprateReplacemntMsg) -> None:
+    """Dublê (Stand-in): ``op`` 1 compra para o chefe ``campaignId`` (``WorldBoss_Replacement_Price`` Balens), ``op`` 2
+    cancela (o botão do ``WorldBossItem`` é um liga/desliga; o cliente também cancela ao entrar, "Attending a World
+    Boss event will stop the Stand-in function"). Resposta 4424 com ``result`` 1 (``__buyStuntmanResultHandler``; o
+    ``result`` != 1 mostra "Stand-in Purchase Failed!"). TODO(inventado): cancelar antes da janela abrir devolve os
+    Balens; depois, não."""
+    ctx, snap, now = s.ctx, s.snapshot, s.ctx.clock.now()
+    row = worldboss.boss(ctx.templates, msg.campaignId)
+    if snap is None or row is None or ctx.world.world_bosses.get(msg.campaignId) is None:
+        s.send(S_STANDIN, pb.OprateReplacemntMsg(op=msg.op, campaignId=msg.campaignId, result=0))
+        return
+    st = ev.state(snap, f"{STANDIN_KEY}{msg.campaignId}", now)
+    rows: list[object] = [st]
+    if msg.op == STANDIN_BUY:
+        cost = arena_config(ctx.templates, "WorldBoss_Replacement_Price", STANDIN_COST)
+        ok = not st.value and snap.character.grades >= int(row["MinLevel"])
+        entry = ledger.pay(snap.character, cost, bind=False, reason="world_boss_standin", ref=str(msg.campaignId),
+                           now=now) if ok else None  # fmt: skip
+        if entry is None:
+            s.send(S_STANDIN, pb.OprateReplacemntMsg(op=msg.op, campaignId=msg.campaignId, result=0))
+            return
+        st.value, st.text, st.updated_at = 1, _covered(row, now).isoformat(), now
+        rows += [snap.character, entry]
+    elif msg.op == STANDIN_CANCEL and st.value:
+        if now < datetime.fromisoformat(st.text):
+            cost = arena_config(ctx.templates, "WorldBoss_Replacement_Price", STANDIN_COST)
+            snap.character.point += cost
+            rows += [snap.character, ledger.record_cash(snap.character, cost, 0, "world_boss_standin_refund",
+                                                        str(msg.campaignId), now)]  # fmt: skip
+        st.value, st.text, st.updated_at = 0, "", now
+    else:
+        s.send(S_STANDIN, pb.OprateReplacemntMsg(op=msg.op, campaignId=msg.campaignId, result=1))
+        return
+    await ctx.characters.save(*rows)
+    s.send(S_PLAYER, b.complete(player_info(s, snap)))
+    balens_changed(s)
+    s.send(S_STANDIN, pb.OprateReplacemntMsg(op=msg.op, campaignId=msg.campaignId, result=1))
+    s.log.info("dublê do chefe", op=msg.op, chefe=msg.campaignId)

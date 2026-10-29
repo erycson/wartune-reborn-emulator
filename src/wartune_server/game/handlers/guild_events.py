@@ -117,9 +117,12 @@ async def cross_group(s: GameSession, msg: pb.CrossGuildMsg) -> None:
 
 @router.on(8779)
 async def cross_signup(s: GameSession, _: object) -> None:
-    """Inscrição: precisa de outros servidores; responde "não inscrita" para a janela não travar."""
-    _refuse(s, 8779, "guerra entre servidores não implementada")
+    """Inscrição: vira a fila LOCAL do PvP entre servidores (``handlers/cruzado.py``); o 4682 sem ``info`` segue
+    para a janela não travar (os grupos de guildas do mapa 4601 não existem num servidor só)."""
+    from . import cruzado  # noqa: PLC0415  (cruzado importa campaign, pesado)
+
     s.send(S_CROSS_GROUP, b.complete(pb.CrossGuildMsg()))
+    cruzado.enter(s)
 
 
 @router.on(8778)

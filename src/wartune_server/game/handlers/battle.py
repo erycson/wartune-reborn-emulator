@@ -14,6 +14,7 @@ from ..session import GameSession
 S_FIGHT_MODE, S_ITEM_RESULT, S_VIEW_INFO = 77, 158, 4804
 REFUSED = 1  # ItemUseResultMsg.result != 0: o cliente tira a marca da skill e libera a barra
 BATTLE_ITEM, TRIAL_ITEM = 1, 2  # ItemUseResultMsg.type (2 prova, 3 casal: só importam no sucesso)
+VIEW_QUIT, VIEW_CHECK, VIEW_USER, VIEW_TEAM = -1, 0, 1, 2  # BattleViewManager: QUIT, CHECK, VIEW_ZS, VIEW_TT
 
 
 def _battle(s: GameSession, battle_id: str) -> Battle | None:
@@ -62,9 +63,36 @@ async def battle_item(s: GameSession, msg: pb.BattleItemMsg) -> None:
     s.send(S_ITEM_RESULT, reply)
 
 
+def _watched(s: GameSession, kind: int, msg: pb.BattleViewMsg) -> Battle | None:
+    """A luta em andamento: ``kind`` 1 pela sessão do ``userId``, 2 pelo id da luta (``teamUuid``)."""
+    if kind == VIEW_USER:
+        other = s.ctx.online.get(msg.userId)
+        battle = other.battle if other is not None else None
+    elif kind == VIEW_TEAM:
+        battle = next((o.battle for o in s.ctx.online.sessions() if o.battle and o.battle.id == msg.teamUuid), None)
+    else:
+        battle = None
+    return battle if battle is not None and battle.running else None
+
+
 @router.on(8985)
 async def battle_view(s: GameSession, msg: pb.BattleViewMsg) -> None:
-    """Assistir batalha de outro: não há batalhas assistíveis; 4804 com param7 = "acabou" (só um aviso)."""
+    """Assistir a luta de outro (cliente ``BattleViewManager.sendOperationToServer``): ``type`` 0 consulta (o alvo
+    vem do ``sonType``), 1/2 entra, -1 sai. Consulta: 4804 ``param1`` = espera em ms (0: o cliente manda o pedido de
+    entrar na hora) e ``param7`` = "acabou". Entrar: a luta manda o 157/156 e daí tudo (``Battle.watch``); sair ou o
+    fim da luta: 4803. Nenhuma tela do cliente inglês chama ``sendOperationToServer`` fora do próprio manager e do
+    ``BattleCDViewFrame`` (grep em decomp): fica pronto para quando houver."""
+    if msg.type == VIEW_QUIT:
+        for o in s.ctx.online.sessions():
+            if o.battle is not None and s in o.battle.viewers:
+                o.battle.unwatch(s)
+        return
+    battle = _watched(s, msg.sonType if msg.type == VIEW_CHECK else msg.type, msg)
+    if battle is not None and s.battle is None and (msg.type == VIEW_CHECK or battle.watch(s)):
+        if msg.type == VIEW_CHECK:
+            s.send(S_VIEW_INFO, pb.SimplePropertyMsg(param1=0, param7=False))
+        return
+    # param7 True em toda recusa: com False e espera 0 o cliente repete o pedido sem parar
     s.send(S_VIEW_INFO, pb.SimplePropertyMsg(param1=0, param7=True))
 
 

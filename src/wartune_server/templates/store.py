@@ -111,9 +111,13 @@ async def load(engine: AsyncEngine) -> GameTemplates:
     """``GameTemplates`` igual ao de ``GameTemplates.parse`` do arquivo importado (linhas na mesma ordem)."""
     tree = _children(await _all(engine))
     categories: dict[str, list[Row]] = {}
+    nested: dict[str, list[Row]] = {}
     for node_id, tag, _ in tree.get(None, []):
         categories[tag] = [MappingProxyType(json.loads(attrs)) for _, _, attrs in tree.get(node_id, [])]
-    return GameTemplates(categories)
+        for group_id, group, _ in tree.get(node_id, []):
+            if rows := tree.get(group_id):
+                nested[group] = [MappingProxyType(json.loads(attrs)) for _, _, attrs in rows]
+    return GameTemplates(categories, nested)
 
 
 async def export_xml(engine: AsyncEngine) -> bytes:

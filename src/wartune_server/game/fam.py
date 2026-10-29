@@ -65,6 +65,45 @@ def invasion(store: dict[int, Invasion], guild_id: int, now: datetime) -> tuple[
     return new, inv is not None
 
 
+# Master Treasure Thief (8743): (cliente) ``ConsortiaSecretCallMonsterView`` "(n/3)" com a contagem ``leftTime``;
+# (visto) 4632 #5065 leftTime 180000; (dedução) os 30 nós masterType 181 do 7501 em 3 levas de 10, 3 min cada
+LORDS_BATCHES, LORDS_SECONDS = 3, 180
+
+
+@dataclass
+class Lords:
+    """Chamada do Master Treasure Thief de uma guilda (como ``Invasion``: o vencido some, um luta por vez)."""
+
+    called_at: datetime
+    dead: set[int] = field(default_factory=set)
+    fighting: dict[int, int] = field(default_factory=dict)
+
+    def batch(self, now: datetime) -> int | None:
+        """Leva em curso (0..2) ou None depois da última."""
+        k = int((now - self.called_at).total_seconds()) // LORDS_SECONDS
+        return k if 0 <= k < LORDS_BATCHES else None
+
+    def left_ms(self, now: datetime) -> int:
+        return max(
+            0, LORDS_SECONDS * 1000 - int((now - self.called_at).total_seconds() * 1000) % (LORDS_SECONDS * 1000)
+        )
+
+
+def lords_of(store: dict[int, Lords], guild_id: int, now: datetime) -> Lords | None:
+    """A chamada em curso da guilda; a que passou da última leva sai do ``store``."""
+    lords = store.get(guild_id)
+    if lords is not None and lords.batch(now) is None:
+        del store[guild_id]
+        return None
+    return lords
+
+
+def lords_batch(camps: list[int], k: int) -> list[int]:
+    """Os nós da leva ``k``: os 30 em ordem de ``campDataId``, 10 por leva."""
+    per = len(camps) // LORDS_BATCHES or 1
+    return sorted(camps)[k * per : (k + 1) * per]
+
+
 def _cfg(settings: Mapping[str, Any]) -> dict[str, Any]:
     return {**DEFAULTS, **(settings.get("fam_tree") or {})}
 

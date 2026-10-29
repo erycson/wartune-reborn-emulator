@@ -121,6 +121,8 @@ class Guilds:
     logout_at: dict[int, datetime] = field(default_factory=dict)
     reserved: set[str] = field(default_factory=set)  # nomes sendo criados (entre a checagem e o save)
     invasions: dict[int, Any] = field(default_factory=dict)  # guilda -> ``fam.Invasion`` (Invasores do 7501)
+    # guilda -> ``fam.Lords`` (Master Treasure Thief chamado). shortcut: só na memória, um reinício encerra a chamada
+    lords: dict[int, Any] = field(default_factory=dict)
     wars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``guildwar.War`` de hoje (as duas do par)
     election_at: datetime | None = None  # última conferência das eleições (``handlers.guild.election.clock``)
     altars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``handlers.altar.Run`` do altar aberto

@@ -16,6 +16,7 @@ from ...domain.models import ArenaRank, BagType, ChallengeLog, EventState, Item,
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import arena as A
+from .. import arena_grupo as ag
 from .. import bag, rewards, rules, titles
 from .. import events as ev
 from ..battle import Battle
@@ -87,8 +88,11 @@ async def login_rewards(s: GameSession, msg: pb.PlayerDataMsg) -> None:
                 s.send(S_PET_REWARD, pb.RankRewardMsg(type=PET_DAY, status=CLAIMABLE, rank=order, opType=0))
             if arena.pet_reward_week != A.week(now):
                 s.send(S_PET_REWARD, pb.RankRewardMsg(type=PET_WEEK, status=CLAIMABLE, rank=order, opType=0))
-    if msg.crossScoreReward:
-        s.send(4481, pb.ChallengeRankRewardMsg(isTake=False))  # sem servidores cruzados
+    if msg.crossScoreReward:  # (cliente) LoginInitDataAccept.__pvpTakeHandler: isTake liga o botão
+        assert s.snapshot is not None
+        cfg = dict(s.ctx.world.settings.get("arena_party") or {})
+        ok = ag.can_claim(s.snapshot, now, cfg, s.ctx.world.settings.get("cross_score") or {})
+        s.send(4481, pb.ChallengeRankRewardMsg(isTake=ok))
 
 
 async def _snapshot(s: GameSession, user_id: int) -> PlayerSnapshot | None:
@@ -425,8 +429,33 @@ async def take_reward(s: GameSession, _: object) -> None:
 
 @router.on(8590)
 async def cross_score_reward(s: GameSession, _: object) -> None:
-    """Pontos da arena entre servidores: não há servidores cruzados, então "sem direito" (4482)."""
-    s.send(S_CROSS, pb.ChallengeRankRewardMsg(isTake=False, param1=0, param2=0, param3=0, param4=0))
+    """Prêmio dos pontos PvP (fila local, ``handlers/cruzado.py``): 4482 (cliente ``TopToolsBar.__pvpTakeHandler``)
+    ``param2`` pontos, ``param3`` Warrior's Mark (0: "didn't earn") e ``param4`` 1 = título Road Warrior.
+    Regra do ``pvpHeroFrame.rewardTip``: 1000 pontos dão a marca; top 20 com 1000, o título.
+    TODO(inventado): os itens (``game_settings.cross_score``, migração 0121); o título não existe nos templates."""
+    snap, now = s.snapshot, s.ctx.clock.now()
+    assert snap is not None
+    cfg = dict(s.ctx.world.settings.get("arena_party") or {})
+    cross = s.ctx.world.settings.get("cross_score") or {}
+    pts = ag.points(ev.peek(snap, ag.KEY), now, cfg)
+    marks = title = 0
+    drops = [(int(t), int(n)) for t, n in cross.get("mark", [])]
+    if ag.can_claim(snap, now, cfg, cross) and rewards.can_grant(snap, s.ctx.templates, drops, now):
+        new, text = rewards.grant(snap, s.ctx.templates, drops)
+        done = ev.state(snap, ag.REWARD_KEY, now)
+        done.text = ag.period(now, cfg)
+        await s.ctx.characters.save(*new, done)
+        s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+        items_gained(s)
+        marks = sum(n for _, n in drops)
+        server = snap.server.id or 0
+        states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(server, ag.KEY))
+        place = ag.position(states, s.player_id, now, cfg)
+        title = int(0 < place <= int(cross.get("top", ag.TITLE_TOP)))
+    else:
+        s.log.info("8590 sem prêmio", pontos=pts)
+    s.send(S_CROSS, pb.ChallengeRankRewardMsg(isTake=False, param1=0, param2=pts, param3=marks, param4=title))
 
 
 @router.on(8635)
@@ -438,9 +467,14 @@ async def challenge_self(s: GameSession, msg: pb.QuestInfo) -> None:
 @router.on(5021)
 async def add_attack_count(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     """Compra tentativa: type 1 é o torneio de fadas (ouro, ``Jion_pet_challenge``); type 2 é a
-    chegada dos deuses (outro sistema). O coliseu compra pelo próprio 8253."""
+    chegada dos deuses (``tollgate.add_time``). O coliseu compra pelo próprio 8253."""
     snap = s.snapshot
     assert snap is not None
+    if msg.type == GOD_ARRIVE:
+        from . import tollgate  # noqa: PLC0415  (tollgate importa campaign, que importa este pacote)
+
+        await tollgate.add_time(s, msg)
+        return
     if msg.type != A.PETS:
         s.log.info("5021 sem efeito aqui", pedido=str(msg))
         return

@@ -42,6 +42,7 @@ from .builders.login import fmt_time
 log = structlog.get_logger(__name__)
 
 S_PREPARE, S_START, S_ATTACK, S_OVER, S_ORDER, S_STOP, S_NOTICE = 157, 156, 153, 154, 75, 69, 4361
+S_VIEW_CLOSE = 4803  # U_CROSS_BATTLE_VIEW: fecha a tela de quem assiste
 S_REINFORCE, S_LOAD_RES = 72, 4149
 _WAVE_IDS = itertools.count(1)  # armyId do 4149
 TRIAL_TYPE = 25  # battleType da Spire (cliente TrailCountView.isTrail)
@@ -303,6 +304,7 @@ class Battle:
         self._out, self._on_end = send, on_end
         self.forfeit: Callable[[], Awaitable[None]] | None = None  # quem conduz caiu: fecha a luta (arena em grupo)
         self.joined: list[Any] = []  # reforços de jogador (``join``, 8255/8745): sessões que recebem o resto da luta
+        self.viewers: list[Any] = []  # espectadores (8985, ``watch``): recebem tudo e o 4803 no fim
         self._t0: float | None = None  # time.monotonic() do 156
         self._paused_at: float | None = None
         self._paused_total = 0.0
@@ -347,8 +349,32 @@ class Battle:
     def send(self, code: int, msg: Message) -> None:
         """Para quem já estava na luta e para os reforços (``joined``)."""
         self._out(code, msg)
-        for viewer in self.joined:
+        self.viewers = [v for v in self.viewers if not v.gone.is_set()]  # espectador que caiu sai da lista
+        for viewer in [*self.joined, *self.viewers]:
             viewer.send(code, msg)
+
+    def watch(self, viewer: Any) -> bool:
+        """Espectador entra (8985): o 157 com a vida de agora e, se já começou, o 156 (o cliente só anda com ele);
+        daí recebe tudo o que a luta manda. TODO(inventado): nenhuma captura de assistir; o 156 com ``frame`` 0."""
+        if not self.running or viewer in self.viewers:
+            return False
+        viewer.send(S_PREPARE, self.prepare_msg())
+        if self._t0 is not None:
+            viewer.send(S_START, pb.BattleStartMsg(frame=0, mainType=self.spec["battleType"], countDown=COUNTDOWN_MS))
+        self.viewers.append(viewer)
+        return True
+
+    def unwatch(self, viewer: Any, close_type: int = 0) -> None:
+        """Tira o espectador e fecha a tela dele: 4803 (cliente ``BattleViewManager.onCloseBattleViewHandler``:
+        ``param1`` 1 vitória, 2 derrota, outro só sai; ``param7`` saída normal)."""
+        if viewer in self.viewers:
+            self.viewers.remove(viewer)
+            viewer.send(S_VIEW_CLOSE, pb.SimplePropertyMsg(param1=close_type, param7=True))
+
+    def release_viewers(self, won: bool) -> None:
+        """Fim da luta: todos os espectadores recebem o 4803 (vitória/derrota do lado 1, o que eles viam)."""
+        for viewer in list(self.viewers):
+            self.unwatch(viewer, 1 if won else 2)
 
     @property
     def player_sp(self) -> int:
@@ -658,7 +684,10 @@ class Battle:
             for u in winners:
                 over.prepareOverLivings.add(calcType=VICTORY, livingId=u.living_id, sp=u.sp)
             self.send(S_OVER, over)
-            await self._on_end(self, won)
+            try:
+                await self._on_end(self, won)
+            finally:
+                self.release_viewers(won)
         except asyncio.CancelledError:
             raise
         except Exception:

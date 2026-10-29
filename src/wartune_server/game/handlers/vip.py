@@ -39,6 +39,30 @@ VIP_MYSTERY = 14  # type "Add Mystery Shop Attempts": compras a mais por dia, +1
 VIP_AUTO_SIGN = 3  # VipPrerogativeType.AUTO_SIGN_IN: assina o dia no login (para1 1 do VIP 2 em diante)
 VIP_EXP = 6  # type "Bonus EXP": "Bonus 50% Dungeon EXP" no VIP 1 até 150% no 9 (language VipPrivilegeFrame)
 VIP_FRIEND, VIP_FRIEND_BONUS = 6, 50  # VIPModel.VIP_FRIEND (procurado em para2) e o 50 fixo de vipFriendPrivilege
+# Conferência de cada VipPrerogativeTempInfos.type com onde o servidor aplica (ou por que não precisa)
+PRIVILEGES = {
+    1: "Supreme Castle Renovation: só visual no cliente (VipPrerogativeType.CASTLE_VIEW, sem pedido)",
+    2: "Devotion Bonus: handlers/events.py VIP_DEVOTION",
+    3: "Automatic Check-in: handlers/events.py (VIP_AUTO_SIGN no login)",
+    4: "Increased Friend Limit: friend_bonus (como VIPModel.vipFriendPrivilege)",
+    6: "Bonus EXP: campaign.py vipJoin e dungeon.py (VIP_EXP)",
+    7: "Bonus Kyanite from Plunder: outer_city.py VIP_PLUNDER_CRYSTALS",
+    8: "More Alchemy Attempts: alchemy (ALCHEMY_RIGHT)",
+    9: "Add Daru Alchemy Attempts: soul (SOUL_RIGHT)",
+    10: "VIP Tokens: roleta VIP (VIP_TOKEN 208015, 8519/8521)",
+    11: "1-Click Astral Capture: o cliente repete o 8269 sozinho (StarManager.sendRandomStar)",
+    12: "VIP Daily Quests: missões tipo 63 'VIP Daily' (handlers/events.py)",
+    13: "VIP Weekly Gift Packs: presente semanal (GIFT_NEXT)",
+    14: "Add Mystery Shop Attempts: shop.py VIP_MYSTERY",
+    15: "Less Honor Loss In-Battle: nenhuma luta tira honra aqui (o campo tira pontos, warfield.LOSS_PCT)",
+    16: "Speed up cool down timer for free: free_cool (castle 5172 index 0)",
+    17: "1-Click Blessing: guild/altar.py QUICK_VIP",
+    18: "Skip Sylph Arena Battle: arena.py pet_end_battle (8727)",
+    19: "VIP-exclusive mount: S_VIP_MOUNT 4610 e a montaria MountType 3",
+    20: "Activate Dungeon VIP Chest: campaign.py baú VIP (custo em Kyanite)",
+    203: "Victory & Failure Chests (Tank Trials): para1 0 em todos os níveis, sem efeito",
+    205: "Sylph skill learning: pets.py VIP_SKILL_WAIT",
+}
 ALCHEMY_COUNT = 20  # remainCount 20 sem VIP (visto: oficial_encantar #7, igual ao turco login.json #9)
 ALCHEMY_GRADE = 14  # MainToolBar: o cliente pede o 8320 de novo ao chegar no nível 14
 MAX_COST = 200  # AlchemyFrame/SoulMakeFrame: o 1º uso do dia é grátis, depois 40 + 10 x usos, no máximo 200

@@ -18,6 +18,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
 from .. import battlefield as bf
 from .. import buffs, rewards, rules, space, titles, worldboss
+from .. import events as ev
 from ..builders import login as b
 from ..campaign import CampaignMap
 from ..router import router
@@ -369,6 +370,9 @@ async def enter_mine(s: GameSession, _: object) -> None:
     from .events import count_click  # events importa login, que importa este pacote
 
     await count_click(s, "minefield")  # DayGuideManager "minefield" -> atividade 13 (MaxCount 2)
+    # atividade "Amethyst Mine" (tipo 111): cada entrada é uma participação (dedução pelo texto)
+    if counted := ev.count(snap, ctx.events, ev.MINEFIELD, now):
+        await ctx.characters.save(*counted)
 
 
 def _mine_msg(s: GameSession) -> pb.TramcarInfoMsg:

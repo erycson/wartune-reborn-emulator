@@ -149,6 +149,19 @@ def _met(s: GameSession, task: EventState, tid: int | None = None) -> bool:
     return bool(conds) and all(done(i, r) for i, r in enumerate(conds))
 
 
+def ring_collects(s: GameSession, template_id: int) -> bool:
+    """O anel em andamento pede para coletar ``template_id`` (condição 4, ``Para1``) e ainda falta: o que o cliente
+    confere antes de mandar o 8692 do nó de coleta (``SpaceArmyViewHelper.nodeTrigger``, ``param3`` "12")."""
+    snap = s.snapshot
+    assert snap is not None
+    tid = int(_json(_ring(snap, s.ctx.clock.now())).get("t", 0))
+    return any(
+        int(r["CondictionType"]) == COLLECT and int(r["Para1"] or 0) == template_id
+        and bag.count_of(snap, template_id) < int(r["Para2"])
+        for r in (_conditions(s, tid) if tid else [])
+    )  # fmt: skip
+
+
 def _son(s: GameSession, template_id: int) -> int:
     row = s.ctx.templates.get("PawnTempInfos", template_id) or {}
     return int(row.get("SonType") or 0)

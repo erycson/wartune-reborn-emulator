@@ -665,11 +665,12 @@ async def rebate(s: GameSession, msg: pb.RebateOpMsg) -> None:
     _send(s, S_REBATE_USER, info)
 
 
-@router.on(8629, 8630, 8634, 8638, 9521, 9522)
+@router.on(8629, 8630, 8634, 9521, 9522)
 async def no_reply(s: GameSession, _: object) -> None:
     """Pedidos que o cliente só manda com a tela aberta, que aqui nunca abre: sem resposta.
-    História (8629/8630; nunca 4546), volta do jogador (8634; nunca 4550), pegar corneta (8638) e dados
-    da estrada dourada (9521/9522). O labirinto de gemas (9508..9517) é ``handlers/gemmaze.py``."""
+    História (8629/8630; nunca 4546), volta do jogador (8634; nunca 4550) e dados da estrada dourada
+    (9521/9522); pegar corneta (8638) é ``handlers/singlepass.py``. O labirinto de gemas (9508..9517) é
+    ``handlers/gemmaze.py``."""
     s.log.debug("minigame fechado: pedido sem resposta")
 
 
