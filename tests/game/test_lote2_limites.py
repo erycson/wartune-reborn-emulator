@@ -81,7 +81,10 @@ async def test_3_sem_estamina_avisa(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=25500) as g:
         _snap(g).character.weary = 19
         got = await enter(g)
-        assert codes(got) == [111] and text(got[0]) == "Insufficient Stamina"
+        assert codes(got)[0] == 111 and text(got[0]) == "Insufficient Stamina"
+        c = _s(g).campaign  # (cliente) "cease to receive any EXP or items": entra, sem gastar e sem prêmio
+        assert c is not None and c.run is not None and not c.run.rewarded and _snap(g).character.weary == 19
+        assert all("deducted" not in text(p) for p in got if p.code == 83)
 
 
 def test_4_chefe_com_janela_que_cruza_a_meia_noite() -> None:
@@ -107,6 +110,11 @@ def test_5_evento_de_exp_so_na_hora_do_dia() -> None:
 
     assert ev.running_rates(world, at(28, 21)) == [rate]  # type: ignore[arg-type]
     assert ev.running_rates(world, at(28, 12)) == []  # type: ignore[arg-type]  # dentro das datas, fora da hora
+    night = ExpRate(2, "2026-10-27 00:00:00", "2026-10-29 00:00:00", 22 * 3600, 2 * 3600, 1)
+    world = SimpleNamespace(exp_rates=(night,))
+    assert ev.running_rates(world, at(28, 23)) == [night]  # type: ignore[arg-type]
+    assert ev.running_rates(world, at(28, 1)) == [night]  # type: ignore[arg-type]  # cruza a meia-noite
+    assert ev.running_rates(world, at(28, 12)) == []  # type: ignore[arg-type]
 
 
 async def test_6_vip_vencido_avisa(tmp_path: Path) -> None:
@@ -115,9 +123,9 @@ async def test_6_vip_vencido_avisa(tmp_path: Path) -> None:
         st = ev.state(_snap(g), "vip", NOW)
         st.text = b.fmt_time(NOW + timedelta(minutes=1))
         clock.advance(120)
-        vip.notify_expired(g.server.online, NOW + timedelta(minutes=2), NOW + timedelta(minutes=3))
+        await vip.tick(g.server.online, NOW + timedelta(minutes=2), NOW + timedelta(minutes=3))
         assert await g.idle() == []  # venceu antes da rodada anterior
-        vip.notify_expired(g.server.online, NOW, NOW + timedelta(minutes=2))
+        await vip.tick(g.server.online, NOW, NOW + timedelta(minutes=2))
         info = pb.VipInfoMsg.FromString(next(p.body for p in await g.idle() if p.code == 4410))
         assert not info.isVip
 
@@ -131,7 +139,12 @@ async def test_7_vipgp_por_dia(tmp_path: Path) -> None:
         await g.until(4416)
         gp = ev.peek(snap, "vip")
         assert gp is not None and gp.value == 10  # só o dia da compra
-        clock.advance(3 * 86400)
+        clock.advance(86400)  # online na virada do dia: o agendador soma e manda o 4410
+        await vip.tick(g.server.online, clock.now(), clock.now())
+        assert gp.value == 20
+        info = pb.VipInfoMsg.FromString(next(p.body for p in await g.idle() if p.code == 4410))
+        assert info.vipGp == 20
+        clock.advance(2 * 86400)
         await vip.login_push(s)
         assert gp.value == 40
         clock.advance(60 * 86400)

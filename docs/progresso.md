@@ -224,7 +224,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Entrada (5039) e estamina | ✅ | | sem estamina: "Insufficient Stamina" do cliente (sem captura da recusa) |
+| Entrada (5039) e estamina | ✅ | | sem estamina entra sem prêmio (EXP, drop, carta) e sem gastar, com "Insufficient Stamina" (cliente); sem captura |
 | 1001 Worg Lair | 🟡 | 🇹🇷 | cartas 1080012 e 1080002 no inglês, 1080013 no turco; Pandora só dá o buff; 5180, cartas pagas e progresso salvo faltam |
 | 1002 Baylon Plains | ✅ | | caixa do caçador com uma amostra |
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
@@ -401,7 +401,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Estado e nível (4410) | 🧪 | | vipGp: `Vip_DailyAddGp` por dia de VIP pago, somado no login e na compra; o dia da compra conta (dedução); VIP que vence online avisa a guilda (4455) |
+| Estado e nível (4410) | 🧪 | | vipGp: `Vip_DailyAddGp` por dia de VIP pago, somado no login, na compra e na virada do dia online (agendador); o dia da compra conta (dedução); VIP que vence online avisa a guilda (4455) |
 | Compra (8513) | 🟡 | | presente a amigo recusado: VIP não é item, não vai pelo correio (e o inglês não manda o 8513) |
 | Presente semanal, cartão de teste, roleta | ✅ | | |
 | Contrato do rei: compra | 🟡 | | presente a amigo recusado: contrato não é item, não vai pelo correio |

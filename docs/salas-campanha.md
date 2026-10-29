@@ -154,7 +154,7 @@ captura mostra o mesmo 5039 levando ao 1011 e depois ao 1021 (#843, #1151), e ao
 #2788). *(dedução)* Depois da última etapa, volta à primeira.
 
 A entrada custa 20 de estamina e manda, nesta ordem: 125 tipo 1, 140, 21, 127, 130, 143, 138 (se o mapa tem
-diálogo), 3 e o 83 "Entered [Worg Lair] and deducted 20 stamina." (#844-#853). Sem estamina, o 111 "Insufficient Stamina" (language.txt `mopup.MopupManager.mopupTipData03`).
+diálogo), 3 e o 83 "Entered [Worg Lair] and deducted 20 stamina." (#844-#853). Sem estamina entra sem prêmio e sem gastar (cliente: "cease to receive any EXP or items"), com o 111 "Insufficient Stamina" (language.txt `mopup.MopupManager.mopupTipData03`).
 
 **Portal.** O nó do portal (masterType 62: 113106, 114106) responde 4208, 125 tipo 3, 127, 130, 21 e 131
 (#2503-#2508). A etapa (`StageRun`) passa para o mapa novo, então o tempo do 137 conta desde o 125 do 1131.

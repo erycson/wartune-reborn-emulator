@@ -172,8 +172,11 @@ async def run(
         try:
             await sweep(characters, templates, online, server_id, now)
             wait = await next_wait(characters, server_id, clock.now(), every)
-            vip.notify_expired(online, since, now)  # o VIP que vence com o jogador online avisa a guilda
-            since = now
         except Exception:
             log.exception("encerramento do mercado falhou", proxima_em_s=every)
+        try:  # o relógio do VIP não depende do mercado
+            await vip.tick(online, since, now)  # vipGp da virada do dia e o VIP que venceu online
+            since = now
+        except Exception:
+            log.exception("relógio do VIP falhou", proxima_em_s=wait)
         await asyncio.sleep(wait)

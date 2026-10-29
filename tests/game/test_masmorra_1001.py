@@ -173,8 +173,9 @@ async def test_cada_etapa_gasta_20_de_estamina_e_sem_estamina_nao_entra(tmp_path
         assert session is not None and session.snapshot is not None
         session.snapshot.character.weary = 19
         session.campaign = None  # fora da masmorra, com 19 de estamina
-        assert codes(await enter(g)) == [111]  # "Insufficient Stamina" (test_lote2_limites)
-        assert session.snapshot.character.weary == 19 and session.campaign is None
+        assert codes(await enter(g))[0] == 111  # "Insufficient Stamina", e entra sem prêmio (test_lote2_limites)
+        assert session.snapshot.character.weary == 19
+        assert session.campaign is not None and session.campaign.run is not None and not session.campaign.run.rewarded
 
 
 async def test_lobo_comeca_a_luta_na_chegada_e_o_4382_espera_a_volta(tmp_path: Path) -> None:

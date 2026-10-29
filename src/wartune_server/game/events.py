@@ -91,8 +91,13 @@ def running_rates(world: World, now: datetime) -> list[ExpRate]:
     return [
         r
         for r in world.exp_rates
-        if rate_window(r)[0] <= now <= rate_window(r)[1] and r.begin_time <= second <= r.end_time
+        if rate_window(r)[0] <= now <= rate_window(r)[1] and _in_day(r.begin_time, r.end_time, second)
     ]
+
+
+def _in_day(begin: int, end: int, second: int) -> bool:
+    """Hora do dia na janela; ``begin`` > ``end`` cruza a meia-noite (22h-2h = das 22h às 2h do dia seguinte)."""
+    return begin <= second <= end if begin <= end else second >= begin or second <= end
 
 
 def config(templates: GameTemplates, name: str, default: str = "") -> str:

@@ -1105,21 +1105,25 @@ async def dungeon_enter(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if room is not None and room.type == PVE and msg.paraInt1 != 1:
         await _group_start(s, room, content, msg)
         return
-    if snap.character.weary < WEARY:
+    # (cliente) mainBar...componetPower: "After running out of stamina, you will cease to receive any EXP or items
+    # from dungeons": entra sem prêmio (EXP, drop e carta), sem gastar, com o aviso
+    tired = snap.character.weary < WEARY
+    if tired:
         _send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=NO_STAMINA))
-        s.log.info("5039 sem energia", weary=snap.character.weary)
-        return
     now = s.ctx.clock.now()
     stage = events.state(snap, STAGE_KEY.format(msg.paraInt2), now).value % len(stages)
     maps = tuple(int(m) for m in stages[stage])
-    snap.character.weary -= WEARY  # antes do await: um 5039 repetido já vê o mapa novo
-    _enter_dungeon(s, content, maps[0], StageRun(msg.paraInt2, stage, maps, now), ENTER)
+    if not tired:
+        snap.character.weary -= WEARY  # antes do await: um 5039 repetido já vê o mapa novo
+    run = StageRun(msg.paraInt2, stage, maps, now, rewarded=not tired)
+    _enter_dungeon(s, content, maps[0], run, ENTER)
     await _push_player(s)
     from . import systems  # systems importa este módulo
 
     systems.send_camp_buffs(s, systems.camp_type(_campaign_row(s, msg.paraInt2)))
     name = _campaign_row(s, msg.paraInt2).get("CampaignName", "")
-    _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Entered [{name}] and deducted {WEARY} stamina."))
+    if not tired:  # sem gasto, sem o "deducted" (TODO(captura): a entrada do oficial sem estamina)
+        _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Entered [{name}] and deducted {WEARY} stamina."))
     await s.ctx.characters.save(snap.character)
 
 
@@ -1842,7 +1846,7 @@ async def _dungeon_end(s: GameSession) -> None:
     # EXP Boost: "Increases EXP received from instances by N%, ... only takes effect in campaigns and MP dungeons"
     # (cliente, ItemTempInfo 2013001-4). (dedução) o grau vai no propJoin (o "prop" do CampaignResultView)
     report.propJoin = buffs.grade(snap, buffs.EXP_BOOST, now)
-    report.totalGp = buffs.boost(report.totalGp, snap, buffs.EXP_BOOST, now)
+    report.totalGp = buffs.boost(report.totalGp, snap, buffs.EXP_BOOST, now) if run.rewarded else 0
     from .vip import VIP_EXP, vip_right  # vip importa player, que importa login, que importa este módulo
 
     # (cliente) CampaignResultView mostra o vipJoin à parte (vip_exp), como o petGp; (dedução) o VIP soma

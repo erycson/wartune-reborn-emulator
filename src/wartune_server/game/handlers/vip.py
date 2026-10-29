@@ -156,7 +156,7 @@ def send_vip(s: GameSession) -> None:
 
 def vip_changed(s: GameSession) -> None:
     """4410 para o jogador e o 4455 para a guilda online: o ``ConsortiaGroupChatControler`` troca o ícone VIP do
-    membro no chat em grupo. O VIP que vence sozinho sai por ``notify_expired`` (agendador de ``game/mall.py``)."""
+    membro no chat em grupo. O VIP que vence sozinho sai por ``tick`` (agendador de ``game/mall.py``)."""
     send_vip(s)
     snap, mine = s.snapshot, s.ctx.guilds.of(s.player_id)
     if snap is None or mine is None:
@@ -192,10 +192,16 @@ def accrue_gp(s: GameSession, snap: PlayerSnapshot, now: datetime) -> list[Event
     return [st, mark]
 
 
-def notify_expired(online: OnlinePlayers, since: datetime, now: datetime) -> None:
-    """VIP de jogador online que venceu em ``(since, now]``: o mesmo 4410 + 4455 da compra (``vip_changed``)."""
+async def tick(online: OnlinePlayers, since: datetime, now: datetime) -> None:
+    """Relógio do VIP de quem está online: o vipGp dos dias que viraram (``accrue_gp``, com o 4410) e o VIP que
+    venceu em ``(since, now]`` (o mesmo 4410 + 4455 da compra, ``vip_changed``)."""
     for s in online.sessions():
-        end = _vip_expiry(s.snapshot) if s.snapshot is not None else None
+        if s.snapshot is None:
+            continue
+        if gained := accrue_gp(s, s.snapshot, now):
+            await s.ctx.characters.save(*gained)
+            send_vip(s)
+        end = _vip_expiry(s.snapshot)
         if end is not None and since < end <= now:
             vip_changed(s)
 
