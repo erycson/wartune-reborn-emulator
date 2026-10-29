@@ -52,7 +52,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Conta nova até o castelo no Flash Player projector | 🟡 | | pelo portal, acompanhando `logs/packets.log`; ainda não validado |
 | Tutorial no cliente real | 🟡 | | o oráculo bate com a tutorial_en sem exclusões (só ritmo, [tutorial.md](tutorial.md)); falta jogar no cliente |
 | Cobertura de opcodes (`scan_opcodes.py`, C>S, classes novas) | ✅ | | os 438 C→S do cliente têm handler (o 20001 é o login da sessão) |
-| `shortcut:`/`ponytail:` do código | 🟡 | | classificados: taxas foram para `game_settings` (0124 montaria/destino/mascote/estrelas/painel, 0130 luta e veículo, 0134 runa 2x-20x e prazo da senha); comportamento feito (troca da sorte, pet livre, fundo vinculado, cartas na luta); atalho legítimo fica (memória/desempenho: guild 50 eventos, farm snapshots, mall lock, rules busca linear, rankings, login 1 exército, chat 1 s); `TODO(inventado)` sem fonte: mall arredondamento e taxa sem devolução (language auction.view.AuctionHelp não diz), timebox, gemmaze 5+ em linha, guild box isReceived |
+| `shortcut:`/`ponytail:` do código | 🟡 | | classificados: taxas foram para `game_settings` (0124 montaria/destino/mascote/estrelas/painel, 0130 luta e veículo, 0134 runa 2x-20x e prazo da senha, 0135 compras do torneio de fadas, robô do coliseu, castTime padrão e defesa do veículo); comportamento feito (troca da sorte, pet livre, fundo vinculado, cartas na luta, velocidade do tanque e skill de caixa sem `Maximum` pelo cliente); atalho legítimo fica (memória/desempenho: guild 50 eventos, farm snapshots, mall lock, rules busca linear, rankings, login 1 exército, chat 1 s); `TODO(inventado)` sem fonte: mall arredondamento e taxa sem devolução (language auction.view.AuctionHelp não diz), timebox, gemmaze 5+ em linha, guild box isReceived |
 
 ## Castelo
 
@@ -356,7 +356,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Janela do PvP | ✅ | | |
 | Coliseu | 🧪 | 🇹🇷 | EXP 180/120 por nível, 157, 4176 e o VIP Token no inglês; Luck Stone do turco; prêmios por posição inventados (`arena.py:347`) |
-| Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida, ataque e pontos do pet em `game_settings.fairy_battle` (0130, divisores TODO(inventado); o cliente só recebe o growthRate) |
+| Torneio de fadas | 🟡 | 🇹🇷 | do turco; vida, ataque e pontos do pet em `game_settings.fairy_battle` (0130, divisores TODO(inventado); o cliente só recebe o growthRate); compras por dia em `taxas.pet_max_buy` (0135, TODO(inventado)) |
 | Arena entre servidores (8590) | 🧪 | | fila local; 4482 com pontos, Warrior's Mark com 1000 pontos e o título Road Warrior (AppellInfos 25) concedido ao top 20 com o 4484; a marca é a Insignia 208001 TODO(inventado) (0121); 1x/semana |
 | Senhores, casal, mina de ametista | ❌ | | fechados |
 | Campo de batalha (4005/4007, mina 30000) | 🟡 | | entrada, coleta, entrega, 4255, HP, fim e prêmio, carrinho da mina e 4185 com serverName (25-27/10), 4269 na entrega, 4549 na abertura/fecho da mina (no login dentro da janela, inventado); PvP 8334 entre jogadores locais (157 battleType 32 contra a cópia do alvo, 4494 state 2/0, 4104/4175 com o perdedor em 179,75 por 25 s, 4103, 4388 tipo 4, 4269 de ganho e perda; perda de 15% e ganho igual, inventados); missões 45 (abate no PvP, 767 vista #11106) e 50 (vitória da partida, posição do 112 inventada); honra e Amethyst sem moeda; nós, vencedor e constantes no código (sem `game_settings`) inventados |
@@ -415,7 +415,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Fila, sala e entrada | ✅ | | |
 | Garagem e ativação | ✅ | | tecnologia 218 do inglês (`game_settings.vehicle_tech`) |
-| Partida (dano, pontos, chefe, prêmios) | 🟡 | | sem captura de partida; pontos, caixas, chefe, Tank EXP, runestones e mínimo da fila em `game_settings.vehicle_match` (0130, TODO(inventado)) |
+| Partida (dano, pontos, chefe, prêmios) | 🟡 | | sem captura de partida; pontos, caixas, alvo do chefe, Tank EXP, runestones, mínimo da fila e divisor da defesa em `game_settings.vehicle_match` (0130/0135, TODO(inventado)); velocidade, chefe parado e caixa sem `Maximum` pelo cliente |
 | Login (4512/4515/4516/4501) | ✅ | 🇹🇷 | a partir do nível 35 (`OpenGradesII.VEHICLE`): o turco de nível 56 manda, os ingleses de 1-16 não; janela 4512 no inglês |
 | Veículos nos mapas de guerra | ✅ | | não existe no cliente inglês: a cena VEHICLE só abre no campaignId 3001 (único mapa 30xx no mirror) |
 

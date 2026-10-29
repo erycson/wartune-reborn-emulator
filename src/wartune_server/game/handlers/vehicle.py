@@ -76,7 +76,7 @@ def _profile(s: GameSession, c: Character) -> pb.PlayerVehicleProfileMsg:
 
 
 def _garage(c: Character) -> pb.PlayerVehicleListMsg:
-    # ponytail: id = templateId (o oficial manda um id de banco; o cliente só usa templateId)
+    # id = templateId é seguro: o oficial manda um id de banco, mas o cliente só lê templateId
     return pb.PlayerVehicleListMsg(vehicles=[pb.PlayerVehicleMsg(id=t, templateId=t) for t in owned(c)])
 
 
@@ -429,8 +429,8 @@ async def exit_vehicle_node(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
 async def vehicle_attack(s: GameSession, msg: pb.VehicleAttackReqMsg) -> None:
     """Skill de veículo em mapa de guerra (GvG): devolve a animação sem dano.
 
-    ponytail: os mapas de guerra com veículos (CampaignInfo Types 9 / GvG) não existem; dano e alvos
-    quando existirem (``VehicleSkillTempInfos``).
+    Sem dano de propósito: mapas de guerra com veículo não existem no cliente inglês (a cena VEHICLE só abre no
+    3001); dano e alvos ficam para quando um cliente os trouxer (``VehicleSkillTempInfos``).
     """
     reply = pb.VehicleAttackRspMsg(
         skillId=msg.skillId,

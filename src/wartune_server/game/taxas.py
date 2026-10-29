@@ -20,6 +20,11 @@ DEFAULTS: dict[str, Any] = {
     # 0134
     "rune_diamond_multiplier": {"1": 85, "2": 8, "5": 4, "10": 2, "20": 1},
     "vp_reset_days": 3,
+    # 0135
+    "pet_max_buy": 10,
+    "robot_hp": 0.35,
+    "robot_attack": 0.15,
+    "enemy_cast_ms": 3500,
 }
 
 

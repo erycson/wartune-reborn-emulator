@@ -57,6 +57,7 @@ def _duel() -> tuple[vh.Match, Sent]:
     m, sent = _match()
     m.join(_tank(1, vh.RED), OPEN)
     m.join(_tank(2, vh.BLUE), OPEN)
+    m.tanks[2].x, m.tanks[2].y = vh.CENTER  # a velocidade não deixa saltar do ponto sorteado no mesmo instante
     assert m.move(2, [vh.CENTER], OPEN)
     sent.clear()
     return m, sent
@@ -91,6 +92,7 @@ def test_protection_cooldown_and_damage() -> None:
     m.join(_tank(1, vh.RED), OPEN)
     m.join(_tank(2, vh.BLUE), OPEN)
     assert not m.cast(1, _shoot(2), OPEN)  # o 2 ainda está protegido
+    m.tanks[2].x, m.tanks[2].y = vh.CENTER
     assert m.move(2, [vh.CENTER], OPEN)  # andar tira a proteção
     assert m.cast(1, _shoot(2), OPEN)
     assert m.tanks[2].hp == 5000 - HIT

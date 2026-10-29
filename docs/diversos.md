@@ -59,12 +59,17 @@ Fila, partidas e quem já ganhou o prêmio de cada janela ficam só em memória 
 - `isFirst` do 4515 = ainda tem o prêmio desta janela: false faz o `DaimonTrialBottomView` avisar "Tank Trails
   attempts have run out. You will gain no rewards if you enter." (`room.view.pve.RoomRightView.tip`).
 
-O que só o servidor oficial sabia (não há captura de uma partida; tudo `ponytail` em `game/vehicles.py`): partida
-com 1 de cada lado, 12 caixas com as skills 2-7 e 9-13 (uma por caixa sem `Maximum`), dano `ataque × Power% -
-defesa/2`, pontos (1 a cada 10 de dano, 100 por abate, 1000 pelo chefe), o chefe parado no meio batendo a cada 5 s
-num tanque ao alcance (aviso 4524 2 s antes), armadilha até 10 tiles, o significado dos números -1/-2/-3, quantos
-Small Runestone (3), a EXP do fim (100 vencendo, 50 perdendo, mais 1 a cada 10 pontos), o texto do correio e a
-velocidade (não é conferida).
+Pelo cliente: a velocidade é o `Speed` do template em px por quadro (25 fps, `AvatarPathWalkAi`) com os buffs 6
+(`PlayerVehicleInfo.checkSpeed`), e o 8615 que salta mais que isso (com 2 tiles de folga) é recusado; skill de caixa
+com `Maximum` -1 tem usos sem fim (`VehicleBottomView` mostra "--", o `keyDownHandler` só trava com `Maximum` > 0);
+o chefe não anda (`VehicleNpcAvatarView` só vira para o alvo).
+
+O que só o servidor oficial sabia (não há captura de uma partida; config `game_settings.vehicle_match`, 0130/0135,
+aguarda dump): partida com 1 de cada lado, 12 caixas com as skills 2-7 e 9-13, dano `ataque × Power% -
+defesa/defence_div` (2), pontos (1 a cada 10 de dano, 100 por abate, 1000 pelo chefe), o alvo do chefe (sorteado
+entre os tanques ao alcance, a cada 5 s; aviso 4524 2 s antes), armadilha até 10 tiles, o significado dos números
+-1/-2/-3, quantos Small Runestone (3), a EXP do fim (100 vencendo, 50 perdendo, mais 1 a cada 10 pontos) e o texto do
+correio.
 
 **8619 em detalhe.**
 - Valida:

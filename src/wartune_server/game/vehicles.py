@@ -8,8 +8,8 @@ O que o cliente inglês decide fica igual a ele (m17 ``com.map.vehicle``; regras
   (``VehicleBossDownTimeView``);
 - alcance e área são em pixels (``CastAction``), e são 4 por time.
 
-O que só o servidor oficial sabia (dano, pontos, prêmios, conteúdo das caixas e o chefe) está marcado
-``ponytail``. Estado só em memória (``GameContext.vehicles``); os pacotes estão em ``handlers/vehicle.py``.
+O que só o servidor oficial sabia (dano, pontos, prêmios, conteúdo das caixas e o alvo do chefe) está em
+``game_settings.vehicle_match`` e aguarda dump. Estado só em memória (``GameContext.vehicles``); os pacotes estão em ``handlers/vehicle.py``.
 """
 
 from __future__ import annotations
@@ -77,7 +77,10 @@ MATCH_RULES: dict[str, Any] = {
     "exp_win": 100,
     "exp_loss": 50,
     "exp_per_score": 10,
+    "defence_div": 2,  # 0135: dano = ataque × Power% - defesa / defence_div
 }
+FPS = 25  # Loading: frameRate 25; Speed do template é px por quadro (AvatarPathWalkAi)
+UNLIMITED = -1  # VehicleSkillTempInfo.Maximum -1: usos sem fim ("--" no VehicleBottomView, sem trava no keyDown)
 BOX_SON_TYPE = 5000  # sonType = 5000 + skill (os mapmaterial/build/5001-5018.swf da CDN)
 SLACK = 2  # tiles de folga no alcance (o cliente manda a posição de onde atirou, com atraso)
 CD_SLACK = timedelta(milliseconds=300)  # folga na recarga, pelo mesmo motivo
@@ -203,7 +206,8 @@ class Tank:
     x: int = 0
     y: int = 0
     extra: int = 0  # skill da caixa, na tecla Q (VehicleSkillbag: posição 3)
-    extra_left: int = 0
+    extra_left: int = 0  # UNLIMITED = sem fim
+    moved: datetime | None = None  # último passo aceito (ou a entrada): base da conferência de velocidade
     used: dict[int, datetime] = field(default_factory=dict)  # skill -> último uso (recarga)
     buffs: dict[int, Buff] = field(default_factory=dict)
     score: int = 0
@@ -371,6 +375,7 @@ class Match:
         ``VehicleSkillbag`` quebra e -1 é morto), 4518, e o 4513 do novo para os outros. Nasce num ponto sorteado
         com 10 s de proteção (vehicle.helpTxt01)."""
         tank.x, tank.y = self._free_spot((t.x, t.y) for t in self.tanks.values())
+        tank.moved = now
         self.seats[tank.player_id] = tank.team
         self.tanks[tank.player_id] = tank
         pid = tank.player_id
@@ -407,16 +412,20 @@ class Match:
 
     def move(self, player_id: int, path: list[tuple[int, int]], now: datetime) -> bool:
         """8615: até 3 pontos à frente (``AvatarPathWalkAi``); os outros recebem o 4519 e andam até ``path[0]``.
-        Morto também anda (vehicle.helpTxt01).
-
-        ponytail: sem conferir a velocidade, só se os tiles são andáveis.
+        Morto também anda (vehicle.helpTxt01). A velocidade é a do cliente: ``Speed`` do template em px por quadro
+        (25 fps, ``AvatarPathWalkAi``), com os buffs 6 (``PlayerVehicleInfo.checkSpeed``); passo mais longo que isso
+        desde o último (ou a entrada), com ``SLACK`` tiles de folga, é recusado.
         """
         t = self.tanks.get(player_id)
         if t is None or not path or len(path) > 10:
             return False
         if self.tiles is not None and not all(self.tiles.walk(x, y) for x, y in path):
             return False
+        reach = self._speed(t) * FPS * (now - (t.moved or now)).total_seconds() / TILE + SLACK
+        if _dist((t.x, t.y), path[0]) > reach:
+            return False
         t.x, t.y = path[0]
+        t.moved = now
         self._unprotect(t, now)
         msg = pb.VehicleMoveMsg(playerId=player_id, path=[pb.Position(x=x, y=y) for x, y in path])
         self.all(S_MOVE, msg, but=player_id)
@@ -444,7 +453,7 @@ class Match:
         last = t.used.get(sid)
         if (
             kind == PASSIVE
-            or (sid == t.extra and t.extra_left <= 0)
+            or (sid == t.extra and t.extra_left == 0)
             or (last is not None and now - last < cd - CD_SLACK)
         ):
             return False
@@ -518,8 +527,8 @@ class Match:
         row = self.templates.get("VehicleSkillTempInfos", n.skill)
         if t.extra and t.extra != n.skill:
             self.deliver(player_id, S_SKILL, pb.VehicleSkillListMsg(skillId=t.extra, state=1, curSum=0))
-        # ponytail: skill de caixa sem Maximum (-1) vale um uso
-        t.extra, t.extra_left = n.skill, max(1, _int(row, "Maximum"))
+        limit = _int(row, "Maximum")  # o cliente só trava com Maximum > 0 (VehicleCharacterController.keyDownHandler)
+        t.extra, t.extra_left = n.skill, limit if limit > 0 else UNLIMITED
         self._remove_node(n)
         self.deliver(player_id, S_SKILL, pb.VehicleSkillListMsg(skillId=t.extra, state=0, curSum=t.extra_left))
         self._unprotect(t, now)
@@ -568,7 +577,8 @@ class Match:
         nesta janela ("one round of settlement rewards per event session"). Quem já ganhou recebe o placar com 0.
 
         A posição é a do cliente (pontos, ``getRunking``): 1º-5º um pacote de Runestone, 6º em diante ou menos de 200
-        pontos a Runestone pequena. ponytail: quantidades e a EXP do tanque.
+        pontos a Runestone pequena. Quantidades e a EXP do tanque são config (vehicle_match: runestones, exp_*; 0130),
+        aguarda dump.
         """
         self.over = True
         win = self.winner()
@@ -603,12 +613,23 @@ class Match:
     # -- regras --------------------------------------------------------------------------------------------------
 
     def _raw(self, attack: int, power: int, defence: int, src: Tank | None = None) -> int:
-        """ponytail: dano = ataque × Power% - metade da defesa (mínimo 1), com os buffs de ataque (EffectType 1)."""
+        """Dano = ataque × Power% - defesa / ``defence_div`` (mínimo 1), com os buffs de ataque (EffectType 1).
+        O divisor é config (vehicle_match, 0135), aguarda dump."""
         if src is not None:
             for b in src.buffs.values():
                 if b.effect == E_ATTACK:
                     attack += b.value + attack * b.percent // 100
-        return max(1, attack * power // 100 - defence // 2)
+        return max(1, attack * power // 100 - defence // max(1, int(self.rules["defence_div"])))
+
+    def _speed(self, t: Tank) -> int:
+        """``PlayerVehicleInfo.checkSpeed``: Speed do template + o maior buff 6 positivo + o menor negativo."""
+        base = _int(self.templates.get("VehicleObjectTempInfos", t.template), "Speed") or 7  # PlayerVehicleInfo.speed
+        up = down = 0
+        for b in t.buffs.values():
+            if b.effect == E_SPEED:
+                delta = base * b.percent // 100 if b.percent else b.value
+                up, down = max(up, delta), min(down, delta)
+        return max(0, base + up + down)
 
     def _passive(self, t: Tank) -> Row | None:
         """O buff da passiva do ``GeniusSkill`` (InjuryEffect 3); a chance é o ``TogglePercent`` dele."""
@@ -680,7 +701,7 @@ class Match:
             self._score = True
 
     def _spend(self, t: Tank, sid: int) -> None:
-        if sid != t.extra:
+        if sid != t.extra or t.extra_left == UNLIMITED:
             return
         t.extra_left -= 1
         if t.extra_left <= 0:
@@ -775,7 +796,10 @@ class Match:
         """Derleth aos 300 s (``VehicleObjectTempInfo`` 2191: vida 10000, ataque 200, skill 8 com 600 px de alcance e
         300 de área). O 4524 marca o alvo por 2 s, depois a área bate em todo tanque dentro dela.
 
-        ponytail: parado no meio do mapa, um golpe a cada 5 s num tanque vivo ao alcance (sorteado), sem time.
+        Parado no meio do mapa como no cliente: o ``VehicleNpcAvatarView`` não anda (não tem ``AvatarPathWalkAi``
+        nem pacote de movimento de nó), só vira para o alvo (``changeDirectionTo``) ao atirar. O cliente não escolhe
+        alvo (só desenha o 4524): um tanque vivo ao alcance (``AttackRange`` da skill), sorteado e sem time, a cada
+        ``vehicle_match.boss_every_s`` (0130); aguarda dump.
         """
         if self.boss_at is not None and now >= self.boss_at:
             self.boss_at = None

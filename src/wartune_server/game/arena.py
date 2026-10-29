@@ -21,7 +21,7 @@ from ..domain.models import Arena, PlayerSnapshot
 from ..protocol.messages import wartune_pb2 as pb
 from ..templates.repository import GameTemplates
 from . import events as ev
-from . import rules
+from . import rules, taxas
 from .battle import STATS
 
 COLOSSEUM, PETS = 0, 1  # ChallengeRequestMsg/ChallengeCoolTimeMsg.type e ChallengeLog.kind
@@ -305,22 +305,25 @@ def npc_hero(**fields: Any) -> dict[str, Any]:
     return base | fields
 
 
-# Fração da vida e do ataque do jogador. Simulado (modo automático, 15 lutas por nível): guerreiro e
-# mago ganham 15/15 dos níveis 11 a 50. ponytail: o caçador perde até o nível ~30 porque o ataque
-# dele sai de PhyAttack (4x Força, baixo); corrigir com a fórmula real de ataque por classe.
-ROBOT_HP, ROBOT_ATTACK = 0.35, 0.15
+# Fração da vida e do ataque do jogador: taxas robot_hp/robot_attack (0135). Simulado (modo automático, 15 lutas
+# por nível): guerreiro e mago ganham 15/15 dos níveis 11 a 50. Aguarda dump: o caçador perde até o nível ~30
+# porque o ataque dele sai de PhyAttack (4x Força, baixo); corrigir com a fórmula real de ataque por classe.
 
 
 def robot_spec(
-    robot: Robot, templates: GameTemplates, player_hp: int, player_attack: int
+    robot: Robot,
+    templates: GameTemplates,
+    player_hp: int,
+    player_attack: int,
+    settings: Mapping[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """(soldados, heróis) do robô. O herói é o do template, com vida e ataque proporcionais aos do
     jogador: o robô existe para o servidor vazio, e a primeira vitória é a porta do ranking.
-    ponytail: a captura (só turco: coliseu) tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha soldados;
-    aqui o jogador não tem, e com eles o robô do template ganhava quase sempre (simulado do nível
+    Aguarda dump: a captura (só turco: coliseu) tem 2 arqueiros 10202 com o robô, mas lá o jogador também tinha
+    soldados; aqui o jogador não tem, e com eles o robô do template ganhava quase sempre (simulado do nível
     11 ao 30). Voltar com os soldados quando o exército do jogador entrar na batalha."""
     row = templates.get("GameHeroTemp", robot.hero_template) or {}
-    hp = max(1, int(player_hp * ROBOT_HP))
+    hp = max(1, int(player_hp * float(taxas.get(settings or {}, "robot_hp"))))
     hero = npc_hero(
         tempId=robot.hero_template,
         nickName=robot.name,
@@ -329,7 +332,7 @@ def robot_spec(
         initHp=hp,
         hp=hp,
         skillId=[int(x) for x in row.get("SkillScript", "").split(",") if x],
-        attack=max(1, int(player_attack * ROBOT_ATTACK)),
+        attack=max(1, int(player_attack * float(taxas.get(settings or {}, "robot_attack")))),
     )
     return [], [hero]
 
@@ -376,7 +379,10 @@ def colosseum_spec(soldiers: list[dict[str, Any]], heroes: list[dict[str, Any]])
 PET_ROBOT_PETS = (101102, 102102, 104102)  # Amazon Queen, Iris, Pan, nível 50, qualidade 6 (só turco: torneio de fadas)
 PET_ROBOT_GRADE, PET_ROBOT_QUALITY = 50, 6
 PET_NOTICE_FRAME, PET_DAMAGE_IMPROVE = 1500, 50  # 4361 aos 60 s: dano +50%
-PET_WIN_SCORE, PET_LOSE_SCORE = 5, 0  # "Points +5" (só turco: torneio); ponytail: perda não vista, não tira pontos
+PET_WIN_SCORE, PET_LOSE_SCORE = (
+    5,
+    0,
+)  # "Points +5" (só turco: torneio); a perda é config (fairy_battle.lose_score, 0130), aguarda dump
 
 
 # game_settings.fairy_battle (0130): vida = MaxHp + nível × GrowthRate / hp_growth_div (dá ~5% da captura turca; o

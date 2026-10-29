@@ -17,7 +17,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...services import ledger
 from .. import arena as A
 from .. import arena_grupo as ag
-from .. import bag, rewards, rules, titles
+from .. import bag, rewards, rules, taxas, titles
 from .. import events as ev
 from ..battle import Battle
 from ..builders import login as b
@@ -245,7 +245,7 @@ async def challenge(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
         name, grade, job = other.character.nickname or "", other.character.grades, rules.job_type(other.character.job)
     else:
         robot = A.Robot(target, s.arena_offer[target])
-        soldiers, heroes = A.robot_spec(robot, s.ctx.templates, hero.msg.hp, hero.attack)
+        soldiers, heroes = A.robot_spec(robot, s.ctx.templates, hero.msg.hp, hero.attack, s.ctx.world.settings)
         name, grade, job = robot.name, robot.grade, 1
     spec = A.colosseum_spec(soldiers, heroes)
 
@@ -487,8 +487,9 @@ async def add_attack_count(s: GameSession, msg: pb.PlayerChallengeMsg) -> None:
     arena = _arena(s)
     count = max(1, msg.tarArmyId)
     cost = A.config(s.ctx.templates, "Jion_pet_challenge", 50000) * count
-    # ponytail: limite de compras do torneio não está no cliente nem nos templates; 10/dia como no coliseu
-    if arena.pet_buy_count + count > A.MAX_BUY or snap.character.gold < cost:
+    # limite de compras do torneio: não está no cliente nem nos templates, taxas.pet_max_buy (0135)
+    limit = int(taxas.get(s.ctx.world.settings, "pet_max_buy"))
+    if arena.pet_buy_count + count > limit or snap.character.gold < cost:
         s.log.info("5021 recusado", ouro=snap.character.gold, compradas=arena.pet_buy_count)
     else:
         snap.character.gold -= cost

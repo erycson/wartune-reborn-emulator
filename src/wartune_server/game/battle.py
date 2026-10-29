@@ -37,6 +37,7 @@ from google.protobuf.message import Message
 from ..protocol.messages import wartune_pb2 as pb
 from ..services.clock import Clock
 from ..templates.repository import GameTemplates, Row
+from . import taxas
 from .builders.login import fmt_time
 
 log = structlog.get_logger(__name__)
@@ -95,9 +96,9 @@ TEAM_POS = (4, 7, 2, 5, 8)  # TODO(inventado) lugares dos outros jogadores no la
 ORDER_TIMEOUT = 112  # PvP: espera a ordem até 4,5 s (castTime do herói) antes de agir sozinho
 # HeroOrderMsg.castTime do herói inimigo, fixo por skill (visto: tutorial_en #1662, #1675, #1689 e os coliseus
 # turcos 171155/215937/231733). Não sai dos frames do ActionTempInfos (33 frames -> 3500, 23 -> 4500, 27 -> 4900)
-# shortcut: skill fora da tabela usa 3500, o valor mais visto; acrescentar a cada captura nova
+# Skill fora da tabela usa taxas.enemy_cast_ms (0135, 3500, o valor mais visto); aguarda dump: acrescentar a cada
+# captura nova
 ENEMY_CAST_MS = {10711: 3500, 10000: 4500, 10811: 4900, 20721: 3500, 20811: 3900, 30721: 3900, 30821: 4500, 31211: 3900}
-DEFAULT_CAST_MS = 3500
 
 # Fórmula de dano (visto tutorial_en, 153 contra os atributos do 150 e dos templates; docs/batalha.md):
 # base = max((A - D) × defence_factor, A × floor); golpe = base × Parameter1/100 + Parameter2, ±spread,
@@ -317,6 +318,7 @@ class Battle:
         self._kill_turn = int(spec.get("killTurn", 0))  # a ação do inimigo que mata o lado do jogador inteiro
         self.templates, self.clock = templates, clock
         self.formula = FORMULA | dict((settings or {}).get("battle_formula") or {})
+        self._cast_ms = int(taxas.get(settings or {}, "enemy_cast_ms"))
         self.rng = rng or random.Random()
         self._out, self._on_end = send, on_end
         self.forfeit: Callable[[], Awaitable[None]] | None = None  # quem conduz caiu: fecha a luta (arena em grupo)
@@ -732,8 +734,8 @@ class Battle:
         return any(u.alive for u in self.units if (u.side == PLAYER_SIDE) == player_side)
 
     def _round_order(self) -> list[Unit]:
-        # ponytail: a iniciativa do oficial não foi decifrada (#727 e #782 têm as mesmas unidades e ordens
-        # diferentes); aliados NPC, inimigos e o herói por último
+        # Aguarda dump: a iniciativa do oficial não foi decifrada (#727 e #782 têm as mesmas unidades e ordens
+        # diferentes); aliados NPC, inimigos e o herói por último ou primeiro (battle_formula.hero_first, 0130)
         allies = [u for u in self.units if u.side == PLAYER_SIDE and not u.is_player]
         enemies = [u for u in self.units if u.side != PLAYER_SIDE]
         hero = [self.player] if self.player is not None else []
@@ -782,7 +784,7 @@ class Battle:
     def _announce(self, unit: Unit, skill: int) -> None:
         """75 do herói inimigo: o cliente mostra a skill que ele vai usar (inglês #1662)."""
         msg = pb.HeroOrderMsg(battleId=self.id, heroIndexId=unit.living_id, skillId=skill, result=0)
-        msg.castTime, msg.qteTime = ENEMY_CAST_MS.get(skill, DEFAULT_CAST_MS), 0
+        msg.castTime, msg.qteTime = ENEMY_CAST_MS.get(skill, self._cast_ms), 0
         msg.targetIndexs.extend(t.living_id for t in self._targets(unit, skill))
         self.send(S_ORDER, msg)
 
