@@ -73,14 +73,18 @@ async def test_coleta_e_entrega_do_minerio_no_campo(tmp_path: Path) -> None:
         g.client.send(5032, pb.CallBackReqMsg(mapId=4007, nodeId=4007006, cmd=2))
         got = await g.idle()
         assert _codes(got).count(4175) == 1 and _texts(got) == [warfield.ENTERED_TEXT]
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.ctx is not None
+        s.ctx.warfields.fields[4007].mark(g.user_id).carry = "superior"  # a qualidade é sorteada na coleta
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=4007012, paraBool1=True))  # entrega
         assert _body(await g.idle(), 29, pb.CampaignConfirmMsg).body == warfield.DELIVER_BODY
         g.client.send(5033, pb.CampaignReqMsg(paraInt1=4007, paraInt2=4007012, paraBool1=True))
         got = await g.idle()
         assert bf.turn_in_text("superior", 30, 3, 3) in _texts(got)
-        assert _body(got, 4252, pb.WarFightInfoMsg).score == 30
-        s = g.server.online.get(g.user_id)
-        assert s is not None and s.campaign is not None and s.campaign.warfield == 4007
+        assert _body(got, 4252, pb.WarFightInfoMsg).score == bf.START_SCORE + 30
+        assert _body(got, 4252, pb.WarFightInfoMsg).twoScore == 30  # o lado soma a entrega
+        assert 4471 in _codes(got)  # a honra do dia
+        assert s.campaign is not None and s.campaign.warfield == 4007
 
 
 async def test_8337_lista_quem_esta_no_campo(tmp_path: Path) -> None:
@@ -88,7 +92,7 @@ async def test_8337_lista_quem_esta_no_campo(tmp_path: Path) -> None:
         await _at_field(g, 4007)
         g.client.send(8337)
         order = _body(await g.until(4255), 4255, pb.WarReportListMsg)
-        assert [(i.userId, i.teamId, i.score) for i in order.info] == [(g.user_id, bf.TEAM, 0)]
+        assert [(i.userId, i.teamId, i.score) for i in order.info] == [(g.user_id, bf.TEAM, bf.START_SCORE)]
 
 
 async def test_8338_restaura_vida_so_dentro_do_campo(tmp_path: Path) -> None:
@@ -113,7 +117,7 @@ async def test_fim_da_partida_com_o_premio_e_a_saida(tmp_path: Path) -> None:
         s = g.server.online.get(g.user_id)
         assert s is not None and s.ctx is not None
         field = s.ctx.warfields.fields[4005]
-        field.mark(g.user_id).score = 30
+        field.gain(bf.TEAM, 30)
         await warfield.settle(s.ctx, field)  # o relógio chama isto depois do StopTime
         got = await g.idle()
         assert warfield.END_TEXT in _texts(got, 83)

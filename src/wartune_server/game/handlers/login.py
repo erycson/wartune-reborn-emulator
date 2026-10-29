@@ -351,7 +351,9 @@ async def _login_state(s: GameSession) -> None:
     # (visto) 215937 #104-#105, #109-#110: canOpen 1 (sem leitor no cliente); honra do dia / teto (o geste não sobe
     # aqui); torre do rei (sem entradas na captura); as moedas de pet, cristal eterno, selo do rei e inspiração zeradas
     s.send(S_CUSTOMER, pb.FastOpenCustomerMsg(canOpen=1))
-    s.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=0, param2=int(s.ctx.world.settings.get("honor_day_max", 0))))
+    from .warfield import honor_day_msg  # warfield importa este módulo
+
+    s.send(S_HONOR_DAY, honor_day_msg(s))  # a honra de hoje (visto 152321 #10104 em diante: soma do dia)
     s.send(S_KING_TOWER, torres.king_msg(snap, s.ctx.clock.now()))  # as entradas de hoje e a maior dificuldade
     s.send(S_TOKENS, tokens_msg(snap))
     if (mc := ev.peek(snap, "mail_check")) is not None and mc.value == -1:  # e-mail verificado (mail.mail_check)

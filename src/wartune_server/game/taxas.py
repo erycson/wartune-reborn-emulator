@@ -29,6 +29,8 @@ DEFAULTS: dict[str, Any] = {
     "summoner_kits": {"2131016": [[1, 80], [2, 20]], "2131017": [[2, 80], [3, 20]], "2131018": [[3, 80], [4, 20]]},
     # 0139: EXP que cada carta repetida dá ao ser engolida (9505 op 3)
     "card_burn_gp": 1,
+    # 0140: peso de cada qualidade do minério da coleta do campo de batalha
+    "field_ore_weights": {"superior": 12, "normal": 5, "inferior": 9},
 }
 
 

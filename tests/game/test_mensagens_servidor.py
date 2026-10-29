@@ -8,6 +8,7 @@ from pathlib import Path
 from tests.game.harness import logged_in
 from wartune_server.domain.models import Item
 from wartune_server.game import arena, rules
+from wartune_server.game import battlefield as bf
 from wartune_server.game import events as ev
 from wartune_server.game.builders import login as b
 from wartune_server.game.handlers import login, stars, warfield
@@ -157,9 +158,9 @@ async def test_8334_pvp_no_campo_com_4494_e_4269(tmp_path: Path, monkeypatch) ->
         m2 = pb.WarMovieMsg.FromString(next(p.body for p in theirs if p.code == 4269))
         assert m1.isAdd != m2.isAdd
         loser = other if m1.isAdd else g
-        assert _session(loser).campaign.pos == warfield.RESPAWN
-        if m1.isAdd:  # venceu: tirou 15 dos 100 do outro
-            assert m1.score == 15 and field.mark(other.user_id).score == 85
+        assert _session(loser).campaign.pos == bf.CAMP[field.mark(loser.user_id).team]
+        if m1.isAdd:  # venceu: o outro perde 15 dos 100 e ele ganha 20 + 100 // 20
+            assert m1.score == 25 and field.mark(other.user_id).score == 85
             assert pb.SnsRspMsg.FromString(next(p.body for p in mine if p.code == 4388)).type == 4
 
 

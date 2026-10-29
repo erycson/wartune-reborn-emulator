@@ -676,8 +676,12 @@ async def _prize(o: GameSession, won: bool) -> None:
     # matchWin/matchFailed da lista de membros e o título "Guild Guardian": soma para quem estava no mapa no fim
     tally = ev.state(snap, titles.GUILD_WAR_WINS if won else titles.GUILD_WAR_LOSSES, o.ctx.clock.now())
     tally.value, tally.updated_at = tally.value + 1, o.ctx.clock.now()
-    await o.ctx.characters.save(ch, tally, *new)
-    o.send(S_HONOR_DAY, pb.SimplePropertyMsg(param1=honor, param2=int(o.ctx.world.settings.get("honor_day_max", 0))))
+    from .warfield import HONOR_DAY, honor_day_msg  # warfield importa login, que importa este pacote
+
+    day = ev.daily(snap, HONOR_DAY, o.ctx.clock.now())  # a honra do dia soma (visto 152321 #10104 ... #11674)
+    day.value, day.updated_at = day.value + honor, o.ctx.clock.now()
+    await o.ctx.characters.save(ch, tally, day, *new)
+    o.send(S_HONOR_DAY, honor_day_msg(o))
     await _push_player(o)
     if new:
         o.send(S_ITEMS, rewards.items_msg(new, o.player_id))

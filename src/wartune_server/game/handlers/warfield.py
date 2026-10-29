@@ -10,14 +10,16 @@ Missões: 44 na entrada, 45 (abates) a cada vitória no PvP e 50 (vitória no ca
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any
 
+from ...domain import gameday
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
+from .. import arena_grupo, buffs, rewards, rules, space, taxas, titles, worldboss
 from .. import battlefield as bf
-from .. import buffs, rewards, rules, space, titles, worldboss
 from .. import events as ev
 from ..builders import login as b
 from ..campaign import CampaignMap
@@ -33,14 +35,22 @@ S_WARFIELD_STATE, S_WAR_ORDER, S_WAR_INFO, S_WAR_REPORT = 4248, 4255, 4252, 4254
 S_PLAYER_STATE, S_MINE, S_ROOM_CREATED, S_ROOM_ENTER, S_NODES = 4175, 4548, 125, 21, 127
 S_MAP, S_FULL_ARMY, S_MOVE, S_EXIT, S_QUESTS, S_ITEMS = 140, 150, 4185, 22, 112, 115
 S_CONFIRM, S_MOVIE, S_CHAT, S_ALERT, S_COUNT = 29, 143, 83, 111, 4493
-S_WAR_MOVIE = 4269  # WarMovieMsg (U_C_WARMOVIE)
+S_WAR_MOVIE, S_HONOR = 4269, 4471  # WarMovieMsg (U_C_WARMOVIE), SimplePropertyMsg (U_C_DAYGESTE_SEND)
 S_CROSS, S_ARMY_POS, S_SNS, S_REPORT = 4494, 4104, 4388, 4103  # CrossArmyListMsg, ArmyPosUpdatedMsg, SnsRspMsg
 PVP_TYPE, PVP_SCENE, SNS_PVP = 32, 11, 4  # 157 do 8334 (visto #9662, #11103); 4388 type 4 na vitória (#11111)
 KILL_QUEST, WIN_QUEST = 45, 50  # "Battleground Kills" (missão 767 sobe no #11106) e "Obtain Victory in War Camp"
-RESPAWN, RESPAWN_MS = (179, 75), 25000  # (visto #11098, #11101): o perdedor volta para lá, 25 s morto
-LOSS_PCT, WIN_HONOR = 15, 10  # (visto #9828 "You lost: 15 Points." com 100; #11130 "... and 10 Honor.")
-WIN_TEXT, LOSE_TEXT = "You received: {} Points and {} Honor.", "You lost: {} Points."
+# o perdedor volta ao acampamento do lado (``bf.CAMP``) morto por 25 s (visto #9797 e #10273 com o nosso jogador;
+# outros vieram com 5, 10 e 30 s, #9655, #9969, #9775: parece uma onda de renascer, TODO(inventado) fixo em 25 s);
+# morto carregando minério é o state 3 e o minério fica (visto #10273 state 3, #10384 state 2, entrega #10406)
+RESPAWN_MS, DEAD, DEAD_CARRYING = 25000, 1, 3
+CROSS_POINTS = 10  # (visto #11130) ", Cross-server PvP points +10" (pvpHeroHelperFrame: abates no campo dão pontos)
+WIN_TEXT = "You received: {} Points and {} Honor., Cross-server PvP points +{}"
+LOSE_TEXT = "You lost: {} Points."
+ATTACKED_TEXT = "{} is attacking you!"  # (visto #10207 no 111 e #10209 no 83 com o link do atacante)
+DEAD_GATE = "You cannot leave camp when dead!"  # (visto #9840)
 IN_BATTLE = "Player is now in battle!"  # (visto #10962)
+DOUBLE_TIME = "It’s Amethyst Double Time! All Amethyst collected is doubled."  # (visto 191924 #14218, #760, #23583)
+HONOR_DAY = "honor_day"  # event_state diário: a honra do dia do 4471 (visto #10104 3, #10410 6 ... #11674 123)
 DUMP_AMETHYST = 200  # (visto #2079, #2304) "Minecart dumped; you gained 200 Amethyst."
 S_MINE_ACTIVE = 4549  # GuildMsg.param5 (U_C_MINE_ACTIVE_STATE): BaseManager.__mineralHandler -> mineralIsOpen
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
@@ -105,15 +115,44 @@ def login(s: GameSession) -> None:
         s.send(S_MINE_ACTIVE, pb.GuildMsg(param5=True))
 
 
+def honor_day(snap: Any, now: datetime) -> int:
+    """A honra ganha hoje (o ``param1`` do 4471)."""
+    st = ev.peek(snap, HONOR_DAY)
+    return st.value if st is not None and gameday.same_day(st.updated_at, now) else 0
+
+
+def honor_day_msg(s: GameSession) -> pb.SimplePropertyMsg:
+    assert s.snapshot is not None
+    top = int(s.ctx.world.settings.get("honor_day_max", 0))
+    return pb.SimplePropertyMsg(param1=honor_day(s.snapshot, s.ctx.clock.now()), param2=top)
+
+
+def add_honor(s: GameSession, honor: int) -> list[Any]:
+    """Honra na hora (o geste do personagem e a do dia): 4471 e 3, como na entrega e no abate (visto #10104-#10105,
+    #11104-#11105). Devolve o que gravar."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    snap.character.geste += honor
+    day = ev.daily(snap, HONOR_DAY, now)
+    day.value, day.updated_at = day.value + honor, now
+    s.send(S_HONOR, honor_day_msg(s))
+    _player(s)
+    return [snap.character, day]
+
+
 def push_states(s: GameSession) -> None:
     """No relógio (20008): manda o 4248 de novo quando um campo abre ou fecha, e o 4549 quando a mina abre ou fecha
-    ((visto) 231733 #1232 e #4154: true às 19:30, false às 20:00, a todos os online)."""
+    ((visto) 231733 #1232 e #4154: true às 19:30, false às 20:00, a todos os online; na abertura, o aviso da hora
+    dobrada, 191924 #14217-#14218)."""
     if s.war_states is None:
         return  # o cliente ainda não recebeu o login
     now = s.ctx.clock.now()
     if (mine := bf.mine_open(now)) != s.mine_open:
         s.mine_open = mine
         s.send(S_MINE_ACTIVE, pb.GuildMsg(param5=mine))
+        if mine:
+            s.send(S_CHAT, _chat(DOUBLE_TIME, tip=True))
     if (cur := _states_tuple(s.ctx.templates, now)) != s.war_states:
         s.war_states = cur
         s.send(S_WARFIELD_STATE, states(s.ctx.templates, now))
@@ -128,6 +167,27 @@ def on_map(s: GameSession, campaign_id: int) -> list[GameSession]:
     return [o for o in players_on(s.ctx, campaign_id) if o is not s]
 
 
+def _room_player(o: GameSession, cid: int) -> pb.RoomPlayerMsg:
+    """O 21 de um jogador no campo: a guilda e o lado (``teamId``, visto #9477 consortiaId 1 e teamId 2)."""
+    assert o.snapshot is not None and o.campaign is not None
+    guild = o.ctx.guilds.of(o.player_id)
+    msg = space.room_player(o.snapshot, o.ctx.templates, o.campaign.pos, cid, o.ctx.clock.now(),
+                            guild=guild[0] if guild else None)  # fmt: skip
+    found = o.ctx.warfields.fields.get(cid)
+    if found is not None and o.player_id in found.marks:
+        msg.teamId = found.marks[o.player_id].team
+    return msg
+
+
+def _link(o: GameSession) -> str:
+    """O nome com link do chat (visto #10209): ``<a t="1" id=... name=... consortiaId=... serverName=... />``."""
+    assert o.snapshot is not None
+    guild = o.ctx.guilds.of(o.player_id)
+    c = o.snapshot.character
+    return (f'<a t="1" id="{c.id}" name="{c.nickname or ""}" consortiaId="{guild[0].id if guild else 0}" '
+            f'serverName="{o.snapshot.server.name}" grades="0" />')  # fmt: skip
+
+
 def _field(s: GameSession) -> tuple[bf.Field, datetime] | None:
     """A partida do campo onde o jogador está, se a janela ainda é a dela."""
     c = s.campaign
@@ -136,30 +196,38 @@ def _field(s: GameSession) -> tuple[bf.Field, datetime] | None:
     return _open(s.ctx, c.warfield, s.ctx.clock.now())
 
 
-def _info(s: GameSession, field: bf.Field, stop: datetime) -> pb.WarFightInfoMsg:
-    """4252: o placar do jogador e dos dois lados (visto #14238, um lado só: o do jogador em ``one``)."""
+def _info(s: GameSession, field: bf.Field) -> pb.WarFightInfoMsg:
+    """4252 (visto #9482 em diante): os pontos, os abates e a honra total do jogador (o geste do personagem, 850->853
+    na entrega #10137), ``order`` 0 e os dois lados fixos (one = time 1, two = time 2); sem ``leftTime``."""
+    assert s.snapshot is not None
     mine = field.mark(s.player_id)
-    other = bf.ENEMY if mine.team == bf.TEAM else bf.TEAM
-    left = max(0, int((stop - s.ctx.clock.now()).total_seconds() * 1000))
-    return pb.WarFightInfoMsg(teamId=mine.team, score=mine.score, order=1, geste=mine.honor, hitCount=mine.wins,
-                              leftTime=left, oneCount=field.count(mine.team), twoCount=field.count(other),
-                              oneScore=field.score(mine.team), twoScore=field.score(other))  # fmt: skip
+    return pb.WarFightInfoMsg(teamId=mine.team, score=mine.score, order=0, geste=s.snapshot.character.geste,
+                              hitCount=mine.wins, oneCount=field.count(1), twoCount=field.count(2),
+                              oneScore=field.score(1), twoScore=field.score(2))  # fmt: skip
 
 
-def _state_msg(player_id: int, state: int) -> pb.PlayerStateListMsg:
+def _push_info(ctx: GameContext, field: bf.Field) -> None:
+    """O 4252 vai a todos no campo a cada mudança de placar (visto: um a cada entrega ou abate de qualquer um)."""
+    for o in players_on(ctx, field.campaign_id):
+        o.send(S_WAR_INFO, _info(o, field))
+
+
+def _state_msg(player_id: int, state: int, server: str = "", left: int = 0) -> pb.PlayerStateListMsg:
     msg = pb.PlayerStateListMsg()
-    msg.playerState.add(armyId=player_id, state=state, leftTime=0)
+    msg.playerState.add(armyId=player_id, state=state, leftTime=left, serverName=server)
     return msg
 
 
-def _ranking(field: bf.Field, serverName: str, name_of: str, player_id: int) -> list[pb.WarReportMsg]:
-    """As linhas de placar do campo (4255/4254): uma por jogador, do maior ponto para o menor."""
+def _ranking(field: bf.Field, prize: dict[int, tuple[int, int]] | None = None) -> list[pb.WarReportMsg]:
+    """As linhas do placar (4255/4254, visto #9632 e #11669): todos que entraram, na ordem de chegada, ``order`` 0,
+    nome, abates e a honra do campo; no fim, o prêmio de cada um (``itemCount`` Insignia, ``winGesteCount`` honra;
+    0 para quem já tinha saído, visto yasuo2/yasuo3)."""
     rows = []
-    for order, (pid, mark) in enumerate(sorted(field.marks.items(), key=lambda kv: -kv[1].score), 1):
-        name = name_of if pid == player_id else ""
-        rows.append(pb.WarReportMsg(order=order, nickName=name, userId=pid, score=mark.score, hitCount=0,
-                                    teamId=mark.team, geste=mark.honor, serverName=serverName, itemCount=0,
-                                    winGesteCount=0))  # fmt: skip
+    for pid, mark in field.marks.items():
+        item, honor = (prize or {}).get(pid, (0, 0))
+        rows.append(pb.WarReportMsg(order=0, nickName=mark.name, userId=pid, score=mark.score, hitCount=mark.wins,
+                                    teamId=mark.team, geste=mark.honor, serverName=mark.server, itemCount=item,
+                                    winGesteCount=honor))  # fmt: skip
     return rows
 
 
@@ -180,24 +248,28 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
     if not int(row["MinLevel"]) <= snap.character.grades <= int(row["MaxLevel"]):
         s.log.info("8332 fora do nível do campo", nivel=snap.character.grades)
         return
-    field, stop = found
+    field = found[0]
     cid = msg.param1
-    field.mark(s.player_id)
+    mark = field.mark(s.player_id)
+    mark.name, mark.server = snap.character.nickname or "", snap.server.name
     space.leave(s)
-    s.campaign = CampaignMap(cid, bf.field_nodes(cid), bf.START, warfield=cid)
+    s.campaign = CampaignMap(cid, bf.field_nodes(cid), bf.CAMP[mark.team], warfield=cid)  # (visto #9477: 17,76)
     room = pb.RoomCreatedMsg(createdType=ROOM_ENTER, isCross=True)
     room.room.campaignId = cid
     s.send(S_MAP, map_sync(s, ARMY_IDLE))  # (visto #14232 e #9475): 140 vem antes do 125 no campo
     s.send(S_ROOM_CREATED, room)
-    me = space.room_player(snap, ctx.templates, s.campaign.pos, cid, now)
+    me = _room_player(s, cid)
     others = on_map(s, cid)
-    players = [space.room_player(o.snapshot, ctx.templates, o.campaign.pos, cid, now)  # type: ignore[arg-type,union-attr]
-               for o in others]  # fmt: skip
-    s.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me, *players]))
+    s.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me, *(_room_player(o, cid) for o in others)]))
     for other in others:
         other.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me]))
     s.send(S_NODES, s.campaign.node_list())
-    s.send(S_WAR_INFO, _info(s, field, stop))
+    _push_info(ctx, field)  # o lado de quem entrou cresce para todos (visto #9533)
+    states_now = pb.PlayerStateListMsg()  # (visto #9483): o estado de cada um no campo logo depois do 4252
+    for o in [s, *others]:
+        m = field.mark(o.player_id)
+        states_now.playerState.add(armyId=o.player_id, state=2 if m.carry else 0, leftTime=0, serverName=m.server)
+    s.send(S_PLAYER_STATE, states_now)
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
     await _quest(s, ENTER_QUEST)
     from .events import leed_done  # events importa login, que importa este pacote
@@ -214,13 +286,12 @@ async def _quest(s: GameSession, kind: int) -> None:
 async def war_order(s: GameSession, _: object) -> None:
     """Classificação do campo de hoje (4255): quem está no campo, com o placar e a honra de cada um."""
     msg = pb.WarReportListMsg()
-    snap = s.snapshot
-    if snap is not None:
-        for cid in bf.FIELDS:
-            found = _open(s.ctx, cid, s.ctx.clock.now())
-            if found is not None and found[0].marks:
-                msg.info.extend(_ranking(found[0], snap.server.name, snap.character.nickname or "", s.player_id))
-                break
+    found = _field(s)
+    if found is None:  # fora do campo: a partida aberta em que o jogador entrou
+        found = next((f for cid in bf.FIELDS if (f := _open(s.ctx, cid, s.ctx.clock.now())) is not None
+                      and s.player_id in f[0].marks), None)  # fmt: skip
+    if found is not None:
+        msg.info.extend(_ranking(found[0]))
     s.send(S_WAR_ORDER, msg)
 
 
@@ -256,9 +327,15 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
     if me.fighting or them.fighting or target.battle is not None:
         s.send(S_ALERT, _chat(IN_BATTLE, 7))
         return
+    if me.dead or them.dead or me.team == them.team:  # TODO(inventado): o recuso de morto ou do mesmo lado (o
+        s.log.info("8334 contra morto ou aliado")  # cliente só oferece o ataque a inimigos vivos)
+        return
     me.fighting = them.fighting = True
     cid = c.warfield
+    # o alvo é avisado (visto #10207-#10209: 111 com o nome, 4494 e 83 com o link)
+    target.send(S_ALERT, _chat(ATTACKED_TEXT.format(snap.character.nickname or ""), 7))
     _to_map(s.ctx, cid, S_CROSS, _cross((s, c.pos, 2), (target, target.campaign.pos, 2)))
+    target.send(S_CHAT, _chat(ATTACKED_TEXT.format(_link(s)), 3))
 
     async def finished(won: bool) -> None:
         await pvp_over(s, target, field, won)
@@ -267,46 +344,67 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
 
 
 async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bool) -> None:
-    """Fim da luta do campo: o perdedor perde 15% dos pontos e renasce em 179,75 (4104 e 4175 state 1 por 25 s);
-    o vencedor ganha os mesmos pontos e 10 de honra. Ordem (visto) 152321 #11098-#11131: 4104, 4175, 4252, 4494,
-    4388 tipo 4, 4269, 111 e 83; o perdedor: 4269 (isAdd false), 111 e 83 (#9828-#9830).
-    TODO(inventado): 15% arredondado para cima (visto 100 -> 15, 115 -> 18); o ganho igual à perda (visto 21 e 23
-    sem a pontuação do outro) e o 4388 ``data`` = vitórias no campo (visto "1" na primeira)."""
+    """Fim da luta do campo (``bf.pvp_loss``/``bf.pvp_gain``): o perdedor perde 15% dos pontos e renasce no
+    acampamento do lado (4104 e 4175 state 1, ou 3 carregando, por 25 s); o vencedor ganha 20 + 1 a cada 20 pontos
+    do outro, 10 de honra e 10 pontos de PvP entre servidores, e o lado dele soma o ganho (a perda não desconta).
+    Ordem (visto) 152321 #11098-#11131: 4104, 4175, 4252, 4494, 4103, 4471, 3, 112 (767), 4388 tipo 4, 4252, 4269,
+    111 e 83; o perdedor: 4104, 4175, 4252, 4494, 4103, 4269 (isAdd false), 111 e 83 (#9795-#9830).
+    TODO(inventado): o 4388 ``data`` = abates no campo (visto "1" duas vezes, #11111 e #11260)."""
     winner, loser = (s, target) if won else (target, s)
     wm, lm = field.mark(winner.player_id), field.mark(loser.player_id)
     wm.fighting = lm.fighting = False
     if field.settled:  # a partida acabou durante a luta: só o fim da luta
         s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))
         return
-    cid = field.campaign_id
-    lost = -(-lm.score * LOSS_PCT // 100)
+    ctx, cid, now = s.ctx, field.campaign_id, s.ctx.clock.now()
+    lost, gained = bf.pvp_loss(lm.score), bf.pvp_gain(lm.score)
     lm.score -= lost
-    wm.score, wm.honor, wm.wins = wm.score + lost, wm.honor + WIN_HONOR, wm.wins + 1
+    wm.score, wm.honor, wm.wins = wm.score + gained, wm.honor + bf.KILL_HONOR, wm.wins + 1
+    field.gain(wm.team, gained)
     here = [o for o in (winner, loser) if o.campaign is not None and o.campaign.warfield == cid]
     if loser in here:
-        loser.campaign.pos = RESPAWN  # type: ignore[union-attr]
-        name = loser.snapshot.server.name if loser.snapshot else ""
-        _to_map(s.ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=loser.player_id, curPosX=RESPAWN[0],
-                                                             curPosY=RESPAWN[1], serverName=name))  # fmt: skip
-        state = pb.PlayerStateListMsg()
-        state.playerState.add(armyId=loser.player_id, state=1, leftTime=RESPAWN_MS, serverName=name)
-        _to_map(s.ctx, cid, S_PLAYER_STATE, state)
-    stop = bf.row_window(bf.field_row(s.ctx.templates, cid), s.ctx.clock.now())[1]  # type: ignore[arg-type]
-    for o in here:
-        o.send(S_WAR_INFO, _info(o, field, stop))
+        camp = bf.CAMP[lm.team]
+        loser.campaign.pos = camp  # type: ignore[union-attr]
+        lm.dead = True
+        _to_map(ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=loser.player_id, curPosX=camp[0], curPosY=camp[1],
+                                                           serverName=lm.server))  # fmt: skip
+        dead = DEAD_CARRYING if lm.carry else DEAD
+        _to_map(ctx, cid, S_PLAYER_STATE, _state_msg(loser.player_id, dead, lm.server, RESPAWN_MS))
+        asyncio.get_running_loop().call_later(RESPAWN_MS / 1000, _revive, ctx, field, loser.player_id)
+    _push_info(ctx, field)
     rows = [(o, o.campaign.pos, 0) for o in here]  # type: ignore[union-attr]
-    _to_map(s.ctx, cid, S_CROSS, _cross(*rows))
+    _to_map(ctx, cid, S_CROSS, _cross(*rows))
     s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))  # (visto) #11103
-    await _quest(winner, KILL_QUEST)  # (visto #11106): 112 da 767 depois do 4103
-    if winner.snapshot is not None:  # títulos "Executioner"/"Grim Reaper" (Accumulated N Battleground kills)
-        await s.ctx.characters.save(titles.count(winner.snapshot, titles.FIELD_KILLS, s.ctx.clock.now()))
+    saves = add_honor(winner, bf.KILL_HONOR) if winner.snapshot is not None else []
+    await _quest(winner, KILL_QUEST)  # (visto #11106): 112 da 767 depois do 4471/3
+    if (wsnap := winner.snapshot) is not None:  # títulos "Executioner"/"Grim Reaper" (Accumulated N kills)
+        saves.append(titles.count(wsnap, titles.FIELD_KILLS, now))
+        cfg = ctx.world.settings.get("arena_party") or {}
+        cross = ev.state(wsnap, arena_grupo.KEY, now)
+        cross.value = arena_grupo.points(cross, now, cfg) + CROSS_POINTS
+        cross.text, cross.updated_at = arena_grupo.period(now, cfg), now
+        saves.append(cross)
+        await ctx.characters.save(*saves)
     winner.send(S_SNS, sns_msg(winner.player_id, SNS_PVP, str(wm.wins)))
-    for o, add, honor, text in ((winner, True, WIN_HONOR, WIN_TEXT.format(lost, WIN_HONOR)),
-                                (loser, False, 0, LOSE_TEXT.format(lost))):  # fmt: skip
+    if winner in here:
+        winner.send(S_WAR_INFO, _info(winner, field))  # a honra nova (visto #11126 geste 872)
+    for o, add, pts, honor, text in (
+        (winner, True, gained, bf.KILL_HONOR, WIN_TEXT.format(gained, bf.KILL_HONOR, CROSS_POINTS)),
+        (loser, False, lost, 0, LOSE_TEXT.format(lost)),
+    ):
         name = o.snapshot.server.name if o.snapshot else ""
-        o.send(S_WAR_MOVIE, pb.WarMovieMsg(score=lost, geste=honor, isAdd=add, userId=o.player_id, serverName=name))
+        o.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=honor, isAdd=add, userId=o.player_id, serverName=name))
         o.send(S_ALERT, _chat(text, 7))
         o.send(S_CHAT, _chat(text, 3))
+
+
+def _revive(ctx: GameContext, field: bf.Field, player_id: int) -> None:
+    """Fim dos 25 s: o 4175 do renascido a todos no campo, state 2 se ainda carrega, 0 se não (visto #9905, #10384)."""
+    mark = field.marks.get(player_id)
+    if mark is None or not mark.dead or field.settled:
+        return
+    mark.dead = False
+    _to_map(ctx, field.campaign_id, S_PLAYER_STATE, _state_msg(player_id, 2 if mark.carry else 0, mark.server))
 
 
 @router.on(8338)
@@ -406,7 +504,11 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
     field = found[0]
     n = camp - c.warfield * 1000
     mark = field.mark(s.player_id)
-    if n == bf.DELIVER and mark.carry is not None:
+    if mark.dead:
+        if n in bf.EXIT_GATES:
+            s.send(S_ALERT, _chat(DEAD_GATE, 7))
+        return
+    if n == bf.DELIVER[mark.team] and mark.carry is not None:
         s.send(S_CONFIRM, pb.CampaignConfirmMsg(title="", body=DELIVER_BODY, mapId=c.warfield, nodeId=camp, type=2))
     elif n in bf.COLLECT and mark.carry is None:
         s.send(S_MOVIE, pb.PlayerMovieMsg(movieTargetType=0, targetId=int(node["nodeId"]), movieType="COLLECTION",
@@ -446,10 +548,10 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
         return
     mark = found[0].mark(s.player_id)
     n = camp - c.warfield * 1000
-    if n not in bf.COLLECT or mark.carry is not None:
+    if n not in bf.COLLECT or mark.carry is not None or mark.dead:
         return
-    mark.carry = bf.COLLECT[n]
-    s.send(S_PLAYER_STATE, _state_msg(s.player_id, 2))
+    mark.carry = bf.ore(taxas.get(s.ctx.world.settings, "field_ore_weights"))
+    _to_map(s.ctx, c.warfield, S_PLAYER_STATE, _state_msg(s.player_id, 2, mark.server))  # (visto #9957, a todos)
     s.send(S_ALERT, _chat(ENTERED_TEXT, 7))
 
 
@@ -472,29 +574,31 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
             s.send(S_MINE, _mine_msg(s))
         return
     found = _field(s)
-    if found is None or camp - c.warfield * 1000 != bf.DELIVER:
+    if found is None:
         return
-    field, stop = found
+    field = found[0]
     mark = field.mark(s.player_id)
-    if mark.carry is None:
+    if camp - c.warfield * 1000 != bf.DELIVER[mark.team] or mark.carry is None or mark.dead:
         return
     quality = mark.carry
     pts, honor, shards = bf.TURN_IN[quality]
     mark.score, mark.honor, mark.carry = mark.score + pts, mark.honor + honor, None
+    field.gain(mark.team, pts)
     drops = [(bf.SHARD, shards)]
     new: list[Item] = []
     if rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         new, _ = rewards.grant(snap, s.ctx.templates, drops)
-    # ordem da captura (visto #14391-#14418): 4175, 4252, 115, 111, 83
-    s.send(S_PLAYER_STATE, _state_msg(s.player_id, 0))
-    s.send(S_WAR_INFO, _info(s, field, stop))
-    await s.ctx.characters.save(snap.character, *new)
+    # ordem (visto 152321 #10102-#10138): 4175, 4252 (a honra velha), 4471, 3, 115, 111, 83, 4252 e 4269
+    _to_map(s.ctx, c.warfield, S_PLAYER_STATE, _state_msg(s.player_id, 0, mark.server))
+    _push_info(s.ctx, field)
+    saves = add_honor(s, honor)
+    await s.ctx.characters.save(*saves, *new)
     if new:
         s.send(S_ITEMS, rewards.items_msg(new, s.player_id))
     text = bf.turn_in_text(quality, pts, honor, shards)
     s.send(S_ALERT, _chat(text, 7))
     s.send(S_CHAT, _chat(text, 3))
-    # (visto) 152321 #14713-#14717: 111, 83, 4252 e o 4269 (ScoreOrGesteAction: o número subindo no mapa)
+    s.send(S_WAR_INFO, _info(s, field))
     s.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=honor, isAdd=True, userId=s.player_id,
                                        serverName=snap.server.name))  # fmt: skip
 
@@ -538,40 +642,43 @@ async def clock(s: GameSession) -> None:
 
 
 async def settle(ctx: GameContext, field: bf.Field) -> None:
-    """Fim da partida: o texto, o prêmio a quem estava no campo, o placar e a saída (22). Vence o lado com mais
-    pontos (``Field.winner``): Insignia x80 e a missão 50 (visto #16396); o outro lado leva a metade."""
+    """Fim da partida: vence o lado com mais pontos (``Field.winner``); quem está no campo leva 80 Insignia e 90 de
+    honra (vencedor) ou 30 e 30 (perdedor, visto #11669 prince/VRIES) e a missão 50 se venceu. ``oneTeamId`` é o
+    vencedor (cliente ``PvpSortListView.isVictory``: ``teamId == oneTeamId``; visto #11669 2455 x 2448).
+    Ordem (visto 152321 #11662-#11704): 4248 state 2, 83, 4254, 4248, 22, 4471, 3, 115, 112 (818) e o 83 do prêmio."""
     field.settled = True
     now = ctx.clock.now()
     winner = field.winner()
-    for o in players_on(ctx, field.campaign_id):
+    here = players_on(ctx, field.campaign_id)
+    prize = {o.player_id: (bf.WIN_INSIGNIA, bf.WIN_HONOR) if field.mark(o.player_id).team == winner
+             else (bf.LOSE_INSIGNIA, bf.LOSE_HONOR) for o in here}  # fmt: skip
+    first = winner or 1  # TODO(inventado): no empate ninguém vence e o time 1 vai em one
+    second = 2 if first == 1 else 1
+    report = pb.WarReportListMsg(oneTeamId=first if winner else 0, twoTeamId=second, oneScore=field.score(first),
+                                 twoScore=field.score(second))  # fmt: skip
+    report.info.extend(_ranking(field, prize))
+    for o in here:
         snap = o.snapshot
         assert snap is not None
-        o.send(S_CHAT, _chat(END_TEXT, tip=True))  # ordem da captura (visto #16358-#16364): texto, 4254, 22
-        team = field.mark(o.player_id).team
-        other = bf.ENEMY if team == bf.TEAM else bf.TEAM
-        report = pb.WarReportListMsg(oneTeamId=team, twoTeamId=other, oneScore=field.score(team),
-                                     twoScore=field.score(other))  # fmt: skip
-        report.info.extend(_ranking(field, snap.server.name, snap.character.nickname or "", o.player_id))
+        push_states(o)  # 4248 com o campo encerrado
+        o.send(S_CHAT, _chat(END_TEXT, tip=True))
         o.send(S_WAR_REPORT, report)
+        o.send(S_WARFIELD_STATE, states(ctx.templates, now))
         o.campaign = None
         o.send(S_EXIT, pb.CampaignExitMsg(result=1, playerId=o.player_id, armyId=o.player_id,
                                           serverName=snap.server.name))  # fmt: skip
-        won = team == winner
-        # TODO(inventado): o lado perdedor (e o empate) leva a metade; só a vitória foi vista (#16396)
-        insignia = bf.WIN_INSIGNIA if won else bf.WIN_INSIGNIA // 2
+        insignia, honor = prize[o.player_id]
         drops = [(bf.INSIGNIA, insignia)]
         new: list[Item] = []
         if rewards.can_grant(snap, ctx.templates, drops, now):
             new, _ = rewards.grant(snap, ctx.templates, drops)
-        # a honra do texto vai para o geste (a honra do jogador: Honor Certificate, NeedGeste da loja de honra)
-        honor = bf.WIN_HONOR * insignia // bf.WIN_INSIGNIA  # Double Honor Scroll: "Honor Received +{Grades}%"
-        snap.character.geste += honor * (100 + buffs.percent(snap, ctx.templates, buffs.HONOR_BOOST, now)) // 100
-        await ctx.characters.save(snap.character, *new)
+        # Double Honor Scroll: "Honor Received +{Grades}%"
+        saves = add_honor(o, honor * (100 + buffs.percent(snap, ctx.templates, buffs.HONOR_BOOST, now)) // 100)
+        await ctx.characters.save(*saves, *new)
         if new:
             o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
-        _player(o)
-        o.send(S_CHAT, _chat(bf.win_text(insignia)))  # o prêmio chega depois da saída (visto #16396)
-        if won:  # "Obtain Victory in War Camp" (missão 818); TODO(inventado): a posição do 112
+        if winner is not None and field.mark(o.player_id).team == winner:  # "Obtain Victory in War Camp" (818)
             await _quest(o, WIN_QUEST)
+        o.send(S_CHAT, _chat(bf.win_text(insignia, honor)))
     for o in ctx.online.sessions():
         push_states(o)
