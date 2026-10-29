@@ -125,6 +125,7 @@ TEMPLATE_STATS = dict(
 # SkillBufferTempInfo.AttackType (nomes dos templates; o cliente só trata 19 como "restrito")
 PATK, PDEF, MATK, MDEF, HP, RAGE, RECEIVED, CRIT, CRIT_DAMAGE = 1, 2, 3, 4, 5, 6, 15, 16, 17
 STUN, CONFUSED, AMNESIA, DEALT, HP_PERCENT, DEALT2, IGNORE_PDEF, IGNORE_MDEF = 19, 38, 39, 20, 33, 40, 28, 29
+REVIVE = 37  # buffer 103 "Revive" (Sacred Nirvana): volta com ValuePercent % da vida (dedução)
 NO_ACTION = {STUN, 101}  # 101 "昏迷，无法行动" (desmaio, não age)
 STAT_BUFF = {"PhyAttack": PATK, "PhyDefence": PDEF, "MagicAttack": MATK, "MagicDefence": MDEF}
 # AttackWay = cliente BufferEffectiveType/BufferActiveTime: 1 ao agir, 2 ao levar dano, 3 ao causar, 4 na hora
@@ -525,10 +526,21 @@ class Battle:
         """10507: uma Spire Rune (skill 101-104) vira a próxima ação do herói. Devolve as cargas que sobram, ou
         ``None`` se não tem carga (ou o herói caiu)."""
         p = self.player
-        if p is None or p.hp <= 0 or self.trials.get(skill_id, 0) <= 0:
+        row = self.templates.get("SkillTempInfos", skill_id) or {}
+        if p is None or self.trials.get(skill_id, 0) <= 0:
             return None
+        if row.get("IsUseOnDead") == "1":  # Sacred Nirvana: "Revives a random team member or yourself" — já
+            fallen = [u for u in self.units if u.side == p.side and u.hp <= 0 and (u.hero or u.is_player)]
+            if not fallen:
+                return None
+            target = p if p.hp <= 0 else self.rng.choice(fallen)
+            for buffer_id in filter(None, str(row.get("BufferIds", "")).split(",")):
+                self._apply(p, target, int(buffer_id))
+        elif p.hp <= 0:
+            return None
+        else:
+            self._order = (skill_id, self.frame)
         self.trials[skill_id] -= 1
-        self._order = (skill_id, self.frame)
         return self.trials[skill_id]
 
     def order(self, living_id: int, skill_id: int) -> None:
@@ -747,6 +759,10 @@ class Battle:
                 delta = -min(-delta, self._floor_hp(unit, -delta))
             unit.hp = max(0, min(unit.max_hp, unit.hp + delta))
             buff.damage.append(pb.DamageMsg(livingId=unit.living_id, damageType=DAMAGE_HP, damageValue=-delta,
+                                            leftValue=unit.hp, parry=False))  # fmt: skip
+        elif buff.kind == REVIVE and unit.hp <= 0:
+            unit.hp = max(1, unit.max_hp * buff.percent // 100)
+            buff.damage.append(pb.DamageMsg(livingId=unit.living_id, damageType=DAMAGE_HP, damageValue=-unit.hp,
                                             leftValue=unit.hp, parry=False))  # fmt: skip
         elif buff.kind == RAGE and buff.value:
             unit.sp += buff.value

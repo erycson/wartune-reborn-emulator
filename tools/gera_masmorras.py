@@ -319,6 +319,33 @@ def tower(content: dict[str, Any], grade: int, spire: bool) -> None:
         for _ in range(SPIRE_WAVES):
             waves.append([dict(s, livingId=(top := top + 1)) for s in enemies])
         b["reinforce"], b["trial"] = waves, True
+    if not spire:
+        king_levels(content)
+
+
+def king_levels(content: dict[str, Any]) -> None:
+    """(internet) a King tem cinco níveis: o grupo de monstros da planta (3 lutas, que acaba o mapa) ganha mais
+    duas lutas clonadas e o chefe opcional sai. O servidor troca os inimigos pelas sombras (torres.with_shadows).
+    TODO(inventado) a posição dos dois nós novos (casas andáveis perto do chefe que saiu)."""
+    (mid,) = (int(k) for k in content["maps"])
+    entry = content["maps"][str(mid)]
+    boss = next(n for n in entry["nodes"] if n["masterType"] == 41)
+    entry["nodes"].remove(boss)
+    content["battles"].pop(str(boss["campDataId"]))
+    model = next(n for n in entry["nodes"] if n["masterType"] == 42)
+    group = [int(x) for x in model["param3"].split("|")]
+    tiles = walkable(8201)
+    new = [mid * 100 + 9, mid * 100 + 10]
+    ids = max(n["nodeId"] for n in entry["nodes"])
+    for i, camp in enumerate(new):
+        x, y = _near(tiles, boss["posX"] + 6 * i, boss["posY"] + 3 * i)
+        node = dict(model, campDataId=camp, nodeId=ids + 1 + i, posX=x, posY=y, curX=x, curY=y)
+        node.update(fixX=x * TILE + 9, fixY=y * TILE + 9)
+        entry["nodes"].append(node)
+        content["battles"][str(camp)] = copy.deepcopy(content["battles"][str(model["campDataId"])])
+    for n in entry["nodes"]:
+        if n["masterType"] == 42:
+            n["param3"] = "|".join(str(c) for c in [*group, *new])
 
 
 def main(cfg: dict[str, Any]) -> None:

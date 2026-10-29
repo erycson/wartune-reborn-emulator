@@ -671,6 +671,8 @@ def _start_battle(s: GameSession, camp: int, over: Callable[[Battle, bool], Awai
     c = _map(s)
     spec = c.battle_like(camp) if c.content is not None else battle_spec(camp)
     assert spec is not None
+    if c.run is not None and c.run.shadows:  # Tower of Kings: as sombras, mais fortes a cada nível
+        spec = torres.with_shadows(spec, c.run.shadows, c.run.floors + 1)
     c.fighting = camp
     _send(s, S_MAP_SYNC, map_sync(s, ARMY_FIGHTING))
     _send(s, S_ARMY_POS, _army_brief(s, ARMY_FIGHTING))
@@ -1150,6 +1152,8 @@ async def _group_enter(s: GameSession, room: Room, content: Mapping[str, Any], c
     if tower and use:  # as torres têm a entrada do dia delas, não a das masmorras em grupo
         use, tower_rows = torres.enter(snap, row, now)
     run = StageRun(cid, stage, maps, now, rewarded=use and (bool(tower) or count > 0))
+    if tower == torres.KING:
+        run.shadows = await _king_shadows(s, int(row.get("DifficultyGrade") or 1))
     s.campaign = c = CampaignMap.enter_dungeon(content, maps[0], run)
     name = row.get("CampaignName", "")
     created = pb.RoomCreatedMsg(createdType=ENTER)
@@ -1211,6 +1215,27 @@ async def buy_trial(s: GameSession, msg: pb.TrialInfoMsg) -> None:
     await s.ctx.characters.save(*rows)
     await _push_player(s)
     s.send(S_TRIAL_BUY, pb.TrialInfoMsg(skillId=msg.skillId, count=count, param1=1))
+
+
+async def _king_shadows(s: GameSession, grade: int) -> list[dict[str, Any]]:
+    """As sombras da dificuldade (internet: os 16 mais fortes do ranking de força, 4 por dificuldade), cópias de
+    combate do coliseu. Servidor com menos jogadores: os que houver do fim da faixa para cima; sem nenhum, a luta
+    fica com os monstros gerados (TODO(inventado))."""
+    from .. import arena as A  # noqa: PLC0415  (game.arena é pesado e só serve aqui)
+
+    snap = s.snapshot
+    assert snap is not None
+    server = snap.server.id
+    top = await s.ctx.characters.read(lambda uow: uow.characters.strongest(server, torres.SHADOW_TOP))
+    ids = [c.id for c in top if c.id is not None]
+    band = ids[torres.shadow_slice(grade)] or ids[-torres.SHADOW_PARTY :]
+    out = []
+    for cid in band:
+        other = s.ctx.online.get(cid)
+        shadow = other.snapshot if other is not None else await s.ctx.characters.snapshot(cid)
+        if shadow is not None and shadow.leader is not None:
+            out.append(A.copy_hero(shadow, s.ctx.templates, s.ctx.clock.now()))
+    return out
 
 
 def _rewarded(s: GameSession) -> bool:

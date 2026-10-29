@@ -75,6 +75,7 @@ class StageRun:
     batter: int = 0  # maior 8282 (combo) da etapa
     rewarded: bool = True  # campanha em grupo sem a entrada do dia: sem EXP, drop nem carta (cliente)
     floors: int = 0  # andares vencidos nas torres 8200-8204 (game/torres)
+    shadows: list[dict[str, Any]] = field(default_factory=list)  # Tower of Kings: as cópias (torres.with_shadows)
 
 
 @dataclass

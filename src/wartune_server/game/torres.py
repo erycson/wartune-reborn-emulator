@@ -161,3 +161,32 @@ def buy(
     st = ev.daily(snap, SHOP_KEY, now)
     st.text, st.updated_at = json.dumps({str(k): v for k, v in got.items()}), now
     return got[skill], [snap.character, st, entry]
+
+
+# -- sombras da Tower of Kings ---------------------------------------------------------------------------------------
+# (internet) "challenged by a party of four Shadow Souls. These are shadows of the top 16 players in ... strength
+# rankings (Rank 1-4 ... Nightmare, 5-8 Hard, 9-12 Normal, 13-16 Easy) ... five levels ... The Shadows keep getting
+# stronger after each level". A cópia é a do coliseu (``arena.copy_hero``).
+SHADOW_TOP, SHADOW_PARTY = 16, 4
+SHADOW_POS = (5, 1, 7, 3)  # posições do lado 2 (5, 1 e 7 vistas nas lutas da 9002); TODO(inventado) a 3
+SHADOW_GROWTH = 0.10  # TODO(inventado): +10% de vida e ataque por nível vencido ("keep getting stronger")
+KING_LEVELS = 5  # (internet) "There are a total of five levels"
+
+
+def shadow_slice(grade: int) -> slice:
+    """As posições do ranking de força de cada dificuldade: Easy 13-16 ... Nightmare 1-4 (índices 0-based)."""
+    top = (4 - grade) * SHADOW_PARTY
+    return slice(top, top + SHADOW_PARTY)
+
+
+def with_shadows(spec: dict[str, Any], shadows: list[dict[str, Any]], level: int) -> dict[str, Any]:
+    """A luta da King contra as sombras: os inimigos da planta saem e entram as cópias, mais fortes a cada nível."""
+    k = 1 + SHADOW_GROWTH * (level - 1)
+    heroes = []
+    for i, shadow in enumerate(shadows[:SHADOW_PARTY]):
+        h = dict(shadow, livingId=20 + i, pos=SHADOW_POS[i], hasShadow=True)
+        h["maxHp"] = h["initHp"] = h["hp"] = round(int(shadow["hp"]) * k)
+        h["attack"] = round(int(shadow.get("attack", 0)) * k)
+        heroes.append(h)
+    mine = [u for u in spec["soldiers"] if int(u["side"]) == 1]
+    return spec | {"heroes": heroes, "soldiers": mine, "reinforce": []}
