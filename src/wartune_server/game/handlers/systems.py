@@ -9,7 +9,9 @@ PlayerManager.__dragonSoul*). Nas turcas só há pacotes S>C: os campos dos pedi
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from datetime import UTC, datetime
+from typing import Any
 
 from ...domain import gameday
 from ...domain.models import BagType, Item, PlayerSnapshot, PlayerSystems
@@ -476,6 +478,13 @@ def open_fate(s: GameSession) -> PlayerSystems | None:
         return None
     if not sy.fate:
         sy.fate = FATE_DEFAULT
+    # 2100/2200 (SkillTempInfos existem; o FateRotaryFrame mostra o que o 4544 manda): abrem pelo nível de
+    # ``game_settings.fate_unlock`` (0116). TODO(inventado): os níveis
+    gps = fate(sy)
+    for son, level in (s.ctx.world.settings.get("fate_unlock") or {}).items():
+        if snap.character.grades >= int(level) and int(son) not in gps:
+            gps[int(son)] = 0
+    sy.fate = ",".join(f"{k}:{v}" for k, v in gps.items())
     today = gameday.today(s.ctx.clock.now())
     if sy.fate_day != today:
         sy.fate_day, sy.fate_turns = today, 0
@@ -563,6 +572,7 @@ async def fate_turn(s: GameSession, msg: pb.FateEditMsg) -> None:
 DRAGON, DRAGON_DONE = 101, 102  # fateTypes antes e depois da transferência
 DRAGON_GRADE = "101"  # UpGradeTempInfo.Types: Data = EXP para o próximo grau (login: grau 2 com 7)
 DRAGON_FOOD = "319"  # item 208032
+VOCATION_GRADE = "107"  # UpGradeTempInfo.Types da vocação depois da transferência (dedução, TODO(inventado))
 DRAGON_LEVELS = (40, 50, 60, 70, 80)  # grau máximo pelo nível do herói (1 a 5)
 
 
@@ -595,9 +605,11 @@ async def dragon_feed(s: GameSession, msg: pb.FateEditMsg) -> None:
     assert snap is not None
     sy = open_dragon(snap)
     food, n = rules.bag_items(snap, templates, DRAGON_FOOD), msg.useItemCount
-    cap = sum(1 for lv in DRAGON_LEVELS if snap.character.grades >= lv)
-    nxt = rules.upgrade_row(templates, DRAGON_GRADE, sy.dragon_grade + 1)
-    if sy.dragon_type != DRAGON or nxt is None or sy.dragon_grade >= cap or n <= 0 or sum(i.count for i in food) < n:
+    done = sy.dragon_type == DRAGON_DONE  # vocação: a mesma comida sobe o grau (``VOCATION_GRADE``)
+    table = VOCATION_GRADE if done else DRAGON_GRADE
+    cap = 10**6 if done else sum(1 for lv in DRAGON_LEVELS if snap.character.grades >= lv)
+    nxt = rules.upgrade_row(templates, table, sy.dragon_grade + 1)
+    if not sy.dragon_type or nxt is None or sy.dragon_grade >= cap or n <= 0 or sum(i.count for i in food) < n:
         s.log.info("8641 recusado", pedido=str(msg))
         return
     changed, deleted = rules.take_items(snap, food, n)
@@ -605,10 +617,22 @@ async def dragon_feed(s: GameSession, msg: pb.FateEditMsg) -> None:
     while sy.dragon_grade < cap and nxt is not None and sy.dragon_gp >= int(nxt["Data"]):
         sy.dragon_gp -= int(nxt["Data"])
         sy.dragon_grade += 1
-        nxt = rules.upgrade_row(templates, DRAGON_GRADE, sy.dragon_grade + 1)
+        nxt = rules.upgrade_row(templates, table, sy.dragon_grade + 1)
     await s.ctx.characters.save(sy, *changed, delete=tuple(deleted))
     send_items(s, changed, deleted)
-    s.send(S_DRAGON, dragon_list(sy))
+    if done:
+        s.send(S_TRANSFER_GRADE, pb.FateInfoMsg(fateTypes=DRAGON_DONE, grades=sy.dragon_grade, totalGp=sy.dragon_gp))
+    else:
+        s.send(S_DRAGON, dragon_list(sy))
+
+
+def vocation_percent(snap: PlayerSnapshot, settings: Mapping[str, Any]) -> dict[str, int]:
+    """Bônus da transferência na luta: % por grau de vocação (``game_settings.dragon_vocation_bonus``, 0116).
+    TODO(inventado): os atributos e o % (o DragonSoulView só mostra o nome da vocação)."""
+    sy = snap.systems
+    if sy is None or sy.dragon_type != DRAGON_DONE:
+        return {}
+    return {k: int(v) * sy.dragon_grade for k, v in (settings.get("dragon_vocation_bonus") or {}).items()}
 
 
 @router.on(8643)
@@ -621,7 +645,7 @@ async def dragon_transfer(s: GameSession, _: object) -> None:
     if sy.dragon_type != DRAGON or sy.dragon_grade < len(DRAGON_LEVELS):
         s.log.info("8643 recusado", tipo=sy.dragon_type, grau=sy.dragon_grade)
         return
-    # ponytail: a vocação (vocationGrades/Gp) que vem depois não tem tabela nem captura; começa no 1
+    # a vocação começa no 1 e sobe pelo 8641 na tabela 107 (dedução: a única UpGradeTempInfos sem dono, 31 graus)
     sy.dragon_type, sy.dragon_grade, sy.dragon_gp = DRAGON_DONE, 1, 0
     await s.ctx.characters.save(sy)
     c = snap.character

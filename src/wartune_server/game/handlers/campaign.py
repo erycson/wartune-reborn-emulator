@@ -562,7 +562,10 @@ def player_hero(s: GameSession, spec: dict[str, object], boost: bool = False, ca
         cards = systems.camp_stats(snap, s.ctx.templates, camp)
         total.update({k: int(total.get(k, 0)) + v for k, v in cards.items() if k != "Live"})
         live, hp = live + cards.get("Live", 0), hp + cards.get("Live", 0)
-    for key, pct in buffs.percent_stats(snap, s.ctx.templates, now).items():
+    pcts = buffs.percent_stats(snap, s.ctx.templates, now)
+    for key, pct in systems.vocation_percent(snap, s.ctx.world.settings).items():
+        pcts[key] = pcts.get(key, 0) + pct
+    for key, pct in pcts.items():
         if key == "Live":
             extra = live * pct // 100
             live, hp = live + extra, hp + extra  # (dedução) como o contrato 7

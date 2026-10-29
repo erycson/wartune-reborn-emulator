@@ -252,3 +252,31 @@ async def test_loja_venus_paga_com_cristal_e_manda_o_4725(tmp_path: Path) -> Non
         assert ev.peek(me(g), rewards.ETERNAL_KEY).value == 1  # type: ignore[union-attr]
         g.client.send(5154, buy(2325, 1))
         assert pb.ShopMsg.FromString((await g.until(90))[-1].body).buyInfo.result == 4
+
+
+# --- destino 2100/2200 e vocação do dragão (0116, TODO(inventado)) ---
+
+
+async def test_destino_2100_2200_abrem_pelo_nivel(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        await _grade(g, 70)
+        g.client.send(8628)
+        types = [f.fateTypes for f in pb.FateListMsg.FromString((await g.until(4544))[-1].body).fateInfo]
+        assert 2100 in types and 2200 not in types
+
+
+async def test_vocacao_sobe_com_a_comida_e_da_bonus_na_luta(tmp_path: Path) -> None:
+    from wartune_server.game import rules
+    from wartune_server.game.handlers import systems
+
+    async with logged_in(tmp_path, novice=19000) as g:
+        await _grade(g, 40)
+        sy = rules.systems(me(g))
+        sy.dragon_type, sy.dragon_grade, sy.dragon_gp = systems.DRAGON_DONE, 1, 0
+        await g.server.services.characters.save(sy)
+        await _give(g, 208032, 10, pos=20)
+        g.client.send(8641, pb.FateEditMsg(useItemCount=10))
+        info = pb.FateInfoMsg.FromString((await g.until(4557))[-1].body)
+        assert (info.fateTypes, info.grades, info.totalGp) == (systems.DRAGON_DONE, 2, 0)  # 107: 10 para o grau 2
+        bonus = systems.vocation_percent(me(g), g.server.services.world.settings)
+        assert bonus == {"PhyAttack": 2, "MagicAttack": 2}
