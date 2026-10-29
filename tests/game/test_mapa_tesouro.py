@@ -45,9 +45,15 @@ async def _estado(g: Game, op: int, **kw: object) -> pb.PlayerTreasureMsg:
 async def test_recebe_o_mapa_com_o_lugar_do_tesouro(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         s = await _pronto(g)
-        state = await _estado(g, 1)
+        g.client.send(8744, pb.PlayerTreasureMsg(opType=1))
+        got = await g.until(4633)
+        state = pb.PlayerTreasureMsg.FromString(got[-1].body)
         assert (state.joinCount, state.index, state.isFirstGet) == (1, 0, True)
         m = _mapa(s)
+        sent = [x.item for p in got if p.code == 115 for x in pb.ItemMovedListMsg.FromString(p.body).moved]
+        assert [(i.randomSkill_1, i.randomSkill_2, i.randomSkill_3) for i in sent if i.templateId] == [
+            (10000, m.random_skill_2, m.random_skill_3)
+        ]  # o que o cliente lê em checkTreasureMap
         assert m.template_id == 2190001 and m.random_skill == 10000  # Cloud City
         assert 0 < m.random_skill_2 <= 5000 and 0 < m.random_skill_3 <= 5000  # pixels dentro do mapa (5000x5000)
 
@@ -73,6 +79,18 @@ async def test_melhora_sem_saldo_e_recusada(tmp_path: Path) -> None:
         s = await _pronto(g, point=0)
         assert (await _estado(g, 2, refreshType=False, payType=1)).index == 0
         assert s.snapshot is not None and s.snapshot.character.point == 0
+
+
+async def test_reforco_sem_grupo_ou_de_si_mesmo_e_recusado(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        T._digs[g.user_id] = T.Dig(1, 2190001)
+        try:
+            for alvo in (g.user_id, 999):
+                g.client.send(8745, pb.GuildMsg(param1=alvo))
+                assert await g.idle() == []
+            assert T._digs[g.user_id].mates == []
+        finally:
+            T._digs.pop(g.user_id, None)
 
 
 async def test_longe_do_tesouro_nao_luta(tmp_path: Path) -> None:
@@ -115,8 +133,9 @@ async def test_escava_vence_e_leva_o_premio(tmp_path: Path, monkeypatch: pytest.
         state = await _estado(g, 4, index=m.pos, isReward=True)
         assert state.rewardCount == 1
         assert m not in s.snapshot.items
-        shards = sum(i.count for i in s.snapshot.items if i.template_id == T.SHARD)
-        assert shards == 9  # Property6 do Uncommon
+        shards = [i for i in s.snapshot.items if i.template_id == T.SHARD]
+        assert sum(i.count for i in shards) == 9  # Property6 do Uncommon
+        assert all(i.is_binds for i in shards)  # idioma: "Rewards are bound"
         saved = await g.server.services.characters.snapshot(g.user_id)
         assert saved.treasure[0].reward_count == 1 and m.template_id not in [i.template_id for i in saved.items]
 

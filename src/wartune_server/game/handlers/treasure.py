@@ -347,7 +347,10 @@ async def _pay_out(s: GameSession, book: TreasureMap, count: int, delete: tuple[
     assert snap is not None
     if book.reward_count < _config(s, "reward_tremap_count") and count > 0:
         book.reward_count += 1
-        await mj.give(s, snap, [(SHARD, count)], book, delete=delete)
+        drops = [(SHARD, count)]  # idioma helpContent: "Rewards are bound"
+        got, letters = place(s, snap, s.player_id, drops, s.ctx.clock.now(), binds=True)
+        await save_with_mail(s, letters, *got, book, delete=delete)
+        granted(s, drops, got, rewards.text(s.ctx.templates, drops))
     elif delete:
         await s.ctx.characters.save(delete=delete)
 
@@ -375,7 +378,16 @@ async def reinforce_treasure(s: GameSession, msg: pb.GuildMsg) -> None:
     prêmio junto. shortcut: a luta não ganha o herói no meio (``Battle`` não aceita unidade nova depois do 157); o
     reforço só entra na partilha e na missão 89. Mudar quando a luta aceitar reforço de jogador."""
     team, dig = s.ctx.teams.of(s.player_id), _digs.get(msg.param1)
-    if team is None or msg.param1 not in team.members or dig is None or dig.won or s.player_id in dig.mates:
+    if (
+        team is None
+        or msg.param1 == s.player_id
+        or msg.param1 not in team.members
+        or dig is None
+        or dig.won
+        or s.player_id in dig.mates
+        or s.battle is not None
+        or s.player_id in _digs
+    ):
         s.log.info("8745 reforço recusado", alvo=msg.param1)
         return
     dig.mates.append(s.player_id)
