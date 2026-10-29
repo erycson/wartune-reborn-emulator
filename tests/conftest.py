@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 
@@ -16,6 +17,21 @@ from wartune_server.persistence.repositories import SqlAlchemyUnitOfWork
 def game_timezone() -> None:
     """Fuso dos testes = padrão do servidor (UTC)."""
     gameday.set_timezone("UTC")
+
+
+@pytest.fixture(autouse=True)
+def fixed_target(monkeypatch: pytest.MonkeyPatch) -> None:
+    """O banco (0130) sorteia o alvo único (``battle_formula.target_random``); os testes de luta contam com o de
+    menor livingId. Quem testa o sorteio troca o ``formula`` depois de criar a luta (test_parciais_b)."""
+    from wartune_server.game import battle
+
+    init = battle.Battle.__init__
+
+    def fixed(self: battle.Battle, *args: Any, **kwargs: Any) -> None:
+        init(self, *args, **kwargs)
+        self.formula["target_random"] = 0.0
+
+    monkeypatch.setattr(battle.Battle, "__init__", fixed)
 
 
 @pytest.fixture
