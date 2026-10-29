@@ -24,26 +24,26 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Categoria | ✅ | 🟡 | 🧪 | ❌ | 🇹🇷 |
 |---|---|---|---|---|---|
 | Validação e base | 1 | 3 | 0 | 0 | 0 |
-| Castelo | 11 | 4 | 5 | 0 | 3 |
-| Herói e exército | 14 | 12 | 2 | 1 | 4 |
+| Castelo | 12 | 2 | 6 | 0 | 3 |
+| Herói e exército | 14 | 9 | 5 | 1 | 4 |
 | Pets | 3 | 6 | 0 | 2 | 2 |
-| Itens | 12 | 6 | 7 | 1 | 2 |
-| Lojas e mercado | 6 | 5 | 0 | 1 | 1 |
+| Itens | 13 | 2 | 10 | 1 | 2 |
+| Lojas e mercado | 7 | 4 | 0 | 1 | 1 |
 | Chat e social | 6 | 1 | 5 | 0 | 1 |
 | Clã / Guilda | 10 | 0 | 9 | 2 | 1 |
-| Campanhas e masmorras | 7 | 8 | 7 | 2 | 3 |
+| Campanhas e masmorras | 7 | 7 | 8 | 2 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 1 | 2 | 1 |
 | Missões | 12 | 3 | 2 | 4 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
-| Mapa do mundo (cidade externa) | 3 | 3 | 9 | 2 | 2 |
+| Mapa do mundo (cidade externa) | 4 | 2 | 10 | 1 | 2 |
 | Mundo compartilhado | 4 | 1 | 0 | 1 | 2 |
 | PvP e chefes | 1 | 2 | 3 | 3 | 2 |
-| Atividades e eventos | 5 | 11 | 10 | 2 | 5 |
+| Atividades e eventos | 5 | 10 | 11 | 2 | 5 |
 | VIP | 1 | 0 | 5 | 1 | 0 |
-| Veículos (Tank Trials) | 3 | 1 | 0 | 1 | 1 |
+| Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **113** | **74** | **73** | **27** | **34** |
+| **Total** | **118** | **61** | **83** | **25** | **34** |
 
 ## Validação e base
 
@@ -59,11 +59,11 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Prédios: upgrade (8203) | ✅ | 🇹🇷 | upgrade comum conferido em 42 pedidos ingleses; tecnologia de atributo só no turco |
-| Tecnologia: nível e fila 2 (8202/8203) | 🟡 | 🇹🇷 | ordem dos efeitos (110/150) do turco; fila de tecnologia no login por dedução |
+| Tecnologia: nível e fila 2 (8202/8203) | 🟡 | 🇹🇷 | ordem dos efeitos (110/150) do turco; fila de tecnologia no login vista no 4155 inglês (orderId 3, orderType 2: 191924 #27, 152321 #39, 140316 #29) |
 | Filas de construção (8279, 5175, 8281) | ✅ | | |
 | Aceleração de filas (5172) | ✅ | | preço do cliente; resposta e texto vistos (191924 #1341-#1346) |
 | Cobrança de ouro (8327) | ✅ | | |
-| Produção de ouro e teto (5015) | 🟡 |  | tecnologia de ouro conferida no inglês (231733 #3969-#3979, 60 no grau 1); bônus de guilda não entra |
+| Produção de ouro e teto (5015) | ✅ |  | tecnologia de ouro conferida no inglês (231733 #3969-#3979, 60 no grau 1); bônus de guilda no total (`castle.py:105`, TODO(inventado) a base) |
 | Roda da bênção do seminário (8489) | 🧪 | 🇹🇷 | subida de 10 a 70 inventada (`handlers/castle.py:38`); o 1º giro (10→50) só turco |
 | Fazenda: plantio e crescimento | ✅ |  | inglês: minutos inteiros e 1 min antes (215937 #1257, 171155); bate com o turco; slot vazio compra a semente (24/10 #347-#353) |
 | Fazenda: compra automática da semente | 🧪 | | pacote de 9 visto só para a Gold Seed; outras sementes usam 9 (inventado); 4484 antes do 111 não reproduzido |
@@ -75,7 +75,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Árvore: rega própria (15017) | ✅ |  | própria e do amigo no inglês (153200, 171155, 215937), igual ao turco |
 | Árvore: colheita do fruto (5178) | 🧪 | | ordem e textos vistos (25/10 #218-#227, 27/10 #5075-#5086); Daru/Kyanite/ouro vistos nos graus 6 e 10, os outros graus são reta entre eles (inventado) |
 | Caixa por tempo (5019) | ✅ | | reset diário de uma amostra só |
-| Recompensa offline (8287) | 🟡 | | só ×1; ×1,5 e ×2 recusados (preço desconhecido); EXP = nível × minutos por dedução |
+| Recompensa offline (8287) | 🧪 | | ×1 grátis; ×1,5 e ×2 pagos em Balens por hora fora (`game_settings.offline_reward_cost`, 0115, TODO(inventado) o preço); EXP = nível × minutos × rate/10 |
 | Trégua (8562) | ✅ | | City Protection Token grava o fim (buff 2001), 4452 em segundos no uso/login/8201, 8562 e atacar acabam; castelo em trégua não é atacável (`PlayerBufferManager`, `MapPhysicsCastle.attack`) |
 | Reforço em batalha (8255) | 🧪 | | pelo cliente (`CampaignArmyViewHelper`, `ReinforceHandler`): `Battle.join` põe o herói (cópia) numa posição livre do lado 1, 72 para os de dentro, 157 com o estado atual para quem chega, luta o resto e leva o prêmio (`_battle_over` mate); também no 8745 do tesouro. Nenhuma captura de 8255: ordem dos pacotes e posições (`TEAM_POS`) inventadas |
 
@@ -86,7 +86,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Tropas: recrutar (5155) | ✅ | | |
 | Tropas: formação (8276) e posição (8328) | ✅ | | |
 | Tropas: evoluir (5158) e trocar tipo (8580) | ✅ | | |
-| Tropas: especialidades (8455/8456) | 🟡 | | a 1ª vem sozinha no nível 10 (visto: Lancer 100, Hunter 200); o sorteio do 8455 só até o grau atual (atalho, `handlers/army.py`) |
+| Tropas: especialidades (8455/8456) | 🧪 | | a 1ª vem sozinha no nível 10 (visto: Lancer 100, Hunter 200); o sorteio comum pode dar o grau seguinte (helpContent), peso do TakeRandom TODO(inventado) |
 | Tropas: formação de campanha (8277/8278) | 🧪 | | posição de cada membro gravada na sala (`Room.positions`), 4186 a todos, usada na luta em grupo; os lugares do lado 1 seguem `TEAM_POS` inventado |
 | Herói: aprender skills e talento (5185/5187) | ✅ | | custo do talento por dedução |
 | Herói: resetar skills e 2º conjunto | ✅ | | |
@@ -98,12 +98,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Montaria: carta (5006, SonType 218) | ✅ | | |
 | Montaria: refino de estrela | 🟡 | | bênção e chance de 5% são atalho (`handlers/systems.py:43`) |
 | Montaria: ops 7-12 e evento (8843) | ❌ | | sem tela no cliente inglês |
-| Destino: abrir (8628) | 🟡 | 🇹🇷 | tipos 2000/3000 do turco; 2100/2200 não abrem |
+| Destino: abrir (8628) | 🧪 | 🇹🇷 | tipos 2000/3000 do turco; 2100/2200 abrem nos níveis de `game_settings.fate_unlock` (0116, TODO(inventado) 65/75) |
 | Destino: treinar pedras (8626) | 🟡 | | 1 EXP por pedra é chute |
 | Destino: roda (8627) | 🟡 | | pesos das fatias por dedução |
 | Dragão: abrir e login (8642, 4555) | ✅ | 🇹🇷 | abre no 40 e vai no login (turco) |
 | Dragão: alimentar (8641) | ✅ | | |
-| Dragão: transferência (8643) | 🟡 | | vocação sem tabela (começa no 1) |
+| Dragão: transferência (8643) | 🧪 | | vocação sobe pela comida na tabela 107 (dedução) e dá % de ataque por grau na luta (`game_settings.dragon_vocation_bonus`, 0116, TODO(inventado)) |
 | Cartas de poder: subir e ativar (9505) | 🟡 | 🇹🇷 | o login do turco; subir e ativar sem captura de nenhum dos dois |
 | Cartas: bônus de coleção (4905) | 🟡 | | degraus por dedução; o bônus não entra na luta |
 | Cartas: ganho nas batalhas | 🧪 | | carta do saque da campanha entra na coleção (`systems.gain_cards`, item 600): a 1ª abre no grau 1, as outras viram +1 gp cada (inventado); usar a carta da mochila faz o mesmo |
@@ -137,15 +137,15 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Mochila: vender | ✅ | | |
 | Mochila: expandir e aluguel | ✅ | | |
 | Mochila: travar e remover vencido | ✅ | | |
-| Itens com validade (medalhas) | 🟡 | | apagar sem aviso por dedução; falta captura de uma vencendo |
+| Itens com validade (medalhas) | ✅ | | o cliente apaga o vencido com o 8346 sem aviso (BaseBagListView.as:192, EquipBagII.as:95); o idioma não tem texto de validade |
 | randomSkill dos itens novos | 🧪 | | tipo 701 e peso dentro da faixa inventados |
 | Teto diário de Beden e EXP vindos de itens | 🧪 | | Beden (stamina de poção) 300/dia do cliente (`wearyLimit`); EXP de itens 5.000.000/dia inventado (`game_settings.item_exp_daily`) e o texto do aviso inventado |
 | Vínculo de itens | ✅ | | |
 | Uso de recurso (203: ouro, Balens, EXP, Daru, Spirit Covenant) | ✅ | | texto e ordem do inglês (231733; EXP Book e Spirit Covenant em 191924) |
-| Caixas de pedra (206) e outras caixas | 🟡 | | caixa com conteúdo só na descrição é recusada |
+| Caixas de pedra (206) e outras caixas | 🧪 | | 284 de 553 abrem pela descrição ("Contains:" fixo, "one of the following" sorteio uniforme TODO(inventado)); com chance/random ou nome desconhecido é recusada |
 | Poção de HP e reserva de vida (209) | 🧪 | | "HP Pack has been exhausted." e a cura ao evoluir tropa vistos (171155, 231733); contrato de cura (`rules.py:210`) |
 | Pergaminhos de EXP, ouro e população | ✅ | | ordem vista em 191924 (#1737, #2241, #3379) |
-| Pergaminhos de outros efeitos | 🟡 | | ícone e tempo ligam; o efeito não existe |
+| Pergaminhos de outros efeitos | 🧪 | | % de ataque/defesa/vida/crítico e tropa (46) na luta, honra (48) no campo; 2000 Camouflage é só aparência (4188) |
 | Poções de atributo | 🟡 | | ordem dos pacotes por dedução |
 | Cristal, guilda e Token de proteção (5006) | ❌ | | recusados |
 | Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); rankings de honra, charme, força da montaria e Sylph (pontuação `rank:*` gravada no login/8597; Sylph pelo nível do pet, inventado), golpe final no chefe do mundo e líder da guilda vencedora da guerra; sem sistema: guerra de classes, arena de Sylph, Hero Returns, guerra entre servidores e monstros dos Wilds |
@@ -155,7 +155,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Forja: refino de atributos (8336/8339) | 🧪 | | ordem e "Refinement Complete!" do inglês (24/10 #8019-#8027); o sorteio continua inventado (`bag.roll_random_skill`); o sorteio pendente fica no EventState `refine` até o 8339 |
 | Forja: decomposição (8340) | ✅ | | ordem vista em 191924 #2259-#2278; recusa calada por dedução (o cliente limpa a bancada com qualquer 4260) |
 | Equipamento do mascote: encantar (8644) | 🟡 | | bênção zera por atalho |
-| Equipamento do mascote na luta | 🟡 | | a luta não usa os atributos |
+| Equipamento do mascote na luta | 🧪 | | bagAttack + bagMagicattack somam no ataque do mascote (`campaign.fighting_pet`, dedução) |
 | Moda: composição (8594) | 🧪 | | cliente dá custo (níveis x 10000 de ouro), charms e chance por diferença de nível (só o nome); inventado: % das chances, sorteio da moda, consumo na falha e dos 5 curingas (`game_settings["fashion"]`) |
 | Moda: avaliação (8781) | 🧪 | | cliente dá custo (Property1 em ouro), chance (TransformId) e skills; visto #2524 (109, 111, 4542); inventado: pesos das estrelas 1-5 e a família sorteada; sem aviso no sucesso; o bônus soma nos atributos do líder (livro inteiro, como o cliente); refino com Property2 Fashion Cores sempre acerta (inventado) |
 | Moda: livro, provador, esconder | ✅ | | |
@@ -164,7 +164,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
-| Loja comum (5154) | 🟡 | | lojas de pontuação (8, 13, 15, 20) sem suporte |
+| Loja comum (5154) | ✅ | | lojas 8/15 pela essência (NeedItem/Score), 11 pela Amethyst, 20 pelo Venus Crystal (4725 masterType 12); a 13 não tem linha em nenhum template |
 | Loja de moda (8592) e poção (5633) | ✅ | | |
 | Loja misteriosa (8483/8482) | ✅ | | 4470 vazio depois de cada 4384 (232017 #3057); quem entra na lista de sortudos, sem captura |
 | Ofertas por tempo (4238/8218/8632) | 🟡 | | só o tipo 1 tem dado; rodízio sem captura |
@@ -172,7 +172,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Presente a outro jogador e mochila cheia pelo correio | ✅ | | loja, ofertas e misteriosa: `receiveId` de outro (id pelo 8223/4148) cobra quem compra e manda pelo correio do sistema; mochila cheia paga e o que não cabe vai pelo correio (item com vínculo e validade). VIP e contrato a amigo seguem abaixo |
 | Lojas de honra, glória, ametista | ✅ | | |
 | Loja do labirinto (ShopType 4) | ✅ | 🇹🇷 | compra do turco; a Necropolis é outro sistema |
-| Leilão: anunciar, lance, comprar, cancelar, buscar | 🟡 | | regras do cliente, sem captura; ordenação (8450/8457) ignorada, cancelar parte não reempilha |
+| Leilão: anunciar, lance, comprar, cancelar, buscar | 🟡 | | regras do cliente, sem captura; 8450 ordena; cancelar reempilha na pilha incompleta |
 | Leilão: venda de pet | 🟡 | | pet livre sem fonte |
 | Correio: envio, retirada, lista | ✅ | | carta não vence |
 | Correio: verificação de e-mail (9591) | ❌ | | sem SMTP |
@@ -225,7 +225,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Sistema | Inglês | Turco | O que falta / inventado |
 |---|---|---|---|
 | Entrada (5039) e estamina | ✅ | | sem estamina entra sem prêmio (EXP, drop, carta) e sem gastar, com "Insufficient Stamina" (cliente); sem captura |
-| 1001 Worg Lair | 🟡 | 🇹🇷 | cartas 1080012 e 1080002 no inglês, 1080013 no turco; Pandora só dá o buff; 5180, cartas pagas e progresso salvo faltam |
+| 1001 Worg Lair | 🟡 | 🇹🇷 | cartas 1080012 e 1080002 no inglês, 1080013 no turco; Pandora só dá o buff; progresso salvo falta |
 | 1002 Baylon Plains | ✅ | | caixa do caçador com uma amostra |
 | 1003 Temple of Ibalize (Outer) | 🧪 | | drops de 5 nós inventados (0062) |
 | 1004 Temple of Ibalize (Inner) | ✅ | | |
@@ -238,9 +238,9 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Torres 8200-8204 (Tower of Kings, Spire) | 🧪 | | sala em grupo (game/torres, migração 0102). Cliente: uma entrada por dia em cada, dificuldade N com a N-1 vencida, 4900, andar da Spire (``currentWave``/``reinforceWave``), pulo de andar (TrailCountView: 3 turnos pula 4, além do 24 limpa), loja das Spire Runes (4468/8582/4467, ``TrialSkill``) e uso na luta (10507), battleType 290/25, leed 28 e Recuperar EXP. Internet (fontes-internet.md): baú e EXP por luta da King (100k/300k/900k/2,5M), 24 chefes da Spire com 300k e 7 baús cada, sem carta no fim. King com 5 lutas contra as sombras dos 16 mais fortes (cópia do coliseu); TODO(inventado): mapas e monstros da Spire (planta da 9002), crescimento das sombras por nível, sombras geradas sem jogadores, cota diária da loja; TODO(captura): texto de entrada |
 | Pedreira 6001 | ✅ | | colheita espera a animação (4 s, `game_settings.quarry_collect_seconds`) |
 | Exército do sistema (5038) | 🟡 | 🇹🇷 | bate com o inglês em todos os mapas pedidos (1011-1161, 7501); a 2011 do turco; mapas sem lista mandam vazio |
-| Patrulha dos monstros (4122) | 🟡 | | nós sem captura ficam parados |
+| Patrulha dos monstros (4122) | 🧪 | | pontos vistos (0079); agressivo sem captura anda 4 tiles em volta da origem (`npc_patrol.guess_step`, 0117, TODO(inventado)) |
 | Varredura / Blitz (8528) | 🧪 | 🇹🇷 | baú de prata e caixa misteriosa inventados (`sweep.py:40`); ouro só da 1007 turca |
-| Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga tratada como grátis |
+| Cartas do fim (5122/5180) | 🟡 | | chance real falta; carta paga não existe no cliente inglês (isPay só no autoChest; payCardCount sem leitor) |
 | Relatório da etapa (137) | 🟡 | | curva por nível falta |
 | Salas de campanha (criar, entrar, senha, convite...) | ✅ | | criar/editar/convidar vistos em 191924 (4 vagas, "Select a campaign.", 4186, 24, textos do 111); playerState do dono e Start da sala do turco; 5027 só registra (aba que o cliente não tem); 5024 recusado (senha, cheia) devolve o 4270 da sala (225632 #12656) |
 | Times (convite, capitão, sair) | 🧪 | | membros, capitão, posições e ausência em `server_states` (0109); quem cai fica no time e o login manda o 4624 (dedução: sem captura de relogar em time) |
@@ -323,7 +323,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 |---|---|---|---|
 | Grade, andar e exércitos | ✅ | | exércitos dos outros online no 169, rota no 4167 e saída no 4168 (`OuterCityController`) |
 | Mudar o castelo de lugar (5176) | 🟡 | | ordem 140/152/140/105 e energia no inglês (24/10 #15689, 27/10 #18049); ponto de chegada: o livre mais próximo do ponto visto no inglês (mapa 2 em 2084,1953, mapa 3 em 1229,1103; migração 0114), centro nos outros mapas; a busca do vizinho livre é inventada |
-| Minas de ouro (missão 60) | 🟡 | | perda de soldados na derrota e refresh com o jogador online sem captura |
+| Minas de ouro (missão 60) | ✅ | | perda de soldados na derrota (`outer_city._casualties`, lose_troops ganhando ou perdendo, visto #1620) e virada online no 20008 (`_mines_over` com push, visto 171155 #170-#175) |
 | Minas do mundo (mapas 1-5) | 🧪 | | grades não vistas inventadas (`mines.py:22`) |
 | Atacar mina de outro jogador | 🧪 | | cópia do herói inventada |
 | Castelos NPC do mundo | 🧪 | | grades, saque e nomes inventados (`npc_castles.py`) |
@@ -337,7 +337,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | PK no campo de animais (8525) | 🧪 | | ilha dos pets/mina: luta direta (BattleType 19); convite do menu (op 1 → 4421, op 2 só com convite pendente); battleScene inventado |
 | Passe de progresso (8636/8637) | ❌ | | |
 | Ataque extra (9506) | ✅ | | |
-| Coleta de Amethyst e Copper | ❌ | | |
+| Coleta de Amethyst e Copper | 🧪 | | Amethyst: carrinho despejado na mina 30000 dá 200 (`DUMP_AMETHYST`, TODO(inventado)) e paga a loja 11; Copper sem fonte |
 
 ## Mundo compartilhado
 
@@ -377,7 +377,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Fundo de novato e fundo normal | 🟡 | | janelas por dedução; compra e resgate do fundo normal sem captura |
 | Árvore dourada (8604) | 🟡 | | pesos, início da edição e "uma vez por dia" por dedução |
 | Labirinto de gemas (9508-9517) | 🧪 | 🇹🇷 | maxExp inventado (`gemmaze.py:29`); ajuda de amigo recusada |
-| Roda do destino | 🟡 | | tipos 2100/2200 nunca abrem |
+| Roda do destino | 🧪 | | 2100/2200 abrem pelo nível (0116, TODO(inventado)) |
 | Super assinatura | ✅ | | |
 | Pacote de recarga e ofertas | ✅ | | |
 | Painel de recompensas e anel de tarefa | 🟡 | | aceite, andamento e entrega no inglês (231733, 121659); condições contadas: recrutar e itens (estado), forja, gemas, síntese, astral, contribuição, compra, mina, sacrifício de pet, mensagem, abates e anel; o 8729 entrega quando cumpridas; 14 (Apprehend): o 8298 abre a luta com o herói NPC do Para1 e conta na vitória (battleType e cena do mundo, inventados); texto do Daru inventado; vagas extras (4360 `rewardCount`) ficam 0: o cliente não tem pacote de compra |
@@ -417,7 +417,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Garagem e ativação | ✅ | | tecnologia 218 do inglês (`game_settings.vehicle_tech`) |
 | Partida (dano, pontos, chefe, prêmios) | 🟡 | | sem captura de partida |
 | Login (4512/4515/4516/4501) | ✅ | 🇹🇷 | a partir do nível 35 (`OpenGradesII.VEHICLE`): o turco de nível 56 manda, os ingleses de 1-16 não; janela 4512 no inglês |
-| Veículos nos mapas de guerra | ❌ | | |
+| Veículos nos mapas de guerra | ✅ | | não existe no cliente inglês: a cena VEHICLE só abre no campaignId 3001 (único mapa 30xx no mirror) |
 
 ## Conta e segurança
 
