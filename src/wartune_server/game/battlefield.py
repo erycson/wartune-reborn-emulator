@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from typing import Any
 
 from ..domain import gameday
@@ -124,6 +124,7 @@ class Field:
     points: dict[int, int] = field(default_factory=lambda: dict.fromkeys(SIDES, 0))
     busy: set[int] = field(default_factory=set)  # guardiões numa luta (128 nodeState 4)
     first_blood: bool = False  # o primeiro abate da partida já saiu
+    begun: bool = False  # o 4456 do começo (contagem de 10 s) já saiu
     settled: bool = False
 
     def mark(self, player_id: int) -> Mark:
@@ -176,6 +177,10 @@ class WarFields:
     class_wars: str = ""  # o período da arena cujo fim da Class Wars (4538) já foi anunciado (server_states)
 
 
+# "The entrance to the Battleground has opened! The battle will commence in 5 minutes!" (visto #10068)
+PRE_OPEN = timedelta(minutes=5)
+
+
 def _hm(text: str) -> time:
     hour, minute = text.split(":")
     return time(int(hour), int(minute))
@@ -195,11 +200,17 @@ def field_row(templates: GameTemplates, campaign_id: int) -> Row | None:
 
 
 def state(row: Row, now: datetime) -> int:
-    """0 aberto, 1 ainda não abriu hoje, 2 encerrado hoje (o que o 4248 do cliente lê)."""
+    """0 aberto, 1 ainda não abriu hoje, 2 encerrado hoje (o que o 4248 do cliente lê). A entrada abre ``PRE_OPEN``
+    antes do ``OpenTime`` (visto 165308 #10067-#10068: 4248 state 0 às 13:55 do 4004 das 14:00)."""
     opened, stop = row_window(row, now)
-    if now < opened:
+    if now < opened - PRE_OPEN:
         return 1
     return 0 if now < stop else 2
+
+
+def started(row: Row, now: datetime) -> bool:
+    """A luta começou (``OpenTime``); antes disso o mapa só espera (visto #10144 "has not started yet")."""
+    return now >= row_window(row, now)[0]
 
 
 def is_open(row: Row, now: datetime) -> bool:

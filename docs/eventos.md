@@ -280,10 +280,11 @@ vazio, como o oficial (#3029/#3030). Mesmo horário: na ordem do `id`. Como edit
 | 8289 | desiste: 4198 com `isComplete` (é como o cliente tira da lista) e a vaga volta a 1 | (dedução) |
 | 8291 | condições cumpridas, ou `isPass` com o contrato 2 ativo: EXP/ouro = `RewardPlayGP`/`RewardGold` x qualidade x nível (5 = x6); 109, 3, 4197, 4198 (`isAccept`, data), 4152 (leed 24, até completar), 4413 `{"reward", total do dia, hora da 1ª}`, 4196 (0x1064, sem ouvinte no cliente) com o `TemplateId` entregue no campo 1 (corpo de `RewardRemovedMsg`), 83 "Received N EXP " (sem o ouro; o texto do Daru é TODO(inventado)) | (visto) oficial_20261024-121659-1 #498-#506 (bruto: 4413 `reward,1`, 4196 `0818`); 20261030-145704 #225-#233, 20261030-151436 #653-#660 |
 | 8298 | captura (condição 14, `Para1` = herói NPC do `GameHeroTemp`, type 3): 140 do exército em luta (um), 157 battleType 12 mapTempId 1 com as tropas e o herói; no fim 150, 109, 3, 4198 do andamento, 83 do HP pack, 4103 battleScene 9 (Daru = tropa perdida), 140 parado, 150 e 100; o 4382 vem no 8747 | (visto) 20261030-145704 #245-#292 (Azimo 20003) |
-| 8731 | 4616 (anéis hoje) + 4614 (anel atual) | (cliente) RingTaskManager |
-| 8732 | sorteia anel `RewardTemps` tipo 1 do nível (35+, até 200 por dia) | (cliente) |
+| 8731 | conversa/QTE/Whack-a-Mouse (o que só o cliente vê) marcados: só o 4614; outros tipos não respondem | (visto) 20261101-165308-1 #9425-#9429 (conversa), #9379 (recrutar, nada) |
+| 8732 | sorteia `RewardTemps` tipo 1 do nível pelo `Rands` (35+, até 200/dia): 4614 (`isAccept` falso) + 111 "Circuit Quest has been accepted!", sem 4616; "Eliminate" (18) sorteia masmorra `condition_2` e alvo `condition_4`, "Fetch" (19) lugar `condition_2` (2 guilda, 3 PvP, 4 labirinto) e item `condition_3` (taxas `ring_*`, 0150: listas TODO(inventado)) | (visto) 165308 #9367-#9369, #9521, #10090, #9987 |
+| progresso | 4614 só (sem 4616); "Eliminate" conta na masmorra sorteada: luta vencida 1, rodada de varredura `ring_eliminate_per_round` (18 na 1102) | (visto) #9568-#9575, #9759-#9770 |
 | 8730 | termina na hora: 1x item 2131021 ou 35 diamantes; prêmio `RewardGold/Strategy/PlayGP` + `RewardGoods` do passo | (cliente) TaskFrameII |
-| 8729 | só devolve o estado | (cliente) |
+| 8729 | cumpridas (regra do `RingTask.getProgress`): recrutar tira as tropas (100 do castelo) e manda o 4614 com `condition_1` = Para2; buscar tira o item (115); depois 109, 3, itens do passo (115, 111 "Received: ..."), 4616, 4614 entregue (`isComplete`/`isAccept`, data), 111 "Complete Circuit Quests (N/200) Received: 2,000 Gold, 10,000 Daru", 4617, 83 dos itens e 83 do anel; sem as condições nada volta | (visto) 165308 #9382-#9392, #9430-#9437, #9989-#10017 |
 
 - Vagas: 4, sorteio por `Rands` entre `RewardTemps` tipo 0 do nível.
 - ponytail: pesos da qualidade (40/30/15/10/5) e o prêmio do anel sem multiplicador são escolha nossa.

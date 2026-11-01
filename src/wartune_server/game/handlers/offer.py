@@ -91,7 +91,16 @@ def _bump(s: GameSession, st: EventState, tid: int, condition: int, value: int, 
     ``para1`` filtra as condições com ``Para1`` (mapa, item...) diferente de 0."""
     conds = _conditions(s, tid)
     info = _json(st)
-    n = [*info.get("n", []), *[0] * len(conds)][: len(conds)]
+    n = [*info.get("n", []), 0, 0, 0, 0][: max(4, len(conds))]
+    if condition == ELIMINATE and st.key.startswith("ring"):
+        # o anel sorteia a masmorra (condition_2) e o alvo (condition_4); o andamento é o condition_1
+        # (RingTask.checkDuplicatemonster)
+        hit = bool(any(int(r["CondictionType"]) == ELIMINATE for r in conds) and para1 == n[1] and n[0] < n[3])
+        if hit:
+            n[0] = min(n[3], n[0] + value)
+            info["n"] = n
+            st.text, st.updated_at = json.dumps(info), s.ctx.clock.now()
+        return hit
     hits = [
         i
         for i, r in enumerate(conds)
@@ -129,8 +138,8 @@ def _progress_now(s: GameSession, condition: int, value: int = 1, para1: int | N
     ring_hit = bool(tid) and _bump(s, ring, tid, condition, value, para1)
     if task_hit:
         s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_task_info(task)]))
-    if ring_hit:
-        _send_ring(s, snap, now)
+    if ring_hit:  # só o 4614 (o 4616 só muda na entrega; visto 165308 #9759-#9770)
+        s.send(S_RING, _ring_msg(_json(ring), tid))
     return [*([task] if task_hit else []), *([ring] if ring_hit else [])]
 
 
@@ -139,7 +148,7 @@ def _met(s: GameSession, task: EventState, tid: int | None = None) -> bool:
     snap = s.snapshot
     assert snap is not None
     conds = _conditions(s, task.value if tid is None else tid)
-    n = [*_json(task).get("n", []), *[0] * len(conds)]
+    n: list[int] = [*_json(task).get("n", []), 0, 0, 0, 0]
 
     def done(i: int, r: Row) -> bool:
         kind, para1, para2 = int(r["CondictionType"]), int(r["Para1"] or 0), int(r["Para2"])
@@ -147,8 +156,10 @@ def _met(s: GameSession, task: EventState, tid: int | None = None) -> bool:
             return sum(p.castle_count + p.army_count for p in snap.pawns if _son(s, p.template_id) == para1) >= para2
         if kind == COLLECT:  # GoodsManager.goodsCountByTempId[Para1] >= Para2
             return bag.count_of(snap, para1) >= para2
-        if kind == FETCH:  # checkGoodsCount2: um item de Para1 na mochila
-            return bag.count_of(snap, para1) >= 1
+        if kind == FETCH:  # checkGoodsCount2: um item do condition_3 (sorteado no aceite) na mochila
+            return bag.count_of(snap, n[2] or para1) >= 1
+        if kind == ELIMINATE and tid is not None:  # checkDuplicatemonster(condition_1, condition_4)
+            return n[3] > 0 and n[0] >= n[3]
         return kind in CLIENT_ONLY or n[i] >= para2
 
     return bool(conds) and all(done(i, r) for i, r in enumerate(conds))
@@ -403,34 +414,87 @@ def _ring(snap: PlayerSnapshot, now: datetime) -> EventState:
     return ev.daily(snap, "ring", now)
 
 
-def _send_ring(s: GameSession, snap: PlayerSnapshot, now: datetime, *, complete: int = 0) -> None:
+def _ring_msg(info: dict, tid: int, done_at: datetime | None = None) -> pb.RewardUpdatedRspMsg:  # type: ignore[type-arg]
+    """4614 do anel (visto 165308 #9368, #9389): ``isAccept`` falso em andamento; na entrega ``isComplete`` e
+    ``isAccept`` verdadeiros com a data; ``condition_N`` = andamento (ou o sorteio do 18/19)."""
+    done = done_at is not None
+    row = _reward_info(tid, 0, complete=done, accept=done, progress=info.get("n", []), done_at=done_at)
+    return pb.RewardUpdatedRspMsg(reward=[row])
+
+
+def _send_ring(s: GameSession, snap: PlayerSnapshot, now: datetime) -> None:
+    """Login: 4616 (feitos hoje) e o 4614 do anel em andamento."""
     st = _ring(snap, now)
     s.send(S_RING_SUM, pb.SimplePropertyMsg(param1=st.value))
-    tid = complete or _json(st).get("t", 0)
-    if tid:
-        info = _reward_info(tid, 0, complete=bool(complete), accept=False, progress=_json(st).get("n", []))
-        s.send(S_RING, pb.RewardUpdatedRspMsg(reward=[info]))
+    if tid := int(_json(st).get("t", 0)):
+        s.send(S_RING, _ring_msg(_json(st), tid))
 
 
 @router.on(8731)
 async def ring_state(s: GameSession, _: object) -> None:
-    assert s.snapshot is not None
-    _send_ring(s, s.snapshot, s.ctx.clock.now())
+    """``RingTaskManager.updataState``: o cliente terminou a parte que só ele vê (conversa 16, QTE 12, Whack-a-Mouse
+    15). (visto) 165308 #9425-#9429: na conversa, 4614 com condition_1 1; no recrutar (#9379) nada volta."""
+    snap = s.snapshot
+    assert snap is not None
+    now = s.ctx.clock.now()
+    st = _ring(snap, now)
+    tid = int(_json(st).get("t", 0))
+    conds = _conditions(s, tid) if tid else []
+    marks = [i for i, r in enumerate(conds) if int(r["CondictionType"]) in CLIENT_ONLY]
+    if not marks:
+        return
+    info = _json(st)
+    n = [*info.get("n", []), 0, 0, 0, 0][: max(4, len(conds))]
+    for i in marks:
+        n[i] = int(conds[i]["Para2"])
+    if n != info.get("n"):
+        info["n"] = n
+        st.text, st.updated_at = json.dumps(info), now
+        await s.ctx.characters.save(st)
+    s.send(S_RING, _ring_msg(_json(st), tid))
 
 
 def _roll_ring(s: GameSession, snap: PlayerSnapshot) -> int:
+    """RewardTemps tipo 1 do nível, pelo peso ``Rands`` (2102 tem 80, os de recrutar 10)."""
     grade = snap.character.grades
     pool = [
-        int(r["TemplateId"])
+        r
         for r in s.ctx.templates.find("RewardTemps", Type=RING)
         if int(r["NeedMinLevel"]) <= grade < int(r["NeedMaxLevel"])
     ]
-    return random.choice(pool) if pool else 0
+    weights = [max(0, int(r.get("Rands") or 0)) for r in pool]
+    if not pool or not any(weights):
+        return int(random.choice(pool)["TemplateId"]) if pool else 0
+    return int(random.choices(pool, weights=weights)[0]["TemplateId"])
+
+
+def _roll_extra(s: GameSession, snap: PlayerSnapshot, tid: int) -> list[int]:
+    """O que o oficial sorteia no aceite (visto #9521, #10090, #9987): "Eliminate" (18) a masmorra em
+    ``condition_2`` e o alvo em ``condition_4``; "Fetch" (19) o lugar em ``condition_2`` (2 guilda, 3 PvP, 4
+    labirinto: TaskDescribeViewII) e o item em ``condition_3``. TODO(inventado): a lista de masmorras (normais já
+    abaixo do nível, até 15 níveis) e os itens além do visto (taxas ``ring_*``)."""
+    kinds = {int(r["CondictionType"]) for r in _conditions(s, tid)}
+    settings = s.ctx.world.settings
+    if ELIMINATE in kinds:
+        grade = snap.character.grades
+        camps = [
+            int(r["CampaignId"])
+            for r in s.ctx.templates.find("Campaigns", Types="0")
+            if grade - 15 <= int(r["MinLevel"] or 0) and int(r["MaxLevel"] or 0) <= grade
+        ] or [0]
+        return [0, random.choice(camps), 0, int(random.choice(taxas.get(settings, "ring_eliminate_targets")))]
+    if FETCH in kinds:
+        place, item = random.choice(taxas.get(settings, "ring_fetch_items"))
+        return [0, int(place), int(item), 0]
+    return []
+
+
+ACCEPTED_TEXT = "Circuit Quest has been accepted!"  # (visto #9369)
 
 
 @router.on(8732)
 async def ring_accept(s: GameSession, _: object) -> None:
-    """Pega o próximo anel (nível 35+, até 200 por dia)."""
+    """Pega o próximo anel (nível 35+, até 200 por dia): 4614 e o 111 (visto #9367-#9369, sem 4616)."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -438,11 +502,12 @@ async def ring_accept(s: GameSession, _: object) -> None:
     tid = _roll_ring(s, snap)
     if _json(st).get("t") or snap.character.grades < RING_GRADE or st.value >= RING_MAX or not tid:
         s.log.info("8732 recusado", feitos=st.value)
-        _send_ring(s, snap, now)
         return
-    st.text, st.updated_at = json.dumps({"t": tid}), now
+    extra = _roll_extra(s, snap, tid)
+    st.text, st.updated_at = json.dumps({"t": tid, **({"n": extra} if extra else {})}), now
     await s.ctx.characters.save(st)
-    _send_ring(s, snap, now)
+    s.send(S_RING, _ring_msg(_json(st), tid))
+    alert(s, ACCEPTED_TEXT)
 
 
 def _ring_drops(s: GameSession, snap: PlayerSnapshot, tid: int, number: int) -> list[rewards.Drop]:
@@ -486,7 +551,12 @@ async def ring_finish_now(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         gone = (used[0],)
     elif used:
         extra.append(used[0])
-    await _ring_done(s, st, tid, drops, extra, gone, used)
+    await _ring_done(s, st, tid, drops, extra, gone, [used] if used else [])
+
+
+def ring_text(number: int, text: str) -> str:
+    """(visto #9390) "Complete Circuit Quests (11/200) Received: 2,000 Gold, 10,000 Daru"."""
+    return f"Complete Circuit Quests ({number}/{RING_MAX}) {text}"
 
 
 async def _ring_done(
@@ -496,27 +566,69 @@ async def _ring_done(
     drops: list[rewards.Drop],
     extra: list[object],
     gone: tuple[object, ...],
-    used: tuple[Item, bool] | None = None,
+    used: list[tuple[Item, bool]],
 ) -> None:
-    """Fecha o anel ``tid``: +1 no dia, o prêmio, grava e responde (4616/4614, 111 e o ganho)."""
+    """Fecha o anel ``tid``. (visto) 165308 #9384-#9392 e #9991-#10017: 109/3 (e os itens do passo com o 111
+    deles), 4616 com os feitos, 4614 entregue, 111 "Complete Circuit Quests (N/200) ...", 4617 e os 83."""
     snap = s.snapshot
     assert snap is not None
-    st.value, st.text, st.updated_at = st.value + 1, "", s.ctx.clock.now()
-    new, text = rewards.grant(snap, s.ctx.templates, drops)
+    now = s.ctx.clock.now()
+    shown = _json(st)
+    st.value, st.text, st.updated_at = st.value + 1, "", now
+    new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), st, *new, *extra, delete=gone)
-    if used:
-        s.send(S_ITEMS, rewards.taken_msg(used[0], used[1], s.player_id))
-    _send_ring(s, snap, s.ctx.clock.now(), complete=tid)
+    for item, out in used:
+        s.send(S_ITEMS, rewards.taken_msg(item, out, s.player_id))
+    goods = [(t, n) for t, n in drops if t > 0]
+    coins = [(t, n) for t, n in drops if t <= 0]
+    await granted(s, drops, new, "", chat=False)
+    goods_text = rewards.text(s.ctx.templates, goods) if goods else ""
+    if goods_text:
+        alert(s, goods_text)
+    s.send(S_RING_SUM, pb.SimplePropertyMsg(param1=st.value))
+    s.send(S_RING, _ring_msg(shown, tid, now))
+    text = ring_text(st.value, rewards.text(s.ctx.templates, coins))
     alert(s, text)
-    await granted(s, drops, new, text)
     await progress(s, CIRCUIT)  # "Complete Circuit Quests" do painel
-    s.send(S_RING_DONE)  # 4617 vazio (visto 20261101-165308-1 #8309); RingTaskManager.__finishTaskHandler não faz nada
+    s.send(S_RING_DONE)  # 4617 vazio; RingTaskManager.__finishTaskHandler não faz nada
+    if goods_text:
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=goods_text))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+
+
+def _consume(s: GameSession, st: EventState, tid: int) -> tuple[list[object], list[tuple[Item, bool]]]:
+    """A entrega leva o que a condição pediu: o "Recruit" tira as tropas (visto #9383: os 200 Paladinos do castelo
+    vão a 0 no 100) e o "Fetch" o item (#9991, o 115 da posição vazia). Devolve (o que gravar, itens gastos)."""
+    snap = s.snapshot
+    assert snap is not None
+    info = _json(st)
+    n = [*info.get("n", []), 0, 0, 0, 0]
+    changed: list[object] = []
+    used: list[tuple[Item, bool]] = []
+    for i, r in enumerate(_conditions(s, tid)):
+        kind, para1, need = int(r["CondictionType"]), int(r["Para1"] or 0), int(r["Para2"])
+        if kind == RECRUIT:
+            for p in (p for p in snap.pawns if _son(s, p.template_id) == para1):
+                # shortcut: o castelo primeiro, depois o exército (sem captura de tropa em exército)
+                take = min(need, p.castle_count)
+                p.castle_count -= take
+                rest = min(need - take, p.army_count)
+                p.army_count -= rest
+                need -= take + rest
+                changed.append(p)
+            n[i] = int(r["Para2"])
+        elif kind == FETCH and (item := n[2] or para1) and (got := rewards.take_one(snap, item)) is not None:
+            used.append(got)
+    info["n"] = n[: max(4, len(_conditions(s, tid)))]
+    st.text = json.dumps(info)
+    return changed, used
 
 
 @router.on(8729)
 async def ring_submit(s: GameSession, _: object) -> None:
-    """Entrega o anel com as condições cumpridas (``progress``): o mesmo prêmio do 8730, sem custo. Sem as
-    condições só devolve o estado. TODO(inventado): a resposta é a do 8730 (sem captura da entrega normal)."""
+    """Entrega o anel com as condições cumpridas (``_met``, a regra do RingTask): leva as tropas/o item pedidos e dá
+    o prêmio. (visto) 165308: recrutar #9382-#9392 (100, 4614 com condition_1 200, 109, 3, 4616, 4614 entregue,
+    111, 4617, 83), conversa #9430-#9437, astral #9777-#9784, buscar #9989-#10017. Sem as condições, nada volta."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -525,9 +637,17 @@ async def ring_submit(s: GameSession, _: object) -> None:
     drops = _ring_drops(s, snap, tid, st.value + 1) if tid else []
     if not tid or not _met(s, st, tid) or not rewards.can_grant(snap, s.ctx.templates, drops, now):
         s.log.info("8729 recusado", anel=tid)
-        _send_ring(s, snap, now)
         return
-    await _ring_done(s, st, tid, drops, [], ())
+    recruit = any(int(r["CondictionType"]) == RECRUIT for r in _conditions(s, tid))
+    pawns, used = _consume(s, st, tid)
+    if recruit:
+        from ..builders.army import castle_pawns
+
+        s.send(100, castle_pawns(snap, s.ctx.templates, list(snap.pawns)))
+        s.send(S_RING, _ring_msg(_json(st), tid))
+    extra: list[object] = [*pawns, *(i for i, out in used if not out)]
+    gone = tuple(i for i, out in used if out)
+    await _ring_done(s, st, tid, drops, extra, gone, used)
 
 
 def login_push(s: GameSession) -> None:

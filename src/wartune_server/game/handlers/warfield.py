@@ -75,6 +75,9 @@ CART_BODY = (
 CART_GOT, CART_HAS = "You received a Adv. Minecart.", "You already have a cart!"  # (visto #1955, #1966)
 CART_GOT_NORMAL = "You received a Minecart."
 SHARD_TEXT = "Battleground Treasure Shard"
+OPENED_TEXT = "The entrance to the Battleground has opened! The battle will commence in 5 minutes!"  # (visto #10068)
+NOT_STARTED = "Battleground has not started yet, please wait!"  # (visto #10144, com o 4126 de volta)
+S_OPEN_MV, S_STAND = 4456, 4126  # U_C_CAMPIAGN_OPEN_MV: PvpMapTopCenterView abre a contagem de 10 s (#10255)
 
 
 def _chat(text: str, channel: int = 12, *, tip: bool = False) -> pb.ChatChannelMsg:
@@ -182,8 +185,11 @@ def push_states(s: GameSession) -> None:
             s.send(S_CHAT, _chat(DOUBLE_TIME, tip=True))
     ended = _ended(s, now)
     if (cur := _states_tuple(s.ctx.templates, now, ended)) != s.war_states:
+        before = dict(s.war_states)
         s.war_states = cur
         s.send(S_WARFIELD_STATE, states(s.ctx.templates, now, ended))
+        if any(c in bf.FIELDS and v == 0 and before.get(c) == 1 for c, v in cur):  # (visto #10067-#10068)
+            s.send(S_CHAT, _chat(OPENED_TEXT, tip=True))
 
 
 def players_on(ctx: GameContext, campaign_id: int) -> list[GameSession]:
@@ -592,6 +598,11 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
     field = found[0]
     n = camp - c.warfield * 1000
     mark = field.mark(s.player_id)
+    row = bf.field_row(s.ctx.templates, c.warfield)
+    if row is not None and not bf.started(row, s.ctx.clock.now()):  # (visto #10143-#10145)
+        s.send(S_ALERT, _chat(NOT_STARTED, 7))
+        s.send(S_STAND, pb.StandPosMsg(id=s.player_id, posX=c.pos[0], posY=c.pos[1], serverName=mark.server))
+        return
     if mark.dead:
         if n in bf.EXIT_GATES:
             s.send(S_ALERT, _chat(DEAD_GATE, 7))
@@ -881,6 +892,10 @@ async def clock(s: GameSession) -> None:
         if row is None:
             continue
         opened, stop = bf.row_window(row, now)
+        if field.opened == opened and now >= opened and not field.begun and not field.settled:
+            field.begun = True  # (visto #10253-#10255) às 14:00:02, no relógio, a todos no mapa
+            for o in players_in(ctx, field):
+                o.send(S_OPEN_MV)
         if field.opened == opened and now >= stop and not field.settled:
             await settle(ctx, field)
     await class_wars_end(s)

@@ -321,3 +321,26 @@ async def test_4538_fim_da_class_wars_na_virada_do_periodo_da_arena(tmp_path: Pa
         got = await g.idle()
         msg = pb.SimplePropertyMsg.FromString(next(p.body for p in got if p.code == 4538))
         assert msg.param4 == warfield.CLASS_WARS_END.format(s.snapshot.character.nickname or "", 1)
+
+
+async def test_entrada_5_min_antes_espera_o_comeco_e_o_4456(tmp_path: Path) -> None:
+    """165308 #10067-#10255: 4248 state 0 às 13:55 (o 4004 das 14:00), o 5125 antes do começo devolve o 111 "has not
+    started yet" e o 4126; às 14:00 o relógio manda o 4456 (a contagem de 10 s) a quem está no mapa."""
+    clock = FakeClock(datetime(2026, 10, 27, 16, 57, tzinfo=UTC))  # 4007 abre às 17:00
+    async with logged_in(tmp_path, novice=30001, clock=clock) as g:
+        templates = g.server.services.templates
+        row = bf.field_row(templates, 4007)
+        assert row is not None
+        assert bf.state(row, datetime(2026, 10, 27, 16, 54, tzinfo=UTC)) == 1 and bf.state(row, clock.now()) == 0
+        await _at_field(g, 4007)
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.campaign is not None
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=4007005, paraBool1=True))  # coleta de minério
+        got = await g.idle()
+        assert _texts(got) == [warfield.NOT_STARTED] and 4126 in _codes(got) and 143 not in _codes(got)
+        await warfield.clock(s)
+        assert 4456 not in _codes(await g.idle())
+        clock.advance(180)
+        await warfield.clock(s)
+        await warfield.clock(s)  # uma vez só
+        assert _codes(await g.idle()).count(4456) == 1

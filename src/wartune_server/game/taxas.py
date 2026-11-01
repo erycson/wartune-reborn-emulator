@@ -44,6 +44,10 @@ DEFAULTS: dict[str, Any] = {
     # 0149: diferença de placar que encerra o campo antes da hora (ajuda do cliente) e pontos do guardião vencido
     "field_score_gap": 5000,
     "field_guardian_points": 20,
+    # 0150: anel (Run Circuit Quest): alvo do "Eliminate", soma por rodada de varredura e os itens do "Fetch"
+    "ring_eliminate_targets": [20, 30],
+    "ring_eliminate_per_round": 18,
+    "ring_fetch_items": [[2, 2013503]],
 }
 
 

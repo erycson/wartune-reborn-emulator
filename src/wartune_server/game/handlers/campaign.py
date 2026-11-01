@@ -365,8 +365,13 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
         await war_arrive(s, msg.paraInt1, node)
         return
     # no campo a entrada das bases é state 9 e responde mesmo assim (visto 20261101 #6130)
-    if c is None or node is None or (node["state"] != NORMAL and not c.is_warfield) or c.fighting \
-            or c.locked(msg.paraInt1):
+    if (
+        c is None
+        or node is None
+        or (node["state"] != NORMAL and not c.is_warfield)
+        or c.fighting
+        or c.locked(msg.paraInt1)
+    ):
         return
     camp = msg.paraInt1
     if c.hook:
@@ -871,7 +876,10 @@ async def _offer_kills(s: GameSession) -> None:
     from . import offer  # offer importa player, que importa este módulo
 
     await offer.progress(s, offer.KILL_SAME)
-    await offer.progress(s, offer.ELIMINATE)
+    camp = 0  # o anel conta só a masmorra sorteada (condition_2): a campanha do mapa (MapInfos.CampaignId)
+    if s.campaign is not None:
+        camp = int((s.ctx.templates.get("MapInfos", s.campaign.map_id, key="Id") or {}).get("CampaignId") or 0)
+    await offer.progress(s, offer.ELIMINATE, 1, camp or None)
     if s.campaign is not None:
         await offer.progress(s, offer.SYLPH_MAP, 1, s.campaign.map_id)
 

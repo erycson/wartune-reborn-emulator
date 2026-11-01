@@ -46,6 +46,10 @@ Cliente: `m2/scripts/map/space/manager/SpaceSocketManager.as`, `SpaceManager.as`
 - 4597, 4594 e 4607 continuam chegando com o jogador na cidade externa. O cliente descarta o 4594
   fora da cena SPACE e mantém a lista, então o servidor considera o jogador "no space" enquanto
   ele não está numa campanha.
+- 20261101-165308-1 #9364-#10019 (anel na cidade do céu): enquanto o jogador anda, chegam pares 4597 (um jogador,
+  `currentRoomIndex` 0/1/2) + 4594 (a posição) e 4607 de outros; 8692 de NPC sempre com o 4601 do mesmo nó. A
+  regra de quem entra e sai da tela (raio? limite de N?) não fecha com as posições vistas (Tankie sai a ~11 tiles):
+  o servidor segue mostrando todos (TODO: AOI sem regra; `currentRoomIndex` sem uso no cliente conhecido).
 
 Movimento *(cliente)*:
 

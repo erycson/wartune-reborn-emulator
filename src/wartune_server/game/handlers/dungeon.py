@@ -11,7 +11,7 @@ import random
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...services import cash
-from .. import bag, rewards, rules, titles
+from .. import bag, rewards, rules, taxas, titles
 from .. import events as gev
 from .. import maze as mz
 from .. import sweep as sw
@@ -110,8 +110,13 @@ async def _settle(s: GameSession, sweep: sw.Sweep, *, all_now: bool = False) -> 
     new = sweep.rounds[first:]
     devotion = events.devotion(s)
     quests = []
+    from . import offer  # offer importa player, que importa este módulo
+
+    per_round = int(taxas.get(s.ctx.world.settings, "ring_eliminate_per_round"))
     for _ in new:
         await events.leed_done(s, events.CAMPAIGN_LEED, say=False)
+        # (visto 165308 #9567-#9575) a rodada soma os monstros no "Eliminate" do anel, antes do 112
+        await offer.progress(s, offer.ELIMINATE, per_round, sweep.campaign_id)
         # (dedução) a rodada fecha a masmorra como a luta do fim (``campaign._loot``)
         solo = int((s.ctx.templates.get("Campaigns", sweep.campaign_id, key="CampaignId") or {}).get("Capacity") or 0)
         for kind, para1 in ((rules.CAMPAIGN_CONDITION, sweep.campaign_id), (rules.SOLO_CONDITION, solo)):

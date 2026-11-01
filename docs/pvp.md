@@ -268,6 +268,11 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396), 12145
   acampamento do lado: time 1 em 179,75, time 2 em 17,76 (nós 001/002). Pontos pessoais começam em 100. Lado:
   sorteado entre os que têm vaga (15 por lado, 30 no campo; quem entrou conta até o fim); cheio, o 8332 fica sem
   resposta (*inventado*: sem texto no cliente).
+- **Antes do começo** (165308 #10067-#10255, 4004): a entrada abre 5 min antes do `OpenTime` (`bf.PRE_OPEN`): 4248
+  state 0 e o 83 canal 12 "The entrance to the Battleground has opened! The battle will commence in 5 minutes!"
+  (corneta grande); o 5125 num nó antes da hora devolve o 111 "Battleground has not started yet, please wait!" e o
+  4126 na posição; no `OpenTime` o relógio (20008) manda o 4456 vazio (U_C_CAMPIAGN_OPEN_MV) a todos no mapa: o
+  `PvpMapTopCenterView` mostra a contagem de 10 s. O 5125 vale mesmo nos nós state 9 (entradas das bases).
 - **Regras da ajuda** (cliente, language.txt `worldboss.view.BaseHelpFrame.BattleHelpContent`, a janela "More Info"):
   1. faixas de 10 níveis: sem cruzar servidores, cada faixa (`grades // 10`) é uma partida própria no mesmo campo
      (`bf.current_field`, chave `(campanha, faixa)`); a faixa é a da entrada, mesmo subindo de nível; o 4252, 4175,

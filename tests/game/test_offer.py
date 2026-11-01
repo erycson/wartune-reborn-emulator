@@ -141,13 +141,13 @@ async def test_ring_task_finish_with_item_or_diamonds(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _snap(g)
         c = snap.character
-        g.client.send(8732)  # nível < 35: só o estado
-        assert [p.code for p in await g.idle()] == [4616]
+        g.client.send(8732)  # nível < 35: nada
+        assert await g.idle() == []
         c.grades = 40
         g.client.send(8732)
-        got = await g.until(4614)
-        ring = pb.RewardUpdatedRspMsg.FromString(got[-1].body).reward[0].templateId
-        assert ring and not pb.RewardUpdatedRspMsg.FromString(got[-1].body).reward[0].isComplete
+        got = await g.until(111)  # 4614 e o "Circuit Quest has been accepted!"
+        ring = pb.RewardUpdatedRspMsg.FromString(got[-2].body).reward[0].templateId
+        assert ring and not pb.RewardUpdatedRspMsg.FromString(got[-2].body).reward[0].isComplete
 
         g.client.send(8730, pb.SimplePropertyMsg(param1=0))  # sem item nem 35 diamantes
         assert await g.idle() == []
@@ -160,10 +160,64 @@ async def test_ring_task_finish_with_item_or_diamonds(tmp_path: Path) -> None:
         assert 4617 in [p.code for p in got + await g.idle()]  # fim do anel, vazio (165308 #8309)
 
         g.client.send(8732)
-        await g.until(4614)
+        await g.until(111)
         item = Item(c.id or 0, 2131021, count=1, pos=40)  # o item vale no lugar dos diamantes
         snap.items.append(item)
         await g.server.services.characters.save(item)
         g.client.send(8730, pb.SimplePropertyMsg(param1=0))
         got = await g.until(83)
         assert not any(i.template_id == 2131021 for i in snap.items) and got[0].code == 115
+
+
+async def test_anel_aceite_e_entrega_do_recrutar_como_a_captura(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """165308 #9367-#9392: 8732 manda 4614 e o 111 (sem 4616); 8729 leva os 200 Paladinos (100), 4616 e o texto."""
+    from wartune_server.domain.models import Pawn
+
+    monkeypatch.setattr(offer, "_roll_ring", lambda s, snap: 2103)  # "Recruit Paladins" (SonType 103, 200)
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = _snap(g)
+        snap.character.grades = 35
+        g.client.send(8732)
+        got = await g.idle()
+        assert [p.code for p in got] == [4614, 111]
+        assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == offer.ACCEPTED_TEXT
+        g.client.send(8729)  # sem as tropas: nada
+        assert await g.idle() == []
+        pawn = Pawn(snap.character.id or 0, 10329)
+        pawn.castle_count = 200
+        snap.pawns.append(pawn)
+        g.client.send(8729)
+        got = await g.until(83)
+        codes = [p.code for p in got]
+        assert codes.index(100) < codes.index(4616) < codes.index(4617) and pawn.castle_count == 0
+        first = pb.RewardUpdatedRspMsg.FromString(next(p.body for p in got if p.code == 4614)).reward[0]
+        assert (first.condition_1, first.isComplete) == (200, False)
+        last = pb.RewardUpdatedRspMsg.FromString([p.body for p in got if p.code == 4614][-1]).reward[0]
+        assert last.isComplete and last.isAccept
+        assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == (
+            "Complete Circuit Quests (1/200) Received: 2,000 Gold, 10,000 Daru"
+        )
+
+
+async def test_anel_eliminar_sorteia_masmorra_e_conta_so_nela(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(offer, "_roll_ring", lambda s, snap: 2102)  # "Eliminate the monsters in {0}"
+    async with logged_in(tmp_path, novice=19000) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        _snap(g).character.grades = 35
+        g.client.send(8732)
+        info = pb.RewardUpdatedRspMsg.FromString((await g.until(4614))[-1].body).reward[0]
+        assert info.condition_2 > 0 and info.condition_4 in (20, 30)
+        await g.idle()
+        await offer.progress(s, offer.ELIMINATE, 18, info.condition_2 + 1)  # outra masmorra não conta
+        assert await g.idle() == []
+        for _ in range(2):
+            await offer.progress(s, offer.ELIMINATE, 18, info.condition_2)
+        got = [pb.RewardUpdatedRspMsg.FromString(p.body).reward[0] for p in await g.idle() if p.code == 4614]
+        assert got[-1].condition_1 == info.condition_4
+        g.client.send(8729)
+        assert (
+            pb.RewardUpdatedRspMsg.FromString([p.body for p in await g.until(83) if p.code == 4614][-1])
+            .reward[0]
+            .isComplete
+        )

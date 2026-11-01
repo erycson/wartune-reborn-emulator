@@ -118,8 +118,8 @@ async def test_6_anel_entrega_com_as_condicoes_contadas(tmp_path: Path) -> None:
         )
         ring = ev.daily(snap, "ring", NOW)
         ring.text = json.dumps({"t": tid})
-        g.client.send(8729)  # nada contado: só o estado
-        assert 4614 in [p.code for p in await g.idle()] and json.loads(ring.text)["t"] == tid
+        g.client.send(8729)  # nada contado: nada volta
+        assert 4614 not in [p.code for p in await g.idle()] and json.loads(ring.text)["t"] == tid
         for c in conds:
             await offer.progress(s, int(c["CondictionType"]), int(c["Para2"]))
         await g.idle()
