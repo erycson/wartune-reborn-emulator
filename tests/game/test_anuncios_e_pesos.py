@@ -59,6 +59,7 @@ async def test_sylph_atoll_vai_para_todos_os_online_como_no_oficial(tmp_path: Pa
         g.client.send(20008)
         for game in (g, b):
             chats = [pb.ChatChannelMsg.FromString(p.body) for p in await game.idle() if p.code == 83]
+            chats = [m for m in chats if "Battleground" not in m.encodeMsg]  # 18:55 também abre a entrada do campo
             assert [(m.channel, m.otherId, m.userType, m.isCenterTip, m.name) for m in chats] == [
                 (12, -1, 1, True, ""),
                 (12, -1, 1, False, ""),
@@ -66,7 +67,8 @@ async def test_sylph_atoll_vai_para_todos_os_online_como_no_oficial(tmp_path: Pa
             assert chats[0].encodeMsg == "Sylph Atoll echoes, “Humans, how foolish you are!”" + " " * 36
             assert chats[1].encodeMsg.startswith("Defend Sylph Atoll event is starting soon.")
         b.client.send(20008)  # o relógio do outro no mesmo minuto não repete
-        assert 83 not in [p.code for p in await b.idle()]
+        again = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in await b.idle() if p.code == 83]
+        assert [m for m in again if "Battleground" not in m] == []  # o campo avisa pelo relógio de cada um
         assert 83 not in [p.code for p in await g.idle()]
         clock.advance(5 * 60)  # 19:00:30: o início sai com o 4686 de cada um (0057 desativou o "has started.")
         b.client.send(20008)

@@ -217,7 +217,8 @@ async def test_12_mina_alcancavel_fora_da_janela_conta_a_503(tmp_path: Path) -> 
 def test_13_campo_vence_o_lado_com_mais_pontos() -> None:
     field = bf.Field(4005, NOW)
     a, b = field.mark(1), field.mark(2)
-    assert {a.team, b.team} == {bf.TEAM, bf.ENEMY}  # o primeiro é sorteado, o segundo vai ao lado vazio
+    assert {a.team, b.team} <= {bf.TEAM, bf.ENEMY}  # lado sorteado (ajuda oficial, regra 2)
+    a.team, b.team = bf.TEAM, bf.ENEMY
     assert field.winner() is None  # 0 a 0
     field.gain(b.team, 30)  # os pontos do lado (entregas e abates), não a soma dos pessoais
     field.gain(a.team, 10)
