@@ -260,7 +260,7 @@ e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque =
 
 ## Campo de batalha (4002, 4005, 4007) — `handlers/warfield.py`, `game/battlefield.py`
 
-Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 121453 (4002 #8285-#10568).
+Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396), 121453 (4002 #8285-#10568) e 20261101-165308-1 (4003 #3831-#7846, uma partida inteira). Os 11 Campaigns Types 5 "Battleground" (4001 11:00 a 4011 21:00) abrem; os 4 vistos têm os mesmos 28 nós.
 
 - **Entrada (8332)**: 140, 125 (isCross), 21 (com guilda e `teamId`), 127 (28 nós, iguais nos três campos; no 4002 os
   guardiões 13-18 do time 2 vivos, state 1), 4252 a todos, 4175 com o estado de cada um, 150; missão 44. Nasce no
@@ -277,17 +277,18 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 1214
 - **PvP (8334)**: o alvo recebe 111 "X is attacking you!" e 83 com o link; perdedor perde `ceil(15%)`, vencedor
   ganha `20 + pontos do perdedor // 20`, 10 de honra e 10 pontos de PvP entre servidores (texto ", Cross-server PvP
   points +10"). O perdedor vai ao acampamento, 4175 state 1 (3 se carrega; o minério fica) por 25 s e renasce
-  (4175 state 0/2) na próxima onda de `taxas.field_respawn_period` s desde a abertura (vistos 0 a 30 s). Até lá
+  (4175 state 0/2) na próxima onda de `taxas.field_respawn_period` s desde a abertura (0147: 35 s; na de 01/11 os renascimentos de três exércitos caem numa grade de ~35,3 s, dois mortos em momentos diferentes renascem juntos em #4669/#4413, e o `leftTime` é o tempo até a onda arredondado a 5 s: 30, 15, 5, 25, 20, 0. Por isso uma morte renasce na hora e outra espera quase 30 s). Até lá
   fica na base do lado (x >= 165 no time 1, <= 38 no time 2, os portões): o 5124 morto é cortado no último passo
   dentro dela e o 4104 devolve a posição (decisão do usuário; `bf.in_base`).
   Frases a todos (111 e 83 com link): primeiro sangue, sequência sem morrer (`taxas.field_streaks`: 3 spree,
   4 dominating, 5-6 unstoppable, 7 god, 8+ Grimm Reaper) e "has put a stop to X's domination!" (sequência >=
-  `field_streak_stop`). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!").
+  `field_streak_stop`). Morto não sai pelos portões 121/122 ("You cannot leave camp when dead!"). Vivo não entra na base inimiga: 5125 na entrada 123/124 (masterType 131, param1 = dono) do outro lado dá 111 "Unable to enter the enemy faction's base." (01/11 #6130, #6921-#6998). Alvo do 8334 dentro da base dele: o mesmo aviso e sem luta (*inventado*, pedido do usuário).
 - **Guardiões** (4002): o vivo do outro lado a até `taxas.field_guardian_range` casas (0141/0144: 26; as duas perseguições de 121453, 4105 #10205 com o
   jogador a 24 casas no fim do trecho e #10435 a 26 no começo; a 37 não perseguiu) da posição real (o trecho do
   5124 andado a `taxas.field_move_speed` casas/s, 0142; metade carregando minério, `field_carry_speed` 0143, visto #9958) persegue: 4105, 4494,
   128 nodeState 4, 157 tipo 32; na derrota 4104, 4103, 4122 de volta ao ponto, 4175 morto, 128 nodeState 1, 4494,
-  4269 e "You lost: 150 Points." (`taxas.field_guardian_loss`). Vitória não vista (*inventado*: cai, nodeState 8).
+  4269 e "You lost: 150 Points." (`taxas.field_guardian_loss`). Vitória (01/11 #6197, #6359: o jogador 102 venceu os dois Morkan Knight): 128 nodeState 8, o guardião some. No 4003 só os Morkan Knight 21/22 (time 1) estavam vivos na entrada.
+- **Oficial inimigo** ("Resource Recovery Officer" do outro lado, nós 011/012, heroTempId 24999/25000; o jogador o viu como nível 99 <Battleground Commander>): chegar nele (5125) luta sem 4105, 128 nodeState 4 e 157 tipo 32 (01/11 #4031-#4034); a derrota é a do guardião (4175 morto, 128 nodeState 1, "You lost: 150 Points.", #4099-#4133). Vitória não vista (*inventado*: o oficial fica de pé).
 - **Fim** (StopTime): 4248 state 2, 83, 4254 (`oneTeamId` = vencedor, como o cliente lê em
   `PvpSortListView.isVictory`; linhas com `itemCount`/`winGesteCount`), 4248, 22, 4471, 3, 115, 112 (missão 50) e
   "The battle has ended! You received Insignia xN and honor xN!": vencedor 80/90, perdedor 30/30 (visto #11669 e
@@ -299,7 +300,9 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396) e 1214
 - **8338**: 200 Star Points (idioma `PvpMapRightView.reset`); cheio: "You already have full HP..." (#15796).
 - **Mina**: na abertura 4549 true e 83 "It's Amethyst Double Time!..." (191924 #14217-#14218).
 
-Ainda inventado: a origem da onda de renascer, o passo do exército (~10 casas/s
+Fora do campo, na mesma captura: "Battleground Treasure Shard x5" vem das missões 758/767 (5014), "Crystaloid x80" do prêmio de 7 dias (8749) e "Circuit Quest"/"Complete Circuit Quests (n/200)" é o anel de missões (`handlers/offer.py`, progresso `CIRCUIT`). "first blood" é a frase do servidor (já feita); "...dy killing, so ?" é conversa de jogador (canal 8).
+
+Ainda inventado: a fase da onda de renascer, o passo do exército (~10 casas/s
 de um caso), a perda do guardião (um caso), a vitória contra o guardião, o 4388 `data`, o 4549 no login
 dentro da janela, o limite do "stop" (um caso) e a honra/pontos extras de abate (11 e 12 uma vez, 121453 #9800).
 cruzados (Senhores).

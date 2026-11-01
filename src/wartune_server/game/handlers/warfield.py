@@ -50,6 +50,7 @@ WIN_TEXT = "You received: {} Points and {} Honor., Cross-server PvP points +{}"
 LOSE_TEXT = "You lost: {} Points."
 ATTACKED_TEXT = "{} is attacking you!"  # (visto #10207 no 111 e #10209 no 83 com o link do atacante)
 DEAD_GATE = "You cannot leave camp when dead!"  # (visto #9840)
+ENEMY_BASE = "Unable to enter the enemy faction's base."  # (visto 20261101 #6130)
 IN_BATTLE = "Player is now in battle!"  # (visto #10962)
 DOUBLE_TIME = "It’s Amethyst Double Time! All Amethyst collected is doubled."  # (visto 191924 #14218, #760, #23583)
 HONOR_DAY = "honor_day"  # event_state diário: a honra do dia do 4471 (visto #10104 3, #10410 6 ... #11674 123)
@@ -332,6 +333,9 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
     if me.dead or them.dead or me.team == them.team:  # TODO(inventado): o recuso de morto ou do mesmo lado (o
         s.log.info("8334 contra morto ou aliado")  # cliente só oferece o ataque a inimigos vivos)
         return
+    if bf.in_base(them.team, target.campaign.pos):  # TODO(inventado): a base protege (o texto é o da entrada)
+        s.send(S_ALERT, _chat(ENEMY_BASE, 7))
+        return
     me.fighting = them.fighting = True
     cid = c.warfield
     # o alvo é avisado (visto #10207-#10209: 111 com o nome, 4494 e 83 com o link)
@@ -544,7 +548,13 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
         if n in bf.EXIT_GATES:
             s.send(S_ALERT, _chat(DEAD_GATE, 7))
         return
-    if n == bf.DELIVER[mark.team] and mark.carry is not None:
+    if n in bf.ENEMY_ENTRY and node["param1"] != mark.team:
+        s.send(S_ALERT, _chat(ENEMY_BASE, 7))
+    elif n == bf.DELIVER[3 - mark.team] and not mark.fighting and s.battle is None and camp not in field.busy:
+        # o oficial inimigo luta (20261101 #4031-#4133: 5125 no 012 do time 1, sem 4105; 128 nodeState 4, 157
+        # tipo 32 e, na derrota, a perda do guardião, 150)
+        _guardian_fight(s, field, camp, node, chase=False)
+    elif n == bf.DELIVER[mark.team] and mark.carry is not None:
         s.send(S_CONFIRM, pb.CampaignConfirmMsg(title="", body=DELIVER_BODY, mapId=c.warfield, nodeId=camp, type=2))
     elif n in bf.COLLECT and mark.carry is None:
         s.send(S_MOVIE, pb.PlayerMovieMsg(movieTargetType=0, targetId=int(node["nodeId"]), movieType="COLLECTION",
@@ -730,7 +740,7 @@ def guardian_chase(s: GameSession) -> bool:
     return False
 
 
-def _guardian_fight(s: GameSession, field: bf.Field, camp: int, node: dict[str, Any]) -> None:
+def _guardian_fight(s: GameSession, field: bf.Field, camp: int, node: dict[str, Any], chase: bool = True) -> None:
     from .campaign import player_hero  # campaign importa este módulo
     from .singlepass import boss_spec
 
@@ -739,8 +749,9 @@ def _guardian_fight(s: GameSession, field: bf.Field, camp: int, node: dict[str, 
     field.busy.add(camp)
     mark.fighting = True
     side = int(node["param1"])
-    _to_map(s.ctx, c.warfield, S_CHASE, pb.NPCChaseMsg(nodeId=camp, armyId=s.player_id, curPosX=c.pos[0],
-                                                       curPosY=c.pos[1], serverName=mark.server))  # fmt: skip
+    if chase:
+        _to_map(s.ctx, c.warfield, S_CHASE, pb.NPCChaseMsg(nodeId=camp, armyId=s.player_id, curPosX=c.pos[0],
+                                                           curPosY=c.pos[1], serverName=mark.server))  # fmt: skip
     _to_map(s.ctx, c.warfield, S_CROSS, _cross((s, c.pos, 2)))
     _to_map(s.ctx, c.warfield, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=FIGHTING_NODE,
                                                                 userId=s.player_id, param1=side))  # fmt: skip
@@ -769,7 +780,8 @@ async def _guardian_over(s: GameSession, field: bf.Field, camp: int, node: dict[
     here = c is not None and c.warfield == cid and not field.settled
     if won:
         s.send(S_REPORT, pb.BattleReportMsg(battleResult=1, battleScene=PVP_SCENE))
-        if c is not None and here:
+        # TODO(inventado): o oficial vencido (não visto) fica de pé, senão o lado perde a entrega
+        if c is not None and here and camp - cid * 1000 not in bf.DELIVER.values():
             c.nodes.pop(camp, None)
             _to_map(ctx, cid, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=DOWN_NODE,
                                                                param1=int(node["param1"])))  # fmt: skip

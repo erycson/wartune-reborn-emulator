@@ -16,7 +16,9 @@ from ..domain import gameday
 from ..templates.repository import GameTemplates, Row
 from .campaign import NORMAL
 
-FIELDS = (4002, 4005, 4007)  # Campaigns Types 5 com OpenTime/StopTime (visto 152321 #9474, #14230; 121453 #8285)
+# os 11 Campaigns Types 5 "Battleground" (4001 11:00 a 4011 21:00); jogados 4002, 4003, 4005 e 4007 (152321 #9474,
+# #14230; 121453 #8285; 20261101-165308-1 #3831), todos com os mesmos 28 nós
+FIELDS = tuple(range(4001, 4012))
 MINE = 30000  # Campaigns Types 11, sem janela no template (visto #1917)
 TEAM = 2  # o primeiro a entrar (visto 152321 #9477 e #14234 teamId 2)
 ENEMY = 1
@@ -42,9 +44,13 @@ DELIVER = {1: 11, 2: 12}  # "Resource Recovery Officer" de cada lado (param1 = t
 CAMP = {1: (179, 75), 2: (17, 76)}  # nascer e renascer: nós 001/002 (param1 = time); visto #9477, #9795, #9653
 # guardiões vivos (state 1) na entrada: no 4002 os do time 2 (13-18, visto 121453 #8292); no 4005/4007 todos 8
 # (152321 #9478, #14235). Um vivo persegue o inimigo que chega perto e puxa luta (visto #10205-#10341).
-ALIVE_GUARDIANS: dict[int, tuple[int, ...]] = {4002: (13, 14, 15, 16, 17, 18)}
+# No 4003 só os dois Morkan Knight (21, 22) do time 1 (20261101 #3840); vencido pelo inimigo, 128 nodeState 8 (#6197).
+ALIVE_GUARDIANS: dict[int, tuple[int, ...]] = {4002: (13, 14, 15, 16, 17, 18), 4003: (21, 22)}
 GUARDIAN_BATTLE = 32  # 157 battleType 32 e 4103 battleScene 11, como o PvP (visto #10211, #10336)
 EXIT_GATES = (121, 122)  # morto não sai (visto #9840 "You cannot leave camp when dead!")
+# entrada da base de cada lado (masterType 131, param1 = dono): o inimigo não entra (20261101 #6129, #6921-#6998:
+# 5125 no 123 do time 2 vindo do time 1, 111 "Unable to enter the enemy faction's base.")
+ENEMY_ENTRY = (123, 124)
 # base de cada lado: atrás do seu portão (121 em x 165 do time 1, 122 em x 38 do time 2, ``FIELD_NODES``)
 BASE_EDGE = {1: 165, 2: 38}
 

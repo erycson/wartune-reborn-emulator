@@ -37,7 +37,7 @@ DEFAULTS: dict[str, Any] = {
     # 0142: frases de sequência de abates, onda de renascer e passo do exército no campo
     "field_streaks": [[3, "spree"], [4, "dominating"], [5, "unstoppable"], [7, "god"], [8, "reaper"]],
     "field_streak_stop": 4,
-    "field_respawn_period": 30,
+    "field_respawn_period": 35,  # 0147: a grade dos renascimentos de 01/11
     "field_move_speed": 10,
     # 0143: fator da velocidade de quem carrega minério
     "field_carry_speed": 0.5,

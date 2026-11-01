@@ -215,6 +215,18 @@ def test_minerio_uniforme_e_base_de_cada_lado() -> None:
     assert not bf.in_base(1, (100, 75)) and not bf.in_base(2, (100, 75))
 
 
+async def test_base_inimiga_fechada_e_oficial_inimigo_luta(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(bf.random, "choice", lambda sides: sides[-1])  # lado 2
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4007)) as g:
+        await _at_field(g, 4007)
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=4007124, paraBool1=True))  # entrada da base do time 1
+        assert _texts(await g.idle()) == [warfield.ENEMY_BASE]
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=4007011, paraBool1=True))  # oficial do time 1
+        got = await g.idle()
+        assert 4105 not in _codes(got) and 157 in _codes(got)
+        assert _body(got, 128, pb.CampaignNodeUpdateMsg).nodeState == warfield.FIGHTING_NODE
+
+
 async def test_morto_nao_sai_da_base_ate_a_onda(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4005)) as g:
         await _at_field(g, 4005)
