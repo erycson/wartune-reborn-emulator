@@ -18,6 +18,7 @@ from ...domain.errors import DomainError
 from ...domain.models import PlayerSnapshot
 from ...protocol.messages import wartune_pb2 as pb
 from .. import arena_grupo, buffs, castle, daily, farm, guild, rewards, rules, social, space, timebox, torres
+from .. import battlefield as bf
 from .. import events as ev
 from ..bag import expire as expire_items
 from ..builders import login as b
@@ -108,6 +109,7 @@ def player_info(s: GameSession, snap: PlayerSnapshot) -> pb.PlayerMsg:
     cfg = s.ctx.world.settings.get("arena_party") or {}
     amethyst = ev.peek(snap, rewards.AMETHYST_KEY)
     msg.mineScore = amethyst.value if amethyst else 0  # playerInfo.mineral (loja de Amethyst)
+    msg.warFieldCount = bf.fields_left(snap, now)  # campos com prêmio que restam hoje
     msg.crossScore = arena_grupo.points(ev.peek(snap, arena_grupo.KEY), now, cfg)  # pontos do PvpHeroFrame
     r = timebox.rule(s.ctx.world.settings)
     msg.timeProcess, msg.timeRun = timebox.box_state(snap.character, now, online=s.box_counting, r=r)

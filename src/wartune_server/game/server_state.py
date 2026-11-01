@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .session import GameContext
 
 SHIELDS, PET_RAGE, INVASIONS, TEAMS, MARRIAGE = "shields", "pet_rage", "invasions", "teams", "marriage"
+CLASS_WARS = "class_wars"  # o período da arena cujo fim da Class Wars (4538) já foi anunciado (`warfields`)
 LORDS = "lords"  # Master Treasure Thief chamado (`guilds.lords`): hora da chamada e os vencidos
 RAGE_KEEP = timedelta(days=1)  # janelas da fúria mais velhas que isso já fecharam (a janela dura horas)
 
@@ -54,6 +55,8 @@ def _dump(ctx: GameContext, key: str, now: datetime) -> Any:
             str(g): {"at": x.called_at.isoformat(), "dead": sorted(x.dead), "wave": x.wave, "told": x.told}
             for g, x in ctx.guilds.lords.items()
         }
+    if key == CLASS_WARS:
+        return ctx.warfields.class_wars
     if key == TEAMS:
         return ctx.teams.dump()
     if key == MARRIAGE:
@@ -86,6 +89,7 @@ def restore(ctx: GameContext, states: ServerStates) -> None:
     for g, x in (states.value(LORDS) or {}).items():  # a vencida sai no próximo ``fam.lords_of``
         at = datetime.fromisoformat(x["at"])
         ctx.guilds.lords[int(g)] = Lords(at, set(x["dead"]), wave=x.get("wave", 0), told=x.get("told", 0))
+    ctx.warfields.class_wars = states.value(CLASS_WARS) or ""
     ctx.teams.restore(states.value(TEAMS) or [])
     from .handlers import marriage
 

@@ -52,7 +52,7 @@ async def test_8332_entra_no_campo_na_janela_com_o_4248_aberto(tmp_path: Path) -
         room = _body(got, 125, pb.RoomCreatedMsg)
         assert room.room.campaignId == 4005 and room.isCross is True
         assert s.ctx is not None
-        assert _body(got, 4252, pb.WarFightInfoMsg).teamId == s.ctx.warfields.fields[4005].mark(g.user_id).team
+        assert _body(got, 4252, pb.WarFightInfoMsg).teamId == s.ctx.warfields.fields[4005, 3].mark(g.user_id).team
         assert s.campaign is not None and s.campaign.warfield == 4005
         # o 4248 do login (o clock de 20008 manda de novo) mostra 4005 aberto
         assert dict(warfield._states_tuple(s.ctx.templates, IN_4005))[4005] == 0
@@ -79,7 +79,7 @@ async def test_coleta_e_entrega_do_minerio_no_campo(tmp_path: Path, monkeypatch:
         assert _codes(got).count(4175) == 1 and _texts(got) == [warfield.ENTERED_TEXT]
         s = g.server.online.get(g.user_id)
         assert s is not None and s.ctx is not None
-        s.ctx.warfields.fields[4007].mark(g.user_id).carry = "superior"  # a qualidade é sorteada na coleta
+        s.ctx.warfields.fields[4007, 3].mark(g.user_id).carry = "superior"  # a qualidade é sorteada na coleta
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=4007012, paraBool1=True))  # entrega
         assert _body(await g.idle(), 29, pb.CampaignConfirmMsg).body == warfield.DELIVER_BODY
         g.client.send(5033, pb.CampaignReqMsg(paraInt1=4007, paraInt2=4007012, paraBool1=True))
@@ -98,7 +98,7 @@ async def test_8337_lista_quem_esta_no_campo(tmp_path: Path) -> None:
         order = _body(await g.until(4255), 4255, pb.WarReportListMsg)
         s = g.server.online.get(g.user_id)
         assert s is not None and s.ctx is not None
-        team = s.ctx.warfields.fields[4007].mark(g.user_id).team
+        team = s.ctx.warfields.fields[4007, 3].mark(g.user_id).team
         assert [(i.userId, i.teamId, i.score) for i in order.info] == [(g.user_id, team, bf.START_SCORE)]
 
 
@@ -123,7 +123,7 @@ async def test_fim_da_partida_com_o_premio_e_a_saida(tmp_path: Path) -> None:
         await _at_field(g, 4005)
         s = g.server.online.get(g.user_id)
         assert s is not None and s.ctx is not None
-        field = s.ctx.warfields.fields[4005]
+        field = s.ctx.warfields.fields[4005, 3]
         team = field.mark(g.user_id).team
         field.gain(team, 30)
         await warfield.settle(s.ctx, field)  # o relógio chama isto depois do StopTime
@@ -185,9 +185,8 @@ def test_4002_tem_guardioes_vivos_do_time_2_e_o_4005_nao() -> None:
 
 def test_lados_e_vencedor_pelos_pontos_do_lado() -> None:
     field = bf.Field(4005, IN_4005)
-    first = field.mark(1).team
-    assert field.mark(2).team == 3 - first  # o segundo vai ao lado com menos gente
-    assert {bf.Field(4005, IN_4005).mark(1).team for _ in range(64)} == {1, 2}  # empatados: sorteio
+    field.mark(1)
+    assert {bf.Field(4005, IN_4005).mark(1).team for _ in range(64)} == {1, 2}  # sorteio puro (ajuda do cliente)
     assert field.mark(1).score == bf.START_SCORE and field.score(2) == 0  # entrar não soma ao lado
     assert field.winner() is None  # empate: sem vencedor
     field.gain(1, 30)
@@ -232,7 +231,7 @@ async def test_morto_nao_sai_da_base_ate_a_onda(tmp_path: Path) -> None:
         await _at_field(g, 4005)
         s = g.server.online.get(g.user_id)
         assert s is not None and s.ctx is not None and s.campaign is not None
-        mark = s.ctx.warfields.fields[4005].mark(g.user_id)
+        mark = s.ctx.warfields.fields[4005, 3].mark(g.user_id)
         mark.dead = True
         cx, cy = bf.CAMP[mark.team]
         step = 1 if mark.team == 2 else -1  # para fora da base
@@ -245,3 +244,80 @@ async def test_morto_nao_sai_da_base_ate_a_onda(tmp_path: Path) -> None:
         assert bf.in_base(mark.team, (back.curPosX, back.curPosY))
         assert not bf.in_base(mark.team, (back.curPosX + step, back.curPosY))
         assert bf.in_base(mark.team, s.campaign.pos)
+
+
+def test_lado_cheio_sorteia_o_outro_e_30_enche() -> None:
+    field = bf.Field(4005, IN_4005)
+    for pid in range(bf.SIDE_MAX):
+        field.marks[pid] = bf.Mark(team=1)
+    assert {field.mark(100 + i).team for i in range(bf.SIDE_MAX)} == {2}
+    assert field.full() and field.count(1) == field.count(2) == bf.SIDE_MAX
+
+
+def test_faixa_de_nivel_separa_as_partidas_e_fica_a_da_entrada() -> None:
+    wf = bf.WarFields()
+    a = bf.current_field(wf, 4005, IN_4005, 1, 35)
+    a.mark(1)
+    assert bf.current_field(wf, 4005, IN_4005, 2, 39) is a
+    b = bf.current_field(wf, 4005, IN_4005, 3, 40)
+    assert b is not a and (4005, 4) in wf.fields
+    assert bf.current_field(wf, 4005, IN_4005, 1, 41) is a  # subiu de nível: a partida é a da entrada
+
+
+async def test_diferenca_de_5000_encerra_antes_e_o_4248_fecha(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4005)) as g:
+        await _at_field(g, 4005)
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.ctx is not None
+        field = s.ctx.warfields.fields[4005, 3]
+        field.gain(field.mark(g.user_id).team, 4990)
+        mark = field.mark(g.user_id)
+        mark.carry = "normal"  # +20 na entrega: 5010 de diferença
+        officer = 4005000 + bf.DELIVER[mark.team]
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=officer, paraBool1=True))
+        await g.idle()
+        g.client.send(5033, pb.CampaignReqMsg(paraInt1=4005, paraInt2=officer, paraBool1=True))
+        got = await g.idle()
+        assert field.settled and 4254 in _codes(got) and s.campaign is None
+        assert dict(warfield._states_tuple(s.ctx.templates, IN_4005, warfield._ended(s, IN_4005)))[4005] == 2
+        g.client.send(8332, pb.WorldBossMsg(param1=4005))  # acabou: não entra de novo
+        await g.idle()
+        assert s.campaign is None
+
+
+async def test_premio_de_2_campos_por_dia(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4005)) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.ctx is not None and s.snapshot is not None
+        assert bf.fields_left(s.snapshot, IN_4005) == 2
+        for _ in range(3):
+            await _at_field(g, 4005)
+            field = s.ctx.warfields.fields[4005, 3]
+            await warfield.settle(s.ctx, field)
+            got = await g.idle()
+            s.ctx.warfields.fields.clear()  # outra partida no mesmo dia
+        assert bf.fields_left(s.snapshot, IN_4005) == 0
+        assert bf.win_text(bf.LOSE_INSIGNIA, bf.LOSE_HONOR) not in _texts(got, 83)  # a 3ª não paga
+        assert bf.fields_left(s.snapshot, IN_4005 + timedelta(days=1)) == 2  # vira às 5h
+
+
+async def test_4538_fim_da_class_wars_na_virada_do_periodo_da_arena(tmp_path: Path) -> None:
+    from wartune_server.domain.models import ArenaRank
+    from wartune_server.game import arena as A
+
+    clock = FakeClock(IN_4005)
+    async with logged_in(tmp_path, novice=30001, clock=clock) as g:
+        s = g.server.online.get(g.user_id)
+        assert s is not None and s.ctx is not None and s.snapshot is not None
+        await warfield.class_wars_end(s)  # arranque: só marca o período
+        assert s.ctx.warfields.class_wars == A.period(IN_4005)[0] and 4538 not in _codes(await g.idle())
+
+        async def top(_server: int, _low: int, _high: int) -> list[ArenaRank]:
+            return [ArenaRank(g.user_id, 1)]
+
+        s.ctx.characters.arena_ranks = top  # type: ignore[method-assign,assignment]
+        clock.advance(A.period(IN_4005)[1] * 86400)
+        await warfield.class_wars_end(s)
+        got = await g.idle()
+        msg = pb.SimplePropertyMsg.FromString(next(p.body for p in got if p.code == 4538))
+        assert msg.param4 == warfield.CLASS_WARS_END.format(s.snapshot.character.nickname or "", 1)

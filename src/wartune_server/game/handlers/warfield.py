@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Any
 
 from ...domain import gameday
+from ...domain.errors import NotFoundError
 from ...domain.models import Item
 from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates
@@ -55,6 +56,8 @@ IN_BATTLE = "Player is now in battle!"  # (visto #10962)
 DOUBLE_TIME = "It’s Amethyst Double Time! All Amethyst collected is doubled."  # (visto 191924 #14218, #760, #23583)
 HONOR_DAY = "honor_day"  # event_state diário: a honra do dia do 4471 (visto #10104 3, #10410 6 ... #11674 123)
 DUMP_AMETHYST = 200  # (visto #2079, #2304) "Minecart dumped; you gained 200 Amethyst."
+S_CLASS_WARS_END = 4538  # U_C_LORDS_FINAL_TIPS (cliente WarlordsManager)
+CLASS_WARS_END = "The Class Wars have ended! {} ranked number {}. Their entire server has gained a 7 day blessing!"
 S_MINE_ACTIVE = 4549  # GuildMsg.param5 (U_C_MINE_ACTIVE_STATE): BaseManager.__mineralHandler -> mineralIsOpen
 ROOM_ENTER = 1  # RoomCreatedMsg.createdType
 ENTER_QUEST = 44  # "Participate in a Battleground" (QuestCondictionInfos tipo 44, visto nos templates)
@@ -78,22 +81,42 @@ def _chat(text: str, channel: int = 12, *, tip: bool = False) -> pb.ChatChannelM
     return pb.ChatChannelMsg(channel=channel, encodeMsg=text, otherId=-1, userType=1, isCenterTip=tip, isBigTip=tip)
 
 
-def _open(ctx: GameContext, campaign_id: int, now: datetime) -> tuple[bf.Field, datetime] | None:
-    """A partida de hoje do campo, se a janela está aberta (a partida nasce no primeiro a entrar)."""
+def _open(s: GameSession, campaign_id: int, now: datetime) -> tuple[bf.Field, datetime] | None:
+    """A partida de hoje do campo para o jogador (a da faixa de nível dele), se a janela está aberta."""
+    ctx, snap = s.ctx, s.snapshot
     row = bf.field_row(ctx.templates, campaign_id)
-    if row is None or not bf.is_open(row, now):
+    if row is None or snap is None or not bf.is_open(row, now):
         return None
     opened, stop = bf.row_window(row, now)
-    return bf.current_field(ctx.warfields, campaign_id, opened), stop
+    return bf.current_field(ctx.warfields, campaign_id, opened, s.player_id, snap.character.grades), stop
 
 
-def _states_tuple(templates: GameTemplates, now: datetime) -> tuple[tuple[int, int], ...]:
-    """Os 4001-4011 do 4248. Os campos implementados (4005/4007) seguem a janela; os demais, como antes (sem mapa)."""
+def _ended(s: GameSession, now: datetime) -> frozenset[int]:
+    """Os campos abertos cuja partida do jogador (ou da faixa dele) já acabou antes da hora (diferença de placar)."""
+    snap = s.snapshot
+    if snap is None:
+        return frozenset()
+    out = set()
+    for (cid, band), f in s.ctx.warfields.fields.items():
+        row = bf.field_row(s.ctx.templates, cid)
+        if not f.settled or row is None or not bf.is_open(row, now) or f.opened != bf.row_window(row, now)[0]:
+            continue
+        mine = bf.joined(s.ctx.warfields, cid, f.opened, s.player_id)
+        if mine is f or (mine is None and band == bf.bracket(snap.character.grades)):
+            out.add(cid)
+    return frozenset(out)
+
+
+def _states_tuple(
+    templates: GameTemplates, now: datetime, ended: frozenset[int] = frozenset()
+) -> tuple[tuple[int, int], ...]:
+    """Os 4001-4011 do 4248, pela janela; ``ended``: os que acabaram antes da hora para o jogador (state 2)."""
     out = []
     for campaign in range(4001, 4012):
         if campaign in bf.FIELDS:
             row = bf.field_row(templates, campaign)
-            out.append((campaign, bf.state(row, now) if row is not None else 2))
+            value = bf.state(row, now) if row is not None else 2
+            out.append((campaign, 2 if campaign in ended else value))
             continue
         row = templates.get("Campaigns", campaign, key="CampaignId")
         value = worldboss.state(row, now) if row is not None else worldboss.CLOSED
@@ -101,18 +124,19 @@ def _states_tuple(templates: GameTemplates, now: datetime) -> tuple[tuple[int, i
     return tuple(out)
 
 
-def states(templates: GameTemplates, now: datetime) -> pb.WorldBossStateMsg:
+def states(templates: GameTemplates, now: datetime, ended: frozenset[int] = frozenset()) -> pb.WorldBossStateMsg:
     """Estado de cada campo (``WarFieldInfo``): 0 aberto (o único que mostra o botão), 1 não abriu, 2 encerrado."""
     msg = pb.WorldBossStateMsg()
-    for campaign, value in _states_tuple(templates, now):
+    for campaign, value in _states_tuple(templates, now, ended):
         msg.worldBossInfo.add(campaignId=campaign, state=value)
     return msg
 
 
 def login(s: GameSession) -> None:
     now = s.ctx.clock.now()
-    s.war_states = _states_tuple(s.ctx.templates, now)
-    s.send(S_WARFIELD_STATE, states(s.ctx.templates, now))
+    ended = _ended(s, now)
+    s.war_states = _states_tuple(s.ctx.templates, now, ended)
+    s.send(S_WARFIELD_STATE, states(s.ctx.templates, now, ended))
     s.mine_open = bf.mine_open(now)
     if s.mine_open:  # TODO(inventado): login dentro da janela; as capturas só têm a abertura e o fecho
         s.send(S_MINE_ACTIVE, pb.GuildMsg(param5=True))
@@ -156,14 +180,24 @@ def push_states(s: GameSession) -> None:
         s.send(S_MINE_ACTIVE, pb.GuildMsg(param5=mine))
         if mine:
             s.send(S_CHAT, _chat(DOUBLE_TIME, tip=True))
-    if (cur := _states_tuple(s.ctx.templates, now)) != s.war_states:
+    ended = _ended(s, now)
+    if (cur := _states_tuple(s.ctx.templates, now, ended)) != s.war_states:
         s.war_states = cur
-        s.send(S_WARFIELD_STATE, states(s.ctx.templates, now))
+        s.send(S_WARFIELD_STATE, states(s.ctx.templates, now, ended))
 
 
 def players_on(ctx: GameContext, campaign_id: int) -> list[GameSession]:
     return [o for o in ctx.online.sessions()
             if o.campaign is not None and o.campaign.warfield == campaign_id and o.snapshot is not None]  # fmt: skip
+
+
+def players_in(ctx: GameContext, field: bf.Field) -> list[GameSession]:
+    """Quem está no mapa desta partida (a faixa de nível dele: outra faixa no mesmo campo é outra partida)."""
+    return [o for o in players_on(ctx, field.campaign_id) if o.player_id in field.marks]
+
+
+def _others(s: GameSession, field: bf.Field) -> list[GameSession]:
+    return [o for o in players_in(s.ctx, field) if o is not s]
 
 
 def on_map(s: GameSession, campaign_id: int) -> list[GameSession]:
@@ -176,8 +210,9 @@ def _room_player(o: GameSession, cid: int) -> pb.RoomPlayerMsg:
     guild = o.ctx.guilds.of(o.player_id)
     msg = space.room_player(o.snapshot, o.ctx.templates, o.campaign.pos, cid, o.ctx.clock.now(),
                             guild=guild[0] if guild else None)  # fmt: skip
-    found = o.ctx.warfields.fields.get(cid)
-    if found is not None and o.player_id in found.marks:
+    found = next((f for f in o.ctx.warfields.fields.values() if f.campaign_id == cid and o.player_id in f.marks
+                  and not f.settled), None)  # fmt: skip
+    if found is not None:
         msg.teamId = found.marks[o.player_id].team
     return msg
 
@@ -196,7 +231,7 @@ def _field(s: GameSession) -> tuple[bf.Field, datetime] | None:
     c = s.campaign
     if c is None or c.warfield not in bf.FIELDS:
         return None
-    return _open(s.ctx, c.warfield, s.ctx.clock.now())
+    return _open(s, c.warfield, s.ctx.clock.now())
 
 
 def _info(s: GameSession, field: bf.Field) -> pb.WarFightInfoMsg:
@@ -211,7 +246,7 @@ def _info(s: GameSession, field: bf.Field) -> pb.WarFightInfoMsg:
 
 def _push_info(ctx: GameContext, field: bf.Field) -> None:
     """O 4252 vai a todos no campo a cada mudança de placar (visto: um a cada entrega ou abate de qualquer um)."""
-    for o in players_on(ctx, field.campaign_id):
+    for o in players_in(ctx, field):
         o.send(S_WAR_INFO, _info(o, field))
 
 
@@ -243,15 +278,18 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
     if msg.param1 not in bf.FIELDS or s.battle is not None or s.campaign is not None:
         s.log.info("8332 recusado", campanha=msg.param1)
         return
-    found = _open(ctx, msg.param1, now)
+    found = _open(s, msg.param1, now)
     row = bf.field_row(ctx.templates, msg.param1)
-    if found is None or row is None:
+    if found is None or row is None or found[0].settled:  # acabou antes da hora (diferença de placar)
         s.log.info("8332 com o campo fechado", campanha=msg.param1)
         return
     if not int(row["MinLevel"]) <= snap.character.grades <= int(row["MaxLevel"]):
         s.log.info("8332 fora do nível do campo", nivel=snap.character.grades)
         return
     field = found[0]
+    if s.player_id not in field.marks and field.full():  # TODO(inventado): a recusa (sem texto no cliente)
+        s.log.info("8332 com o campo cheio", campanha=msg.param1)
+        return
     cid = msg.param1
     mark = field.mark(s.player_id)
     mark.name, mark.server = snap.character.nickname or "", snap.server.name
@@ -262,7 +300,7 @@ async def enter_field(s: GameSession, msg: pb.WorldBossMsg) -> None:
     s.send(S_MAP, map_sync(s, ARMY_IDLE))  # (visto #14232 e #9475): 140 vem antes do 125 no campo
     s.send(S_ROOM_CREATED, room)
     me = _room_player(s, cid)
-    others = on_map(s, cid)
+    others = _others(s, field)
     s.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me, *(_room_player(o, cid) for o in others)]))
     for other in others:
         other.send(S_ROOM_ENTER, pb.RoomEnterMsg(result=1, player=[me]))
@@ -291,7 +329,7 @@ async def war_order(s: GameSession, _: object) -> None:
     msg = pb.WarReportListMsg()
     found = _field(s)
     if found is None:  # fora do campo: a partida aberta em que o jogador entrou
-        found = next((f for cid in bf.FIELDS if (f := _open(s.ctx, cid, s.ctx.clock.now())) is not None
+        found = next((f for cid in bf.FIELDS if (f := _open(s, cid, s.ctx.clock.now())) is not None
                       and s.player_id in f[0].marks), None)  # fmt: skip
     if found is not None:
         msg.info.extend(_ranking(found[0]))
@@ -307,8 +345,8 @@ def _cross(*rows: tuple[GameSession, tuple[int, int], int]) -> pb.CrossArmyListM
     return msg
 
 
-def _to_map(ctx: GameContext, campaign_id: int, code: int, msg: Any) -> None:
-    for o in players_on(ctx, campaign_id):
+def _to_map(ctx: GameContext, field: bf.Field, code: int, msg: Any) -> None:
+    for o in players_in(ctx, field):
         o.send(code, msg)
 
 
@@ -326,6 +364,9 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
         s.log.info("8334 recusado", pedido=str(msg))
         return
     field = found[0]
+    if target.player_id not in field.marks:  # outra faixa de nível: outra partida
+        s.log.info("8334 contra quem está noutra partida")
+        return
     me, them = field.mark(s.player_id), field.mark(target.player_id)
     if me.fighting or them.fighting or target.battle is not None:
         s.send(S_ALERT, _chat(IN_BATTLE, 7))
@@ -337,10 +378,9 @@ async def war_attack(s: GameSession, msg: pb.WarFieldAttackMsg) -> None:
         s.send(S_ALERT, _chat(ENEMY_BASE, 7))
         return
     me.fighting = them.fighting = True
-    cid = c.warfield
     # o alvo é avisado (visto #10207-#10209: 111 com o nome, 4494 e 83 com o link)
     target.send(S_ALERT, _chat(ATTACKED_TEXT.format(snap.character.nickname or ""), 7))
-    _to_map(s.ctx, cid, S_CROSS, _cross((s, c.pos, 2), (target, target.campaign.pos, 2)))
+    _to_map(s.ctx, field, S_CROSS, _cross((s, c.pos, 2), (target, target.campaign.pos, 2)))
     target.send(S_CHAT, _chat(ATTACKED_TEXT.format(_link(s)), 3))
 
     async def finished(won: bool) -> None:
@@ -374,17 +414,17 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
     if loser in here:
         camp = bf.CAMP[lm.team]
         loser.campaign.pos = camp  # type: ignore[union-attr]
-        _to_map(ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=loser.player_id, curPosX=camp[0], curPosY=camp[1],
+        _to_map(ctx, field, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=loser.player_id, curPosX=camp[0], curPosY=camp[1],
                                                            serverName=lm.server))  # fmt: skip
     for text in texts:  # (visto #10963-#10970): 111 logo depois do 4104, 83 depois do 4494; os dois com link
-        _to_map(ctx, cid, S_ALERT, _chat(text, 7))
+        _to_map(ctx, field, S_ALERT, _chat(text, 7))
     if loser in here:
         _die(ctx, field, loser.player_id)
     _push_info(ctx, field)
     rows = [(o, o.campaign.pos, 0) for o in here]  # type: ignore[union-attr]
-    _to_map(ctx, cid, S_CROSS, _cross(*rows))
+    _to_map(ctx, field, S_CROSS, _cross(*rows))
     for text in texts:
-        _to_map(ctx, cid, S_CHAT, _chat(text, 3))
+        _to_map(ctx, field, S_CHAT, _chat(text, 3))
     s.send(S_REPORT, pb.BattleReportMsg(battleResult=1 if won else 2, battleScene=PVP_SCENE))  # (visto) #11103
     saves = add_honor(winner, bf.KILL_HONOR) if winner.snapshot is not None else []
     await _quest(winner, KILL_QUEST)  # (visto #11106): 112 da 767 depois do 4471/3
@@ -407,6 +447,14 @@ async def pvp_over(s: GameSession, target: GameSession, field: bf.Field, won: bo
         o.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=honor, isAdd=add, userId=o.player_id, serverName=name))
         o.send(S_ALERT, _chat(text, 7))
         o.send(S_CHAT, _chat(text, 3))
+    await _check_gap(ctx, field)
+
+
+async def _check_gap(ctx: GameContext, field: bf.Field) -> None:
+    """Fim antes da hora (cliente, ajuda do campo: "If the score gap between the two sides reaches 5000 points, the
+    battle ends early"; ``taxas.field_score_gap``)."""
+    if not field.settled and field.gap() >= int(taxas.get(ctx.world.settings, "field_score_gap")):
+        await settle(ctx, field)
 
 
 def _streak_texts(
@@ -433,7 +481,7 @@ def _die(ctx: GameContext, field: bf.Field, player_id: int) -> None:
     now = ctx.clock.now()
     left = bf.respawn_ms(field.opened, now, int(taxas.get(ctx.world.settings, "field_respawn_period")))
     dead = DEAD_CARRYING if mark.carry else DEAD
-    _to_map(ctx, field.campaign_id, S_PLAYER_STATE, _state_msg(player_id, dead, mark.server, left))
+    _to_map(ctx, field, S_PLAYER_STATE, _state_msg(player_id, dead, mark.server, left))
     asyncio.get_running_loop().call_later(left / 1000, _revive, ctx, field, player_id)
 
 
@@ -443,7 +491,7 @@ def _revive(ctx: GameContext, field: bf.Field, player_id: int) -> None:
     if mark is None or not mark.dead or field.settled:
         return
     mark.dead = False
-    _to_map(ctx, field.campaign_id, S_PLAYER_STATE, _state_msg(player_id, 2 if mark.carry else 0, mark.server))
+    _to_map(ctx, field, S_PLAYER_STATE, _state_msg(player_id, 2 if mark.carry else 0, mark.server))
 
 
 @router.on(8338)
@@ -473,7 +521,7 @@ async def restore_hp(s: GameSession, _: object) -> None:
 @router.on(8599)
 async def entries_left(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     """Entradas do campo (4493): com o campo aberto, sem entradas (visto #22505 ``paraBool1`` false)."""
-    if msg.paraInt1 not in bf.FIELDS or _open(s.ctx, msg.paraInt1, s.ctx.clock.now()) is None:
+    if msg.paraInt1 not in bf.FIELDS or _open(s, msg.paraInt1, s.ctx.clock.now()) is None:
         return
     s.send(S_COUNT, pb.CampaignReqMsg(paraInt1=msg.paraInt1, paraBool1=False))
 
@@ -592,12 +640,13 @@ async def callback(s: GameSession, msg: pb.CallBackReqMsg) -> None:
     found = _field(s)
     if found is None:
         return
-    mark = found[0].mark(s.player_id)
+    field = found[0]
+    mark = field.mark(s.player_id)
     n = camp - c.warfield * 1000
     if n not in bf.COLLECT or mark.carry is not None or mark.dead:
         return
     mark.carry = bf.ore(taxas.get(s.ctx.world.settings, "field_ore_weights"))
-    _to_map(s.ctx, c.warfield, S_PLAYER_STATE, _state_msg(s.player_id, 2, mark.server))  # (visto #9957, a todos)
+    _to_map(s.ctx, field, S_PLAYER_STATE, _state_msg(s.player_id, 2, mark.server))  # (visto #9957, a todos)
     s.send(S_ALERT, _chat(ENTERED_TEXT, 7))
 
 
@@ -635,7 +684,7 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         new, _ = rewards.grant(snap, s.ctx.templates, drops)
     # ordem (visto 152321 #10102-#10138): 4175, 4252 (a honra velha), 4471, 3, 115, 111, 83, 4252 e 4269
-    _to_map(s.ctx, c.warfield, S_PLAYER_STATE, _state_msg(s.player_id, 0, mark.server))
+    _to_map(s.ctx, field, S_PLAYER_STATE, _state_msg(s.player_id, 0, mark.server))
     _push_info(s.ctx, field)
     saves = add_honor(s, honor)
     await s.ctx.characters.save(*saves, *new)
@@ -647,6 +696,13 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     s.send(S_WAR_INFO, _info(s, field))
     s.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=honor, isAdd=True, userId=s.player_id,
                                        serverName=snap.server.name))  # fmt: skip
+    await _check_gap(s.ctx, field)
+
+
+def _neighbors(s: GameSession, map_id: int) -> list[GameSession]:
+    """Os outros no mesmo mapa: na mina, todos; no campo, os da mesma partida (faixa de nível)."""
+    found = _field(s) if map_id != bf.MINE else None
+    return _others(s, found[0]) if found is not None else on_map(s, map_id)
 
 
 def leave_field(s: GameSession) -> bool:
@@ -658,7 +714,7 @@ def leave_field(s: GameSession) -> bool:
         s.battle.cancel()
         s.battle = None
     msg = pb.CampaignExitMsg(result=1, playerId=s.player_id, armyId=s.player_id, serverName=snap.server.name)
-    for other in on_map(s, c.warfield):
+    for other in _neighbors(s, c.warfield):
         other.send(S_EXIT, msg)
     s.campaign = None
     s.send(S_EXIT, msg)
@@ -684,7 +740,7 @@ def broadcast_move(s: GameSession, msg: pb.PosMoveMsg) -> None:
             if not msg.routes:
                 return
     move = pb.PosMoveMsg(mapId=c.warfield, armyId=s.player_id, routes=msg.routes, serverName=snap.server.name)
-    for other in on_map(s, c.warfield):
+    for other in _neighbors(s, c.warfield):
         other.send(S_MOVE, move)
     if found is None:
         return
@@ -750,10 +806,10 @@ def _guardian_fight(s: GameSession, field: bf.Field, camp: int, node: dict[str, 
     mark.fighting = True
     side = int(node["param1"])
     if chase:
-        _to_map(s.ctx, c.warfield, S_CHASE, pb.NPCChaseMsg(nodeId=camp, armyId=s.player_id, curPosX=c.pos[0],
+        _to_map(s.ctx, field, S_CHASE, pb.NPCChaseMsg(nodeId=camp, armyId=s.player_id, curPosX=c.pos[0],
                                                            curPosY=c.pos[1], serverName=mark.server))  # fmt: skip
-    _to_map(s.ctx, c.warfield, S_CROSS, _cross((s, c.pos, 2)))
-    _to_map(s.ctx, c.warfield, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=FIGHTING_NODE,
+    _to_map(s.ctx, field, S_CROSS, _cross((s, c.pos, 2)))
+    _to_map(s.ctx, field, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=FIGHTING_NODE,
                                                                 userId=s.player_id, param1=side))  # fmt: skip
     hero = s.ctx.templates.get("GameHeroTemp", int(node["heroTempId"])) or {}
     spec = boss_spec(s, hero, max(1, int(hero.get("Live") or 1)), bf.GUARDIAN_BATTLE)
@@ -771,8 +827,8 @@ def _guardian_fight(s: GameSession, field: bf.Field, camp: int, node: dict[str, 
 async def _guardian_over(s: GameSession, field: bf.Field, camp: int, node: dict[str, Any], won: bool) -> None:
     """Fim da luta com o guardião. Derrota (visto 121453 #10335-#10364): 4104 para o acampamento, 4103, 4122 do
     guardião de volta ao ponto, 4175 morto, 128 nodeState 1, 4494 state 0, 4269 e "You lost: N Points."
-    (``taxas.field_guardian_loss``). TODO(inventado): a vitória (não vista) derruba o guardião (128 nodeState 8) e
-    não dá pontos."""
+    (``taxas.field_guardian_loss``). Vitória: 128 nodeState 8 (01/11 #6197) e os pontos do guardião para o jogador e
+    o lado (ajuda do campo; o valor é ``taxas.field_guardian_points``, TODO(inventado))."""
     mark = field.mark(s.player_id)
     mark.fighting = False
     field.busy.discard(camp)
@@ -780,25 +836,35 @@ async def _guardian_over(s: GameSession, field: bf.Field, camp: int, node: dict[
     here = c is not None and c.warfield == cid and not field.settled
     if won:
         s.send(S_REPORT, pb.BattleReportMsg(battleResult=1, battleScene=PVP_SCENE))
+        if here:  # ajuda do campo: "defeating players or guards from the enemy side will increase both side and
+            # individual scores"; quanto: TODO(inventado) ``taxas.field_guardian_points`` (vitória sem captura)
+            pts = int(taxas.get(ctx.world.settings, "field_guardian_points"))
+            mark.score += pts
+            field.gain(mark.team, pts)
+            _push_info(ctx, field)
+            s.send(S_WAR_MOVIE, pb.WarMovieMsg(score=pts, geste=0, isAdd=True, userId=s.player_id,
+                                               serverName=mark.server))  # fmt: skip
         # TODO(inventado): o oficial vencido (não visto) fica de pé, senão o lado perde a entrega
         if c is not None and here and camp - cid * 1000 not in bf.DELIVER.values():
             c.nodes.pop(camp, None)
-            _to_map(ctx, cid, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=DOWN_NODE,
+            _to_map(ctx, field, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=DOWN_NODE,
                                                                param1=int(node["param1"])))  # fmt: skip
-            _to_map(ctx, cid, S_CROSS, _cross((s, c.pos, 0)))
+            _to_map(ctx, field, S_CROSS, _cross((s, c.pos, 0)))
+        if here:
+            await _check_gap(ctx, field)
         return
     home = bf.CAMP[mark.team]
     if c is not None and here:
         c.pos = home
-        _to_map(ctx, cid, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=s.player_id, curPosX=home[0], curPosY=home[1],
+        _to_map(ctx, field, S_ARMY_POS, pb.ArmyPosUpdatedMsg(armyId=s.player_id, curPosX=home[0], curPosY=home[1],
                                                            serverName=mark.server))  # fmt: skip
     s.send(S_REPORT, pb.BattleReportMsg(battleResult=2, battleScene=PVP_SCENE))
     if not here:
         return
-    _to_map(ctx, cid, S_NPC_MOVE, pb.NPCMoveMsg(id=camp, curPosX=int(node["posX"]), curPosY=int(node["posY"])))
+    _to_map(ctx, field, S_NPC_MOVE, pb.NPCMoveMsg(id=camp, curPosX=int(node["posX"]), curPosY=int(node["posY"])))
     _die(ctx, field, s.player_id)
-    _to_map(ctx, cid, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=ALIVE_NODE, param1=int(node["param1"])))
-    _to_map(ctx, cid, S_CROSS, _cross((s, home, 0)))
+    _to_map(ctx, field, S_NODE, pb.CampaignNodeUpdateMsg(nodeId=camp, nodeState=ALIVE_NODE, param1=int(node["param1"])))
+    _to_map(ctx, field, S_CROSS, _cross((s, home, 0)))
     lost = min(mark.score, int(taxas.get(ctx.world.settings, "field_guardian_loss")))
     mark.score -= lost
     _push_info(ctx, field)
@@ -810,14 +876,51 @@ async def _guardian_over(s: GameSession, field: bf.Field, camp: int, node: dict[
 async def clock(s: GameSession) -> None:
     """No relógio (20008): fecha as partidas cujo ``StopTime`` já passou (uma vez por partida)."""
     ctx, now = s.ctx, s.ctx.clock.now()
-    for cid in bf.FIELDS:
-        row = bf.field_row(ctx.templates, cid)
+    for field in list(ctx.warfields.fields.values()):  # uma partida por faixa de nível
+        row = bf.field_row(ctx.templates, field.campaign_id)
         if row is None:
             continue
         opened, stop = bf.row_window(row, now)
-        field = ctx.warfields.fields.get(cid)
-        if field is not None and field.opened == opened and now >= stop and not field.settled:
+        if field.opened == opened and now >= stop and not field.settled:
             await settle(ctx, field)
+    await class_wars_end(s)
+
+
+async def class_wars_end(s: GameSession) -> None:
+    """4538 a todos os online no fim da Class Wars (cliente ``WarlordsManager.__getFinalNoticeHandler``:
+    ``PropertyMsg.param4`` no canal 12 com a corneta grande; texto visto 183522 #9514). A Class Wars é entre
+    servidores e não roda aqui; como no Master Treasure Thief (``fam._can_call``), o 1º da arena local faz as vezes
+    do colocado. TODO(inventado): o fim é a virada do período de prêmio da arena (``arena.period``) e a "7 day
+    blessing" não dá bônus nenhum (sem fonte do efeito)."""
+    from .. import arena as A  # arena importa as regras, que não importam este módulo
+
+    ctx, snap = s.ctx, s.snapshot
+    if snap is None:
+        return
+    key = A.period(ctx.clock.now())[0]
+    if ctx.warfields.class_wars == key:
+        return
+    first = not ctx.warfields.class_wars  # arranque sem nada gravado: só marca, o período não acabou agora
+    ctx.warfields.class_wars = key
+    from .. import server_state  # server_state importa a sessão
+
+    await server_state.save(ctx, server_state.CLASS_WARS)
+    if first:
+        return
+    top = await ctx.characters.arena_ranks(snap.server.id or 0, 1, 1)
+    if not top:
+        return
+    online = ctx.online.get(top[0].character_id)
+    if online is not None and online.snapshot is not None:
+        name = online.snapshot.character.nickname or ""
+    else:
+        try:
+            name = (await ctx.characters.snapshot(top[0].character_id)).character.nickname or ""
+        except NotFoundError:
+            return
+    msg = pb.SimplePropertyMsg(param4=CLASS_WARS_END.format(name, top[0].rank))  # o simple.PropertyMsg do cliente
+    for o in ctx.online.sessions():
+        o.send(S_CLASS_WARS_END, msg)
 
 
 async def settle(ctx: GameContext, field: bf.Field) -> None:
@@ -828,8 +931,10 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
     field.settled = True
     now = ctx.clock.now()
     winner = field.winner()
-    here = players_on(ctx, field.campaign_id)
-    prize = {o.player_id: (bf.WIN_INSIGNIA, bf.WIN_HONOR) if field.mark(o.player_id).team == winner
+    here = players_in(ctx, field)
+    # só 2 campos premiados por dia (ajuda do campo; ``bf.fields_left``): depois, 0 e 0
+    prize = {o.player_id: (0, 0) if o.snapshot is None or not bf.fields_left(o.snapshot, now)
+             else (bf.WIN_INSIGNIA, bf.WIN_HONOR) if field.mark(o.player_id).team == winner
              else (bf.LOSE_INSIGNIA, bf.LOSE_HONOR) for o in here}  # fmt: skip
     first = winner or 1  # empate (``bf.Field.winner``): ninguém vence, o time 1 vai em one
     second = 2 if first == 1 else 1
@@ -842,22 +947,26 @@ async def settle(ctx: GameContext, field: bf.Field) -> None:
         push_states(o)  # 4248 com o campo encerrado
         o.send(S_CHAT, _chat(END_TEXT, tip=True))
         o.send(S_WAR_REPORT, report)
-        o.send(S_WARFIELD_STATE, states(ctx.templates, now))
+        o.send(S_WARFIELD_STATE, states(ctx.templates, now, _ended(o, now)))
         o.campaign = None
         o.send(S_EXIT, pb.CampaignExitMsg(result=1, playerId=o.player_id, armyId=o.player_id,
                                           serverName=snap.server.name))  # fmt: skip
         insignia, honor = prize[o.player_id]
-        drops = [(bf.INSIGNIA, insignia)]
-        new: list[Item] = []
-        if rewards.can_grant(snap, ctx.templates, drops, now):
-            new, _ = rewards.grant(snap, ctx.templates, drops)
-        # Double Honor Scroll: "Honor Received +{Grades}%"
-        saves = add_honor(o, honor * (100 + buffs.percent(snap, ctx.templates, buffs.HONOR_BOOST, now)) // 100)
-        await ctx.characters.save(*saves, *new)
-        if new:
-            o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
+        if insignia:  # TODO(inventado): sem prêmio (já levou 2 hoje), sem 4471/3/115 nem texto de prêmio
+            drops = [(bf.INSIGNIA, insignia)]
+            new: list[Item] = []
+            if rewards.can_grant(snap, ctx.templates, drops, now):
+                new, _ = rewards.grant(snap, ctx.templates, drops)
+            used = ev.daily(snap, bf.REWARDED_KEY, now)
+            used.value, used.updated_at = used.value + 1, now
+            # Double Honor Scroll: "Honor Received +{Grades}%"; o 3 do add_honor já leva o ``warFieldCount`` novo
+            saves = add_honor(o, honor * (100 + buffs.percent(snap, ctx.templates, buffs.HONOR_BOOST, now)) // 100)
+            await ctx.characters.save(*saves, *new, used)
+            if new:
+                o.send(S_ITEMS, rewards.items_msg(new, o.player_id))
         if winner is not None and field.mark(o.player_id).team == winner:  # "Obtain Victory in War Camp" (818)
             await _quest(o, WIN_QUEST)
-        o.send(S_CHAT, _chat(bf.win_text(insignia, honor)))
+        if insignia:
+            o.send(S_CHAT, _chat(bf.win_text(insignia, honor)))
     for o in ctx.online.sessions():
         push_states(o)

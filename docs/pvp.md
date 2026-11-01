@@ -251,7 +251,7 @@ e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque =
 | C>S | Resposta | Por quê |
 |---|---|---|
 | 8711 | 4529 processo 0, sem campeões | Senhores (Warlords) é torneio entre servidores com agenda; sem ela, o cliente recusa a sala ("não aberto") *(cliente)* `WarlordsManager.as` |
-| (4538 S>C) | nunca mandado | Aviso do fim da Class Wars a todos: (visto) 183522 #9514 "The Class Wars have ended! Artemis ranked number 27. Their entire server has gained a 7 day blessing!"; (cliente) `WarlordsManager.__getFinalNoticeHandler` lê `PropertyMsg.param4` e mostra no canal 12 com corneta grande. Sem Class Wars aqui (entre servidores, fechada) não há fim nem ranking para anunciar |
+| (4538 S>C) | nunca mandado | Aviso do fim da Class Wars a todos: (visto) 183522 #9514 "The Class Wars have ended! Artemis ranked number 27. Their entire server has gained a 7 day blessing!"; (cliente) `WarlordsManager.__getFinalNoticeHandler` lê `PropertyMsg.param4` e mostra no canal 12 com corneta grande. Mandado (`warfield.class_wars_end`, no 20008) a todos os online na virada do período de prêmio da arena (*inventado*: a Class Wars não roda aqui; o 1º da arena faz as vezes do colocado, como no Master Treasure Thief), uma vez por período (`server_states class_wars`; o arranque sem nada gravado só marca). A "7 day blessing" não dá efeito (*inventado*) |
 | 8714, 8710 | 4530 processo 0 e 4536 (expulsa da sala) | o 8714 repete a cada 5 s até o 4530 |
 | 8715, 8716 | 4531 vazio (nada é cobrado) | |
 | 8718 / 8721 | 4532 / 4537 vazios | |
@@ -265,8 +265,22 @@ Tudo das capturas inglesas 152321 (4005 #9474-#11704, 4007 #14230-#16396), 12145
 
 - **Entrada (8332)**: 140, 125 (isCross), 21 (com guilda e `teamId`), 127 (28 nós, iguais nos três campos; no 4002 os
   guardiões 13-18 do time 2 vivos, state 1), 4252 a todos, 4175 com o estado de cada um, 150; missão 44. Nasce no
-  acampamento do lado: time 1 em 179,75, time 2 em 17,76 (nós 001/002). Pontos pessoais começam em 100. Lado: o de
-  menos gente; empatados, sorteio (decisão do usuário: o oficial cruza servidores e as capturas não mostram a regra).
+  acampamento do lado: time 1 em 179,75, time 2 em 17,76 (nós 001/002). Pontos pessoais começam em 100. Lado:
+  sorteado entre os que têm vaga (15 por lado, 30 no campo; quem entrou conta até o fim); cheio, o 8332 fica sem
+  resposta (*inventado*: sem texto no cliente).
+- **Regras da ajuda** (cliente, language.txt `worldboss.view.BaseHelpFrame.BattleHelpContent`, a janela "More Info"):
+  1. faixas de 10 níveis: sem cruzar servidores, cada faixa (`grades // 10`) é uma partida própria no mesmo campo
+     (`bf.current_field`, chave `(campanha, faixa)`); a faixa é a da entrada, mesmo subindo de nível; o 4252, 4175,
+     4185, 128 e o PvP só vão a quem está na mesma partida. 2. até 30, dois lados, lado sorteado. 3. "a cada 30 min
+     das 11:00 às 21:30, 30 min cada": **não aplicado** — o template (Campaigns 4001-4011, um por hora, `StopTime`
+     :25), o `ActiveTempInfos` 4 ("11:00-21:30", `MaxCount` 2) e a captura (152321: o 4005 mandou o 4248 state 2 às
+     :25:55) mostram campos de hora em hora com 25 min; o cliente só conhece os 11 ids. Diferença de placar de 5000
+     (`taxas.field_score_gap`, 0149) encerra antes: o fim é o de sempre, o 4248 desse jogador (e da faixa dele) passa
+     a 2 e o 8332 é recusado. 4. entregar, vencer jogador e vencer guardião somam ao lado e ao jogador (o guardião
+     vale `taxas.field_guardian_points`, 20, *inventado*). 5. vence quem tem mais pontos. 6. prêmio em 2 campos por
+     dia (`PlayerMsg.warFieldCount` = restantes, o `PvpSelectFrame` mostra "N / 2", Config `WarField_MaxCount`;
+     `event_state warfield_rewarded`, vira às 5h): o 3º fim dá 0/0, sem 4471/3/115 e sem o texto do prêmio
+     (*inventado*). 7. a honra vai ao `geste` (perfil).
 - **4252**: `teamId`, pontos, `order` 0, `geste` = honra total do personagem, abates; `one` = time 1, `two` = time 2
   (gente e pontos do lado); sem `leftTime`. Vai a todos no campo a cada mudança.
 - **Pontos do lado**: só sobem com entregas e ganhos no PvP; entrar não soma e perder não desconta.

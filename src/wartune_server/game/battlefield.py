@@ -13,7 +13,9 @@ from datetime import UTC, datetime, time
 from typing import Any
 
 from ..domain import gameday
+from ..domain.models import PlayerSnapshot
 from ..templates.repository import GameTemplates, Row
+from . import events as ev
 from .campaign import NORMAL
 
 # os 11 Campaigns Types 5 "Battleground" (4001 11:00 a 4011 21:00); jogados 4002, 4003, 4005 e 4007 (152321 #9474,
@@ -24,7 +26,13 @@ TEAM = 2  # o primeiro a entrar (visto 152321 #9477 e #14234 teamId 2)
 ENEMY = 1
 SIDES = (1, 2)  # 4252 one = time 1, two = time 2 (visto #9533: oneCount sobe com o Solo, time 1; #10096 two com o
 # BooBoo3, time 2); o cliente (PvpMapTopCenterView) mostra "/ 15" por lado
-SIDE_MAX = 15
+SIDE_MAX = 15  # e a ajuda: "Each Battleground accommodates up to 30 players, split into two sides"
+BRACKET = 10  # níveis por faixa (ajuda: "level brackets every 10 levels")
+# a ajuda (language.txt ``worldboss.view.BaseHelpFrame.BattleHelpContent``) diz "runs every 30 minutes between 11:00
+# and 21:30 ... Each session lasts for 30 minutes"; o template (Campaigns 4001-4011: de hora em hora, 25 min) e a
+# captura (152321: 4005 fechou o 4248 state 2 às :25:55) mandam: fica o template (docs/pvp.md)
+REWARDED_PER_DAY = 2  # ajuda: "rewards from 2 Battlegrounds per day ... reset at 5:00 AM" (Config WarField_MaxCount)
+REWARDED_KEY = "warfield_rewarded"  # event_state diário (o dia do jogo vira às 5h): campos premiados hoje
 INSIGNIA, SHARD = 208001, 208011  # ItemTempInfos "Insignia" e "Battleground Treasure Shard"
 # fim (visto 152321 #11669): o lado vencedor 80 Insignia e 90 de honra (itemCount/winGesteCount), o perdedor 30 e 30
 WIN_INSIGNIA, WIN_HONOR = 80, 90
@@ -119,13 +127,19 @@ class Field:
     settled: bool = False
 
     def mark(self, player_id: int) -> Mark:
-        """A marca do jogador; quem chega entra no lado com menos gente e, empatados, num lado sorteado (decisão do
-        usuário: o oficial cruza servidores e as capturas não mostram a regra; #9482, #9533, #10096, #10220)."""
+        """A marca do jogador; quem chega cai num lado sorteado entre os que têm vaga (cliente, ajuda do campo:
+        "Sides are randomly assigned by the system upon entry", até 30, ``SIDE_MAX`` por lado). Quem entrou conta
+        até o fim, mesmo saindo (o 4252 ``oneCount``/``twoCount`` é de quem entrou). Cheio: ver ``full``."""
         if player_id not in self.marks:
-            one, two = self.count(1), self.count(2)
-            team = random.choice(SIDES) if one == two else 1 if one < two else 2
-            self.marks[player_id] = Mark(team=team)
+            open_sides = [t for t in SIDES if self.count(t) < SIDE_MAX] or list(SIDES)
+            self.marks[player_id] = Mark(team=random.choice(open_sides))
         return self.marks[player_id]
+
+    def full(self) -> bool:
+        return all(self.count(t) >= SIDE_MAX for t in SIDES)
+
+    def gap(self) -> int:
+        return abs(self.score(1) - self.score(2))
 
     def score(self, team: int) -> int:
         """Pontos do lado: só sobem com as entregas e os ganhos no PvP (visto #9798: a perda não desconta; #9533 e
@@ -157,8 +171,9 @@ class Cart:
 class WarFields:
     """Estado da memória: a partida de hoje de cada campo e os carrinhos da mina por jogador."""
 
-    fields: dict[int, Field] = field(default_factory=dict)
+    fields: dict[tuple[int, int], Field] = field(default_factory=dict)  # (campanha, faixa de nível)
     carts: dict[int, Cart] = field(default_factory=dict)
+    class_wars: str = ""  # o período da arena cujo fim da Class Wars (4538) já foi anunciado (server_states)
 
 
 def _hm(text: str) -> time:
@@ -207,11 +222,35 @@ def mine_left(now: datetime) -> int:
     return int((end - local).total_seconds())
 
 
-def current_field(ctx_fields: WarFields, campaign_id: int, opened: datetime) -> Field:
-    """A partida da janela ``opened``; uma janela nova (outro dia) começa do zero."""
-    cur = ctx_fields.fields.get(campaign_id)
+def fields_left(snap: PlayerSnapshot, now: datetime) -> int:
+    """``PlayerMsg.warFieldCount``: campos com prêmio que ainda restam hoje (o cliente mostra "N / 2" no
+    ``PvpSelectFrame`` e ``MaxCount - warFieldCount`` feitos no guia do dia; visto 2 no login)."""
+    st = ev.peek(snap, REWARDED_KEY)
+    used = st.value if st is not None and gameday.same_day(st.updated_at, now) else 0
+    return max(0, REWARDED_PER_DAY - used)
+
+
+def bracket(grades: int) -> int:
+    """Faixa de nível (cliente, ajuda do campo: "divided into level brackets every 10 levels. Players of different
+    brackets will enter different Battlegrounds"): 30-39 é a 3, 40-49 a 4..."""
+    return grades // BRACKET
+
+
+def joined(ctx_fields: WarFields, campaign_id: int, opened: datetime, player_id: int) -> Field | None:
+    """A partida da janela em que o jogador já entrou (a faixa fica a da entrada, mesmo subindo de nível)."""
+    return next((f for f in ctx_fields.fields.values()
+                 if f.campaign_id == campaign_id and f.opened == opened and player_id in f.marks), None)  # fmt: skip
+
+
+def current_field(ctx_fields: WarFields, campaign_id: int, opened: datetime, player_id: int, grades: int) -> Field:
+    """A partida da janela ``opened`` do jogador: a que ele já entrou ou a da faixa dele; uma janela nova (outro dia)
+    começa do zero."""
+    if (mine := joined(ctx_fields, campaign_id, opened, player_id)) is not None:
+        return mine
+    key = (campaign_id, bracket(grades))
+    cur = ctx_fields.fields.get(key)
     if cur is None or cur.opened != opened:
-        cur = ctx_fields.fields[campaign_id] = Field(campaign_id, opened)
+        cur = ctx_fields.fields[key] = Field(campaign_id, opened)
     return cur
 
 

@@ -41,6 +41,9 @@ DEFAULTS: dict[str, Any] = {
     "field_move_speed": 10,
     # 0143: fator da velocidade de quem carrega minério
     "field_carry_speed": 0.5,
+    # 0149: diferença de placar que encerra o campo antes da hora (ajuda do cliente) e pontos do guardião vencido
+    "field_score_gap": 5000,
+    "field_guardian_points": 20,
 }
 
 

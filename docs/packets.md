@@ -390,7 +390,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4535 | 0x11B7 | U_C_LORDS_OPENSTATE |  | SimplePropertyMsg |
 | 4536 | 0x11B8 | U_C_LORDS_CLOSE |  | (não lê corpo) |
 | 4537 | 0x11B9 | U_C_LORDS_LOCAL_FIANL_ORDER |  | LordsOrderListMsg |
-| 4538 | 0x11BA | U_C_LORDS_FINAL_TIPS |  | PropertyMsg (param4) |
+| 4538 | 0x11BA | U_C_LORDS_FINAL_TIPS |  | PropertyMsg (param4; no servidor `SimplePropertyMsg`), fim da Class Wars (`warfield.class_wars_end`) |
 | 4539 | 0x11BB | U_C_VIP_FIRST |  | (não lê corpo) |
 | 4540 | 0x11BC | U_C_PLAYER_PETINFO |  | PlayerPetMsg |
 | 4541 | 0x11BD | U_C_CROSS_BIGBUGLE |  | CrossBigBugleMsg |
