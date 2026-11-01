@@ -143,6 +143,8 @@ async def test_8334_pvp_no_campo_com_4494_e_4269(tmp_path: Path, monkeypatch) ->
         s = _session(g)
         field = s.ctx.warfields.fields[4005, 3]
         field.mark(other.user_id).score = 100
+        field.mark(other.user_id).team = 3 - field.mark(g.user_id).team  # o lado é sorteado: lados opostos
+        _session(other).campaign.pos = s.campaign.pos = (98, 75)  # fora das bases (a base protege quem está nela)
         g.client.send(8334, pb.WarFieldAttackMsg(userId=other.user_id, defenceServerName="x"))
         got = await g.idle()
         assert got and got[-1].code == 157, [p.code for p in got]

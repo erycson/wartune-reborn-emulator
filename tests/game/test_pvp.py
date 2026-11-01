@@ -489,9 +489,10 @@ async def test_estado_dos_campos_de_batalha_pela_agenda_como_a_captura(tmp_path:
         templates = g.server.services.templates
         at = datetime(2026, 10, 18, 18, 24, tzinfo=UTC)  # tutorial_en #104
         got = [(i.campaignId, i.state) for i in warfield.states(templates, at).worldBossInfo]
-        assert got == [(c, 2) for c in range(4001, 4008)] + [(4008, 3)] + [(c, 1) for c in range(4009, 4012)]
-        at = datetime(2026, 10, 18, 19, 0, tzinfo=UTC)  # #3110: o oficial abre (0); aqui fica 3, sem o mapa
-        assert dict((i.campaignId, i.state) for i in warfield.states(templates, at).worldBossInfo)[4009] == 3
+        # os 11 campos têm mapa (410e247): o da hora fica aberto (0), como o oficial
+        assert got == [(c, 2) for c in range(4001, 4008)] + [(4008, 0)] + [(c, 1) for c in range(4009, 4012)]
+        at = datetime(2026, 10, 18, 19, 0, tzinfo=UTC)  # #3110: o oficial abre (0)
+        assert dict((i.campaignId, i.state) for i in warfield.states(templates, at).worldBossInfo)[4009] == 0
 
 
 async def test_colosseum_avatar_carries_the_leaders_fashion(tmp_path: Path) -> None:

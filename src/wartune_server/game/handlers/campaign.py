@@ -364,7 +364,9 @@ async def arrive(s: GameSession, msg: pb.CampaignReqMsg) -> None:
 
         await war_arrive(s, msg.paraInt1, node)
         return
-    if c is None or node is None or node["state"] != NORMAL or c.fighting or c.locked(msg.paraInt1):
+    # no campo a entrada das bases é state 9 e responde mesmo assim (visto 20261101 #6130)
+    if c is None or node is None or (node["state"] != NORMAL and not c.is_warfield) or c.fighting \
+            or c.locked(msg.paraInt1):
         return
     camp = msg.paraInt1
     if c.hook:
