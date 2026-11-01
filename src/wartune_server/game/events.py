@@ -206,9 +206,10 @@ COUNTED |= {SKY_TRAILS: True}
 MINEFIELD = 111
 COUNTED |= {MINEFIELD: False}
 # "During the event, explore Great Card Hunt the required number of times" (conditionId 101): cada 9502 op 3; o
-# value sobe 1, 2, 3 na mesma edição (captura 20261029-121453-1 #450, #504, #548): o período
+# value sobe 1, 2, 3 no dia (captura 20261029-121453-1 #450, #504, #548) e zera no outro: a mesma edição termina
+# o 29/10 em 5 (#8558), abre o 30/10 em 0 (151436 #72) e o 31/10 em 0 (183522 #78): diário
 GREAT_CARD_HUNT = 101
-COUNTED |= {GREAT_CARD_HUNT: False}
+COUNTED |= {GREAT_CARD_HUNT: True}
 
 
 def count(snap: PlayerSnapshot, catalog: EventCatalog, active_type: int, now: datetime, n: int = 1) -> list[EventState]:

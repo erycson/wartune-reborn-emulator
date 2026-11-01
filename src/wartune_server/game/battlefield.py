@@ -63,7 +63,7 @@ PICKS_PER_CART = 5  # (visto #2135) "Collection complete. (4 / 5) collections re
 MINE_WINDOW = (time(19, 30), time(20, 0))  # texto do carrinho (visto #1962), horário do servidor
 TOP = 3
 TILE = 20
-START = (44, 80)  # entrada da mina; TODO(inventado): a mina não tem posição de entrada vista
+START = (167, 183)  # entrada da mina: 21 do 8633 (183522 #6034 curPosX/curPosY)
 CART_POS, MINE_PICK_POS, ORE_POS = (30, 30), (34, 34), (40, 40)  # TODO(inventado): posições da mina
 
 
@@ -189,6 +189,16 @@ def mine_open(now: datetime) -> bool:
     """Carrinho avançado só no horário do texto da mina (visto #1962 e #2094)."""
     local = gameday.local(now).time()
     return MINE_WINDOW[0] <= local < MINE_WINDOW[1]
+
+
+def mine_left(now: datetime) -> int:
+    """Segundos até o fim da janela (4548 ``activeTime``: 1735 às 19:31:05, 183522 #6036; 737 às 19:47, 232017;
+    40 às 19:59, 225632); fora dela 0 (TODO(inventado): nenhuma captura fora da janela)."""
+    if not mine_open(now):
+        return 0
+    local = gameday.local(now)
+    end = local.replace(hour=MINE_WINDOW[1].hour, minute=MINE_WINDOW[1].minute, second=0, microsecond=0)
+    return int((end - local).total_seconds())
 
 
 def current_field(ctx_fields: WarFields, campaign_id: int, opened: datetime) -> Field:

@@ -467,9 +467,10 @@ inglês tutorial_en #639/#2784: custos 500/5000/30000). 4640 no login só a part
   **Captura que falta**: ⏩ (3), ferramentas (5), fúria e ajuda (6, 7, 9, 4919, 4920): respostas por dedução e
   números inventados (`TODO(inventado)` em `game/fishing.py`).
 - **Caça ao tesouro (9502):** feita (`handlers/treasure_hunt.py`) pela captura 20261029-121453-1 #447-#575
-  (migração 0136): nós, 3 iniciais, 6 h, `eventDesc`, 32000 de ouro, prêmio por nó, correio e ordem dos pacotes.
-  **Captura que falta** (o "+" gasta Exploration Artifact e o Dwarf Merchant cobra Daru: 0137): desistir (5), trocar (6), moeda insuficiente e o prêmio
-  dos outros 31 nós.
+  (migração 0136): nós, 3 iniciais, 6 h, correio e ordem dos pacotes; o "+" gasta Exploration Artifact (0137).
+  Captura 20261031-183522-1 #8956-#9254 (0145): o prêmio é sorteado (kit Novice/Expert x1 + 2/3/5 shards, pesos da
+  contagem) e a moeda também, à parte do texto (9 textos com `{cost}`): 1000 Gold, 600 Daru ou 20 Kyanite por nível.
+  A atividade 101 conta por dia. **Captura que falta**: desistir (5), trocar (6) e moeda insuficiente.
 - **Estrada dourada (9520..9522):** `Golden_Road_Batch_Times` 50 e o help ("Normal 1x, Double 2x, Quintuple 5x",
   casas "?", 100 pontos) existem; as casas (4933 `cellInfo`) e o custo de cada dado vêm do servidor. **Captura que
   falta**: abrir (4933) e jogar o dado nos três modos (4934 `CastDiceMsg`), mais o "refresh".

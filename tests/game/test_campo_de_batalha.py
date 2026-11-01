@@ -142,6 +142,10 @@ async def test_8633_mina_com_carrinho_e_coleta(tmp_path: Path) -> None:
         g.client.send(8633)
         got = await g.idle()
         assert {125, 140, 21, 127, 4548} <= set(_codes(got))
+        tram = _body(got, 4548, pb.TramcarInfoMsg)  # 183522 #6036: o que falta até as 20:00, count 2
+        assert (tram.activeTime, tram.count, tram.multiple) == (15 * 60, 2, 2)
+        enter = _body(got, 21, pb.RoomEnterMsg).player[0]  # 183522 #6034
+        assert (enter.curPosX, enter.curPosY) == bf.START == (167, 183)
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=3000003, paraBool1=True))  # carrinho
         assert _body(await g.idle(), 29, pb.CampaignConfirmMsg).mapId == bf.MINE
         g.client.send(5033, pb.CampaignReqMsg(paraInt1=65, paraInt2=3000003, paraBool1=True))

@@ -21,8 +21,12 @@ foi algo pelo correio, 111 "Received: ...[, inventory full, please check your ma
 failed". O correio é "Treasure Hunt Rewards" com o que não coube (4131 #606). Cada ``eventDesc`` tem a sua moeda:
 ouro sai no 109, Daru (``strategy``) no 3 no lugar do 109 (#2837-#2840: 3, 115, 4476...).
 
-Regras em ``game_settings.treasure_hunt`` (migração 0136, cada valor com a ``source``); sem a chave o servidor não
-responde.
+Captura 20261031-183522-1 (#8956-#9254, nível 34): o prêmio é sorteado (kit Novice/Expert x1 + 2-5 shards, o mesmo
+nó dá prêmios diferentes) e a moeda é sorteada à parte do texto (a caravana pede Gold em #8962 e Kyanite em #8985);
+o preço é por nível: 1000 Gold, 600 Daru ou 20 Kyanite (``crystals``, no 109) por nível. Sem reset diário.
+
+Regras em ``game_settings.treasure_hunt`` (migrações 0136, 0137 e 0145, cada valor com a ``source``); sem a chave o
+servidor não responde.
 """
 
 from __future__ import annotations
@@ -92,15 +96,34 @@ def _cost(data: dict[str, Any]) -> tuple[str, int]:
     return (str(desc[1]), int(desc[2])) if isinstance(desc, list) else ("gold", 32000)
 
 
+def _event(c: Any, grade: int) -> list[Any]:
+    """[texto, moeda, valor]: texto e moeda sorteados à parte, o valor é o da moeda por nível (0145)."""
+    coin, per, name = RNG.choice(c["coins"])
+    cost = int(per) * grade
+    return [str(RNG.choice(c["eventDescs"])).format(cost=f"{cost} {name}"), str(coin), cost]
+
+
+def _pay(snap: PlayerSnapshot, coin: str, cost: int) -> bool:
+    ch = snap.character
+    field = {"daru": "strategy", "kyanite": "crystals"}.get(coin, "gold")
+    if getattr(ch, field) < cost:
+        return False
+    setattr(ch, field, getattr(ch, field) - cost)
+    return True
+
+
+def _prize(c: Any) -> list[tuple[int, int]]:
+    """Kit x1 e Summoner's Shard xN sorteados (0145; o prêmio não é do nó)."""
+    kit = RNG.choices([k for k, _ in c["prizeKits"]], weights=[w for _, w in c["prizeKits"]])[0]
+    n = RNG.choices([k for k, _ in c["prizeShards"]], weights=[w for _, w in c["prizeShards"]])[0]
+    return [(int(kit), 1), (int(c["shard"]), int(n))]
+
+
 async def _treasure(s: GameSession, snap: PlayerSnapshot, c: Any, data: dict[str, Any], node: str) -> None:
     """op 4 com tesouro: paga o ouro, dá o prêmio do nó (o que não cabe vai pelo correio) e manda na ordem do d29."""
     templates, now = s.ctx.templates, s.ctx.clock.now()
-    drops = [(int(t), int(n)) for t, n in c["prizes"].get(str(data["node"]), c["defaultPrize"])]
-    coin, cost = _cost(data)
-    if coin == "daru":
-        snap.character.strategy -= int(cost)
-    else:
-        snap.character.gold -= int(cost)
+    drops = _prize(c)
+    coin, _ = _cost(data)
     data["state"] = 0
     got, letters = place(s, snap, s.player_id, drops, now)
     for letter, _, items in letters:  # 4131 #606: título fixo, texto com o que foi no correio
@@ -112,7 +135,7 @@ async def _treasure(s: GameSession, snap: PlayerSnapshot, c: Any, data: dict[str
     if coin == "daru":
         _player(s)  # d29 #2839
     else:
-        castle_yield(s)
+        castle_yield(s)  # ouro e Kyanite (crystalsCount, 183522 #8987)
     await granted(s, drops, got, "", chat=False, player=None)
     for letter, _, _ in letters:
         notify_mail(s.ctx.online, letter)
@@ -143,8 +166,7 @@ async def treasure_hunt(s: GameSession, msg: pb.PlayerSeekInfoMsg) -> None:
         if data["state"] != 1:  # d29 #514-#528: o segundo clique do diálogo
             alert(s, str(c["failText"]))
             return
-        coin, cost = _cost(data)
-        if (snap.character.strategy if coin == "daru" else snap.character.gold) < int(cost):
+        if not _pay(snap, *_cost(data)):
             alert(s, str(c["noGoldText"]))  # TODO(inventado): sem captura de ouro insuficiente
             return
         await _treasure(s, snap, c, data, names[data["node"]])
@@ -154,7 +176,7 @@ async def treasure_hunt(s: GameSession, msg: pb.PlayerSeekInfoMsg) -> None:
     if explored:
         data["count"] -= 1
         data["node"] = RNG.choice([n for n in names if n != data["node"]] or list(names))
-        data["state"], data["desc"] = 1, RNG.choice(c["eventDescs"])
+        data["state"], data["desc"] = 1, _event(c, snap.character.grades)
         counted = ev.count(snap, s.ctx.events, ev.GREAT_CARD_HUNT, now)
     elif op == GIVE_UP:
         data["state"] = 0

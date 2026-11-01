@@ -25,7 +25,7 @@ from ..builders.player import quest_update
 from ..router import router
 from ..session import GameSession
 from .hero import send_items
-from .player import _army, _player, alert, snapshot_of
+from .player import S_CHAT, _army, _player, alert, snapshot_of
 
 S_MOUNT_AVATARS, S_MOUNT, S_MOUNT_OTHER, S_MOUNT_STAR = 4427, 4426, 4459, 4679
 S_FATE, S_FATE_TURN, S_DRAGON, S_TRANSFER, S_TRANSFER_GRADE = 4544, 4545, 4555, 4556, 4557
@@ -870,18 +870,7 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
             return
         card[0], card[1] = card[0] + 1, card[1] - int(nxt["Data"])
     elif msg.op == CARD_ACTIVATE:
-        # idioma card.cardHelper.content02 "Activate all cards in your inventory?" (MagicCardSlotView): usa as
-        # cartas da mochila. Sem nenhuma, só o 111 (captura 20261029-121453-1 #574-#575, #4119-#4120, esta com
-        # cartas já na coleção). *(dedução)* com cartas: os pacotes do 5006 de cada uma
-        from .items import _use_power_card  # items importa este módulo
-
-        held = [i for i in bag.in_bag(snap) if (templates.get("ItemTempInfos", i.template_id) or {}).get("SonType")
-                == CARD_ITEM]  # fmt: skip
-        if not held:
-            alert(s, NO_CARDS)
-            return
-        for item in held:
-            await _use_power_card(s, item, templates.get("ItemTempInfos", item.template_id) or {}, 1)
+        await _activate_all(s, snap, sy, found)
         return
     elif msg.op == CARD_TIDY:
         await _burn_cards(s, snap, sy, found)
@@ -894,15 +883,62 @@ async def powcard_op(s: GameSession, msg: pb.PowCardReqMsg) -> None:
     send_cards(s)
 
 
+async def _activate_all(s: GameSession, snap: PlayerSnapshot, sy: PlayerSystems, found: dict[int, list[int]]) -> None:
+    """op 2 (idioma card.cardHelper.content02 "Activate all cards in your inventory?"): uma cópia de cada carta da
+    mochila que falta na coleção entra no grau 1 com ``isActive`` 1 (as outras 0); a repetida fica para o op 3. Sem
+    nenhuma, só o 111 (captura 20261029-121453-1 #574-#575, #4119-#4120). (visto) 20261031-183522-1 #9217-#9234:
+    um 115 por item, 111 "N cards have been successfully activated.", 4902+150, 83 "Congrats! ..." da coleção nova e
+    83 "Card X has been successfully activated!" de cada (o 4903 depois do primeiro), 4905 e 4902."""
+    templates = s.ctx.templates
+    new: dict[int, Item] = {}
+    for item in sorted(bag.in_bag(snap), key=lambda i: i.pos):  # #9222-#9224: pela posição
+        temp = card_of(templates, item)
+        if temp and temp not in found and temp not in new:
+            new[temp] = item
+    if not new:
+        alert(s, NO_CARDS)
+        return
+    suites = {int((templates.get("PowcardTempInfos", t) or {}).get("SuiteId") or 0) for t in found}
+    for card in found.values():
+        card[2] = 0
+    changed: list[Item] = []
+    gone: list[Item] = []
+    texts: list[str] = []
+    for temp, item in new.items():
+        found[temp] = [1, 0, 1]
+        (gone if bag.take_one(snap, item, 1) else changed).append(item)
+        suite = int((templates.get("PowcardTempInfos", temp) or {}).get("SuiteId") or 0)
+        if suite not in suites:
+            suites.add(suite)
+            name = (templates.get("PowCardSuiteTemInfos", suite) or {}).get("TemplateName", "")
+            texts.append(f"Congrats! You just received the 1st card, [{name}].")
+        row = templates.get("ItemTempInfos", item.template_id) or {}
+        texts.append(f"Card {row.get('TemplateName', '')} has been successfully activated!")
+    store_cards(sy, found)
+    await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+    for item in new.values():
+        s.send(S_ITEMS, bag.moved([item] if item in changed else [], s.player_id, [item] if item in gone else []))
+    alert(s, f"{len(new)} cards have been successfully activated.")
+    _army(s)
+    first = next(i for i, t in enumerate(texts) if t.startswith("Card "))
+    for i, text in enumerate(texts):
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
+        if i == first:
+            s.send(S_CAMP_BUFFS, pb.PowCardBufListMsg())  # vazio fora de campanha (#9230)
+    send_cards(s)
+
+
 async def _burn_cards(s: GameSession, snap: PlayerSnapshot, sy: PlayerSystems, found: dict[int, list[int]]) -> None:
     """op 3 (idioma card.cardHelper.content01 "Upgrade activated cards by engulfing all cards in your inventory?"):
     cada item de carta da mochila cuja carta já está na coleção vira ``taxas.card_burn_gp`` de EXP dela (0139), até
     o ``Data`` do grau seguinte (``MagicCardInfo.currentGP`` corta no ``currentMaxGp``); a que falta na coleção fica.
-    *(dedução)* 115 do que saiu, 4905 e 4902 (sem captura do op 3)."""
+    (visto) 20261031-183522-1 #9236-#9250: um 115 por item, 111 "N cards have been successfully upgraded", 4902+150,
+    4903, 4905 (todas com ``isActive`` 0), 4902 e um 83 "{carta} gained N points of Card EXP." por carta."""
     templates = s.ctx.templates
     per = int(taxas.get(s.ctx.world.settings, "card_burn_gp"))
     changed: list[Item] = []
     gone: list[Item] = []
+    gains: dict[int, int] = {}
     for item in list(bag.in_bag(snap)):
         temp = card_of(templates, item)
         card = found.get(temp)
@@ -914,12 +950,27 @@ async def _burn_cards(s: GameSession, snap: PlayerSnapshot, sy: PlayerSystems, f
         n = min(item.count, max(0, (cap - card[1] + per - 1) // per)) if per else 0
         if n <= 0:
             continue
+        before = card[1]
         card[1] = min(cap, card[1] + n * per)
+        gains[temp] = gains.get(temp, 0) + card[1] - before
         took, removed = bag.take(snap, item.template_id, n)
         changed += took
         gone += removed
-    if changed or gone:
-        store_cards(sy, found)
-        await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
-        s.send(S_ITEMS, bag.moved(changed, s.player_id, gone))
+    if not gains:
+        send_cards(s)  # TODO(inventado): sem captura do op 3 sem nada para engolir
+        return
+    for card in found.values():
+        card[2] = 0
+    store_cards(sy, found)
+    await s.ctx.characters.save(sy, *changed, delete=tuple(gone))
+    for item in changed:
+        s.send(S_ITEMS, bag.moved([item], s.player_id, []))
+    for item in gone:
+        s.send(S_ITEMS, bag.moved([], s.player_id, [item]))
+    alert(s, f"{len(gains)} cards have been successfully upgraded")
+    _army(s)
+    s.send(S_CAMP_BUFFS, pb.PowCardBufListMsg())
     send_cards(s)
+    for temp, gp in gains.items():
+        name = (templates.get("PowcardTempInfos", temp) or {}).get("TemplateName", "")
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"{name} gained {gp} points of Card EXP."))

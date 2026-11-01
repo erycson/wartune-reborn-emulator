@@ -487,7 +487,7 @@ async def enter_mine(s: GameSession, _: object) -> None:
         return
     now = ctx.clock.now()
     space.leave(s)
-    s.campaign = CampaignMap(bf.MINE, bf.mine_nodes(), bf.START, warfield=bf.MINE)  # TODO(inventado): entrada da mina
+    s.campaign = CampaignMap(bf.MINE, bf.mine_nodes(), bf.START, warfield=bf.MINE)
     room = pb.RoomCreatedMsg(createdType=ROOM_ENTER)
     room.room.campaignId = bf.MINE
     s.send(S_ROOM_CREATED, room)
@@ -516,9 +516,10 @@ def _mine_msg(s: GameSession) -> pb.TramcarInfoMsg:
     if cart is not None:
         car.quality, car.tramcarCount, car.isOwn, car.pickCount = cart.quality, 1, 1, cart.picks
         car.minerals = cart.picks * 20  # (visto #2136): 20 por coleta
-    msg = pb.TramcarInfoMsg(activeTime=0, count=0, multiple=2)
+    # (visto) 183522 #6036, 232017, 225632: ``count`` sempre 2, ``activeTime`` o que falta da janela
+    msg = pb.TramcarInfoMsg(activeTime=bf.mine_left(s.ctx.clock.now()), count=2, multiple=2)
     msg.carInfo.add().CopyFrom(car)
-    return msg  # TODO(inventado): activeTime e count
+    return msg
 
 
 async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
