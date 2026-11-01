@@ -106,7 +106,8 @@ async def test_4388_estrela_de_qualidade_4(tmp_path: Path, monkeypatch) -> None:
         assert (sns.type, sns.data, len(sns.md5)) == (2, "4", 32)
 
 
-async def test_4269_entrega_no_campo(tmp_path: Path) -> None:
+async def test_4269_entrega_no_campo(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(bf.random, "choice", lambda sides: sides[-1])  # o lado sorteado: 2, dono dos nós abaixo
     async with logged_in(tmp_path, novice=30001, clock=FakeClock(IN_4007)) as g:
         s = _session(g)
         s.snapshot.character.grades = 35
