@@ -71,8 +71,9 @@ USE_KINDS = {1: ("gold", "Gold"), 3: ("point", "Balens"), 4: ("gift_token", "Bou
 USE_KINDS |= {6: ("geste", "Honor"), 7: ("gp", "Hero EXP"), 10: ("strategy", "Daru")}  # 191924 #1721
 USE_KINDS[15] = ("copies", "Multi-player Dungeon")  # The Empire Crusade (2032101): +1 entrada de campanha em grupo
 # Kyanite Pack (11, cristal do castelo) e Contribution Badge (8, contribuição da guilda): o campo pelo nome do item;
-# TODO(inventado): o texto "Received:" sem captura
+# (visto 183522 #15184 "Received:Guild Contribution x1350" de 27 badges); TODO(inventado): o texto do Kyanite
 USE_KINDS |= {8: ("consortia_offer", "Guild Contribution"), 11: ("crystals", "Kyanite")}
+S_CONSORTIA_OFF = 42  # contribuição da guilda mudou (ConsortiaMsg result), como na doação (guild/upgrades.py)
 # Medallion (16): "permanently increase Honor by 500, unaffected by the daily Honor gain limit" -> geste, como o 6
 USE_KINDS[16] = ("geste", "Honor")
 ONE_CONTRACT = 14  # Pocket Market... (Property2 horas, Property3 = o contrato do rei 1-6)
@@ -434,6 +435,8 @@ async def _use_resource(s: GameSession, item: Item, row: Row, n: int) -> bool:
     if gained:  # (visto) 191924 #1725: 115, 83 da EXP, o nível (140, 100, 150), 111 e 3
         send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=exp_text(amount)))
         await push_level(s, c.grades - gained)
+    if field == "consortia_offer":  # (visto) 183522 #15179-#15185: 115, 42 result, 111 e 3
+        send(s, S_CONSORTIA_OFF, b.complete(pb.ConsortiaMsg(result=True)))
     send(s, S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=f"Received:{label} x{amount}"))
     _player(s)
     if field == "gp" and not gained:  # (visto) 191924 #1720: 115, 111 "Received:Hero EXP x1000", 3 e 83

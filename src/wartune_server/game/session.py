@@ -157,6 +157,7 @@ class GameSession:
         self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)
         self.fam_lords: tuple[datetime, int] | None = None  # (chamada, leva) do Master Treasure Thief já mostrada
         self.space_collect: tuple[int, datetime] | None = None  # coleta da cidade do céu em curso (nó, início; 8733)
+        self.year_wave: int | None = None  # leva das caixas da cidade do céu já mostrada (historia.push_wave)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None
         # Treasure Caches na vista do último 8201 (id -> baú) e o último 20008 que os conferiu (``_roll_caches``)

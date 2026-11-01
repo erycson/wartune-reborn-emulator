@@ -390,7 +390,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4535 | 0x11B7 | U_C_LORDS_OPENSTATE |  | SimplePropertyMsg |
 | 4536 | 0x11B8 | U_C_LORDS_CLOSE |  | (não lê corpo) |
 | 4537 | 0x11B9 | U_C_LORDS_LOCAL_FIANL_ORDER |  | LordsOrderListMsg |
-| 4538 | 0x11BA | U_C_LORDS_FINAL_TIPS |  | SimplePropertyMsg |
+| 4538 | 0x11BA | U_C_LORDS_FINAL_TIPS |  | PropertyMsg (param4) |
 | 4539 | 0x11BB | U_C_VIP_FIRST |  | (não lê corpo) |
 | 4540 | 0x11BC | U_C_PLAYER_PETINFO |  | PlayerPetMsg |
 | 4541 | 0x11BD | U_C_CROSS_BIGBUGLE |  | CrossBigBugleMsg |
@@ -434,7 +434,7 @@ Direção: **C→S** = o cliente envia (`new PackageOut`), **S→C** = o cliente
 | 4614 | 0x1206 | U_C_REPEAT_REWARD_UPDATE |  | RewardUpdatedRspMsg |
 | 4615 | 0x1207 | U_C_REPEAT_REWARD_END |  | (não lê corpo) |
 | 4616 | 0x1208 | U_C_REPEAT_REWARD_FNISHED_SUM_UPDATE |  | SimplePropertyMsg |
-| 4617 | 0x1209 | U_C_REPEAT_REWARD_FINISH |  | (não lê corpo) |
+| 4617 | 0x1209 | U_C_REPEAT_REWARD_FINISH |  | (não lê corpo; vazio no fim de cada anel, offer._ring_done) |
 | 4618 | 0x120A | U_C_PLAYER_ADDITION |  | AdditionMsg |
 | 4619 | 0x120B | U_C_TOP_CHALLENGE_INFO |  | PetChallengeInfoMsg |
 | 4620 | 0x120C | U_C_TEAM_INVITE |  | InviteTeamMsg |

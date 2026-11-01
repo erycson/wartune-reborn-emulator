@@ -157,6 +157,7 @@ async def test_ring_task_finish_with_item_or_diamonds(tmp_path: Path) -> None:
         assert pb.SimplePropertyMsg.FromString(next(p for p in got if p.code == 4616).body).param1 == 1
         assert pb.RewardUpdatedRspMsg.FromString(next(p for p in got if p.code == 4614).body).reward[0].isComplete
         assert c.point == 0
+        assert 4617 in [p.code for p in got + await g.idle()]  # fim do anel, vazio (165308 #8309)
 
         g.client.send(8732)
         await g.until(4614)

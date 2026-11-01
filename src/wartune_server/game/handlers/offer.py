@@ -32,7 +32,7 @@ ELIMINATE, FETCH = 18, 19
 # (cliente) RingTask.getProgress: 1 conta as tropas do SonType Para1, 4 os itens Para1, 19 ter o item; 12 (QTE), 15
 # (Whack-a-Mouse) e 16 (conversa) são resultados que só o cliente vê (nenhum pacote leva): o servidor confia no 8729
 CLIENT_ONLY = (QTE, MOUSE, MESSAGE)
-S_RING, S_RING_SUM = 4614, 4616
+S_RING, S_RING_SUM, S_RING_DONE = 4614, 4616, 4617
 SLOTS, OPEN_GRADE, BASE_COUNT = 4, 14, 20  # OfferRewardModel: MAX_OFFER_TASK_NUM, OPEN_REWARD_GRADE, BASE_REWARD_COUNT
 AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 10  # AUTO_REFRESH_INTERVAL, botão grátis some em 2, NEEDPAY
 CAN_ACCEPT, ACCEPTED, COMPLETED = 1, 2, 3  # REWARD_STATE_*
@@ -510,6 +510,7 @@ async def _ring_done(
     alert(s, text)
     await granted(s, drops, new, text)
     await progress(s, CIRCUIT)  # "Complete Circuit Quests" do painel
+    s.send(S_RING_DONE)  # 4617 vazio (visto 20261101-165308-1 #8309); RingTaskManager.__finishTaskHandler não faz nada
 
 
 @router.on(8729)

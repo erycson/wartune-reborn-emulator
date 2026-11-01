@@ -256,3 +256,17 @@ async def test_exp_book_level_up_order(tmp_path: Path) -> None:
         seq = [x for x in codes(got) if x != 104]  # 104: a fila de cobrança que nasce no 14 (o oficial já tinha)
         assert seq[:2] == [115, 83] and 140 in seq and seq[-3:] == [150, 111, 3]  # 110/104 do nível 14-20 do teste
         assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Received 5,000 EXP "
+
+
+async def test_contribution_badge_manda_42_antes_do_aviso(tmp_path: Path) -> None:
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = me(g)
+        badge = Item(g.user_id, 2030801, pos=0, count=27)  # Lvl. 1 Contribution Badge: 50 cada
+        snap.items.append(badge)
+        await g.server.services.characters.save(badge)
+        offer = snap.character.consortia_offer
+        g.client.send(5006, pb.ItemUseMsg(pos=0, count=27, bagType=1))
+        got = await g.until(3)
+        assert codes(got) == [115, 42, 111, 3]  # (visto) 183522 #15178-#15185
+        assert pb.ChatChannelMsg.FromString(got[2].body).encodeMsg == "Received:Guild Contribution x1350"
+        assert snap.character.consortia_offer == offer + 1350

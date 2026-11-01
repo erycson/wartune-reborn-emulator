@@ -266,6 +266,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     from .arena import push_match  # arena importa este módulo
     from .fam import push_state as push_fam  # fam importa este módulo
     from .guild.election import clock as election_clock  # guild importa este módulo
+    from .historia import push_wave  # historia importa este módulo (via minijogo)
     from .pet_defend import push_state as push_defend
     from .vehicle import push_state  # vehicle importa este módulo
     from .wedding import clock as wedding_clock  # wedding importa este módulo
@@ -281,6 +282,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
     push_fields(s)
     push_state(s)
     push_defend(s)
+    push_wave(s)
     push_match(s)
     if s.snapshot is not None and (changed := daily.roll(s.snapshot, s.ctx.templates, now, s.ctx.world.settings)):
         await s.ctx.characters.save(*changed)

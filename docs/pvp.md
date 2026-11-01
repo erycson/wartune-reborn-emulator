@@ -251,6 +251,7 @@ e o ataque dos pets são aproximados do que a captura mostra (`pet_hp`, ataque =
 | C>S | Resposta | Por quê |
 |---|---|---|
 | 8711 | 4529 processo 0, sem campeões | Senhores (Warlords) é torneio entre servidores com agenda; sem ela, o cliente recusa a sala ("não aberto") *(cliente)* `WarlordsManager.as` |
+| (4538 S>C) | nunca mandado | Aviso do fim da Class Wars a todos: (visto) 183522 #9514 "The Class Wars have ended! Artemis ranked number 27. Their entire server has gained a 7 day blessing!"; (cliente) `WarlordsManager.__getFinalNoticeHandler` lê `PropertyMsg.param4` e mostra no canal 12 com corneta grande. Sem Class Wars aqui (entre servidores, fechada) não há fim nem ranking para anunciar |
 | 8714, 8710 | 4530 processo 0 e 4536 (expulsa da sala) | o 8714 repete a cada 5 s até o 4530 |
 | 8715, 8716 | 4531 vazio (nada é cobrado) | |
 | 8718 / 8721 | 4532 / 4537 vazios | |
