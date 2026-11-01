@@ -103,7 +103,8 @@ async def test_soul_swap_sends_3_then_4372(tmp_path: Path) -> None:
         await g.server.services.characters.save(snap.character)
         g.client.send(8467)
         got = await g.until(4372)
-        assert codes(got)[-2:] == [3, 4372]
+        # 20261030-151436 #4077-#4080: o 4476 (tipo 22) e o 4426 só com a atividade correndo
+        assert [c for c in codes(got) if c not in (4476, 4426)][-2:] == [3, 4372]
 
 
 async def test_recover_list_sends_4912_then_109(tmp_path: Path) -> None:

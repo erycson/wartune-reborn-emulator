@@ -229,9 +229,15 @@ async def learn(s: GameSession, msg: pb.ConsortiaMsg) -> None:
         return
     c.consortia_offer -= int(row["NeedOffer"])
     _player(s)
+    assert s.snapshot is not None
+    # (visto) 20261030-151436 #4263-#4272 (tipo 8, 80 -> 120): 3, 110 -80 e 150 (tira o bônus velho), 110 +120 e 150
+    # (põe o novo), 3 e 111; do nível 0 (171155 #5045-#5051) não há o que tirar
+    if old := rules.guild_skills(c, s.ctx.templates).get(msg.studySkill, 0):
+        s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=GUILD_SKILL_EFFECT, value=-old))
+        setattr(c, attr, 0)  # o 150 do meio vai sem a habilidade
+        s.send(S_ARMY, b.complete(army(s, s.snapshot)[0]))
     setattr(c, attr, level)
     await s.ctx.characters.save(c)
-    assert s.snapshot is not None
     value = rules.guild_skills(c, s.ctx.templates).get(msg.studySkill, 0)
     s.send(S_EFFECT, pb.PropertyUpdatedMsg(propertyType=GUILD_SKILL_EFFECT, value=value))
     s.send(S_ARMY, b.complete(army(s, s.snapshot)[0]))

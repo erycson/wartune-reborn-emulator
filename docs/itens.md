@@ -122,7 +122,7 @@ minutos por unidade (× `count`), Property3 = grau (o `{Grades}` da descrição)
 | + 109 | depois dos pergaminhos de ouro/população | *(dedução)* |
 | mesmo efeito, grau menor | recusa sem resposta | *(cliente)* `MulItemUseFrame` já barra: "Stronger buff already active, overlapping not allowed." |
 | mesmo efeito, grau igual / maior | soma o tempo / substitui grau e tempo | *(dedução)* |
-| 8283 `EffectRemoveReqMsg{templateId}` | o cliente manda quando o relógio do ícone zera ou o jogador tira o buff ("Are you sure you want to remove this buff?"): encerra, 110 `value 0`, 4188 `validityDate 0` (o cliente só apaga o ícone com ele) | *(cliente)* `PlayerBufferManager`/`PlayerBufferItem`; resposta *(dedução)* |
+| 8283 `EffectRemoveReqMsg{templateId}` | o cliente manda quando o relógio do ícone zera ou o jogador tira o buff ("Are you sure you want to remove this buff?"): encerra; 110 `value 0` (EXP e outros) ou `-grau` (atributo, seguido do 150 sem a poção), 4188 `validityDate 0` e `isCancel` (o cliente só apaga o ícone com ele), 150 e 4434 | *(cliente)* `PlayerBufferManager`/`PlayerBufferItem`; *(visto)* 20261030-151436 #2299-#2304 (2030) e #2910-#2917 (2138) |
 | login | 4188 com os ativos, depois do 4247 | *(dedução)*: nenhuma captura de login com buff |
 
 `validityDate` arredonda os minutos para cima: o relógio do cliente acaba depois do servidor.

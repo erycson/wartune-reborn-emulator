@@ -64,10 +64,10 @@ GRADE_BOXES = "grade_boxes"
 
 def click(snap: PlayerSnapshot, key: str, now: datetime) -> EventState:
     """Soma 1 no contador do dia ``key`` (``keys`` do cliente DayGuideManager: 5001, match, 5002, 4001, 4002, 5003,
-    reward, vehicle, minefield, pet)."""
+    reward, vehicle, minefield, pet). ``updated_at`` fica na hora do 1º do dia, o ``changeTime`` oficial (visto
+    20261030-151436 #587-#1974 "reward" 4..15 sempre "10:58:04"; 20261031-183522 #5661-#5923 "match")."""
     st = daily(snap, CLICK + key, now)
     st.value += 1
-    st.updated_at = now
     return st
 
 

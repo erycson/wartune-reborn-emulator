@@ -93,6 +93,22 @@ async def test_bounty_24_counts_friend_trees_and_finishes_without_pass(tmp_path:
         assert pb.ChatChannelMsg.FromString(got[-1].body).encodeMsg == "Received 18,240 EXP "
         [done] = pb.RewardUpdatedRspMsg.FromString(got[3].body).reward
         assert (done.condition_1, done.isAccept, done.isComplete) == (2, True, True)
+        # (visto) 121659 #504-#505: 4413 {"reward", 1, hora} e 4196 com o TemplateId ("0818")
+        [click] = pb.ClickDatasRspMsg.FromString(got[5].body).info
+        assert (click.keys, click.keyData) == ("reward", 1)
+        assert got[6].body == bytes.fromhex("0818")
+
+
+def test_click_keeps_first_time_of_day() -> None:
+    """(visto) 20261030-151436 #587-#1974: o ``changeTime`` do "reward" fica na hora do 1º do dia."""
+    from datetime import UTC, datetime, timedelta
+    from types import SimpleNamespace
+
+    snap: PlayerSnapshot = SimpleNamespace(character=SimpleNamespace(id=1), events=[])  # type: ignore[assignment]
+    first = datetime(2026, 10, 30, 13, 58, 4, tzinfo=UTC)
+    ev.click(snap, "reward", first)
+    st = ev.click(snap, "reward", first + timedelta(minutes=30))
+    assert (st.value, st.updated_at) == (2, first)
 
 
 async def test_ring_task_finish_with_item_or_diamonds(tmp_path: Path) -> None:

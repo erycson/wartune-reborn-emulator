@@ -474,11 +474,24 @@ async def star_bag_buy(s: GameSession, msg: pb.PayTypeMsg) -> None:
             snap.character, cost, bind=msg.payType == 0, reason="star_bag", ref="", now=s.ctx.clock.now()
         )
     if spent is None:
-        s.log.info("8270 recusado", pedido=str(msg))
+        s.log.info("8270 recusado", comprados=sy.star_bag, custo=cost, diamante=snap.character.point,
+                   vinculado=snap.character.gift_token, pedido=str(msg))  # fmt: skip
         return
+    # (visto) 20261031-183522 #2026-#2033 (395 do vinculado): 3 só com o gasto (starCount ainda 0), 4152 (leed 15),
+    # 4902, 150, 4434, 3 com o starCount 4 e o 83 da devoção, como acelerar a fazenda
+    from . import events  # events importa este módulo
+    from .player import balens_changed
+
+    _player(s)
     sy.star_bag = min(sy.star_bag + BAG_ROW, BAG_BOUGHT_MAX)
     await s.ctx.characters.save(snap.character, sy, spent)
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.BALEN_LEED, say=False)
+    s.balen_leed_sent = True
+    balens_changed(s)
     _player(s)
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
 
 
 @router.on(8325)

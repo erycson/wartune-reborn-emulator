@@ -87,7 +87,7 @@ O `battle.py` lê (pilhas, talento, runas e destino: [batalha.md](batalha.md)). 
 | 8267 mover/equipar/devorar | 4178 (+4902/150); devorando: 111 da EXP (e de cada nível), 4902/150, 4178 da origem vazia, 4178 da que comeu, 83 de cada nível | visto | equipadas: min(8, nível/10), sem repetir MasterType; `eat` = destino devora a movida |
 | 8331 compor | 111 de cada nível, 111 da EXP, 109 (**dedução**: só se vendeu lixo), 4479 (temporária) / 4178 (mochila), 83 de cada nível, 4484 se a temporária deixou de estar cheia (**dedução**) | visto; os textos em inglês são **inventados** no molde do "Town Hall has been upgraded to Lvl. 2" (`LEVEL_TEXT`, `EXP_TEXT`) | devora tudo que não está travado nem no grau 10, o Energine também (`HoroscopeFrame`); EXP = SellGp + graus + gp; tabela por Profile (Types 9-13, 22), grau máx. 10 |
 | 8330 travar | 4180 / 4178 (+112) | cliente | missão 53 |
-| 8270 comprar espaço | 3 | cliente | uma linha de 4: (comprados/4 + 1) × 395 diamantes, até 16 espaços (`StarManager.sendBagCellBuy`, `PlayerStarListView`) |
+| 8270 comprar espaço | 3 (só o gasto), 4152 (leed 15), 150, 4434, 3 (`starCount` novo), 83 da devoção | cliente + *(visto)* 20261031-183522 #2026-#2033 | uma linha de 4: (comprados/4 + 1) × 395 diamantes, até 16 espaços (`StarManager.sendBagCellBuy`, `PlayerStarListView`); o oficial pagou 395 do vinculado com `payType` 0 |
 | 8325 virada do dia | 3 | cliente | renova o sorteio grátis |
 | 8341 loja | 4178, 3 | cliente | preço = StarPoint do template |
 | 8224 `star` | 4178, 4180 | visto (só turco: login.json #51-52; a inglesa #49 só traz o 4180) | |

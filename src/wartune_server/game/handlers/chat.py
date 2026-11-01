@@ -177,10 +177,14 @@ async def world_chat(s: GameSession, msg: pb.ChatChannelMsg) -> None:
     if text is None or not await _pay_bugle(s, SMALL_BUGLE, free=True):
         s.log.info("corneta pequena recusada", tamanho=len(msg.encodeMsg))
         return
-    _broadcast(s, S_CHAT, _channel_msg(s, WORLD, text))
     from . import events  # events importa login, que importa este pacote
 
-    await events.leed_done(s, events.WORLD_CHAT_LEED)
+    # (visto) 20261031-183522 #6496-#6499: 4152 (leed 16), o 83 do canal 10 e o 83 da devoção
+    devotion = events.devotion(s)
+    await events.leed_done(s, events.WORLD_CHAT_LEED, say=False)
+    _broadcast(s, S_CHAT, _channel_msg(s, WORLD, text))
+    if events.devotion(s) > devotion:
+        events.say_devotion(s)
 
 
 @router.on(8705)

@@ -286,6 +286,13 @@ async def test_upgrade_cooldown_quick_and_learning(tmp_path: Path) -> None:
         assert gain == {"Power": 40, "PhyAttack": 160, "PhyDefence": 40}  # "Strength +40 (Hero)"
         assert c.consortia_offer == 800
 
+        guild.attack_level, c.consortia_offer = 2, 100000
+        a.client.send(5147, pb.ConsortiaMsg(studySkill=6))  # (visto) 20261030-151436 #4263-#4272: tira e põe
+        got = await a.idle()
+        assert [p.code for p in got if p.code in (3, 110, 150, 111)] == [3, 110, 150, 110, 150, 3, 111]
+        effects = [pb.PropertyUpdatedMsg.FromString(p.body).value for p in got if p.code == 110]
+        assert effects[0] == -40 and effects[1] > 40 and c.skill_attack == 2
+
 
 async def test_guild_shop_pays_with_contribution(tmp_path: Path) -> None:
     """Captura (só turco: birlik_katkisi): goodId 19 = 2040106 "Lvl. 6 Luck Stone", 40 de contribuição, mercado nível 6."""

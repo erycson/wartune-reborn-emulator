@@ -282,8 +282,9 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
 
         snap.character.point = 395
         g.client.send(8270, pb.PayTypeMsg(payType=1))  # uma linha de 4 por 395 (StarManager.sendBagCellBuy)
-        assert pb.PlayerMsg.FromString((await g.until(3))[-1].body).starCount == 4
-        assert codes(await g.until(83)) == [4152, 83]  # leed 15 (gasto de diamante)
+        got = await g.until(83)  # (visto) 20261031-183522 #2027-#2033: 3, 4152 (leed 15), 150, 4434, 3, 83
+        players = [pb.PlayerMsg.FromString(p.body).starCount for p in got if p.code == 3]
+        assert players == [0, 4] and [c for c in codes(got) if c != 4902] == [3, 4152, 150, 4434, 3, 83]
         snap.systems.star_point = 1000
         g.client.send(8341, pb.StarShopMsg(goodId=1605))  # 7000 de StarPoint: não tem
         assert await g.idle() == []

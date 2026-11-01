@@ -441,6 +441,10 @@ async def cross_score_reward(s: GameSession, _: object) -> None:
     pts = ag.points(ev.peek(snap, ag.KEY), now, cfg)
     marks = title = 0
     drops = [(int(t), int(n)) for t, n in cross.get("mark", [])]
+    server = snap.server.id or 0
+    # param1 (o cliente não lê): (visto) 20261031-183522 #961-#962 200 com 32 pontos e sem marca; (dedução) a posição
+    states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(server, ag.KEY))
+    place = ag.position(states, s.player_id, now, cfg)
     if ag.can_claim(snap, now, cfg, cross) and rewards.can_grant(snap, s.ctx.templates, drops, now):
         new, text = rewards.grant(snap, s.ctx.templates, drops)
         done = ev.state(snap, ag.REWARD_KEY, now)
@@ -450,9 +454,6 @@ async def cross_score_reward(s: GameSession, _: object) -> None:
         s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=text))
         items_gained(s)
         marks = sum(n for _, n in drops)
-        server = snap.server.id or 0
-        states = await s.ctx.characters.read(lambda uow: uow.events.by_prefix(server, ag.KEY))
-        place = ag.position(states, s.player_id, now, cfg)
         title = int(0 < place <= int(cross.get("top", ag.TITLE_TOP)))
         if title:  # Road Warrior (AppellInfos 25, CondtionType 21 "Top 20 in Cross-Server PvP"): posição já relida
             from . import events as hev  # noqa: PLC0415  (events importa login, que importa este módulo)
@@ -461,7 +462,7 @@ async def cross_score_reward(s: GameSession, _: object) -> None:
             hev.send_titles(s)
     else:
         s.log.info("8590 sem prêmio", pontos=pts)
-    s.send(S_CROSS, pb.ChallengeRankRewardMsg(isTake=False, param1=0, param2=pts, param3=marks, param4=title))
+    s.send(S_CROSS, pb.ChallengeRankRewardMsg(isTake=False, param1=place, param2=pts, param3=marks, param4=title))
 
 
 @router.on(8635)

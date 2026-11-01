@@ -692,8 +692,12 @@ async def soul(s: GameSession, _: object) -> None:
     snap.character.strategy += info.soul
     counted = ev.count(snap, s.ctx.events, ev.REFINE_SOUL, now)  # atividade "Daru Alchemy" (tipo 22)
     await s.ctx.characters.save(snap.character, st, *([spent] if spent else []), *counted)
-    await granted(s, [], [], "", chat=False)
-    _player(s)  # (visto) 191924-1 #17038, 1025 #9226, 1026 #626, 1027 #158: 3 e depois 4372 nas quatro amostras
+    from . import events  # events importa este módulo
+
+    # (visto) 191924-1 #17038, 1025 #9226, 1026 #626, 1027 #158: 3 e depois 4372; 20261030-151436 #4077-#4080 e
+    # 20261031-183522 #996-#999: 3, 4476 só da atividade tipo 22 (Daru Alchemy), 4426 e 4372
+    _player(s)
+    events.progress_of(s, ev.REFINE_SOUL)
     s.send(S_SOUL, _soul_msg(s, snap))
     await _count(s, rules.DARU_ALCHEMY_CONDITION)  # TODO(inventado): a posição do 112 (nenhuma captura com a 185)
 

@@ -797,7 +797,9 @@ async def _use_effect(s: GameSession, item: Item, row: Row, n: int) -> bool:
 @router.on(8283)
 async def effect_stop(s: GameSession, msg: pb.EffectRemoveReqMsg) -> None:
     """C_EFFECT_STOP: o relógio do ícone chegou a 0 no cliente ou o jogador tirou o efeito (``PlayerBufferItem``,
-    "Are you sure you want to remove this buff?"). (dedução, sem captura) 110 com 0 e 4188 com ``validityDate`` 0."""
+    "Are you sure you want to remove this buff?"). (visto) 20261030-151436 #2299-#2304 (EXP 2030): 110 {30, 0},
+    4188 ``validityDate`` 0 e ``isCancel``, 150, 4434; #2910-#2917 (atributo 2138, grau 40): 110 {3, -40}, 150, 4188,
+    150, 4434 (a mesma ordem do uso)."""
     snap = s.snapshot
     assert snap is not None
     st = buffs.stop(snap, msg.templateId, s.ctx.clock.now())
@@ -805,12 +807,18 @@ async def effect_stop(s: GameSession, msg: pb.EffectRemoveReqMsg) -> None:
         s.log.info("8283 sem efeito", pedido=str(msg))
         return
     await s.ctx.characters.save(st)
-    send(s, S_EFFECT, pb.PropertyUpdatedMsg(propertyType=_effect_type(s, msg.templateId), value=0))
-    send_buffers(s, [st])
+    kind = _effect_type(s, msg.templateId)
+    stat = kind in buffs.STATS
+    send(s, S_EFFECT, pb.PropertyUpdatedMsg(propertyType=kind, value=-st.value if stat else 0))
+    if stat:
+        _army(s)  # os total* sem a poção
+    msg_out = buffs.buffer_list([st], s.ctx.clock.now())
+    for d in msg_out.bufferData:
+        d.isCancel = True
+    send(s, S_ITEM_BUFFER, msg_out)
     if msg.templateId in (buffs.GOLD_MAX, buffs.POPULATION):
         castle_yield(s)
-    if _effect_type(s, msg.templateId) in buffs.STATS:
-        _army(s)  # (dedução) os total* sem a poção
+    balens_changed(s)
 
 
 # --- vender ---

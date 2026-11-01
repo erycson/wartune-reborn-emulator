@@ -107,8 +107,9 @@ async def test_same_grade_adds_time_weaker_is_refused_and_stop_clears(tmp_path: 
         assert (_buffer(got).grade, _buffer(got).validityDate) == (200, 60)  # maior substitui grau e tempo
 
         g.client.send(8283, pb.EffectRemoveReqMsg(templateId=2030))
-        got = await g.until(4188)
-        assert codes(got)[-2:] == [110, 4188] and _buffer(got).validityDate == 0
+        got = await g.until(4434)  # (visto) 20261030-151436 #2299-#2304: 110 {30, 0}, 4188 isCancel, 150, 4434
+        assert codes(got)[-4:] == [110, 4188, 150, 4434] and _buffer(got).validityDate == 0 and _buffer(got).isCancel
+        assert pb.PropertyUpdatedMsg.FromString(next(p.body for p in got if p.code == 110)).value == 0
 
 
 async def test_power_potion_raises_total_power_until_it_ends(tmp_path: Path) -> None:
@@ -123,8 +124,10 @@ async def test_power_potion_raises_total_power_until_it_ends(tmp_path: Path) -> 
         assert on.totalPower == on.basePower + 40
 
         g.client.send(8283, pb.EffectRemoveReqMsg(templateId=2135))
-        got = await g.until(150)
-        off = pb.ArmyArmyMsg.FromString(got[-1].body).simpleHeroInfo
+        got = await g.until(4434)  # (visto) 20261030-151436 #2910-#2917: 110 {3, -40}, 150, 4188, 150, 4434
+        assert codes(got)[-5:] == [110, 150, 4188, 150, 4434]
+        assert pb.PropertyUpdatedMsg.FromString(next(p.body for p in got if p.code == 110)).value == -40
+        off = pb.ArmyArmyMsg.FromString(next(p.body for p in got if p.code == 150)).simpleHeroInfo
         assert off.totalPower == off.basePower
         assert on.totalPhyAttack - off.totalPhyAttack == 4 * 40  # PhyAttack = 4 x Power
 

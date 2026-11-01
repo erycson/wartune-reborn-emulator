@@ -137,8 +137,12 @@ async def test_sign_relogin_and_daily_activity(tmp_path: Path) -> None:
         g.client.send(8198, pb.ChatChannelMsg(channel=10, encodeMsg="oi"))  # leed 16 "Speak in world chat"
         leeds = pb.LeedUpdatedRspMsg.FromString((await g.until(4152))[-1].body)
         assert leeds.totalNum == 10 and [x.templateId for x in leeds.leed] == [16]  # só o que mudou (tutorial_en #521)
-        devotion = pb.ChatChannelMsg.FromString((await g.until(83))[-1].body)
-        assert (devotion.channel, devotion.encodeMsg) == (3, "Your devotion level has increased to 10.")
+        # (visto) 20261031-183522 #6496-#6499: 4152, o 83 do canal 10 e o 83 da devoção
+        chats = [pb.ChatChannelMsg.FromString(p.body) for p in await g.idle() if p.code == 83]
+        assert [(c.channel, c.encodeMsg) for c in chats] == [
+            (10, "oi"),
+            (3, "Your devotion level has increased to 10."),
+        ]
         g.client.send(8235, pb.LeedFinishedReqMsg(site=1))
         got = await g.until(83)
         box = pb.LeedFinishedRspMsg.FromString(next(p for p in got if p.code == 4150).body)

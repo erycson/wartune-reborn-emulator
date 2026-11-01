@@ -22,7 +22,8 @@ from ..session import GameSession
 from .player import S_ITEMS, _player, alert, granted
 
 S_REWARD, S_FRESH, S_COUNT = 4198, 4197, 4360
-S_CHAT, S_CLICK_ADD, S_OFFER_DONE = 83, 4413, 4196  # 4196 (0x1064) sem corpo: (visto) 121659 #505, na entrega
+# 4196 (0x1064): sem ouvinte no cliente; leva o TemplateId entregue (visto) 121659 #505 "0818", 151436 #659 "088d01"
+S_CHAT, S_CLICK_ADD, S_OFFER_DONE = 83, 4413, 4196
 TREE_FRIEND = 5  # RewardCondictionInfos.CondictionType "Energize the Tree of Ancients (Friends)"
 # os outros tipos (títulos do RewardCondictionInfos; ganchos em docs/eventos.md)
 RECRUIT, ENCHANT, SOCKET, COLLECT, ASTRAL, KILL_SAME, WILD_MINE, GUILD_OFFER = 1, 2, 3, 4, 6, 7, 8, 9
@@ -37,6 +38,7 @@ AUTO_REFRESH, FREE_REFRESH, REFRESH_COST = 1800, 2, 10  # AUTO_REFRESH_INTERVAL,
 CAN_ACCEPT, ACCEPTED, COMPLETED = 1, 2, 3  # REWARD_STATE_*
 PASS_CONTRACT = 2  # KingContracts 2 "Bounty Helper": termina a tarefa na hora
 OFFER, RING = 0, 1  # RewardTemps.Type
+ARREST_TYPE, ARREST_SCENE = 12, 9  # 8298: battleType da 157 e battleScene do 4103 (visto) 20261030-145704 #247, #285
 RING_GRADE, RING_MAX, RING_COST, RING_ITEM = 35, 200, 35, 2131021  # RingTaskManager/TaskFrameII
 
 
@@ -110,21 +112,26 @@ async def progress(s: GameSession, condition: int, value: int = 1, para1: int | 
     andamento. (visto) oficial_20261024-121659-1 #229-#230 e #240-#241: tipo 5 "Energize the Tree of Ancients
     (Friends)" a cada rega de árvore de amigo, logo depois do 112, com o 4198 do andamento. O anel manda o 4614
     (dedução: o mesmo ``RewardInfo`` com ``condition_N``). Os ganchos de cada tipo estão em docs/eventos.md."""
+    changed = _progress_now(s, condition, value, para1)
+    if changed:
+        await s.ctx.characters.save(*changed)
+
+
+def _progress_now(s: GameSession, condition: int, value: int = 1, para1: int | None = None) -> list[EventState]:
+    """O ``progress`` sem gravar: soma, manda o 4198/4614 e devolve o que mudou (quem chama grava)."""
     snap = s.snapshot
     if snap is None:
-        return
+        return []
     now = s.ctx.clock.now()
     task, ring = _task(snap, now), _ring(snap, now)
     tid = int(_json(ring).get("t", 0))
     task_hit = bool(task.value) and _bump(s, task, task.value, condition, value, para1)
     ring_hit = bool(tid) and _bump(s, ring, tid, condition, value, para1)
-    if not (task_hit or ring_hit):
-        return
-    await s.ctx.characters.save(*([task] if task_hit else []), *([ring] if ring_hit else []))
     if task_hit:
         s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[_task_info(task)]))
     if ring_hit:
         _send_ring(s, snap, now)
+    return [*([task] if task_hit else []), *([ring] if ring_hit else [])]
 
 
 def _met(s: GameSession, task: EventState, tid: int | None = None) -> bool:
@@ -302,7 +309,8 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
 
     Prêmio como o OfferTaskItem mostra: RewardPlayGP/RewardGold x qualidade x nível (qualidade 5 = x6): (visto)
     oficial_20261024-121659-1 #498-#506, tarefa 24 qualidade 5 no nível 19: 18.240 de EXP e 2.280 de ouro. Pacotes:
-    109, 3, 4197, 4198 (``isAccept`` e a data), 4152 (leed 24), 4413 e 4196 vazios e o 83 só com a EXP."""
+    109, 3, 4197, 4198 (``isAccept`` e a data), 4152 (leed 24, até completar), 4413 {"reward", total do dia, hora
+    do 1º}, 4196 {TemplateId} e o 83 só com a EXP (visto 145704 #225-#233, 151436 #653-#660)."""
     snap = s.snapshot
     assert snap is not None
     now = s.ctx.clock.now()
@@ -322,10 +330,10 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
     if not rewards.can_grant(snap, s.ctx.templates, drops, s.ctx.clock.now()):
         return
     shown = _task_info(task, done_at=now)
-    board, task, _, _ = _clear(snap, now, COMPLETED)
+    board, task, tid, _ = _clear(snap, now, COMPLETED)
     count = ev.daily(snap, "offer:count", now)
     count.value, count.updated_at = count.value + 1, now
-    # painel (DayGuideManager "reward" -> atividade 9): o 4413 da entrega vem vazio (visto), o 4412 do 8518 leva a soma
+    # painel (DayGuideManager "reward" -> atividade 9): 4413 com o contador; o 4412 do 8518 leva o mesmo
     clicked = ev.click(snap, "reward", now)
     new, _ = rewards.grant(snap, s.ctx.templates, drops)
     await s.ctx.characters.save(*rewards.owners(snap), board, task, count, clicked, *new)
@@ -337,8 +345,8 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
     _send_board(s, snap, now)
     s.send(S_REWARD, pb.RewardUpdatedRspMsg(reward=[shown]))
     await events.leed_done(s, events.BOUNTY_LEED)  # "Complete Bounty Quest" (PassCount 5)
-    s.send(S_CLICK_ADD, pb.ClickDatasRspMsg())
-    s.send(S_OFFER_DONE)
+    s.send(S_CLICK_ADD, pb.ClickDatasRspMsg(info=[events.click_info(clicked)]))
+    s.send(S_OFFER_DONE, pb.RewardRemovedMsg(templateId=tid))
     gp = sum(n for t, n in drops if t == rewards.EXP)
     # TODO(inventado): o texto do Daru (RewardStrategy) sem captura; o oficial não fala do ouro
     s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=rules.exp_text(gp)))
@@ -347,34 +355,40 @@ async def offer_finish(s: GameSession, msg: pb.RewardFinishedReqMsg) -> None:
 @router.on(8298)
 async def offer_arrest(s: GameSession, msg: pb.RewardArrestMsg) -> None:
     """ "Capturar" o NPC ``param1`` da condição tipo 14 ("Apprehend Claren the Swordsman": Para1 20000 é o herói
-    NPC do ``GameHeroTemp``): luta só do herói do jogador contra ele, como o chefe dos Wilds (``monsters.battle``);
-    vencendo, a condição conta. TODO(inventado): battleType/cena do mundo (3841/5) e o mapa 0; sem captura."""
-    from ..arena import npc_hero
+    NPC do ``GameHeroTemp``): luta das tropas e do herói do jogador contra ele (type 3, como o chefe do Sky Trails);
+    vencendo, a condição conta. (visto) 20261030-145704 #245-#290 (Azimo 20003): 140 em luta, 157 battleType 12
+    mapTempId 1 e, no fim, 150, 109, 3, 4198 do andamento, 83 do HP pack, 4103 (battleScene 9, Daru = tropa
+    perdida), 140 parado, 150 e 100; o 4382 vem no 8747 da volta."""
     from ..battle import Battle
     from .campaign import player_hero  # campaign importa player, que importa este módulo
+    from .outer_city import ARMY_FIGHTING, ARMY_IDLE, MAP_ARMY, _army_brief, _casualties
+    from .outer_city import S_MAP_SYNC as MAP_SYNC
+    from .singlepass import boss_spec
 
     snap, npc = s.snapshot, msg.param1
     # só os NPCs de alguma condição 14 (o cliente não escolhe herói qualquer); a contagem vale para a tarefa aceita
     wanted = next(s.ctx.templates.find("RewardCondictionInfos", CondictionType=str(CAPTURE), Para1=str(npc)), None)
     row = s.ctx.templates.get("GameHeroTemp", npc) if wanted else None
-    if snap is None or row is None or s.battle is not None or msg.condictionType != CAPTURE:
+    if snap is None or snap.castle is None or row is None or s.battle is not None or msg.condictionType != CAPTURE:
         s.log.info("8298 captura recusada", tipo=msg.condictionType, npc=npc)
         return
-    hp = max(1, int(row.get("Live") or 1))
-    spec = {
-        "battleType": 3841, "mapTempId": 0, "attackModel": 2, "battleScene": 5, "soldiers": [],
-        "heroes": [npc_hero(livingId=1, side=2, pos=5, tempId=npc, nickName=row.get("TemplateName", ""),
-                            grade=int(row.get("Grades") or 0), maxHp=hp, initHp=hp, hp=hp, fightCapacity=0,
-                            type=int(row.get("HeroType") or 2), captain=int(row.get("Captain") or 0),
-                            res=row.get("ResPath", ""), castTime=6000)],
-        "player": {"livingId": 2, "pos": 1, "pawnTempId": 0},
-    }  # fmt: skip
+    spec = boss_spec(s, row, max(1, int(row.get("Live") or 1)), ARREST_TYPE) | {"battleScene": ARREST_SCENE}
+    spec["heroes"][0]["castTime"] = 6000  # (visto) #247
 
     async def finished(battle: Battle, won: bool) -> None:
-        s.battle, s.hero_sp = None, battle.player_sp
-        if won:
-            await progress(s, CAPTURE, 1, npc)
+        s.battle, s.hero_sp, s.outer_fight_over = None, battle.player_sp, True
+        changed: list[EventState] = []
 
+        def before_report() -> None:
+            if won:
+                changed.extend(_progress_now(s, CAPTURE, 1, npc))
+
+        await _casualties(s, battle, won, ARREST_SCENE, before_report)
+        if changed:
+            await s.ctx.characters.save(*changed)
+        s.send(MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, ARMY_IDLE)))
+
+    s.send(MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, ARMY_FIGHTING)))  # um só (#246)
     s.battle = Battle(
         spec, player_hero(s, spec), s.ctx.templates, s.ctx.clock, s.send, finished, settings=s.ctx.world.settings
     )

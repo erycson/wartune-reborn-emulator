@@ -103,6 +103,8 @@ relations 1 e 3 (só turco: `login`, conta com amigos; na inglesa #61 a lista va
 
 - 8198: mundo, para todos online. Gasta primeiro a cota grátis do dia (ConfigInfo
   `SMALL_BUGLE_FREE_COUNT` = 10, zera na virada do dia) e depois uma corneta 208003 (115 e 4500).
+  Ordem *(visto)* 20261031-183522 #6496-#6499: 4152 (leed 16), o 83 do canal 10 e o 83 da devoção. O oficial
+  devolve o `extend1` do pedido (id do protocolo do `ChatModel`) no 83 de quem falou; o cliente só usa para log.
 - 8705: 4500 `paraInt1` = cornetas grátis restantes. Com VIP soma `game_settings.vip_bugle_bonus[nível VIP]`
   (migração 0036, padrão 0): nem o cliente (`VipPrerogativeTempInfos` não tem esse tipo, `ConfigInfos` só tem o 10)
   nem a captura (o único 4500 é o #2780, antes do cartão VIP do #3262) dizem se o VIP ganha mais.
