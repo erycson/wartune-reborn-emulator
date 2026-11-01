@@ -50,7 +50,10 @@ def _dump(ctx: GameContext, key: str, now: datetime) -> Any:
     if key == INVASIONS:
         return {str(g): {"wave": i.wave.isoformat(), "dead": sorted(i.dead)} for g, i in ctx.guilds.invasions.items()}
     if key == LORDS:
-        return {str(g): {"at": x.called_at.isoformat(), "dead": sorted(x.dead)} for g, x in ctx.guilds.lords.items()}
+        return {
+            str(g): {"at": x.called_at.isoformat(), "dead": sorted(x.dead), "wave": x.wave, "told": x.told}
+            for g, x in ctx.guilds.lords.items()
+        }
     if key == TEAMS:
         return ctx.teams.dump()
     if key == MARRIAGE:
@@ -81,7 +84,8 @@ def restore(ctx: GameContext, states: ServerStates) -> None:
     for g, inv in (states.value(INVASIONS) or {}).items():
         ctx.guilds.invasions[int(g)] = Invasion(datetime.fromisoformat(inv["wave"]), set(inv["dead"]))
     for g, x in (states.value(LORDS) or {}).items():  # a vencida sai no próximo ``fam.lords_of``
-        ctx.guilds.lords[int(g)] = Lords(datetime.fromisoformat(x["at"]), set(x["dead"]))
+        at = datetime.fromisoformat(x["at"])
+        ctx.guilds.lords[int(g)] = Lords(at, set(x["dead"]), wave=x.get("wave", 0), told=x.get("told", 0))
     ctx.teams.restore(states.value(TEAMS) or [])
     from .handlers import marriage
 

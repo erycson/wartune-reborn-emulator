@@ -14,7 +14,7 @@ from tests.game.test_convites_times_bencao import _friends, _team_de_dois
 from tests.game.test_forge import CRYSTAL, SWORD, put
 from tests.game.test_masmorra_1001 import _undying, back_to_map
 from tests.game.test_shop import me
-from tests.game.test_terra_secreta import INVADER, _enter, _fight
+from tests.game.test_terra_secreta import DAY, INVADER, _enter, _fight
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.domain.models import BagType, Item
 from wartune_server.game import battle as battle_mod
@@ -91,7 +91,7 @@ async def test_invasor_vencido_continua_vencido_depois_do_reinicio(
 ) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     monkeypatch.setattr(battle_mod.Battle, "_floor_hp", _undying)
-    async with logged_in(tmp_path, novice=33000) as g:
+    async with logged_in(tmp_path, novice=33000, clock=FakeClock(DAY)) as g:
         await _enter(g)
         await back_to_map(g)
         await _fight(g)

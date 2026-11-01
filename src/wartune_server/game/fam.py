@@ -14,6 +14,7 @@ invocação das 11:53, veio com ``treeState`` 3 às 16:16.
 
 from __future__ import annotations
 
+import random
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -30,12 +31,17 @@ TICK_SECONDS = 15  # EXP a cada 15 s (ajuda)
 COLLECT_SECONDS = 180  # coletas a cada 3 min (ajuda)
 UPGRADE_TYPE = 20  # UpGradeTempInfos.Types da árvore
 BUFF_RATE = 0.2  # "an extra 20% EXP in the Guild Chamber" (getBuff)
-# TODO(inventado): EXP de cada tique (nível do jogador × nível da árvore × exp_per_grade × rate), o bônus da energia
-# (a ajuda só diz que sobe "once the tree has been energized to a certain amount") e a contribuição de cada coleta
-# ("receive guild contribution points"); ``game_settings.fam_tree`` (0074)
-DEFAULTS: dict[str, Any] = {"exp_per_grade": 2, "power_step": 10, "power_rate": 0.1, "collect_offer": 5}
-# (visto) "The Guild Chamber is under attack!" às 16:00 (171155 #4756), 18:00 (215937 #65) e 20:00 (231733 #4093)
-INVADER_HOURS = 2
+# ``game_settings.fam_tree`` (0074, 0146). (visto) 20261031-183522-1: o tique de 15 s deu 3468 de EXP (nível 34, árvore
+# 6: 34 × 6 × 17) e 4162 com o buff do 8566 (× 1,2); com 13 de energia ainda 3468. Cada leva de coletas mostra 10 das
+# 21 e a coleta deu 1, 5 ou 10 de contribuição (12, 19 e 13 vezes em 44). TODO(inventado): o bônus da energia
+# (``power_step``/``power_rate``: só se sabe que 13 não mudou nada)
+DEFAULTS: dict[str, Any] = {
+    "exp_per_grade": 17, "power_step": 20, "power_rate": 0.1, "collect_offers": [[1, 12], [5, 19], [10, 13]],
+    "collect_shown": 10,
+}  # fmt: skip
+# (visto) 183522: "The Guild Chamber is under attack!" a toda hora cheia (15:00 a 21:00, #2382-#9511) e os 3
+# Invasores somem às 21:30 (#12800-#12802)
+INVADER_HOURS, INVADER_MINUTES = 1, 30
 
 
 @dataclass
@@ -65,43 +71,70 @@ def invasion(store: dict[int, Invasion], guild_id: int, now: datetime) -> tuple[
     return new, inv is not None
 
 
-# Master Treasure Thief (8743): (cliente) ``ConsortiaSecretCallMonsterView`` "(n/3)" com a contagem ``leftTime``;
-# (visto) 4632 #5065 leftTime 180000; (dedução) os 30 nós masterType 181 do 7501 em 3 levas de 10, 3 min cada
-LORDS_BATCHES, LORDS_SECONDS = 3, 180
+def invaders_up(now: datetime) -> bool:
+    """Os Invasores ficam à vista só na primeira meia hora da onda."""
+    return gameday.local(now).minute < INVADER_MINUTES
+
+
+# Master Treasure Thief (8743): (cliente) ``ConsortiaSecretCallMonsterView`` "(n/3)" com a contagem ``leftTime``.
+# (visto) 183522 #11064-#12417: 3 levas a 0, 180 e 360 s da chamada; cada uma esconde os 30 nós masterType 181 e
+# mostra 20 sorteados (o vencido numa leva volta na outra)
+LORDS_BATCHES, LORDS_SECONDS, LORDS_SHOWN = 3, 180, 20
 
 
 @dataclass
 class Lords:
-    """Chamada do Master Treasure Thief de uma guilda (como ``Invasion``: o vencido some, um luta por vez)."""
+    """Chamada do Master Treasure Thief de uma guilda (como ``Invasion``: o vencido some, um luta por vez).
+    ``wave``: a leva dos vencidos em ``dead`` (zera na leva seguinte); ``told``: a última leva avisada no chat."""
 
     called_at: datetime
     dead: set[int] = field(default_factory=set)
     fighting: dict[int, int] = field(default_factory=dict)
+    wave: int = 0
+    told: int = 0
 
     def batch(self, now: datetime) -> int | None:
-        """Leva em curso (0..2) ou None depois da última."""
-        k = int((now - self.called_at).total_seconds()) // LORDS_SECONDS
-        return k if 0 <= k < LORDS_BATCHES else None
+        """Leva em curso (0..2); a última fica até o fim do dia do jogo (None depois).
+        TODO(inventado): até quando a 3ª leva fica (na captura todos morreram antes)."""
+        if now < self.called_at or not gameday.same_day(self.called_at, now):
+            return None
+        return min(int((now - self.called_at).total_seconds()) // LORDS_SECONDS, LORDS_BATCHES - 1)
+
+    def open(self, now: datetime) -> bool:
+        """``isOpenLordsNode``: ainda vem leva (visto: falso já na 3ª, #12366)."""
+        k = self.batch(now)
+        return k is not None and k < LORDS_BATCHES - 1
 
     def left_ms(self, now: datetime) -> int:
-        return max(
-            0, LORDS_SECONDS * 1000 - int((now - self.called_at).total_seconds() * 1000) % (LORDS_SECONDS * 1000)
-        )
+        """O que falta para a próxima leva, em passos de 5 s (visto 140000, 100000, 40000, 145000...)."""
+        ms = LORDS_SECONDS * 1000 - int((now - self.called_at).total_seconds() * 1000) % (LORDS_SECONDS * 1000)
+        return max(0, round(ms / 5000) * 5000)
+
+    def shown(self, camps: list[int], k: int) -> set[int]:
+        """Os 20 da leva ``k``, os mesmos para a guilda toda (sorteio fixo pela hora da chamada)."""
+        rng = random.Random(f"{self.called_at.isoformat()}:{k}")
+        return set(rng.sample(sorted(camps), min(LORDS_SHOWN, len(camps))))
 
 
 def lords_of(store: dict[int, Lords], guild_id: int, now: datetime) -> Lords | None:
-    """A chamada em curso da guilda; a que passou da última leva sai do ``store``."""
+    """A chamada em curso da guilda; a de outro dia sai do ``store``. Leva nova: os vencidos voltam."""
     lords = store.get(guild_id)
-    if lords is not None and lords.batch(now) is None:
-        del store[guild_id]
+    k = lords.batch(now) if lords is not None else None
+    if lords is None or k is None:
+        store.pop(guild_id, None)
         return None
+    if k != lords.wave:
+        lords.dead.clear()
+        lords.wave = k
     return lords
 
 
-def lords_batch(camps: list[int], k: int) -> list[int]:
-    """Os nós da leva ``k``: os 30 em ordem de ``campDataId``, 10 por leva."""
-    per = len(camps) // LORDS_BATCHES or 1
-    return sorted(camps)[k * per : (k + 1) * per]
+def lords_drop(settings: Mapping[str, Any]) -> list[tuple[int, int]]:
+    """O baú do Master Treasure Thief vencido (``game_settings.fam_lords``, 0146): (visto) 9 de 9 vitórias da 183522
+    com Lvl. 1 Contribution Badge (2030801) ×3 no 4103."""
+    cfg = settings.get("fam_lords") or {}
+    drops = cfg.get("drops", [[2030801, 3, 1.0]])
+    return [(int(t), int(n)) for t, n, chance in drops if random.random() < float(chance)]
 
 
 def _cfg(settings: Mapping[str, Any]) -> dict[str, Any]:
@@ -162,7 +195,7 @@ def ticks(guild: Consortia, since: datetime | None, now: datetime) -> tuple[int,
 
 
 def tick_exp(grade: int, guild: Consortia, rate_: float, settings: Mapping[str, Any]) -> int:
-    return int(grade * guild.tree_grade * int(_cfg(settings)["exp_per_grade"]) * rate_)
+    return round(grade * guild.tree_grade * int(_cfg(settings)["exp_per_grade"]) * rate_)  # 3468 × 1,2 = 4162
 
 
 def collect_batch(guild: Consortia, now: datetime) -> int | None:
@@ -173,4 +206,11 @@ def collect_batch(guild: Consortia, now: datetime) -> int | None:
 
 
 def collect_offer(settings: Mapping[str, Any]) -> int:
-    return int(_cfg(settings)["collect_offer"])
+    offers = _cfg(settings)["collect_offers"]
+    return int(random.choices([o for o, _ in offers], [w for _, w in offers])[0])
+
+
+def collect_shown(guild: Consortia, batch: int, camps: list[int], settings: Mapping[str, Any]) -> set[int]:
+    """As coletas da leva ``batch``, as mesmas para a guilda (sorteio fixo pela invocação)."""
+    rng = random.Random(f"{guild.tree_called_at.isoformat() if guild.tree_called_at else ''}:{batch}")
+    return set(rng.sample(sorted(camps), min(int(_cfg(settings)["collect_shown"]), len(camps))))

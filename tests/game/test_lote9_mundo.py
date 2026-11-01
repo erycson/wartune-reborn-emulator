@@ -11,7 +11,7 @@ import pytest
 from tests.game.harness import logged_in
 from tests.game.test_guild import _session
 from tests.game.test_masmorra_1001 import _undying, back_to_map, codes
-from tests.game.test_terra_secreta import _enter, _node
+from tests.game.test_terra_secreta import DAY, _enter, _node
 from tests.test_end_to_end import TEMPLATES
 from wartune_server.game import bag
 from wartune_server.game import battle as battle_mod
@@ -26,7 +26,6 @@ pytestmark = pytest.mark.skipif(not TEMPLATES.exists(), reason="precisa de data/
 
 OPEN_5001 = datetime(2026, 5, 21, 11, 40, tzinfo=UTC)  # 5001 aberto (11:35-12:35 no inglês)
 BEFORE_5001 = datetime(2026, 5, 21, 9, 0, tzinfo=UTC)
-LORD = 750133  # o primeiro Master Treasure Thief (750133-750162), na 1ª leva
 
 
 @pytest.fixture(autouse=True)
@@ -102,7 +101,7 @@ async def test_duble_compra_cancela_devolve_e_paga_no_fim_da_janela(tmp_path: Pa
 async def test_master_treasure_thief_do_primeiro_da_arena(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     monkeypatch.setattr(battle_mod.Battle, "_floor_hp", _undying)
-    async with logged_in(tmp_path, novice=33000) as g:
+    async with logged_in(tmp_path, novice=33000, clock=FakeClock(DAY)) as g:
         await _enter(g)
         s = _session(g)
 
@@ -117,22 +116,35 @@ async def test_master_treasure_thief_do_primeiro_da_arena(tmp_path: Path, monkey
         g.client.send(8743)
         got = await g.idle()
         lords = pb.FamLordsInfoMsg.FromString(next(p.body for p in got if p.code == 4632))
-        assert lords.isOpenLordsNode and lords.currentTurns == 1 and not lords.isCanCall
+        assert lords.isOpenLordsNode and lords.currentTurns == 2 and not lords.isCanCall  # (visto) 183522 #11115
+        assert codes(got).index(83) < codes(got).index(4632)  # 128 da leva, 83 da chamada, 4632
+        texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 83]
+        assert any(t.endswith("summoned the Master Treasure Thief in the Guild Chamber!") for t in texts)
         shown = [pb.CampaignNodeUpdateMsg.FromString(p.body) for p in got if p.code == 128]
-        assert len([n for n in shown if n.nodeState == NORMAL]) == 10  # a 1ª leva das 3
-        assert s.campaign is not None and s.campaign.nodes[LORD]["state"] == NORMAL
+        assert len([n for n in shown if n.nodeState == NORMAL]) == 20  # 20 dos 30 na 1ª leva das 3
+        assert s.campaign is not None
+        lord = next(c for c, n in s.campaign.nodes.items() if n["masterType"] == 181 and n["state"] == NORMAL)
 
         g.client.send(8743)  # uma vez por dia
         assert 4632 not in codes(await g.idle())
 
-        g.client.send(5125, pb.CampaignReqMsg(paraInt1=LORD, paraBool1=True))
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=lord, paraBool1=True))
         got = await g.until(157)
         prepare = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert (prepare.battleType, prepare.mapTempId) == (39, 1)
+        assert [(h.tempId, h.maxHp) for h in prepare.heros if h.side == 2] == [(72004, 15000)]
+        offer = s.snapshot.character.consortia_offer if s.snapshot else 0
         got = await g.fight(prepare) + await g.idle()
-        assert pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103)).battleResult == 1
+        report = pb.BattleReportMsg.FromString(next(p.body for p in got if p.code == 4103))
+        assert report.battleResult == 1 and report.battleScene == 15
+        assert [(i.templateId, i.count) for i in report.baseItem] == [(2030801, 3)] and report.signId
         assert _node(got).nodeState == DONE
-        texts = [pb.ChatChannelMsg.FromString(p.body).encodeMsg for p in got if p.code == 83]
-        assert any(t.endswith("has defeated a Master Treasure Thief and earned 10 guild contribution!") for t in texts)
+        assert 4632 in codes(got)  # o tempo da próxima leva (visto #11218)
+        assert s.snapshot is not None and s.snapshot.character.consortia_offer == offer  # sem contribuição
+
+        g.client.send(5129, pb.CampaignReqMsg(paraString1=report.signId))
+        await g.idle()
+        assert bag.count_of(s.snapshot, 2030801) == 3
 
 
 async def test_coleta_da_cidade_do_ceu_da_o_item_do_anel(tmp_path: Path) -> None:

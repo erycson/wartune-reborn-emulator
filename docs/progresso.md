@@ -212,13 +212,13 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Altar: bênção | 🧪 | | casas, ordem do 4144 e entrega do 8216 (item, ouro, Daru, Bound Balens) conferidas em 17 bênçãos (121659, 191924); pesos, casa dos raros e sementes inventados; ×10 (VIP 6, `QUICK_BLESS_COUNT`) faz o que o dia e a contribuição deixam, entrega n-1 na hora e a última fica no altar TODO(inventado) |
 | Altar do demônio (boss de guilda) | 🧪 | | handlers/altar.py: ondas sobre o Pool do world boss, vida do herói 1042 do template, reviver 8264 tipo 2 por contribuição, buff 8550, habilidades 8593; ondas/tempos/recompensas TODO(inventado) `altar_demon` (0110) |
 | Terra secreta: entrada e saída | ✅ | | |
-| Terra secreta: invasores | 🧪 | | onda e vencidos em `server_states` (0109), voltam no arranque; contribuição inventada (0073) |
-| Terra secreta: árvore sagrada | 🧪 | | EXP do tique e energia inventados (`fam.py:33`) |
+| Terra secreta: invasores | 🧪 | | onda a toda hora cheia, somem na meia hora (visto 183522); onda e vencidos em `server_states` (0109); contribuição 10 vista (0073) |
+| Terra secreta: árvore sagrada | 🧪 | | tique 34×6×17 com 4382 e coletas 1/5/10, 10 de 21 por leva, chat da guilda (visto 183522, 0146); bônus da energia inventado |
 | Anúncio de recrutamento | 🧪 | | canal e remetente inventados |
 | Correio de guilda | ✅ | | |
 | Guerra de guildas | ✅ | | mapa 4501 (26/10 #2464-#6452): par das 8 maiores, torres, placar/10000, vantagem de 4000, feridas, buffs, prêmio; PvP 8548 com luta real (battleType 24 do cliente, cópia do inimigo, sem captura) e o perdedor no acampamento; TODO: janela diária e carro/invencível sem efeito |
 | Guerra entre servidores | 🧪 | | fila local (`handlers/cruzado.py`): 8779 inscreve, dois jogadores daqui lutam (cópia do herói, battleType 10), o primeiro assiste; pontos no `crossScore`; torres/inspirar/grupos seguem como antes TODO(inventado) |
-| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 30 nós masterType 181 em 3 levas de 180 s; luta e prêmio do Invasor (inventado); chamada em `server_states` (`lords`), volta no reinício |
+| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 3 levas de 20 dos 30 nós a 0/180/360 s, 4632 `currentTurns` 2-4, chat da chamada e da 3ª leva, luta 72004 (battleType 39) e baú 2030801 ×3 (visto 183522, 0146); a 3ª leva fica até o fim do dia (inventado); chamada em `server_states` (`lords`) |
 
 ## Campanhas e masmorras
 

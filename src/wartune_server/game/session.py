@@ -155,6 +155,7 @@ class GameSession:
         self.balen_leed_sent = False  # o handler já contou o leed 15 do gasto de diamante deste pedido
         self.fam_paid_at: datetime | None = None  # último tique de EXP da árvore pago a esta sessão
         self.fam_batch: int | None = None  # leva de coletas já mostrada (game/fam.collect_batch)
+        self.fam_lords: tuple[datetime, int] | None = None  # (chamada, leva) do Master Treasure Thief já mostrada
         self.space_collect: tuple[int, datetime] | None = None  # coleta da cidade do céu em curso (nó, início; 8733)
         # último 8201 com monstros: (mapa, grades, ciclo), para trocar os monstros na virada (roll_monsters)
         self.outer_view: tuple[int, set[str], datetime] | None = None

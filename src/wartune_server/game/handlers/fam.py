@@ -19,8 +19,10 @@ avisa "Tree of Ancients spawned" a quem está fora); por 15 min a árvore fica �
 cada 15 s (pago no relógio, 20008), energiza uma vez (5125 na árvore), compra o buff (8566) e colhe as coletas que
 aparecem a cada 3 min (5125 nelas trava o nó com o 4609,
 o 5032 colhe e dá contribuição). O Master Treasure Thief (8743): quem pode chamar (``isCanCall``) é, na Class Wars,
-o mais bem colocado do servidor; aqui, que roda tudo local, o 1º da arena (``_can_call``); os 30 nós masterType 181
-aparecem em 3 levas de 10 e lutam e premiam como os Invasores.
+o mais bem colocado do servidor; aqui, que roda tudo local, o 1º da arena (``_can_call``). (visto) 20261031-183522-1
+#11064-#12961: os 30 nós masterType 181 são os "bichos dourados": 3 levas de 20 sorteados, a 0, 180 e 360 s da chamada;
+a luta é um herói só (72004, nível 30, 15000 de vida, battleType 39) e cada vitória dá um baú com Lvl. 1 Contribution
+Badge ×3. Os Invasores voltam a toda hora cheia e somem na meia hora (``fam.invaders_up``).
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ from ..battle import Battle
 from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import quest_update
-from ..campaign import COLLECT, DONE, FAM_MAP, NORMAL, PANDORA, CampaignMap
+from ..campaign import COLLECT, DONE, FAM_MAP, FIGHTING, NORMAL, PANDORA, CampaignMap
 from ..router import router
 from ..session import GameSession
 from .campaign import (
@@ -47,8 +49,10 @@ from .campaign import (
     S_ARMY_POS,
     S_BATTLE_REPORT,
     S_CHAT,
+    S_FIGHT_MOVIE,
     S_FULL_ARMY,
     S_MAP_SYNC,
+    S_NODE,
     S_NODES,
     S_NPC_MOVE,
     S_QUESTS,
@@ -81,9 +85,9 @@ LORDS_LEFT = 180000  # (visto) 4632 #5065 leftTime: o cliente mostra em segundos
 INVADER_OFFER = 10
 UNDER_ATTACK = "The Guild Chamber is under attack! Grab your weapons and drive the invaders away!"
 LORD = 181  # masterType dos 30 "Master Treasure Thief" do 7501 (sonType 2189, escondidos)
-# TODO(inventado): o conteúdo não tem luta do Master Treasure Thief (nenhum nó sonType 2189 lutou na captura): a do
-# Invasor 750109
-LORD_FIGHT = 750109
+# (visto) 183522 #11114 e #12384, canal 5 tipo 5 a toda a guilda
+SUMMONED_LORDS = "{link} ranked {rank} in Class Wars, and summoned the Master Treasure Thief in the Guild Chamber!"
+LORDS_INVADING = "Master Treasure Thieves are invading!"
 LORDS_KEY = "fam_lords"  # EventState do dia: chamou hoje ("once per day", callMonsterTip)
 LORDS_RANK = 1  # "only the top-ranked player" (warlords.WarlordsFrame.helpContent, item 6)
 BUSY = "Target is in battle, please wait…"  # (cliente) playermenu.command01; (dedução) o aviso de quem chega depois
@@ -136,41 +140,66 @@ def _tell_room(s: GameSession, guild: Consortia, *, tree: bool = False) -> None:
         o.send(S_INFO, _info(o, guild, member))
 
 
-def _sync_nodes(s: GameSession, guild: Consortia, *, send: bool = True) -> None:
-    """A árvore à vista só invocada; a cada 3 min da invocação uma leva nova de coletas (``fam.collect_batch``)."""
+def _camps(c: CampaignMap, master: int) -> list[int]:
+    return [n for n, v in c.nodes.items() if v["masterType"] == master]
+
+
+def _sync_nodes(s: GameSession, guild: Consortia, *, send: bool = True, tell: bool = True) -> None:
+    """A árvore à vista só invocada; a cada 3 min da invocação uma leva nova de coletas (``fam.collect_batch``).
+
+    Coletas: (visto) 183522 #11303-#11322: 128 state 8 nas 10 da leva anterior e state 1 nas 10 sorteadas da nova.
+    Master Treasure Thief: (visto) #11685-#11735 e #12366-#12417, a leva nova é o 4632 (``tell``; na chamada ele vem
+    depois, ``lords``), o 128 state 8 nos 30 e o state 1 nos 20 da leva."""
     c = s.campaign
     if c is None or not c.fam:
         return
     now = s.ctx.clock.now()
-    batch = fam.collect_batch(guild, now)
-    new_batch = batch is not None and batch != s.fam_batch
+    settings = s.ctx.world.settings
+    batch, before = fam.collect_batch(guild, now), s.fam_batch
+    new_batch = batch is not None and batch != before
     s.fam_batch = batch
     inv = _invasion(s, guild)
+    up = fam.invaders_up(now)
     lords = fam.lords_of(s.ctx.guilds.lords, guild.id or 0, now)
     k = lords.batch(now) if lords is not None else None
-    shown = (
-        set(fam.lords_batch([n for n, v in c.nodes.items() if v["masterType"] == LORD], k)) if k is not None else set()
-    )
-    lords_changed = False
+    wave = (lords.called_at, k) if lords is not None and k is not None else None
+    new_wave = wave != s.fam_lords
+    s.fam_lords = wave
+    lord_camps = _camps(c, LORD)
+    shown = lords.shown(lord_camps, k) if lords is not None and k is not None else set()
+    collects = _camps(c, COLLECT)
+    picked = fam.collect_shown(guild, batch, collects, settings) if batch is not None else set()
+    if send and new_wave and wave is not None and tell:
+        s.send(S_LORDS, _lords_msg(s, guild))
+    if send and new_batch and before is not None:
+        for camp in fam.collect_shown(guild, before, collects, settings):
+            _node_update(s, camp, DONE)
+    if send and new_wave:
+        for camp in lord_camps:
+            if c.fighting != camp:
+                _node_update(s, camp, DONE)
     for camp, node in c.nodes.items():
         if node["masterType"] == TREE:
             want = NORMAL if batch is not None else DONE
         elif node["masterType"] == COLLECT:
-            want = NORMAL if new_batch else DONE if batch is None else node["state"]
+            want = (NORMAL if camp in picked else DONE) if new_batch else DONE if batch is None else node["state"]
         elif node["masterType"] == INVADER and c.fighting != camp:
-            want = DONE if camp in inv.dead else _start_state(c, camp)
+            want = DONE if camp in inv.dead or not up else _start_state(c, camp)
         elif node["masterType"] == LORD and c.fighting != camp:
             want = NORMAL if camp in shown and lords is not None and camp not in lords.dead else DONE
         else:
             continue
+        foes = lords if node["masterType"] == LORD else inv
+        if node["state"] == FIGHTING and foes is not None and camp in foes.fighting and want == NORMAL:
+            continue  # outro da sala está lutando com ele
         if want != node["state"]:
-            lords_changed |= node["masterType"] == LORD
             if send:
-                _node_update(s, camp, want, fresh=True)
+                _node_update(s, camp, want)
             else:
                 node["state"] = want
-    if send and lords_changed:  # (dedução) leva nova ou fim: o "(n/3)" e a contagem do 4632
-        s.send(S_LORDS, _lords_msg(s, guild))  # quem já chamou não chama de novo hoje: isCanCall falso
+    if lords is not None and k == fam.LORDS_BATCHES - 1 and lords.told < k:
+        lords.told = k  # (visto) #12384, só na 3ª leva, a toda a guilda
+        guild_chat(s, guild, LORDS_INVADING)
 
 
 def _add_offer(s: GameSession, offer: int) -> list[Quest]:
@@ -222,14 +251,16 @@ async def _can_call(s: GameSession) -> bool:
 
 def _lords_msg(s: GameSession, guild: Consortia, can_call: bool = False) -> pb.FamLordsInfoMsg:
     """4632 (``__consortiaSecretCallMonsterHandler``): ``isCanCall`` mostra o botão (com ``order`` e ``expairtDate``
-    na dica: o efeito vai até as 24:00 de hoje), ``isOpenLordsNode`` a chamada em curso, ``currentTurns`` a leva
-    (1..3) e ``leftTime`` o que falta dela. (visto) #5065 sem chamada: currentTurns 1, leftTime 180000."""
+    na dica: o efeito vai até as 24:00 de hoje), ``isOpenLordsNode`` ainda vem leva, ``currentTurns`` a próxima leva
+    e ``leftTime`` o que falta para ela. (visto) #5065 e 183522 #10779 sem chamada: falso, 1, 180000; 183522 #11115
+    na chamada: verdadeiro, 2, 180000; #11685 na 2ª leva: 3; #12366 na 3ª: falso, 4, 180000."""
     now = s.ctx.clock.now()
     lords = fam.lords_of(s.ctx.guilds.lords, guild.id or 0, now)
     k = lords.batch(now) if lords is not None else None
+    is_open = lords is not None and lords.open(now)
     return pb.FamLordsInfoMsg(
-        isCanCall=can_call, isOpenLordsNode=k is not None, currentTurns=(k or 0) + 1,
-        leftTime=lords.left_ms(now) if lords is not None and k is not None else LORDS_LEFT,
+        isCanCall=can_call, isOpenLordsNode=is_open, currentTurns=k + 2 if k is not None else 1,
+        leftTime=lords.left_ms(now) if lords is not None and is_open else LORDS_LEFT,
         order=LORDS_RANK if can_call else 0, expairtDate=b.fmt_time(now),
     )  # fmt: skip
 
@@ -284,7 +315,10 @@ async def push_state(s: GameSession) -> None:
     rules.add_gp(snap, s.ctx.templates, gp)
     await s.ctx.characters.save(snap.character, *([snap.leader] if snap.leader else []))
     await _push_player(s)
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))  # (dedução) o texto da EXP das lutas
+    # (visto) 183522 #11226-#11228: 3, 4382 e 83 a cada 15 s; shortcut: os tiques vencidos desde o último 20008 saem
+    # somados num 4382 só, até haver um relógio de 15 s por sessão
+    s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=gp))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
     if snap.character.grades > grade:
         await push_level(s, grade)
     s.log.info("terra secreta: EXP da árvore", tiques=n, exp=gp, rate=rate)
@@ -351,10 +385,15 @@ async def lords(s: GameSession, _: object) -> None:
     await s.ctx.characters.save(st)
     s.ctx.guilds.lords[guild.id or 0] = fam.Lords(now)
     await server_state.save(s.ctx, server_state.LORDS)
-    for o in gd.online_members(s.ctx, guild.id or 0):
-        o.send(S_LORDS, _lords_msg(o, guild))
+    # (visto) 183522 #11064-#11115: na sala os 128 da 1ª leva, o 83 da chamada a toda a guilda e o 4632
+    members = gd.online_members(s.ctx, guild.id or 0)
+    for o in members:
         if o.campaign is not None and o.campaign.fam and o.campaign.ready:
-            _sync_nodes(o, guild)
+            _sync_nodes(o, guild, tell=False)
+    link = social.player_link(s.ctx, snap.character)
+    guild_chat(s, guild, SUMMONED_LORDS.format(link=link, rank=LORDS_RANK))
+    for o in members:
+        o.send(S_LORDS, _lords_msg(o, guild))
     s.log.info("terra secreta: Master Treasure Thief chamado", guilda=guild.id)
 
 
@@ -372,24 +411,31 @@ async def arrive(s: GameSession, camp: int, node: dict[str, Any]) -> None:
         s.send(S_LOCK, pb.NodeLockReqMsg(nodeId=camp, lock=True))
         return
     lord = node["masterType"] == LORD
-    spec = c.battle_like(camp) or (c.battle(LORD_FIGHT) if lord else None)
+    spec = c.battle_like(camp)  # o Master Treasure Thief: a luta do 750144 (0146), pelo sonType 2189
     if node["masterType"] not in (INVADER, LORD) or spec is None or s.battle is not None or mine is None:
         s.log.info("terra secreta: 5125 sem luta", nó=camp, tipo=node["masterType"])
         return
     inv = _foes(s, mine[0], lord)
     holder = inv.fighting.get(camp, s.player_id) if inv is not None else s.player_id
     other = s.ctx.online.get(holder)
-    if inv is None or camp in inv.dead or (holder != s.player_id and other is not None and other.battle is not None):
+    gone = inv is None or camp in inv.dead or (not lord and not fam.invaders_up(s.ctx.clock.now()))
+    if gone or (holder != s.player_id and other is not None and other.battle is not None):
         s.send(S_ALERT, b.complete(pb.ChatChannelMsg(channel=7, encodeMsg=BUSY)))
-        _node_update(s, camp, DONE if inv is None or camp in inv.dead else node["state"])
+        _node_update(s, camp, DONE if gone else node["state"])
         s.log.info("terra secreta: Invasor ocupado ou vencido", nó=camp, lutando=holder)
         return
+    assert inv is not None
     inv.fighting[camp] = s.player_id
 
     async def over(battle: Battle, won: bool) -> None:
         await _over(s, battle, camp, won, lord)
 
     _start_battle(s, camp, over, spec)
+    # (visto) 183522 #11116-#11141: quem está na sala vê o 128 em combate com o userId de quem atacou
+    for o in _here(s, mine[0].id or 0):
+        if o is not s and o.campaign is not None and (theirs := o.campaign.node(camp)) is not None:
+            theirs["state"] = FIGHTING
+            o.send(S_NODE, pb.CampaignNodeUpdateMsg(nodeId=node["nodeId"], nodeState=FIGHTING, userId=s.player_id))
 
 
 def _foes(s: GameSession, guild: Consortia, lord: bool) -> fam.Invasion | fam.Lords | None:
@@ -425,17 +471,27 @@ async def callback(s: GameSession, camp: int, cmd: int) -> None:
 
 async def _collect(s: GameSession, camp: int, guild: Consortia) -> None:
     """Coleta da leva em curso: (visto) #6491-#6493 3, 111 "Successfully collected!" e 128 state 8; dá
-    ``fam_tree.collect_offer`` de contribuição e o 164 da guilda depois (#6495)."""
-    snap = s.snapshot
-    assert snap is not None
+    ``fam_tree.collect_offers`` de contribuição e o 164 da guilda depois (#6495). (visto) 183522 #11131-#11132: o 83
+    a toda a guilda "<link> just collected a Mysterious Fruit and received 1 guild contribution!" logo depois do 111.
+    (dedução) a riqueza da guilda sobe junto, como no Invasor."""
+    snap, c = s.snapshot, s.campaign
+    assert snap is not None and c is not None
     if fam.collect_batch(guild, s.ctx.clock.now()) is None:
         return
     offer = fam.collect_offer(s.ctx.world.settings)
     quests = _add_offer(s, offer)
-    await s.ctx.characters.save(snap.character, *quests)
+    guild.offer += offer
+    guild.total_offer += offer
+    await s.ctx.characters.save(snap.character, guild, *quests)
     await _push_player(s)
     s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=COLLECTED))
+    name = (c.node(camp) or {}).get("nodeName", "")
+    link = social.player_link(s.ctx, snap.character)
+    guild_chat(s, guild, f"{link} just collected a {name} and received {offer} guild contribution!")
     _node_update(s, camp, DONE, fresh=True)
+    for o in _here(s, guild.id or 0):  # (visto) #10785: a coleta de outro some também (128 state 8)
+        if o is not s and o.campaign is not None and o.campaign.node(camp) is not None:
+            _node_update(o, camp, DONE)
     _push_info(s, guild)
     if quests:
         s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
@@ -451,8 +507,9 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool, lord: bool
     TODO(inventado) o que o vencedor vê: a mesma ordem, o Invasor some (128 state 8, como na ilha dos pets), o
     exército fica onde está e a contribuição vem com 111 e 83 "Received: N Contribution".
 
-    ``lord``: o Master Treasure Thief, com a mesma luta e o mesmo prêmio (TODO(inventado): a ajuda só diz "be
-    rewarded"; o texto do chat troca "an invader" por "a Master Treasure Thief").
+    ``lord``: o Master Treasure Thief. (visto) 183522 #11211-#11220: sem contribuição nem chat; o 4103 traz o baú
+    (``signId`` e ``baseItem`` 2030801 ×3, ``fam.lords_drop``), pego no 5129 (``items.drop_take``), e depois do 140
+    vem o 4632 com o tempo da próxima leva (enquanto ainda vem leva). TODO(inventado) a derrota (sem captura).
     """
     snap, c = s.snapshot, s.campaign
     assert snap is not None and snap.leader is not None
@@ -466,32 +523,46 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool, lord: bool
         outer_city.refill(*hit)
         rows += snap.pawns
     healed = hero_after_fight(s, battle.player.hp if battle.player is not None else None)
-    offer = int(s.ctx.world.settings.get("fam_invader_offer", INVADER_OFFER)) if won else 0
+    offer = int(s.ctx.world.settings.get("fam_invader_offer", INVADER_OFFER)) if won and not lord else 0
     quests = _add_offer(s, offer) if offer else []
     if offer:
         rows += [snap.character, *quests]
     if won and mine is not None and inv is not None:
         inv.dead.add(camp)
-        mine[0].offer += offer
-        mine[0].total_offer += offer
-        rows.append(mine[0])
+        if offer:
+            mine[0].offer += offer
+            mine[0].total_offer += offer
+            rows.append(mine[0])
     await s.ctx.characters.save(*rows)
     if won and inv is not None:
         await server_state.save(s.ctx, server_state.LORDS if lord else server_state.INVASIONS)
     if won and mine is not None and inv is not None:
-        link = social.player_link(s.ctx, snap.character)
-        foe = "a Master Treasure Thief" if lord else "an invader"
-        guild_chat(s, mine[0], f"{link} has defeated {foe} and earned {offer} guild contribution!")
-        _push_info(s, mine[0])
+        if offer:
+            link = social.player_link(s.ctx, snap.character)
+            guild_chat(s, mine[0], f"{link} has defeated an invader and earned {offer} guild contribution!")
+            _push_info(s, mine[0])
         for o in _here(s, mine[0].id or 0):
             if o is not s and o.campaign is not None and o.campaign.node(camp) is not None:
                 _node_update(o, camp, DONE, fresh=True)
+    elif mine is not None:  # (dedução) a derrota: o nó volta para os outros da sala
+        for o in _here(s, mine[0].id or 0):
+            theirs = o.campaign.node(camp) if o is not s and o.campaign is not None else None
+            if theirs is not None and theirs["state"] == FIGHTING:
+                _node_update(o, camp, NORMAL)
+    report = _report(battle, won, 0)
+    if won and lord and c is not None and (drops := fam.lords_drop(s.ctx.world.settings)):
+        sign = str(int(s.ctx.clock.now().timestamp() * 1000))  # (visto) #11215 signId em milissegundos
+        while sign in c.fallen:
+            sign = str(int(sign) + 1)
+        c.fallen[sign] = drops
+        report.signId = sign
+        report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in drops)
     if healed:
         send_blood(s)
         await _push_player(s)
         hp_pack(s, healed)
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)  # como na cidade externa: o do 154 sem o 4902
-    s.send(S_BATTLE_REPORT, _report(battle, won, 0))
+    s.send(S_BATTLE_REPORT, report)
     await _push_player(s)
     s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
     s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
@@ -503,6 +574,10 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool, lord: bool
     if not won:
         s.send(S_NPC_MOVE, pb.NPCMoveMsg(id=node["nodeId"], curPosX=node["posX"], curPosY=node["posY"]))
     s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+    if won and lord and mine is not None:
+        lords = fam.lords_of(s.ctx.guilds.lords, mine[0].id or 0, s.ctx.clock.now())
+        if lords is not None and lords.open(s.ctx.clock.now()):
+            s.send(S_LORDS, _lords_msg(s, mine[0]))
     if not won and c.content is not None:
         x, y = c.content["maps"][str(FAM_MAP)]["start"]
         c.pos = (int(x), int(y))

@@ -48,7 +48,7 @@ def _node(got: list[Packet]) -> pb.CampaignNodeUpdateMsg:
 
 async def test_entrar_perder_para_o_invasor_e_sair(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
-    async with logged_in(tmp_path, novice=33000) as g:
+    async with logged_in(tmp_path, novice=33000, clock=FakeClock(DAY)) as g:
         got = await _enter(g)
         assert codes(got) == [125, 140, 21]  # #5057-#5059
         assert pb.RoomCreatedMsg.FromString(got[0].body).room.campaignId == 7501
@@ -85,7 +85,7 @@ async def test_entrar_perder_para_o_invasor_e_sair(tmp_path: Path, monkeypatch: 
 async def test_vencer_o_invasor_da_contribuicao(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(battle_mod, "FRAME_SECONDS", 0.001)
     monkeypatch.setattr(battle_mod.Battle, "_floor_hp", _undying)
-    async with logged_in(tmp_path, novice=33000) as g:
+    async with logged_in(tmp_path, novice=33000, clock=FakeClock(DAY)) as g:
         await _enter(g)
         await back_to_map(g)
         before = _session(g).snapshot.character.consortia_offer  # type: ignore[union-attr]
@@ -107,7 +107,7 @@ async def test_vencer_o_invasor_da_contribuicao(tmp_path: Path, monkeypatch: pyt
 
 
 async def test_um_por_vez_no_invasor(tmp_path: Path) -> None:
-    async with logged_in(tmp_path, novice=33000) as g:
+    async with logged_in(tmp_path, novice=33000, clock=FakeClock(DAY)) as g:
         await _enter(g)
         await back_to_map(g)
         s = _session(g)
@@ -123,15 +123,17 @@ async def test_um_por_vez_no_invasor(tmp_path: Path) -> None:
         del s.ctx.online._by_id[999]
 
 
-def test_ondas_de_invasores_a_cada_2_horas() -> None:
-    """(visto) os avisos às 16:00, 18:00 e 20:00; o 1º olhar depois de subir o servidor não avisa."""
+def test_ondas_de_invasores_a_toda_hora() -> None:
+    """(visto) 183522: os avisos a toda hora cheia e os Invasores somem às :30; o 1º olhar depois de subir o
+    servidor não avisa."""
     store: dict[int, fam.Invasion] = {}
     inv, new = fam.invasion(store, 1, DAY + timedelta(minutes=30))
     assert not new and inv.wave == DAY
     inv.dead.add(INVADER)
-    assert fam.invasion(store, 1, DAY + timedelta(hours=1, minutes=59)) == (inv, False)
-    inv2, new = fam.invasion(store, 1, DAY + timedelta(hours=2))
-    assert new and inv2.wave == DAY + timedelta(hours=2) and not inv2.dead
+    assert fam.invasion(store, 1, DAY + timedelta(minutes=59)) == (inv, False)
+    inv2, new = fam.invasion(store, 1, DAY + timedelta(hours=1))
+    assert new and inv2.wave == DAY + timedelta(hours=1) and not inv2.dead
+    assert fam.invaders_up(DAY + timedelta(minutes=29)) and not fam.invaders_up(DAY + timedelta(minutes=30))
 
 
 async def test_sem_guilda_nao_entra(tmp_path: Path) -> None:
@@ -141,7 +143,7 @@ async def test_sem_guilda_nao_entra(tmp_path: Path) -> None:
         assert _session(g).campaign is None
 
 
-TREE, COLLECT = 750102, 750132  # "Guild Tree of Ancients" (masterType 61) e uma "Mysterious Fruit" (91)
+TREE = 750102  # "Guild Tree of Ancients" (masterType 61)
 DAY = datetime(2026, 10, 23, 12, 0, tzinfo=UTC)
 
 
@@ -183,7 +185,10 @@ async def test_lider_invoca_energiza_compra_o_buff_e_ganha_exp(tmp_path: Path) -
         tree = pb.FamInfoMsg.FromString(next(p.body for p in got if p.code == 4432))
         assert (tree.treeState, tree.opreate, tree.treeGrades, tree.treeGp) == (1, 2, 2, 0)  # nível 2 pede 1
         shown = {pb.CampaignNodeUpdateMsg.FromString(p.body).nodeId for p in got if p.code == 128}
-        assert len(shown) == 22  # a árvore e as 21 coletas da 1ª leva
+        assert len(shown) == 11  # a árvore e 10 das 21 coletas (visto 183522 #11313-#11322)
+        s = _session(g)
+        assert s.campaign is not None
+        collect = next(c for c, n in s.campaign.nodes.items() if n["masterType"] == 91 and n["state"] == NORMAL)
         g.client.send(8565)
         assert codes(await g.idle()) == []  # uma vez por dia
 
@@ -200,19 +205,20 @@ async def test_lider_invoca_energiza_compra_o_buff_e_ganha_exp(tmp_path: Path) -
         assert pb.FamInfoMsg.FromString(next(p.body for p in got if p.code == 4453)).rate == pytest.approx(1.2)
         assert char.consortia_offer == 300  # Fam_Buffer_Price 200
 
-        g.client.send(5125, pb.CampaignReqMsg(paraInt1=COLLECT, paraBool1=True))
+        g.client.send(5125, pb.CampaignReqMsg(paraInt1=collect, paraBool1=True))
         got = await g.idle()
         assert codes(got) == [143, 4609]  # (visto) 20261026-225632-1 #6488-#6489
-        assert pb.NodeLockReqMsg.FromString(got[1].body) == pb.NodeLockReqMsg(nodeId=COLLECT, lock=True)
+        assert pb.NodeLockReqMsg.FromString(got[1].body) == pb.NodeLockReqMsg(nodeId=collect, lock=True)
         assert char.consortia_offer == 300
-        g.client.send(5032, pb.CallBackReqMsg(mapId=7501, nodeId=COLLECT, cmd=2))
+        g.client.send(5032, pb.CallBackReqMsg(mapId=7501, nodeId=collect, cmd=2))
         got = await g.idle()
-        assert codes(got) == [3, 111, 128, 164]  # #6491-#6495
+        assert codes(got) == [3, 111, 83, 128, 164]  # #6491-#6495; o 83 da guilda (183522 #11131-#11132)
         assert pb.ChatChannelMsg.FromString(got[1].body).encodeMsg == "Successfully collected!"
-        assert char.consortia_offer == 305  # TODO(inventado) fam_tree.collect_offer 5 (0074)
+        assert "guild contribution!" in pb.ChatChannelMsg.FromString(got[2].body).encodeMsg
+        assert char.consortia_offer in (301, 305, 310)  # (visto) 1, 5 ou 10 (fam_tree.collect_offers, 0146)
 
         before, grade = char.total_gp, char.grades
         clock.advance(30)
         g.client.send(20008)
         await g.idle()
-        assert char.total_gp == before + 2 * int(grade * 2 * 2 * 1.2)  # 2 tiques, árvore nível 2
+        assert char.total_gp == before + 2 * round(grade * 2 * 17 * 1.2)  # 2 tiques, árvore nível 2 (0146)

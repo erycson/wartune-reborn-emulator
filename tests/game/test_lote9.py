@@ -7,7 +7,7 @@ test_lote6_mapa.py::218."""
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -79,10 +79,26 @@ async def test_master_treasure_thief_volta_depois_do_reinicio(tmp_path: Path) ->
         s = g.server.online.get(g.user_id)
         assert s is not None
         at = s.ctx.clock.now()
-        s.ctx.guilds.lords[7] = fam.Lords(at, {750133})
+        s.ctx.guilds.lords[7] = fam.Lords(at, {750133}, wave=1, told=0)
         await server_state.save(s.ctx, server_state.LORDS)
         s.ctx.guilds.lords.clear()
         loaded = await server_state.ServerStates.load(g.server.services.characters, s.ctx.states.server_id)
         server_state.restore(s.ctx, loaded)
         lords = s.ctx.guilds.lords[7]
-        assert (lords.called_at, lords.dead) == (at, {750133})
+        assert (lords.called_at, lords.dead, lords.wave, lords.told) == (at, {750133}, 1, 0)
+
+
+def test_levas_do_master_treasure_thief() -> None:
+    """(visto) 183522: 20 dos 30 por leva, levas a 0/180/360 s, a 3ª fica e já não está "aberta"; leva nova zera
+    os vencidos."""
+    at = datetime(2026, 10, 31, 12, 0, tzinfo=UTC)
+    lords = fam.Lords(at)
+    camps = list(range(750133, 750163))
+    assert len(lords.shown(camps, 0)) == 20 and lords.shown(camps, 0) == fam.Lords(at).shown(camps, 0)
+    assert [lords.batch(at + timedelta(seconds=t)) for t in (0, 179, 180, 360, 900)] == [0, 0, 1, 2, 2]
+    assert lords.open(at + timedelta(seconds=359)) and not lords.open(at + timedelta(seconds=360))
+    assert lords.left_ms(at + timedelta(seconds=40)) == 140000
+    store = {7: lords}
+    lords.dead.add(750133)
+    assert fam.lords_of(store, 7, at + timedelta(seconds=200)) is lords and not lords.dead
+    assert fam.lords_of(store, 7, at + timedelta(days=1)) is None and 7 not in store
