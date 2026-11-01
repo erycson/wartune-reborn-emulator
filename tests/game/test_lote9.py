@@ -95,7 +95,7 @@ def test_levas_do_master_treasure_thief() -> None:
     lords = fam.Lords(at)
     camps = list(range(750133, 750163))
     assert len(lords.shown(camps, 0)) == 20 and lords.shown(camps, 0) == fam.Lords(at).shown(camps, 0)
-    assert [lords.batch(at + timedelta(seconds=t)) for t in (0, 179, 180, 360, 900)] == [0, 0, 1, 2, 2]
+    assert [lords.batch(at + timedelta(seconds=t)) for t in (0, 179, 180, 360, 539, 540)] == [0, 0, 1, 2, 2, None]
     assert lords.open(at + timedelta(seconds=359)) and not lords.open(at + timedelta(seconds=360))
     assert lords.left_ms(at + timedelta(seconds=40)) == 140000
     store = {7: lords}

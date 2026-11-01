@@ -94,11 +94,12 @@ class Lords:
     told: int = 0
 
     def batch(self, now: datetime) -> int | None:
-        """Leva em curso (0..2); a última fica até o fim do dia do jogo (None depois).
-        TODO(inventado): até quando a 3ª leva fica (na captura todos morreram antes)."""
+        """Leva em curso (0..2), 3 min cada; None antes e depois.
+        Decisão do usuário: a 3ª também dura 3 min (na captura todos morreram antes)."""
         if now < self.called_at or not gameday.same_day(self.called_at, now):
             return None
-        return min(int((now - self.called_at).total_seconds()) // LORDS_SECONDS, LORDS_BATCHES - 1)
+        k = int((now - self.called_at).total_seconds()) // LORDS_SECONDS
+        return k if k < LORDS_BATCHES else None
 
     def open(self, now: datetime) -> bool:
         """``isOpenLordsNode``: ainda vem leva (visto: falso já na 3ª, #12366)."""

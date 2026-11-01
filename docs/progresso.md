@@ -218,7 +218,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Correio de guilda | ✅ | | |
 | Guerra de guildas | ✅ | | mapa 4501 (26/10 #2464-#6452): par das 8 maiores, torres, placar/10000, vantagem de 4000, feridas, buffs, prêmio; PvP 8548 com luta real (battleType 24 do cliente, cópia do inimigo, sem captura) e o perdedor no acampamento; TODO: janela diária e carro/invencível sem efeito |
 | Guerra entre servidores | 🧪 | | fila local (`handlers/cruzado.py`): 8779 inscreve, dois jogadores daqui lutam (cópia do herói, battleType 10), o primeiro assiste; pontos no `crossScore`; torres/inspirar/grupos seguem como antes TODO(inventado) |
-| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 3 levas de 20 dos 30 nós a 0/180/360 s, 4632 `currentTurns` 2-4, chat da chamada e da 3ª leva, luta 72004 (battleType 39) e baú 2030801 ×3 (visto 183522, 0146); a 3ª leva fica até o fim do dia (inventado); chamada e o aviso da 3ª leva em `server_states` (`lords`, não repete após reinício); levas pelo relógio do servidor |
+| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 3 levas de 20 dos 30 nós a 0/180/360 s, 4632 `currentTurns` 2-4, chat da chamada e da 3ª leva, luta 72004 (battleType 39) e baú 2030801 ×3 (visto 183522, 0146); a 3ª leva também dura 3 min (decisão do usuário); chamada e o aviso da 3ª leva em `server_states` (`lords`, não repete após reinício); levas pelo relógio do servidor |
 
 ## Campanhas e masmorras
 
