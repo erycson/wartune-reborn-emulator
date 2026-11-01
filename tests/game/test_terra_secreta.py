@@ -202,7 +202,8 @@ async def test_lider_invoca_energiza_compra_o_buff_e_ganha_exp(tmp_path: Path) -
         char.consortia_offer = 500
         g.client.send(8566)
         got = await g.idle()
-        assert pb.FamInfoMsg.FromString(next(p.body for p in got if p.code == 4453)).rate == pytest.approx(1.2)
+        assert codes(got) == [3, 4165, 150, 150, 4165, 150, 111, 83]  # (visto) 183522 #12261-#12268
+        assert [b.bufferTempId for b in pb.CampaignBufferMsg.FromString(got[4].body).bufferInfo] == [601]
         assert char.consortia_offer == 300  # Fam_Buffer_Price 200
 
         g.client.send(5125, pb.CampaignReqMsg(paraInt1=collect, paraBool1=True))

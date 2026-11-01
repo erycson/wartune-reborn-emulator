@@ -139,7 +139,8 @@ async def test_master_treasure_thief_do_primeiro_da_arena(tmp_path: Path, monkey
         assert report.battleResult == 1 and report.battleScene == 15
         assert [(i.templateId, i.count) for i in report.baseItem] == [(2030801, 3)] and report.signId
         assert _node(got).nodeState == DONE
-        assert 4632 in codes(got)  # o tempo da próxima leva (visto #11218)
+        tail = [c for c in codes(got) if c not in (109, 83)]  # (visto) #11212-#11220; 109 só com baixas
+        assert tail[tail.index(4103) - 2 :] == [140, 150, 4103, 140, 4632, 131, 128]
         assert s.snapshot is not None and s.snapshot.character.consortia_offer == offer  # sem contribuição
 
         g.client.send(5129, pb.CampaignReqMsg(paraString1=report.signId))

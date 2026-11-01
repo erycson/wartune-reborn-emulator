@@ -39,6 +39,7 @@ from ..builders import login as b
 from ..builders.army import castle_pawns
 from ..builders.player import quest_update
 from ..campaign import COLLECT, DONE, FAM_MAP, FIGHTING, NORMAL, PANDORA, CampaignMap
+from ..castle import castle_yield
 from ..router import router
 from ..session import GameSession
 from .campaign import (
@@ -48,6 +49,7 @@ from .campaign import (
     S_ARMY_PAWN,
     S_ARMY_POS,
     S_BATTLE_REPORT,
+    S_BUFFERS,
     S_CHAT,
     S_FIGHT_MOVIE,
     S_FULL_ARMY,
@@ -88,6 +90,7 @@ LORD = 181  # masterType dos 30 "Master Treasure Thief" do 7501 (sonType 2189, e
 # (visto) 183522 #11114 e #12384, canal 5 tipo 5 a toda a guilda
 SUMMONED_LORDS = "{link} ranked {rank} in Class Wars, and summoned the Master Treasure Thief in the Guild Chamber!"
 LORDS_INVADING = "Master Treasure Thieves are invading!"
+FAM_BOOST, BOOST_TEXT = 601, "Received: Lvl. 1 Guild Chamber Boost"  # (visto) 183522 #12265-#12268, o buff do 8566
 LORDS_KEY = "fam_lords"  # EventState do dia: chamou hoje ("once per day", callMonsterTip)
 LORDS_RANK = 1  # "only the top-ranked player" (warlords.WarlordsFrame.helpContent, item 6)
 BUSY = "Target is in battle, please wait…"  # (cliente) playermenu.command01; (dedução) o aviso de quem chega depois
@@ -347,7 +350,7 @@ async def summon(s: GameSession, _: object) -> None:
 @router.on(8566)
 async def buff(s: GameSession, _: object) -> None:
     """Buff de +20% de EXP (``Fam_Buffer_Price`` de contribuição) enquanto a árvore está invocada, uma vez por
-    invocação; (dedução) a resposta é o 3 (contribuição nova) e o 4453 com o rate novo."""
+    invocação; o tique sai × 1,2 (visto 3468 -> 4162)."""
     mine, snap, now = _mine(s), s.snapshot, s.ctx.clock.now()
     price = gd.config(s.ctx.templates, "Fam_Buffer_Price", 200)
     in_room = s.campaign is not None and s.campaign.fam
@@ -361,8 +364,18 @@ async def buff(s: GameSession, _: object) -> None:
     snap.character.consortia_offer -= price
     member.fam_buff_at = guild.tree_called_at
     await s.ctx.characters.save(snap.character, member)
+    # (visto) 183522 #12261-#12268: 3, 4165 vazio, 150, 150, 4165 com o buffer 601, 150, 111 e 83 (sem 4453)
     await _push_player(s)
-    s.send(S_INFO, _info(s, guild, member))
+    full = b.complete(army(s, snap)[0])
+    s.send(S_BUFFERS, pb.CampaignBufferMsg(armyId=s.player_id))
+    s.send(S_FULL_ARMY, full, cards=False)
+    s.send(S_FULL_ARMY, full, cards=False)
+    boost = pb.CampaignBufferMsg(armyId=s.player_id)
+    boost.bufferInfo.add(bufferTempId=FAM_BOOST, leftTime=0)
+    s.send(S_BUFFERS, boost)
+    s.send(S_FULL_ARMY, full, cards=False)
+    s.send(S_ALERT, pb.ChatChannelMsg(channel=7, encodeMsg=BOOST_TEXT))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=BOOST_TEXT))
 
 
 @router.on(8743)
@@ -557,15 +570,24 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool, lord: bool
         c.fallen[sign] = drops
         report.signId = sign
         report.baseItem.extend(pb.BaseItemMsg(templateId=t, count=n) for t, n in drops)
-    if healed:
-        send_blood(s)
-        await _push_player(s)
+    thief_won = won and lord
+    if thief_won:  # (visto) 183522 #11212-#11217: 140, 150, 109 (com baixas), 4103 e o 83 da poção
+        s.send(S_MAP_SYNC, map_sync(s, ARMY_IDLE))
+        s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)
+        if hit is not None:
+            castle_yield(s)
+        s.send(S_BATTLE_REPORT, report)
         hp_pack(s, healed)
-    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)  # como na cidade externa: o do 154 sem o 4902
-    s.send(S_BATTLE_REPORT, report)
-    await _push_player(s)
-    s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
-    s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
+    else:
+        if healed:
+            send_blood(s)
+            await _push_player(s)
+            hp_pack(s, healed)
+        s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]), cards=False)  # como na cidade externa: o do 154 sem o 4902
+        s.send(S_BATTLE_REPORT, report)
+        await _push_player(s)
+        s.send(S_FULL_ARMY, b.complete(army(s, snap)[0]))
+        s.send(S_ARMY_PAWN, castle_pawns(snap, s.ctx.templates))
     if c is None or not c.fam:
         return  # saiu no meio da luta
     node = c.node(camp)
@@ -586,7 +608,8 @@ async def _over(s: GameSession, battle: Battle, camp: int, won: bool, lord: bool
     _node_update(s, camp, DONE if won else NORMAL, fresh=True)
     if offer:
         _contribution(s, offer, quests)
-    hp_pack(s, healed)
+    if not thief_won:
+        hp_pack(s, healed)
     s.log.info("terra secreta: luta", nó=camp, venceu=won, contribuição=offer)
 
 
