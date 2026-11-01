@@ -10,6 +10,7 @@ Revision ID: 0150
 Revises: 0149
 Create Date: 2026-11-01 21:00:00.000000
 """
+
 from __future__ import annotations
 
 import json
@@ -33,6 +34,7 @@ SOURCES = {
     "ring_eliminate_per_round": "(visto) #9568-#9575: 1 rodada da 1102 = 18; TODO(inventado) nas outras",
     "ring_fetch_items": "(visto) #9987 condition_2 2 (guilda), condition_3 2013503; TODO(inventado) os outros",
 }
+
 
 def _settings() -> Any:
     return sa.table("game_settings", sa.column("key"), sa.column("value"), sa.column("source"))
