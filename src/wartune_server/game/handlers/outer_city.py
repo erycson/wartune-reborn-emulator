@@ -634,13 +634,16 @@ async def _casualties(
     scene: int,
     before_report: Callable[[], None] | None = None,
     note: bool = True,
+    after_report: Callable[[], None] | None = None,
+    heal_first: bool = False,
 ) -> tuple[int, int]:
     """150 com o exército sem as tropas mortas (#1760: 0 depois de perder as 172), 4103, a reposição pela reserva
     e 150 e 100 de novo (#1763-#1764: 172 e a reserva 640 -> 468). Com perda, 109 (população) e 3 antes do 4103:
     o Daru é o número de soldados perdidos, ganhando ou perdendo (oficial_20261023-153200-1 #1620-#1625: 116 na
     mina; #1896-#1903: 201 no tesouro; #2004-#2009: 106). Devolve o Daru, que o 4382 mostra na volta ao mapa.
     ``before_report``: o que vai logo antes do 4103 (o prêmio do Treasure Cache, oficial_20261023-171155-1
-    #650-#662). ``note`` falso: o 83 do HP pack fica para quem chama (devolve ``(daru, curado)``)."""
+    #650-#662). ``note`` falso: o 83 do HP pack fica para quem chama (devolve ``(daru, curado)``); ``heal_first``:
+    o 83 vai antes do 4103. ``after_report``: o que vai logo depois do 4103."""
     snap = s.snapshot
     assert snap is not None
     hit = oc.lose_troops(snap, s.ctx.templates, battle.troops())
@@ -656,8 +659,14 @@ async def _casualties(
         _send_player(s)
     if before_report is not None:
         before_report()
+    if heal_first:  # captura do painel (8298): o 83 do HP pack antes do 4103 (visto 20261030-145704 #284-#285)
+        hp_pack(s, healed)
     s.send(S_REPORT, report)
-    if note:  # (visto) #1899-#1901 (com o 139 no meio, que aqui não há); mina: oficial_20261023-171155-1 #3151-#3152
+    if after_report is not None:
+        after_report()
+    if (
+        note and not heal_first
+    ):  # (visto) #1899-#1901 (com o 139 no meio, que aqui não há); mina: oficial_20261023-171155-1 #3151-#3152
         hp_pack(s, healed)
     if hit is not None:
         oc.refill(*hit)

@@ -32,7 +32,7 @@ O jogador escolhe entre 1, 10, 6, 5 e 8 (`chat/view/InputChannelList.as`).
 | C>S | mensagem | quando |
 |---|---|---|
 | 15005 | ChatChannelMsg `{channel, encodeMsg, items, stars, powcards, team[]}` | canais 5, 6, 8 |
-| 8198 | ChatChannelMsg (`extend2` = id do protocolo) | canal 10 (mundo) |
+| 8198 | ChatChannelMsg (id do protocolo: `PackageOut(8198, 0, id)`; no fio chega no `extend1`, visto 20261031-183522 #6496 `e=1/0`) | canal 10 (mundo) |
 | 5011 | ChatChannelMsg sem `channel` | canal 1 (corneta grande) |
 | 8623 | CrossBigBugleMsg `{content}` | canal 13 |
 | 8705 | vazio; resposta 4500 `paraInt1` = cornetas pequenas grátis | ao abrir o chat |

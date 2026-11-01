@@ -111,6 +111,32 @@ def test_click_keeps_first_time_of_day() -> None:
     assert (st.value, st.updated_at) == (2, first)
 
 
+async def test_arrest_opens_army_battle_against_the_npc(tmp_path: Path) -> None:
+    """(visto) 20261030-145704 #245-#247: 8298 -> um 140 do exército em luta e a 157 battleType 12, mapTempId 1,
+    com as tropas e o herói NPC (type 3) do ``Para1``. NPC fora de qualquer condição 14: nada."""
+    async with logged_in(tmp_path, novice=19000) as g:
+        snap = _snap(g)
+        s = g.server.online.get(g.user_id)
+        assert s is not None
+        row = next(r for r in s.ctx.templates.rows("RewardCondictionInfos") if int(r["CondictionType"]) == 14)
+        tid, npc = int(row["TemplateId"]), int(row["Para1"])
+        board = ev.state(snap, "offer:list", s.ctx.clock.now())
+        board.text = json.dumps({"ids": [tid], "q": [1], "st": [1]})
+        g.client.send(8288, pb.RewardAddedMsg(rewardId=0))
+        await g.until(4197)
+
+        g.client.send(8298, pb.RewardArrestMsg(param1=npc + 123456, condictionType=14))
+        assert await g.idle() == []
+        g.client.send(8298, pb.RewardArrestMsg(param1=npc, condictionType=14))
+        got = await g.until(157)
+        assert [p.code for p in got].count(140) == 1
+        army = pb.MapUpdatedMsg.FromString(next(p.body for p in got if p.code == 140)).army
+        prep = pb.BattlePrepareMsg.FromString(got[-1].body)
+        assert army.state == 2 and (prep.battleType, prep.mapTempId) == (12, 1)
+        enemy = next(h for h in prep.heros if h.side == 2)
+        assert (enemy.tempId, enemy.type) == (npc, 3)
+
+
 async def test_ring_task_finish_with_item_or_diamonds(tmp_path: Path) -> None:
     async with logged_in(tmp_path, novice=19000) as g:
         snap = _snap(g)

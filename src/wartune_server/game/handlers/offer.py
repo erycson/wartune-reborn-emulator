@@ -187,11 +187,9 @@ def _roll(s: GameSession, snap: PlayerSnapshot, now: datetime) -> EventState:
         for r in s.ctx.templates.find("RewardTemps", Type=OFFER)
         if int(r["NeedMinLevel"]) <= grade < int(r["NeedMaxLevel"]) and int(r["Rands"]) > 0
     ]
-    ids: list[int] = []
-    while pool and len(ids) < SLOTS:
-        pick = random.choices(pool, weights=[int(r["Rands"]) for r in pool])[0]
-        pool.remove(pick)
-        ids.append(int(pick["TemplateId"]))
+    # com reposição: (visto) oficial_20261024-121659-1 #501 com a 24 duas vezes no mesmo painel
+    picks = random.choices(pool, weights=[int(r["Rands"]) for r in pool], k=SLOTS) if pool else []
+    ids = [int(r["TemplateId"]) for r in picks]
     quality = random.choices(range(1, 6), weights=taxas.get(s.ctx.world.settings, "offer_quality_weights"), k=len(ids))
     st = _board(snap, now)
     st.text, st.updated_at = json.dumps({"ids": ids, "q": quality, "st": [CAN_ACCEPT] * len(ids)}), now
@@ -383,10 +381,12 @@ async def offer_arrest(s: GameSession, msg: pb.RewardArrestMsg) -> None:
             if won:
                 changed.extend(_progress_now(s, CAPTURE, 1, npc))
 
-        await _casualties(s, battle, won, ARREST_SCENE, before_report)
+        def idle() -> None:  # (visto) #286: o 140 parado logo depois do 4103
+            s.send(MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, ARMY_IDLE)))
+
+        await _casualties(s, battle, won, ARREST_SCENE, before_report, after_report=idle, heal_first=True)
         if changed:
             await s.ctx.characters.save(*changed)
-        s.send(MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, ARMY_IDLE)))
 
     s.send(MAP_SYNC, pb.MapUpdatedMsg(updatedType=MAP_ARMY, army=_army_brief(s, ARMY_FIGHTING)))  # um só (#246)
     s.battle = Battle(
