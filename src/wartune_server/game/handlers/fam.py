@@ -16,8 +16,8 @@ Invasores à vista (state 1); os outros 6, a árvore, as 21 coletas e os 30 Mast
 A árvore (regras em ``game/fam.py``, sem captura: tudo **dedução** do cliente e da ajuda): o líder invoca (8565, o
 botão só aparece com ``treeState`` 2 ao líder) e todos os membros online recebem o 4432 com ``opreate`` 2 (o cliente
 avisa "Tree of Ancients spawned" a quem está fora); por 15 min a árvore fica à vista, quem está na sala ganha EXP a
-cada 15 s (pago no relógio, 20008), energiza uma vez (5125 na árvore), compra o buff (8566) e colhe as coletas que
-aparecem a cada 3 min (5125 nelas trava o nó com o 4609,
+cada 15 s (pago no relógio do servidor, ``run``, e no 20008), energiza uma vez (5125 na árvore), compra o buff
+(8566) e colhe as coletas que aparecem a cada 3 min (5125 nelas trava o nó com o 4609,
 o 5032 colhe e dá contribuição). O Master Treasure Thief (8743): quem pode chamar (``isCanCall``) é, na Class Wars,
 o mais bem colocado do servidor; aqui, que roda tudo local, o 1º da arena (``_can_call``). (visto) 20261031-183522-1
 #11064-#12961: os 30 nós masterType 181 são os "bichos dourados": 3 levas de 20 sorteados, a 0, 180 e 360 s da chamada;
@@ -27,6 +27,7 @@ Badge ×3. Os Invasores voltam a toda hora cheia e somem na meia hora (``fam.inv
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from ...domain.models import Consortia, ConsortiaMember, Quest
@@ -41,7 +42,7 @@ from ..builders.player import quest_update
 from ..campaign import COLLECT, DONE, FAM_MAP, FIGHTING, NORMAL, PANDORA, CampaignMap
 from ..castle import castle_yield
 from ..router import router
-from ..session import GameSession
+from ..session import GameSession, OnlinePlayers
 from .campaign import (
     ARMY_IDLE,
     ENTER,
@@ -75,6 +76,7 @@ from .player import hero_after_fight, hp_pack, push_level
 from .shop import send_blood
 
 S_TREE, S_LORDS, S_INFO, S_ARMY_MOVED, S_MOVIE, S_LOCK = 4432, 4632, 4453, 4104, 143, 4609
+RUN_SECONDS = 1.0  # passo do relógio da sala (``run``): cada evento sai até 1 s depois da hora
 COLLECT_CMD = 2  # (visto #6490) CallBackReqMsg.cmd da coleta
 COLLECTED = "Successfully collected!"  # (visto #6492)
 INVADER = 151  # masterType do Invasor (o 127 da captura: 9 nós, sonType 2105)
@@ -171,7 +173,10 @@ def _sync_nodes(s: GameSession, guild: Consortia, *, send: bool = True, tell: bo
     lord_camps = _camps(c, LORD)
     shown = lords.shown(lord_camps, k) if lords is not None and k is not None else set()
     collects = _camps(c, COLLECT)
-    picked = fam.collect_shown(guild, batch, collects, settings) if batch is not None else set()
+    picked: set[int] = set()
+    if batch is not None:
+        taken = fam.collected(s.ctx.guilds.collected, guild, batch)
+        picked = fam.collect_shown(guild, batch, collects, settings) - taken
     if send and new_wave and wave is not None and tell:
         s.send(S_LORDS, _lords_msg(s, guild))
     if send and new_batch and before is not None:
@@ -304,6 +309,10 @@ async def push_state(s: GameSession) -> None:
     now = s.ctx.clock.now()
     before_batch = s.fam_batch
     _sync_nodes(s, guild)
+    lords = s.ctx.guilds.lords.get(guild.id or 0)
+    told = (s.ctx.states.value(server_state.LORDS) or {}).get(str(guild.id or 0), {}).get("told")
+    if lords is not None and told != lords.told:  # o aviso da 3ª leva: o reinício não repete
+        await server_state.save(s.ctx, server_state.LORDS)
     if s.fam_batch is None and before_batch is not None:
         s.send(S_TREE, _tree(s, guild, member))  # (dedução) a árvore acabou: treeState 3, o botão do buff some
         s.send(S_INFO, _info(s, guild, member))
@@ -311,20 +320,38 @@ async def push_state(s: GameSession) -> None:
     if n <= 0:
         return
     rate = fam.rate(guild, member, s.ctx.world.settings, guild.tree_called_at or now)
-    gp = n * fam.tick_exp(snap.character.grades, guild, rate, s.ctx.world.settings)
+    each = fam.tick_exp(snap.character.grades, guild, rate, s.ctx.world.settings)
+    gp = n * each
     if gp <= 0:
         return
     grade = snap.character.grades
     rules.add_gp(snap, s.ctx.templates, gp)
     await s.ctx.characters.save(snap.character, *([snap.leader] if snap.leader else []))
     await _push_player(s)
-    # (visto) 183522 #11226-#11228: 3, 4382 e 83 a cada 15 s; shortcut: os tiques vencidos desde o último 20008 saem
-    # somados num 4382 só, até haver um relógio de 15 s por sessão
-    s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=gp))
-    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(gp)))
+    for _ in range(n):  # (visto) 183522 #11226-#11228: 3, 4382 e 83 a cada 15 s, um 4382 por tique
+        s.send(S_FIGHT_MOVIE, pb.FightOverMoiveMsg(gp=each))
+        s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(each)))
     if snap.character.grades > grade:
         await push_level(s, grade)
     s.log.info("terra secreta: EXP da árvore", tiques=n, exp=gp, rate=rate)
+
+
+async def tick(online: OnlinePlayers) -> None:
+    """Uma rodada do relógio da sala para todos online (o mesmo ``push_state`` do 20008); uma sessão que falha não
+    impede as outras."""
+    for s in online.sessions():
+        try:
+            await push_state(s)
+        except Exception:
+            s.log.exception("relógio da terra secreta falhou")
+
+
+async def run(online: OnlinePlayers, every: float = RUN_SECONDS) -> None:
+    """Loop do relógio da sala (``app.py`` cancela ao desligar), como o do mercado: as levas do Master Treasure
+    Thief, as coletas, os tiques de EXP e as ondas de Invasores saem no segundo certo, sem esperar o 20008."""
+    while True:
+        await tick(online)
+        await asyncio.sleep(every)
 
 
 @router.on(8565)
@@ -489,8 +516,13 @@ async def _collect(s: GameSession, camp: int, guild: Consortia) -> None:
     (dedução) a riqueza da guilda sobe junto, como no Invasor."""
     snap, c = s.snapshot, s.campaign
     assert snap is not None and c is not None
-    if fam.collect_batch(guild, s.ctx.clock.now()) is None:
+    batch = fam.collect_batch(guild, s.ctx.clock.now())
+    if batch is None:
         return
+    taken = fam.collected(s.ctx.guilds.collected, guild, batch)
+    if camp in taken:
+        return  # outro da guilda já pegou nesta leva
+    taken.add(camp)
     offer = fam.collect_offer(s.ctx.world.settings)
     quests = _add_offer(s, offer)
     guild.offer += offer

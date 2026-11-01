@@ -223,3 +223,33 @@ async def test_lider_invoca_energiza_compra_o_buff_e_ganha_exp(tmp_path: Path) -
         g.client.send(20008)
         await g.idle()
         assert char.total_gp == before + 2 * round(grade * 2 * 17 * 1.2)  # 2 tiques, árvore nível 2 (0146)
+
+
+async def test_relogio_do_servidor_paga_um_4382_por_tique(tmp_path: Path) -> None:
+    """Sem 20008: o ``tick`` do relógio da sala (``handlers.fam.run``) paga os tiques vencidos, um 4382 cada."""
+    from wartune_server.game.handlers import fam as fam_h
+
+    clock = FakeClock(DAY)
+    async with logged_in(tmp_path, novice=33000, clock=clock) as g:
+        await _enter(g)
+        await back_to_map(g)
+        g.client.send(8565)
+        await g.idle()
+        char = _session(g).snapshot.character  # type: ignore[union-attr]
+        before = char.total_gp
+        clock.advance(30)
+        await fam_h.tick(g.server.online)
+        got = await g.idle()
+        movies = [pb.FightOverMoiveMsg.FromString(p.body).gp for p in got if p.code == 4382]
+        assert len(movies) == 2 and char.total_gp == before + sum(movies)
+        await fam_h.tick(g.server.online)
+        assert 4382 not in codes(await g.idle())  # nada novo no mesmo segundo
+
+
+def test_coleta_pega_fica_com_a_guilda_na_leva() -> None:
+    guild = Consortia(id=7, server_id=1, name="g", creator_id=1, creator_name="", chairman_id=1, created_at=DAY)
+    guild.tree_called_at = DAY
+    store: dict[int, tuple[str, set[int]]] = {}
+    fam.collected(store, guild, 0).add(5)
+    assert fam.collected(store, guild, 0) == {5}  # quem entra depois na mesma leva não vê a 5
+    assert fam.collected(store, guild, 1) == set()  # leva nova: tudo volta

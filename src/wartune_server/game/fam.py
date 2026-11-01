@@ -205,6 +205,19 @@ def collect_batch(guild: Consortia, now: datetime) -> int | None:
     return int((now - guild.tree_called_at).total_seconds()) // COLLECT_SECONDS
 
 
+def collect_key(guild: Consortia, batch: int) -> str:
+    return f"{guild.tree_called_at.isoformat() if guild.tree_called_at else ''}:{batch}"
+
+
+def collected(store: dict[int, tuple[str, set[int]]], guild: Consortia, batch: int) -> set[int]:
+    """As coletas já pegas na leva ``batch`` da guilda (a leva velha sai do ``store``)."""
+    key = collect_key(guild, batch)
+    got = store.get(guild.id or 0)
+    if got is None or got[0] != key:
+        store[guild.id or 0] = got = (key, set())
+    return got[1]
+
+
 def collect_offer(settings: Mapping[str, Any]) -> int:
     offers = _cfg(settings)["collect_offers"]
     return int(random.choices([o for o, _ in offers], [w for _, w in offers])[0])

@@ -213,12 +213,12 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Altar do demônio (boss de guilda) | 🧪 | | handlers/altar.py: ondas sobre o Pool do world boss, vida do herói 1042 do template, reviver 8264 tipo 2 por contribuição, buff 8550, habilidades 8593; ondas/tempos/recompensas TODO(inventado) `altar_demon` (0110) |
 | Terra secreta: entrada e saída | ✅ | | |
 | Terra secreta: invasores | 🧪 | | onda a toda hora cheia, somem na meia hora (visto 183522); onda e vencidos em `server_states` (0109); contribuição 10 vista (0073) |
-| Terra secreta: árvore sagrada | 🧪 | | tique 34×6×17 com 4382 e coletas 1/5/10, 10 de 21 por leva, chat da guilda (visto 183522, 0146); bônus da energia inventado |
+| Terra secreta: árvore sagrada | 🧪 | | tique 34×6×17 com 4382 e coletas 1/5/10, 10 de 21 por leva, chat da guilda (visto 183522, 0146); relógio do servidor (1 s): um 4382 por tique e levas no segundo certo; coleta pega some para a guilda toda na leva; bônus da energia inventado |
 | Anúncio de recrutamento | 🧪 | | canal e remetente inventados |
 | Correio de guilda | ✅ | | |
 | Guerra de guildas | ✅ | | mapa 4501 (26/10 #2464-#6452): par das 8 maiores, torres, placar/10000, vantagem de 4000, feridas, buffs, prêmio; PvP 8548 com luta real (battleType 24 do cliente, cópia do inimigo, sem captura) e o perdedor no acampamento; TODO: janela diária e carro/invencível sem efeito |
 | Guerra entre servidores | 🧪 | | fila local (`handlers/cruzado.py`): 8779 inscreve, dois jogadores daqui lutam (cópia do herói, battleType 10), o primeiro assiste; pontos no `crossScore`; torres/inspirar/grupos seguem como antes TODO(inventado) |
-| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 3 levas de 20 dos 30 nós a 0/180/360 s, 4632 `currentTurns` 2-4, chat da chamada e da 3ª leva, luta 72004 (battleType 39) e baú 2030801 ×3 (visto 183522, 0146); a 3ª leva fica até o fim do dia (inventado); chamada em `server_states` (`lords`) |
+| Master Treasure Thief (8743) | 🧪 | | `isCanCall` pelo 1º do ranking local da arena, 1x/dia (TODO(inventado)); 3 levas de 20 dos 30 nós a 0/180/360 s, 4632 `currentTurns` 2-4, chat da chamada e da 3ª leva, luta 72004 (battleType 39) e baú 2030801 ×3 (visto 183522, 0146); a 3ª leva fica até o fim do dia (inventado); chamada e o aviso da 3ª leva em `server_states` (`lords`, não repete após reinício); levas pelo relógio do servidor |
 
 ## Campanhas e masmorras
 

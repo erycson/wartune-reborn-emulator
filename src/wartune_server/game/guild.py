@@ -123,6 +123,8 @@ class Guilds:
     invasions: dict[int, Any] = field(default_factory=dict)  # guilda -> ``fam.Invasion`` (Invasores do 7501)
     # guilda -> ``fam.Lords`` (Master Treasure Thief chamado); vai para ``server_states`` (``server_state.LORDS``)
     lords: dict[int, Any] = field(default_factory=dict)
+    # guilda -> (leva ``fam.collect_key``, coletas já pegas nela): quem entra depois não as vê
+    collected: dict[int, tuple[str, set[int]]] = field(default_factory=dict)
     wars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``guildwar.War`` de hoje (as duas do par)
     election_at: datetime | None = None  # última conferência das eleições (``handlers.guild.election.clock``)
     altars: dict[int, Any] = field(default_factory=dict)  # guilda -> ``handlers.altar.Run`` do altar aberto

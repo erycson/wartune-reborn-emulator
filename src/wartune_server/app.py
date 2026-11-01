@@ -18,6 +18,7 @@ from .game import mall as market
 from .game import rankings, server_state
 from .game.events import EventCatalog
 from .game.guild import Guilds
+from .game.handlers import fam as fam_room
 from .game.router import router
 from .game.session import GameContext, GameSession, OnlinePlayers
 from .http.app import HttpDeps, build_http_app
@@ -141,6 +142,7 @@ class GameServerApp:
         servers: list[asyncio.Server] = []
         sweeper: asyncio.Task[None] | None = None
         ranking: asyncio.Task[None] | None = None
+        room_clock: asyncio.Task[None] | None = None
         try:
             for app, port in ((self.http_app, s.http_port), (websocket_app(self.acceptor), s.websocket_port)):
                 runner = web.AppRunner(app, access_log=None)
@@ -158,6 +160,7 @@ class GameServerApp:
                 ),
                 name="mercado-encerramento",
             )
+            room_clock = asyncio.create_task(fam_room.run(self.online), name="terra-secreta-relogio")
             if s.ranking_xml_dir is not None:
                 ranking = asyncio.create_task(
                     rankings.run(
@@ -172,7 +175,7 @@ class GameServerApp:
                 )
             await stop.wait()
         finally:
-            for task in (sweeper, ranking):
+            for task in (sweeper, ranking, room_clock):
                 if task is not None:
                     task.cancel()
                     await asyncio.gather(task, return_exceptions=True)
