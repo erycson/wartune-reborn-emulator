@@ -279,6 +279,7 @@ async def test_stars_rand_pick_equip_eat_lock_and_shop(tmp_path: Path, monkeypat
 
         g.client.send(8330, pb.StarLockReqMsg(starType=2, pos=0))
         assert pb.StarMoveRspMsg.FromString((await g.until(4178))[-1].body).move[0].star_Info.isLock
+        await g.idle()  # o 111 "Astral Locked!" vem depois do 4178
 
         snap.character.point = 395
         g.client.send(8270, pb.PayTypeMsg(payType=1))  # uma linha de 4 por 395 (StarManager.sendBagCellBuy)
