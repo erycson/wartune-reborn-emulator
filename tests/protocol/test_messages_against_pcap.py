@@ -3,7 +3,7 @@
 Para cada amostra com mensagem conhecida: decodifica, exige que não sobrem campos
 desconhecidos (sinal de número/tipo errado) e que a re-codificação gere os mesmos bytes.
 
-``pcap_samples.json``: até 3 corpos distintos por (direção, opcode) de ``captures/tutorial_en.json`` (inglesa),
+``captures/pcap_samples.json`` (fora do git: nada real vai para o repositório): até 3 corpos distintos por (direção, opcode) de ``captures/tutorial_en.json`` (inglesa),
 mais as amostras turcas antigas dos opcodes que a inglesa não tem (só turco: c2s 5172, 8574, 10020, 20001;
 s2c 102, 4224, 4463, 4922).
 """
@@ -16,7 +16,9 @@ from google.protobuf.unknown_fields import UnknownFieldSet
 
 from wartune_server.protocol.registry import Direction, MessageRegistry
 
-SAMPLES = json.loads((Path(__file__).parent.parent / "fixtures" / "pcap_samples.json").read_text())
+FILE = Path(__file__).parents[2] / "captures" / "pcap_samples.json"  # pacotes reais: só local, fora do git
+pytestmark = pytest.mark.skipif(not FILE.exists(), reason="precisa de captures/pcap_samples.json")
+SAMPLES = json.loads(FILE.read_text()) if FILE.exists() else []
 REGISTRY = MessageRegistry.load_default()
 
 

@@ -6,6 +6,8 @@ Aqui cada pacote é montado a partir do banco de dados e dos templates do jogo.
 
 ## Rodando
 
+Nada real vai para o git (banco, templates da 7road, capturas, chave): tudo é gerado do zero pelos comandos abaixo.
+
 O jogo tem três partes:
 
 | Parte | Onde | Papel |
@@ -16,7 +18,8 @@ O jogo tem três partes:
 
 ```powershell
 uv sync
-uv run wartune-server run      # cria as tabelas e publica o servidor em game_servers
+uv run wartune-server templates update   # baixa o tempinfos.xml da CDN (WARTUNE_TEMPLATES_URL) e importa no banco
+uv run wartune-server run                # migrações criam tabelas e conteúdo; a chave RSA é gerada se faltar
 ```
 
 Abra `http://127.0.0.1:8090/wartune-reborn/`, crie a conta e escolha o servidor. A página de jogar
