@@ -53,7 +53,8 @@ POWER_CARD = "600"  # carta de poder (systems.CARD_ITEM)
 PROTECTION = buffs.PROTECTION  # City Protection Token (208006): o cliente conta pelo 4452 e para com o 8562
 S_CASTLE_TIME = 4452
 STORE_STONE = 208014  # Soul Crystal (SonType 293): Property1 = EXP do cristal (8484)
-STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = EXP total do nível
+STORE_GRADE = "15"  # UpGradeTempInfos.Types do cristal; Data = custo do nível anterior a este
+S_STORE_DONE = 4385  # 0x1121 ItemUseStoreRspMsg (result 1); o cliente inglês não escuta este código
 BAG_ROW, BAG_MAX = 7, 175  # 5010 compra de 7 em 7 até 175 espaços (PlayerInfo.PLAYER_BAG_MAX)
 MOVABLE = (BagType.STORE, BagType.BAG, BagType.RUNE, BagType.HONOR, BagType.HERO, BagType.GUILD, BagType.PET_EQUIP)
 STACKABLE = (BagType.STORE, BagType.BAG, BagType.GUILD)
@@ -995,13 +996,38 @@ async def use_store(s: GameSession, msg: pb.ItemUseStoreReqMsg) -> None:
     if row is None or not 0 < msg.count <= bag.count_of(snap, STORE_STONE):
         s.log.info("8484 recusado", pedido=str(msg))
         return
+    from . import events  # events importa login, que importa este módulo
+    from .army import count_quest  # army importa player, que importa este pacote
+
     changed, gone = bag.take(snap, STORE_STONE, msg.count)
-    c.store_gp += int(row.get("Property1") or 1) * msg.count
-    levels = templates.find("UpGradeTempInfos", Types=STORE_GRADE)
-    c.store_grade = max((int(r["Grades"]) for r in levels if int(r["Data"]) <= c.store_gp), default=0)
+    gained = int(row.get("Property1") or 1) * msg.count
+    old_grade = c.store_grade
+    levels = list(templates.find("UpGradeTempInfos", Types=STORE_GRADE))
+    c.store_grade, c.store_gp = store_level(levels, c.store_grade, c.store_gp + gained)
     await s.ctx.characters.save(c, *changed, delete=tuple(gone))
+    # (visto) 20261101-220132-1 #1963-#1973 (subiu 0 -> 7): 115, 4484, 3, 3 (poder novo), 4902, 150, 111, 112 da 858,
+    # 4385, 83; #1999-#2003 (sem subir): 115, 3, 111, 4385, 83. A EXP do herói não muda
     _send_items(s, changed, gone)
+    if c.store_grade != old_grade:
+        events.send_titles(s)
+        _player(s)
     _player(s)
+    if c.store_grade != old_grade:
+        _army(s)
+    alert(s, f"Received:EXP x{gained}")
+    await count_quest(s, rules.ENGRAVE_CONDITION)
+    s.send(S_STORE_DONE, pb.ItemUseStoreRspMsg(result=True))
+    s.send(S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=f"Received:EXP x{gained}"))
+
+
+def store_level(levels: list[Row], grade: int, gp: int) -> tuple[int, int]:
+    """Sobe o cristal enquanto a EXP paga o próximo nível: ``Data`` do nível N = custo de N-1 a N; ``storeGp`` é a
+    EXP dentro do nível. (visto) 0 + 566 -> 7/1 (10+30+52+76+102+131+164 = 565), +100 -> 7/101."""
+    cost = {int(r["Grades"]): int(r["Data"]) for r in levels}
+    while grade + 1 in cost and gp >= cost[grade + 1]:
+        gp -= cost[grade + 1]
+        grade += 1
+    return grade, gp
 
 
 # --- espaços da mochila ---

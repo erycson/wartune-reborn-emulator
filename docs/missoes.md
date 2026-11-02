@@ -195,7 +195,7 @@ Nenhuma missão foi desbloqueada nesta revisão. O que impede cada grupo de bols
 | 53 | Lock an Astral | 0 / 1 | 1 (623) | `checkCount` | sim | stars.py:316 quest_event LOCK_QUEST (soma) | — | outra equipe |
 | 56 | Auction | 0 / 1 | 1 (825) | `checkCount` | sim | mall.py SELL_CONDITION (8448) | — | eu |
 | 57 | Blessing Wheel | 0 / 1 | 1 (857) | `checkCount` | sim | castle.py SEMINARY_CONDITION (8489) | — | eu |
-| 58 | Soul Engraving | 0 / 1 | 1 (858) | `checkCount` | não | — | TODO(58) em rules.py: o cliente decompilado só tem o SonType 293 (Soul Crystal), sem tela nem pacote; viverá no handler da gravação quando o pacote for achado | eu |
+| 58 | Soul Engraving | 0 / 1 | 1 (858) | `checkCount` | sim | items.use_store (8484), +1 por uso | (visto) 20261101-220132-1 #1970: 112 condition_1 1 depois do 8484; entrega #1974-#1993 pelo 5014 comum | eu |
 | 59 | Life on the Farm | 0 / 1 | 2 (262, 859) | `checkCount` | sim | farm.py QUEST_PLANT | — | eu |
 | 60 | Harvest from your own farm | 0 / 2; 1 / 2 | 4 (263, 266, 860, 861) | `checkCount` | sim | handlers/farm.py (op 4 e 5) | Para1 exato: 0 colher a própria, 1 roubar de amigo | castelo.md |
 | 61 | Pest Extermination | 1 / 2 | 2 (267, 862) | `checkCount` | sim | farm.py QUEST_BUG (só a praga) | — | eu |

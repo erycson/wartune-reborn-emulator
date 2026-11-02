@@ -27,23 +27,23 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Castelo | 12 | 2 | 6 | 0 | 3 |
 | Herói e exército | 14 | 9 | 5 | 1 | 4 |
 | Pets | 5 | 4 | 1 | 1 | 2 |
-| Itens | 13 | 2 | 11 | 0 | 2 |
+| Itens | 14 | 2 | 11 | 0 | 2 |
 | Lojas e mercado | 8 | 3 | 1 | 0 | 1 |
 | Chat e social | 6 | 1 | 5 | 0 | 1 |
 | Clã / Guilda | 10 | 0 | 11 | 0 | 1 |
 | Campanhas e masmorras | 7 | 7 | 9 | 1 | 3 |
 | Labirinto (Forgotten Catacombs) | 4 | 1 | 5 | 0 | 3 |
 | Batalha | 5 | 6 | 2 | 1 | 1 |
-| Missões | 12 | 3 | 2 | 4 | 0 |
+| Missões | 13 | 3 | 2 | 3 | 0 |
 | Tutorial | 2 | 0 | 1 | 0 | 0 |
 | Mapa do mundo (cidade externa) | 4 | 2 | 11 | 0 | 2 |
 | Mundo compartilhado | 4 | 1 | 1 | 0 | 2 |
 | PvP e chefes | 1 | 2 | 5 | 1 | 2 |
-| Atividades e eventos | 5 | 10 | 12 | 1 | 5 |
+| Atividades e eventos | 5 | 11 | 11 | 1 | 5 |
 | VIP | 1 | 0 | 6 | 0 | 0 |
 | Veículos (Tank Trials) | 4 | 1 | 0 | 0 | 1 |
 | Conta e segurança | 3 | 1 | 2 | 2 | 1 |
-| **Total** | **121** | **58** | **96** | **12** | **34** |
+| **Total** | **123** | **59** | **95** | **11** | **34** |
 
 ## Validação e base
 
@@ -147,6 +147,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Pergaminhos de EXP, ouro e população | ✅ | | ordem vista em 191924 (#1737, #2241, #3379) |
 | Pergaminhos de outros efeitos | 🧪 | | % de ataque/defesa/vida/crítico e tropa (46) na luta, honra (48) no campo; 2000 Camouflage é só aparência (4188) |
 | Poções de atributo | 🟡 | | ordem do inglês: 115, 150, 4434, 110, 150, 4188, 150, 3 (191924 #1737, Crit Scroll) e sem o 1º 150 no EXP (#2241); o cliente não define ordem (PlayerEffectHelper ignora o 110). Sem captura: ouro/população e o 8283 |
+| Soul Engraving (8484) | ✅ | | nível por custo de cada nível (`UpGradeTempInfos` Types 15, `Data` do N = custo de N-1 a N; `storeGp` = EXP dentro do nível: 566 -> 7/1, +100 -> 7/101), ordem 115, 4484, 3, 3, 4902, 150, 111, 112, 4385 (`ItemUseStoreRspMsg`), 83 na subida e 115, 3, 111, 4385, 83 sem (20261101-220132-1 #1962-#2003); bônus nas gemas do herói pelo cliente (`GoodsCheck.getGemAdd`: `getJewelEffecyByGrade`, `rules.engraved`); ramo sênior (grau 80+ com vocação) fora |
 | Cristal, guilda e Token de proteção (5006) | 🧪 | | 203 tipo 11 (Kyanite Pack -> cristais) e tipo 8 (Contribution Badge -> contribuição, 115/42/111/3 e "Received:Guild Contribution x1350" vistos na 183522 #15178), texto do Kyanite TODO(inventado); o City Protection Token já ia (`items.py` PROTECTION, Trégua); 203 tipo 9 (soldados do PawnTempInfos Property3 no castelo, sem conferir população TODO(inventado)), 14 (um contrato do rei por Property2 horas, `vip.use_covenant`) e 16 (Medallion: +500 de honra) |
 | Títulos (4484/8597) | 🧪 | | contadores (vitórias no coliseu, abates no campo, guerra de guildas, astral 10, catacumbas, necrópole), rankings (poder geral e por classe, coliseu, cross, pesca, gemas), posse de item/montaria e recorde do labirinto (`titles.py`); rankings de honra, charme, força da montaria e Sylph (pontuação `rank:*` gravada no login/8597; Sylph pelo nível do pet, inventado), golpe final no chefe do mundo e líder da guilda vencedora da guerra; sem sistema: guerra de classes, arena de Sylph, Hero Returns, guerra entre servidores e monstros dos Wilds |
 | Forja: reforço (5150) | ✅ |  | sucesso e falha no inglês (171155 #2323-#2384), igual ao turco |
@@ -305,7 +306,7 @@ Levantado em 24/10/2026 a partir das docs e dos marcadores do código (`(visto)`
 | Arena e batalhas (93) | ❌ | | 93 Sky Trail sem sistema identificado no cliente (TODO em rules.py) |
 | Equipamento, forja e runa (17, 18, 19, 46, 47, 77) | ✅ | | forge.py (5150, 5151, 5153, 8336, 8340) e hero.py (77 nas pedras gastas) |
 | Demais tipos (12, 21, 56, 57, 59, 61, 64, 65, 71, 74, 86, 91) | ✅ | | 64 alquimia (8321), 65 alquimia de Daru (8467), 74 entrada na Spire, 86 coleta na mina de ametista (5032), 91 exploração (9502 op 3); os demais já ligados; posição do 112 inventada |
-| Demais tipos (58, 90) | ❌ | | sem a ação no servidor: 58 Soul Engraving (sem tela no cliente), 90 gemas da guarda (8742); TODO em rules.py (89 Lost Treasure conta no treasure.py) |
+| Demais tipos (58, 90) | ✅ | | 58 Soul Engraving: +1 por 8484 (`items.use_store`, 112 visto na 20261101-220132-1 #1970, entrega da 858 #1974-#1993); 90 gemas da guarda no 8742 (`tower.py`); 89 Lost Treasure conta no treasure.py |
 | Janelas fechadas e Koyu Kristal | ❌ | | |
 | Mini-client (33) e celular (48) | ❌ | | |
 

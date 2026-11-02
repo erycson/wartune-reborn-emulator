@@ -66,6 +66,32 @@ def strengthened(row: Row, grade: int) -> Row:
     return out
 
 
+# Soul Engraving (cliente GoodsCheck.getGemAdd): cada atributo destes da gema do herói ganha int(v × efeito / 100)
+JEWEL_STATS = ("Attack", "MagicAttack", "Defence", "MagicDefence", "ForceHit", "Conat", "Live", "Parry")
+
+
+def jewel_effect(grade: int) -> int:
+    """% da Soul Engraving no nível ``grade`` (cliente ``GoodsHelp.getJewelEffecyByGrade``)."""
+    if grade <= 50:
+        return grade * 2
+    if grade <= 70:
+        return (grade - 50) * 3 + 100
+    return (grade - 70) * 4 + 160 if grade <= 80 else 0
+
+
+def engraved(row: Row, grade: int) -> Row:
+    """Gema engastada no herói com o bônus da Soul Engraving (``thane.jewelGrades`` = ``storeGrade``).
+    shortcut: o ramo sênior (grau >= 80 com vocationGrades, getSeniorJewelEffecyByGrade) fica de fora até haver
+    seniorStoreGrade no servidor."""
+    if (pct := jewel_effect(grade)) <= 0:
+        return row
+    out = dict(row)
+    for k in JEWEL_STATS:
+        if (v := int(row.get(k) or 0)) > 0:
+            out[k] = str(v + int(v * pct / 100))
+    return out
+
+
 # PetInfoMsg.bag*: o PetData soma cada um no ataque/defesa/vida mostrados (equipPhysicalAttack...)
 PET_EQUIP_STATS = {"Attack": "bagAttack", "Defence": "bagDefence", "MagicAttack": "bagMagicattack"}
 PET_EQUIP_STATS |= {"MagicDefence": "bagMagicdefence", "Live": "bagLiving"}
@@ -103,7 +129,7 @@ def equipment(snap: PlayerSnapshot, templates: GameTemplates) -> list[Row]:
                 rows.append(bonus)
         for gem in item.joins:
             if gem > 0 and (stone := templates.get("ItemTempInfos", gem)) is not None:
-                rows.append(stone)
+                rows.append(engraved(stone, snap.character.store_grade))
     # moda identificada: o livro inteiro soma, vestida ou não (cliente FashionModel.getIdentityedProperties)
     for book in snap.fashions if leader is not None else []:
         if book.appraisal_skill and (bonus := templates.get("SkillPropertyTempInfos", book.appraisal_skill)):
@@ -486,9 +512,9 @@ EXPLORE_CONDITION = 91  # 930 "Click Explore -> Go on an exploration": 9502 op 3
 RESIST_CRYSTAL_CONDITION = 90  # 926 "Socket Resistance Crystal": gema 101..106 na guarda de batalha (tower, 8742)
 LOST_TREASURE_CONDITION = 89  # 925 "Lost Treasure": entrar na luta do mapa do tesouro (8744 op 3/5, reforço 8745)
 ARENA_PARTY_CONDITION = 16  # 421/422 "Arena (Party)": cada luta da sala PvP, vitória ou derrota (arena_grupo)
-# Sem a ação no servidor (contam quando ela existir):
-# TODO(58): "Soul Engraving" 858: o cliente decompilado só tem GoodsSonType SOUL_CRYSTAL 293, sem tela nem pacote
+# 858 "Soul Engraving": +1 por 8484 (items.use_store); (visto) 20261101-220132-1 #1970 condition_1 1 depois de um uso
 ENGRAVE_CONDITION = 58
+# Sem a ação no servidor (contam quando ela existir):
 # TODO(93): "Win a Sky Trail battle" 932 (General William, Cloud City): sistema não identificado; (dedução) candidato
 # as fases do SinglePass (8753/8755), que não existem (handlers/singlepass.py)
 SKY_TRAIL_CONDITION = 93

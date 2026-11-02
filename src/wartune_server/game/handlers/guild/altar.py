@@ -177,18 +177,19 @@ async def bless(s: GameSession, msg: pb.SimplePropertyMsg) -> None:
         s.send(S_MINE, pb.ChatChannelMsg(channel=MINE, encodeMsg=text))
     from .. import events  # handlers.events importa login, que importa a guilda
 
-    # (visto) oficial_20261024-121659-1 #549-#553 e #576-#580: 3, 4152 do leed, 45 e o 83 da devoção depois do 45
+    # (visto) oficial_20261024-121659-1 #549-#553 e #576-#580: 3, 4152 do leed, 45 e o 83 da devoção depois do 45;
+    # com a missão 241 aberta (20261101-220132-1 #181-#184) o 112 vai entre o 4152 e o 45
     _player(s)
     devotion = events.devotion(s)
     await events.leed_done(s, events.BLESS_LEED, say=False)  # LeedTemp 12 "Perform a guild blessing" (PassCount 2)
+    if quests:
+        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     s.send(
         S_BLESS,
         b.complete(
             pb.ConsortiaMsg(blessLeftTime=used + n, blessSite=sites.index(site), blessTempId=prize, blessCount=count)
         ),
     )
-    if quests:
-        s.send(S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     if events.devotion(s) > devotion:
         events.say_devotion(s)
     if not shout:
