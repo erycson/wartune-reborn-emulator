@@ -432,22 +432,45 @@ class Battle:
 
     # -- montagem --------------------------------------------------------------------------
 
-    def _with_army(self, spec: dict[str, Any], player: PlayerHero | None) -> dict[str, Any]:
-        """Troca as pilhas da tropa do jogador gravadas na spec (as da captura) pelas do exército atual.
-        (dedução) só onde a spec já tem pilhas: nas lutas roteirizadas sem tropa os livingIds são outros."""
+
+    def _with_army(
+        self, spec: dict[str, Any], player: PlayerHero | None
+    ) -> dict[str, Any]:
+        """Replace the player's troop stacks while preserving encounter IDs and positions."""
         if player is None or player.army is None:
             return spec
-        army_ids = {u["livingId"] for u in player.army}
-        mine = [
+
+        # The friendly soldier entries in the encounter define the
+        # positions and livingIds reserved for the player's army.
+        slots = [
             s for s in spec["soldiers"]
-            if s["side"] == PLAYER_SIDE and s["livingId"] in army_ids
+            if s["side"] == PLAYER_SIDE
         ]
-        if not mine:
+        if not slots:
             return spec
-        others = [s for s in spec["soldiers"] if s not in mine]
+
+        others = [
+            s for s in spec["soldiers"]
+            if s["side"] != PLAYER_SIDE
+        ]
+
+        # Use the player's actual troops, but retain the encounter's
+        # original livingIds and positions.
+        army = [
+            {
+                **unit,
+                "livingId": slot["livingId"],
+                "pos": slot["pos"],
+            }
+            for unit, slot in zip(player.army, slots)
+        ]
+
         if self._player_msg is not None:
-            self._player_msg.pawnTempId = int(player.army[0]["tempId"]) if player.army else 0
-        return spec | {"soldiers": [*player.army, *others]}
+            self._player_msg.pawnTempId = (
+                int(army[0]["tempId"]) if army else 0
+            )
+
+        return spec | {"soldiers": [*army, *others]}
 
     def _with_pet(self, player: PlayerHero, pet: Mapping[str, Any]) -> dict[str, Any]:
         """O mascote entra nos ``pets`` com o primeiro livingId livre; ele e o herói se apontam pelo ``livingId2``
