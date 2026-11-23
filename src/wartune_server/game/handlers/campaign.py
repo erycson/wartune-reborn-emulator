@@ -2043,7 +2043,12 @@ async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if not c.run.rewarded:
         s.log.info("5122 sem prêmio: campanha em grupo sem a entrada do dia")
         return  # fora do fim da masmorra, ou a carta já saiu: uma só por etapa
-    cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
+    cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {
+        "sceneType": "SINGLE_CAMPAIGN_MAP_SCENE",
+        "cardCount": 5,
+        "payCardCount": 5,
+        "price": 0,
+    }
     if not 0 <= msg.paraInt2 < int(cards.get("cardCount", 0)):
         return
     # ``paraBool1`` (isPay) não é carta paga no cliente inglês: o ``ChestItemView.isPay`` nunca vira true e só o
