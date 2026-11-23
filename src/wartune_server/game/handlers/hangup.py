@@ -38,7 +38,7 @@ from .player import _player
 
 S_HANGUP_LEFT, S_HANGUP_STATE, S_HANGUP_ROOM, S_HANGUP_ARMIES, S_HANGUP_TICK = 4199, 4200, 4204, 4206, 4235
 S_ROOM_ENTER, S_EXIT, S_CONFIRM, S_ROOM_CREATED, S_NODES, S_FOG = 21, 22, 29, 125, 127, 130
-ROOM_ENTER = 1  # RoomCreatedMsg.createdType
+ROOM_ENTER = 1   # RoomCreatedMsg.createdType
 HOOK_TYPE = 3  # Campaigns.Types das salas do gancho (7001-7009): o HookFrame desenha uma por campanha
 MIN_GRADE = 21  # OpenGradesII.HOOK
 HOOK_NODE = 111  # PosType.HOOK_NODE
@@ -179,6 +179,14 @@ async def confirm(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     node = c.node(msg.paraInt2)
     if not msg.paraBool1 or node is None or node["masterType"] != HOOK_NODE or s.hangup is not None:
         return
+    # The level-21 Hall tutorial can stop at the room transition without
+    # saving checkpoint 41000. The guide targets statue 700803 in room 7008.
+    # Save only when the player confirms that interaction, and only if the
+    # tutorial is at its starting checkpoint; never rewind later progress.
+    if c.map_id == 7008 and node["campDataId"] == 700803 and snap.character.novice_process == 40000:
+        snap.character.novice_process = 41000
+        await s.ctx.characters.save(snap.character)
+        _player(s)
     now = s.ctx.clock.now()
     rest = left(s, now)
     if rest == 0 or snap.character.weary >= snap.character.weary_limit:
