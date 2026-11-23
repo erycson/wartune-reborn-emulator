@@ -1753,6 +1753,13 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
     for target, action in actions:
         t = c.node(target)
         assert t is not None
+        # Never reactivate defeated nodes.
+        if t["state"] == DONE:
+            continue
+
+        # Avoid refreshing nodes that are already active.
+        if action == SHOW and t["state"] == NORMAL:
+            continue
         if action == 0:  # DISAPPEARD: o gatilho some (tutorial_en #1412)
             movie = pb.PlayerMovieMsg(
                 movieTargetType=0, targetId=t["nodeId"], movieType="DISAPPEARD", delay=DISAPPEAR_DELAY
@@ -1988,7 +1995,12 @@ async def _dungeon_end(s: GameSession) -> None:
     _send(s, S_RANK, ranks(s))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp + report.vipJoin)))
     if not tower:
-        cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
+        cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {
+            "sceneType": "SINGLE_CAMPAIGN_MAP_SCENE",
+            "cardCount": 5,
+            "payCardCount": 5,
+            "price": 0,
+        }
         card_msg = ParseDict(cards, pb.CampaignCardsMsg())
 
         asyncio.get_running_loop().call_later(
