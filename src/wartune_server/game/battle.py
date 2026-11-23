@@ -437,7 +437,11 @@ class Battle:
         (dedução) só onde a spec já tem pilhas: nas lutas roteirizadas sem tropa os livingIds são outros."""
         if player is None or player.army is None:
             return spec
-        mine = [s for s in spec["soldiers"] if is_player_troop(self.templates, s)]
+        army_ids = {u["livingId"] for u in player.army}
+        mine = [
+            s for s in spec["soldiers"]
+            if s["side"] == PLAYER_SIDE and s["livingId"] in army_ids
+        ]
         if not mine:
             return spec
         others = [s for s in spec["soldiers"] if s not in mine]

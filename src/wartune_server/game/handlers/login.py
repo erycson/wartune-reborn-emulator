@@ -90,6 +90,12 @@ def army(s: GameSession, snap: PlayerSnapshot) -> tuple[pb.ArmyArmyMsg, int]:
     if mount and rest is not None and rest.value:
         mount = 0
     msg = b.army_msg(snap, castle, hero, stats.fighting_capacity, arm, pawn, mount)
+    msg.cloth = rules.cloth_avatar(snap, templates)
+    msg.wing = rules.avatar(snap, templates, rules.WING)
+    msg.hat = rules.avatar(snap, templates, rules.HAT)
+    msg.fashionArm = hero.fashionArm
+    msg.fashionCloth = hero.fashionCloth
+    msg.hide = leader.hide_fashion
     if pet := next((p for p in snap.pets if p.is_fight), None):  # o pet em batalha (só turco: login.json #5)
         msg.petTempId, msg.petQuqlity, msg.petName = pet.template_id, pet.quality, pet.name
     return msg, stats.fighting_capacity
@@ -339,6 +345,9 @@ async def _login_state(s: GameSession) -> None:
     _send(s, S_LOGIN_SYNC_MAPID, pb.SimplePropertyMsg(param1=10000))
     _send(s, S_ARMY, army(s, snap)[0])
     _send(s, S_LOGIN_STATE, pb.LoginStateMsg(playerId=s.player_id, state=0))
+    from .fashion import appearance
+
+    s.send(149, appearance(s, snap))
     # (visto) a cidade do céu logo depois do 6, antes do 4151, só depois do tutorial: oficial_20261023-171155-1
     # #92-#94 (noviceProcess 33000, exército no mapa 1); oficial_encantar #98-#99 (28500, exército na instância do
     # castelo) vai do 6 direto ao 4151, sem 4595 na sessão inteira

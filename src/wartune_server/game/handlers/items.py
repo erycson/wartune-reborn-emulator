@@ -560,7 +560,7 @@ async def _box_items(s: GameSession, box: Item, n: int, stones: dict[int, int]) 
 
 _NAMES: dict[int, dict[str, int]] = {}  # id(templates) -> nome normalizado -> TemplateId (o menor)
 _FIXED = re.compile(r"\b(?:Contents|Contains|containing):\s*", re.I)
-_ONE_OF = re.compile(r"one of the following(?: items)?:\s*", re.I)
+_ONE_OF = re.compile(r"one of the following(?: items| rewards)?:\s*", re.I)
 _MAYBE = re.compile(r"chance|may contain|random", re.I)
 _TOKEN = re.compile(r"^(?:(\d[\d,]*) (.+)|(.+?) ?[x×\*] ?(\d[\d,]*)|(.+))$")  # sem número: 1
 
