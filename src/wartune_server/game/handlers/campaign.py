@@ -1714,6 +1714,36 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
     c = _map(s)
     node = c.node(camp)
     assert node is not None
+    # Remove barriers whose monster dependencies are all defeated.
+    for barrier in c.nodes.values():
+        if barrier["masterType"] != cm.TRIGGER:
+            continue
+
+        dependencies = [
+            int(x)
+            for x in str(barrier.get("param3", "")).split("|")
+            if x.isdigit()
+        ]
+
+        if (
+            camp in dependencies
+            and barrier["state"] == NORMAL
+            and all(
+                dep in c.nodes and c.nodes[dep]["state"] == DONE
+                for dep in dependencies
+            )
+        ):
+            _send(
+                s,
+                S_MOVIE,
+                pb.PlayerMovieMsg(
+                    movieTargetType=0,
+                    targetId=barrier["nodeId"],
+                    movieType="DISAPPEARD",
+                    delay=0,
+                ),
+            )
+            _node_update(s, barrier["campDataId"], DONE, fresh=True)
     if any(c.nodes[g]["state"] != DONE for g in group_of(node) if g in c.nodes):
         return  # ainda há monstro de pé
     actions = unlock_actions(node)
@@ -1957,9 +1987,16 @@ async def _dungeon_end(s: GameSession) -> None:
     _send(s, S_REPORT, report)
     _send(s, S_RANK, ranks(s))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp + report.vipJoin)))
-    if not tower:  # torres: sem carta, o prêmio é o baú por luta (internet, docs/fontes-internet.md)
+    if not tower:
         cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
-        _send(s, S_CARDS, ParseDict(cards, pb.CampaignCardsMsg()))
+        card_msg = ParseDict(cards, pb.CampaignCardsMsg())
+
+        asyncio.get_running_loop().call_later(
+            6,
+            lambda: _send(s, S_CARDS, card_msg)
+            if s.campaign is c and c.finished
+            else None,
+        )
     if quests:
         _send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     c.buffs = []
