@@ -202,8 +202,11 @@ def _start_collect(s: GameSession, node: Row) -> bool:
     que no fim manda o 8733 (``SocketSendManager.sendSpaceCollectOver``)."""
     from . import offer  # offer importa player, que importa este módulo
 
+    if node["Param3"].split(",")[0] != COLLECT_NODE:
+        return False
+
     item = int(node.get("Param4") or 0)
-    if node["Param3"].split(",")[0] != COLLECT_NODE or not item or not offer.ring_collects(s, item):
+    if not item or not offer.ring_collects(s, item):
         return False
     s.space_collect = (int(node["Id"]), s.ctx.clock.now())
     s.send(S_MOVIE, pb.PlayerMovieMsg(movieTargetType=0, targetId=int(node["Id"]), movieType="COLLECTION"))
