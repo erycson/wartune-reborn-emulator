@@ -1690,6 +1690,10 @@ def _map_finished(c: CampaignMap, camp: int) -> bool:
     assert node is not None
     if node["masterType"] == BOSS:
         return True
+    # A dungeon with a boss must not finish when an ordinary
+    # monster group is defeated.
+    if any(n["masterType"] == BOSS for n in c.nodes.values()):
+        return False
     group = group_of(node)
     if not group or any(c.nodes[g]["state"] != DONE and g != camp for g in group if g in c.nodes):
         return False
