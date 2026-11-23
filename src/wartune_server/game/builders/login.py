@@ -19,6 +19,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
 from .. import events as ev
 from .. import torres
+from ...domain import gameday
 
 NEVER = "2000-01-01 00:00:00"
 MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2: tutorial_en)
@@ -325,8 +326,10 @@ def castle_msg(snap: PlayerSnapshot, castle: Castle, defence: int = 0) -> pb.Bas
 
 
 def system_property(now: datetime, opened_at: datetime) -> pb.SystemPropertyMsg:
-    return pb.SystemPropertyMsg(sysCurtime=fmt_time(now), sysStarTime=fmt_time(opened_at))
-
+    return pb.SystemPropertyMsg(
+        sysCurtime=fmt_time(gameday.local(now)),
+        sysStarTime=fmt_time(gameday.local(opened_at)),
+    )
 
 def buildings_msg(
     snap: PlayerSnapshot,

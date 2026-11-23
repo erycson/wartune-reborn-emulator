@@ -21,6 +21,7 @@ from ..router import router
 from ..session import GameSession
 from .login import army, player_info
 from .space import talk
+from ...domain import gameday
 
 S_PLAYER, S_FULL_ARMY, S_QUESTS, S_ITEMS, S_QUEST_DONE = 3, 150, 112, 115, 52
 S_EFFECT, S_POLITICS, S_BUILDINGS = 110, 152, 4130
@@ -256,7 +257,7 @@ async def synchronized_time(s: GameSession, _: object) -> None:
 
         _army_refresh(s, now)
         rate_refresh(s, now)
-    s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(now)))
+    s.send(S_TIME, pb.SynchronizedTimeMsg(sysCurtime=b.fmt_time(gameday.local(now))))
     roll_monsters(s)
     if s.snapshot is not None and s.snapshot.castle is not None:
         await refresh(s, push=True)
