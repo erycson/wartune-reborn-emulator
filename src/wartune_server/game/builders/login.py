@@ -19,6 +19,7 @@ from ...protocol.messages import wartune_pb2 as pb
 from ...templates.repository import GameTemplates, HeroTemplate, Row
 from .. import events as ev
 from .. import torres
+from ...domain import gameday
 
 NEVER = "2000-01-01 00:00:00"
 MAX_IMPOSE = 5  # cobranças de ouro por dia (901 propterty2: tutorial_en)
@@ -297,8 +298,8 @@ def brief_army(full: pb.ArmyArmyMsg, job: int, hero_template: int, state: int) -
         armyId=full.armyId, playerId=full.playerId, nickName=full.nickName, mapId=full.mapId,
         curPosX=full.curPosX, curPosY=full.curPosY, state=state, type=full.type, consortiaId=0,
         consortiaName="", fightingCapacity=full.fightingCapacity, gpOrder=0, grades=full.grades, arm=full.arm,
-        cloth="", job=job, changeSharp=0, heroTempId=hero_template, geste=0, isVip=False, vipType=0,
-        mountTempId=full.mountTempId, mountGrade=0, wing="", hat="", fashionArm="", fashionCloth="", hide=False,
+        cloth=full.cloth, job=job, changeSharp=0, heroTempId=hero_template, geste=0, isVip=False, vipType=0,
+        mountTempId=full.mountTempId, mountGrade=0, wing=full.wing, hat=full.hat, fashionArm=full.fashionArm, fashionCloth=full.fashionCloth, hide=full.hide,
         appellid=0, fateSkills="", petTempId=full.petTempId, petQuqlity=full.petQuqlity, petName=full.petName,
     )  # fmt: skip
 
@@ -325,8 +326,10 @@ def castle_msg(snap: PlayerSnapshot, castle: Castle, defence: int = 0) -> pb.Bas
 
 
 def system_property(now: datetime, opened_at: datetime) -> pb.SystemPropertyMsg:
-    return pb.SystemPropertyMsg(sysCurtime=fmt_time(now), sysStarTime=fmt_time(opened_at))
-
+    return pb.SystemPropertyMsg(
+        sysCurtime=fmt_time(gameday.local(now)),
+        sysStarTime=fmt_time(gameday.local(opened_at)),
+    )
 
 def buildings_msg(
     snap: PlayerSnapshot,

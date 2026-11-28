@@ -602,14 +602,14 @@ def player_hero(
         nickName=leader.nickname,
         grade=leader.grades,
         side=1,
-        pos=outer_city.hero_pos(leader.fight_pos) if player["pos"] == outer_city.FRONT_HERO_POS else player["pos"],
+        pos=outer_city.hero_pos(leader.fight_pos) if player["pos"] in (4, 6) else player["pos"],
         maxHp=live,
         initHp=hp,
         hp=hp,
         hp2=0,
         sp=s.hero_sp,
         slotAvata=rules.arm_avatar(snap, s.ctx.templates),
-        clothAvate="",
+        clothAvate=rules.cloth_avatar(snap, s.ctx.templates),
         cloakPath="",
         hairPath="",
         captain=stats.total["ConatArmy"],
@@ -620,9 +620,11 @@ def player_hero(
         headId=0,
         isShow=False,
         serverName=snap.server.name,
-        wingAvata="",
-        fashionArmAvata="",
-        fashionClothAvata="",
+        wingAvata=rules.avatar(snap, s.ctx.templates, rules.WING),
+        hatAvata=rules.avatar(snap, s.ctx.templates, rules.HAT),
+        fashionArmAvata=rules.avatar(snap, s.ctx.templates, rules.FASHION_ARM),
+        fashionClothAvata=rules.avatar(snap, s.ctx.templates, rules.FASHION_CLOTH),
+        hide=leader.hide_fashion,
         awake=leader.awake,
         livingId2=0,  # a batalha põe o livingId do mascote
         fateSkillTempIds="",
@@ -1688,6 +1690,10 @@ def _map_finished(c: CampaignMap, camp: int) -> bool:
     assert node is not None
     if node["masterType"] == BOSS:
         return True
+    # A dungeon with a boss must not finish when an ordinary
+    # monster group is defeated.
+    if any(n["masterType"] == BOSS for n in c.nodes.values()):
+        return False
     group = group_of(node)
     if not group or any(c.nodes[g]["state"] != DONE and g != camp for g in group if g in c.nodes):
         return False
@@ -1708,6 +1714,36 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
     c = _map(s)
     node = c.node(camp)
     assert node is not None
+    # Remove barriers whose monster dependencies are all defeated.
+    for barrier in c.nodes.values():
+        if barrier["masterType"] != cm.TRIGGER:
+            continue
+
+        dependencies = [
+            int(x)
+            for x in str(barrier.get("param3", "")).split("|")
+            if x.isdigit()
+        ]
+
+        if (
+            camp in dependencies
+            and barrier["state"] == NORMAL
+            and all(
+                dep in c.nodes and c.nodes[dep]["state"] == DONE
+                for dep in dependencies
+            )
+        ):
+            _send(
+                s,
+                S_MOVIE,
+                pb.PlayerMovieMsg(
+                    movieTargetType=0,
+                    targetId=barrier["nodeId"],
+                    movieType="DISAPPEARD",
+                    delay=0,
+                ),
+            )
+            _node_update(s, barrier["campDataId"], DONE, fresh=True)
     if any(c.nodes[g]["state"] != DONE for g in group_of(node) if g in c.nodes):
         return  # ainda há monstro de pé
     actions = unlock_actions(node)
@@ -1717,6 +1753,13 @@ def _dungeon_unlock(s: GameSession, camp: int) -> None:
     for target, action in actions:
         t = c.node(target)
         assert t is not None
+        # Never reactivate defeated nodes.
+        if t["state"] == DONE:
+            continue
+
+        # Avoid refreshing nodes that are already active.
+        if action == SHOW and t["state"] == NORMAL:
+            continue
         if action == 0:  # DISAPPEARD: o gatilho some (tutorial_en #1412)
             movie = pb.PlayerMovieMsg(
                 movieTargetType=0, targetId=t["nodeId"], movieType="DISAPPEARD", delay=DISAPPEAR_DELAY
@@ -1951,9 +1994,21 @@ async def _dungeon_end(s: GameSession) -> None:
     _send(s, S_REPORT, report)
     _send(s, S_RANK, ranks(s))
     _send(s, S_CHAT, pb.ChatChannelMsg(channel=3, encodeMsg=_exp_text(report.totalGp + report.vipJoin)))
-    if not tower:  # torres: sem carta, o prêmio é o baú por luta (internet, docs/fontes-internet.md)
-        cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
-        _send(s, S_CARDS, ParseDict(cards, pb.CampaignCardsMsg()))
+    if not tower:
+        cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {
+            "sceneType": "SINGLE_CAMPAIGN_MAP_SCENE",
+            "cardCount": 5,
+            "payCardCount": 5,
+            "price": 0,
+        }
+        card_msg = ParseDict(cards, pb.CampaignCardsMsg())
+
+        asyncio.get_running_loop().call_later(
+            6,
+            lambda: _send(s, S_CARDS, card_msg)
+            if s.campaign is c and c.finished
+            else None,
+        )
     if quests:
         _send(s, S_QUESTS, quest_update(quests, rules.quest_bitmap(snap)))
     c.buffs = []
@@ -1988,7 +2043,12 @@ async def take_card(s: GameSession, msg: pb.CampaignReqMsg) -> None:
     if not c.run.rewarded:
         s.log.info("5122 sem prêmio: campanha em grupo sem a entrada do dia")
         return  # fora do fim da masmorra, ou a carta já saiu: uma só por etapa
-    cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {}
+    cards = (c.content or {})["maps"][str(c.map_id)].get("cards") or {
+        "sceneType": "SINGLE_CAMPAIGN_MAP_SCENE",
+        "cardCount": 5,
+        "payCardCount": 5,
+        "price": 0,
+    }
     if not 0 <= msg.paraInt2 < int(cards.get("cardCount", 0)):
         return
     # ``paraBool1`` (isPay) não é carta paga no cliente inglês: o ``ChestItemView.isPay`` nunca vira true e só o

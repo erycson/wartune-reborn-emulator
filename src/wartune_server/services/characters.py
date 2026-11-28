@@ -40,7 +40,7 @@ from .clock import Clock, SystemClock
 
 NICK_MIN, NICK_MAX = 2, 14  # nomes de guilda
 # nome de personagem: (cliente) MainFigureView.loadCheckNickname e RenameView, 4 a 12 de StringUtils.checkStringLength
-NAME_MIN, NAME_MAX = 4, 12
+NAME_MIN, NAME_MAX = 2, 12
 NAME_TAKEN = "Character name already in use."  # (cliente) noviceII.node.AddUserNameFrame.describt07
 _FORBIDDEN = re.compile(r"[<>&\"'|\\/%\s]")
 

@@ -559,8 +559,7 @@ def send_blood(s: GameSession) -> None:
     snap = s.snapshot
     assert snap is not None and snap.leader is not None
     hp = b.hero_hp(snap.leader, rules.leader_stats(snap, s.ctx.templates, s.ctx.clock.now()).live)
-    send(
-        s,
+    s.send(
         S_HERO,
         pb.SimpleHeroInfoMsg(heroId=snap.leader.id or 0, hp=hp, blood=snap.leader.blood, bloodId=snap.leader.blood_id),
     )

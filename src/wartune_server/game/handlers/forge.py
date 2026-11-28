@@ -665,13 +665,15 @@ async def transform(s: GameSession, msg: pb.StoreReqMsg) -> None:
     )
     n, gold = msg.count, (int(level.get("CostGold") or 0) * msg.count if level else 0)
     ok = level is not None and msg.srcItemid != msg.desItemid and 1 <= n <= MAX_COMPOSE
-    if not ok or bag.count_of(snap, msg.srcItemid) < n or c.gold < gold:
+    source = bag.at(snap, BagType.STORE, 0, 0)
+    if not ok or source is None or source.template_id != msg.srcItemid or source.count != n or c.gold < gold:
         s.log.info("8538 recusado", pedido=str(msg))
         return
     if not bag.fits(snap, templates, [(msg.desItemid, n)], now):  # conferido antes de consumir
         s.log.info("8538 recusado: mochila cheia", pedido=str(msg))
         return
-    changed, gone = bag.take(snap, msg.srcItemid, n)
+    gone = [source] if bag.take_one(snap, source, n) else []
+    changed = [] if gone else [source]
     c.gold -= gold
     got = bag.add(snap, templates, msg.desItemid, n, now)
     await s.ctx.characters.save(c, *changed, *got, delete=tuple(gone))
